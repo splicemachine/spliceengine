@@ -46,88 +46,88 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 public class AutoIncrementTest extends BaseJDBCTestCase {
-	public static final String SCHEMA_NAME = AutoIncrementTest.class.getSimpleName().toUpperCase();
-	private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
-	private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
+    public static final String SCHEMA_NAME = AutoIncrementTest.class.getSimpleName().toUpperCase();
+    private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
+    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
 
-	@Rule
-	public SpliceWatcher methodWatcher=new SpliceWatcher(SCHEMA_NAME);
+    @Rule
+    public SpliceWatcher methodWatcher=new SpliceWatcher(SCHEMA_NAME);
 
-	@ClassRule
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-			.around(spliceSchemaWatcher);
+    @ClassRule
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+            .around(spliceSchemaWatcher);
 
-	@BeforeClass
-	public static void createTables() throws Exception {
-		TestConnection conn = spliceClassWatcher.getOrCreateConnection();
-		try( Statement s = conn.createStatement() ) {
-			createSchemaObjects(s);
-		}
-	}
+    @BeforeClass
+    public static void createTables() throws Exception {
+        TestConnection conn = spliceClassWatcher.getOrCreateConnection();
+        try( Statement s = conn.createStatement() ) {
+            createSchemaObjects(s);
+        }
+    }
 
-	Statement createStatement() throws SQLException {
-		return methodWatcher.createStatement();
-	}
+    Statement createStatement() throws SQLException {
+        return methodWatcher.createStatement();
+    }
 
-	void setAutoCommit(boolean value) throws Exception {
-		methodWatcher.setAutoCommit(value);
-	}
+    void setAutoCommit(boolean value) throws Exception {
+        methodWatcher.setAutoCommit(value);
+    }
 
-	private PreparedStatement prepareStatement(String s) throws SQLException {
-		return methodWatcher.prepareStatement(s);
-	}
+    private PreparedStatement prepareStatement(String s) throws SQLException {
+        return methodWatcher.prepareStatement(s);
+    }
 
-	void commit() throws Exception {
-		methodWatcher.commit();
-	}
+    void commit() throws Exception {
+        methodWatcher.commit();
+    }
 
-	public void assertFullResultSet(String sql, String [][] expectedRows)
-			throws SQLException {
-		try(Statement s = createStatement();
-			ResultSet rs = s.executeQuery(sql) ) {
-			JDBC.assertFullResultSet(rs, expectedRows);
-		}
-	}
-
-
-	private void assertStatementError(String expectedErrorCode, String sqlText) throws SQLException {
-		try(Statement s = createStatement()) {
-			testFail(expectedErrorCode, sqlText, s);
-		}
-	}
-
-	/**
-	 * converted from autoincrement.sql.  
-	 * @throws SQLException
-	 */
-	private static void createSchemaObjects(Statement st)
-	throws SQLException
-	{
-		
-		st.executeUpdate("create table ai_zero (i int, a_zero int generated always as identity)");
-		st.executeUpdate("create table ai_one (i int, a_one smallint generated always as identity)");
-		st.executeUpdate("create table ai_two (i int, a_two int generated always as identity)");
-		st.executeUpdate("create table ai_three (i int, a_three int generated always as identity)");
-		st.executeUpdate("create table ai (i  int, autoinc int generated always as identity (start with 100))");
-		st.executeUpdate("create table ai1 (i int, autoinc1 int generated always as identity (increment by 100))");
-		st.executeUpdate("create table ai2 (i int,autoinc2 int generated always as identity (start with 101, increment by 100))");
-		st.executeUpdate("create table ai3 (i int,a11 int generated always as identity (start with  0, increment by -1))");
-		st.executeUpdate("create table ai4 (i int,a21 int generated always as identity (start with  +0, increment by -1))");
-		st.executeUpdate("create table ai5 (i int, a31 int generated always as identity (start with  -1, increment by -1))");
-		st.executeUpdate("create table ai6 (i int, a41 int generated always as identity (start with  -11, increment by +100))");
-		//-- **** simple increment tests.
-		st.executeUpdate("create table ai_short (i int,ais smallint generated always as identity (start with 0, increment by 2))");
-		st.executeUpdate("create table ai_single1 (i int, a0 int generated always as identity (start with  -1, increment by -1))");
-		st.executeUpdate("create table ai_single2 (i int, a1 smallint generated always as identity)");
-		st.executeUpdate("create table ai_single3 (i int, a2 int generated always as identity (start with 0))");
-		st.executeUpdate("create table ai_single4 (i int, a3 bigint generated always as identity(start with  -100, increment by 10))");
+    public void assertFullResultSet(String sql, String [][] expectedRows)
+            throws SQLException {
+        try(Statement s = createStatement();
+            ResultSet rs = s.executeQuery(sql) ) {
+            JDBC.assertFullResultSet(rs, expectedRows);
+        }
+    }
 
 
-		st.executeUpdate("create table ai_test (x int generated always as identity (start with 2, increment by 2),y int)");
+    private void assertStatementError(String expectedErrorCode, String sqlText) throws SQLException {
+        try(Statement s = createStatement()) {
+            testFail(expectedErrorCode, sqlText, s);
+        }
+    }
 
-		st.executeUpdate("create table ai_single1conn (c char(100), a_odd int generated always as identity (start with 1, increment by 2))");
-		st.executeUpdate("create table ai_single2conn (c char(100), a_even int generated always as identity (start with 0, increment by 2))");
-		st.executeUpdate("create table ai_single3conn (c char(100), a_sum bigint generated always as identity (start with 1, increment by 2))");
+    /**
+     * converted from autoincrement.sql.
+     * @throws SQLException
+     */
+    private static void createSchemaObjects(Statement st)
+            throws SQLException
+    {
+
+        st.executeUpdate("create table ai_zero (i int, a_zero int generated always as identity)");
+        st.executeUpdate("create table ai_one (i int, a_one smallint generated always as identity)");
+        st.executeUpdate("create table ai_two (i int, a_two int generated always as identity)");
+        st.executeUpdate("create table ai_three (i int, a_three int generated always as identity)");
+        st.executeUpdate("create table ai (i  int, autoinc int generated always as identity (start with 100))");
+        st.executeUpdate("create table ai1 (i int, autoinc1 int generated always as identity (increment by 100))");
+        st.executeUpdate("create table ai2 (i int,autoinc2 int generated always as identity (start with 101, increment by 100))");
+        st.executeUpdate("create table ai3 (i int,a11 int generated always as identity (start with  0, increment by -1))");
+        st.executeUpdate("create table ai4 (i int,a21 int generated always as identity (start with  +0, increment by -1))");
+        st.executeUpdate("create table ai5 (i int, a31 int generated always as identity (start with  -1, increment by -1))");
+        st.executeUpdate("create table ai6 (i int, a41 int generated always as identity (start with  -11, increment by +100))");
+        //-- **** simple increment tests.
+        st.executeUpdate("create table ai_short (i int,ais smallint generated always as identity (start with 0, increment by 2))");
+        st.executeUpdate("create table ai_single1 (i int, a0 int generated always as identity (start with  -1, increment by -1))");
+        st.executeUpdate("create table ai_single2 (i int, a1 smallint generated always as identity)");
+        st.executeUpdate("create table ai_single3 (i int, a2 int generated always as identity (start with 0))");
+        st.executeUpdate("create table ai_single4 (i int, a3 bigint generated always as identity(start with  -100, increment by 10))");
+
+
+        st.executeUpdate("create table ai_test (x int generated always as identity (start with 2, increment by 2),y int)");
+
+        st.executeUpdate("create table ai_single1conn (c char(100), a_odd int generated always as identity (start with 1, increment by 2))");
+        st.executeUpdate("create table ai_single2conn (c char(100), a_even int generated always as identity (start with 0, increment by 2))");
+        st.executeUpdate("create table ai_single3conn (c char(100), a_sum bigint generated always as identity (start with 1, increment by 2))");
 //
 //		//-- triggers
 //		st.executeUpdate("create table t1 (c1 int generated always as identity, name char(32))");
@@ -151,31 +151,31 @@ public class AutoIncrementTest extends BaseJDBCTestCase {
 //		st.executeUpdate("alter table t3_2 add column x int");
 //		//-- test some more generated column specs
 //		st.executeUpdate("create table trigtest (s1 smallint generated always as identity, lvl int)");
-		st.executeUpdate("create table t1_col (x char(2) default 'yy', y bigint generated always as identity)");
+        st.executeUpdate("create table t1_col (x char(2) default 'yy', y bigint generated always as identity)");
 //		//conn.setAutoCommit(false);
-		st.executeUpdate("create table testme (text varchar(10), autonum int generated always as identity)");
+        st.executeUpdate("create table testme (text varchar(10), autonum int generated always as identity)");
 //		//conn.commit();
-		st.executeUpdate("create table ai_neg (x smallint generated always as identity, y int)");
-		st.executeUpdate("create table ai_over1 (x int, y int generated always as identity (increment by 200000000))");
-		st.executeUpdate("create table ai_over2 (x int, y smallint generated always as identity (start with  -32760, increment by -1))");
-		st.executeUpdate("create table ai_over3 (x int, y int generated always as identity (start with  2147483646))");
-		st.executeUpdate("create table ai_over4 (x int, y bigint generated always as identity(start with     9223372036854775805))");
-		st.executeUpdate("create table base (x int)");
+        st.executeUpdate("create table ai_neg (x smallint generated always as identity, y int)");
+        st.executeUpdate("create table ai_over1 (x int, y int generated always as identity (increment by 200000000))");
+        st.executeUpdate("create table ai_over2 (x int, y smallint generated always as identity (start with  -32760, increment by -1))");
+        st.executeUpdate("create table ai_over3 (x int, y int generated always as identity (start with  2147483646))");
+        st.executeUpdate("create table ai_over4 (x int, y bigint generated always as identity(start with     9223372036854775805))");
+        st.executeUpdate("create table base (x int)");
 //		// testing non-reserved keywords: generated, start, always
 //		// should be successful
 //		st.executeUpdate("create table always (a int)");
 //		st.executeUpdate("create table start (a int)");
 //		st.executeUpdate("create table generated (a int)");
-		st.executeUpdate("create table idt1(c1 int generated always as identity, c2 int)");
-		st.executeUpdate("create table autoinct2 (a int, b int generated always as identity)");
-		st.executeUpdate("create table autoinct1(c1 int generated always as identity)");
-		st.executeUpdate("create table autoinct3(c1 int generated always as identity (increment by 3))");
-		st.execute("create table withinct1(i int, withinct1_autogen int generated always as identity)");
-		st.execute("create table withinct2(i int, withinct2_autogen int generated by default as identity)");
-		st.execute("create table withinctempt1(i int, withinct1_autogen int generated always as identity)");
-		st.execute("create table withinctempt2(i int, withinct2_autogen int generated by default as identity)");
-		st.execute("create table withinct3(i int, withinct3_autogen int generated always as identity(increment by 10))");
-		st.execute("create table withinct4(i int, withinct4_autogen int generated by default as identity(increment by 10))");
+        st.executeUpdate("create table idt1(c1 int generated always as identity, c2 int)");
+        st.executeUpdate("create table autoinct2 (a int, b int generated always as identity)");
+        st.executeUpdate("create table autoinct1(c1 int generated always as identity)");
+        st.executeUpdate("create table autoinct3(c1 int generated always as identity (increment by 3))");
+        st.execute("create table withinct1(i int, withinct1_autogen int generated always as identity)");
+        st.execute("create table withinct2(i int, withinct2_autogen int generated by default as identity)");
+        st.execute("create table withinctempt1(i int, withinct1_autogen int generated always as identity)");
+        st.execute("create table withinctempt2(i int, withinct2_autogen int generated by default as identity)");
+        st.execute("create table withinct3(i int, withinct3_autogen int generated always as identity(increment by 10))");
+        st.execute("create table withinct4(i int, withinct4_autogen int generated by default as identity(increment by 10))");
 //		st.execute("create table variantt1 (c11 int generated always as identity (start with 101, increment by 3), c12 int)");
 //		st.execute("create table variantt2 (c21 int generated always as identity (start with 201, increment by 5), c22 int)");
 //		st.execute("create trigger variantt1tr1 after insert on variantt1 for each row insert into variantt2 (c22) values (1)");
@@ -192,10 +192,10 @@ public class AutoIncrementTest extends BaseJDBCTestCase {
 //		st.execute("create table D1644 (d1644c1 int, d1644c2 int generated by default as identity)");
 //		st.execute("create table D1644_A (d1644_Ac1 int, d1644_Ac2 int generated by default as identity, c3 int)");
 //		st.execute("create table D1644_B (d1644_Bc1 int generated by default as identity)");
-		st.execute("create table d4006 (x varchar(5) default 'abc')");
-		st.execute("create table d4006_a (z int generated always as identity)");
-		st.execute("alter table d4006_a alter column z default 99");
-		st.execute("alter table d4006_a alter column z default null");
+        st.execute("create table d4006 (x varchar(5) default 'abc')");
+        st.execute("create table d4006_a (z int generated always as identity)");
+        st.execute("alter table d4006_a alter column z default 99");
+        st.execute("alter table d4006_a alter column z default null");
 //		st.execute("create table d4419_t1(x int)");
 //		st.execute("insert into d4419_t1 values 1,2");
 //		st.execute("create table d4419_t2(x int)");
@@ -204,766 +204,766 @@ public class AutoIncrementTest extends BaseJDBCTestCase {
 //		st.execute("insert into d4419_t3(x) select * from d4419_t1 union select * from d4419_t2");
 //		st.execute("create table lockt1 (x int, yyyy int generated always as identity (start with  0))");
 //		st.execute("create view lock_table as select cast(username as char(8)) as username, cast(t.type as char(8)) as trantype,cast(l.type as char(8)) as type, cast(lockcount as char(3)) as cnt, mode, cast(tablename as char(12)) as tabname,state, status from  syscs_diag.lock_table l right outer join syscs_diag.transaction_table t on l.xid = t.xid  where t.type='UserTransaction' and l.lockcount is not null");
-		st.execute("create table uniquet1(i int, t1_autogen int generated always as identity(start with 100, increment by 20))");
-		st.execute("create table uniquet2(i int, t2_autogen int generated by default as identity(start with 100, increment by 20))");
-		st.execute("create table uniquetempt1(i int, t1_autogen int generated always as identity(start with 100, increment by 20))");
-		st.execute("create table uniquetempt2(i int, t2_autogen int generated by default as identity(start with 100, increment by 20))");
-		st.execute("create table uniquet3(i int,uniquet3_autogen int generated by default as identity(start with 0, increment by 1) unique)");
-		st.execute("create table uniquet4(i int,uniquet4_autogen int generated by default as identity(start with 0, increment by 1))");
+        st.execute("create table uniquet1(i int, t1_autogen int generated always as identity(start with 100, increment by 20))");
+        st.execute("create table uniquet2(i int, t2_autogen int generated by default as identity(start with 100, increment by 20))");
+        st.execute("create table uniquetempt1(i int, t1_autogen int generated always as identity(start with 100, increment by 20))");
+        st.execute("create table uniquetempt2(i int, t2_autogen int generated by default as identity(start with 100, increment by 20))");
+        st.execute("create table uniquet3(i int,uniquet3_autogen int generated by default as identity(start with 0, increment by 1) unique)");
+        st.execute("create table uniquet4(i int,uniquet4_autogen int generated by default as identity(start with 0, increment by 1))");
 //		st.execute("create unique index idx_uniquet4_autogen on uniquet4(uniquet4_autogen)");
-		st.execute("create table withinctempt3(i int, t1_autogen int generated always as identity(increment by 10))");
-		st.execute("create table withinctempt4(i int, t2_autogen int generated by default as identity(increment by 10))");
-	}
+        st.execute("create table withinctempt3(i int, t1_autogen int generated always as identity(increment by 10))");
+        st.execute("create table withinctempt4(i int, t2_autogen int generated by default as identity(increment by 10))");
+    }
 
-	@Test
-	public void testderbyIncrementTest() throws Exception
-	{
-		String [][]expectedRows={{"A_ZERO","1","1","1"},
-				{"A_ONE","1","1","1"},{"A_TWO","1","1","1"},{"A_THREE","1","1","1"}};
-		String sql = "select COLUMNNAME, AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME in ('A_ZERO','A_ONE', 'A_TWO', 'A_THREE')";
-		assertFullResultSet(sql, expectedRows);
-	}
+    @Test
+    public void testderbyIncrementTest() throws Exception
+    {
+        String [][]expectedRows={{"A_ZERO","1","1","1"},
+                {"A_ONE","1","1","1"},{"A_TWO","1","1","1"},{"A_THREE","1","1","1"}};
+        String sql = "select COLUMNNAME, AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME in ('A_ZERO','A_ONE', 'A_TWO', 'A_THREE')";
+        assertFullResultSet(sql, expectedRows);
+    }
 
-	@Test
-	public void testautoIncSysColTest()  throws Exception
-	{
-		String [][]expectedRows;
-		String sql = "select AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns " +
-				"where COLUMNNAME = 'AUTOINC'";
-		expectedRows=new String[][]{{"100","100","1"}};
-		assertFullResultSet(sql, expectedRows);
+    @Test
+    public void testautoIncSysColTest()  throws Exception
+    {
+        String [][]expectedRows;
+        String sql = "select AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns " +
+                "where COLUMNNAME = 'AUTOINC'";
+        expectedRows=new String[][]{{"100","100","1"}};
+        assertFullResultSet(sql, expectedRows);
 
-		sql = "select AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns " +
-				"where COLUMNNAME = 'AUTOINC1'";
-		expectedRows=new String[][]{{"1","1","100"}};
-		assertFullResultSet(sql, expectedRows);
+        sql = "select AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns " +
+                "where COLUMNNAME = 'AUTOINC1'";
+        expectedRows=new String[][]{{"1","1","100"}};
+        assertFullResultSet(sql, expectedRows);
 
-		sql = "select AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns " +
-				"where COLUMNNAME = 'AUTOINC2'";
-		expectedRows=new String[][]{{"101","101","100"}};
-		assertFullResultSet(sql, expectedRows);
-	}
+        sql = "select AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns " +
+                "where COLUMNNAME = 'AUTOINC2'";
+        expectedRows=new String[][]{{"101","101","100"}};
+        assertFullResultSet(sql, expectedRows);
+    }
 
-	@Test
-	public void testnegative() throws Exception
-	{
-		String sql = "select AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME = 'A11'";
-		String [][]expectedRows=new String[][]{{"0","0","-1"}};
-		assertFullResultSet(sql, expectedRows);
+    @Test
+    public void testnegative() throws Exception
+    {
+        String sql = "select AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME = 'A11'";
+        String [][]expectedRows=new String[][]{{"0","0","-1"}};
+        assertFullResultSet(sql, expectedRows);
 
-		sql = "select AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME = 'A21'";
-		expectedRows=new String[][]{{"0","0","-1"}};
-		assertFullResultSet(sql, expectedRows);
+        sql = "select AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME = 'A21'";
+        expectedRows=new String[][]{{"0","0","-1"}};
+        assertFullResultSet(sql, expectedRows);
 
-		sql = "select AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME = 'A31'";
-		expectedRows=new String[][]{{"-1","-1","-1"}};
-		assertFullResultSet(sql, expectedRows);
+        sql = "select AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME = 'A31'";
+        expectedRows=new String[][]{{"-1","-1","-1"}};
+        assertFullResultSet(sql, expectedRows);
 
-		sql = "select AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME = 'A41'";
-		expectedRows=new String[][]{{"-11","-11","100"}};
-		assertFullResultSet(sql, expectedRows);
-	}
+        sql = "select AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME = 'A41'";
+        expectedRows=new String[][]{{"-11","-11","100"}};
+        assertFullResultSet(sql, expectedRows);
+    }
 
-	@Test
-	public void testsimpleincrement() throws Exception
-	{
-		methodWatcher.execute("insert into ai_short (i) values (0)");
-		methodWatcher.execute("insert into ai_short (i) values (1)");
-		methodWatcher.execute("insert into ai_short (i) values (2)");
-		methodWatcher.execute("insert into ai_short (i) values (33)");
+    @Test
+    public void testsimpleincrement() throws Exception
+    {
+        methodWatcher.execute("insert into ai_short (i) values (0)");
+        methodWatcher.execute("insert into ai_short (i) values (1)");
+        methodWatcher.execute("insert into ai_short (i) values (2)");
+        methodWatcher.execute("insert into ai_short (i) values (33)");
 
-		String sql = "select * from ai_short order by i";
-		String[][]expectedRows=new String[][]{{"0","0"},{"1","2"},{"2","4"},{"33","6"}};
-		assertFullResultSet(sql, expectedRows);
+        String sql = "select * from ai_short order by i";
+        String[][]expectedRows=new String[][]{{"0","0"},{"1","2"},{"2","4"},{"33","6"}};
+        assertFullResultSet(sql, expectedRows);
 
-		sql = "select COLUMNNAME, AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME = 'AIS'";
-		expectedRows=new String[][]{{"AIS","0","0","2"}}; // 2nd entry, AUTOINCREMENTVALUE wrong, should be 8
-		assertFullResultSet(sql, expectedRows);
-	}
+        sql = "select COLUMNNAME, AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME = 'AIS'";
+        expectedRows=new String[][]{{"AIS","0","0","2"}}; // 2nd entry, AUTOINCREMENTVALUE wrong, should be 8
+        assertFullResultSet(sql, expectedRows);
+    }
 
-	@Test
-	public void testonegeneratedcolumn() throws Exception
-	{
-		//-- table with one generated column spec should succeed
-		Integer i = 1;
-		while (i.intValue()< 11)
-		{
-			methodWatcher.execute("insert into ai_single1 (i) values ("+i.toString()+")");
-			methodWatcher.execute("insert into ai_single2 (i) values ("+i.toString()+")");
-			methodWatcher.execute("insert into ai_single3 (i) values ("+i.toString()+")");
-			methodWatcher.execute("insert into ai_single4 (i) values ("+i.toString()+")");
-			int j=i.intValue()+1;
-			i = j;
-		}
-		String sql = "select a.i, a0, a1, a2, a3 from ai_single1 a join ai_single2 b on a.i = b.i " +
-				"join ai_single3 c on a.i = c.i join ai_single4 d on a.i = d.i order by i";
-		String[][]expectedRows=new String[][]{
-				{"1","-1","1","0","-100"},
-				{"2","-2","2","1","-90"},
-				{"3","-3","3","2","-80"},
-				{"4","-4","4","3","-70"},
-				{"5","-5","5","4","-60"},
-				{"6","-6","6","5","-50"},
-				{"7","-7","7","6","-40"},
-				{"8","-8","8","7","-30"},
-				{"9","-9","9","8","-20"},
-				{"10","-10","10","9","-10"}};
-		assertFullResultSet(sql, expectedRows);
-		methodWatcher.executeUpdate("delete from ai_single1");
-		methodWatcher.executeUpdate("delete from ai_single2");
-		methodWatcher.executeUpdate("delete from ai_single3");
-		methodWatcher.executeUpdate("delete from ai_single4");
-		methodWatcher.executeUpdate("insert into ai_single1 (i) values (1)");
-		methodWatcher.executeUpdate("insert into ai_single2 (i) values (1)");
-		methodWatcher.executeUpdate("insert into ai_single3 (i) values (1)");
-		methodWatcher.executeUpdate("insert into ai_single4 (i) values (1)");
-		sql = "select a.i, a0, a1, a2, a3 from ai_single1 a join ai_single2 b on a.i = b.i join ai_single3 c on a.i = c.i " +
-				"join ai_single4 d on a.i = d.i";
-		expectedRows=new String[][]{{"1","-11","11","10","0"}};
-		assertFullResultSet(sql, expectedRows);
-		//-- table with more than one generated column spec should fail
-		assertStatementError("428C1", "create table ai_multiple (i int, a0 int generated always as identity " +
-				"(start with  -1,increment by -1),a1 smallint generated always as identity,a2 int generated " +
-				"always as identity (start with  0),a3 bigint generated always as identity (start with  -100,increment by 10))");
+    @Test
+    public void testonegeneratedcolumn() throws Exception
+    {
+        //-- table with one generated column spec should succeed
+        Integer i = 1;
+        while (i.intValue()< 11)
+        {
+            methodWatcher.execute("insert into ai_single1 (i) values ("+i.toString()+")");
+            methodWatcher.execute("insert into ai_single2 (i) values ("+i.toString()+")");
+            methodWatcher.execute("insert into ai_single3 (i) values ("+i.toString()+")");
+            methodWatcher.execute("insert into ai_single4 (i) values ("+i.toString()+")");
+            int j=i.intValue()+1;
+            i = j;
+        }
+        String sql = "select a.i, a0, a1, a2, a3 from ai_single1 a join ai_single2 b on a.i = b.i " +
+                "join ai_single3 c on a.i = c.i join ai_single4 d on a.i = d.i order by i";
+        String[][]expectedRows=new String[][]{
+                {"1","-1","1","0","-100"},
+                {"2","-2","2","1","-90"},
+                {"3","-3","3","2","-80"},
+                {"4","-4","4","3","-70"},
+                {"5","-5","5","4","-60"},
+                {"6","-6","6","5","-50"},
+                {"7","-7","7","6","-40"},
+                {"8","-8","8","7","-30"},
+                {"9","-9","9","8","-20"},
+                {"10","-10","10","9","-10"}};
+        assertFullResultSet(sql, expectedRows);
+        methodWatcher.executeUpdate("delete from ai_single1");
+        methodWatcher.executeUpdate("delete from ai_single2");
+        methodWatcher.executeUpdate("delete from ai_single3");
+        methodWatcher.executeUpdate("delete from ai_single4");
+        methodWatcher.executeUpdate("insert into ai_single1 (i) values (1)");
+        methodWatcher.executeUpdate("insert into ai_single2 (i) values (1)");
+        methodWatcher.executeUpdate("insert into ai_single3 (i) values (1)");
+        methodWatcher.executeUpdate("insert into ai_single4 (i) values (1)");
+        sql = "select a.i, a0, a1, a2, a3 from ai_single1 a join ai_single2 b on a.i = b.i join ai_single3 c on a.i = c.i " +
+                "join ai_single4 d on a.i = d.i";
+        expectedRows=new String[][]{{"1","-11","11","10","0"}};
+        assertFullResultSet(sql, expectedRows);
+        //-- table with more than one generated column spec should fail
+        assertStatementError("428C1", "create table ai_multiple (i int, a0 int generated always as identity " +
+                "(start with  -1,increment by -1),a1 smallint generated always as identity,a2 int generated " +
+                "always as identity (start with  0),a3 bigint generated always as identity (start with  -100,increment by 10))");
 
-	}
+    }
 
-	@Ignore
-	public void testConnectionInfo() throws Exception
-	{
-		//-- **** connection info tests {basic ones}
-		ResultSet rs;
-		Statement s = createStatement();
-		s.executeUpdate("insert into ai_test (y) values (1),(2),(3),(4),(5),(6),(7),(8),(9),(10)");
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		String[][]expectedRows=new String[][]{{null}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("insert into ai_test (y) select y+10 from ai_test");
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");		
-		//-- try some more connection info tests
-		expectedRows=new String[][]{{null}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("insert into ai_single1conn (c) values ('a')");
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		expectedRows=new String[][]{{"1"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("insert into ai_single2conn (c) values ('a')");
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		expectedRows=new String[][]{{"0"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("insert into ai_single3conn (c) values ('a')");
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		expectedRows=new String[][]{{"1"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("insert into ai_single1conn (c) values ('b')");
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		expectedRows=new String[][]{{"3"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("insert into ai_single2conn (c) values ('b')");
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		expectedRows=new String[][]{{"2"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("insert into ai_single3conn (c) values ('b')");
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		expectedRows=new String[][]{{"3"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
+    @Ignore
+    public void testConnectionInfo() throws Exception
+    {
+        //-- **** connection info tests {basic ones}
+        ResultSet rs;
+        Statement s = createStatement();
+        s.executeUpdate("insert into ai_test (y) values (1),(2),(3),(4),(5),(6),(7),(8),(9),(10)");
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        String[][]expectedRows=new String[][]{{null}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("insert into ai_test (y) select y+10 from ai_test");
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        //-- try some more connection info tests
+        expectedRows=new String[][]{{null}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("insert into ai_single1conn (c) values ('a')");
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        expectedRows=new String[][]{{"1"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("insert into ai_single2conn (c) values ('a')");
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        expectedRows=new String[][]{{"0"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("insert into ai_single3conn (c) values ('a')");
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        expectedRows=new String[][]{{"1"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("insert into ai_single1conn (c) values ('b')");
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        expectedRows=new String[][]{{"3"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("insert into ai_single2conn (c) values ('b')");
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        expectedRows=new String[][]{{"2"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("insert into ai_single3conn (c) values ('b')");
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        expectedRows=new String[][]{{"3"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
 
-	}
+    }
 
-	@Ignore
-	public void testTrigger() throws Exception
-	{
-		ResultSet rs;
-		Statement s=createStatement();
-		s.executeUpdate("insert into t1 (name) values ('Phil White')");
-		rs=s.executeQuery("select * from t1");
-		String[][]expectedRows=new String[][]{{"1","Phil White"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		rs=s.executeQuery("select * from t2");
-		expectedRows=new String[][]{{"1","Bob Finocchio"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		expectedRows=new String[][]{{"1"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("insert into t2 (name) values ('Jean-Yves Dexemier')");
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		expectedRows=new String[][]{{"2"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		
-	}
+    @Ignore
+    public void testTrigger() throws Exception
+    {
+        ResultSet rs;
+        Statement s=createStatement();
+        s.executeUpdate("insert into t1 (name) values ('Phil White')");
+        rs=s.executeQuery("select * from t1");
+        String[][]expectedRows=new String[][]{{"1","Phil White"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        rs=s.executeQuery("select * from t2");
+        expectedRows=new String[][]{{"1","Bob Finocchio"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        expectedRows=new String[][]{{"1"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("insert into t2 (name) values ('Jean-Yves Dexemier')");
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        expectedRows=new String[][]{{"2"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
 
-	@Ignore
-	public void testSchema() throws Exception
-	{
-		//-- insert into multiple tables in different schema names with same tablename,column names
-		//-- make sure 
-		//-- lastAutoincrementValue shouldn't get confused.....
-		ResultSet rs;
-		Statement s=createStatement();
-		s.executeUpdate("create schema BPP");
-		s.executeUpdate("set schema BPP");
-		s.executeUpdate("create table tab1schema (i int, a1 int generated always as identity (start with 100, increment by 1))");
-		s.executeUpdate("create table tab2schema (i int, a2 bigint generated always as identity (start with 100, increment by -1))");
-		s.executeUpdate("create table tab3schema (i int, a1 int generated always as identity (start with 100, increment by 2))");
-		s.executeUpdate("create table tab4schema (i int, a2 smallint generated always as identity (start with 100, increment by -2))");
-		s.executeUpdate("insert into SPLICE.tab1schema (i) values (1)");
-		s.executeUpdate("insert into SPLICE.tab2schema (i) values (1)");
-		s.executeUpdate("insert into SPLICE.tab3schema (i) values (1)");
-		s.executeUpdate("insert into SPLICE.tab4schema (i) values (1)");
-		s.executeUpdate("insert into tab1schema (i) values (1)");
-		s.executeUpdate("insert into tab1schema (i) values (2)");
-		s.executeUpdate("insert into tab2schema (i) values (1)");
-		s.executeUpdate("insert into tab2schema (i) values (2)");
-		s.executeUpdate("insert into tab3schema (i) values (1)");
-		s.executeUpdate("insert into tab3schema (i) values (2)");
-		s.executeUpdate("insert into tab4schema (i) values (1)");
-		s.executeUpdate("insert into tab4schema (i) values (2)");
-		rs=s.executeQuery("select a.i, a1, a2 from app.tab1schema a join app.tab2schema b on a.i = b.i");
-		String[][]expectedRows=new String[][]{{"1","-1","1"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		rs=s.executeQuery("select a.i, a1, a2 from app.tab3schema a join app.tab4schema b on a.i = b.i");
-		expectedRows=new String[][]{{"1","0","0"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		rs=s.executeQuery("select a.i, a1, a2 from tab1schema a join tab2schema b on a.i = b.i");
-		expectedRows=new String[][]{{"1","100","100"},{"2","101","99"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		rs=s.executeQuery("select a1, a2, a.i from tab3schema a join tab4schema b on a.i = b.i");
-		expectedRows=new String[][]{{"100","100","1"},{"102","98","2"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		expectedRows=new String[][]{{"98"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("set schema SPLICE");
-		s.executeUpdate("drop table BPP.tab1schema");
-		s.executeUpdate("drop table BPP.tab2schema");
-		s.executeUpdate("drop table BPP.tab3schema");
-		s.executeUpdate("drop table BPP.tab4schema");
-		s.executeUpdate("drop schema BPP restrict");
-		s.executeUpdate("insert into tab3 values null");
-		rs=s.executeQuery("select * from tab1");
-		expectedRows=new String[][]{{"1","1"},{"2","2"},{"3","3"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		rs=s.executeQuery("select b.tablename, a.autoincrementvalue, a.autoincrementstart, a.autoincrementinc from sys.syscolumns a, sys.systables b where a.referenceid=b.tableid and a.columnname ='S1' and b.tablename = 'TAB1'");
-		expectedRows=new String[][]{{"TAB1","4","1","1"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("create table tab2 (lvl int, s1  bigint generated always as identity)");
-		s.executeUpdate("create trigger tab1_after2 after insert on tab3 referencing new as newrow for each row insert into tab2 (lvl) values 1,2,3");
-		s.executeUpdate("insert into tab3 values null");
-		rs=s.executeQuery("select * from tab2");
-		expectedRows=new String[][]{{"1","1"},{"2","2"},{"3","3"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		rs=s.executeQuery("select b.tablename, a.autoincrementvalue, a.autoincrementstart, a.autoincrementinc from sys.syscolumns a, sys.systables b where a.referenceid=b.tableid and a.columnname ='S1' and b.tablename = 'TAB2'");
-		expectedRows=new String[][]{{"TAB2","4","1","1"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-	}
+    }
 
-	@Ignore
-	public void testadditionalSysCol() throws Exception
-	{
-		ResultSet rs;
-		Statement s=createStatement();
-		s.executeUpdate("insert into t1_1 (x) values (1)");
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		String[][]expectedRows=new String[][]{{"1"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("insert into t1_1 (x) values (2)");
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		expectedRows=new String[][]{{"2"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("insert into t2_1 (x) values (1)");
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		expectedRows=new String[][]{{"0"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("insert into t1_2 (x) values (1),(2),(3),(4),(5)");
-		s.executeUpdate("insert into t2_2 (x) values (1),(2),(3),(4),(5)");		
-		s.executeUpdate("insert into t3_2 (x) values (1),(2),(3),(4),(5)");
-		rs=s.executeQuery("select a.x, s1, s2, s0 from t1_2 a join t2_2 b on a.x = b.x join t3_2 c on a.x = c.x");
-		expectedRows=new String[][]{{"1","1","2","0"},{"2","2","3","1"},{"3","3","4","2"},{"4","4","5","3"},{"5","5","6","4"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		expectedRows=new String[][]{{"0"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("insert into trigtest (lvl) values (0)");
-		s.executeUpdate("insert into trigtest (lvl) values (1),(2)");
-		s.executeUpdate("insert into trigtest (lvl) values (3),(4)");
-		s.executeUpdate("insert into trigtest (lvl) values (5),(6)");
-		s.executeUpdate("insert into trigtest (lvl) values (7),(8)");
-		rs=s.executeQuery("select * from trigtest");
-		expectedRows=new String[][]{{"1","0"},{"2","1"},{"3","2"},{"4","3"},{"5","4"},{"6","5"},{"7","6"},{"8","7"},{"9","8"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		rs=s.executeQuery("select count(*) from t1_2");
-		expectedRows=new String[][]{{"5"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("delete from t1_2");
-		s.executeUpdate("delete from t2_2");
-		s.executeUpdate("delete from t3_2");
-		s.executeUpdate("insert into t1_2 (x) values (1),(2),(3),(4),(5)");
-		s.executeUpdate("insert into t2_2 (x) values (1),(2),(3),(4),(5)");
-		s.executeUpdate("insert into t3_2 (x) values (1),(2),(3),(4),(5)");
-		rs=s.executeQuery("select a.x, s1, s2, s0 from t1_2 a join t2_2 b on a.x = b.x join t3_2 c on a.x = c.x");
-		expectedRows=new String[][]{{"1","6","7","5"},{"2","7","8","6"},{"3","8","9","7"},{"4","9","10","8"},{"5","10","11","9"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("insert into t1_2 (x) values (6)");
-		s.executeUpdate("insert into t2_2 (x) values (6)");
-		s.executeUpdate("insert into t3_2 (x) values (6)");
-		rs=s.executeQuery("select a.x, s1, s2, s0 from t1_2  a join t2_2 b on a.x = b.x join t3_2 c on a.x = c.x");
-		expectedRows=new String[][]{{"1","6","7","5"},{"2","7","8","6"},{"3","8","9","7"},{"4","9","10","8"},{"5","10","11","9"},{"6","11","12","10"}};
-		JDBC.assertFullResultSet(rs,expectedRows); // added, please check later
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		expectedRows=new String[][]{{"10"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("delete from t1_2");
-		s.executeUpdate("delete from t2_2");
-		s.executeUpdate("delete from t3_2");
-		s.executeUpdate("insert into t1_2 (x) values (1),(2),(3),(4),(5)");
-		s.executeUpdate("insert into t2_2 (x) values (1),(2),(3),(4),(5)");
-		s.executeUpdate("insert into t3_2 (x) values (1),(2),(3),(4),(5)");
-		rs=s.executeQuery("select a.x, s1, s2, s0 from t1_2 a join t2_2 b on a.x = b.x join t3_2 c on a.x = c.x");
-		expectedRows=new String[][]{{"1","12","13","11"},{"2","13","14","12"},{"3","14","15","13"},{"4","15","16","14"},{"5","16","17","15"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("insert into t1_2 (x) values (6)");
-		s.executeUpdate("insert into t2_2 (x) values (6)");
-		s.executeUpdate("insert into t3_2 (x) values (6)");
-		rs=s.executeQuery("select a.x, s1, s2, s0 from t1_2 a join t2_2 b on a.x = b.x join t3_2 c on a.x = c.x");
-		expectedRows=new String[][]{{"1","12","13","11"},{"2","13","14","12"},{"3","14","15","13"},{"4","15","16","14"},{"5","16","17","15"},{"6","17","18","16"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		expectedRows=new String[][]{{"16"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
+    @Ignore
+    public void testSchema() throws Exception
+    {
+        //-- insert into multiple tables in different schema names with same tablename,column names
+        //-- make sure
+        //-- lastAutoincrementValue shouldn't get confused.....
+        ResultSet rs;
+        Statement s=createStatement();
+        s.executeUpdate("create schema BPP");
+        s.executeUpdate("set schema BPP");
+        s.executeUpdate("create table tab1schema (i int, a1 int generated always as identity (start with 100, increment by 1))");
+        s.executeUpdate("create table tab2schema (i int, a2 bigint generated always as identity (start with 100, increment by -1))");
+        s.executeUpdate("create table tab3schema (i int, a1 int generated always as identity (start with 100, increment by 2))");
+        s.executeUpdate("create table tab4schema (i int, a2 smallint generated always as identity (start with 100, increment by -2))");
+        s.executeUpdate("insert into SPLICE.tab1schema (i) values (1)");
+        s.executeUpdate("insert into SPLICE.tab2schema (i) values (1)");
+        s.executeUpdate("insert into SPLICE.tab3schema (i) values (1)");
+        s.executeUpdate("insert into SPLICE.tab4schema (i) values (1)");
+        s.executeUpdate("insert into tab1schema (i) values (1)");
+        s.executeUpdate("insert into tab1schema (i) values (2)");
+        s.executeUpdate("insert into tab2schema (i) values (1)");
+        s.executeUpdate("insert into tab2schema (i) values (2)");
+        s.executeUpdate("insert into tab3schema (i) values (1)");
+        s.executeUpdate("insert into tab3schema (i) values (2)");
+        s.executeUpdate("insert into tab4schema (i) values (1)");
+        s.executeUpdate("insert into tab4schema (i) values (2)");
+        rs=s.executeQuery("select a.i, a1, a2 from app.tab1schema a join app.tab2schema b on a.i = b.i");
+        String[][]expectedRows=new String[][]{{"1","-1","1"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        rs=s.executeQuery("select a.i, a1, a2 from app.tab3schema a join app.tab4schema b on a.i = b.i");
+        expectedRows=new String[][]{{"1","0","0"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        rs=s.executeQuery("select a.i, a1, a2 from tab1schema a join tab2schema b on a.i = b.i");
+        expectedRows=new String[][]{{"1","100","100"},{"2","101","99"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        rs=s.executeQuery("select a1, a2, a.i from tab3schema a join tab4schema b on a.i = b.i");
+        expectedRows=new String[][]{{"100","100","1"},{"102","98","2"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        expectedRows=new String[][]{{"98"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("set schema SPLICE");
+        s.executeUpdate("drop table BPP.tab1schema");
+        s.executeUpdate("drop table BPP.tab2schema");
+        s.executeUpdate("drop table BPP.tab3schema");
+        s.executeUpdate("drop table BPP.tab4schema");
+        s.executeUpdate("drop schema BPP restrict");
+        s.executeUpdate("insert into tab3 values null");
+        rs=s.executeQuery("select * from tab1");
+        expectedRows=new String[][]{{"1","1"},{"2","2"},{"3","3"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        rs=s.executeQuery("select b.tablename, a.autoincrementvalue, a.autoincrementstart, a.autoincrementinc from sys.syscolumns a, sys.systables b where a.referenceid=b.tableid and a.columnname ='S1' and b.tablename = 'TAB1'");
+        expectedRows=new String[][]{{"TAB1","4","1","1"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("create table tab2 (lvl int, s1  bigint generated always as identity)");
+        s.executeUpdate("create trigger tab1_after2 after insert on tab3 referencing new as newrow for each row insert into tab2 (lvl) values 1,2,3");
+        s.executeUpdate("insert into tab3 values null");
+        rs=s.executeQuery("select * from tab2");
+        expectedRows=new String[][]{{"1","1"},{"2","2"},{"3","3"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        rs=s.executeQuery("select b.tablename, a.autoincrementvalue, a.autoincrementstart, a.autoincrementinc from sys.syscolumns a, sys.systables b where a.referenceid=b.tableid and a.columnname ='S1' and b.tablename = 'TAB2'");
+        expectedRows=new String[][]{{"TAB2","4","1","1"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+    }
 
-	}
+    @Ignore
+    public void testadditionalSysCol() throws Exception
+    {
+        ResultSet rs;
+        Statement s=createStatement();
+        s.executeUpdate("insert into t1_1 (x) values (1)");
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        String[][]expectedRows=new String[][]{{"1"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("insert into t1_1 (x) values (2)");
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        expectedRows=new String[][]{{"2"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("insert into t2_1 (x) values (1)");
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        expectedRows=new String[][]{{"0"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("insert into t1_2 (x) values (1),(2),(3),(4),(5)");
+        s.executeUpdate("insert into t2_2 (x) values (1),(2),(3),(4),(5)");
+        s.executeUpdate("insert into t3_2 (x) values (1),(2),(3),(4),(5)");
+        rs=s.executeQuery("select a.x, s1, s2, s0 from t1_2 a join t2_2 b on a.x = b.x join t3_2 c on a.x = c.x");
+        expectedRows=new String[][]{{"1","1","2","0"},{"2","2","3","1"},{"3","3","4","2"},{"4","4","5","3"},{"5","5","6","4"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        expectedRows=new String[][]{{"0"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("insert into trigtest (lvl) values (0)");
+        s.executeUpdate("insert into trigtest (lvl) values (1),(2)");
+        s.executeUpdate("insert into trigtest (lvl) values (3),(4)");
+        s.executeUpdate("insert into trigtest (lvl) values (5),(6)");
+        s.executeUpdate("insert into trigtest (lvl) values (7),(8)");
+        rs=s.executeQuery("select * from trigtest");
+        expectedRows=new String[][]{{"1","0"},{"2","1"},{"3","2"},{"4","3"},{"5","4"},{"6","5"},{"7","6"},{"8","7"},{"9","8"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        rs=s.executeQuery("select count(*) from t1_2");
+        expectedRows=new String[][]{{"5"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("delete from t1_2");
+        s.executeUpdate("delete from t2_2");
+        s.executeUpdate("delete from t3_2");
+        s.executeUpdate("insert into t1_2 (x) values (1),(2),(3),(4),(5)");
+        s.executeUpdate("insert into t2_2 (x) values (1),(2),(3),(4),(5)");
+        s.executeUpdate("insert into t3_2 (x) values (1),(2),(3),(4),(5)");
+        rs=s.executeQuery("select a.x, s1, s2, s0 from t1_2 a join t2_2 b on a.x = b.x join t3_2 c on a.x = c.x");
+        expectedRows=new String[][]{{"1","6","7","5"},{"2","7","8","6"},{"3","8","9","7"},{"4","9","10","8"},{"5","10","11","9"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("insert into t1_2 (x) values (6)");
+        s.executeUpdate("insert into t2_2 (x) values (6)");
+        s.executeUpdate("insert into t3_2 (x) values (6)");
+        rs=s.executeQuery("select a.x, s1, s2, s0 from t1_2  a join t2_2 b on a.x = b.x join t3_2 c on a.x = c.x");
+        expectedRows=new String[][]{{"1","6","7","5"},{"2","7","8","6"},{"3","8","9","7"},{"4","9","10","8"},{"5","10","11","9"},{"6","11","12","10"}};
+        JDBC.assertFullResultSet(rs,expectedRows); // added, please check later
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        expectedRows=new String[][]{{"10"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("delete from t1_2");
+        s.executeUpdate("delete from t2_2");
+        s.executeUpdate("delete from t3_2");
+        s.executeUpdate("insert into t1_2 (x) values (1),(2),(3),(4),(5)");
+        s.executeUpdate("insert into t2_2 (x) values (1),(2),(3),(4),(5)");
+        s.executeUpdate("insert into t3_2 (x) values (1),(2),(3),(4),(5)");
+        rs=s.executeQuery("select a.x, s1, s2, s0 from t1_2 a join t2_2 b on a.x = b.x join t3_2 c on a.x = c.x");
+        expectedRows=new String[][]{{"1","12","13","11"},{"2","13","14","12"},{"3","14","15","13"},{"4","15","16","14"},{"5","16","17","15"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("insert into t1_2 (x) values (6)");
+        s.executeUpdate("insert into t2_2 (x) values (6)");
+        s.executeUpdate("insert into t3_2 (x) values (6)");
+        rs=s.executeQuery("select a.x, s1, s2, s0 from t1_2 a join t2_2 b on a.x = b.x join t3_2 c on a.x = c.x");
+        expectedRows=new String[][]{{"1","12","13","11"},{"2","13","14","12"},{"3","14","15","13"},{"4","15","16","14"},{"5","16","17","15"},{"6","17","18","16"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        expectedRows=new String[][]{{"16"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
 
-	@Ignore
-	public void testsyslocks()throws Exception
-	{
-		ResultSet rs;
-		Statement s=createStatement();
-		setAutoCommit(false);
-		s.execute("insert into lockt1 (x) values (1)");
-		s.execute("insert into lockt1 (x) values (2)");
-		rs=s.executeQuery("select * from lockt1");
-		String[][]expectedRows=new String[][]{{"1","0"},{"2","1"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		rs=s.executeQuery("select * from lock_table order by tabname, type desc, mode, cnt");
-		//Utilities.showResultSet(rs);
-		expectedRows=new String[][]{{"SPLICE   ","UserTran","TABLE   ","2  ","IX","LOCKT1      ","GRANT","ACTIVE"},{"SPLICE   ","UserTran","ROW     ","1  ","X","LOCKT1      ","GRANT","ACTIVE"},{"SPLICE   ","UserTran","ROW     ","1  ","X","LOCKT1      ","GRANT","ACTIVE"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.execute("delete from lockt1");
-		commit();
-		rs=s.executeQuery("select * from lock_table order by tabname, type desc, mode, cnt");
-		expectedRows=new String[][]{};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.execute("set isolation serializable");
-		rs=s.executeQuery("select columnname, autoincrementvalue from sys.syscolumns where columnname = 'YYYY'");
-		expectedRows=new String[][]{{"SPLICE     ","UserTran","TABLE   ","1   ","S   ","SYSCOLUMNS  ","GRANT","ACTIVE"}};
-		JDBC.assertFullResultSet(rs,expectedRows); // added, please check
-		rs=s.executeQuery("select * from lock_table order by tabname, type desc, mode, cnt");
-		expectedRows=new String[][]{{"SPLICE     ","UserTran","TABLE   ","1  ","S","SYSCOLUMNS  ","GRANT","ACTIVE"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.execute("insert into lockt1 (x) values (3)");
-		rs=s.executeQuery("select * from lock_table order by tabname, type desc, mode, cnt");
-		expectedRows=new String[][]{{"SPLICE     ","UserTran","TABLE   ","1  ","IX","LOCKT1      ","GRANT","ACTIVE"},{"SPLICE     ","UserTran","ROW     ","1  ","X","LOCKT1      ","GRANT","ACTIVE"},{"SPLICE     ","UserTran","TABLE   ","1  ","IX","SYSCOLUMNS  ","GRANT","ACTIVE"},{"SPLICE     ","UserTran","TABLE   ","1  ","S","SYSCOLUMNS  ","GRANT","ACTIVE"},{"SPLICE     ","UserTran","ROW     ","2  ","X","SYSCOLUMNS  ","GRANT","ACTIVE"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		commit();
-		
-	}
+    }
 
-	@Test
-	public void testColoumnSpecs() throws Exception
-	{
-		methodWatcher.executeUpdate("insert into t1_col (x, y) values ('aa', default)");
-		methodWatcher.executeUpdate("insert into t1_col values ('bb', default)");
-		methodWatcher.executeUpdate("insert into t1_col (x) values default");
-		methodWatcher.executeUpdate("insert into t1_col (x) values null");
-		//-- switch the order of the columns
-		methodWatcher.executeUpdate("insert into t1_col (y, x) values (default, 'cc')");
-		String sql = "select * from t1_col order by y";
-		String[][]expectedRows=new String[][]{{"aa","1"},{"bb","2"},{"yy","3"},{null,"4"},{"cc","5"}};
-		assertFullResultSet(sql, expectedRows);
+    @Ignore
+    public void testsyslocks()throws Exception
+    {
+        ResultSet rs;
+        Statement s=createStatement();
+        setAutoCommit(false);
+        s.execute("insert into lockt1 (x) values (1)");
+        s.execute("insert into lockt1 (x) values (2)");
+        rs=s.executeQuery("select * from lockt1");
+        String[][]expectedRows=new String[][]{{"1","0"},{"2","1"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        rs=s.executeQuery("select * from lock_table order by tabname, type desc, mode, cnt");
+        //Utilities.showResultSet(rs);
+        expectedRows=new String[][]{{"SPLICE   ","UserTran","TABLE   ","2  ","IX","LOCKT1      ","GRANT","ACTIVE"},{"SPLICE   ","UserTran","ROW     ","1  ","X","LOCKT1      ","GRANT","ACTIVE"},{"SPLICE   ","UserTran","ROW     ","1  ","X","LOCKT1      ","GRANT","ACTIVE"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.execute("delete from lockt1");
+        commit();
+        rs=s.executeQuery("select * from lock_table order by tabname, type desc, mode, cnt");
+        expectedRows=new String[][]{};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.execute("set isolation serializable");
+        rs=s.executeQuery("select columnname, autoincrementvalue from sys.syscolumns where columnname = 'YYYY'");
+        expectedRows=new String[][]{{"SPLICE     ","UserTran","TABLE   ","1   ","S   ","SYSCOLUMNS  ","GRANT","ACTIVE"}};
+        JDBC.assertFullResultSet(rs,expectedRows); // added, please check
+        rs=s.executeQuery("select * from lock_table order by tabname, type desc, mode, cnt");
+        expectedRows=new String[][]{{"SPLICE     ","UserTran","TABLE   ","1  ","S","SYSCOLUMNS  ","GRANT","ACTIVE"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.execute("insert into lockt1 (x) values (3)");
+        rs=s.executeQuery("select * from lock_table order by tabname, type desc, mode, cnt");
+        expectedRows=new String[][]{{"SPLICE     ","UserTran","TABLE   ","1  ","IX","LOCKT1      ","GRANT","ACTIVE"},{"SPLICE     ","UserTran","ROW     ","1  ","X","LOCKT1      ","GRANT","ACTIVE"},{"SPLICE     ","UserTran","TABLE   ","1  ","IX","SYSCOLUMNS  ","GRANT","ACTIVE"},{"SPLICE     ","UserTran","TABLE   ","1  ","S","SYSCOLUMNS  ","GRANT","ACTIVE"},{"SPLICE     ","UserTran","ROW     ","2  ","X","SYSCOLUMNS  ","GRANT","ACTIVE"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        commit();
 
-	}
+    }
 
-	@Test
-	public void testbug3450() throws Exception
-	{
-		try(PreparedStatement ps = methodWatcher.prepareStatement("insert into testme (text) values ?")) {
-			ps.setString(1, "one");
-			ps.execute();
-			ps.setString(1, "two");
-			ps.execute();
-			ps.setString(1, "three");
-			ps.execute();
+    @Test
+    public void testColoumnSpecs() throws Exception
+    {
+        methodWatcher.executeUpdate("insert into t1_col (x, y) values ('aa', default)");
+        methodWatcher.executeUpdate("insert into t1_col values ('bb', default)");
+        methodWatcher.executeUpdate("insert into t1_col (x) values default");
+        methodWatcher.executeUpdate("insert into t1_col (x) values null");
+        //-- switch the order of the columns
+        methodWatcher.executeUpdate("insert into t1_col (y, x) values (default, 'cc')");
+        String sql = "select * from t1_col order by y";
+        String[][]expectedRows=new String[][]{{"aa","1"},{"bb","2"},{"yy","3"},{null,"4"},{"cc","5"}};
+        assertFullResultSet(sql, expectedRows);
 
-			String sql = "select * from testme order by autonum";
-			String[][] expectedRows = new String[][]{{"one", "1"}, {"two", "2"}, {"three", "3"}};
-			assertFullResultSet(sql, expectedRows);
-			//-- give exact query and make sure that the statment cache doesn't
-			//-- mess up things.
-			ps.setString(1, "four");
-			ps.execute();
-			ps.setString(1, "four");
-			ps.execute();
+    }
 
-			sql = "select * from testme order by autonum";
-			expectedRows = new String[][]{{"one", "1"}, {"two", "2"}, {"three", "3"}, {"four", "4"}, {"four", "5"}};
-			assertFullResultSet(sql, expectedRows);
-		}
+    @Test
+    public void testbug3450() throws Exception
+    {
+        try(PreparedStatement ps = methodWatcher.prepareStatement("insert into testme (text) values ?")) {
+            ps.setString(1, "one");
+            ps.execute();
+            ps.setString(1, "two");
+            ps.execute();
+            ps.setString(1, "three");
+            ps.execute();
 
-	}
+            String sql = "select * from testme order by autonum";
+            String[][] expectedRows = new String[][]{{"one", "1"}, {"two", "2"}, {"three", "3"}};
+            assertFullResultSet(sql, expectedRows);
+            //-- give exact query and make sure that the statment cache doesn't
+            //-- mess up things.
+            ps.setString(1, "four");
+            ps.execute();
+            ps.setString(1, "four");
+            ps.execute();
 
-	@Test
-	public void testErrors() throws Exception {
-		//-- negative tests from autoincrementNegative.sql
-		//-- negative bind tests.
-		//-- invalid types
-		assertStatementError("42Z22", "create table ni (x int, y char(1) generated always as identity)");
-		assertStatementError("42Z22", "create table ni (x int, y decimal(5,2) generated always as identity)");
-		assertStatementError("42Z22", "create table ni (x int, y float generated always as identity (start with 1, increment by 1))");
-		assertStatementError("42Z22", "create table ni (s int, y varchar(10) generated always as identity)");
-		assertStatementError("42Z21", "create table ni (x int, y int generated always as identity (increment by 0))");
-		assertStatementError("42Z21", "create table ni (x int, y int generated always as identity (start with 0, increment by 0))");
-		assertStatementError("42Z21", "create table ni (x int, y smallint generated always as identity (increment by 0))");
-		assertStatementError("42Z21", "create table ni (x int, y smallint generated always as identity (start with 0, increment by 0))");
-		assertStatementError("42X01", "create table ni (x int, y int generated always as identity (increment by 0)");
-		assertStatementError("42Z21", "create table ni (x int, y int generated always as identity (start with 0, increment by 0))");
-		assertStatementError("42Z21", "create table ni (x int, y bigint generated always as identity (increment by 0))");
-		assertStatementError("42Z21", "create table ni (x int, y bigint generated always as identity (start with 0, increment by 0))");
-		assertStatementError("42Z21", "create table ni (x int, y bigint generated always as identity (start with 0, increment by 0))");
-		assertStatementError("22003", "create table ni (x int, y smallint generated always as identity (start with 32768))");
-		assertStatementError("22003", "create table ni (x int, y smallint generated always as identity (start with -32769))");
-		assertStatementError("22003", "create table ni (x int, y int generated always as identity (start with  2147483648))");
-		assertStatementError("22003", "create table ni (x int, y int generated always as identity (start with  -2147483649))");
-		assertStatementError("42X49", "create table ni (x int, y int generated always as identity (start with  9223372036854775808))");
-		assertStatementError("42X49", "create table ni (x int, y bigint  generated always as identity (start with  -9223372036854775809))");
-	}
+            sql = "select * from testme order by autonum";
+            expectedRows = new String[][]{{"one", "1"}, {"two", "2"}, {"three", "3"}, {"four", "4"}, {"four", "5"}};
+            assertFullResultSet(sql, expectedRows);
+        }
 
-	// INSERT with multiple values can be executed in any order, so this test is too specific for
-	// the previous implementation
-	@Ignore
-	public void testnegative2() throws Exception {
-		ResultSet rs;
-		Statement pst = createStatement();
-		Statement s = createStatement();
+    }
 
-		//st.executeUpdate("create table ai_neg (x smallint generated always as identity, y int)");
+    @Test
+    public void testErrors() throws Exception {
+        //-- negative tests from autoincrementNegative.sql
+        //-- negative bind tests.
+        //-- invalid types
+        assertStatementError("42Z22", "create table ni (x int, y char(1) generated always as identity)");
+        assertStatementError("42Z22", "create table ni (x int, y decimal(5,2) generated always as identity)");
+        assertStatementError("42Z22", "create table ni (x int, y float generated always as identity (start with 1, increment by 1))");
+        assertStatementError("42Z22", "create table ni (s int, y varchar(10) generated always as identity)");
+        assertStatementError("42Z21", "create table ni (x int, y int generated always as identity (increment by 0))");
+        assertStatementError("42Z21", "create table ni (x int, y int generated always as identity (start with 0, increment by 0))");
+        assertStatementError("42Z21", "create table ni (x int, y smallint generated always as identity (increment by 0))");
+        assertStatementError("42Z21", "create table ni (x int, y smallint generated always as identity (start with 0, increment by 0))");
+        assertStatementError("42X01", "create table ni (x int, y int generated always as identity (increment by 0)");
+        assertStatementError("42Z21", "create table ni (x int, y int generated always as identity (start with 0, increment by 0))");
+        assertStatementError("42Z21", "create table ni (x int, y bigint generated always as identity (increment by 0))");
+        assertStatementError("42Z21", "create table ni (x int, y bigint generated always as identity (start with 0, increment by 0))");
+        assertStatementError("42Z21", "create table ni (x int, y bigint generated always as identity (start with 0, increment by 0))");
+        assertStatementError("22003", "create table ni (x int, y smallint generated always as identity (start with 32768))");
+        assertStatementError("22003", "create table ni (x int, y smallint generated always as identity (start with -32769))");
+        assertStatementError("22003", "create table ni (x int, y int generated always as identity (start with  2147483648))");
+        assertStatementError("22003", "create table ni (x int, y int generated always as identity (start with  -2147483649))");
+        assertStatementError("42X49", "create table ni (x int, y int generated always as identity (start with  9223372036854775808))");
+        assertStatementError("42X49", "create table ni (x int, y bigint  generated always as identity (start with  -9223372036854775809))");
+    }
 
-		s.executeUpdate("insert into ai_neg (y) values (0),(1),(2),(3),(4),(5),(6),(7),(8),(9),(10)");
-		rs=s.executeQuery("select * from ai_neg order by y");
-		String[][]expectedRows=new String[][]{{"1","0"},{"2","1"},{"3","2"},{"4","3"},{"5","4"},{"6","5"},{"7","6"},{"8","7"},{"9","8"},{"10","9"},{"11","10"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("delete from ai_neg where y=8 OR y=4 order by y");
-		s.executeUpdate("insert into ai_neg (y) values (11),(13),(14),(15),(17),(18),(19)");
-		rs=s.executeQuery("select * from ai_neg order by y");
-		expectedRows=new String[][]{{"1","0"},{"2","1"},{"3","2"},{"4","3"},{"6","5"},{"7","6"},{"8","7"},{"10","9"},{"11","10"},{"12","11"},{"13","13"},{"14","14"},{"15","15"},{"16","17"},{"17","18"},{"18","19"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("update ai_neg set y=-y");
-		rs=s.executeQuery("select * from ai_neg order by x");
-		expectedRows=new String[][]{{"1","0"},{"2","-1"},{"3","-2"},{"4","-3"},{"6","-5"},{"7","-6"},{"8","-7"},{"10","-9"},{"11","-10"},{"12","-11"},{"13","-13"},{"14","-14"},{"15","-15"},{"16","-17"},{"17","-18"},{"18","-19"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("update ai_neg set y=-y");
-		rs=s.executeQuery("select * from ai_neg order by x");
-		expectedRows=new String[][]{{"1","0"},{"2","1"},{"3","2"},{"4","3"},{"6","5"},{"7","6"},{"8","7"},{"10","9"},{"11","10"},{"12","11"},{"13","13"},{"14","14"},{"15","15"},{"16","17"},{"17","18"},{"18","19"}};
-		JDBC.assertFullResultSet(rs,expectedRows);		
-		s.executeUpdate("update ai_neg set y=4 where y=3"); // doubt WARNING 02000
-		rs=s.executeQuery("select * from ai_neg order by x");
-		expectedRows=new String[][]{{"1","0"},{"2","1"},{"3","2"},{"4","4"},{"6","5"},{"7","6"},{"8","7"},{"10","9"},{"11","10"},{"12","11"},{"13","13"},{"14","14"},{"15","15"},{"16","17"},{"17","18"},{"18","19"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		assertStatementError("42Z23", "insert into ai_neg values (1,2)");
+    // INSERT with multiple values can be executed in any order, so this test is too specific for
+    // the previous implementation
+    @Ignore
+    public void testnegative2() throws Exception {
+        ResultSet rs;
+        Statement pst = createStatement();
+        Statement s = createStatement();
 
-	}
+        //st.executeUpdate("create table ai_neg (x smallint generated always as identity, y int)");
 
-	// INSERT with multiple values can be executed in any order, so this test is too specific for
-	// the previous implementation
-	@Ignore
-	public void testOverflow()throws Exception
-	{
-		ResultSet rs;
-		Statement pst=createStatement();
-		Statement s=createStatement();
-		assertStatementError("22003", "insert into ai_over1 (x) values (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12),(13),(14),(15),(16),(17),(18),(19)");
-		assertStatementError("22003", "insert into ai_over1 (x) values (1)");
-		s.executeUpdate("insert into ai_over2 (x) values (1),(2),(3),(4),(5),(6),(7),(8)");
-		assertStatementError("22003", "insert into ai_over2 (x) values (9),(10)");
-		String[][]expectedRows=new String[][]{{"1","-32760"},{"2","-32761"},{"3","-32762"},{"4","-32763"},{"5","-32764"},{"6","-32765"},{"7","-32766"},{"8","-32767"}};
-		rs=s.executeQuery("select * from ai_over2");
-		JDBC.assertFullResultSet(rs,expectedRows);		
-		s.executeUpdate("insert into ai_over3 (x) values (1)");
-		s.executeUpdate("insert into ai_over3 (x) values (2)");
-		rs=s.executeQuery("select * from ai_over3");
-		expectedRows=new String[][]{{"1","2147483646"},{"2","2147483647"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		assertStatementError("22003", "insert into ai_over3 (x) select x from ai_over3");
-		//bigint overflow check		
-		s.executeUpdate("insert into ai_over4 (x) values (1),(2)");
-		assertStatementError("22003", "insert into ai_over4 (x) values (3)");
-		rs=s.executeQuery("select * from ai_over4");
-		expectedRows=new String[][]{{"1","9223372036854775805"},{"2","9223372036854775806"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("insert into ai_neg (y) values (0),(1),(2),(3),(4),(5),(6),(7),(8),(9),(10)");
+        rs=s.executeQuery("select * from ai_neg order by y");
+        String[][]expectedRows=new String[][]{{"1","0"},{"2","1"},{"3","2"},{"4","3"},{"5","4"},{"6","5"},{"7","6"},{"8","7"},{"9","8"},{"10","9"},{"11","10"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("delete from ai_neg where y=8 OR y=4 order by y");
+        s.executeUpdate("insert into ai_neg (y) values (11),(13),(14),(15),(17),(18),(19)");
+        rs=s.executeQuery("select * from ai_neg order by y");
+        expectedRows=new String[][]{{"1","0"},{"2","1"},{"3","2"},{"4","3"},{"6","5"},{"7","6"},{"8","7"},{"10","9"},{"11","10"},{"12","11"},{"13","13"},{"14","14"},{"15","15"},{"16","17"},{"17","18"},{"18","19"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("update ai_neg set y=-y");
+        rs=s.executeQuery("select * from ai_neg order by x");
+        expectedRows=new String[][]{{"1","0"},{"2","-1"},{"3","-2"},{"4","-3"},{"6","-5"},{"7","-6"},{"8","-7"},{"10","-9"},{"11","-10"},{"12","-11"},{"13","-13"},{"14","-14"},{"15","-15"},{"16","-17"},{"17","-18"},{"18","-19"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("update ai_neg set y=-y");
+        rs=s.executeQuery("select * from ai_neg order by x");
+        expectedRows=new String[][]{{"1","0"},{"2","1"},{"3","2"},{"4","3"},{"6","5"},{"7","6"},{"8","7"},{"10","9"},{"11","10"},{"12","11"},{"13","13"},{"14","14"},{"15","15"},{"16","17"},{"17","18"},{"18","19"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("update ai_neg set y=4 where y=3"); // doubt WARNING 02000
+        rs=s.executeQuery("select * from ai_neg order by x");
+        expectedRows=new String[][]{{"1","0"},{"2","1"},{"3","2"},{"4","4"},{"6","5"},{"7","6"},{"8","7"},{"10","9"},{"11","10"},{"12","11"},{"13","13"},{"14","14"},{"15","15"},{"16","17"},{"17","18"},{"18","19"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        assertStatementError("42Z23", "insert into ai_neg values (1,2)");
 
-	}
+    }
 
-	@Test
-	public void testIdentity()throws Exception {
-		methodWatcher.executeUpdate("insert into base values (1)");
-		methodWatcher.executeUpdate("insert into base values (2)");
-		methodWatcher.executeUpdate("insert into base values (3)");
-		methodWatcher.executeUpdate("insert into base values (4)");
-		methodWatcher.executeUpdate("insert into base values (5)");
-		methodWatcher.executeUpdate("insert into base values (6)");
-		assertStatementError("42601", "alter table base add column y smallint generated always as identity (start with  10)");
-		assertStatementError("42601", "alter table base add column y int generated always as identity (start with  10)");
-		assertStatementError("42601", "alter table base add column y bigint generated always as identity (start with  10)");
-		assertStatementError("42601", "alter table base add column y bigint generated always as identity (start with  10)");
-		String sql = "select * from base order by X";
-		String[][] expectedRows = new String[][]{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}, {"6"}};
-		assertFullResultSet(sql, expectedRows);
-	}
+    // INSERT with multiple values can be executed in any order, so this test is too specific for
+    // the previous implementation
+    @Ignore
+    public void testOverflow()throws Exception
+    {
+        ResultSet rs;
+        Statement pst=createStatement();
+        Statement s=createStatement();
+        assertStatementError("22003", "insert into ai_over1 (x) values (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12),(13),(14),(15),(16),(17),(18),(19)");
+        assertStatementError("22003", "insert into ai_over1 (x) values (1)");
+        s.executeUpdate("insert into ai_over2 (x) values (1),(2),(3),(4),(5),(6),(7),(8)");
+        assertStatementError("22003", "insert into ai_over2 (x) values (9),(10)");
+        String[][]expectedRows=new String[][]{{"1","-32760"},{"2","-32761"},{"3","-32762"},{"4","-32763"},{"5","-32764"},{"6","-32765"},{"7","-32766"},{"8","-32767"}};
+        rs=s.executeQuery("select * from ai_over2");
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("insert into ai_over3 (x) values (1)");
+        s.executeUpdate("insert into ai_over3 (x) values (2)");
+        rs=s.executeQuery("select * from ai_over3");
+        expectedRows=new String[][]{{"1","2147483646"},{"2","2147483647"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        assertStatementError("22003", "insert into ai_over3 (x) select x from ai_over3");
+        //bigint overflow check
+        s.executeUpdate("insert into ai_over4 (x) values (1),(2)");
+        assertStatementError("22003", "insert into ai_over4 (x) values (3)");
+        rs=s.executeQuery("select * from ai_over4");
+        expectedRows=new String[][]{{"1","9223372036854775805"},{"2","9223372036854775806"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
 
-	@Ignore // missing IDENTITY_VAL_LOCAL
-	public void testIdentity1() throws Exception
-	{
-		String[][] expectedRows;
-		//-- IDENTITY_VAL_LOCAL function, same as DB2, beetle 5354
-		ResultSet rs;
-		Statement s = createStatement();
+    }
 
-		s.executeUpdate("insert into idt1(c2) values (8)");
+    @Test
+    public void testIdentity()throws Exception {
+        methodWatcher.executeUpdate("insert into base values (1)");
+        methodWatcher.executeUpdate("insert into base values (2)");
+        methodWatcher.executeUpdate("insert into base values (3)");
+        methodWatcher.executeUpdate("insert into base values (4)");
+        methodWatcher.executeUpdate("insert into base values (5)");
+        methodWatcher.executeUpdate("insert into base values (6)");
+        assertStatementError("42601", "alter table base add column y smallint generated always as identity (start with  10)");
+        assertStatementError("42601", "alter table base add column y int generated always as identity (start with  10)");
+        assertStatementError("42601", "alter table base add column y bigint generated always as identity (start with  10)");
+        assertStatementError("42601", "alter table base add column y bigint generated always as identity (start with  10)");
+        String sql = "select * from base order by X";
+        String[][] expectedRows = new String[][]{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}, {"6"}};
+        assertFullResultSet(sql, expectedRows);
+    }
 
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		expectedRows=new String[][]{{"1"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		rs=s.executeQuery("select IDENTITY_VAL_LOCAL()+1, IDENTITY_VAL_LOCAL()-1 from idt1");
-		expectedRows=new String[][]{{"2","0"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("insert into idt1(c2) values (IDENTITY_VAL_LOCAL())");
-		rs=s.executeQuery("select * from idt1");
-		expectedRows=new String[][]{{"1","8"},{"2","1"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		expectedRows=new String[][]{{"2"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		rs=s.executeQuery("select IDENTITY_VAL_LOCAL()+1, IDENTITY_VAL_LOCAL()-1 from idt1");
-		expectedRows=new String[][]{{"3","1"},{"3","1"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("insert into idt1(c2) values (8), (9)");
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		expectedRows=new String[][]{{"2"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		rs=s.executeQuery("select * from idt1");
-		expectedRows=new String[][]{{"1","8"},{"2","1"},{"3","8"},{"4","9"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("insert into idt1(c2) select c1 from idt1");
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		expectedRows=new String[][]{{"2"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		rs=s.executeQuery("select * from idt1");
-		expectedRows=new String[][]{{"1","8"},{"2","1"},{"3","8"},{"4","9"},{"5","1"},{"6","2"},{"7","3"},{"8","4"}};
-		JDBC.assertFullResultSet(rs,expectedRows); // added, please check
-		s.executeUpdate("delete from idt1");
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		expectedRows=new String[][]{{"2"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("insert into idt1(c2) select c1 from idt1");
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		expectedRows=new String[][]{{"2"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.executeUpdate("insert into idt1(c2) values (8)");
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		expectedRows=new String[][]{{"9"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
+    @Ignore // missing IDENTITY_VAL_LOCAL
+    public void testIdentity1() throws Exception
+    {
+        String[][] expectedRows;
+        //-- IDENTITY_VAL_LOCAL function, same as DB2, beetle 5354
+        ResultSet rs;
+        Statement s = createStatement();
 
-	}
+        s.executeUpdate("insert into idt1(c2) values (8)");
 
-	@Test
-	public void testdefaultautoincrement() throws Exception
-	{
-		//-- test cases for beetle 5404: inserting multiple rows of defaults into autoincrement column.
-		methodWatcher.executeUpdate("insert into autoinct1 values (default)");
-		String sql = "select * from autoinct1";
-		String[][]expectedRows=new String[][]{{"1"}};
-		assertFullResultSet(sql, expectedRows);
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        expectedRows=new String[][]{{"1"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        rs=s.executeQuery("select IDENTITY_VAL_LOCAL()+1, IDENTITY_VAL_LOCAL()-1 from idt1");
+        expectedRows=new String[][]{{"2","0"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("insert into idt1(c2) values (IDENTITY_VAL_LOCAL())");
+        rs=s.executeQuery("select * from idt1");
+        expectedRows=new String[][]{{"1","8"},{"2","1"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        expectedRows=new String[][]{{"2"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        rs=s.executeQuery("select IDENTITY_VAL_LOCAL()+1, IDENTITY_VAL_LOCAL()-1 from idt1");
+        expectedRows=new String[][]{{"3","1"},{"3","1"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("insert into idt1(c2) values (8), (9)");
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        expectedRows=new String[][]{{"2"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        rs=s.executeQuery("select * from idt1");
+        expectedRows=new String[][]{{"1","8"},{"2","1"},{"3","8"},{"4","9"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("insert into idt1(c2) select c1 from idt1");
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        expectedRows=new String[][]{{"2"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        rs=s.executeQuery("select * from idt1");
+        expectedRows=new String[][]{{"1","8"},{"2","1"},{"3","8"},{"4","9"},{"5","1"},{"6","2"},{"7","3"},{"8","4"}};
+        JDBC.assertFullResultSet(rs,expectedRows); // added, please check
+        s.executeUpdate("delete from idt1");
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        expectedRows=new String[][]{{"2"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("insert into idt1(c2) select c1 from idt1");
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        expectedRows=new String[][]{{"2"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.executeUpdate("insert into idt1(c2) values (8)");
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        expectedRows=new String[][]{{"9"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
 
-		assertStatementError("42Z23", "insert into autoinct1 values (1), (1)");
-		assertStatementError("42Z23", "insert into autoinct1 values (1), (default)");
-		assertStatementError("42Z23", "insert into autoinct1 values (default), (1)");
-		assertStatementError("42Z23", "insert into autoinct1 values (default), (default), (default), (2)");
-		assertStatementError("42Z23", "insert into autoinct1 values (default), (default), (2)");
-		assertStatementError("42Z23", "insert into autoinct1 values (default), (default), (2), (default)");
+    }
 
-		methodWatcher.executeUpdate("insert into autoinct1 values (default), (default)");
-		sql = "select * from autoinct1 order by c1";
-		expectedRows=new String[][]{{"1"},{"2"},{"3"}};
-		assertFullResultSet(sql, expectedRows);
-		methodWatcher.executeUpdate("insert into autoinct1 values (default), (default), (default)");
-		sql = "select * from autoinct1 order by c1";
-		expectedRows=new String[][]{{"1"},{"2"},{"3"},{"4"},{"5"},{"6"}};
-		assertFullResultSet(sql, expectedRows);
-		methodWatcher.executeUpdate("insert into autoinct1 values (default), (default), (default),(default)");
-		sql = "select * from autoinct1 order by c1";
-		expectedRows=new String[][]{{"1"},{"2"},{"3"},{"4"},{"5"},{"6"},{"7"},{"8"},{"9"},{"10"}};
-		assertFullResultSet(sql, expectedRows);
+    @Test
+    public void testdefaultautoincrement() throws Exception
+    {
+        //-- test cases for beetle 5404: inserting multiple rows of defaults into autoincrement column.
+        methodWatcher.executeUpdate("insert into autoinct1 values (default)");
+        String sql = "select * from autoinct1";
+        String[][]expectedRows=new String[][]{{"1"}};
+        assertFullResultSet(sql, expectedRows);
 
-		methodWatcher.executeUpdate("insert into autoinct2 values (1, default)");
-		methodWatcher.executeUpdate("insert into autoinct2 values (2, default)");
-		sql = "select * from autoinct2 order by a";
-		expectedRows=new String[][]{{"1","1"},{"2","2"}};
-		assertFullResultSet(sql, expectedRows);
-		assertStatementError("42Z23", "insert into autoinct2 values (1, default), (2, 2)");
-		assertStatementError("42Z23", "insert into autoinct2 values (1, default), (2, default), (2, 2)");
-		assertStatementError("42Z23", "insert into autoinct2 values (1, 2), (2, default), (2, default)");
+        assertStatementError("42Z23", "insert into autoinct1 values (1), (1)");
+        assertStatementError("42Z23", "insert into autoinct1 values (1), (default)");
+        assertStatementError("42Z23", "insert into autoinct1 values (default), (1)");
+        assertStatementError("42Z23", "insert into autoinct1 values (default), (default), (default), (2)");
+        assertStatementError("42Z23", "insert into autoinct1 values (default), (default), (2)");
+        assertStatementError("42Z23", "insert into autoinct1 values (default), (default), (2), (default)");
 
-		methodWatcher.executeUpdate("insert into autoinct3 values (default)");
-		sql = "select * from autoinct3 order by c1";
-		expectedRows=new String[][]{{"1"}};
-		assertFullResultSet(sql, expectedRows);
-		methodWatcher.executeUpdate("insert into autoinct3 values (default)");
-		sql = "select * from autoinct3 order by c1";
-		expectedRows=new String[][]{{"1"},{"4"}};
-		assertFullResultSet(sql, expectedRows);
-		assertStatementError("42Z23", "insert into autoinct3 values (1), (default)");
-		assertStatementError("42Z23", "insert into autoinct3 values (default), (1)");
-		assertStatementError("42Z23", "insert into autoinct3 values (default), (default), (default), (2)");
-		assertStatementError("42Z23", "insert into autoinct3 values (default), (default), (2)");
-		assertStatementError("42Z23", "insert into autoinct3 values (default), (default), (2), (default)");
-		assertStatementError("42Z23", "insert into autoinct3 select * from autoinct1");
-		methodWatcher.executeUpdate("insert into autoinct3 values (default), (default)");
-		sql = "select * from autoinct3 order by c1";
-		expectedRows=new String[][]{{"1"},{"4"},{"7"},{"10"}};
-		assertFullResultSet(sql, expectedRows);
-		methodWatcher.executeUpdate("insert into autoinct3 values (default), (default), (default)");
-		sql = "select * from autoinct3 order by c1";
-		expectedRows=new String[][]{{"1"},{"4"},{"7"},{"10"},{"13"},{"16"},{"19"}};
-		assertFullResultSet(sql, expectedRows);
-		methodWatcher.executeUpdate("insert into autoinct3 values (default), (default), (default),(default)");
-		sql = "select * from autoinct3 order by c1";
-		expectedRows=new String[][]{{"1"},{"4"},{"7"},{"10"},{"13"},{"16"},{"19"},{"22"},{"25"},{"28"},{"31"}};
-		assertFullResultSet(sql, expectedRows);
-		methodWatcher.executeUpdate("drop table autoinct1");
-		methodWatcher.executeUpdate("drop table autoinct2");
-		methodWatcher.executeUpdate("drop table autoinct3");
+        methodWatcher.executeUpdate("insert into autoinct1 values (default), (default)");
+        sql = "select * from autoinct1 order by c1";
+        expectedRows=new String[][]{{"1"},{"2"},{"3"}};
+        assertFullResultSet(sql, expectedRows);
+        methodWatcher.executeUpdate("insert into autoinct1 values (default), (default), (default)");
+        sql = "select * from autoinct1 order by c1";
+        expectedRows=new String[][]{{"1"},{"2"},{"3"},{"4"},{"5"},{"6"}};
+        assertFullResultSet(sql, expectedRows);
+        methodWatcher.executeUpdate("insert into autoinct1 values (default), (default), (default),(default)");
+        sql = "select * from autoinct1 order by c1";
+        expectedRows=new String[][]{{"1"},{"2"},{"3"},{"4"},{"5"},{"6"},{"7"},{"8"},{"9"},{"10"}};
+        assertFullResultSet(sql, expectedRows);
+
+        methodWatcher.executeUpdate("insert into autoinct2 values (1, default)");
+        methodWatcher.executeUpdate("insert into autoinct2 values (2, default)");
+        sql = "select * from autoinct2 order by a";
+        expectedRows=new String[][]{{"1","1"},{"2","2"}};
+        assertFullResultSet(sql, expectedRows);
+        assertStatementError("42Z23", "insert into autoinct2 values (1, default), (2, 2)");
+        assertStatementError("42Z23", "insert into autoinct2 values (1, default), (2, default), (2, 2)");
+        assertStatementError("42Z23", "insert into autoinct2 values (1, 2), (2, default), (2, default)");
+
+        methodWatcher.executeUpdate("insert into autoinct3 values (default)");
+        sql = "select * from autoinct3 order by c1";
+        expectedRows=new String[][]{{"1"}};
+        assertFullResultSet(sql, expectedRows);
+        methodWatcher.executeUpdate("insert into autoinct3 values (default)");
+        sql = "select * from autoinct3 order by c1";
+        expectedRows=new String[][]{{"1"},{"4"}};
+        assertFullResultSet(sql, expectedRows);
+        assertStatementError("42Z23", "insert into autoinct3 values (1), (default)");
+        assertStatementError("42Z23", "insert into autoinct3 values (default), (1)");
+        assertStatementError("42Z23", "insert into autoinct3 values (default), (default), (default), (2)");
+        assertStatementError("42Z23", "insert into autoinct3 values (default), (default), (2)");
+        assertStatementError("42Z23", "insert into autoinct3 values (default), (default), (2), (default)");
+        assertStatementError("42Z23", "insert into autoinct3 select * from autoinct1");
+        methodWatcher.executeUpdate("insert into autoinct3 values (default), (default)");
+        sql = "select * from autoinct3 order by c1";
+        expectedRows=new String[][]{{"1"},{"4"},{"7"},{"10"}};
+        assertFullResultSet(sql, expectedRows);
+        methodWatcher.executeUpdate("insert into autoinct3 values (default), (default), (default)");
+        sql = "select * from autoinct3 order by c1";
+        expectedRows=new String[][]{{"1"},{"4"},{"7"},{"10"},{"13"},{"16"},{"19"}};
+        assertFullResultSet(sql, expectedRows);
+        methodWatcher.executeUpdate("insert into autoinct3 values (default), (default), (default),(default)");
+        sql = "select * from autoinct3 order by c1";
+        expectedRows=new String[][]{{"1"},{"4"},{"7"},{"10"},{"13"},{"16"},{"19"},{"22"},{"25"},{"28"},{"31"}};
+        assertFullResultSet(sql, expectedRows);
+        methodWatcher.executeUpdate("drop table autoinct1");
+        methodWatcher.executeUpdate("drop table autoinct2");
+        methodWatcher.executeUpdate("drop table autoinct3");
 
 
-	}
+    }
 
-	@Test
-	public void testwithIncrement()throws Exception
-	{
-		ResultSet rs;
-		methodWatcher.execute("insert into withinct1(i) values(1)");
-		methodWatcher.execute("insert into withinct1(i) values(1)");
-		String sql = "select * from withinct1 order by withinct1_autogen";
-		String[][]expectedRows=new String[][]{{"1","1"},{"1","2"}};
-		assertFullResultSet(sql, expectedRows);
-		methodWatcher.execute("insert into withinct2(i) values(1)");
-		methodWatcher.execute("insert into withinct2(i) values(1)");
-		sql = "select * from withinct2 order by withinct2_autogen";
-		expectedRows=new String[][]{{"1","1"},{"1","2"}};
-		assertFullResultSet(sql, expectedRows);
-		assertStatementError("42Z23", "insert into withinctempt1(i,withinct1_autogen) values(2,1)");
-		assertStatementError("42Z23", "insert into withinctempt1(i,withinct1_autogen) values(2,2)");
-		methodWatcher.execute("insert into withinctempt1(i) values(2)");
-		methodWatcher.execute("insert into withinctempt1(i) values(2)");
-		sql = "select * from withinctempt1 order by withinct1_autogen";
-		expectedRows=new String[][]{{"2","1"},{"2","2"}};
-		//Utilities.showResultSet(rs);
-		assertFullResultSet(sql, expectedRows);
-		methodWatcher.execute("insert into withinctempt2(i,withinct2_autogen) values(2,1)");
-		methodWatcher.execute("insert into withinctempt2(i,withinct2_autogen) values(2,2)");
-		methodWatcher.execute("insert into withinctempt2(i) values(2)");
-		methodWatcher.execute("insert into withinctempt2(i) values(2)");
-		sql = "select i,withinct2_autogen from withinctempt2 order by withinct2_autogen";
-		expectedRows=new String[][]{{"2","1"},{"2","1"},{"2","2"},{"2","2"}};
-		assertFullResultSet(sql, expectedRows);
-		methodWatcher.execute("insert into withinctempt3(i) values(1)");
-		methodWatcher.execute("insert into withinctempt3(i) values(1)");
-		sql = "select * from withinctempt3 order by t1_autogen";
-		expectedRows=new String[][]{{"1","1"},{"1","11"}};
-		assertFullResultSet(sql, expectedRows);
-		methodWatcher.execute("insert into withinctempt4(i) values(1)");
-		methodWatcher.execute("insert into withinctempt4(i) values(1)");
-		sql = "select * from withinctempt4 order by t2_autogen";
-		expectedRows=new String[][]{{"1","1"},{"1","11"}};
-		assertFullResultSet(sql, expectedRows);
-		assertStatementError("42Z23", "insert into withinct3(i,withinct3_autogen) values(2,1)");
-		assertStatementError("42Z23", "insert into withinct3(i,withinct3_autogen) values(2,2)");
-		methodWatcher.execute("insert into withinct3(i) values(2)");
-		methodWatcher.execute("insert into withinct3(i) values(2)");
-		sql = "select * from withinct3 order by withinct3_autogen";
-		expectedRows=new String[][]{{"2","1"},{"2","11"}};
-		assertFullResultSet(sql, expectedRows);
-		methodWatcher.execute("insert into withinct4(i,withinct4_autogen) values(2,1)");
-		methodWatcher.execute("insert into withinct4(i,withinct4_autogen) values(2,2)");
-		methodWatcher.execute("insert into withinct4(i) values(2)");
-		methodWatcher.execute("insert into withinct4(i) values(2)");
-		sql = "select * from withinct4 order by withinct4_autogen";
-		expectedRows=new String[][]{{"2","1"},{"2","1"},{"2","2"},{"2","11"}};
-		assertFullResultSet(sql, expectedRows);
+    @Test
+    public void testwithIncrement()throws Exception
+    {
+        ResultSet rs;
+        methodWatcher.execute("insert into withinct1(i) values(1)");
+        methodWatcher.execute("insert into withinct1(i) values(1)");
+        String sql = "select * from withinct1 order by withinct1_autogen";
+        String[][]expectedRows=new String[][]{{"1","1"},{"1","2"}};
+        assertFullResultSet(sql, expectedRows);
+        methodWatcher.execute("insert into withinct2(i) values(1)");
+        methodWatcher.execute("insert into withinct2(i) values(1)");
+        sql = "select * from withinct2 order by withinct2_autogen";
+        expectedRows=new String[][]{{"1","1"},{"1","2"}};
+        assertFullResultSet(sql, expectedRows);
+        assertStatementError("42Z23", "insert into withinctempt1(i,withinct1_autogen) values(2,1)");
+        assertStatementError("42Z23", "insert into withinctempt1(i,withinct1_autogen) values(2,2)");
+        methodWatcher.execute("insert into withinctempt1(i) values(2)");
+        methodWatcher.execute("insert into withinctempt1(i) values(2)");
+        sql = "select * from withinctempt1 order by withinct1_autogen";
+        expectedRows=new String[][]{{"2","1"},{"2","2"}};
+        //Utilities.showResultSet(rs);
+        assertFullResultSet(sql, expectedRows);
+        methodWatcher.execute("insert into withinctempt2(i,withinct2_autogen) values(2,1)");
+        methodWatcher.execute("insert into withinctempt2(i,withinct2_autogen) values(2,2)");
+        methodWatcher.execute("insert into withinctempt2(i) values(2)");
+        methodWatcher.execute("insert into withinctempt2(i) values(2)");
+        sql = "select i,withinct2_autogen from withinctempt2 order by withinct2_autogen";
+        expectedRows=new String[][]{{"2","1"},{"2","1"},{"2","2"},{"2","2"}};
+        assertFullResultSet(sql, expectedRows);
+        methodWatcher.execute("insert into withinctempt3(i) values(1)");
+        methodWatcher.execute("insert into withinctempt3(i) values(1)");
+        sql = "select * from withinctempt3 order by t1_autogen";
+        expectedRows=new String[][]{{"1","1"},{"1","11"}};
+        assertFullResultSet(sql, expectedRows);
+        methodWatcher.execute("insert into withinctempt4(i) values(1)");
+        methodWatcher.execute("insert into withinctempt4(i) values(1)");
+        sql = "select * from withinctempt4 order by t2_autogen";
+        expectedRows=new String[][]{{"1","1"},{"1","11"}};
+        assertFullResultSet(sql, expectedRows);
+        assertStatementError("42Z23", "insert into withinct3(i,withinct3_autogen) values(2,1)");
+        assertStatementError("42Z23", "insert into withinct3(i,withinct3_autogen) values(2,2)");
+        methodWatcher.execute("insert into withinct3(i) values(2)");
+        methodWatcher.execute("insert into withinct3(i) values(2)");
+        sql = "select * from withinct3 order by withinct3_autogen";
+        expectedRows=new String[][]{{"2","1"},{"2","11"}};
+        assertFullResultSet(sql, expectedRows);
+        methodWatcher.execute("insert into withinct4(i,withinct4_autogen) values(2,1)");
+        methodWatcher.execute("insert into withinct4(i,withinct4_autogen) values(2,2)");
+        methodWatcher.execute("insert into withinct4(i) values(2)");
+        methodWatcher.execute("insert into withinct4(i) values(2)");
+        sql = "select * from withinct4 order by withinct4_autogen";
+        expectedRows=new String[][]{{"2","1"},{"2","1"},{"2","2"},{"2","11"}};
+        assertFullResultSet(sql, expectedRows);
 
-	}
+    }
 
-	@Test
-	public void testunique()throws Exception {    //--with unique constraint
-		methodWatcher.execute("insert into uniquet1(i) values(1)");
-		methodWatcher.execute("insert into uniquet1(i) values(1)");
-		String[][]expectedRows=new String[][]{{"1","100"},{"1","120"}};
-		String sql = "select * from uniquet1 order by t1_autogen";
-		assertFullResultSet(sql, expectedRows);
-		methodWatcher.execute("insert into uniquet2(i) values(1)");
-		methodWatcher.execute("insert into uniquet2(i) values(1)");
-		expectedRows=new String[][]{{"1","100"},{"1","120"}};
-		sql = "select * from uniquet2 order by i";
-		assertFullResultSet(sql, expectedRows);
+    @Test
+    public void testunique()throws Exception {    //--with unique constraint
+        methodWatcher.execute("insert into uniquet1(i) values(1)");
+        methodWatcher.execute("insert into uniquet1(i) values(1)");
+        String[][]expectedRows=new String[][]{{"1","100"},{"1","120"}};
+        String sql = "select * from uniquet1 order by t1_autogen";
+        assertFullResultSet(sql, expectedRows);
+        methodWatcher.execute("insert into uniquet2(i) values(1)");
+        methodWatcher.execute("insert into uniquet2(i) values(1)");
+        expectedRows=new String[][]{{"1","100"},{"1","120"}};
+        sql = "select * from uniquet2 order by i";
+        assertFullResultSet(sql, expectedRows);
 
-		assertStatementError("42Z23", "insert into uniquetempt1(i,t1_autogen) values(2,1)");
-		assertStatementError("42Z23", "insert into uniquetempt1(i,t1_autogen) values(2,2)");
-		methodWatcher.execute("insert into uniquetempt1(i) values(2)");
-		methodWatcher.execute("insert into uniquetempt1(i) values(2)");
-		expectedRows=new String[][]{{"2","100"},{"2","120"}};
-		sql = "select * from uniquetempt1 order by t1_autogen";
-		assertFullResultSet(sql, expectedRows);
+        assertStatementError("42Z23", "insert into uniquetempt1(i,t1_autogen) values(2,1)");
+        assertStatementError("42Z23", "insert into uniquetempt1(i,t1_autogen) values(2,2)");
+        methodWatcher.execute("insert into uniquetempt1(i) values(2)");
+        methodWatcher.execute("insert into uniquetempt1(i) values(2)");
+        expectedRows=new String[][]{{"2","100"},{"2","120"}};
+        sql = "select * from uniquetempt1 order by t1_autogen";
+        assertFullResultSet(sql, expectedRows);
 
-		methodWatcher.execute("insert into uniquetempt2(i,t2_autogen) values(2,1)");
-		methodWatcher.execute("insert into uniquetempt2(i,t2_autogen) values(2,2)");
-		methodWatcher.execute("insert into uniquetempt2(i) values(2)");
-		methodWatcher.execute("insert into uniquetempt2(i) values(2)");
+        methodWatcher.execute("insert into uniquetempt2(i,t2_autogen) values(2,1)");
+        methodWatcher.execute("insert into uniquetempt2(i,t2_autogen) values(2,2)");
+        methodWatcher.execute("insert into uniquetempt2(i) values(2)");
+        methodWatcher.execute("insert into uniquetempt2(i) values(2)");
 //		expectedRows=new String[][]{{"2","1"},{"2","2"},{"2","100"},{"2","120"}};
 
-		//assertStatementError("23505", "insert into uniquet3(i,uniquet3_autogen) values(1,0)");
-		methodWatcher.execute("insert into uniquet3(i,uniquet3_autogen) values(1,0)");
-		//assertStatementError("23505", "insert into uniquet3(i,uniquet3_autogen) values(2,1)");
-		methodWatcher.execute("insert into uniquet3(i,uniquet3_autogen) values(2,1)");
-		assertStatementError("23505", "insert into uniquet3(i) values(3)");
-		assertStatementError("23505", "insert into uniquet3(i) values(4)");
-		methodWatcher.execute("insert into uniquet3(i) values(5)");
-		sql = "select i,uniquet3_autogen from uniquet3 order by i";
-		//Utilities.showResultSet(rs);
+        //assertStatementError("23505", "insert into uniquet3(i,uniquet3_autogen) values(1,0)");
+        methodWatcher.execute("insert into uniquet3(i,uniquet3_autogen) values(1,0)");
+        //assertStatementError("23505", "insert into uniquet3(i,uniquet3_autogen) values(2,1)");
+        methodWatcher.execute("insert into uniquet3(i,uniquet3_autogen) values(2,1)");
+        assertStatementError("23505", "insert into uniquet3(i) values(3)");
+        assertStatementError("23505", "insert into uniquet3(i) values(4)");
+        methodWatcher.execute("insert into uniquet3(i) values(5)");
+        sql = "select i,uniquet3_autogen from uniquet3 order by i";
+        //Utilities.showResultSet(rs);
 
-		expectedRows=new String[][]{{"1","0"},{"2","1"},{"5","2"}};
-		assertFullResultSet(sql, expectedRows);
-	}
+        expectedRows=new String[][]{{"1","0"},{"2","1"},{"5","2"}};
+        assertFullResultSet(sql, expectedRows);
+    }
 
-	@Ignore // insert values(3) doesn't fail
-	public void testunique4() throws Exception {    //--with unique constraint
-		ResultSet rs;
-		String[][]expectedRows;
-		Statement s = createStatement();
-		//--with unique index
-		methodWatcher.execute("insert into uniquet4(i,uniquet4_autogen) values(1,0)");
-		methodWatcher.execute("insert into uniquet4(i,uniquet4_autogen) values(2,1)");
-		assertStatementError("23505", "insert into uniquet4(i) values(3)"); // doesn't fail
-		assertStatementError("23505", "insert into uniquet4(i) values(4)");
-		methodWatcher.execute("insert into uniquet4(i) values(5)");
-		String sql = "select i,uniquet4_autogen from uniquet4";
-		expectedRows=new String[][]{{"1","0"},{"2","1"},{"5","2"}};
-		assertFullResultSet(sql, expectedRows);
+    @Ignore // insert values(3) doesn't fail
+    public void testunique4() throws Exception {    //--with unique constraint
+        ResultSet rs;
+        String[][]expectedRows;
+        Statement s = createStatement();
+        //--with unique index
+        methodWatcher.execute("insert into uniquet4(i,uniquet4_autogen) values(1,0)");
+        methodWatcher.execute("insert into uniquet4(i,uniquet4_autogen) values(2,1)");
+        assertStatementError("23505", "insert into uniquet4(i) values(3)"); // doesn't fail
+        assertStatementError("23505", "insert into uniquet4(i) values(4)");
+        methodWatcher.execute("insert into uniquet4(i) values(5)");
+        String sql = "select i,uniquet4_autogen from uniquet4";
+        expectedRows=new String[][]{{"1","0"},{"2","1"},{"5","2"}};
+        assertFullResultSet(sql, expectedRows);
 
 
-	}
+    }
 
-	@Ignore
-	public void testidvalconn()throws Exception
-	{
-		//-- test IDENTITY_VAL_LOCAL function with 2 different connections
+    @Ignore
+    public void testidvalconn()throws Exception
+    {
+        //-- test IDENTITY_VAL_LOCAL function with 2 different connections
 //		ResultSet rs;
 //		Connection conn1=openUserConnection("conn1");
 //		Statement conn1st=conn1.createStatement();
@@ -1002,66 +1002,66 @@ public class AutoIncrementTest extends BaseJDBCTestCase {
 //		JDBC.assertFullResultSet(rs,expectedRows);
 //		conn1st.execute("drop table idvalt1");
 //		conn1st.execute("drop table idvalt2");
-	}
+    }
 
-	@Ignore // no IDENTITY_VAL_LOCAL
-	public void testidvalVariants()throws Exception
-	{
+    @Ignore // no IDENTITY_VAL_LOCAL
+    public void testidvalVariants()throws Exception
+    {
 		/*-- A table with identity column has an insert trigger which inserts into another table 
 		-- with identity column. IDENTITY_VAL_LOCAL will return the generated value for the 
 		-- statement table and not for the table that got modified by the trigger*/
-		ResultSet rs;
-		Statement s=createStatement();
-		s.execute("insert into variantt1 (c12) values (1)");
-		rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
-		String[][]expectedRows=new String[][]{{"101"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		rs=s.executeQuery("select * from variantt1");
-		expectedRows=new String[][]{{"101","1"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		rs=s.executeQuery("select * from variantt2");
-		expectedRows=new String[][]{{"201","1"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
+        ResultSet rs;
+        Statement s=createStatement();
+        s.execute("insert into variantt1 (c12) values (1)");
+        rs=s.executeQuery("values IDENTITY_VAL_LOCAL()");
+        String[][]expectedRows=new String[][]{{"101"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        rs=s.executeQuery("select * from variantt1");
+        expectedRows=new String[][]{{"101","1"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        rs=s.executeQuery("select * from variantt2");
+        expectedRows=new String[][]{{"201","1"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
 
-	}
+    }
 
-	@Ignore // autoincrementvalue not working
-	public void testrestart()throws Exception
-	{
-		//-- Test RESTART WITH syntax of ALTER TABLE for autoincrment columns
-		ResultSet rs;
-		Statement s=createStatement();
-		rs=s.executeQuery("select COLUMNNAME, AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME = 'REC11'");
+    @Ignore // autoincrementvalue not working
+    public void testrestart()throws Exception
+    {
+        //-- Test RESTART WITH syntax of ALTER TABLE for autoincrment columns
+        ResultSet rs;
+        Statement s=createStatement();
+        rs=s.executeQuery("select COLUMNNAME, AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME = 'REC11'");
 
-		String[][]expectedRows=new String[][]{{"REC11","2","2","2"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.execute("insert into restartt1 values(2,2)");
-		rs=s.executeQuery("select * from restartt1");
+        String[][]expectedRows=new String[][]{{"REC11","2","2","2"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.execute("insert into restartt1 values(2,2)");
+        rs=s.executeQuery("select * from restartt1");
 
-		expectedRows=new String[][]{{"2","2"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		rs=s.executeQuery("select COLUMNNAME, AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME = 'REC11'");
-		expectedRows=new String[][]{{"REC11","2","2","2"}};									  
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.execute("insert into restartt1(c12) values(9999)");
-		rs=s.executeQuery("select * from restartt1");
-		expectedRows=new String[][]{{"2","2"},{"2","9999"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		rs=s.executeQuery("select COLUMNNAME, AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME = 'REC11'");
-		expectedRows=new String[][]{{"REC11","4","2","2"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		assertStatementError("42837", "alter table restartt1 alter column c12 RESTART WITH 2");
-		assertStatementError("42X49", "alter table restartt1 alter column rec11 RESTART WITH 2.20");
-		s.execute("alter table restartt1 alter column rec11 RESTART WITH 2");
-		rs=s.executeQuery("select COLUMNNAME, AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC	from sys.syscolumns where COLUMNNAME = 'REC11'");
-		expectedRows=new String[][]{{"REC11","2","2","2"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
+        expectedRows=new String[][]{{"2","2"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        rs=s.executeQuery("select COLUMNNAME, AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME = 'REC11'");
+        expectedRows=new String[][]{{"REC11","2","2","2"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.execute("insert into restartt1(c12) values(9999)");
+        rs=s.executeQuery("select * from restartt1");
+        expectedRows=new String[][]{{"2","2"},{"2","9999"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        rs=s.executeQuery("select COLUMNNAME, AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME = 'REC11'");
+        expectedRows=new String[][]{{"REC11","4","2","2"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        assertStatementError("42837", "alter table restartt1 alter column c12 RESTART WITH 2");
+        assertStatementError("42X49", "alter table restartt1 alter column rec11 RESTART WITH 2.20");
+        s.execute("alter table restartt1 alter column rec11 RESTART WITH 2");
+        rs=s.executeQuery("select COLUMNNAME, AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC	from sys.syscolumns where COLUMNNAME = 'REC11'");
+        expectedRows=new String[][]{{"REC11","2","2","2"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
 
-	}
+    }
 
-	@Ignore // autoincrementvalue not working
-	public void testlock()throws Exception
-	{
+    @Ignore // autoincrementvalue not working
+    public void testlock()throws Exception
+    {
 		/*--following puts locks on system table SYSCOLUMNS's row for t1lock.c11
 		--Later when a user tries to have the system generate a value for the
 		--t1lock.c11, system can't generate that value in a transaction of it's own
@@ -1072,129 +1072,129 @@ public class AutoIncrementTest extends BaseJDBCTestCase {
 		--too and system will not be able to consume the generated value. 
 		--In a case like this, user can use ALTER TABLE....RESTART WITH to change the
 		--start value of the autoincrement column as shown below.*/
-		ResultSet rs;
-		Statement s=createStatement();
+        ResultSet rs;
+        Statement s=createStatement();
 
-		s.execute("insert into t1lock values(1,1)");
-		rs=s.executeQuery("select * from t1lock");
-		String[][]expectedRows=new String[][]{{"1","1"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		rs=s.executeQuery("select COLUMNNAME, AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME = 'LOCKC11'");
-		expectedRows=new String[][]{{"LOCKC11","1","1","1"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		assertStatementError("23505", "insert into t1lock(c12) values(3)");
-		rs=s.executeQuery("select COLUMNNAME, AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME = 'LOCKC11'");
-		//Utilities.showResultSet(rs);
-		expectedRows=new String[][]{{"LOCKC11","2","1","1"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
+        s.execute("insert into t1lock values(1,1)");
+        rs=s.executeQuery("select * from t1lock");
+        String[][]expectedRows=new String[][]{{"1","1"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        rs=s.executeQuery("select COLUMNNAME, AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME = 'LOCKC11'");
+        expectedRows=new String[][]{{"LOCKC11","1","1","1"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        assertStatementError("23505", "insert into t1lock(c12) values(3)");
+        rs=s.executeQuery("select COLUMNNAME, AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME = 'LOCKC11'");
+        //Utilities.showResultSet(rs);
+        expectedRows=new String[][]{{"LOCKC11","2","1","1"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
 
-		rs=s.executeQuery("select * from t1lock");
-		expectedRows=new String[][]{{"1","1"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.execute("alter table t1lock alter column lockc11 restart with 2");
-		rs=s.executeQuery("select COLUMNNAME, AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME = 'LOCKC11'");
-		expectedRows=new String[][]{{"LOCKC11","2","2","1"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.execute("insert into t1lock(c12) values(3)");
-		rs=s.executeQuery("select * from t1lock");
-		expectedRows=new String[][]{{"1","1"},{"2","3"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-	}
+        rs=s.executeQuery("select * from t1lock");
+        expectedRows=new String[][]{{"1","1"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.execute("alter table t1lock alter column lockc11 restart with 2");
+        rs=s.executeQuery("select COLUMNNAME, AUTOINCREMENTVALUE, AUTOINCREMENTSTART, AUTOINCREMENTINC from sys.syscolumns where COLUMNNAME = 'LOCKC11'");
+        expectedRows=new String[][]{{"LOCKC11","2","2","1"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.execute("insert into t1lock(c12) values(3)");
+        rs=s.executeQuery("select * from t1lock");
+        expectedRows=new String[][]{{"1","1"},{"2","3"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+    }
 
-	@Ignore // autoincrementvalue not working currently
-	public void test_Derby14951465() throws Exception
-	{
-		ResultSet rs;
-		Statement s=createStatement();		
-		rs=s.executeQuery("SELECT	col.columndefault,col.autoincrementvalue, col.autoincrementstart,col.autoincrementinc FROM sys.syscolumns col INNER JOIN sys.systables tab ON col.referenceId = tab.tableid WHERE tab.tableName = 'DERBY_1495' AND ColumnName = 'TESTID'");
-		String[][]expectedRows=new String[][]{{"GENERATED_BY_DEFAULT","1","1","1"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.execute("INSERT INTO DERBY_1495(TESTID, TESTCOL2) VALUES(2, 2)");
-		s.execute("ALTER TABLE DERBY_1495 ALTER COLUMN TESTid RESTART WITH 3");
-		rs=s.executeQuery("SELECT	col.columndefault,col.autoincrementvalue, col.autoincrementstart,col.autoincrementinc FROM sys.syscolumns col INNER JOIN sys.systables tab ON col.referenceId = tab.tableid WHERE tab.tableName = 'DERBY_1495' AND ColumnName = 'TESTID'");
-		expectedRows=new String[][]{{"GENERATED_BY_DEFAULT","3","3","1"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
+    @Ignore // autoincrementvalue not working currently
+    public void test_Derby14951465() throws Exception
+    {
+        ResultSet rs;
+        Statement s=createStatement();
+        rs=s.executeQuery("SELECT	col.columndefault,col.autoincrementvalue, col.autoincrementstart,col.autoincrementinc FROM sys.syscolumns col INNER JOIN sys.systables tab ON col.referenceId = tab.tableid WHERE tab.tableName = 'DERBY_1495' AND ColumnName = 'TESTID'");
+        String[][]expectedRows=new String[][]{{"GENERATED_BY_DEFAULT","1","1","1"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.execute("INSERT INTO DERBY_1495(TESTID, TESTCOL2) VALUES(2, 2)");
+        s.execute("ALTER TABLE DERBY_1495 ALTER COLUMN TESTid RESTART WITH 3");
+        rs=s.executeQuery("SELECT	col.columndefault,col.autoincrementvalue, col.autoincrementstart,col.autoincrementinc FROM sys.syscolumns col INNER JOIN sys.systables tab ON col.referenceId = tab.tableid WHERE tab.tableName = 'DERBY_1495' AND ColumnName = 'TESTID'");
+        expectedRows=new String[][]{{"GENERATED_BY_DEFAULT","3","3","1"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
 
 		/*-- Similarly, verify that if we change the INCREMENT BY value for a
 		-- GENERATED_BY_DEFAULT column, the column remains GENERATED_BY_DEFAULT
 		-- and its START WITH value is preserved.*/
 
-		rs=s.executeQuery("SELECT col.columndefault,col.autoincrementvalue, col.autoincrementstart,col.autoincrementinc FROM sys.syscolumns col INNER JOIN sys.systables tab ON col.referenceId = tab.tableid WHERE tab.tableName = 'DERBY_1645' AND ColumnName = 'TESTTABLEID'");
-		expectedRows=new String[][]{{"GENERATED_BY_DEFAULT","1","1","1"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.execute("INSERT INTO derby_1645 (TESTTableId, TESTStringValue) VALUES (1, 'test1')");
-		s.execute("INSERT INTO derby_1645 (TESTTableId, TESTStringValue) VALUES (2, 'test2')");
-		s.execute("INSERT INTO derby_1645 (TESTTableId, TESTStringValue) VALUES (3, 'test3')");
-		s.execute("ALTER TABLE derby_1645 ALTER TESTTableId SET INCREMENT BY 50");
-		rs=s.executeQuery("SELECT col.columndefault,col.autoincrementvalue, col.autoincrementstart,col.autoincrementinc FROM sys.syscolumns col INNER JOIN sys.systables tab ON col.referenceId = tab.tableid WHERE tab.tableName = 'DERBY_1645' AND ColumnName = 'TESTTABLEID'");
-		expectedRows=new String[][]{{"GENERATED_BY_DEFAULT","53","1","50"}};
-		JDBC.assertFullResultSet(rs,expectedRows); // added, please check
-		s.execute("INSERT INTO derby_1645 (TESTStringValue) VALUES ('test53')");
-		s.execute("INSERT INTO derby_1645 (TESTTableId, TEST" +"StringValue) VALUES (-999, 'test3')");
-		s.execute("drop table derby_1645");
+        rs=s.executeQuery("SELECT col.columndefault,col.autoincrementvalue, col.autoincrementstart,col.autoincrementinc FROM sys.syscolumns col INNER JOIN sys.systables tab ON col.referenceId = tab.tableid WHERE tab.tableName = 'DERBY_1645' AND ColumnName = 'TESTTABLEID'");
+        expectedRows=new String[][]{{"GENERATED_BY_DEFAULT","1","1","1"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.execute("INSERT INTO derby_1645 (TESTTableId, TESTStringValue) VALUES (1, 'test1')");
+        s.execute("INSERT INTO derby_1645 (TESTTableId, TESTStringValue) VALUES (2, 'test2')");
+        s.execute("INSERT INTO derby_1645 (TESTTableId, TESTStringValue) VALUES (3, 'test3')");
+        s.execute("ALTER TABLE derby_1645 ALTER TESTTableId SET INCREMENT BY 50");
+        rs=s.executeQuery("SELECT col.columndefault,col.autoincrementvalue, col.autoincrementstart,col.autoincrementinc FROM sys.syscolumns col INNER JOIN sys.systables tab ON col.referenceId = tab.tableid WHERE tab.tableName = 'DERBY_1645' AND ColumnName = 'TESTTABLEID'");
+        expectedRows=new String[][]{{"GENERATED_BY_DEFAULT","53","1","50"}};
+        JDBC.assertFullResultSet(rs,expectedRows); // added, please check
+        s.execute("INSERT INTO derby_1645 (TESTStringValue) VALUES ('test53')");
+        s.execute("INSERT INTO derby_1645 (TESTTableId, TEST" +"StringValue) VALUES (-999, 'test3')");
+        s.execute("drop table derby_1645");
 
-	}
+    }
 
-	@Ignore // multi-value INSERT
-	public void TESTD1644()throws Exception
-	{
+    @Ignore // multi-value INSERT
+    public void TESTD1644()throws Exception
+    {
 		/*-- Test cases related to DERBY-1644, which involve:
 		--  a) multi-row VALUES clauses
 		--  b) GENERATED BY DEFAULT autoincrement fields
 		--  c) insert statements which mention only a subset of the table's columns
 		-- First we have the actual case from the bug report. Then we have a number
 		-- of other similar cases, to try to cover the code area in question*/
-		ResultSet rs;
-		Statement s=createStatement();
-		s.execute("insert into D1644 (d1644c2) values default, 10");
-		s.execute("insert into D1644 (d1644c2) values (11)");
-		s.execute("insert into D1644 (d1644c2) values default");
-		s.execute("insert into D1644 (d1644c2) values (default)");
-		s.execute("insert into D1644 (d1644c2) values 12, 13, 14");
-		s.execute("insert into D1644 (d1644c2) values 15, 16, default");
-		s.execute("insert into D1644 values (17, 18)");
-		s.execute("insert into D1644 values (19, default)");
-		s.execute("insert into D1644 values (20, default), (21, 22), (23, 24), (25, default)");
-		s.execute("insert into D1644 (d1644c2, d1644c1) values (default, 26)");
-		s.execute("insert into D1644 (d1644c2, d1644c1) values (27, 28), (default, 29), (30, 31)");
-		s.execute("insert into D1644 (d1644c2) values default, default, default, default");
-		s.execute("insert into D1644 (d1644c2, d1644c1) values (default, 128),(default, 129),(default, 131)");
-		rs=s.executeQuery("select * from D1644");
-		String[][]expectedRows=new String[][]{{null,"1"},	{null,"10"},{null,"11"},{null,"2"},{null,"3"},{null,"12"},{null,"13"},{null,"14"},{null,"15"},{null,"16"},{null,"4"},{"17","18"},{"19","5"},{"20","6"},{"21","22"},{"23","24"},{"25","7"},{"26","8"},{"28","27"},{"29","9"},{"31","30"},{null,"10"},{null,"11"},{null,"12"},{null,"13"},{"128","14"},{"129","15"},{"131","16"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.execute("insert into D1644_A (c3, d1644_Ac1, d1644_Ac2) values (1, 2, default)");
-		s.execute("insert into D1644_A (c3, d1644_Ac1, d1644_Ac2) values (3,4,5), (6,7,default)");
-		s.execute("insert into D1644_A (c3, d1644_Ac2) values (8, default), (9, 10)");
-		rs=s.executeQuery("select * from D1644_A");
-		expectedRows=new String[][]{{"2","1","1"},{"4","5","3"},{"7","2","6"},{null,"3","8"},{null,"10","9"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
-		s.execute("insert into D1644_B (d1644_Bc1) values default, 10");
-		s.execute("insert into D1644_B values default, 10");
-		rs=s.executeQuery("select * from D1644_B");
-		expectedRows=new String[][]{{"1"},{"10"},{"2"},{"10"}};
-		JDBC.assertFullResultSet(rs,expectedRows);
+        ResultSet rs;
+        Statement s=createStatement();
+        s.execute("insert into D1644 (d1644c2) values default, 10");
+        s.execute("insert into D1644 (d1644c2) values (11)");
+        s.execute("insert into D1644 (d1644c2) values default");
+        s.execute("insert into D1644 (d1644c2) values (default)");
+        s.execute("insert into D1644 (d1644c2) values 12, 13, 14");
+        s.execute("insert into D1644 (d1644c2) values 15, 16, default");
+        s.execute("insert into D1644 values (17, 18)");
+        s.execute("insert into D1644 values (19, default)");
+        s.execute("insert into D1644 values (20, default), (21, 22), (23, 24), (25, default)");
+        s.execute("insert into D1644 (d1644c2, d1644c1) values (default, 26)");
+        s.execute("insert into D1644 (d1644c2, d1644c1) values (27, 28), (default, 29), (30, 31)");
+        s.execute("insert into D1644 (d1644c2) values default, default, default, default");
+        s.execute("insert into D1644 (d1644c2, d1644c1) values (default, 128),(default, 129),(default, 131)");
+        rs=s.executeQuery("select * from D1644");
+        String[][]expectedRows=new String[][]{{null,"1"},	{null,"10"},{null,"11"},{null,"2"},{null,"3"},{null,"12"},{null,"13"},{null,"14"},{null,"15"},{null,"16"},{null,"4"},{"17","18"},{"19","5"},{"20","6"},{"21","22"},{"23","24"},{"25","7"},{"26","8"},{"28","27"},{"29","9"},{"31","30"},{null,"10"},{null,"11"},{null,"12"},{null,"13"},{"128","14"},{"129","15"},{"131","16"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.execute("insert into D1644_A (c3, d1644_Ac1, d1644_Ac2) values (1, 2, default)");
+        s.execute("insert into D1644_A (c3, d1644_Ac1, d1644_Ac2) values (3,4,5), (6,7,default)");
+        s.execute("insert into D1644_A (c3, d1644_Ac2) values (8, default), (9, 10)");
+        rs=s.executeQuery("select * from D1644_A");
+        expectedRows=new String[][]{{"2","1","1"},{"4","5","3"},{"7","2","6"},{null,"3","8"},{null,"10","9"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
+        s.execute("insert into D1644_B (d1644_Bc1) values default, 10");
+        s.execute("insert into D1644_B values default, 10");
+        rs=s.executeQuery("select * from D1644_B");
+        expectedRows=new String[][]{{"1"},{"10"},{"2"},{"10"}};
+        JDBC.assertFullResultSet(rs,expectedRows);
 
 
-	}
+    }
 
-	@Test
-	public void testDerby2902()throws Exception
-	{
+    @Test
+    public void testDerby2902()throws Exception
+    {
 		/*-- Derby-2902: can't use LONG.MIN_VALUE as the start value for
 		-- an identity column. These tests verify that values less than MIN_VALUE
 		-- or greater than MAX_VALUE are rejected, but MIN_VALUE and MAX_VALUE
 		-- themeselves are accepted.*/
-		methodWatcher.execute("insert into d4006 values default");
-		methodWatcher.execute("alter table d4006 alter column x with default null");
-		methodWatcher.execute("insert into d4006 values default");
-		methodWatcher.execute("alter table d4006 alter column x with default 'def'");
-		methodWatcher.execute("insert into d4006 values default");
-		String sql = "select * from d4006 order by x";
-		String[][]expectedRows=new String[][]{{"abc"},{"def"},{null}};
-		assertFullResultSet(sql, expectedRows);
-		methodWatcher.execute("alter table d4006 add column y int generated always as (-1)");
-		assertStatementError("42XA7", "alter table d4006 alter column y default 42");
-		assertStatementError("42XA7", "alter table d4006 alter column y default null");
+        methodWatcher.execute("insert into d4006 values default");
+        methodWatcher.execute("alter table d4006 alter column x with default null");
+        methodWatcher.execute("insert into d4006 values default");
+        methodWatcher.execute("alter table d4006 alter column x with default 'def'");
+        methodWatcher.execute("insert into d4006 values default");
+        String sql = "select * from d4006 order by x";
+        String[][]expectedRows=new String[][]{{"abc"},{"def"},{null}};
+        assertFullResultSet(sql, expectedRows);
+        methodWatcher.execute("alter table d4006 add column y int generated always as (-1)");
+        assertStatementError("42XA7", "alter table d4006 alter column y default 42");
+        assertStatementError("42XA7", "alter table d4006 alter column y default null");
 
-	}
+    }
 }
