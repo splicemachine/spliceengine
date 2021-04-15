@@ -32,15 +32,23 @@ public class DD_stats {
     }
 
     public boolean updateModifiedRows(long heapConglom, long modifiedRowsCount) throws StandardException {
-        AtomicLong modifiedRowCount = modifiedRowsCountMap.computeIfAbsent(heapConglom, k -> new AtomicLong());
-        long count = modifiedRowCount.addAndGet(modifiedRowsCount);
-        return shouldRerunAnalyze(heapConglom, count) && modifiedRowCount.compareAndSet(count, 0);
+        TableDescriptor td = getTableDescriptor(heapConglom);
+        if (td.getAutoAnalyze() != null) {
+            AtomicLong modifiedRowCount = modifiedRowsCountMap.computeIfAbsent(heapConglom, k -> new AtomicLong());
+            long count = modifiedRowCount.addAndGet(modifiedRowsCount);
+            return shouldRerunAnalyze(heapConglom, count) && modifiedRowCount.compareAndSet(count, 0);
+        }
+        return false;
+    }
+
+    private TableDescriptor getTableDescriptor(long heapConglom) throws StandardException {
+        ConglomerateDescriptor cd = dataDictionary.getConglomerateDescriptor(heapConglom);
+        UUID tableID = cd.getTableID();
+        return dataDictionary.getTableDescriptor(tableID);
     }
 
     private boolean shouldRerunAnalyze(long heapConglom, long totalModifiedRowsCount) throws StandardException {
-        ConglomerateDescriptor cd = dataDictionary.getConglomerateDescriptor(heapConglom);
-        UUID tableID = cd.getTableID();
-        TableDescriptor td = dataDictionary.getTableDescriptor(tableID);
+        TableDescriptor td = getTableDescriptor(heapConglom);
         return td.getAutoAnalyze() != null && totalModifiedRowsCount > td.getAutoAnalyze();
     }
 }
