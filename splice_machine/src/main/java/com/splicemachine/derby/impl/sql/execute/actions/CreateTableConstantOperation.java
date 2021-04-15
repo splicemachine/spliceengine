@@ -471,8 +471,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                     compression,
                     false,
                     false,
-                    null
-            );
+                    null,
+                    null);
         } else {
             td = ddg.newTableDescriptor(lcc.mangleTableName(tableName), sd, tableType, onCommitDeleteRows, onRollbackDeleteRows,columnInfo.length);
             td.setUUID(dd.getUUIDFactory().createUUID());

@@ -57,7 +57,7 @@ import java.util.List;
 public class SYSTABLESRowFactory extends CatalogRowFactory {
     public static final String TABLENAME_STRING = "SYSTABLES";
 
-    public static final int SYSTABLES_COLUMN_COUNT = 16;
+    public static final int SYSTABLES_COLUMN_COUNT = 17;
 
     /* Column #s for systables (1 based) */
     public    static final int SYSTABLES_TABLEID                = 1;
@@ -79,7 +79,8 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
     @Deprecated
     protected static final int SYSTABLES_IS_PINNED              = 14;
     protected static final int SYSTABLES_PURGE_DELETED_ROWS     = 15;
-    public static final int SYSTABLES_MIN_RETENTION_PERIOD   = 16;
+    public static final int SYSTABLES_MIN_RETENTION_PERIOD      = 16;
+    public static final int SYSTABLES_AUTO_ANALYZE              = 17;
     /* End External Tables Columns */
 
     protected static final int SYSTABLES_INDEX1_ID        = 0;
@@ -106,6 +107,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
     public static final String TABLEID              = "TABLEID";
     public static final String PURGE_DELETED_ROWS   = "PURGE_DELETED_ROWS";
     public static final String MIN_RETENTION_PERIOD = "MIN_RETENTION_PERIOD";
+    public static final String AUTO_ANALYZE         = "AUTO_ANALYZE";
     /*
      * The first version of any tables. Use this for System tables and
      * any time that you don't know what the version is.
@@ -186,6 +188,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
         boolean isPinned = false;
         boolean purgeDeletedRows = false;
         Long minRetentionPeriod = null;
+        Long autoAnalyze = null;
 
         if (td != null) {
             /*
@@ -263,6 +266,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
             isPinned = descriptor.isPinned();
             purgeDeletedRows = descriptor.purgeDeletedRows();
             minRetentionPeriod = descriptor.getMinRetentionPeriod();
+            autoAnalyze = descriptor.getAutoAnalyze();
             tableVersion = descriptor.getVersion() == null ?
                     new SQLVarchar(CURRENT_TABLE_VERSION) :
                     new SQLVarchar(descriptor.getVersion());
@@ -279,7 +283,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
         row = getExecutionFactory().getValueRow(SYSTABLES_COLUMN_COUNT);
 
         setRowColumns(row, tableID, tableName, tabSType, schemaID, lockGranularity, tableVersion, columnSequence,
-                delimited, escaped, lines, storedAs, location, compression, isPinned, purgeDeletedRows, minRetentionPeriod);
+                delimited, escaped, lines, storedAs, location, compression, isPinned, purgeDeletedRows, minRetentionPeriod, autoAnalyze);
         return row;
     }
 
@@ -299,7 +303,8 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
                                      String compression,
                                      boolean isPinned,
                                      boolean purgeDeletedRows,
-                                     Long minRetentionPeriod) {
+                                     Long minRetentionPeriod,
+                                     Long autoAnalyze) {
         /* 1st column is TABLEID (UUID - char(36)) */
         row.setColumn(SYSTABLES_TABLEID, new SQLChar(tableID));
 
@@ -330,6 +335,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
         row.setColumn(SYSTABLES_IS_PINNED, new SQLBoolean(isPinned));
         row.setColumn(SYSTABLES_PURGE_DELETED_ROWS, new SQLBoolean(purgeDeletedRows));
         row.setColumn(SYSTABLES_MIN_RETENTION_PERIOD, new SQLLongint(minRetentionPeriod));
+        row.setColumn(SYSTABLES_AUTO_ANALYZE, new SQLLongint(autoAnalyze));
     }
 
     /**
@@ -521,6 +527,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
         DataValueDescriptor isPinnedDVD = row.getColumn(SYSTABLES_IS_PINNED);
         DataValueDescriptor purgeDeletedRowsDVD = row.getColumn(SYSTABLES_PURGE_DELETED_ROWS);
         DataValueDescriptor minRetentionPeriodDVD = row.getColumn(SYSTABLES_MIN_RETENTION_PERIOD);
+        DataValueDescriptor autoAnalyzeDVD = row.getColumn(SYSTABLES_AUTO_ANALYZE);
 
         // RESOLVE - Deal with lock granularity
         tabDesc = ddg.newTableDescriptor(tableName, schema, tableTypeEnum, lockGranularity.charAt(0),
@@ -533,7 +540,8 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
                 compressionDVD != null ? compressionDVD.getString() : null,
                 isPinnedDVD.getBoolean(),
                 purgeDeletedRowsDVD.getBoolean(),
-                (minRetentionPeriodDVD != null && !minRetentionPeriodDVD.isNull()) ? minRetentionPeriodDVD.getLong() : null
+                (minRetentionPeriodDVD != null && !minRetentionPeriodDVD.isNull()) ? minRetentionPeriodDVD.getLong() : null,
+                (autoAnalyzeDVD != null && !autoAnalyzeDVD.isNull()) ? autoAnalyzeDVD.getLong() : null
         );
         tabDesc.setUUID(tableUUID);
 
@@ -584,6 +592,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn(IS_PINNED, Types.BOOLEAN, false),
                 SystemColumnImpl.getColumn(PURGE_DELETED_ROWS, Types.BOOLEAN, false),
                 SystemColumnImpl.getColumn(MIN_RETENTION_PERIOD, Types.BIGINT, true),
+                SystemColumnImpl.getColumn(AUTO_ANALYZE, Types.BIGINT, true),
         };
     }
 
@@ -638,7 +647,10 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
                         new ColumnDescriptor(MIN_RETENTION_PERIOD, 16, 16,
                                 DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, true),
                                 null, null, view, viewId, 0, 0, 0),
-                        new ColumnDescriptor("SCHEMANAME", 17, 17,
+                        new ColumnDescriptor(AUTO_ANALYZE, 17, 17,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, true),
+                                null, null, view, viewId, 0, 0, 0),
+                        new ColumnDescriptor("SCHEMANAME", 18, 18,
                                 DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
                                 null, null, view, viewId, 0, 0, 0)
                 });

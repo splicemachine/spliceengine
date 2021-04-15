@@ -1314,6 +1314,16 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .build();
         procedures.add(minRetentionPeriod);
 
+        Procedure autoAnalyze = Procedure.newBuilder().name("SET_AUTO_ANALYZE")
+                .catalog("schemaName")
+                .catalog("tableName")
+                .bigint("autoAnalyze")
+                .numOutputParams(0)
+                .numResultSets(0)
+                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .build();
+        procedures.add(autoAnalyze);
+
         Procedure snapshotSchema = Procedure.newBuilder().name("SNAPSHOT_SCHEMA")
                 .varchar("schemaName", 128)
                 .varchar("snapshotName", 128)

@@ -174,6 +174,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     private boolean isPinned;
     private boolean purgeDeletedRows;
     private Long minRetentionPeriod;
+    private Long autoAnalyze;
 
     /**
      * <p>
@@ -244,7 +245,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                            int tableType,
                            boolean onCommitDeleteRows,
                            boolean onRollbackDeleteRows, int numberOfColumns){
-        this(dataDictionary,tableName,schema,tableType,'\0',numberOfColumns,null,null,null,null,null,null,false,false, null);
+        this(dataDictionary,tableName,schema,tableType,'\0',numberOfColumns,null,null,null,null,null,null,false,false, null, null);
         this.onCommitDeleteRows=onCommitDeleteRows;
         this.onRollbackDeleteRows=onRollbackDeleteRows;
     }
@@ -271,7 +272,8 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                            String compression,
                            boolean isPinned,
                            boolean purgeDeletedRows,
-                           Long minRetentionPeriod
+                           Long minRetentionPeriod,
+                           Long autoAnalyze
     ){
         super(dataDictionary);
 
@@ -294,6 +296,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         this.isPinned = isPinned;
         this.purgeDeletedRows = purgeDeletedRows;
         this.minRetentionPeriod = minRetentionPeriod;
+        this.autoAnalyze = autoAnalyze;
     }
 
     //
@@ -409,8 +412,16 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         return minRetentionPeriod;
     }
 
+    public Long getAutoAnalyze() {
+        return autoAnalyze;
+    }
+
     public void setMinRetentionPeriod(Long minRetentionPeriod) {
         this.minRetentionPeriod = minRetentionPeriod;
+    }
+
+    public void setAutoAnalyze(Long autoAnalyze) {
+        this.autoAnalyze = autoAnalyze;
     }
 
     /**
