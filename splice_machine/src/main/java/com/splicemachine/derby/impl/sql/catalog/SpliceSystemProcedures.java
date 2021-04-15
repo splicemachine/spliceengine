@@ -246,7 +246,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .integer("mode")            // 0 = fetch all, 1 = fetch only props where value not same on all servers
                 .numOutputParams(0)
                 .numResultSets(1)
-                .modifiesSql() // restrict execution
+                .sqlControl(RoutineAliasInfo.NO_SQL)
                 .ownerClass(SpliceAdmin.class.getCanonicalName())
                 .build();
         procedures.add(getRegionServerConfig);
@@ -872,7 +872,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numResultSets(0)
                 .varchar("loggerName", 128)
                 .varchar("loggerLevel", 128)
-                .modifiesSql() // restriction execution
+                .sqlControl(RoutineAliasInfo.NO_SQL)
                 .ownerClass(SpliceAdmin.class.getCanonicalName())
                 .build();
         procedures.add(setLoggerLevel);
@@ -882,7 +882,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numResultSets(0)
                 .varchar("loggerName", 128)
                 .varchar("loggerLevel", 128)
-                .modifiesSql() // restriction execution
+                .sqlControl(RoutineAliasInfo.NO_SQL)
                 .ownerClass(SpliceAdmin.class.getCanonicalName())
                 .build();
         procedures.add(setLoggerLevelLocal);
@@ -1067,7 +1067,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numOutputParams(0)
                 .numResultSets(1)
                 .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .modifiesSql()
+                .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
                 .returnType(null).isDeterministic(false)
                 .catalog("KEY")
                 .build());
@@ -1079,7 +1079,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numOutputParams(0)
                 .numResultSets(1)
                 .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .modifiesSql() // restrict execution
+                .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
                 .returnType(null).isDeterministic(false)
                 .catalog("KEY")
                 .varchar("VALUE", Limits.DB2_VARCHAR_MAXWIDTH)
@@ -1092,7 +1092,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numOutputParams(0)
                 .numResultSets(1)
                 .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .modifiesSql() // restrict execution
+                .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
                 .returnType(null).isDeterministic(false)
                 .varchar("FILTER", Limits.DB2_VARCHAR_MAXWIDTH)
                 .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
@@ -1211,7 +1211,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numOutputParams(0)
                 .numResultSets(0)
                 .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .modifiesSql() // restriction execution
+                .sqlControl(RoutineAliasInfo.NO_SQL)
                 .returnType(null).isDeterministic(false)
                 .build());
 

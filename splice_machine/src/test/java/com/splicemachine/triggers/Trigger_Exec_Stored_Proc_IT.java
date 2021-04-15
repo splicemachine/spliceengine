@@ -386,7 +386,7 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
         if (originalLevel.equals("INFO")) {
             newlevel = "WARN";
         }
-        tb.named("log_level_change").after().insert().on("S").statement().
+        tb.named("log_level_change").before().insert().on("S").statement().
             then("call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL('com.splicemachine.tools.version.ManifestFinder', '"+newlevel+"')");
         createTrigger(tb);
 

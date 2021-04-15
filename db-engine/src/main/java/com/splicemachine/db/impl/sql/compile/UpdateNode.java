@@ -1189,7 +1189,18 @@ public final class UpdateNode extends DMLModStatementNode
         ** are going to be modified.
         */
         DMLModStatementNode.getXAffectedIndexes(baseTable, updateColumnList, columnMap, conglomVector, false);
- 
+
+        /* If the update overlaps the primary key, include all columns
+         */
+        IndexRowGenerator irg = baseTable.getBaseConglomerateDescriptor().getIndexDescriptor();
+        if (irg != null && irg.getIndexDescriptor() != null &&
+                updateColumnList.updateOverlaps(irg.getIndexDescriptor().baseColumnPositions())) {
+            for (int i = 1; i <= columnCount; i++)
+            {
+                columnMap.set(i);
+            }
+        }
+
         /*
         ** Add all columns needed for constraints.  We don't
         ** need to bother with foreign key/primary key constraints
