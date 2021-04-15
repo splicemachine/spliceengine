@@ -37,10 +37,7 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
-import com.splicemachine.db.iapi.store.access.AccessFactory;
-import com.splicemachine.db.iapi.store.access.ColumnOrdering;
-import com.splicemachine.db.iapi.store.access.ScanController;
-import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.types.*;
@@ -54,6 +51,7 @@ import com.splicemachine.derby.impl.sql.depend.SpliceDependencyManager;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.*;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseController;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
 import com.splicemachine.management.Manager;
 import com.splicemachine.pipeline.Exceptions;
@@ -1433,6 +1431,36 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         for (int i = 0; i < n; ++i) {
             conglomerate = ti.getIndexConglomerate(i);
             tc.truncate(Long.toString(conglomerate));
+        }
+    }
+
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Intentional")
+    public void upgradeAddColumnToSystemTable(TransactionController tc, int catalogNumber, int[] colIds) throws StandardException {
+        int lastCol = colIds[colIds.length - 1];
+        TabInfoImpl tabInfo = getTabInfoByNumber(catalogNumber);
+        try {
+            TableDescriptor td = getTableDescriptor(tabInfo.getCatalogRowFactory().getCatalogName(),
+                    getSystemSchemaDescriptor(), tc );
+            long conglomID = td.getHeapConglomerateId();
+            try (ConglomerateController heapCC = tc.openConglomerate(conglomID,
+                    false,0,
+                    TransactionController.MODE_RECORD,
+                    TransactionController.ISOLATION_REPEATABLE_READ) ) {
+                // If upgrade has already been done, and we somehow got here again by
+                // mistake, don't re-add the columns to the conglomerate descriptor.
+                if (heapCC instanceof HBaseController) {
+                    HBaseController hCC = (HBaseController) heapCC;
+                    if (hCC.getConglomerate().getFormat_ids().length >= lastCol) {
+                        return;
+                    }
+                }
+            }
+            upgradeAddColumns(tabInfo.getCatalogRowFactory(), colIds, tc);
+            SpliceLogUtils.info(LOG, "Catalog upgraded: updated system table %s", tabInfo.getTableName());
+        } catch (Exception e) {
+            SpliceLogUtils.error(LOG, "Attempt to upgrade %s failed. " +
+                            "Please check if it has already been upgraded and contains the correct number of columns: %s.",
+                    tabInfo.getTableName(), lastCol);
         }
     }
 
