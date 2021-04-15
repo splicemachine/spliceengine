@@ -12,7 +12,6 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-// todo: this is kindof the same as com.splicemachine.pipeline.constraint.NoOpConstraintChecker
 package com.splicemachine.si.impl.data;
 
 import com.splicemachine.kvpair.KVPair;
@@ -37,10 +36,5 @@ public class NoOpConstraintChecker implements ConstraintChecker{
     @Override
     public MutationStatus checkConstraint(KVPair mutation,DataResult existingRow) throws IOException{
         return opFactory.success();
-    }
-
-    @Override
-    public String toString() {
-        return "NoOpConstraintChecker";
     }
 }

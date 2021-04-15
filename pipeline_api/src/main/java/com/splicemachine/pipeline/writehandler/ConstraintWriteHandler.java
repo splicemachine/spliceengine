@@ -115,9 +115,4 @@ public class ConstraintWriteHandler implements WriteHandler {
         }
         visitedRows = null;
     }
-
-    @Override
-    public String toString() {
-        return "ConstraintWriteHandler " + localConstraint.toString() + " expectedWrites = " + expectedWrites;
-    }
 }

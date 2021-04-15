@@ -15,8 +15,6 @@
 package com.splicemachine.pipeline.writehandler;
 
 import java.io.IOException;
-import java.util.Arrays;
-
 import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.splicemachine.access.api.NotServingPartitionException;
@@ -27,7 +25,6 @@ import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.pipeline.constraint.ForeignKeyViolation;
 import com.splicemachine.pipeline.constraint.NotNullConstraintViolation;
 import com.splicemachine.pipeline.constraint.UniqueConstraintViolation;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.WriteConflict;
 import org.apache.log4j.Logger;
 import com.splicemachine.pipeline.context.WriteContext;
@@ -137,10 +134,5 @@ public abstract class RoutingWriteHandler implements WriteHandler {
             LOG.error("Unexpected exception", t);
             ctx.failed(mutation, WriteResult.failed(t.getClass().getSimpleName() + ":" + t.getMessage()));
         }
-    }
-
-    @Override
-    public String toString() {
-        return "RoutingWriteHandler { destination = " + Bytes.toStringBinary(destination) + " keepState = " + keepState + "}";
     }
 }

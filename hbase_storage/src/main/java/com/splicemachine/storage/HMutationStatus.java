@@ -86,10 +86,4 @@ public class HMutationStatus implements MutationStatus{
     public OperationStatus unwrapDelegate(){
         return delegate;
     }
-
-    @Override
-    public String toString() {
-        return "HMutationStatus " + delegate.getOperationStatusCode().toString()
-                + (errorMessage() == null ? "" : (" errorMessage = " + errorMessage() ));
-    }
 }

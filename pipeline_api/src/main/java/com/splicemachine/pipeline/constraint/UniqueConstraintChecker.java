@@ -78,9 +78,4 @@ public class UniqueConstraintChecker implements BatchConstraintChecker {
         else
             return "UniqueConstraint".equals(status.errorMessage());
     }
-
-    @Override
-    public String toString() {
-        return "UniqueConstraintChecker { isPrimaryKey = " + isPrimaryKey + "}";
-    }
 }

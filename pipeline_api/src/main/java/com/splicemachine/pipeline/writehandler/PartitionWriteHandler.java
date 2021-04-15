@@ -241,9 +241,4 @@ public class PartitionWriteHandler implements WriteHandler {
         mutations = null; // Dereference
     }
 
-    @Override
-    public String toString() {
-        return "PartitionWriteHandler { region = " + region.toString() + " constraintChecker = " +
-                (constraintChecker == null ? "null" : constraintChecker.toString()) + "}";
-    }
 }

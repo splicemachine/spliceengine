@@ -207,7 +207,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
 
     @Override
     public String toString(){
-        return "InsertOperation{destTable="+heapConglom+",source="+source+"}";
+        return "Insert{destTable="+heapConglom+",source="+source+"}";
     }
 
     @Override
