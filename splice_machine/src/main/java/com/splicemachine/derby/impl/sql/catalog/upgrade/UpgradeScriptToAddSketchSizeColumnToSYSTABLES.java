@@ -27,6 +27,6 @@ public class UpgradeScriptToAddSketchSizeColumnToSYSTABLES extends UpgradeScript
     @Override
     protected void upgradeSystemTables() throws StandardException {
         SpliceLogUtils.info(LOG, "Adding sketchSize column to system table SYSTABLES and updating SYSTABLESVIEW");
-        sdd.addMinRetentionPeriodColumn(tc);
+        sdd.addSketchSizeColumn(tc);
     }
 }
