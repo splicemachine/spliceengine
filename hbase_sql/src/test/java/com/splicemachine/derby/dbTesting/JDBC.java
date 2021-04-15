@@ -34,6 +34,7 @@
  */
 package com.splicemachine.derby.dbTesting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.Assert;
 
 import java.io.IOException;
@@ -48,76 +49,39 @@ import java.util.*;
  * The base level for the Derby tests is JSR 169.
  */
 public class JDBC {
-    
-    /**
-     * Helper class whose <code>equals()</code> method returns
-     * <code>true</code> for all strings on this format: SQL061021105830900
-     */
-    public static class GeneratedId {
-        public boolean equals(Object o) {
-            String tmpstr = (String)o;
-            boolean b = true;
-            if (!(o instanceof String))
-                b = false;
-            if (!(tmpstr.startsWith("SQL")))
-                b = false;
-            if (tmpstr.length() != 18)
-                b = false;
-            for (int i=3 ; i<18 ; i++)
-            {
-                if (Character.isDigit(tmpstr.charAt(i)))
-                    continue;
-                else
-                {
-                    b = false;
-                    break;
-                }
-            }
-            return b;
-        }
-        public String toString() {
-            return "xxxxGENERATED-IDxxxx";
-        }
-    }
-
     /**
      * Constant to pass to DatabaseMetaData.getTables() to fetch
      * just tables.
      */
-    public static final String[] GET_TABLES_TABLE = {"TABLE"};
+    static final String[] GET_TABLES_TABLE = {"TABLE"};
     /**
      * Constant to pass to DatabaseMetaData.getTables() to fetch
      * just views.
      */
-    public static final String[] GET_TABLES_VIEW = {"VIEW"};
+    static final String[] GET_TABLES_VIEW = {"VIEW"};
     /**
      * Constant to pass to DatabaseMetaData.getTables() to fetch
      * just synonyms.
      */
-    public static final String[] GET_TABLES_SYNONYM =
+    static final String[] GET_TABLES_SYNONYM =
             {"SYNONYM"};
-    
-    /**
-     * Types.SQLXML value without having to compile with JDBC4.
-     */
-    public static final int SQLXML = 2009;
-	
+
     /**
      * Tell if we are allowed to use DriverManager to create database
      * connections.
      */
     private static final boolean HAVE_DRIVER
                            = haveClass("java.sql.Driver");
-    
+
     /**
      * Does the Savepoint class exist, indicates
-     * JDBC 3 (or JSR 169). 
+     * JDBC 3 (or JSR 169).
      */
     private static final boolean HAVE_SAVEPOINT
                            = haveClass("java.sql.Savepoint");
 
     /**
-     * Does the java.sql.SQLXML class exist, indicates JDBC 4. 
+     * Does the java.sql.SQLXML class exist, indicates JDBC 4.
      */
     private static final boolean HAVE_SQLXML
                            = haveClass("java.sql.SQLXML");
@@ -150,7 +114,7 @@ public class JDBC {
             return true;
         } catch (Throwable e) {
         	return false;
-        }    	
+        }
     }
 
     /**
@@ -200,8 +164,8 @@ public class JDBC {
 	{
 		return !HAVE_DRIVER
 		       && HAVE_SAVEPOINT;
-	}	
-	
+	}
+
 	/**
 	 * Rollback and close a connection for cleanup.
 	 * Test code that is expecting Connection.close to succeed
@@ -253,6 +217,7 @@ public class JDBC {
 	 * @param schema Name of the schema
 	 * @throws SQLException database error
 	 */
+	@SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE")
 	public static void dropSchema(DatabaseMetaData dmd, String schema) throws SQLException
 	{		
 		Connection conn = dmd.getConnection();
@@ -275,19 +240,19 @@ public class JDBC {
 		// Procedures
 		rs = dmd.getProcedures((String) null,
 				schema, (String) null);
-		
+
 		dropUsingDMD(s, rs, schema, "PROCEDURE_NAME", "PROCEDURE");
 		
 		// Views
 		rs = dmd.getTables((String) null, schema, (String) null,
                 GET_TABLES_VIEW);
-		
+
 		dropUsingDMD(s, rs, schema, "TABLE_NAME", "VIEW");
 		
 		// Tables
 		rs = dmd.getTables((String) null, schema, (String) null,
                 GET_TABLES_TABLE);
-		
+
 		dropUsingDMD(s, rs, schema, "TABLE_NAME", "TABLE");
         
         // At this point there may be tables left due to
@@ -324,7 +289,7 @@ public class JDBC {
                 
         // Tables (again)
         rs = dmd.getTables((String) null, schema, (String) null,
-                GET_TABLES_TABLE);        
+                GET_TABLES_TABLE);
         dropUsingDMD(s, rs, schema, "TABLE_NAME", "TABLE");
 
         // drop UDTs
@@ -373,23 +338,14 @@ public class JDBC {
      */
     private static boolean sysSequencesExists( Connection conn ) throws SQLException
     {
-        PreparedStatement ps = null;
-        ResultSet rs =  null;
-        try {
-            ps = conn.prepareStatement
-                (
+        try (PreparedStatement ps = conn.prepareStatement(
                  "select count(*) from sys.systables t, sys.sysschemas s\n" +
                  "where t.schemaid = s.schemaid\n" +
                  "and ( cast(s.schemaname as varchar(128)))= 'SYS'\n" +
                  "and ( cast(t.tablename as varchar(128))) = 'SYSSEQUENCES'" );
-            rs = ps.executeQuery();
+             ResultSet rs = ps.executeQuery()) {
             rs.next();
             return ( rs.getInt( 1 ) > 0 );
-        }
-        finally
-        {
-            if ( rs != null ) { rs.close(); }
-            if ( ps != null ) { ps.close(); }
         }
     }
 	
@@ -408,6 +364,7 @@ public class JDBC {
 	 * @param dropType The keyword to use after DROP in the SQL statement
 	 * @throws SQLException database errors.
 	 */
+	@SuppressFBWarnings("SBSC_USE_STRINGBUFFER_CONCATENATION")
 	private static void dropUsingDMD(
 			Statement s, ResultSet rs, String schema,
 			String mdColumn,
@@ -783,41 +740,6 @@ public class JDBC {
                     expectedTypes[i], rsmd.getColumnType(i+1));
         }
     }
-    /**
-     * Takes a Prepared Statement and an array of expected parameter types
-     * from java.sql.Types 
-     * and asserts that the parameter types in the ParamterMetaData
-     * match the number and order of those
-     * in the array.
-     * @param ps PreparedStatement for which we're checking parameter names.
-     * @param expectedTypes Array of expected parameter types.
-     */
-    public static void assertParameterTypes (PreparedStatement ps,
-	        int[] expectedTypes) throws Exception
-	    {
-            if ( vmSupportsJSR169() )
-            {
-                Assert.fail( "The assertParameterTypes() method only works on platforms which support ParameterMetaData." );
-            }
-
-            Object pmd = ps.getClass().getMethod( "getParameterMetaData", null ).invoke(  ps, null );
-            int actualParams = ((Integer) pmd.getClass().getMethod( "getParameterCount", null ).invoke( pmd, null )).intValue();
-
-	        Assert.assertEquals("Unexpected parameter count:",
-	                expectedTypes.length, actualParams );
-
-            Method  getParameterType = pmd.getClass().getMethod( "getParameterType", new Class[] { Integer.TYPE } );
-
-	        for (int i = 0; i < actualParams; i++)
-	        {
-	            Assert.assertEquals
-                    ("Types do not match for parameter " + (i+1),
-                     expectedTypes[i],
-                     ((Integer) getParameterType.invoke( pmd, new Object[] { new Integer( i + 1 ) } )).intValue()
-                     );
-	        }
-	    }
-    
     /**
      * Check the nullability of the column definitions for
      * the ResultSet matches the expected values.

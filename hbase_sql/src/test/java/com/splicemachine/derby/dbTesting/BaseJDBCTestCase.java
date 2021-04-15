@@ -2,6 +2,7 @@
 // step-by-step addressing DB-10995
 package com.splicemachine.derby.dbTesting;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import static org.junit.Assert.fail;
