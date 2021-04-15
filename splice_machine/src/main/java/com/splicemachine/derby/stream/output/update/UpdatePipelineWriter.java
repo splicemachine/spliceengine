@@ -60,6 +60,7 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     protected DataValueDescriptor[] kdvds;
     protected int[] colPositionMap;
     protected FormatableBitSet heapList;
+    protected FormatableBitSet valuesList;
     protected boolean modifiedPrimaryKeys=false;
     protected int[] finalPkColumns;
 
@@ -172,11 +173,10 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
             }
         }
         // grow heapList
-        int size = heapList.size();
-        int bits = heapList.getNumBitsSet();
-        heapList.grow(size*2);
-        for (int i=heapList.anySetBit(), c=0; c<bits; i=heapList.anySetBit(i), c++) {
-            heapList.set(i + size);
+        valuesList = (FormatableBitSet) heapList.clone();
+        valuesList.grow(heapList.size()*2);
+        for (int i=heapList.anySetBit();i!=-1;i=heapList.anySetBit(i)) {
+            valuesList.set(i + heapList.size());
         }
     }
 
@@ -215,7 +215,7 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
 
     public DataHash getRowHash() throws StandardException{
         DescriptorSerializer[] serializers=VersionedSerializers.forVersion(tableVersion,false).getSerializers(execRowDefinition);
-        return new RowHash(colPositionMap,null,serializers,heapList);
+        return new RowHash(colPositionMap,null,serializers,valuesList);
     }
 
     public RecordingCallBuffer<KVPair> transformWriteBuffer(final RecordingCallBuffer<KVPair> bufferToTransform) throws StandardException{
