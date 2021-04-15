@@ -13,6 +13,9 @@
 
 package com.splicemachine.db.shared.common.sql;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 public class Utils {
     public final static char defaultEscapeCharacter = '\\';
 
@@ -25,7 +28,7 @@ public class Utils {
             return null;
         }
         return in.replace(Character.toString(escapeCharacter), Character.toString(escapeCharacter) + escapeCharacter)
-                 .replace("_", escapeCharacter + "_")
-                 .replace("%", escapeCharacter + "%");
+                .replace("_", escapeCharacter + "_")
+                .replace("%", escapeCharacter + "%");
     }
 }

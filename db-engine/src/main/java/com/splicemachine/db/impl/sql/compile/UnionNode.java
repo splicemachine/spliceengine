@@ -257,9 +257,9 @@ public class UnionNode extends SetOperatorNode{
         // getNextDecoratedPermutation() method.
         updateBestPlanMap(ADD_PLAN,this);
 
-        leftResultSet=optimizeSource(optimizer, leftResultSet, getLeftOptPredicateList(), null);
+        leftResultSet=optimizeSource(optimizer, leftResultSet, getLeftOptPredicateList(), null, null);
 
-        rightResultSet=optimizeSource(optimizer, rightResultSet, getRightOptPredicateList(), null);
+        rightResultSet=optimizeSource(optimizer, rightResultSet, getRightOptPredicateList(), null, null);
 
         CostEstimate leftCost = leftResultSet.getCostEstimate();
         CostEstimate rightCost = rightResultSet.getCostEstimate();
