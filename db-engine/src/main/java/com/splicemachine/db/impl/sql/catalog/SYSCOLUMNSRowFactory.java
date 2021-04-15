@@ -79,7 +79,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
     protected static final int		SYSCOLUMNS_COLLECTSTATS = 11;
     protected static final int		SYSCOLUMNS_PARTITION_POSITION = 12;
     public static final int         SYSCOLUMNS_USEEXTRAPOLATION = 13;
-    protected static final int      SYSCOLUMNS_SKETCHSIZE = 14;
+    public static final int      SYSCOLUMNS_SKETCHSIZE = 14;
 
 
     protected static final int		SYSCOLUMNS_INDEX1_ID = 0;

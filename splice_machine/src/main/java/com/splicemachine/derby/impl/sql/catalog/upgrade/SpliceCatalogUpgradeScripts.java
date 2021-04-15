@@ -82,6 +82,7 @@ public class SpliceCatalogUpgradeScripts{
         // CONGLOMERATE_SI_TABLE_NAME that is from then on needed to create tables, e.g.
         // in UpgradeScriptToAddSysNaturalNumbersTable. If UpgradeConglomerateTable is at the end,
         // these upgrades would fail
+        addUpgradeScript(baseVersion2, 2001, new UpgradeScriptToAddSketchSizeColumnToSYSTABLES(sdd, tc));
         addUpgradeScript(baseVersion4, 1996, new UpgradeConglomerateTable(sdd, tc));
 
         addUpgradeScript(baseVersion1, 1901, new UpgradeScriptToRemoveUnusedBackupTables(sdd,tc));
