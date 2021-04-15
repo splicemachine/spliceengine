@@ -305,7 +305,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             TransactionController transactionExecute = lcc.getTransactionExecute();
             transactionExecute.elevate("statistics");
             dropTableStatistics(tds, dd, tc);
-            ddlNotification(tc, tds);
             TxnView txn = ((SpliceTransactionManager) transactionExecute).getRawTransaction().getActiveStateTxn();
 
             HashMap<Long, Pair<String, String>> display = new HashMap<>();
@@ -316,6 +315,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
             IteratorNoPutResultSet resultsToWrap = wrapResults(conn,
                     displayTableStatistics(statisticsOperations,true, dd, transactionExecute, display), COLLECTED_STATS_OUTPUT_COLUMNS);
+            ddlNotification(tc, tds);
             outputResults[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
@@ -588,7 +588,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             dd.startWriting(conn.getLanguageConnection());
             TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
             dropTableStatistics(tds,dd,tc);
-            ddlNotification(tc, tds);
             TxnView txn = ((SpliceTransactionManager) tc).getRawTransaction().getActiveStateTxn();
 
             HashMap<Long,Pair<String,String>> display = new HashMap<>();
@@ -599,6 +598,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                     conn,
                     displayTableStatistics(ops, mergeStats, dd, tc, display),
                     COLLECTED_STATS_OUTPUT_COLUMNS);
+            ddlNotification(tc, tds);
             outputResults[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
