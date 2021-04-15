@@ -99,6 +99,6 @@ public class UniqueConstraint implements Constraint {
 
     @Override
     public String toString() {
-        return "UniqueConstraint {" + constraintContext + "}";
+        return "{" + constraintContext + "}";
     }
 }

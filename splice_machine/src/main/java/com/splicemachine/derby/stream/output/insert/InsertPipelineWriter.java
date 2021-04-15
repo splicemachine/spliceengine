@@ -58,16 +58,6 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
     protected boolean isUpsert;
     private Partition table;
 
-    @Override
-    public String toString() {
-        return "InsertPipelineWriter {insertOperation=" + (insertOperation == null ? "null" : insertOperation)
-                + ", conglom=" + heapConglom
-                + ", isUpsert=" + Boolean.toString(isUpsert)
-                + ", loadReplaceMode=" + Boolean.toString(loadReplaceMode)
-                + ", rollforward=" + Boolean.toString(rollforward)
-                + "}";
-    }
-
     @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public InsertPipelineWriter(int[] pkCols,
                                 String tableVersion,

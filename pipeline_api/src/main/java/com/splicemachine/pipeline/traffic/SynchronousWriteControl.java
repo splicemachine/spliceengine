@@ -39,7 +39,7 @@ public class SynchronousWriteControl implements SpliceWriteControl{
     }
 
     @Override
-    public Status registerDependentWrite(int writes){
+    public Status performDependentWrite(int writes){
         synchronized(this){
             //avoid the extra cost of a volatile read, since we're already synchronized
             WriteStatus ws = currStatus;
@@ -54,19 +54,20 @@ public class SynchronousWriteControl implements SpliceWriteControl{
     }
 
     @Override
-    public void registerDependentWriteFinish(int writes){
+    public boolean finishDependentWrite(int writes){
         synchronized(this){
             currStatus = WriteStatus.decrementDependentWriteStatus(currStatus,writes);
+            return true;
         }
     }
 
     @Override
-    public Status registerIndependentWrite(int writes){
+    public Status performIndependentWrite(int writes){
         synchronized(this){
             WriteStatus state = currStatus;
             if(state.independentWriteThreads>maxIndependentWriteThreads
                     ||state.independentWriteCount> maxIndependentWriteCount){
-                return registerDependentWrite(writes);
+                return performDependentWrite(writes);
             }else{
                 currStatus = WriteStatus.incrementIndependentWriteStatus(currStatus,writes);
                 return Status.INDEPENDENT;
@@ -75,9 +76,10 @@ public class SynchronousWriteControl implements SpliceWriteControl{
     }
 
     @Override
-    public void registerIndependentWriteFinish(int writes){
+    public boolean finishIndependentWrite(int writes){
         synchronized(this){
             currStatus = WriteStatus.decrementIndependentWriteStatus(currStatus,writes);
+            return true;
         }
     }
 

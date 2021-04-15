@@ -185,10 +185,8 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
 
     @Override
     public String toString() {
-        return "ForeignKeyChildInterceptWriteHandler { referencedConglomerateNumber = " + referencedConglomerateNumber
-                + " fkConstraintInfo = " + (fkConstraintInfo == null ? "null" : fkConstraintInfo.toString()) + "}";
+        return "ForeignKeyChildInterceptWriteHandler{parentTable='" + referencedConglomerateNumber + '\'' + '}';
     }
-
 
     private void failWrite(KVPair kvPair, WriteContext ctx) {
         WriteResult foreignKeyConstraint = new WriteResult(Code.FOREIGN_KEY_VIOLATION, ConstraintContext.foreignKey(fkConstraintInfo));
@@ -245,4 +243,5 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
         System.arraycopy(rowKeyIn, 0, checkRowKey, 0, lastKeyIndex + 1);
         return checkRowKey;
     }
+
 }

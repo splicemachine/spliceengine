@@ -46,24 +46,24 @@ public interface Constraint {
         /**
          * a Unique constraint on one or more columns in a row that allows duplicate null values in those columns
          */
-        UNIQUE_WITH_DUPLICATE_NULLS, // todo: not used
+        UNIQUE_WITH_DUPLICATE_NULLS,
         /**
          * a Foreign Key constraint, requiring a mapping between one or more columns in a row and a primary key
          * on a separate table
          */
-        FOREIGN_KEY, // todo: never set
+        FOREIGN_KEY,
         /**
          * a Check Constraint.
          */
-        CHECK, // todo: never set (also check Code.CHECK_VIOLATION)
+        CHECK,
         /**
          * A Not-Null Constraint.
          */
-        NOT_NULL, // todo: never set
+        NOT_NULL,
         /**
          * no constraint
          */
-        NONE //used for NoConstraint  // todo: not used
+        NONE //used for NoConstraint
     }
 
     /**
