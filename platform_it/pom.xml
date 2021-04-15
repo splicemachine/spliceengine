@@ -774,6 +774,7 @@
                                 <argument>localhost:2181</argument>
                                 <argument>1</argument>
                                 <argument>${kafkaHost}</argument>
+                                <argument>${kafkaProps}</argument>
                             </arguments>
                         </configuration>
                     </plugin>

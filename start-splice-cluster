@@ -236,7 +236,7 @@ popd > /dev/null
 KAFKALOG="${RUN_DIR}"/kafka.log
 # Start Kafka in background.
 echo "Starting Kafka. Log file is ${KAFKALOG}"
-(MAVEN_OPTS="${MAVEN_OPTS} -DkafkaHost=${HOST_IP}" ${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceKafka > ${KAFKALOG} 2>&1) &
+(MAVEN_OPTS="${MAVEN_OPTS} -DkafkaHost=${HOST_IP} -DkafkaProps=${KAFKA_PROPS}" ${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceKafka > ${KAFKALOG} 2>&1) &
 
 SPLICE_LOG="${RUN_DIR}/splice.log"
 echo "Starting Master and 1 Region Server. Log file is ${SPLICE_LOG}"
