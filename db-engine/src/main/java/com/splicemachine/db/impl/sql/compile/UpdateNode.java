@@ -1193,7 +1193,7 @@ public final class UpdateNode extends DMLModStatementNode
         /* If the update overlaps the primary key, include all columns
          */
         IndexRowGenerator irg = baseTable.getBaseConglomerateDescriptor().getIndexDescriptor();
-        if (updateColumnList != null && irg != null && irg.getIndexDescriptor() != null &&
+        if (irg != null && irg.getIndexDescriptor() != null &&
                 updateColumnList.updateOverlaps(irg.getIndexDescriptor().baseColumnPositions())) {
             for (int i = 1; i <= columnCount; i++)
             {
