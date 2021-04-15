@@ -69,6 +69,9 @@ public class UpdateUtils {
         return extractWriteFromUpdate(mutation, KVPair.Type.UPDATE);
     }
 
+    /**
+     * Returns the first half of a bit set
+     */
     public static BitSet halveSet(BitSet bitSet) {
         BitSet result = new BitSet(bitSet.capacity()/2);
         long cardinality = bitSet.cardinality();
