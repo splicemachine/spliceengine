@@ -529,39 +529,11 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
                 activation.addWarning(warning);
             }
         } else {
-            if (((SpliceDataDictionary) lcc.getDataDictionary()).updateModifiedRows(heapConglom, count)) {
+            if (((SpliceDataDictionary) lcc.getDataDictionary()).getLocalStatistics().updateModifiedRows(heapConglom, count)) {
                 updateTableStatistics(lcc);
             }
         }
     }
-
-    //private void updateTableStatistics() throws StandardException {
-    //    try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-    //        Txn txn = SIDriver.driver().lifecycleManager().beginTransaction();
-    //        txn = txn.elevateToWritable(Bytes.toBytes("autostats"));
-    //        transactionResource.marshallTransaction(txn);
-
-    //        // Push internal connection to the current context manager
-    //        EmbedConnection internalConnection = (EmbedConnection) EngineDriver.driver().getInternalConnection();
-    //        new EmbedConnectionContext(ContextService.getService().getCurrentContextManager(), internalConnection);
-
-    //        LanguageConnectionContext lcc = transactionResource.getLcc();
-    //        DataDictionary dd = lcc.getDataDictionary();
-    //        ConglomerateDescriptor cd = dd.getConglomerateDescriptor(heapConglom);
-    //        UUID tableID = cd.getTableID();
-    //        TableDescriptor td = dd.getTableDescriptor(tableID);
-    //        String analyzeText = String.format("ANALYZE TABLE %s", td.getQualifiedName());
-    //        PreparedStatement ps = lcc.prepareInternalStatement(analyzeText);
-    //        Activation activation = ps.getActivation(lcc, false);
-    //        ((GenericStorablePreparedStatement)ps).setNeedsSavepoint(false);
-    //        activation.getLanguageConnectionContext().pushStatementContext(false, false, analyzeText, null, false, 0L);
-    //        activation.getLanguageConnectionContext().getStatementContext().setSQLAllowed(RoutineAliasInfo.MODIFIES_SQL_DATA, false);
-    //        ResultSet rs = ps.execute(activation, 0);
-    //        rs.close();
-    //    } catch (SQLException | IOException e) {
-    //        throw StandardException.plainWrapException(e);
-    //    }
-    //}
 
     private void updateTableStatistics(LanguageConnectionContext lcc) throws StandardException {
         try {
@@ -577,23 +549,24 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         }
     }
 
-    public Connection getCurrentConnection() throws SQLException {
-
-        ContextManager cm = ContextService.getCurrentContextManager();
-        ConnectionContext cc = (ConnectionContext) cm.getContext(ConnectionContext.CONTEXT_ID);
-
-        return cc.getNestedConnection(true);
-    }
-
-    public void runAnalyzeInOwnThread(String tableQualifiedName) throws SQLException {
-        Thread thread = new Thread(() -> {
-            try (Connection connection = RemoteUser.getConnection("Arnauds-MacBook-Pro.local:1528");
-                 Statement stmt = connection.createStatement()) {
-                stmt.execute(String.format("analyze table %s", tableQualifiedName));
-            } catch (SQLException e) {
-                LOG.error(e);
+    private void runAnalyzeInOwnThread(String tableQualifiedName) throws SQLException {
+        class AnalyzeRunnable implements Runnable {
+            private RemoteUser user;
+            private AnalyzeRunnable(RemoteUser user) {
+                this.user = user;
             }
-        });
+            public void run() {
+                SpliceLogUtils.info(LOG, "Automatically running ANALYZE for %s", tableQualifiedName);
+                RemoteUser.setRemoteUser(user);
+                try (Connection connection = RemoteUser.getConnection("Arnauds-MacBook-Pro.local:1528");
+                     Statement stmt = connection.createStatement()) {
+                    stmt.execute(String.format("analyze table %s", tableQualifiedName));
+                } catch (SQLException e) {
+                    SpliceLogUtils.error(LOG, "Automatic ANALYZE of %s failed: %s", tableQualifiedName, e);
+                }
+            }
+        }
+        Thread thread = new Thread(new AnalyzeRunnable(RemoteUser.user.get()));
         thread.start();
     }
 

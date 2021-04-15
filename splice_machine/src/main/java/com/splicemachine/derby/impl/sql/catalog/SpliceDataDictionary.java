@@ -67,8 +67,6 @@ import org.apache.log4j.Logger;
 
 import java.sql.Types;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 
 /**
@@ -96,7 +94,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     public static final String SPLICE_DATA_DICTIONARY_VERSION="SpliceDataDictionaryVersion";
     private ConcurrentLinkedHashMap<String, byte[]> sequenceRowLocationBytesMap=null;
     private ConcurrentLinkedHashMap<String, SequenceDescriptor[]> sequenceDescriptorMap=null;
-    private ConcurrentHashMap<Long, LongAdder> modifiedRowsCountMap = new ConcurrentHashMap<>();
+    private DD_stats local_table_statistics;
 
     public static final SystemViewDefinitions viewDefinitions = new SystemViewDefinitions();
 
@@ -224,7 +222,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
         TableDescriptor view=ddg.newTableDescriptor(viewName,
-                sd,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false,null);
+                sd,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false,null, null);
         addDescriptor(view,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
         UUID viewId=view.getUUID();
         TabInfoImpl ti;
@@ -298,7 +296,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             DataDescriptorGenerator ddg = getDataDescriptorGenerator();
             TableDescriptor td = ddg.newTableDescriptor(synonymName, sysIBMSchemaDesc, TableDescriptor.SYNONYM_TYPE,
                     TableDescriptor.DEFAULT_LOCK_GRANULARITY,-1,
-                    null,null,null,null,null,null,false,false,null);
+                    null,null,null,null,null,null,false,false,null, null);
             addDescriptor(td, sysIBMSchemaDesc, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
 
             // Create a new alias descriptor with a UUID filled in.
@@ -562,6 +560,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             }
         }
 
+        local_table_statistics = new DD_stats(this);
+
         super.boot(create,startParams);
     }
 
@@ -760,7 +760,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
         TableDescriptor view=ddg.newTableDescriptor("SYSTABLESTATISTICS",
-                sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false,null);
+                sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false,null, null);
         addDescriptor(view,sysSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
         UUID viewId=view.getUUID();
         TabInfoImpl ti = getNonCoreTI(SYSTABLESTATS_CATALOG_NUM);
@@ -783,7 +783,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
         TableDescriptor view=ddg.newTableDescriptor("SYSCOLUMNSTATISTICS",
-                sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false,null);
+                sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false,null, null);
         addDescriptor(view,sysSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
         UUID viewId=view.getUUID();
         TabInfoImpl ti = getNonCoreTI(SYSCOLUMNSTATS_CATALOG_NUM);
@@ -1441,14 +1441,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return ti;
     }
 
-    public boolean updateModifiedRows(long heapConglom, long modifiedRowsCount) {
-        LongAdder count = modifiedRowsCountMap.computeIfAbsent(heapConglom, k -> new LongAdder());
-        count.add(modifiedRowsCount);
-        if (count.longValue() > 10) {
-            // XXX lock ?
-            count.reset();
-            return true;
-        }
-        return false;
+    public DD_stats getLocalStatistics() {
+        return local_table_statistics;
     }
 }

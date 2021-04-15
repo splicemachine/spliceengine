@@ -101,6 +101,7 @@ public class DataDescriptorGenerator
      * @param schema          The descriptor for the schema the table lives in. If null, use the current (default) schema.
      * @param tableType       The type of the table: base table or view.
      * @param lockGranularity The lock granularity.
+     * @param autoAnalyze
      * @return The descriptor for the table.
      */
     public TableDescriptor newTableDescriptor(String tableName,
@@ -116,10 +117,10 @@ public class DataDescriptorGenerator
                                               String compression,
                                               boolean isPinned,
                                               boolean purgeDeletedRows,
-                                              Long minRetentionPeriod) {
+                                              Long minRetentionPeriod, Long autoAnalyze) {
         return new TableDescriptor(dataDictionary, tableName, schema, tableType, lockGranularity, columnSequence,
                         delimited, escaped, lines, storedAs, location, compression, isPinned, purgeDeletedRows,
-                        minRetentionPeriod);
+                        minRetentionPeriod, autoAnalyze);
     }{}
 
     /**

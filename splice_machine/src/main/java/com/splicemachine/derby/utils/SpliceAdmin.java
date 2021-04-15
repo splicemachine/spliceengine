@@ -1227,6 +1227,38 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
     }
 
+     /**
+     * Returns a schema descriptor and a list of table descriptors affected by the current requirements
+     *
+     * @param schemaName Name of the schema, if NULL, then current schema
+     * @param tableName Name of the table, if NULL, then all tables in schema
+     */
+    private static Pair<SchemaDescriptor, List<TableDescriptor>> getSchemaAndTablesDescriptor(
+            String schemaName, String tableName) throws SQLException, StandardException {
+        // if schemaName was null => get the current schema.
+        schemaName = EngineUtils.validateSchema(schemaName);
+        // if tableName is null => all tables in schemaName.
+        tableName = tableName == null ? null : EngineUtils.validateTable(tableName);
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        TransactionController tc = lcc.getTransactionExecute();
+        DataDictionary dd = lcc.getDataDictionary();
+        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        if (sd == null) {
+            throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
+        }
+        List<TableDescriptor> affectedTables = new ArrayList<>();
+        if (tableName != null) {
+            TableDescriptor td = dd.getTableDescriptor(tableName, sd, tc);
+            if (td == null) {
+                throw StandardException.newException(SQLState.TABLE_NOT_FOUND, tableName);
+            }
+            affectedTables.add(td);
+        } else { // set for all tables in schema
+            affectedTables.addAll(getTablesInSchema(dd, getDefaultConn(), sd.getUUID().toString()));
+        }
+        return Pair.newPair(sd, affectedTables);
+    }
+
     public static String getSqlConglomsInTable(){
         return sqlConglomsInTable;
     }
@@ -1688,32 +1720,16 @@ public class SpliceAdmin extends BaseAdminProcedures{
      * @throws SQLException is table name or schema name is not valid.
      */
     public static void SET_MIN_RETENTION_PERIOD(String schemaName, String tableName, Long retentionPeriod) throws StandardException, SQLException {
-        // if schemaName was null => get the current schema.
-        schemaName = EngineUtils.validateSchema(schemaName);
-        // if tableName is null => set min. retention period for all tables in schemaName.
-        tableName = tableName == null ? null : EngineUtils.validateTable(tableName);
         if(retentionPeriod != null && retentionPeriod < 0) {
             throw StandardException.newException(SQLState.LANG_INVALID_VALUE_RANGE, retentionPeriod, "non-negative number");
         }
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         TransactionController tc = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
-        if (sd == null) {
-            throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
-        }
-        List<TableDescriptor> affectedTables = new ArrayList<>();
-        if (tableName != null) {
-            TableDescriptor td = dd.getTableDescriptor(tableName, sd, tc);
-            if (td == null) {
-                throw StandardException.newException(SQLState.TABLE_NOT_FOUND, tableName);
-            }
-            affectedTables.add(td);
-        } else { // set for all tables in schema
-            affectedTables.addAll(getTablesInSchema(dd, getDefaultConn(), sd.getUUID().toString()));
-        }
+        Pair<SchemaDescriptor, List<TableDescriptor>> schemaAndTables = getSchemaAndTablesDescriptor(schemaName, tableName);
+        SchemaDescriptor sd = schemaAndTables.getFirst();
         dd.startWriting(lcc);
-        for(TableDescriptor td : affectedTables) {
+        for(TableDescriptor td : schemaAndTables.getSecond()) {
             DDLMessage.DDLChange ddlChange = ProtoUtil.createAlterTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) td.getUUID());
             DependencyManager dm = dd.getDependencyManager();
             dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
@@ -1723,6 +1739,27 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         "rows set to true, this could lead to incorrect time travel query results", td.getName());
             }
             td.setMinRetentionPeriod(retentionPeriod);
+            dd.dropTableDescriptor(td, sd, tc);
+            dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
+        }
+    }
+
+    public static void SET_AUTO_ANALYZE(String schemaName, String tableName, Long autoAnalyze) throws StandardException, SQLException {
+        if(autoAnalyze != null && autoAnalyze < 0) {
+            throw StandardException.newException(SQLState.LANG_INVALID_VALUE_RANGE, autoAnalyze, "non-negative number");
+        }
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        TransactionController tc = lcc.getTransactionExecute();
+        DataDictionary dd = lcc.getDataDictionary();
+        Pair<SchemaDescriptor, List<TableDescriptor>> schemaAndTables = getSchemaAndTablesDescriptor(schemaName, tableName);
+        SchemaDescriptor sd = schemaAndTables.getFirst();
+        dd.startWriting(lcc);
+        for (TableDescriptor td : schemaAndTables.getSecond()) {
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createAlterTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) td.getUUID());
+            DependencyManager dm = dd.getDependencyManager();
+            dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
+            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+            td.setAutoAnalyze(autoAnalyze);
             dd.dropTableDescriptor(td, sd, tc);
             dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
         }
