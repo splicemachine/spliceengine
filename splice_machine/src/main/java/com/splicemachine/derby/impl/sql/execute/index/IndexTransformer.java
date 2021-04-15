@@ -473,13 +473,13 @@ public class IndexTransformer {
     }
 
     /**
-     * Do we need to update the index, i.e. did any of the values change?
+     * Do we need to update the index, i.e. did all of the values change?
+     * If the write doesn't modify all indexed columns it means the original update doesn't affect the index
      *
      * @param mutation
-     * @param indexedColumns
      * @return
      */
-    public boolean areIndexKeysModified(KVPair mutation, BitSet indexedColumns) {
+    public boolean areIndexKeysModified(KVPair mutation) {
         EntryDecoder newPutDecoder = new EntryDecoder();
         newPutDecoder.set(mutation.getValue());
         BitIndex updateIndex = newPutDecoder.getCurrentIndex();
