@@ -1144,6 +1144,7 @@
                                 <argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
                                 <argument>-Dcom.sun.management.jmxremote.port=10103</argument>
                                 <argument>-Djava.io.tmpdir=${tmpDir}</argument>
+                                <argument>-Dsplice.kafka.bootstrapServers=${kafka.bootstrapServers}</argument>
                                 <argument>com.splicemachine.test.SpliceTestClusterParticipant</argument>
                                 <argument>${project.build.directory}</argument>
                                 <argument>${memberNumber}</argument>

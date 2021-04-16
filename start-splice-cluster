@@ -257,7 +257,7 @@ if [[ ${MEMBERS} -gt 0 ]]; then
     REGION_SVR_LOG="${RUN_DIR}/spliceRegionSvr$(($MEMBER +1)).log"
     echo "Starting Region Server ${REGION_SVR_LOG}"
     ## (region server, splice on 1528, 1529, ...)
-    (${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
+    (MAVEN_OPTS="${MAVEN_OPTS} -Dkafka.bootstrapServers=${KAFKA_BOOTSTRAPSERVERS:-localhost:9092}" ${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
     echo -n "  Waiting. "
     until is_port_open localhost $(( 1527 + ${MEMBER} )); do echo -n ". " ; sleep 2; done
     echo
