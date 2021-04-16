@@ -2507,6 +2507,7 @@ public class OptimizerImpl implements Optimizer{
                 bestAccessPath.setSpecialMaxScan(currentAccessPath.getSpecialMaxScan());
                 bestAccessPath.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
                 bestAccessPath.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
+                bestAccessPath.setNumberOfScanKeysOnSpecialColumns(currentAccessPath.getNumberOfScanKeysOnSpecialColumns());
 
             /*
             ** It's a non-matching index scan either if there is no
@@ -2550,6 +2551,7 @@ public class OptimizerImpl implements Optimizer{
                             bestSortAvoidancePath.setSpecialMaxScan(currentAccessPath.getSpecialMaxScan());
                             bestSortAvoidancePath.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
                             bestSortAvoidancePath.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
+                            bestSortAvoidancePath.setNumberOfScanKeysOnSpecialColumns(currentAccessPath.getNumberOfScanKeysOnSpecialColumns());
 
                         /*
                         ** It's a non-matching index scan either if there is no
@@ -2588,6 +2590,7 @@ public class OptimizerImpl implements Optimizer{
             // When current access path has the same cost as the best access path,
             // choose the one that we know it works fine even with outdated statistics.
             ConglomerateDescriptor currentCD = currentAccessPath.getConglomerateDescriptor();
+            ConglomerateDescriptor bestCD = bestAccessPath.getConglomerateDescriptor();
             if (currentCD.isIndex() || currentCD.isPrimaryKey()) {
                 // Note that we don't assert anything on best access path. Reason is
                 // that best access path can be an index scan without any start/stop
@@ -2599,22 +2602,29 @@ public class OptimizerImpl implements Optimizer{
                 // current access path is not bad.
                 if (predList != null) {
                     boolean isCurrentFullScan = true;
+                    int specialColumnsCount = 0;
                     for (int i = 0; i < predList.size(); ++i) {
                         OptimizablePredicate pred = predList.getOptPredicate(i);
                         if (pred.isStartKey() || pred.isStopKey()) {
                             isCurrentFullScan = false;
-                            break;
+                            RelationalOperator relOp = ((Predicate)pred).getRelop();
+                            if (relOp != null) {
+                                ColumnReference columnOperand = relOp.getColumnOperand(currOpt);
+                                if (columnOperand != null && columnOperand.columnName.endsWith("#")) {
+                                    specialColumnsCount++;
+                                }
+                            }
                         }
                     }
                     if (!isCurrentFullScan) {
-                        return true;
+                        currentAccessPath.setNumberOfScanKeysOnSpecialColumns(specialColumnsCount);
+                        return !bestCD.isIndex() || bestAccessPath.getNumberOfScanKeysOnSpecialColumns() < specialColumnsCount;
                     }
                 }
                 // If current access path is a full scan over an index, select it
                 // only when the best access path is a full table scan and the index
                 // is covering. A covering index should still be better based on the
                 // assumption that an index typically has fewer columns.
-                ConglomerateDescriptor bestCD = bestAccessPath.getConglomerateDescriptor();
                 return !bestCD.isIndex() && !bestCD.isPrimaryKey() && currOpt.isCoveringIndex(currentCD);
             }
         }

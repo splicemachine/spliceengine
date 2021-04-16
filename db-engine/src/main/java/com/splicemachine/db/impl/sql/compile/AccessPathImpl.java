@@ -56,6 +56,8 @@ class AccessPathImpl implements AccessPath{
     private boolean missingHashKeyOK = false;
     private int numUnusedLeadingIndexFields;
 
+    private int numberOfScanKeysOnSpecialColumns = 0;
+
     AccessPathImpl(Optimizer optimizer){
         this.optimizer=optimizer;
     }
@@ -182,5 +184,15 @@ class AccessPathImpl implements AccessPath{
     @Override
     public FirstColumnOfIndexStats getFirstColumnStats() {
         return getCostEstimate().getFirstColumnStats();
+    }
+
+    @Override
+    public void setNumberOfScanKeysOnSpecialColumns(int value) {
+        numberOfScanKeysOnSpecialColumns = value;
+    }
+
+    @Override
+    public int getNumberOfScanKeysOnSpecialColumns() {
+        return numberOfScanKeysOnSpecialColumns;
     }
 }

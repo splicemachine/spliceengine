@@ -198,4 +198,7 @@ public interface AccessPath {
     void setNumUnusedLeadingIndexFields(int numUnusedLeadingIndexFields);
 
     FirstColumnOfIndexStats getFirstColumnStats();
+
+    void setNumberOfScanKeysOnSpecialColumns(int value);
+    int getNumberOfScanKeysOnSpecialColumns();
 }
