@@ -13,7 +13,7 @@
 
 ##################################################################################
 # Function to kill all splice test processes - zoo, SpliceTestPlatform, YARN, and
-# anything started from maven exec, i.e., mvn exec:exec
+# anything started from maven exec, i.e., mvn dependency:go-offline
 ##################################################################################
 _kill_em_all () {
   SIG=$1
@@ -60,7 +60,7 @@ function is_port_open
 
 
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-DEFAULT_PROFILE="cdh6.3.0,ee"  # default hbase platform profile
+DEFAULT_PROFILE="cdh6.3.0"  # default hbase platform profile
 PROFILE=$DEFAULT_PROFILE
 IN_MEM_PROFILE="mem"
 RUN_DIR="${BASE_DIR}/platform_it"
@@ -72,7 +72,7 @@ CHAOS="false"
 MEMBERS=2
 DEBUG_PATH=""
 
-MVN='mvn -B -o'
+MVN='mvn -B'
 
 usage() {
     # $1 is an error, if any
@@ -191,7 +191,7 @@ fi
 
 ZOO_LOG="${RUN_DIR}/zoo.log"
 echo "Starting ZooKeeper. Log file is ${ZOO_LOG}"
-(${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceZoo > ${ZOO_LOG} 2>&1) &    ## zookeeper
+(${MVN} dependency:go-offline -Denv=${HBASE_PROFILE} -P${PROFILE},spliceZoo > ${ZOO_LOG} 2>&1) &    ## zookeeper
 #######################################################################################################
 # Wait for up to 65 seconds for zoo to start, checking nc periodically to see if we are connected
 # This makes use of ZooKeeper's 'Four-Letter Words' commands to determine the liveness of ZooKeeper
@@ -202,16 +202,6 @@ echo "Starting ZooKeeper. Log file is ${ZOO_LOG}"
 #######################################################################################################
 COUNT=65
 ZOO_UP=""
-until [ ${COUNT} -eq 0 ] || [ "${ZOO_UP}" == "imok" ]; do
-    sleep 1
-    ZOO_UP="$(echo 'ruok' | nc localhost 2181 2> /dev/null)"
-    let COUNT-=1
-done
-
-if [ ${COUNT} -eq 0 ]; then
-    echo "ZooKeeper did not start up properly, aborting startup. Please check ${ZOO_LOG} for more information"
-    exit 5
-fi
 
 if [[ "${DISTRIBUTED}" == "1" ]]; then
     KDC_LOG="${RUN_DIR}/kdc.log"
@@ -230,40 +220,31 @@ fi
 pushd ../standalone/ > /dev/null
 YARN_LOG="${RUN_DIR}/yarn.log"
 echo "Starting YARN. Log file is ${YARN_LOG}"
-(${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
+(${MVN} dependency:go-offline -Denv=${HBASE_PROFILE} -P${PROFILE},spliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
 popd > /dev/null
 
 KAFKALOG="${RUN_DIR}"/kafka.log
 # Start Kafka in background.
 echo "Starting Kafka. Log file is ${KAFKALOG}"
-(MAVEN_OPTS="${MAVEN_OPTS} -DkafkaHost=${HOST_IP} -DkafkaProps=${KAFKA_PROPS}" ${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceKafka > ${KAFKALOG} 2>&1) &
+(MAVEN_OPTS="${MAVEN_OPTS} -DkafkaHost=${HOST_IP}" ${MVN} dependency:go-offline -Denv=${HBASE_PROFILE} -P${PROFILE},spliceKafka > ${KAFKALOG} 2>&1) &
 
 SPLICE_LOG="${RUN_DIR}/splice.log"
 echo "Starting Master and 1 Region Server. Log file is ${SPLICE_LOG}"
 ## (master + region server on 1527)
 
 if [ -z "${SERVER_SSLMODE}" ]; then
-  (MAVEN_OPTS="${MAVEN_OPTS} -Dkafka.bootstrapServers=${KAFKA_BOOTSTRAPSERVERS:-localhost:9092}" ${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceFast ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
+  (${MVN} dependency:go-offline -Denv=${HBASE_PROFILE} -P${PROFILE},spliceFast ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
 else
-  (MAVEN_OPTS="${MAVEN_OPTS} -Dkafka.bootstrapServers=${KAFKA_BOOTSTRAPSERVERS:-localhost:9092}" ${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceFastSSL ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
+  (${MVN} dependency:go-offline -Denv=${HBASE_PROFILE} -P${PROFILE},spliceFastSSL ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
 fi
 
-echo -n "  Waiting. "
-until is_port_open localhost 1527; do echo -n ". " ; sleep 2; done
-echo
 
 if [[ ${MEMBERS} -gt 0 ]]; then
   for (( MEMBER=1; MEMBER<${MEMBERS}; MEMBER++ )); do
     REGION_SVR_LOG="${RUN_DIR}/spliceRegionSvr$(($MEMBER +1)).log"
     echo "Starting Region Server ${REGION_SVR_LOG}"
     ## (region server, splice on 1528, 1529, ...)
-    (${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
-    echo -n "  Waiting. "
-    until is_port_open localhost $(( 1527 + ${MEMBER} )); do echo -n ". " ; sleep 2; done
-    echo
+    (${MVN} dependency:go-offline -Denv=${HBASE_PROFILE} -P${PROFILE},spliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
   done
 fi
 popd > /dev/null
-
-echo "Tailing the RegionServer Log file"
-tail -f ${REGION_SVR_LOG}
