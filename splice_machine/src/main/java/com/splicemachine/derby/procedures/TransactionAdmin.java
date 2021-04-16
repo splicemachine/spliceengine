@@ -12,7 +12,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.utils;
+package com.splicemachine.derby.procedures;
 
 import com.splicemachine.pipeline.ErrorState;
 import splice.com.google.common.collect.Lists;
@@ -87,7 +87,7 @@ public class TransactionAdmin{
     };
 
     public static void SYSCS_GET_CURRENT_TRANSACTION(ResultSet[] resultSet) throws SQLException{
-        EmbedConnection defaultConn=(EmbedConnection)SpliceAdmin.getDefaultConn();
+        EmbedConnection defaultConn=(EmbedConnection) SpliceAdmin.getDefaultConn();
         TxnView txn=((SpliceTransactionManager)defaultConn.getLanguageConnection().getTransactionExecute()).getActiveStateTxn();
         ExecRow row=new ValueRow(1);
         row.setColumn(1,new SQLLongint(txn.getTxnId()));

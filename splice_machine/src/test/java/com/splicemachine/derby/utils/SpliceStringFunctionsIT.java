@@ -14,8 +14,8 @@
 
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.derby.procedures.SpliceStringFunctions;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import org.junit.Assert;

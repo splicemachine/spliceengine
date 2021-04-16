@@ -19,19 +19,18 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.SQLLongint;
-import com.splicemachine.db.iapi.types.SQLTimestamp;
-import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.procedures.BaseAdminProcedures;
 import org.joda.time.DateTime;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,7 +57,7 @@ import java.util.List;
  *   resultSet[0] = rs;
  *
  */
-class ResultHelper {
+public class ResultHelper {
     public VarcharColumn addVarchar(String name, int length) {
         VarcharColumn c = new VarcharColumn();
         c.add(name, length);
@@ -91,12 +90,11 @@ class ResultHelper {
         return columnDescriptors.toArray(new ResultColumnDescriptor[columnDescriptors.size()]);
     }
 
-    void newRow()
-    {
+    public void newRow() throws SQLException {
         finishRow();
         row = new ValueRow(numColumns());
     }
-    void finishRow() {
+    void finishRow() throws SQLException {
         if( row == null ) return;
         for(Column c : columns) c.finishRow();
         rows.add(row);
@@ -124,7 +122,7 @@ class ResultHelper {
         String name;
         int length;
 
-        public void finishRow() {
+        public void finishRow() throws SQLException {
             if( !set ) init();
             set = false;
         }
@@ -142,10 +140,13 @@ class ResultHelper {
             index = columns.size();
         }
 
-        void init() { throw new RuntimeException("not implemented"); }
+        void init() throws SQLException { throw new RuntimeException("not implemented"); }
+        public void fromResultSet(ResultSet rs) throws SQLException {
+            throw new RuntimeException("not implemented");
+        }
     }
 
-    class VarcharColumn extends Column {
+    public class VarcharColumn extends Column {
         int maxLength = 0;
 
         @Override
@@ -161,12 +162,49 @@ class ResultHelper {
             maxLength = Math.max(maxLength, value == null ? 4 : value.length());
             set = true;
         }
+
+        String get(ResultSet rs) throws SQLException {
+            return rs.getString(index);
+        }
+
+        @Override
+        public void fromResultSet(ResultSet rs) throws SQLException {
+            set(get(rs));
+        }
+
         @Override
         public void init() {
             set("");
         }
     }
-    class BigintColumn extends Column {
+
+    public class IntegerColumn extends Column {
+        @Override
+        DataTypeDescriptor getDataTypeDescriptor() {
+            return DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER);
+        }
+        public void set(int value) {
+            assert row != null;
+            row.setColumn(index, new SQLInteger(value));
+            set = true;
+        }
+        Integer get(ResultSet rs) throws SQLException {
+            int val = rs.getInt(index);
+            return rs.wasNull() ? null : val;
+        }
+
+        @Override
+        public void fromResultSet(ResultSet rs) throws SQLException {
+            set(get(rs));
+        }
+
+        @Override
+        public void init() {
+            set(0);
+        }
+    }
+
+    public class BigintColumn extends Column {
         @Override
         DataTypeDescriptor getDataTypeDescriptor() {
             return DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, length);
@@ -176,29 +214,66 @@ class ResultHelper {
             row.setColumn(index, new SQLLongint(value));
             set = true;
         }
+        Long get(ResultSet rs) throws SQLException {
+            long val = rs.getLong(index);
+            return rs.wasNull() ? null : val;
+        }
+
+        @Override
+        public void fromResultSet(ResultSet rs) throws SQLException {
+            set(get(rs));
+        }
+
         @Override
         public void init() {
             set(0);
         }
     }
 
-    class TimestampColumn extends Column {
+    public class TimestampColumn extends Column {
         DataTypeDescriptor getDataTypeDescriptor() {
             return DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP, length);
         }
-        public void set(org.joda.time.DateTime value) throws StandardException {
+        public void set(org.joda.time.DateTime value) throws SQLException {
             assert row != null;
-            row.setColumn(index, new SQLTimestamp(value));
+            try {
+                row.setColumn(index, new SQLTimestamp(value));
+            } catch(StandardException se) {
+                throw PublicAPI.wrapStandardException(se);
+            }
+            set = true;
+        }
+        public void set(Timestamp value) throws SQLException {
+            assert row != null;
+            try {
+                row.setColumn(index, new SQLTimestamp(value));
+            } catch(StandardException se) {
+                throw PublicAPI.wrapStandardException(se);
+            }
             set = true;
         }
         @Override
-        public void init() {
-            try {
-                set( new DateTime(0));
-            } catch (StandardException e) {
-            }
+        public void init() throws SQLException {
+            set( new DateTime(0));
+        }
+
+        Timestamp get(ResultSet rs) throws SQLException {
+            return rs.getTimestamp(index);
+        }
+
+        @Override
+        public void fromResultSet(ResultSet rs) throws SQLException {
+            set(get(rs));
         }
     }
+
+    public void newRowFromResultSet(ResultSet rs) throws SQLException {
+        newRow();
+        for( Column column : columns) {
+            column.fromResultSet(rs);
+        }
+    }
+
     private List<ExecRow> rows = new ArrayList<>();
     private List<Column> columns = new ArrayList<>();
     private ExecRow row;
