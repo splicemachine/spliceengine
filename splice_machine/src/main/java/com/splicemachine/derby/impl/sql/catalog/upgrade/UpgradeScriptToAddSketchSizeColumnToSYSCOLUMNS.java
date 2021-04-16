@@ -19,14 +19,15 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.utils.SpliceLogUtils;
 
-public class UpgradeScriptToAddSketchSizeColumnToSYSTABLES extends UpgradeScriptBase {
-    public UpgradeScriptToAddSketchSizeColumnToSYSTABLES(SpliceDataDictionary sdd, TransactionController tc) {
+public class UpgradeScriptToAddSketchSizeColumnToSYSCOLUMNS extends UpgradeScriptBase {
+    public UpgradeScriptToAddSketchSizeColumnToSYSCOLUMNS(SpliceDataDictionary sdd, TransactionController tc) {
         super(sdd, tc);
     }
 
     @Override
     protected void upgradeSystemTables() throws StandardException {
-        SpliceLogUtils.info(LOG, "Adding sketchSize column to system table SYSTABLES and updating SYSTABLESVIEW");
-        sdd.addSketchSizeColumn(tc);
+        System.out.println("AHHHHHHHHHHHHHHHHHHHhhhhhhhhh");
+        SpliceLogUtils.info(LOG, "Adding sketchSize column to system table SYSCOLUMNS and updating SYSCOLUMNSVIEW");
+//        sdd.addSketchSizeColumn(tc);
     }
 }
