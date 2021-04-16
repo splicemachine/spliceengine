@@ -1261,93 +1261,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     public void addSketchSizeColumn(TransactionController tc) throws StandardException {
-        SchemaDescriptor sd = getSystemSchemaDescriptor();
-        TableDescriptor td = getTableDescriptor(SYSCOLUMNSRowFactory.TABLENAME_STRING, sd, tc);
-        ColumnDescriptor cd = td.getColumnDescriptor("SKETCHSIZE");
-        if (cd == null) { // needs updating
-            tc.elevate("dictionary");
-            dropTableDescriptor(td, sd, tc);
-            td.setColumnSequence(td.getColumnSequence() + 1);
-            // add the table descriptor with new name
-            addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
+        ExecRow templateRow = getExecutionFactory().getValueRow(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMN_COUNT);
+        templateRow.setColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_SKETCHSIZE, new SQLLongint(256));
+        upgradeAddColumnToSystemTable(tc, DataDictionary.SYSCOLUMNS_CATALOG_NUM, new int[]{SYSCOLUMNSRowFactory.SYSCOLUMNS_SKETCHSIZE}, templateRow);
+        populateNewSystemTableColumns(tc, DataDictionary.SYSCOLUMNS_CATALOG_NUM, new int[]{SYSCOLUMNSRowFactory.SYSCOLUMNS_SKETCHSIZE}, templateRow);
 
-            ColumnDescriptor columnDescriptor;
-            UUID uuid = getUUIDFactory().createUUID();
-
-            // Add the column SKETCH_SIZE
-            DataValueDescriptor storableDV = getDataValueFactory().getNullLong(null);
-            int colNumber = td.getNumberOfColumns() + 1;
-            DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, 1);
-            tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
-
-            columnDescriptor = new ColumnDescriptor("SKETCHSIZE", colNumber,
-                    colNumber, dtd, null, null, td, uuid, 0, 0, td.getColumnSequence());
-
-            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc, false);
-
-            // now add the column to the table's column descriptor list.
-            td.getColumnDescriptorList().add(columnDescriptor);
-            updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
-
-            SpliceLogUtils.info(LOG, String.format("%s upgraded: added a column: %s.", SYSCOLUMNSRowFactory.TABLENAME_STRING,
-                    SYSCOLUMNSRowFactory.SYSCOLUMNS_SKETCHSIZE));
-
-            // now upgrade the views if necessary
-            createOrUpdateSystemView(tc, "SYSVW", "SYSCOLUMNSVIEW");
-
-            SpliceLogUtils.info(LOG, String.format("%s upgraded: added a column: %s.", "SYSCOLUMNSVIEW", "SKETCHSIZE"));
-
-            // finally, set the default sketch size for SYS tables to 0.
-            TabInfoImpl ti=coreInfo[SYSCOLUMNS_CATALOG_NUM];
-            faultInTabInfo(ti);
-
-            FormatableBitSet columnToReadSet=new FormatableBitSet(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMN_COUNT);
-            FormatableBitSet columnToUpdateSet=new FormatableBitSet(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMN_COUNT);
-            for(int i=0;i<SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMN_COUNT;i++){
-                columnToUpdateSet.set(i);
-                if(i+1 == SYSCOLUMNSRowFactory.SYSCOLUMNS_REFERENCEID || i+1 == SYSCOLUMNSRowFactory.SYSCOLUMNS_SKETCHSIZE) {
-                    columnToReadSet.set(i);
-                }
-            }
-            /* Set up a couple of row templates for fetching CHARS */
-            DataValueDescriptor[] rowTemplate = new DataValueDescriptor[SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMN_COUNT];
-            DataValueDescriptor[] replaceRow= new DataValueDescriptor[SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMN_COUNT];
-            DataValueDescriptor authIdOrderable=new SQLVarchar(sd.getUUID().toString());
-            ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(1);
-            scanQualifier[0][0].setQualifier(
-                    SYSCOLUMNSRowFactory.SYSCOLUMNS_REFERENCEID - 1,    /* to zero-based */
-                    authIdOrderable,
-                    Orderable.ORDER_OP_EQUALS,
-                    false,
-                    false,
-                    false);
-            /* Scan the entire heap */
-            try (ScanController sc=
-                         tc.openScan(
-                                 ti.getHeapConglomerate(),
-                                 false,
-                                 TransactionController.OPENMODE_FORUPDATE,
-                                 TransactionController.MODE_TABLE,
-                                 TransactionController.ISOLATION_REPEATABLE_READ,
-                                 columnToReadSet,
-                                 null,
-                                 ScanController.NA,
-                                 scanQualifier,
-                                 null,
-                                 ScanController.NA)) {
-
-                while (sc.fetchNext(rowTemplate)) {
-                    /* Replace the column in the table */
-                    for (int i = 0; i < rowTemplate.length; i++) {
-                        if (i + 1 == SYSCOLUMNSRowFactory.SYSCOLUMNS_SKETCHSIZE)
-                            replaceRow[i] = new SQLLongint(getSystablesMinRetentionPeriod());
-                        else
-                            replaceRow[i] = rowTemplate[i].cloneValue(false);
-                    }
-                    sc.replace(replaceRow, columnToUpdateSet);
-                }
-            }
-        }
     }
 
     public void setJavaClassNameColumnInSysAliases(TransactionController tc) throws StandardException {
