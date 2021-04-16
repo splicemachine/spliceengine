@@ -1299,7 +1299,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             SpliceLogUtils.info(LOG, String.format("%s upgraded: added a column: %s.", "SYSCOLUMNSVIEW", "SKETCHSIZE"));
 
             // finally, set the default sketch size for SYS tables to 0.
-            TabInfoImpl ti=coreInfo[SYSTABLES_CATALOG_NUM];
+            TabInfoImpl ti=coreInfo[SYSCOLUMNS_CATALOG_NUM];
             faultInTabInfo(ti);
 
             FormatableBitSet columnToReadSet=new FormatableBitSet(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMN_COUNT);
