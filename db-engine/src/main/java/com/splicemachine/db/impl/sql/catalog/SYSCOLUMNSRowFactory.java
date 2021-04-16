@@ -172,7 +172,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         //add useExtrapolation as a byte int instead of boolean to accommodate for future extension
         // currently, value 0 means extraploation is not allowed, non-zero means extrapolation is allowed
         byte    useExtrapolation = 0;
-        long    sketchSize = 0;
+        int    sketchSize = 0;
 
         if (td != null) {
             if (!(td instanceof ColumnDescriptor))
@@ -225,7 +225,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
                                      Integer storageNumber, TypeDescriptor typeDesc, Object defaultSerializable,
                                      long autoincStart, long autoincInc, long autoincValue, int partitionPosition,
                                      long autoinc_create_or_modify_Start_Increment, boolean collectStats,
-                                     byte useExtrapolation, long sketchSize) {
+                                     byte useExtrapolation, int sketchSize) {
         /* 1st column is REFERENCEID (UUID - char(36)) */
         row.setColumn(SYSCOLUMNS_REFERENCEID, new SQLChar(tabID));
 
@@ -288,7 +288,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         row.setColumn(SYSCOLUMNS_COLLECTSTATS,new SQLBoolean(collectStats));
         row.setColumn(SYSCOLUMNS_PARTITION_POSITION,new SQLInteger(partitionPosition));
         row.setColumn(SYSCOLUMNS_USEEXTRAPOLATION, new SQLTinyint(useExtrapolation));
-        row.setColumn(SYSCOLUMNS_SKETCHSIZE, new SQLLongint(sketchSize));
+        row.setColumn(SYSCOLUMNS_SKETCHSIZE, new SQLInteger(sketchSize));
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -327,7 +327,8 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         UUID				defaultUUID = null;
         UUID				uuid;
         UUIDFactory			uuidFactory = getUUIDFactory();
-        long autoincStart, autoincInc, autoincValue, sketchSize;
+        long autoincStart, autoincInc, autoincValue;
+        int sketchSize;
 
 		    /*
 		     ** We're going to be getting the UUID for this sucka
@@ -418,7 +419,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         byte useExtrapolation = 0;
         if (useExtrapolationColumn != null && !useExtrapolationColumn.isNull())
             useExtrapolation = useExtrapolationColumn.getByte();
-        sketchSize = row.getColumn(SYSCOLUMNS_SKETCHSIZE).getLong();
+        sketchSize = row.getColumn(SYSCOLUMNS_SKETCHSIZE).getInt();
 
         colDesc = new ColumnDescriptor(columnName, columnNumber,storageNumber,
                 dataTypeServices, defaultValue, defaultInfo, uuid,
@@ -462,7 +463,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn("COLLECTSTATS", Types.BOOLEAN, true),
                 SystemColumnImpl.getColumn("PARTITIONPOSITION", Types.INTEGER, true),
                 SystemColumnImpl.getColumn("USEEXTRAPOLATION", Types.TINYINT, true),
-                SystemColumnImpl.getColumn("SKETCHSIZE", Types.BIGINT, true)
+                SystemColumnImpl.getColumn("SKETCHSIZE", Types.INTEGER, true)
         };
     }
 
@@ -516,7 +517,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
                         DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
                         null,null,view,viewId,0,0,0),
                 new ColumnDescriptor("SKETCHSIZE"               ,8,8,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, true),
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER, true),
                         null,null,view,viewId,0,0,0)
         });
 
