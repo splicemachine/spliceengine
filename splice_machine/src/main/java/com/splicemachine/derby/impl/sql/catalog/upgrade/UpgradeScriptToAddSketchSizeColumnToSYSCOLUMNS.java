@@ -26,8 +26,7 @@ public class UpgradeScriptToAddSketchSizeColumnToSYSCOLUMNS extends UpgradeScrip
 
     @Override
     protected void upgradeSystemTables() throws StandardException {
-        System.out.println("AHHHHHHHHHHHHHHHHHHHhhhhhhhhh");
         SpliceLogUtils.info(LOG, "Adding sketchSize column to system table SYSCOLUMNS and updating SYSCOLUMNSVIEW");
-//        sdd.addSketchSizeColumn(tc);
+        sdd.addSketchSizeColumn(tc);
     }
 }
