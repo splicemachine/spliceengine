@@ -1264,7 +1264,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     public void addSketchSizeColumn(TransactionController tc) throws StandardException {
         SchemaDescriptor sd = getSystemSchemaDescriptor();
         TableDescriptor td = getTableDescriptor(SYSCOLUMNSRowFactory.TABLENAME_STRING, sd, tc);
-        ColumnDescriptor cd = td.getColumnDescriptor(SYSCOLUMNSRowFactory.SYSCOLUMNS_SKETCHSIZE);
+        ColumnDescriptor cd = td.getColumnDescriptor("SKETCHSIZE");
         if (cd == null) { // needs updating
             tc.elevate("dictionary");
             dropTableDescriptor(td, sd, tc);
@@ -1296,8 +1296,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             // now upgrade the views if necessary
             createOrUpdateSystemView(tc, "SYSVW", "SYSCOLUMNSVIEW");
 
-            SpliceLogUtils.info(LOG, String.format("%s upgraded: added a column: %s.", "SYSCOLUMNSVIEW",
-                    SYSCOLUMNSRowFactory.SYSCOLUMNS_SKETCHSIZE));
+            SpliceLogUtils.info(LOG, String.format("%s upgraded: added a column: %s.", "SYSCOLUMNSVIEW", "SKETCHSIZE"));
 
             // finally, set the default sketch size for SYS tables to 0.
             TabInfoImpl ti=coreInfo[SYSTABLES_CATALOG_NUM];
