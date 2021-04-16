@@ -63,8 +63,6 @@ public class AutoincrementCounter
 	private long increment;
 	private String identity;
 	private long finalValue;
-	private String schemaName;
-	private String tableName;
 	private String columnName;
 	// maintains state.
 	private long counter;
@@ -89,8 +87,6 @@ public class AutoincrementCounter
 		this.initialized = false;
 		this.identity = makeIdentity(s,t,c);
 		this.finalValue = finalValue;
-		this.schemaName = s;
-		this.tableName = t;
 		this.columnName = c;
 		this.columnPosition = position;
 		//		System.out.println("aic created with " + this);
@@ -152,8 +148,6 @@ public class AutoincrementCounter
 	 */
 	public long update() throws StandardException
 	{
-		long counterVal;
-
 		if (!initialized)
 		{
 			// The first time around, counter simply gets the start
