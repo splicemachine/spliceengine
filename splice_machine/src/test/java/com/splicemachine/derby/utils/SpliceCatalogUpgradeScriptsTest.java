@@ -24,7 +24,7 @@ public class SpliceCatalogUpgradeScriptsTest {
     String s2 = "VERSION4.1989: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddIndexColUseViewInSYSCAT\n" +
             "VERSION4.1992: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForTablePriorities\n" +
             "VERSION4.2003: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeStoredObjects\n" +
-            "VERSION4.2003: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddSketchSizeColumnToSYSCOLUMNS\n";
+            "VERSION4.2011: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddSketchSizeColumnToSYSCOLUMNS\n";
 
     // see DB-11296, UpgradeConglomerateTable must run before other upgrade scripts
     String s3 = "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeConglomerateTable\n";
