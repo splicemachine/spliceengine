@@ -1070,6 +1070,7 @@
                                 <argument>-Dsplice.spark.shuffle.memoryFraction=0.7</argument>
                                 <argument>-Dsplice.spark.shuffle.service.enabled=true</argument>
                                 <argument>-Dsplice.spark.yarn.am.waitTime=10s</argument>
+                                <argument>-Dsplice.kafka.bootstrapServers=${kafka.bootstrapServers}</argument>
                                 <argument>-XX:+UseG1GC</argument>
                                 <argument>-enableassertions</argument>
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>

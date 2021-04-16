@@ -243,9 +243,9 @@ echo "Starting Master and 1 Region Server. Log file is ${SPLICE_LOG}"
 ## (master + region server on 1527)
 
 if [ -z "${SERVER_SSLMODE}" ]; then
-  (${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceFast ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
+  (MAVEN_OPTS="${MAVEN_OPTS} -Dkafka.bootstrapServers=${KAFKA_BOOTSTRAPSERVERS:-localhost:9092}" ${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceFast ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
 else
-  (${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceFastSSL ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
+  (MAVEN_OPTS="${MAVEN_OPTS} -Dkafka.bootstrapServers=${KAFKA_BOOTSTRAPSERVERS:-localhost:9092}" ${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceFastSSL ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
 fi
 
 echo -n "  Waiting. "
