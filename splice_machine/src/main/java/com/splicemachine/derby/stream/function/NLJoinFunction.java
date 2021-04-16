@@ -78,6 +78,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     protected Set<OperationContext> allContexts;
     protected TaskContext taskContext;
     private Deque<ExecRow> firstBatch;
+    private boolean oneRowOnly = false;
     private volatile boolean isClosed = false;
 
     protected ExecutorService executorService;
@@ -113,9 +114,11 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
         try {
             operationContextList = new ArrayList<>(batchSize);
             allContexts = Collections.synchronizedSet(new HashSet<>());
-            for (int i = 0; i < batchSize && leftSideIterator.hasNext(); ++i) {
+            int i;
+            for (i = 0; i < batchSize && leftSideIterator.hasNext(); ++i) {
                 firstBatch.addLast(leftSideIterator.next().getClone());
             }
+            oneRowOnly = i <= 1;
         }
         catch (Exception e) {
             throw Exceptions.parseException(e);
@@ -154,7 +157,10 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                     break;
                 nLeftRows++;
                 ExecRow execRow = firstBatch.removeFirst();
-                OperationContext context = operationContextList.isEmpty() ? null : operationContextList.remove(0);
+                OperationContext context =
+                        oneRowOnly ? operationContext :
+                        operationContextList.isEmpty() ? null :
+                                operationContextList.remove(0);
                 Supplier<OperationContext> supplier = context != null ? () -> context : () -> {
                     try {
                         OperationContext ctx = operationContext.getClone();
@@ -198,8 +204,10 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                 while (nLeftRows > 0 && !rightSideNLJIterator.hasNext()) {
 
                     // We have consumed all rows from right side iterator, reclaim operation context
-                    currentOperationContext.getOperation().close();
-                    operationContextList.add(currentOperationContext);
+                    if (currentOperationContext != operationContext) {
+                        currentOperationContext.getOperation().close();
+                        operationContextList.add(currentOperationContext);
+                    }
 
                     if (leftSideIterator.hasNext()) {
                         // If we haven't consumed left side iterator, submit a task to scan righ side
