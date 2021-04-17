@@ -374,6 +374,11 @@ class SpliceTestPlatformConfig {
         config.setBoolean("replication.source.eof.autorecovery", true);
         config.setBoolean("splice.replication.enabled", true);
 
+        String kafkaServers = System.getenv("KAFKA_BOOTSTRAPSERVERS");
+        config.set("splice.kafka.bootstrapServers",
+                System.getProperty("splice.kafka.bootstrapServers", 
+                        kafkaServers != null ? kafkaServers : "localhost:9092" ) );
+
         HConfiguration.reloadConfiguration(config);
         return HConfiguration.unwrapDelegate();
     }
