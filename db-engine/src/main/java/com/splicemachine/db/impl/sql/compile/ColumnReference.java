@@ -153,6 +153,8 @@ public class ColumnReference extends ValueNode {
      */
     private java.util.ArrayList remaps;
 
+    private boolean skipBind = false;
+
     /**
      * Initializer.
      * This one is called by the parser where we could
@@ -500,6 +502,8 @@ public class ColumnReference extends ValueNode {
     public ValueNode bindExpression(FromList fromList,
                                     SubqueryList subqueryList,
                                     List<AggregateNode> aggregateVector) throws StandardException {
+        if (skipBind)
+            return this;
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(fromList != null, "fromList is expected to be non-null");
         }
@@ -1651,5 +1655,9 @@ public class ColumnReference extends ValueNode {
     {
         if (isBaseRowIdOrRowId(colName))
             throw StandardException.newException(SQLState.LANG_DERIVED_COLUMN_NAME_USE, colName);
+    }
+
+    public void setSkipBind(boolean skipBind) {
+        this.skipBind = skipBind;
     }
 }

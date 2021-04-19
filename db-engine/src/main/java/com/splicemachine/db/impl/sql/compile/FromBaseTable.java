@@ -1086,12 +1086,12 @@ public class FromBaseTable extends FromTable {
         ResultSetNode uisJoin = uisRowIdJoinBackToBaseTableResultSet;
 
 
-        if (baseRowId2RC != null) {  // msirek-temp
-            baseRowId2RC = uisRowIdJoinBackToBaseTableResultSet.getResultColumns().getResultColumn("BASEROWID2");
-            Predicate outerTableRowIdJoinPred =
-                buildRowIdPredWithOuterTable(optimizer, baseRowId2RC, fromSubquery);
-            uisAccessPath.setUisRowIdPredicate(outerTableRowIdJoinPred);
-        }
+//        if (baseRowId2RC != null) {  // msirek-temp
+//            baseRowId2RC = uisRowIdJoinBackToBaseTableResultSet.getResultColumns().getResultColumn("BASEROWID2");
+//            Predicate outerTableRowIdJoinPred =
+//                buildRowIdPredWithOuterTable(optimizer, baseRowId2RC, fromSubquery);
+//            uisAccessPath.setUisRowIdPredicate(outerTableRowIdJoinPred);
+//        }
 
         // Traverse down to the JoinNode to verify it was built and set
         // up an access path for it.
@@ -1166,7 +1166,8 @@ public class FromBaseTable extends FromTable {
 //                                getContextManager());  // msirek-temp
         ColumnReference ridCol1 = (ColumnReference) nodeFactory.getNode(
                                 C_NodeTypes.COLUMN_REFERENCE,
-                                "BASEROWID2",
+                                //"BASEROWID2",  // msirek-temp
+                                "BASEROWID",
                                 uisResultSet.getTableName(),
                                 getContextManager());
         ridCol1.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
@@ -1187,10 +1188,16 @@ public class FromBaseTable extends FromTable {
                                 "BASEROWID",
                                 outerBaseTable.getTableName(),
                                 getContextManager());
-        ridCol2 = (ColumnReference)fromList.bindColumnReference(ridCol2);
+        FromList outerFromList =(FromList)getNodeFactory().getNode(
+                    C_NodeTypes.FROM_LIST,
+                    getNodeFactory().doJoinOrderOptimization(),
+                    getContextManager());
+        outerFromList.addFromTable(outerTable);
+        ridCol2 = (ColumnReference)outerFromList.bindColumnReference(ridCol2);
         ridCol2.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
                                                false    /* Not nullable */
                                                ));
+        ridCol2.setSkipBind(true);
 
         // Set up the rowid = rowid predicate to join back to the base table.
         BinaryRelationalOperatorNode whereClause =
@@ -1521,21 +1528,28 @@ public class FromBaseTable extends FromTable {
         return newList;
     }
 
-    void addOuterTableRowIdToRCList(ResultColumnList resultColumnList, FromTable outerTable) throws StandardException {
+    ResultColumn addOuterTableRowIdToRCList(ResultColumnList resultColumnList, FromTable outerTable) throws StandardException {
         String columnName = "BASEROWID";
         ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
                                 C_NodeTypes.COLUMN_REFERENCE,
                                 columnName,
                                 outerTable.getTableName(),
                                 getContextManager());
+        columnReference.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
+                                               false    /* Not nullable */
+                                               ));
         ResultColumn rowIdResultColumn =
             (ResultColumn)getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
                 "BASEROWID2",
+                //"BASEROWID",     // msirek-temp
                 columnReference,
                 getContextManager());
-
+        rowIdResultColumn.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
+                                               false    /* Not nullable */
+                                               ));
         resultColumnList.addResultColumn(rowIdResultColumn);
+        return rowIdResultColumn;
     }
 
 
@@ -1576,6 +1590,7 @@ public class FromBaseTable extends FromTable {
        ResultColumnList resultColumnList = singleRowIdColumnResultColumnList();
 
        // fromList.addFromTable((FromTable)source);  // msirek-temp
+       Predicate outerTableRowIdJoinPred = null;
        if (pred.getReferencedSet().cardinality() > 1) {
            int joinPosition = optimizer.getJoinPosition();
            if (joinPosition > 0) {
@@ -1623,12 +1638,17 @@ public class FromBaseTable extends FromTable {
                        outerRelation = outerBaseTable.shallowClone();  // msirek-temp
 //                       outerRelation = outerBaseTable;
 //                       outerRelation.setSkipBindAndOptimize(true);  // msirek-temp:  Do we need this?
-                       boolean noError =
-                           addPredsFromOuterRestrictionList(projectRestrict, whereClause);
-                       if (!noError)
-                           return null;  // msirek-temp
+//                       boolean noError =
+//                           addPredsFromOuterRestrictionList(projectRestrict, whereClause);
+//                       if (!noError)
+//                           return null;  // msirek-temp
 
-                       addOuterTableRowIdToRCList(resultColumnList, outerRelation);  // msirek-temp
+
+
+                       ResultColumn baseRowId2RC = null;
+                       // = addOuterTableRowIdToRCList(resultColumnList, outerRelation);  // msirek-temp
+                       outerTableRowIdJoinPred =  // msirek-temp
+                               buildRowIdPredWithOuterTable(optimizer, baseRowId2RC, outerRelation);
                    }
                }
 
@@ -1638,7 +1658,15 @@ public class FromBaseTable extends FromTable {
                fromList.addFromTable(outerRelation);
            }
        }
+       if (outerTableRowIdJoinPred != null) {
+           if (whereClause == null)
+               whereClause = outerTableRowIdJoinPred.getAndNode();
+           else {
+               AndNode whereClauseAnd = (AndNode) whereClause;   // msirek-temp
+               whereClauseAnd.setRightOperand(outerTableRowIdJoinPred.getAndNode());
+           }
 
+       }
        SelectNode selectNode = (SelectNode) getNodeFactory().getNode(
                             C_NodeTypes.SELECT_NODE,
                             resultColumnList,
