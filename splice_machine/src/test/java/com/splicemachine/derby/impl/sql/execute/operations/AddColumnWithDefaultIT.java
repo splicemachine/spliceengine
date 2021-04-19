@@ -942,4 +942,14 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
             Assert.assertEquals("Unexpected failure: " + e.getMessage(), SQLState.LANG_ADD_FK_CONSTRAINT_VIOLATION, e.getSQLState() + ".S" );
         }
     }
+
+    @Test
+    public void testAddColumnNonNullableTypeWithNullDefaultValueThrows() throws Exception {
+        try {
+            methodWatcher.executeUpdate("alter table c add column invalid_column int not null with default null");
+            Assert.fail("the update statement should have failed");
+        } catch (SQLException e) {
+            Assert.assertEquals("Unexpected failure: " + e.getMessage(), SQLState.LANG_DB2_INVALID_DEFAULT_VALUE, e.getSQLState());
+        }
+    }
 }
