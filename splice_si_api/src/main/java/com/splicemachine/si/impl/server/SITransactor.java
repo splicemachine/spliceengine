@@ -372,7 +372,7 @@ public class SITransactor implements Transactor{
         if (supplier.getTransaction(data.version()).getEffectiveState() == Txn.State.ROLLEDBACK)
             return;
 
-        EntryDecoder dataDecoder = new EntryDecoder(data.value(), data.valueOffset(), data.valueLength());
+        EntryDecoder dataDecoder = new EntryDecoder(data.valueArray(), data.valueOffset(), data.valueLength());
         BitIndex dataIndex = dataDecoder.getCurrentIndex();
         ByteSlice updateSlice = update.valueSlice();
         EntryDecoder updateDecoder = new EntryDecoder(updateSlice.array(), updateSlice.offset(), updateSlice.length());
