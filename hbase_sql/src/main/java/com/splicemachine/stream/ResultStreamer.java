@@ -253,6 +253,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
             if (this.runningOnClient.getCount() > 0) {
                 this.runningOnClient.countDown();
                 futureConnect.channel().writeAndFlush(new StreamProtocol.RequestClose());
+                futureConnect.channel().closeFuture();
             } else {
                 futureConnect.channel().closeFuture().sync();
             }
