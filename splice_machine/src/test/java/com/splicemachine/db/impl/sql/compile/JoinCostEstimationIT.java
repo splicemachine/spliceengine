@@ -96,49 +96,6 @@ public class JoinCostEstimationIT extends SpliceUnitTest {
         this.onOlap = onOlap;
     }
 
-    //static Connection makeConnection() throws SQLException {
-    //    Connection connection = SpliceNetConnection.getDefaultConnection();
-    //    connection.setSchema(spliceSchemaWatcher.schemaName);
-    //    connection.setAutoCommit(true);
-    //    return connection;
-    //}
-    //
-    //@Before
-    //public void setUp() throws Exception {
-    //    try (Connection conn = makeConnection()) {
-    //        try (PreparedStatement insert = conn.prepareStatement("INSERT INTO " + LEFT_TABLE + " VALUES (?,?,?,?,?)")) {
-    //            for (int i = 0; i < leftSize; ++i) {
-    //                for (int j = 1; j <= 5; ++j) {
-    //                    insert.setInt(j, i);
-    //                }
-    //                insert.execute();
-    //            }
-    //        }
-    //
-    //        try (PreparedStatement insert = conn.prepareStatement("INSERT INTO " + RIGHT_TABLE + " VALUES (?,?,?,?,?)")) {
-    //            for (int i = 0; i < rightSize; ++i) {
-    //                for (int j = 1; j <= 5; ++j) {
-    //                    insert.setInt(j, i);
-    //                }
-    //                insert.execute();
-    //            }
-    //        }
-    //    }
-    //
-    //    methodWatcher.execute(String.format("call syscs_util.syscs_flush_table('%s', '%s')", SCHEMA, LEFT_TABLE));
-    //    methodWatcher.execute(String.format("call syscs_util.syscs_flush_table('%s', '%s')", SCHEMA, RIGHT_TABLE));
-    //
-    //    try (ResultSet rs = methodWatcher.executeQuery("ANALYZE SCHEMA " + SCHEMA)) {
-    //        assertTrue(rs.next());
-    //    }
-    //}
-    //
-    //@After
-    //public void tearDown() throws Exception {
-    //    methodWatcher.execute("DELETE FROM " + LEFT_TABLE);
-    //    methodWatcher.execute("DELETE FROM " + RIGHT_TABLE);
-    //}
-
     private void test(String joinStrategy, boolean isKeyJoin, boolean onOlap) throws SQLException {
         boolean isMergeJoin = joinStrategy.equals(MERGE);
         String sqlText = String.format("select count(L.col2) from --splice-properties joinOrder=fixed\n" +

@@ -18,10 +18,7 @@ import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.test.Benchmark;
 import org.apache.log4j.Logger;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -31,6 +28,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 @Category(Benchmark.class)
 @RunWith(Parameterized.class)
@@ -59,6 +57,9 @@ public class IndexLookupBenchmark extends Benchmark {
     private final String indexDefStr;
     private final String insertParamStr;
 
+    private final boolean costOnly;
+    private String costModelVersion;
+
     public IndexLookupBenchmark(int numTableColumns, int numIndexColumns, int tableSize, boolean onOlap) {
         this.numTableColumns = Math.max(numTableColumns, 1);
         this.numIndexColumns = Math.max(Math.min(numIndexColumns, numTableColumns), 1);
@@ -69,6 +70,11 @@ public class IndexLookupBenchmark extends Benchmark {
         this.tableDefStr = getColumnDef(this.numTableColumns, TABLE_DEF);
         this.indexDefStr = getColumnDef(this.numIndexColumns, INDEX_DEF);
         this.insertParamStr = getColumnDef(this.numTableColumns, INSERT_PARAM);
+        this.costOnly = Boolean.parseBoolean(System.getProperty("costOnly"));
+        this.costModelVersion = System.getProperty("costModel");
+        if (costModelVersion == null) {
+            costModelVersion = "v1";
+        }
     }
 
     @ClassRule
@@ -198,31 +204,67 @@ public class IndexLookupBenchmark extends Benchmark {
             dataLabel = INDEX_SCAN;
         }
         try (Connection conn = makeConnection()) {
+            try (Statement st = conn.createStatement()) {
+                st.execute(String.format("set session_property costModel='%s'", costModelVersion));
+            }
             try (PreparedStatement query = conn.prepareStatement(sqlText)) {
-                if (warmUp) {
-                    for (int i = 0; i < NUM_WARMUP_RUNS; ++i) {
-                        query.executeQuery();
+                String[] row6 = new String[1];
+                if (isIndexLookup) {
+                    row6[0] = "IndexLookup";
+                } else {
+                    row6[0] = "IndexScan";
+                }
+                Map<Integer, String[]> matchLines = new HashMap<>(1);
+                matchLines.put(6, row6);
+
+                double cost = 0.0;
+                try (PreparedStatement ps = conn.prepareStatement("explain " + sqlText)) {
+                    try (ResultSet resultSet = ps.executeQuery()) {
+                        int i = 0;
+                        int k = 0;
+                        while (resultSet.next()) {
+                            i++;
+                            String resultString = resultSet.getString(1);
+                            if (i == 6) {
+                                cost = extractCostFromPlanRow(resultString);
+                            }
+                            for (Map.Entry<Integer, String[]> entry : matchLines.entrySet()) {
+                                int level = entry.getKey();
+                                if (level == i) {
+
+                                    for (String phrase : entry.getValue()) {
+                                        Assert.assertTrue("failed query at level (" + level + "): \n" + query + "\nExpected: " + phrase + "\nWas: "
+                                                + resultString, resultString.contains(phrase));
+                                    }
+                                    k++;
+                                }
+                            }
+                        }
+                        if (k < matchLines.size()) {
+                            fail("fail to match the given strings");
+                        }
+                        LOG.info(String.format("cost=%.3f", cost));
                     }
                 }
-
-                if (isIndexLookup) {
-                    executeQueryAndMatchLines(conn, "explain " + sqlText, Collections.singletonMap(6, new String[]{"IndexLookup"}));
-                } else {
-                    executeQueryAndMatchLines(conn, "explain " + sqlText, Collections.singletonMap(6, new String[]{"IndexScan"}));
-                }
-
-                for (int i = 0; i < numExec; ++i) {
-                    long start = System.currentTimeMillis();
-                    try (ResultSet rs = query.executeQuery()) {
-                        if (getRowCount(rs) != tableSize) {
-                            updateStats(STAT_ERROR);
-                        } else {
-                            long stop = System.currentTimeMillis();
-                            updateStats(dataLabel, stop - start);
+                if (!costOnly) {
+                    if (warmUp) {
+                        for (int i = 0; i < NUM_WARMUP_RUNS; ++i) {
+                            query.executeQuery();
                         }
-                    } catch (SQLException ex) {
-                        LOG.error("ERROR execution " + i + " of indexLookup benchmark on " + BASE_TABLE + ": " + ex.getMessage());
-                        updateStats(STAT_ERROR);
+                    }
+                    for (int i = 0; i < numExec; ++i) {
+                        long start = System.currentTimeMillis();
+                        try (ResultSet rs = query.executeQuery()) {
+                            if (getRowCount(rs) != tableSize) {
+                                updateStats(STAT_ERROR);
+                            } else {
+                                long stop = System.currentTimeMillis();
+                                updateStats(dataLabel, stop - start);
+                            }
+                        } catch (SQLException ex) {
+                            LOG.error("ERROR execution " + i + " of indexLookup benchmark on " + BASE_TABLE + ": " + ex.getMessage());
+                            updateStats(STAT_ERROR);
+                        }
                     }
                 }
             }
@@ -235,6 +277,11 @@ public class IndexLookupBenchmark extends Benchmark {
     @Parameterized.Parameters
     public static Collection testParams() {
         return Arrays.asList(new Object[][] {
+                { 50, 2, 1, false },
+                { 50, 2, 10, false },
+                { 50, 2, 50, false },
+                { 50, 2, 100, false },
+                { 50, 2, 500, false },
                 { 50, 2, 1000, false },
                 { 50, 2, 5000, false },
                 { 50, 2, 10000, false },
@@ -249,6 +296,11 @@ public class IndexLookupBenchmark extends Benchmark {
                 { 50, 2, 100000, false },
                 { 50, 2, 150000, false },
                 { 50, 2, 200000, false },
+                { 50, 2, 1, true },
+                { 50, 2, 10, true },
+                { 50, 2, 50, true },
+                { 50, 2, 100, true },
+                { 50, 2, 500, true },
                 { 50, 2, 1000, true },
                 { 50, 2, 5000, true },
                 { 50, 2, 10000, true },
@@ -271,11 +323,11 @@ public class IndexLookupBenchmark extends Benchmark {
      * hfile.block.cache.size = 0
      */
 
-    @Test
-    public void indexLookupWarm() throws Exception {
-        LOG.info("indexLookupWarm");
-        runBenchmark(1, () -> benchmark(true, NUM_EXECS, true, onOlap));
-    }
+    //@Test
+    //public void indexLookupWarm() throws Exception {
+    //    LOG.info("indexLookupWarm");
+    //    runBenchmark(1, () -> benchmark(true, NUM_EXECS, true, onOlap));
+    //}
 
     @Test
     public void indexScanWarm() throws Exception {

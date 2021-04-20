@@ -182,4 +182,18 @@ public class Benchmark {
             }
         }
     }
+
+    public static double extractCostFromPlanRow(String planRow) throws NumberFormatException {
+        double cost = 0.0;
+        if (planRow != null) {
+            String costField = planRow.split(",")[1];
+            if (costField != null) {
+                String costStr = costField.split("=")[1];
+                if (costStr != null) {
+                    cost = Double.parseDouble(costStr);
+                }
+            }
+        }
+        return cost;
+    }
 }

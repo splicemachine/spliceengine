@@ -18,10 +18,7 @@ import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.test.Benchmark;
 import org.apache.log4j.Logger;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -34,6 +31,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 @Category(Benchmark.class)
 @RunWith(Parameterized.class)
@@ -61,11 +59,19 @@ public class JoinBenchmark extends Benchmark {
     private final boolean onOlap;
     private final int batchSize;
 
+    private final boolean costOnly;
+    private String costModelVersion;
+
     public JoinBenchmark(int leftSize, int rightSize, boolean onOlap) {
         this.leftSize = leftSize;
         this.rightSize = rightSize;
         this.onOlap = onOlap;
         this.batchSize = Math.min(Math.min(leftSize, rightSize), 1000);
+        this.costOnly = Boolean.parseBoolean(System.getProperty("costOnly"));
+        this.costModelVersion = System.getProperty("costModel");
+        if (costModelVersion == null) {
+            costModelVersion = "v1";
+        }
     }
 
     @ClassRule
@@ -165,9 +171,9 @@ public class JoinBenchmark extends Benchmark {
         boolean isMergeJoin = joinStrategy.equals(MERGE);
         String sqlText = String.format("select count(L.col2) from --splice-properties joinOrder=fixed\n" +
                 "   %s L --splice-properties index=%s, useSpark=%b\n" +
-                " , %s R --splice-properties joinStrategy=%s, index=%s\n",
+                " , %s R --splice-properties joinStrategy=%s, useSpark=%b, index=%s\n",
                 LEFT_TABLE, isKeyJoin ? LEFT_IDX : "null",
-                onOlap, RIGHT_TABLE, joinStrategy,
+                onOlap, RIGHT_TABLE, joinStrategy, onOlap,
                 isKeyJoin ? "null" : (isMergeJoin ? RIGHT_IDX : "null"));
         String dataLabel;
         if (isKeyJoin) {
@@ -178,6 +184,9 @@ public class JoinBenchmark extends Benchmark {
             dataLabel = joinStrategy;
         }
         try (Connection conn = makeConnection()) {
+            try (Statement st = conn.createStatement()) {
+                st.execute(String.format("set session_property costModel='%s'", costModelVersion));
+            }
             try (PreparedStatement query = conn.prepareStatement(sqlText)) {
                 // validate plan
                 int[] expectedRows = {6,6,8};
@@ -208,26 +217,64 @@ public class JoinBenchmark extends Benchmark {
                 matchLines.put(expectedRows[2], row8);
                 executeQueryAndMatchLines(conn, "explain " + sqlText, matchLines);
 
-                // warm-up runs
-                if (warmUp) {
-                    for (int i = 0; i < NUM_WARMUP_RUNS; ++i) {
-                        query.executeQuery();
-                    }
-                }
+                if (costOnly) {
+                    double leftCost = 0.0;
+                    double rightCost = 0.0;
+                    double joinCost = 0.0;
+                    try (PreparedStatement ps = conn.prepareStatement("explain " + sqlText)) {
+                        try (ResultSet resultSet = ps.executeQuery()) {
+                            int i = 0;
+                            int k = 0;
+                            while (resultSet.next()) {
+                                i++;
+                                String resultString = resultSet.getString(1);
+                                if (i == 6) {
+                                    joinCost = extractCostFromPlanRow(resultString);
+                                } else if (i == 7) {
+                                    rightCost = extractCostFromPlanRow(resultString);
+                                } else if (i == 8) {
+                                    leftCost = extractCostFromPlanRow(resultString);
+                                }
+                                for (Map.Entry<Integer, String[]> entry : matchLines.entrySet()) {
+                                    int level = entry.getKey();
+                                    if (level == i) {
 
-                // measure and validate result row count
-                for (int i = 0; i < numExec; ++i) {
-                    long start = System.currentTimeMillis();
-                    try (ResultSet rs = query.executeQuery()) {
-                        if (getRowCount(rs) != Math.min(leftSize, rightSize)) {
-                            updateStats(STAT_ERROR);
-                        } else {
-                            long stop = System.currentTimeMillis();
-                            updateStats(dataLabel, stop - start);
+                                        for (String phrase : entry.getValue()) {
+                                            Assert.assertTrue("failed query at level (" + level + "): \n" + query + "\nExpected: " + phrase + "\nWas: "
+                                                    + resultString, resultString.contains(phrase));
+                                        }
+                                        k++;
+                                    }
+                                }
+                            }
+                            if (k < matchLines.size()) {
+                                fail("fail to match the given strings");
+                            }
+                            LOG.info(String.format("leftCost=%.3f, rightCost=%.3f, joinCost(%s)=%.3f", leftCost, rightCost, joinStrategy, joinCost));
                         }
-                    } catch (SQLException ex) {
-                        LOG.error("ERROR execution " + i + " of join benchmark using " + joinStrategy + ": " + ex.getMessage());
-                        updateStats(STAT_ERROR);
+                    }
+                } else {
+                    // warm-up runs
+                    if (warmUp) {
+                        for (int i = 0; i < NUM_WARMUP_RUNS; ++i) {
+                            query.executeQuery();
+                        }
+                    }
+
+                    // measure and validate result row count
+                    for (int i = 0; i < numExec; ++i) {
+                        long start = System.currentTimeMillis();
+                        try (ResultSet rs = query.executeQuery()) {
+                            if (getRowCount(rs) != Math.min(leftSize, rightSize)) {
+                                updateStats(STAT_ERROR);
+                            } else {
+                                long stop = System.currentTimeMillis();
+                                updateStats(dataLabel, stop - start);
+                            }
+                        } catch (SQLException ex) {
+                            LOG.error("ERROR execution " + i + " of join benchmark using " + joinStrategy + ": " + ex.getMessage());
+                            updateStats(STAT_ERROR);
+                        }
                     }
                 }
             }
@@ -272,38 +319,38 @@ public class JoinBenchmark extends Benchmark {
                 { 100, 1000000, false },
                 { 1000, 1000000, false },
                 { 10000, 1000000, false },
-                //{ 10, 10, true },
-                //{ 100, 10, true },
-                //{ 1000, 10, true },
-                //{ 10000, 10, true },
-                //{ 100000, 10, true },
-                //{ 1000000, 10, true },
-                //{ 10, 100, true },
-                //{ 100, 100, true },
-                //{ 1000, 100, true },
-                //{ 10000, 100, true },
-                //{ 100000, 100, true },
-                //{ 1000000, 100, true },
-                //{ 10, 1000, true },
-                //{ 100, 1000, true },
-                //{ 1000, 1000, true },
-                //{ 10000, 1000, true },
-                //{ 100000, 1000, true },
-                //{ 1000000, 1000, true },
-                //{ 10, 10000, true },
-                //{ 100, 10000, true },
-                //{ 1000, 10000, true },
-                //{ 10000, 10000, true },
-                //{ 100000, 10000, true },
-                //{ 1000000, 10000, true },
-                //{ 10, 100000, true },
-                //{ 100, 100000, true },
-                //{ 1000, 100000, true },
-                //{ 10000, 100000, true },
-                //{ 10, 1000000, true },
-                //{ 100, 1000000, true },
-                //{ 1000, 1000000, true },
-                //{ 10000, 1000000, true },
+                { 10, 10, true },
+                { 100, 10, true },
+                { 1000, 10, true },
+                { 10000, 10, true },
+                { 100000, 10, true },
+                { 1000000, 10, true },
+                { 10, 100, true },
+                { 100, 100, true },
+                { 1000, 100, true },
+                { 10000, 100, true },
+                { 100000, 100, true },
+                { 1000000, 100, true },
+                { 10, 1000, true },
+                { 100, 1000, true },
+                { 1000, 1000, true },
+                { 10000, 1000, true },
+                { 100000, 1000, true },
+                { 1000000, 1000, true },
+                { 10, 10000, true },
+                { 100, 10000, true },
+                { 1000, 10000, true },
+                { 10000, 10000, true },
+                { 100000, 10000, true },
+                { 1000000, 10000, true },
+                { 10, 100000, true },
+                { 100, 100000, true },
+                { 1000, 100000, true },
+                { 10000, 100000, true },
+                { 10, 1000000, true },
+                { 100, 1000000, true },
+                { 1000, 1000000, true },
+                { 10000, 1000000, true },
         });
     }
 
