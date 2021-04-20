@@ -242,7 +242,9 @@ public class ExplainNode extends DMLStatementNode {
             } else if (!t.getNoStatsColumnIds().isEmpty()) {
                 TableDescriptor td = t.getTableDescriptor();
                 for (int columnId : t.getNoStatsColumnIds()) {
-                    noStatsColumnSet.add(tableName + "." + td.getColumnDescriptor(columnId).getColumnName());
+                    // RowID columns may have column id of zero.
+                    if (columnId > 0)
+                        noStatsColumnSet.add(tableName + "." + td.getColumnDescriptor(columnId).getColumnName());
                 }
             }
         }

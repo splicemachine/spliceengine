@@ -4550,6 +4550,10 @@ public class FromBaseTable extends FromTable {
         if(requalificationRestrictionList!=null){
             requalificationRestrictionList.accept(v, this);
         }
+
+        if (uisRowIdJoinBackToBaseTableResultSet!=null) {
+            uisRowIdJoinBackToBaseTableResultSet.accept(v, this);
+        }
     }
 
     @Override
