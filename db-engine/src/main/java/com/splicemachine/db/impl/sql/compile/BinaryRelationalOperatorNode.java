@@ -2352,11 +2352,10 @@ public class BinaryRelationalOperatorNode
     	super.copy(other);
         this.operatorType = other.operatorType;
         this.outerJoinLevel = other.outerJoinLevel;
-//        this.btnVis = other.btnVis;
-//        this.optBaseTables = other.optBaseTables;
-//        this.valNodeBaseTables = other.valNodeBaseTables;  // msirek-temp
         this.inListProbeSource = other.inListProbeSource;
         this.noStatsColumns = other.noStatsColumns;
+        // Skip copying btnVis, optBaseTables, valNodeBaseTables.
+        // Each operator should have their own unshared copy of these.
     }
 
     @Override

@@ -142,7 +142,7 @@ public abstract class SingleChildResultSetNode extends FromTable{
     @Override
     public void initAccessPaths(Optimizer optimizer){
         if (skipBindAndOptimize)
-            return;  // msirek-temp
+            return;
         super.initAccessPaths(optimizer);
         if(childResult instanceof Optimizable){
             ((Optimizable)childResult).initAccessPaths(optimizer);

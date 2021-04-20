@@ -38,37 +38,20 @@ import com.splicemachine.db.iapi.error.StandardException;
 import static com.splicemachine.db.impl.sql.compile.ColumnReference.isBaseRowIdOrRowId;
 
 /**
- * Remap ColumnReference nodes in ResultColumnLists
- * if they refer to a JoinNode.
+ * Remap ROWID or BASEROWID ColumnReference nodes in ResultColumnLists
+ * if they refer to a JoinNode, so they refer to the original source column.
  *
  */
 
 public class RemapCRsForJoinVisitor implements Visitor
 {
-	private boolean remap;
 	public RemapCRsForJoinVisitor()
 	{
 	}
-	////////////////////////////////////////////////
-	//
-	// VISITOR INTERFACE
-	//
-	////////////////////////////////////////////////
-	/**
-	 * Don't do anything unless we have a ColumnReference
-	 * node.
-	 *
-	 * @param node 	the node to process
-	 *
-	 * @return me
-	 *
-	 * @exception StandardException on error
-	 */
+
 	public Visitable visit(Visitable node, QueryTreeNode parent)
 		throws StandardException
 	{
-//		if (true)
-//			return node;  // msirek-temp
             if (node instanceof ColumnReference)
             {
                 ColumnReference cr = (ColumnReference)node;
@@ -76,7 +59,6 @@ public class RemapCRsForJoinVisitor implements Visitor
                 	return node;
                 ResultColumn resultColumn = cr.getSource();
                 if (resultColumn != null) {
-                    ResultSetNode resultSetNode = null;
                     if (resultColumn.getExpression() instanceof VirtualColumnNode) {
 						VirtualColumnNode vcn = (VirtualColumnNode) resultColumn.getExpression();
                         if (vcn.getSourceResultSet() instanceof JoinNode) {
@@ -86,25 +68,6 @@ public class RemapCRsForJoinVisitor implements Visitor
 							cr.remapColumnReferences();
 						}
 					}
-//                    while (resultColumn.getExpression() instanceof VirtualColumnNode) {
-//                        VirtualColumnNode vcn = (VirtualColumnNode)resultColumn.getExpression();
-//                        if (vcn.getSourceResultSet() instanceof JoinNode) {
-//                        	// Remap twice to get to the left or right source of
-//							// the join.
-//							cr.remapColumnReferences();
-//							cr.remapColumnReferences();
-//						}
-//                        resultColumn = cr.getSource();
-////                        if (true)
-////                            break; // msirek-temp
-//                        // If we cannot remap any further, break out.   msirek-temp
-//                        if (cr.getSource().getExpression() instanceof VirtualColumnNode) {
-//                            VirtualColumnNode newVCN = (VirtualColumnNode)resultColumn.getExpression();
-//                            if (newVCN.getSourceResultSet() == resultSetNode)
-//                                break;
-//                        }
-//                        resultSetNode = vcn.getSourceResultSet();
-//                    }  // msirek-temp
                 }
             }
 	    return node;

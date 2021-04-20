@@ -2892,8 +2892,6 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
      * @throws StandardException Thrown on error
      */
     public void addRCForRID() throws StandardException{
-//        if (getResultColumn("ROWID") != null)
-//            return;  // msirek-temp
         ResultColumn rowLocationColumn;
         CurrentRowLocationNode rowLocationNode;
 

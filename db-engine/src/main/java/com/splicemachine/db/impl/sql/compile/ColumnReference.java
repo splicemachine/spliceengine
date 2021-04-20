@@ -50,7 +50,6 @@ import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.util.Collections;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Objects;
 
@@ -96,8 +95,11 @@ public class ColumnReference extends ValueNode {
      */
     private ResultColumn source;
 
-    public static final String rowIdColName = "ROWID";
-    public static final String baseRowIdColName = "BASEROWID";
+    // ROWID refers to the row id of the row in the conglomerate we're reading.
+    public static final String ROWID = "ROWID";
+
+    // BASEROWID refers to the row id of the base table row.
+    public static final String BASEROWID = "BASEROWID";
 
     /* For unRemapping */
     ResultColumn    origSource;
@@ -1629,21 +1631,21 @@ public class ColumnReference extends ValueNode {
         if (columnName == null)
             return false;
 
-        return rowIdColName.equals(columnName) || baseRowIdColName.equals(columnName);
+        return ROWID.equals(columnName) || BASEROWID.equals(columnName);
     }
 
     public static boolean isRowId(String columnName) {
         if (columnName == null)
             return false;
 
-        return rowIdColName.equals(columnName);
+        return ROWID.equals(columnName);
     }
 
     public static boolean isBaseRowId(String columnName) {
         if (columnName == null)
             return false;
 
-        return baseRowIdColName.equals(columnName);
+        return BASEROWID.equals(columnName);
     }
 
     public static void checkForDerivedColNameInDDL(String colName)

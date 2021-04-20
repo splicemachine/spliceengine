@@ -244,6 +244,8 @@ public class FromBaseTable extends FromTable {
 
     private boolean considerOnlyBaseConglomerate;
 
+    private static final String BASEROWID2 = "BASEROWID2";
+
     @Override
     public boolean isParallelizable(){
         return false;
@@ -991,13 +993,13 @@ public class FromBaseTable extends FromTable {
 
         ColumnReference ridCol1 = (ColumnReference) nodeFactory.getNode(
                                 C_NodeTypes.COLUMN_REFERENCE,
-                                "BASEROWID",
+                                BASEROWID,
                                 this.getExposedTableName(),
                                 getContextManager());
         ColumnReference ridCol2 =
         (ColumnReference) nodeFactory.getNode(
                                 C_NodeTypes.COLUMN_REFERENCE,
-                                "BASEROWID",
+                                BASEROWID,
                                 fromSubquery.getTableName(),
                                 getContextManager());
 
@@ -1032,23 +1034,26 @@ public class FromBaseTable extends FromTable {
         }
 
         ResultColumn baseRowId2RC = null;
-        if (unionOfIndexes.resultColumns.getResultColumn("BASEROWID2") != null) {  // msirek-temp
+
+        // The base rowid of the outer table needs a different name in order
+        // to maintain unique column names.
+        if (unionOfIndexes.resultColumns.getResultColumn(BASEROWID2) != null) {
             ColumnReference newCol = (ColumnReference) nodeFactory.getNode(
                                     C_NodeTypes.COLUMN_REFERENCE,
-                                    "BASEROWID2",
+                                    BASEROWID2,
                                     fromSubquery.getTableName(),
                                     getContextManager());
             baseRowId2RC = (ResultColumn) getNodeFactory().getNode(
                     C_NodeTypes.RESULT_COLUMN,
-                    "BASEROWID2",
+                    BASEROWID2,
                     newCol,
                     getContextManager());
-            finalResultColumns.addResultColumn(baseRowId2RC);  // msirek-temp
+            finalResultColumns.addResultColumn(baseRowId2RC);
         }
 
         SelectNode selectNode = (SelectNode) nodeFactory.getNode(
                             C_NodeTypes.SELECT_NODE,
-                            finalResultColumns,  // msirek-temp
+                            finalResultColumns,
                             null,         /* AGGREGATE list */
                             fromList,
                             whereClause,
@@ -1062,19 +1067,20 @@ public class FromBaseTable extends FromTable {
                 "SELECT",
                 selectNode,
                 null,
-                null,    // orderCols,
+                null,
                 null,
                 null,
                 Boolean.valueOf( false ),
                 ReuseFactory.getInteger(CursorNode.UNSPECIFIED),
                 null,
                 getContextManager());
-        stmt.bindStatement();  // msirek-temp
+        stmt.bindStatement();
 
         walkAST(getLanguageConnectionContext(), stmt, CompilationPhase.AFTER_BIND);
 
-        stmt.optimizeStatement();  // msirek-temp
-        // walkAST(getLanguageConnectionContext(), stmt, CompilationPhase.AFTER_OPTIMIZE);  // msirek-temp
+        stmt.optimizeStatement();
+        // The AFTER_OPTIMIZE phase call to walkAST is deferred until we commit to
+        // this access path when recordUisAccessPath is called.
 
         ResultSetNode uisRowIdJoinBackToBaseTableResultSet = stmt.getResultSetNode();
 
@@ -1085,12 +1091,14 @@ public class FromBaseTable extends FromTable {
         }
         ResultSetNode uisJoin = uisRowIdJoinBackToBaseTableResultSet;
 
-
-        if (baseRowId2RC != null) {  // msirek-temp
-            baseRowId2RC = uisRowIdJoinBackToBaseTableResultSet.getResultColumns().getResultColumn("BASEROWID2");
+        // If there is an outer table base rowid saved in the AST, construct a
+        // BASEROWID = BASEROWID join predicate between the outer table and the
+        // Unioned Index Scans result, and attach it to the access path.
+        if (baseRowId2RC != null) {
+            baseRowId2RC = uisRowIdJoinBackToBaseTableResultSet.getResultColumns().getResultColumn(BASEROWID2);
             Predicate outerTableRowIdJoinPred =
                 buildRowIdPredWithOuterTable(optimizer, baseRowId2RC, fromSubquery);
-            uisAccessPath.setUisRowIdPredicate(outerTableRowIdJoinPred);  // msirek-temp
+            uisAccessPath.setUisRowIdPredicate(outerTableRowIdJoinPred);
         }
 
         // Traverse down to the JoinNode to verify it was built and set
@@ -1113,26 +1121,14 @@ public class FromBaseTable extends FromTable {
         FromTable uisFromTable = ((FromTable) uisRowIdJoinBackToBaseTableResultSet);
         initializeUnionedIndexScanAccessPath(uisFromTable, optimizer);
 
-        uisRowIdJoinBackToBaseTableResultSet.assignResultSetNumber();
+        // uisRowIdJoinBackToBaseTableResultSet.assignResultSetNumber();  // msirek-temp
         uisAccessPath.setUisRowIdJoinBackToBaseTableResultSet(uisRowIdJoinBackToBaseTableResultSet);
-//        if (getUnionIndexScanResultSet() != null)  // msirek-temp
-//            throw StandardException.newException(LANG_INTERNAL_ERROR,
-//                 "Attempting to build a unioned index scans access path on a table which has already committed one before.");
 
         // We don't want to bind or re-optimize this tree if
         // we re-use it again.
         unionOfIndexes.setSkipBindAndOptimize(true);
 
-        // But we do want the outer table to be optimized.
-        // Unset the flag in case we set it in buildUnionedScans,
-        // since we may have added it to the FromList of the above
-        // select statement, and did not want to rebind it.
-        FromBaseTable outerBaseTable = optimizer.getOuterBaseTable();
-        if (outerBaseTable != null)
-            outerBaseTable.setSkipBindAndOptimize(false);  // msirek-temp
-
-        //this.uisRowIdJoinBackToBaseTableResultSet = uisRowIdJoinBackToBaseTableResultSet;  // msirek-temp
-
+        // Finally, record the cost of the UIS operations in the access path.
         uisAccessPath.setCostEstimate(uisRowIdJoinBackToBaseTableResultSet.getCostEstimate().cloneMe());
     }
 
@@ -1157,7 +1153,10 @@ public class FromBaseTable extends FromTable {
         if (!(outerTable instanceof FromBaseTable))
             return null;
 
-        outerTable.setSkipBindAndOptimize(true);  // msirek-temp
+        // The UIS operations are known to be the inner table of
+        // a join at this point, so enforce this until we are done
+        // planning the UIS access path.
+       // outerTable.setSkipBindAndOptimize(true);  // msirek-temp
 
         FromBaseTable outerBaseTable = (FromBaseTable)outerTable;
 
@@ -1169,7 +1168,7 @@ public class FromBaseTable extends FromTable {
 //                                getContextManager());  // msirek-temp
         ColumnReference ridCol1 = (ColumnReference) nodeFactory.getNode(
                                 C_NodeTypes.COLUMN_REFERENCE,
-                                "BASEROWID2",
+                                BASEROWID2,
                                 uisResultSet.getTableName(),
                                 getContextManager());
         ridCol1.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
@@ -1177,17 +1176,10 @@ public class FromBaseTable extends FromTable {
                                                ));
         ridCol1.setSource(baseRowId2RC);
 
-//        FromList innerFromList =(FromList)getNodeFactory().getNode(
-//                    C_NodeTypes.FROM_LIST,
-//                    getNodeFactory().doJoinOrderOptimization(),
-//                    getContextManager());
-//        innerFromList.addFromTable(uisResultSet);
-//        ridCol1 = (ColumnReference)innerFromList.bindColumnReference(ridCol1);
-
         ColumnReference ridCol2 =
         (ColumnReference) nodeFactory.getNode(
                                 C_NodeTypes.COLUMN_REFERENCE,
-                                "BASEROWID",
+                                BASEROWID,
                                 outerBaseTable.getTableName(),
                                 getContextManager());
         ridCol2 = (ColumnReference)fromList.bindColumnReference(ridCol2);
@@ -1215,35 +1207,23 @@ public class FromBaseTable extends FromTable {
         newPred.setOuterJoinLevel(whereClause.getOuterJoinLevel());
         if (aboveResultSetNode instanceof ProjectRestrictNode) {
             ProjectRestrictNode prn = (ProjectRestrictNode)aboveResultSetNode;
-            if (prn.getResultColumns().getResultColumn("BASEROWID") == null) {
-//                ValueNode virtualColumn =(ValueNode)getNodeFactory().getNode(
-//                    C_NodeTypes.VIRTUAL_COLUMN_NODE,
-//                    outerBaseTable,
-//                    outerBaseTable.getRowIdColumn(),
-//                    ReuseFactory.getInteger(prn.getResultColumns().size()+1),
-//                    getContextManager());
-//                ResultColumn rowIdResultColumn =
-//                    (ResultColumn)getNodeFactory().getNode(
-//                        C_NodeTypes.RESULT_COLUMN,
-//                        "BASEROWID",
-//                        virtualColumn,
-//                        getContextManager());  // msirek-temp
-
+            if (prn.getResultColumns().getResultColumn(BASEROWID) == null) {
                 ResultColumn rowIdResultColumn = outerBaseTable.getRowIdColumn();
                 rowIdResultColumn.setVirtualColumnId(prn.getResultColumns().size()+1);
                 rowIdResultColumn.setReferenced();
                 rowIdResultColumn.markGenerated();
                 ridCol2.setSource(rowIdResultColumn);
 
-                //prn.setResultColumns(prn.getResultColumns().copyListAndObjects());  // msirek-temp
                 prn.getResultColumns().addResultColumn(rowIdResultColumn);
-                prn.assignResultSetNumber();  // msirek-temp
+                prn.assignResultSetNumber();
             }
         }
         return newPred;
     }
 
-    // In case we need to join the result to another table...
+    // In case we need to join the result to another table, since we are skipping
+    // binding and optimizing of this FromTable, we need to make sure certain items
+    // are set up that the join planner requires for proper processing.
     void initializeUnionedIndexScanAccessPath(FromTable fromTable, Optimizer optimizer) throws StandardException {
         fromTable.setCorrelationName(getExposedTableName().getTableName());
         fromTable.initAccessPaths(optimizer);
@@ -1255,8 +1235,7 @@ public class FromBaseTable extends FromTable {
         currentAP.setCostEstimate(costEstimate);
         costEstimate.setCost(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
 
-        bestAP.setCostEstimate(fromTable.getCostEstimate());  // msirek-temp
-        //bestAP.setCostEstimate(null);// msirek-temp
+        bestAP.setCostEstimate(fromTable.getCostEstimate());
         trulyBestAP.setCostEstimate(fromTable.getCostEstimate());
         bestAP.setJoinStrategy(bestAP.getOptimizer().getJoinStrategy(JoinStrategy.JoinStrategyType.NESTED_LOOP.ordinal()));
         trulyBestAP.setJoinStrategy(trulyBestAP.getOptimizer().getJoinStrategy(JoinStrategy.JoinStrategyType.NESTED_LOOP.ordinal()));
@@ -1502,7 +1481,7 @@ public class FromBaseTable extends FromTable {
 //    }
 
     ResultColumnList singleRowIdColumnResultColumnList() throws StandardException {
-        String columnName = "BASEROWID";
+        String columnName = BASEROWID;
         ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
                                 C_NodeTypes.COLUMN_REFERENCE,
                                 columnName,
@@ -1525,7 +1504,7 @@ public class FromBaseTable extends FromTable {
     }
 
     void addOuterTableRowIdToRCList(ResultColumnList resultColumnList, FromTable outerTable) throws StandardException {
-        String columnName = "BASEROWID";
+        String columnName = BASEROWID;
         ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
                                 C_NodeTypes.COLUMN_REFERENCE,
                                 columnName,
@@ -1534,7 +1513,7 @@ public class FromBaseTable extends FromTable {
         ResultColumn rowIdResultColumn =
             (ResultColumn)getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
-                "BASEROWID2",
+                BASEROWID2,
                 columnReference,
                 getContextManager());
 
@@ -2413,7 +2392,7 @@ public class FromBaseTable extends FromTable {
     }
 
     private void buildRowIdColumn(boolean isRowId) throws StandardException {
-        String colName = isRowId ? rowIdColName : baseRowIdColName;
+        String colName = isRowId ? ROWID : BASEROWID;
 
         if(rowIdColumn==null){
             ResultColumn match = resultColumns.getResultColumn(colName);
@@ -4987,10 +4966,12 @@ public class FromBaseTable extends FromTable {
     protected void recordUisAccessPath(AccessPath ap) throws StandardException {  // msirek-temp   Remove this function.
         super.recordUisAccessPath(ap);
         uisRowIdJoinBackToBaseTableResultSet = ap.getUisRowIdJoinBackToBaseTableResultSet();
-        if (uisRowIdJoinBackToBaseTableResultSet != null)
+        if (uisRowIdJoinBackToBaseTableResultSet != null) {
             walkAST(getLanguageConnectionContext(),
                     uisRowIdJoinBackToBaseTableResultSet,
-                    CompilationPhase.AFTER_OPTIMIZE);  // msirek-temp
+                    CompilationPhase.AFTER_OPTIMIZE);
+            uisRowIdJoinBackToBaseTableResultSet.assignResultSetNumber();
+        }
     }
 
     public double getSingleScanRowCount() {

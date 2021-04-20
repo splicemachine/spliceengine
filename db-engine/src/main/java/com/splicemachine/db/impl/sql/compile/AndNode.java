@@ -237,14 +237,14 @@ public class AndNode extends BinaryLogicalOperatorNode{
         do {
             normalize(false);
 
-        /* Finally, we continue to normalize the left and right subtrees. */
-        setLeftOperand(retval.getLeftOperand().changeToCNF(underTopAndNode));
-        setRightOperand(retval.getRightOperand().changeToCNF(underTopAndNode));
+            /* Finally, we continue to normalize the left and right subtrees. */
+            setLeftOperand(retval.getLeftOperand().changeToCNF(underTopAndNode));
+            setRightOperand(retval.getRightOperand().changeToCNF(underTopAndNode));
 
-        if (retval.getLeftOperand() instanceof AndNode && isBooleanTrue(retval.getRightOperand()))
-            return retval.getLeftOperand();
+            if (retval.getLeftOperand() instanceof AndNode && isBooleanTrue(retval.getRightOperand()))
+                return retval.getLeftOperand();
 
-        retval = normalize(true);  // msirek-temp
+            retval = normalize(true);
         }
         while (retval.getLeftOperand() instanceof AndNode);
 
