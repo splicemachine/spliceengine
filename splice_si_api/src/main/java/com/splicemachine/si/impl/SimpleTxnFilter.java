@@ -51,6 +51,7 @@ public class SimpleTxnFilter implements TxnFilter{
     private Long antiTombstonedTxnRow = null;
     private final ByteSlice rowKey=new ByteSlice();
     private boolean isReplica;
+    private int count = 0; // number of cells processed
 
     /*
      * The most common case for databases is insert-only--that is, that there
@@ -137,11 +138,12 @@ public class SimpleTxnFilter implements TxnFilter{
 
     @Override
     public DataFilter.ReturnCode filterCell(DataCell keyValue) throws IOException{
+        count++;
         CellType type=keyValue.dataType();
         switch (type) {
             case COMMIT_TIMESTAMP:
                 ensureTransactionIsCached(keyValue);
-                return DataFilter.ReturnCode.SKIP;
+                return count < 5 ? DataFilter.ReturnCode.SKIP : ReturnCode.NEXT_COL;
             case FOREIGN_KEY_COUNTER:
             case FIRST_WRITE_TOKEN:
             case DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN:
@@ -177,6 +179,7 @@ public class SimpleTxnFilter implements TxnFilter{
         tombstonedTxnRow = null;
         antiTombstonedTxnRow = null;
         rowKey.reset();
+        count = 0;
     }
 
     @Override

@@ -450,11 +450,11 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
             DataCell kv = kvIter.next();
             DataFilter.ReturnCode returnCode = filter.filterCell(kv);
             switch(returnCode){
-                case NEXT_COL:
                 case NEXT_ROW:
                 case SEEK:
                     return false; //failed the predicate
                 case SKIP:
+                case NEXT_COL:
                     numCells--;
                 default:
                     //these are okay--they mean the encoding is good
