@@ -686,6 +686,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                 resultColumns.genVirtualColumnNodes(newPRNode, newPrRCList, false);
 
                 for (ColumnReference cr: rowIdReferenceList) {
+                    if (!(cr.getSource().getExpression() instanceof VirtualColumnNode))
+                        continue;
                     VirtualColumnNode virtualColumNode = (VirtualColumnNode)cr.getSource().getExpression();
                     cr.setSource(virtualColumNode.getSourceResultColumn() );
                 }

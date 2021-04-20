@@ -1090,7 +1090,7 @@ public class FromBaseTable extends FromTable {
             baseRowId2RC = uisRowIdJoinBackToBaseTableResultSet.getResultColumns().getResultColumn("BASEROWID2");
             Predicate outerTableRowIdJoinPred =
                 buildRowIdPredWithOuterTable(optimizer, baseRowId2RC, fromSubquery);
-            uisAccessPath.setUisRowIdPredicate(outerTableRowIdJoinPred);
+            uisAccessPath.setUisRowIdPredicate(outerTableRowIdJoinPred);  // msirek-temp
         }
 
         // Traverse down to the JoinNode to verify it was built and set
@@ -1129,11 +1129,11 @@ public class FromBaseTable extends FromTable {
         // select statement, and did not want to rebind it.
         FromBaseTable outerBaseTable = optimizer.getOuterBaseTable();
         if (outerBaseTable != null)
-            outerBaseTable.setSkipBindAndOptimize(false);
+            outerBaseTable.setSkipBindAndOptimize(false);  // msirek-temp
 
         //this.uisRowIdJoinBackToBaseTableResultSet = uisRowIdJoinBackToBaseTableResultSet;  // msirek-temp
 
-        uisAccessPath.setCostEstimate(unionOfIndexes.getCostEstimate().cloneMe());
+        uisAccessPath.setCostEstimate(uisRowIdJoinBackToBaseTableResultSet.getCostEstimate().cloneMe());
     }
 
     private Predicate buildRowIdPredWithOuterTable(Optimizer optimizer,
@@ -1156,6 +1156,9 @@ public class FromBaseTable extends FromTable {
         }
         if (!(outerTable instanceof FromBaseTable))
             return null;
+
+        outerTable.setSkipBindAndOptimize(true);  // msirek-temp
+
         FromBaseTable outerBaseTable = (FromBaseTable)outerTable;
 
         NodeFactory nodeFactory = getNodeFactory();
@@ -1820,7 +1823,7 @@ public class FromBaseTable extends FromTable {
 
                 //skip join predicates unless they support predicate pushdown
                 if(!p.isHashableJoinPredicate()&& !p.isFullJoinPredicate() || currentJoinStrategy.allowsJoinPredicatePushdown()) {
-                    scf.addPredicate(p, defaultSelectivityFactor);
+                    scf.addPredicate(p, defaultSelectivityFactor, optimizer);
                     numUnusedLeadingIndexFields = currentAccessPath.getNumUnusedLeadingIndexFields();
                 }
             }
@@ -4978,6 +4981,8 @@ public class FromBaseTable extends FromTable {
                 trulyTheBestAccessPath.getUisRowIdJoinBackToBaseTableResultSet() != null);
     }
 
+    // Save the Unioned Index Scans statement tree from the access path into the base table,
+    // and finalize the tree by doing the AFTER_OPTIMIZE walking of the AST.
     @Override
     protected void recordUisAccessPath(AccessPath ap) throws StandardException {  // msirek-temp   Remove this function.
         super.recordUisAccessPath(ap);
@@ -4988,4 +4993,7 @@ public class FromBaseTable extends FromTable {
                     CompilationPhase.AFTER_OPTIMIZE);  // msirek-temp
     }
 
+    public double getSingleScanRowCount() {
+        return singleScanRowCount;
+    }
 }

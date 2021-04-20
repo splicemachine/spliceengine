@@ -1925,10 +1925,10 @@ public class SelectNode extends ResultSetNode{
 
         // msirek-temp:   The outer relation will be joined in the outer query block
         // if marked as skipBindAndOptimize
-        if (fromList.size() == 2 && ((ResultSetNode)fromList.elementAt(0)).skipBindAndOptimize()) {
-            fromList.setOptimizable(0, (Optimizable)fromList.elementAt(1));
-            fromList.remove(1);
-        }
+//        if (fromList.size() == 2 && ((ResultSetNode)fromList.elementAt(0)).skipBindAndOptimize()) {
+//            fromList.setOptimizable(0, (Optimizable)fromList.elementAt(1));
+//            fromList.remove(1);
+//        }  // msirek-temp
 
         /* Build a temp copy of the current FromList for sort elimination, etc. */
         preJoinFL.removeAllElements();
