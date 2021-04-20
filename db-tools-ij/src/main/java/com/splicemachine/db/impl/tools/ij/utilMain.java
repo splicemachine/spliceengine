@@ -166,7 +166,13 @@ public class utilMain implements java.security.PrivilegedAction {
 
         // adding Ctrl+C to cancel queries
         // to quit terminal, use 'quit;' or Ctrl+D (on Linux/Mac).
-        addSignalHandler( "INT", () -> ijParser.cancelCurrentStatement(out) );
+        addSignalHandler( "INT", this::ctrlC);
+    }
+
+    @SuppressFBWarnings("DM_EXIT")
+    public void ctrlC() {
+        if( !ijParser.cancelCurrentStatement(out) )
+            java.lang.System.exit(0);
     }
 
     /**
@@ -342,6 +348,7 @@ public class utilMain implements java.security.PrivilegedAction {
      *
      * @return The number of errors seen in the script.
      */
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     private int runScriptGuts() {
 
         int scriptErrorCount = 0;
@@ -360,6 +367,7 @@ public class utilMain implements java.security.PrivilegedAction {
                 command = null;
                 out.flush();
                 command = commandGrabber[currCE].nextStatement();
+                if(command == null) return 0;
 
                 if (doSpool) {
                     assert out.getOutputStream() instanceof ForkOutputStream;
