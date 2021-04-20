@@ -253,7 +253,6 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
             if (this.runningOnClient.getCount() > 0) {
                 this.runningOnClient.countDown();
                 futureConnect.channel().writeAndFlush(new StreamProtocol.RequestClose());
-                futureConnect.channel().closeFuture();
             } else {
                 futureConnect.channel().closeFuture().sync();
             }
@@ -285,6 +284,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                 ", partition=" + partition +
                 ", batches=" + batches +
                 ", running=" + runningOnClient +
+                ", running=" + throttleMaxWait +
                 '}';
     }
 
@@ -300,6 +300,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
         out.writeInt(batches);
         out.writeInt(batchSize);
         out.writeObject(permits); // WTF is this?
+        out.writeInt(throttleMaxWait);
     }
 
     @Override
@@ -312,5 +313,6 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
         batches = in.readInt();
         batchSize = in.readInt();
         permits = (Semaphore) in.readObject();
+        throttleMaxWait = in.readInt();
     }
 }
