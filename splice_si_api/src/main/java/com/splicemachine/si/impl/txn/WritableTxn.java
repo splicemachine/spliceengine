@@ -179,9 +179,9 @@ public class WritableTxn extends AbstractTxn{
         while(!toProcess.isEmpty()) {
             AbstractTxn t = toProcess.pop();
             if (t.getState() == State.COMMITTED) {
-                txnSupplier.cache(new CommittedTxn(txn.getTxnId(), this.commitTimestamp));
-                for (Txn c : this.children) {
-                    if (c != t && c instanceof AbstractTxn) {
+                txnSupplier.cache(new CommittedTxn(t.getTxnId(), this.commitTimestamp));
+                for (Txn c : t.children) {
+                    if (c instanceof AbstractTxn) {
                         toProcess.add((AbstractTxn) c);
                     }
                 }
