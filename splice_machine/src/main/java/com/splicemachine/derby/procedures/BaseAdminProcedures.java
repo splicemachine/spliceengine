@@ -12,24 +12,23 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.utils;
+package com.splicemachine.derby.procedures;
 
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.*;
 
 import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.drda.RemoteUser;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.jdbc.InternalDriver;
@@ -40,6 +39,8 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.utils.Pair;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import splice.com.google.common.net.HostAndPort;
 
 /**
  * Common static utility functions for subclasses which provide
@@ -50,7 +51,7 @@ import com.splicemachine.utils.Pair;
  * are provided here to do so.
  * 
  * @see SpliceAdmin
- * @see TimestampAdmin
+ * @see TimestampProcedures
  */
 public abstract class BaseAdminProcedures {
 
@@ -116,6 +117,7 @@ public abstract class BaseAdminProcedures {
      * 
      * @param connections
      */
+    @SuppressFBWarnings("DE_MIGHT_IGNORE")
     protected static void close(List<Pair<String, JMXConnector>> connections) {
         if (connections != null) {
             for (Pair<String, JMXConnector> connectorPair : connections) {
@@ -163,21 +165,6 @@ public abstract class BaseAdminProcedures {
         throw Util.noCurrentConnection();
     }
 
-    public static ResultSet executeStatement(StringBuilder sb) throws SQLException {
-        ResultSet result = null;
-        Connection connection = getDefaultConn();
-        try {
-            PreparedStatement ps = connection.prepareStatement(sb.toString());
-            result = ps.executeQuery();
-        } catch (SQLException e) {
-            connection.rollback();
-            throw new SQLException(sb.toString(), e);
-        } finally {
-            connection.close();
-        }
-        return result;
-    }
-
     protected static ExecRow buildExecRow(ResultColumnDescriptor[] columns) throws SQLException {
         ExecRow template = new ValueRow(columns.length);
         try {
@@ -192,4 +179,55 @@ public abstract class BaseAdminProcedures {
         return template;
     }
 
+    @FunctionalInterface
+    public interface ConsumeWithException<T, T2, E extends Throwable> {
+        void accept(T t, T2 t2) throws E;
+    }
+    @FunctionalInterface
+    public interface ConsumeWithException3<T, T2, T3, E extends Throwable> {
+        void accept(T t, T2 t2, T3 t3) throws E;
+    }
+
+    public static void executeOnAllServers(ConsumeWithException<HostAndPort, Connection, SQLException> function) throws SQLException {
+        List<HostAndPort> servers = getServers();
+
+        for (HostAndPort server : servers) {
+            try (Connection connection = RemoteUser.getConnection(server.toString())) {
+                function.accept(server, connection);
+            }
+        }
+    }
+
+    public static List<HostAndPort> getServers() throws SQLException {
+        List<HostAndPort> servers;
+        try {
+            servers = EngineDriver.driver().getServiceDiscovery().listServers();
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+        return servers;
+    }
+
+    public static void executeOnAllServers(String sql,
+                                           ConsumeWithException3<HostAndPort, Connection, ResultSet, SQLException> function)
+            throws SQLException {
+
+        executeOnAllServers( (hostAndPort, connection) -> {
+            try (Statement stmt = connection.createStatement()) {
+
+                try (ResultSet rs = stmt.executeQuery(sql)) {
+                    function.accept(hostAndPort, connection, rs);
+                }
+            }
+        });
+    }
+
+    public static void executeOnAllServers(String sql) throws SQLException {
+
+        executeOnAllServers( (hostAndPort, connection) -> {
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute(sql);
+            }
+        });
+    }
 }

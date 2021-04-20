@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.catalog.upgrade;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.sql.catalog.Procedure;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.procedures.ProcedureUtils;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -106,5 +107,44 @@ public class UpgradeSystemProcedures {
         byte[] data = zk.getData(path, null, null);
         int count = Integer.parseInt(new String(data, Charset.defaultCharset().name())) + 1;
         zk.setData(path, String.valueOf(count).getBytes(Charset.defaultCharset().name()), -1);
+    }
+
+    public static void addProcedures(List<Procedure> procedures) {
+        Procedure beginRollingUpgrade = Procedure.newBuilder().name("BEGIN_ROLLING_UPGRADE")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(UpgradeSystemProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(beginRollingUpgrade);
+
+        Procedure endRollingUpgrade = Procedure.newBuilder().name("END_ROLLING_UPGRADE")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(UpgradeSystemProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(endRollingUpgrade);
+
+        Procedure unloadRegions = Procedure.newBuilder().name("UNLOAD_REGIONS")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .varchar("hostAndPort", 32672)
+                .ownerClass(UpgradeSystemProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(unloadRegions);
+
+        Procedure loadRegions = Procedure.newBuilder().name("LOAD_REGIONS")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .varchar("hostAndPort", 32672)
+                .ownerClass(UpgradeSystemProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(loadRegions);
+
+        Procedure restartOlapServer = Procedure.newBuilder().name("RESTART_OLAP_SERVER")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(UpgradeSystemProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(restartOlapServer);
     }
 }

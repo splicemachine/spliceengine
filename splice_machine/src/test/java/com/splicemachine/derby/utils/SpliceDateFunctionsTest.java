@@ -8,6 +8,7 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.impl.sql.execute.CurrentDatetime;
+import com.splicemachine.derby.procedures.SpliceDateFunctions;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Assert;
@@ -26,12 +27,11 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.*;
-import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAmount;
 import java.util.Calendar;
 import java.util.TimeZone;
 
-import static com.splicemachine.derby.utils.SpliceDateFunctions.TRUNC_DATE;
+import static com.splicemachine.derby.procedures.SpliceDateFunctions.TRUNC_DATE;
 import static org.junit.Assert.*;
 
 @Category(ArchitectureIndependent.class)

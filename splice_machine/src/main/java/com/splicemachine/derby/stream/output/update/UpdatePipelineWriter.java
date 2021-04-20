@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.stream.output.update;
 
-import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -38,6 +37,7 @@ import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.config.RollforwardWriteConfiguration;
 import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.pipeline.utils.PipelineUtils;
+import com.splicemachine.pipeline.writehandler.UpdateUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
@@ -60,6 +60,7 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     protected DataValueDescriptor[] kdvds;
     protected int[] colPositionMap;
     protected FormatableBitSet heapList;
+    protected FormatableBitSet valuesList;
     protected boolean modifiedPrimaryKeys=false;
     protected int[] finalPkColumns;
 
@@ -95,19 +96,9 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
         // Get the DVDS for the primary keys...
         for(int i=0;i<columnOrdering.length;++i)
             kdvds[i]=LazyDataValueFactory.getLazyNull(formatIds[columnOrdering[i]]);
-        colPositionMap=new int[heapList.size()];
-        // Map Column Positions for encoding
-        for(int i=heapList.anySetBit(), pos=heapList.getNumBitsSet();i!=-1;i=heapList.anySetBit(i),pos++)
-            colPositionMap[i]=pos;
-        // Check for PK Modifications...
-        if(pkColumns!=null){
-            for(int pkCol=pkColumns.anySetBit();pkCol!=-1;pkCol=pkColumns.anySetBit(pkCol)){
-                if(heapList.isSet(pkCol+1)){
-                    modifiedPrimaryKeys=true;
-                    break;
-                }
-            }
-        }
+
+        setupColumnMapping();
+
         // Grab the final PK Columns
         if(pkCols!=null){
             finalPkColumns=new int[pkCols.length];
@@ -133,6 +124,60 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
         writeBuffer=transformWriteBuffer(bufferToTransform);
         encoder=new PairEncoder(getKeyEncoder(),getRowHash(),dataType);
         flushCallback=triggerHandler==null?null:TriggerHandler.flushCallback(writeBuffer);
+    }
+
+    /*  colPositionMap and heapList control how we map values coming into the Update operation to the
+    actual write going to the WritePipeline
+        heapList determines the number of columns of the written value and references colPositionMap
+    for the absolute position of those values on the row
+        Initially colPositionMap has as many elements as columns in the targetTable and heapList has
+    as many bits set as columns are being modified. Since we are going to include the old values too
+    we have to duplicate their size and rewire some mappings
+        If we have a table with 4 columns and we are updating columns {0, 2} we'd have something like
+            inputRow = { oldValue0, oldValue1, newValue0, newValue1, ROWID }
+            colPositionMap (1-based) = { 0, 2 (newValue0), 0, 3 (newValue1), 0 }
+            heapList = { 1, 3 } (referencing colPositionMap[1]=newValue0 and colPositionMap[3]=newValue1
+            outputRow = { newValue0, newValue1 }
+        Since we want to include the oldValues we rewire them to
+
+                                                  newValue1      oldValue1
+                                                  v              v
+            colPositionMap (1-based) = { 0, 2, 0, 3, 0, 0, 0, 0, 1, 0 }
+                                            ^              ^
+                                            newValue0      oldValue0
+
+            heapList = { 1, 3, 6, 8 } (referencing colPositionMap[1,3,6,8] respectively
+            outputRow = { newValue0, newValue1, oldValue0, oldValue1 }
+    */
+    private void setupColumnMapping() {
+        // We are including the new and the old values on the write, so we need twice the space
+        // See example in UpdateUtils.extractWriteFromUpdate()
+        colPositionMap=new int[heapList.size()*2];
+        // Map Column Positions for encoding
+        for(int i=heapList.anySetBit(), pos=heapList.getNumBitsSet();i!=-1;i=heapList.anySetBit(i),pos++) {
+            colPositionMap[i] = pos;
+            colPositionMap[i+heapList.size()] = pos - heapList.getNumBitsSet();
+        }
+        // Check for PK Modifications...
+        if(pkColumns!=null){
+            for(int pkCol=pkColumns.anySetBit();pkCol!=-1;pkCol=pkColumns.anySetBit(pkCol)){
+                if(heapList.isSet(pkCol+1)){
+                    modifiedPrimaryKeys=true;
+                    break;
+                }
+            }
+
+            // unset any pk columns, they shouldn't be included in the value (they go in the key)
+            for(int pkCol=pkColumns.anySetBit();pkCol!=-1;pkCol=pkColumns.anySetBit(pkCol)){
+                heapList.clear(pkCol+1);
+            }
+        }
+        // grow heapList
+        valuesList = (FormatableBitSet) heapList.clone();
+        valuesList.grow(heapList.size()*2);
+        for (int i=heapList.anySetBit();i!=-1;i=heapList.anySetBit(i)) {
+            valuesList.set(i + heapList.size());
+        }
     }
 
     public KeyEncoder getKeyEncoder() throws StandardException{
@@ -169,13 +214,8 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     }
 
     public DataHash getRowHash() throws StandardException{
-        //if we haven't modified any of our primary keys, then we can just change it directly
         DescriptorSerializer[] serializers=VersionedSerializers.forVersion(tableVersion,false).getSerializers(execRowDefinition);
-        if(!modifiedPrimaryKeys){
-            return new NonPkRowHash(colPositionMap,null,serializers,heapList);
-        }
-        ResultSupplier resultSupplier=new ResultSupplier(new BitSet(),txn,heapConglom);
-        return new PkRowHash(finalPkColumns,null,heapList,colPositionMap,resultSupplier,serializers);
+        return new RowHash(colPositionMap,null,serializers,valuesList);
     }
 
     public RecordingCallBuffer<KVPair> transformWriteBuffer(final RecordingCallBuffer<KVPair> bufferToTransform) throws StandardException{
@@ -194,6 +234,7 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
                         byte[] oldLocation=((RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
                         if(!Bytes.equals(oldLocation,element.getRowKey())){
                             bufferToTransform.add(new KVPair(oldLocation,SIConstants.EMPTY_BYTE_ARRAY,KVPair.Type.DELETE));
+                            element = UpdateUtils.getBaseUpdateMutation(element);
                             element.setType(KVPair.Type.INSERT);
                         }else{
                             element.setType(KVPair.Type.UPDATE);
