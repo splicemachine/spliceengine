@@ -2851,6 +2851,8 @@ public class OptimizerImpl implements Optimizer{
                break;
 
            SingleChildResultSetNode resultSetNode = (SingleChildResultSetNode) outerTable;
+           if (!(resultSetNode instanceof FromTable))
+               return null;
            outerTable = (FromTable)resultSetNode.getChildResult();
        }
        FromBaseTable outerBaseTable = null;

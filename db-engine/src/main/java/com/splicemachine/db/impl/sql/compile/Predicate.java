@@ -1678,6 +1678,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
             foundKey = predicate.isKey();
             predicate.clearScanFlags();
             if (foundKey) {
+                if (predicate.getReferencedSet().cardinality() < 2)
+                    break;
                 FromBaseTable outerBaseTable = optimizer.getOuterBaseTable();
                 if (outerBaseTable == null) {
                     break;
