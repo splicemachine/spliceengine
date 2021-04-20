@@ -40,8 +40,8 @@ import static org.junit.Assert.assertEquals;
  *         Date: 3/2/15
  */
 @Category(SerialTest.class)
-public class StatisticsAdminIT extends SpliceUnitTest {
-    private static final String SCHEMA=StatisticsAdminIT.class.getSimpleName().toUpperCase();
+public class StatisticsProceduresIT extends SpliceUnitTest {
+    private static final String SCHEMA= StatisticsProceduresIT.class.getSimpleName().toUpperCase();
     private static final String SCHEMA2=SCHEMA+"2";
     private static final String SCHEMA3=SCHEMA+"3";
     private static final String SCHEMA4=SCHEMA+"4";
@@ -1214,17 +1214,19 @@ public class StatisticsAdminIT extends SpliceUnitTest {
 
         // check the result of sys stats views
         ResultSet rs = methodWatcher4.executeQuery(format("select schemaname, tablename, total_row_count, avg_row_count, total_size, num_partitions, stats_type from sysvw.systablestatistics where schemaname='%s' and tablename='%s'", SCHEMA4, "T6"));
-        String expected = "SCHEMANAME     | TABLENAME | TOTAL_ROW_COUNT | AVG_ROW_COUNT |TOTAL_SIZE |NUM_PARTITIONS |STATS_TYPE |\n" +
-                "----------------------------------------------------------------------------------------------------------\n" +
-                "STATISTICSADMINIT4 |    T6     |      10000      |   2500.0000   |  1000000  |       4       |     4     |";
+        String expected =
+                "SCHEMANAME        | TABLENAME | TOTAL_ROW_COUNT | AVG_ROW_COUNT |TOTAL_SIZE |NUM_PARTITIONS |STATS_TYPE |\n" +
+                "---------------------------------------------------------------------------------------------------------------\n" +
+                "STATISTICSPROCEDURESIT4 |    T6     |      10000      |   2500.0000   |  1000000  |       4       |     4     |";
         String resultString = TestUtils.FormattedResult.ResultFactory.toString(rs);
         assertEquals("Fake table stats does not match expected result.", expected, resultString);
         rs.close();
 
         rs = methodWatcher4.executeQuery(format("select schemaname, tablename, columnname, cardinality, null_count, null_fraction, min_value, max_value from sysvw.syscolumnstatistics where schemaname='%s' and tablename='%s' and columnname='%s'", SCHEMA4, "T6", "B6"));
-        expected = "SCHEMANAME     | TABLENAME |COLUMNNAME | CARDINALITY |NULL_COUNT | NULL_FRACTION | MIN_VALUE | MAX_VALUE |\n" +
-                "--------------------------------------------------------------------------------------------------------------\n" +
-                "STATISTICSADMINIT4 |    T6     |    B6     |     10      |     0     |      0.0      |   NULL    |   NULL    |";
+        expected =
+                "SCHEMANAME        | TABLENAME |COLUMNNAME | CARDINALITY |NULL_COUNT | NULL_FRACTION | MIN_VALUE | MAX_VALUE |\n" +
+                "-------------------------------------------------------------------------------------------------------------------\n" +
+                "STATISTICSPROCEDURESIT4 |    T6     |    B6     |     10      |     0     |      0.0      |   NULL    |   NULL    |";
         resultString = TestUtils.FormattedResult.ResultFactory.toString(rs);
         assertEquals("Fake column stats does not match expected result.", expected, resultString);
         rs.close();
@@ -1273,9 +1275,9 @@ public class StatisticsAdminIT extends SpliceUnitTest {
         methodWatcher4.execute(format("call syscs_util.syscs_flush_table('%s', 'T7')", SCHEMA4));
         try(ResultSet rs = methodWatcher4.executeQuery("analyze table T7")) {
             String expected =
-                    "schemaName     | tableName | partition | rowsCollected | partitionSize |partitionCount | statsType |sampleFraction |skippedColumnIds |\n" +
-                    "------------------------------------------------------------------------------------------------------------------------------------------\n" +
-                    "STATISTICSADMINIT4 |    T7     |   -All-   |     36865     |    294920     |       1       |     2     |      0.0      |                 |";
+                    "schemaName        | tableName | partition | rowsCollected | partitionSize |partitionCount | statsType |sampleFraction |skippedColumnIds |\n" +
+                    "-----------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                    "STATISTICSPROCEDURESIT4 |    T7     |   -All-   |     36865     |    294920     |       1       |     2     |      0.0      |                 |";
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }

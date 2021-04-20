@@ -42,5 +42,4 @@ public interface WriteHandler {
      * throw exceptions.
      */
     void close(WriteContext ctx) throws IOException;
-
 }
