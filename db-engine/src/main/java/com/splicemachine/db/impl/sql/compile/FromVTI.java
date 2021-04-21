@@ -201,6 +201,9 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         ap.setMissingHashKeyOK(false);
         bestAp.setMissingHashKeyOK(false);
         bestSortAp.setMissingHashKeyOK(false);
+        ap.setNumUnusedLeadingIndexFields(0);
+        bestAp.setNumUnusedLeadingIndexFields(0);
+        bestSortAp.setNumUnusedLeadingIndexFields(0);
 
         /*
          ** Only need to do this for current access path, because the
@@ -540,8 +543,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
     getNewTriggerExecutionContext(LanguageConnectionContext lcc, String statementText, TriggerInfo triggerInfo, UUID tableId,
                                   String targetTableName, FormatableBitSet heapList, SPSDescriptor fromTableDmlSpsDescriptor)  throws StandardException {
         GenericExecutionFactory executionFactory = (GenericExecutionFactory) lcc.getLanguageConnectionFactory().getExecutionFactory();
-        TriggerExecutionContext tec = executionFactory.getTriggerExecutionContext(
-              (ConnectionContext) lcc.getContextManager().getContext(ConnectionContext.CONTEXT_ID),
+        TriggerExecutionContext tec = executionFactory.getTriggerExecutionContext(lcc,
               statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
               tableId, targetTableName, null, heapList, false, fromTableDmlSpsDescriptor);
 
@@ -626,7 +628,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         GenericDescriptorList<TriggerDescriptor> triggerList = new GenericDescriptorList<>();
         triggerList.add(triggerd);
 
-        TriggerInfo triggerInfo = new TriggerInfo(targetTableDescriptor, null, triggerList);
+        TriggerInfo triggerInfo = new TriggerInfo2(targetTableDescriptor, null, triggerList);
         // A special location to hold the temporary trigger descriptor
         // so we don't muck around with the dictionary cache.
         TriggerReferencingStruct.fromTableTriggerDescriptor.set(triggerd);
@@ -2035,7 +2037,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                                    CostEstimate outerCost,
                                    RowOrdering rowOrdering) throws StandardException{
         optimizer.costOptimizable(this,null,
-                getCurrentAccessPath().getConglomerateDescriptor(),
+                getCurrentAccessPath(),
                 predList,
                 outerCost);
 

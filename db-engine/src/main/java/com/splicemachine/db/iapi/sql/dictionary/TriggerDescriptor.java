@@ -31,15 +31,19 @@
 
 package com.splicemachine.db.iapi.sql.dictionary;
 
+import com.google.protobuf.ExtensionRegistry;
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Parser;
@@ -49,6 +53,8 @@ import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.ProtobufUtils;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.db.impl.sql.execute.TriggerEvent;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
@@ -57,6 +63,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -179,7 +186,11 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         this.numBaseTableColumns = td.getNumberOfColumns();
         this.version = 1;
     }
-    
+
+    public TriggerDescriptor(CatalogMessage.TriggerDescriptor triggerDescriptor) {
+        init(triggerDescriptor);
+    }
+
     /**
      * Get the trigger UUID
      */
@@ -290,37 +301,60 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
      * SYSSTATEMENTS was introduced with DERBY-4874
      *
      * @param lcc The LanguageConnectionContext to use.
+     * @param activation The Activation to use.
      * @return the trigger action sps
      */
-    public SPSDescriptor getActionSPS(LanguageConnectionContext lcc, int index) throws StandardException {
-
-        return getSPS(lcc, index, null);
-
+    public SPSDescriptor getActionSPS(LanguageConnectionContext lcc, Activation activation, int index) throws StandardException {
+        return getSPS(lcc, activation, index);
     }
 
-    public SPSDescriptor getActionSPS(LanguageConnectionContext lcc, int index, ManagedCache<UUID, SPSDescriptor>localCache) throws StandardException {
-
-        return getSPS(lcc, index, localCache);
-
+    private boolean olapStatementIntializingOnRegionServer(Activation activation) {
+        return activation.datasetProcessorType().isOlap() &&
+               isDRDAConnThread();
     }
+
+    private boolean
+    isDRDAConnThread() {
+        return Thread.currentThread().currentThread().getName().startsWith("DRDAConnThread");
+    }
+
+    private boolean
+    skipLocalCacheLookup() {
+        if (!isDRDAConnThread())
+            return false;
+        if (!(this instanceof TriggerDescriptorV4))
+            return true;
+        TriggerDescriptorV4 tdV4 = (TriggerDescriptorV4)this;
+        if (!tdV4.isSpecialFromTableTrigger())
+            return true;
+        return false;
+    }
+
+
 
     /**
      * Get the SPS for the triggered SQL statement or the WHEN clause.
      *
      * @param lcc the LanguageConnectionContext to use
+     * @param activation the Activation to use
      * @param index {@code -1} if the SPS for the WHEN clause is
      *   requested, {@code >=0} if it is one of the triggered SQL statements
      * @return the requested SPS
      * @throws StandardException if an error occurs
      */
-    private SPSDescriptor getSPS(LanguageConnectionContext lcc,
-                                 int index, ManagedCache<UUID, SPSDescriptor>localCache)
+    public SPSDescriptor getSPS(LanguageConnectionContext lcc,
+                                Activation activation,
+                                int index)
             throws StandardException
     {
+        final boolean isDRDAConnThread = isDRDAConnThread();
+        final boolean skipLocalCacheLookup = skipLocalCacheLookup();
+        ManagedCache<UUID, SPSDescriptor>localCache = lcc.getLocalSpsCache();
         boolean isWhenClause = index == -1;
         DataDictionary dd = getDataDictionary();
         UUID spsId = isWhenClause ? whenSPSId : actionSPSIdList.get(index);
         String originalSQL = isWhenClause ? whenClauseText : triggerDefinitionList.get(index);
+        boolean usesReferencingClause = referencedColsInTriggerAction != null;
 
         //bug 4821 - do the sysstatement look up in a nested readonly
         //transaction rather than in the user transaction. Because of
@@ -333,16 +367,23 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         // cannot begin a new txn.
         //  lcc.beginNestedTransaction(true);
         SPSDescriptor sps = null;
-        if (localCache != null)
+
+        // On main derby thread the local cache might be reused between requests,
+        // in which case we should fill it with the most up-to-date SPSDescriptor.
+        if (localCache != null && !skipLocalCacheLookup)
             sps = localCache.getIfPresent(spsId);
 
         if (sps == null) {
             sps = dd.getSPSDescriptor(spsId);
-            if (localCache != null && sps != null)
-                localCache.put(spsId, sps);
         }
-
         assert sps != null : "sps should not be null";
+
+        boolean wasValid = sps.isValid();
+        boolean needsSpecialRecompile = !sps.isValid() && isRow && usesReferencingClause;
+
+        if (sps.getDataDictionary() == null) {
+            sps.setDataDictionary(lcc.getDataDictionary());
+        }
 
         // lcc.commitNestedTransaction();
 
@@ -358,9 +399,9 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         //To fix varchar(30) in trigger action sql to varchar(64), we need
         //to regenerate the trigger action sql. This new trigger action sql
         //will then get updated into SYSSTATEMENTS table.
-        boolean usesReferencingClause = referencedColsInTriggerAction != null;
 
-        if ((!sps.isValid() || (sps.getPreparedStatement() == null)) && isRow && usesReferencingClause) {
+        if (needsSpecialRecompile) {
+
             SchemaDescriptor compSchema = dd.getSchemaDescriptor(triggerSchemaId, null);
             CompilerContext newCC = lcc.pushCompilerContext(compSchema);
             Parser pa = newCC.getParser();
@@ -400,9 +441,38 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
 
             //By this point, we are finished transforming the trigger action if
             //it has any references to old/new transition variables.
+            //Recompile it to store the latest updates in sys.sysstatements.
+            sps.getPreparedStatement(true, lcc);
         }
+        // Force recompile before execution if Olap.
+        // Concurrent control execution has the ability to
+        // cache the triggers that are concurrently compiled,
+        // So this is only needed for Spark execution.
+        final boolean olapQueryInit = olapStatementIntializingOnRegionServer(activation);
+        final boolean olapQuery = olapQueryInit || isOlapServer();
 
+        if (!sps.isValid() &&
+            (olapQueryInit || isOlapServer())) {
+            if (isDRDAConnThread)
+                sps = sps.shallowClone();
+            sps.getPreparedStatement(true, lcc);
+        }
+        boolean compileDone = wasValid != sps.isValid();
+        if (compileDone || olapQuery) {
+            // Put the valid SPSDescriptor into local cache.
+            // This will be propagated to the executors in
+            // ActivationHolder.writeExternal.
+            if (localCache != null)
+                localCache.put(spsId, sps);
+        }
         return sps;
+    }
+
+    private static boolean isOlapServer() {
+        String threadName = Thread.currentThread().currentThread().getName();
+
+        return threadName.startsWith("OlapServer") ||
+               threadName.startsWith("olap-worker");
     }
 
     public int getNumBaseTableColumns() {
@@ -437,12 +507,12 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     /**
      * Get the trigger when clause sps
      */
-    public SPSDescriptor getWhenClauseSPS(LanguageConnectionContext lcc, ManagedCache<UUID, SPSDescriptor> localCache) throws StandardException {
+    public SPSDescriptor getWhenClauseSPS(LanguageConnectionContext lcc, Activation activation) throws StandardException {
         if (whenSPSId == null) {
             // This trigger doesn't have a WHEN clause.
             return null;
         }
-        return getSPS(lcc, -1, localCache);
+        return getSPS(lcc, activation, -1);
     }
 
     /**
@@ -804,6 +874,78 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
      */
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (DataInputUtil.shouldReadOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+    protected void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ProtobufUtils.getExtensionRegistry();
+        CatalogMessage.TriggerDescriptor triggerDescriptor =
+                CatalogMessage.TriggerDescriptor.parseFrom(bs, extensionRegistry);
+        init(triggerDescriptor);
+    }
+
+    protected void init(CatalogMessage.TriggerDescriptor triggerDescriptor) {
+        id = ProtobufUtils.fromProtobuf(triggerDescriptor.getId());
+        name = triggerDescriptor.getName();
+        triggerSchemaId = ProtobufUtils.fromProtobuf(triggerDescriptor.getTriggerSchemaId());
+        triggerTableId = ProtobufUtils.fromProtobuf(triggerDescriptor.getTriggerTableId());
+        triggerDML = TriggerEventDML.fromId(triggerDescriptor.getTriggerDMLId());
+        isBefore = triggerDescriptor.getIsBefore();
+        isRow = triggerDescriptor.getIsRow();
+        isEnabled = triggerDescriptor.getIsEnabled();
+        if (triggerDescriptor.hasWhenSPSId()) {
+            whenSPSId = ProtobufUtils.fromProtobuf(triggerDescriptor.getWhenSPSId());
+        }
+
+        int length = triggerDescriptor.getActionSPSIdListCount();
+        if (length > 0) {
+            actionSPSIdList = new ArrayList<>();
+            for (int i = 0; i < triggerDescriptor.getActionSPSIdListCount(); ++i) {
+                actionSPSIdList.add(ProtobufUtils.fromProtobuf(triggerDescriptor.getActionSPSIdList(i)));
+            }
+        }
+
+        length = triggerDescriptor.getReferencedColsCount();
+        if (length > 0) {
+            referencedCols = new int[length];
+            for (int i = 0; i < length; i++) {
+                referencedCols[i] = triggerDescriptor.getReferencedCols(i);
+            }
+        }
+        length = triggerDescriptor.getReferencedColsInTriggerActionCount();
+        if (length > 0) {
+            referencedColsInTriggerAction = new int[length];
+            for (int i = 0; i < length; i++) {
+                referencedColsInTriggerAction[i] = triggerDescriptor.getReferencedColsInTriggerAction(i);
+            }
+        }
+        length = triggerDescriptor.getTriggerDefinitionListCount();
+        if (length > 0) {
+            triggerDefinitionList = new ArrayList<>();
+            for (int i = 0; i < length; ++i) {
+                triggerDefinitionList.add(triggerDescriptor.getTriggerDefinitionList(i));
+            }
+        }
+
+        referencingOld = triggerDescriptor.getReferencingOld();
+        referencingNew = triggerDescriptor.getReferencingNew();
+        if (triggerDescriptor.hasOldReferencingName()) {
+            oldReferencingName = triggerDescriptor.getOldReferencingName();
+        }
+        if (triggerDescriptor.hasNewReferencingName()) {
+            newReferencingName = triggerDescriptor.getNewReferencingName();
+        }
+        if (triggerDescriptor.hasWhenClauseText()) {
+            whenClauseText = triggerDescriptor.getWhenClauseText();
+        }
+    }
+
+    protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
         Object obj;
         id = (UUID) in.readObject();
         name = (String) in.readObject();
@@ -868,11 +1010,75 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
      * @param out write bytes here.
      */
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
+    public void writeExternal( ObjectOutput out ) throws IOException {
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(triggerSchemaId != null, "triggerSchemaId expected to be non-null");
             SanityManager.ASSERT(triggerTableId != null, "triggerTableId expected to be non-null");
         }
+
+        if (DataInputUtil.shouldWriteOldFormat()) {
+            writeExternalOld(out);
+        }
+        else {
+            writeExternalNew(out);
+        }
+    }
+
+    protected void writeExternalNew(ObjectOutput out) throws IOException {
+        CatalogMessage.TriggerDescriptor triggerDescriptor = toProtobufBuilder().build();
+        ArrayUtil.writeByteArray(out, triggerDescriptor.toByteArray());
+    }
+
+    public CatalogMessage.TriggerDescriptor.Builder toProtobufBuilder() {
+        CatalogMessage.TriggerDescriptor.Builder builder = CatalogMessage.TriggerDescriptor.newBuilder();
+        builder.setId(id.toProtobuf())
+                .setName(name)
+                .setTriggerSchemaId(triggerSchemaId.toProtobuf())
+                .setTriggerTableId(triggerTableId.toProtobuf())
+                .setTriggerDMLId(triggerDML.getId())
+                .setIsBefore(isBefore)
+                .setIsRow(isRow)
+                .setIsEnabled(isEnabled)
+                .setReferencingOld(referencingOld)
+                .setReferencingNew(referencingNew);
+
+        for (int i = 0; i < actionSPSIdList.size(); ++i) {
+            builder.addActionSPSIdList(actionSPSIdList.get(i).toProtobuf());
+        }
+
+        if (referencedCols != null) {
+            for (int i = 0; i < referencedCols.length; ++i) {
+                builder.addReferencedCols(referencedCols[i]);
+            }
+        }
+
+        if (referencedColsInTriggerAction != null) {
+            for (int i = 0; i < referencedColsInTriggerAction.length; ++i) {
+                builder.addReferencedColsInTriggerAction(referencedColsInTriggerAction[i]);
+            }
+        }
+
+        for (int i = 0; i < triggerDefinitionList.size(); ++i) {
+            builder.addTriggerDefinitionList(triggerDefinitionList.get(i));
+        }
+
+        if (whenSPSId != null) {
+            builder.setWhenSPSId(whenSPSId.toProtobuf());
+        }
+        if (oldReferencingName != null) {
+            builder.setOldReferencingName(oldReferencingName);
+        }
+        if (newReferencingName != null) {
+            builder.setNewReferencingName(newReferencingName);
+        }
+        if (whenClauseText != null) {
+            builder.setWhenClauseText(whenClauseText);
+        }
+        return builder;
+    }
+
+    protected void writeExternalOld(ObjectOutput out) throws IOException {
+
         out.writeObject(id);
         out.writeObject(name);
         out.writeObject(triggerSchemaId);

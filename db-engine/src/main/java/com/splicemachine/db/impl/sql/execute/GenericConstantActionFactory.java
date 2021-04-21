@@ -76,27 +76,6 @@ public abstract class GenericConstantActionFactory {
     //
     ///////////////////////////////////////////////////////////////////////
 
-    /**
-     * Get ConstantAction for SET CONSTRAINTS statement.
-     *
-     *  @param cdl            the constraints to set, if null,
-     *                        we'll go ahead and set them all
-     *  @param enable        if true, turn them on, if false
-     *                        disable them
-     *  @param unconditionallyEnforce    Replication sets this to true at
-     *                                    the end of REFRESH. This forces us
-     *                                    to run the included foreign key constraints even
-     *                                    if they're already marked ENABLED.
-     *    @param ddlList        Replication list of actions to propagate,
-     *                        null unless a replication source
-     */
-    public abstract ConstantAction getSetConstraintsConstantAction(
-        ConstraintDescriptorList    cdl,
-        boolean                        enable,
-        boolean                        unconditionallyEnforce,
-        Object[]                    ddlList
-    );
-
 
     /**
      *    Make the AlterAction for an ALTER TABLE statement.

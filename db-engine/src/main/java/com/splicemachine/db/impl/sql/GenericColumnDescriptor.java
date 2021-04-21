@@ -33,6 +33,8 @@ package com.splicemachine.db.impl.sql;
 
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
@@ -40,6 +42,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.io.Formatable;
+import com.splicemachine.db.iapi.types.ProtobufUtils;
 import org.apache.spark.sql.types.StructField;
 
 import java.io.ObjectOutput;
@@ -57,7 +60,6 @@ public final class GenericColumnDescriptor
 	// DO NOT CHANGE OR REMOVE THIS WITHOUT PROVIDING AN UPDATE SCRIPT
 	// it is needed for ObjectStreamClass.getDeclaredSUID. see DB-10665
 	public static final long serialVersionUID = -7718734896813275598l;
-
 
 	/********************************************************
 	**
@@ -115,6 +117,24 @@ public final class GenericColumnDescriptor
         hasGenerationClause = rcd.hasGenerationClause();
 	}
 
+	public GenericColumnDescriptor(CatalogMessage.ResultColumnDescriptor resultColumnDescriptor) throws IOException{
+		init(resultColumnDescriptor);
+	}
+
+	private void init(CatalogMessage.ResultColumnDescriptor resultColumnDescriptor) throws IOException{
+		name = resultColumnDescriptor.getName();
+		if (resultColumnDescriptor.hasTableName()) {
+			tableName = resultColumnDescriptor.getTableName();
+		}
+		if (resultColumnDescriptor.hasSchemaName()) {
+			schemaName = resultColumnDescriptor.getSchemaName();
+		}
+		columnPos = resultColumnDescriptor.getColumnPos();
+		type = ProtobufUtils.fromProtobuf(resultColumnDescriptor.getType());
+		isAutoincrement = resultColumnDescriptor.getIsAutoincrement();
+		updatableByCursor = resultColumnDescriptor.getUpdatableByCursor();
+		hasGenerationClause = resultColumnDescriptor.getHasGenerationClause();
+	}
 	/**
 	 * Returns a DataTypeDescriptor for the column. This DataTypeDescriptor
 	 * will not represent an actual value, it will only represent the type
@@ -233,7 +253,40 @@ public final class GenericColumnDescriptor
      *
      * @exception IOException thrown on error
      */
-    public void writeExternal(ObjectOutput out) throws IOException {
+    @Override
+	public void writeExternal(ObjectOutput out) throws IOException {
+		if (DataInputUtil.shouldWriteOldFormat()) {
+			writeExternalOld(out);
+		}
+		else {
+			writeExternalNew(out);
+		}
+	}
+
+	protected void writeExternalNew(ObjectOutput out) throws IOException {
+		byte[] bs = toProtobuf().toByteArray();
+		ArrayUtil.writeByteArray(out, bs);
+	}
+
+	public CatalogMessage.ResultColumnDescriptor toProtobuf() {
+		CatalogMessage.ResultColumnDescriptor.Builder builder =
+				CatalogMessage.ResultColumnDescriptor.newBuilder();
+		builder.setName(name == null ? "" : name);
+		if (tableName != null) {
+			builder.setTableName(tableName);
+		}
+		if (schemaName != null) {
+			builder.setSchemaName(schemaName);
+		}
+		builder.setColumnPos(columnPos)
+				.setType(type.toProtobuf())
+				.setIsAutoincrement(isAutoincrement)
+				.setUpdatableByCursor(updatableByCursor)
+		        .setHasGenerationClause(hasGenerationClause);
+		return builder.build();
+	}
+
+    protected void writeExternalOld(ObjectOutput out) throws IOException {
 
         // DANGER: do NOT change this serialization unless you have an upgrade script, see DB-10566
         out.writeUTF(name == null ? "" : name);
@@ -263,7 +316,25 @@ public final class GenericColumnDescriptor
      * @exception IOException             thrown on error
      * @exception ClassNotFoundException  thrown on error
      */
-    public void readExternal(ObjectInput in)
+    @Override
+	public void readExternal(ObjectInput in)
+			throws IOException, ClassNotFoundException {
+		if (DataInputUtil.shouldReadOldFormat()) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		CatalogMessage.ResultColumnDescriptor resultColumnDescriptor =
+				CatalogMessage.ResultColumnDescriptor.parseFrom(bs);
+		init(resultColumnDescriptor);
+	}
+
+    protected void readExternalOld(ObjectInput in)
             throws IOException, ClassNotFoundException {
         name = in.readUTF();
         if (in.readBoolean()) {
@@ -272,7 +343,7 @@ public final class GenericColumnDescriptor
         if (in.readBoolean()) {
             schemaName = in.readUTF();
         }
-        columnPos = in.readInt();
+			columnPos = in.readInt();
         type = getStoredDataTypeDescriptor(in.readObject());
         isAutoincrement = in.readBoolean();
         updatableByCursor = in.readBoolean();

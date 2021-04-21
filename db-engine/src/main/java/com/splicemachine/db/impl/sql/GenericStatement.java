@@ -418,7 +418,7 @@ public class GenericStatement implements Statement{
                 preparedStmt.setActivationClass(null);
             }
         }
-
+        CompilerContext cc = null;
         try{
             /*
             ** For stored prepared statements, we want all
@@ -440,7 +440,6 @@ public class GenericStatement implements Statement{
             ** get the CompilerContext to make the createDependency()
             ** call a noop.
             */
-            CompilerContext cc = null;
             if (boundAndOptimizedStatement != null)
                 cc = boundAndOptimizedStatement.getCompilerContext();
             else {
@@ -468,6 +467,7 @@ public class GenericStatement implements Statement{
                 setAllowOverflowSensitiveNativeSparkExpressions(lcc, cc);
                 setNewMergeJoin(lcc, cc);
                 setDisableParallelTaskJoinCosting(lcc, cc);
+                setDisablePrefixIteratorMode(lcc, cc);
                 setCurrentTimestampPrecision(lcc, cc);
                 setTimestampFormat(lcc, cc);
                 setFloatingPointNotation(lcc, cc);
@@ -480,6 +480,8 @@ public class GenericStatement implements Statement{
                 setSSQFlatteningForUpdateDisabled(lcc, cc);
                 setVarcharDB2CompatibilityMode(lcc, cc);
             }
+            if (internalSQL)
+                cc.setCompilingTrigger(true);
             fourPhasePrepare(lcc,paramDefaults,timestamps,foundInCache,cc,boundAndOptimizedStatement);
         }catch(StandardException se){
             if(foundInCache)
@@ -499,6 +501,8 @@ public class GenericStatement implements Statement{
                 TriggerReferencingStruct.isFromTableStatement.get().setValue(true);
             else
                 TriggerReferencingStruct.isFromTableStatement.get().setValue(false);
+            if (cc != null)
+                cc.setCompilingTrigger(false);
         }
 
         lcc.commitNestedTransaction();
@@ -723,6 +727,21 @@ public class GenericStatement implements Statement{
             // just use the default setting.
         }
         cc.setNewMergeJoin(newMergeJoin);
+    }
+
+    private void setDisablePrefixIteratorMode(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String disablePrefixIteratorModeString =
+            PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_INDEX_PREFIX_ITERATION);
+        boolean disablePrefixIteratorMode = CompilerContext.DEFAULT_DISABLE_INDEX_PREFIX_ITERATION;
+        try {
+            if (disablePrefixIteratorModeString != null)
+                disablePrefixIteratorMode =
+                Boolean.parseBoolean(disablePrefixIteratorModeString);
+        } catch (Exception e) {
+            // If the property value failed to convert to a boolean, don't throw an error,
+            // just use the default setting.
+        }
+        cc.setDisablePrefixIteratorMode(disablePrefixIteratorMode);
     }
 
     private void setDisableParallelTaskJoinCosting(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {

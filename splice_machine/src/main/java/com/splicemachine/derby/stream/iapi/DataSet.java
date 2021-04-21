@@ -139,7 +139,15 @@ public interface DataSet<V> extends //Iterable<V>,
      *
      * @return
      */
-    DataSet<V> distinct(OperationContext context);
+    DataSet<V> distinct(OperationContext context) throws StandardException;
+
+    /**
+     *
+     * Return at most numRows elements of the dataset.
+     *
+     * @return
+     */
+    DataSet<V> limit(int numRows, OperationContext context);
 
     /**
      *
@@ -153,7 +161,7 @@ public interface DataSet<V> extends //Iterable<V>,
      * @param scopeDetail
      * @return
      */
-    DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail);
+    DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) throws StandardException;
 
     /**
      *

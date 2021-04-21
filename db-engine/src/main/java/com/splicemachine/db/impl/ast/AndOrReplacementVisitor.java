@@ -33,17 +33,18 @@ package com.splicemachine.db.impl.ast;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
-import com.splicemachine.db.impl.sql.compile.AndNode;
-import com.splicemachine.db.impl.sql.compile.BinaryOperatorNode;
-import com.splicemachine.db.impl.sql.compile.OrNode;
-import com.splicemachine.db.impl.sql.compile.ValueNode;
+import com.splicemachine.db.impl.sql.compile.*;
+
+import java.util.Collection;
 
 public class AndOrReplacementVisitor extends AbstractSpliceVisitor {
 
     private ValueNode nodeToReplace;
+    private Collection<AggregateNode> aggregateVector;
 
-    public AndOrReplacementVisitor(ValueNode nodeToReplace){
+    public AndOrReplacementVisitor(ValueNode nodeToReplace, Collection<AggregateNode> aggregateVector){
         this.nodeToReplace = nodeToReplace;
+        this.aggregateVector = aggregateVector;
     }
 
     @Override
@@ -62,8 +63,16 @@ public class AndOrReplacementVisitor extends AbstractSpliceVisitor {
 
         if(nodeToReplace.equals(bon.getLeftOperand())){
             replacementNode = bon.getRightOperand();
+            if (aggregateVector != null) {
+                AggregateVectorCleaner vectorCleaner = new AggregateVectorCleaner(aggregateVector);
+                bon.getLeftOperand().accept(new SpliceDerbyVisitorAdapter(vectorCleaner));
+            }
         }else if(nodeToReplace.equals(bon.getRightOperand())){
             replacementNode = bon.getLeftOperand();
+            if (aggregateVector != null) {
+                AggregateVectorCleaner vectorCleaner = new AggregateVectorCleaner(aggregateVector);
+                bon.getRightOperand().accept(new SpliceDerbyVisitorAdapter(vectorCleaner));
+            }
         }else{
             replacementNode = bon;
         }

@@ -33,6 +33,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.Streams;
+import org.apache.spark.TaskContext;
 import splice.com.google.common.base.Function;
 import splice.com.google.common.collect.FluentIterable;
 
@@ -113,6 +114,7 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
         }
         init = true;
         ContextManager parent = ContextService.getService().getCurrentContextManager();
+        TaskContext taskContext = TaskContext.get();
         joinTable = SIDriver.driver().getExecutorService().submit(() -> {
             ContextManager cm = ContextService.getService().newContextManager(parent);
             ContextService.getService().setCurrentContextManager(cm);
@@ -173,11 +175,11 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
                 ExecRow leftTemplate = leftOperation.getExecRowDefinition();
 
                 if (noCacheBroadcastJoinRight) {
-                    BroadcastJoinNoCacheLoader loader = new BroadcastJoinNoCacheLoader(sequenceId, rightHashKeys, leftHashKeys, leftTemplate, rhsLoader);
+                    BroadcastJoinNoCacheLoader loader = new BroadcastJoinNoCacheLoader(taskContext, rightHashKeys, leftHashKeys, leftTemplate, rhsLoader);
                     return loader.call().newTable();
                 }
 
-                return broadcastJoinCache.get(sequenceId, rhsLoader, rightHashKeys, leftHashKeys, leftTemplate).newTable();
+                return broadcastJoinCache.get(sequenceId, rhsLoader, rightHashKeys, leftHashKeys, leftTemplate, taskContext).newTable();
             }
             finally {
                 ContextService.getService().resetCurrentContextManager(cm);

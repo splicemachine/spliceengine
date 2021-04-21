@@ -426,8 +426,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val sqlText = s"SELECT $columnList FROM ${schemaTableName}"
     df(sqlText).rdd
   }
-
-  private[this] def executeUpd(sql: String): Unit = {
+  
+  private[this] def executeUpd(sql: String): Int = {
     val st = internalConnection.createStatement()
     try {
       st.executeUpdate(sql)
@@ -735,9 +735,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * @param dataFrame input data
    * @param schemaTableName
    * @param options options to be passed to --splice-properties; bulkImportDirectory is required
+   *
+   * @return Number of records imported
    */
   def bulkImportHFile(dataFrame: DataFrame, schemaTableName: String,
-                      options: java.util.Map[String, String]): Unit =
+                      options: java.util.Map[String, String]): Int =
     bulkImportHFile(dataFrame, schemaTableName, options.asScala)
 
   /**
@@ -746,9 +748,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param dataFrame input data
     * @param schemaTableName
     * @param options options to be passed to --splice-properties; bulkImportDirectory is required
+    *
+    * @return Number of records imported
     */
   def bulkImportHFile(dataFrame: DataFrame, schemaTableName: String,
-                      options: scala.collection.mutable.Map[String, String]): Unit = {
+                      options: scala.collection.mutable.Map[String, String]): Int = {
 
     val bulkImportDirectory = options.get("bulkImportDirectory")
     if (bulkImportDirectory == null) {
@@ -774,9 +778,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param rdd input data
     * @param schemaTableName
     * @param options options to be passed to --splice-properties; bulkImportDirectory is required
+    *
+    * @return Number of records imported
     */
   def bulkImportHFile(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String,
-                      options: scala.collection.mutable.Map[String, String]): Unit = {
+                      options: scala.collection.mutable.Map[String, String]): Int = {
 
     val bulkImportDirectory = options.get("bulkImportDirectory")
     if (bulkImportDirectory == null) {

@@ -33,7 +33,7 @@ package com.splicemachine.db.impl.sql.execute;
 
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.jdbc.ConnectionContext;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -54,8 +54,6 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.splicemachine.db.impl.sql.execute.TriggerExecutionContext.pushLanguageConnectionContextToCM;
-
 /**
  * Responsible for firing a trigger or set of triggers based on an event.
  */
@@ -67,7 +65,6 @@ public class TriggerEventActivator {
     private Map<TriggerEvent, List<TriggerDescriptor>> rowExecutorsMap = new HashMap<>();
     private Map<TriggerEvent, List<TriggerDescriptor>> rowConcurrentExecutorsMap = new HashMap<>();
     private Activation activation;
-    private ConnectionContext connectionContext;
     private String statementText;
     private UUID tableId;
     private String tableName;
@@ -113,8 +110,8 @@ public class TriggerEventActivator {
         if (triggerInfo == null) {
             return;
         }
-        // extrapolate the table name from the triggerdescriptors
-        this.tableName = triggerInfo.getTriggerDescriptors()[0].getTableDescriptor().getQualifiedName();
+
+        this.tableName = getTableNameFromTriggerInfo(triggerInfo);
         this.activation = activation;
         this.tableId = tableId;
         this.triggerInfo = triggerInfo;
@@ -125,13 +122,18 @@ public class TriggerEventActivator {
             this.statementText = context.getStatementText();
         }
         this.heapList = heapList;
-        connectionContext = (ConnectionContext) getLcc().getContextManager().getContext(ConnectionContext.CONTEXT_ID);
         // fromSparkExecution has to be set before initTriggerExecContext() as the latter uses this variable
         this.fromSparkExecution = fromSparkExecution;
         initTriggerExecContext(aiCounters);
-        setupExecutors(triggerInfo);
+        setupExecutors(triggerInfo, activation);
         this.executorService = executorService;
         this.withContext = withContext;
+    }
+
+    private String getTableNameFromTriggerInfo(TriggerInfo triggerInfo) {
+        if (triggerInfo instanceof TriggerInfo2)
+            return ((TriggerInfo2) triggerInfo).getTableName();
+        return null;
     }
 
     private void pushExecutionStmtValidator() throws StandardException {
@@ -194,9 +196,11 @@ public class TriggerEventActivator {
     }
 
     private void initTriggerExecContext(Vector<AutoincrementCounter> aiCounters) throws StandardException {
-        GenericExecutionFactory executionFactory = (GenericExecutionFactory) getLcc().getLanguageConnectionFactory().getExecutionFactory();
+        LanguageConnectionContext lcc = getLcc();
+        lcc.setupLocalSPSCache(fromSparkExecution, fromTableDmlSpsDescriptor);
+        GenericExecutionFactory executionFactory = (GenericExecutionFactory) lcc.getLanguageConnectionFactory().getExecutionFactory();
         this.tec = executionFactory.getTriggerExecutionContext(
-        connectionContext, statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
+        lcc, statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
                 tableId, tableName, aiCounters, heapList, fromSparkExecution, fromTableDmlSpsDescriptor);
     }
 
@@ -206,10 +210,10 @@ public class TriggerEventActivator {
      */
     void reopen() throws StandardException {
         initTriggerExecContext(null);
-        setupExecutors(triggerInfo);
+        setupExecutors(triggerInfo, activation);
     }
 
-    private void setupExecutors(TriggerInfo triggerInfo) throws StandardException {
+    private void setupExecutors(TriggerInfo triggerInfo, Activation activation) throws StandardException {
         // The SET statement cannot be executed in parallel.
         String regex    =   "(^set[\\s]+)|([\\s]+set[\\s]+)";
         Pattern pattern =   Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
@@ -217,21 +221,16 @@ public class TriggerEventActivator {
         for (TriggerDescriptor td : triggerInfo.getTriggerDescriptors()) {
             TriggerEvent event = td.getTriggerEvent();
             if (td.isRowTrigger()) {
-                // disable concurrent trigger for spark execution due to the high overhead
-                // to create lcc and TriggerExecutionContext for each row and each trigger,
-                // each make non-cached dictionary calls for
-                // defaultroles, defaultSchema, storedPreparedStatement ...
-                boolean runConcurrently = !fromSparkExecution;
-                if (runConcurrently) {
-                    for (String sql : td.getTriggerDefinitionList()) {
-                        sql = sql.toUpperCase();
-                        Matcher matcher = pattern.matcher(sql);
-                        if ((sql.contains("INSERT") && sql.contains("INTO")) ||
-                                (sql.contains("UPDATE") && sql.contains("SET")) ||
-                                (sql.contains("DELETE") && sql.contains("FROM")) ||
-                                matcher.find()) {
-                            runConcurrently = false;
-                        }
+                // Now both control and Spark can use concurrent row triggers.
+                boolean runConcurrently = true;
+                for (String sql : td.getTriggerDefinitionList()) {
+                    sql = sql.toUpperCase();
+                    Matcher matcher = pattern.matcher(sql);
+                    if ((sql.contains("INSERT") && sql.contains("INTO")) ||
+                            (sql.contains("UPDATE") && sql.contains("SET")) ||
+                            (sql.contains("DELETE") && sql.contains("FROM")) ||
+                            matcher.find()) {
+                        runConcurrently = false;
                     }
                 }
                 if (runConcurrently) {
@@ -242,7 +241,24 @@ public class TriggerEventActivator {
             } else {
                 addToStatementTriggersMap(statementExecutorsMap, event, new StatementTriggerExecutor(tec, td, activation, getLcc()));
             }
+            // Pre-compiling the triggers before execution makes sure the
+            // stored statements are cached so we can ship the cached statements
+            // to the executors to avoid dictionary lookups.
+            // Also, we avoid compiling them in parallel, which can cause
+            // contention or possibly concurrency exceptions.
+            if (activation != null) {
+                preCompileTrigger(td, activation);
+            }
         }
+    }
+
+    private void preCompileTrigger(TriggerDescriptor td,
+                                   Activation activation) throws StandardException {
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        td.getWhenClauseSPS(lcc, activation);
+        int numActions = td.getActionIdList().size();
+        for (int i=0; i < numActions; i++)
+            td.getActionSPS(lcc, activation, i);
     }
 
     /**
@@ -345,19 +361,10 @@ public class TriggerEventActivator {
                 @Override
                 public Void apply(LanguageConnectionContext lcc) {
                     com.splicemachine.db.iapi.services.context.ContextManager cm = null;
-                    boolean newContextManager = false;
-                    boolean lccPushed = false;
                     boolean tecPushed = false;
 
                     try {
-                        cm = ContextService.getFactory().getCurrentContextManager();
-                        if (cm == null) {
-                            newContextManager = true;
-                            cm = ContextService.getFactory().newContextManager();
-                            ContextService.getFactory().setCurrentContextManager(cm);
-                        }
-                        lccPushed = pushLanguageConnectionContextToCM(lcc, cm);
-                        TriggerExecutionContext tec = executionFactory.getTriggerExecutionContext(connectionContext,
+                        TriggerExecutionContext tec = executionFactory.getTriggerExecutionContext(lcc,
                                 statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
                                 tableId, tableName, null, heapList, fromSparkExecution, fromTableDmlSpsDescriptor);
                         RowTriggerExecutor triggerExecutor = new RowTriggerExecutor(tec, td, activation, lcc);
@@ -379,13 +386,6 @@ public class TriggerEventActivator {
 
                             }
                             tec.clearTrigger(false);
-
-                            if (cm != null) {
-                                if (lccPushed)
-                                    cm.popContext();
-                                if (newContextManager)
-                                    ContextService.getFactory().resetCurrentContextManager(cm);
-                            }
                         }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -443,4 +443,15 @@ public class TriggerEventActivator {
     }
 
     public TriggerExecutionContext getTriggerExecutionContext() { return tec; }
+
+    public void setHasGeneratedColumn() {
+        if (tec != null)
+            tec.setHasGeneratedColumn();
+    }
+
+    public boolean hasGeneratedColumn() {
+        if (tec == null)
+            return false;
+        return tec.hasGeneratedColumn();
+    }
 }

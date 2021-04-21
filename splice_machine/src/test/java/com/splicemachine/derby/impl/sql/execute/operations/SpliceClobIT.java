@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -9,7 +10,12 @@ import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.sql.Clob;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
@@ -68,5 +74,27 @@ public class SpliceClobIT extends SpliceUnitTest {
             String s = rs.getString(1);
             Assert.assertEquals(s, clobString, s);
         }
+    }
+
+    @Test
+    public void testClobSerde() throws Exception {
+        Connection conn = spliceClassWatcher.getOrCreateConnection();
+        Clob clob = conn.createClob();
+        clob.setString(1, "A clob string");
+
+        SQLChar sqlChar = new SQLChar();
+        sqlChar.setValue(clob);
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream(4096);
+        ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+        sqlChar.writeExternal(objectOutputStream);
+        objectOutputStream.flush();
+
+        SQLChar sqlChar2 = new SQLChar();
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
+        ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
+        sqlChar2.readExternal(objectInputStream);
+        String s = sqlChar2.getString();
+        Assert.assertEquals("A clob string", s);
     }
 }

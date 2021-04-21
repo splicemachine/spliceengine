@@ -17,9 +17,11 @@ package com.splicemachine.derby.impl.sql.catalog.upgrade;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 import com.splicemachine.si.impl.driver.SIDriver;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import java.util.*;
 
@@ -111,7 +113,7 @@ public class SpliceCatalogUpgradeScripts{
         addUpgradeScript(baseVersion4, 1992, new UpgradeScriptForTablePriorities(sdd, tc));
         addUpgradeScript(baseVersion4, 1993, new UpgradeScriptToAddSysIndexesViewInSYSIBMAndUpdateIndexColUseViewInSYSCAT(sdd, tc));
         addUpgradeScript(baseVersion4, 1996, new UpgradeScriptToAddReferencesViewInSYSCAT(sdd, tc));
-
+        addUpgradeScript(baseVersion4, BaseDataDictionary.SERDE_UPGRADE_SPRINT, new UpgradeStoredObjects(sdd, tc));
         // remember to add your script to SpliceCatalogUpgradeScriptsTest too, otherwise test fails
     }
 
@@ -134,10 +136,16 @@ public class SpliceCatalogUpgradeScripts{
         return scripts;
     }
 
-    public static void runAllScripts(List<VersionAndUpgrade> upgradeNeeded) throws StandardException {
+    public static void runAllScripts(List<VersionAndUpgrade> upgradeNeeded,
+                                     SpliceDataDictionary sdd,
+                                     TransactionController tc) throws StandardException {
         if( upgradeNeeded.size() == 0 ) {
             LOG.info("No upgrade needed.");
             return;
+        }
+        if (sdd != null) {
+            // Recover from previous failed upgrade from pre-2003 to post-2003 release
+            UpgradeUtils.recoverFromPreviousFailedUpgrade(sdd, tc);
         }
         LOG.info("Running " + upgradeNeeded.size() + " upgrade scripts:");
         for( VersionAndUpgrade el : upgradeNeeded ) {
@@ -147,8 +155,10 @@ public class SpliceCatalogUpgradeScripts{
         LOG.info("upgrade done.");
     }
 
+    @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification = "intentional")
     public void runUpgrades(Splice_DD_Version catalogVersion) throws StandardException{
         LOG.info("Catalog is on version " + catalogVersion + ". checking for upgrades...");
+
         // Set the current version to upgrade from.
         // This flag should only be true for the master server.
         Splice_DD_Version currentVersion=catalogVersion;
@@ -156,8 +166,15 @@ public class SpliceCatalogUpgradeScripts{
         if(configuration.upgradeForced()) {
             currentVersion=new Splice_DD_Version(null,configuration.getUpgradeForcedFrom());
         }
-        runAllScripts(getScriptsToUpgrade(scripts, currentVersion));
-
+        try {
+            runAllScripts(getScriptsToUpgrade(scripts, currentVersion), sdd, tc);
+        }
+        catch (StandardException e) {
+            if (UpgradeConglomerateTable.isTableCreated()) {
+                UpgradeConglomerateTable.rollBack();
+            }
+            throw e;
+        }
         // Always update system procedures and stored statements
         if( sdd != null ) {
             sdd.clearSPSPlans();

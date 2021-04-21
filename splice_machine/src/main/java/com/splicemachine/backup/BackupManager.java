@@ -16,6 +16,7 @@ package com.splicemachine.backup;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.backup.BackupMessage.BackupJobStatus;
+import com.splicemachine.db.shared.common.reference.SQLState;
 
 import java.util.List;
 
@@ -52,4 +53,12 @@ public interface BackupManager{
 
     void restoreSchema(String destSchema, String sourceSchema, String directory,
                       long backupId, boolean validate) throws StandardException;
+
+    default long backupMetadata(String directory) throws StandardException{
+        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
+    }
+
+    default void restoreMetadata(String directory, long backupId, boolean validate) throws StandardException{
+        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
+    }
 }

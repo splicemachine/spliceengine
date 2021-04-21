@@ -283,8 +283,7 @@ public class PropertyConglomerate {
         if (value != null) {
             // not a delete request, so insert the new property.
             row = makeNewTemplate(key, value);
-            try (ConglomerateController cc =
-                tc.openConglomerate(
+            try (ConglomerateController cc = tc.openConglomerate(
                     propertiesConglomId,
                     false,
                     TransactionController.OPENMODE_FORUPDATE,
@@ -703,6 +702,56 @@ public class PropertyConglomerate {
         // service properties lived in the past and it would have been difficult to update this file previously.
         // In the future, Splice may allow for updates to the service properties within ZooKeeper.
         return readServiceProperties(tc);
+    }
+
+    /**
+     * This function is invoked during an upgrade that changes serialization of splice:16 table. Data are read
+     * using old format and written in new format
+     * @param tc
+     * @throws StandardException
+     */
+    public void rewritePropertyConglomerate(TransactionController tc) throws StandardException {
+        // scan the table for a row with no matching "key"
+
+        List<DataValueDescriptor[]> rows = new ArrayList<>();
+        try (ScanController scan = openScan(tc, (String) null, 0)) {
+            DataValueDescriptor[] row = makeNewTemplate();
+            while (scan.fetchNext(row)) {
+                DataValueDescriptor[] clonedRow = makeNewTemplate();
+                for (int i = 0; i < row.length; ++i) {
+                    clonedRow[i] = row[i].cloneValue(true);
+                }
+                rows.add(clonedRow);
+            }
+        }
+
+        tc.snapshot(propertiesConglomId + "_upgrade", Long.toString(propertiesConglomId));
+        tc.truncate(Long.toString(propertiesConglomId));
+
+        try (ConglomerateController cc =
+                     tc.openConglomerate(
+                             propertiesConglomId,
+                             false,
+                             TransactionController.OPENMODE_FORUPDATE,
+                             TransactionController.MODE_TABLE,
+                             TransactionController.ISOLATION_SERIALIZABLE)) {
+
+            for (DataValueDescriptor[] row : rows) {
+                ExecRow vRow = new ValueRow();
+                vRow.setRowArray(row);
+                cc.insert(vRow);
+            }
+        }
+    }
+
+    public void recoverPropertyConglomerateIfNecessary(TransactionController tc) throws StandardException {
+        Set<String> snapshots = tc.listSnapshots();
+        String snapshotName = propertiesConglomId + "_upgrade";
+        if (snapshots.contains(snapshotName)) {
+            tc.truncate(Long.toString(propertiesConglomId));
+            tc.cloneSnapshot(snapshotName, Long.toString(propertiesConglomId));
+            tc.deleteSnapshot(snapshotName);
+        }
     }
 }
 

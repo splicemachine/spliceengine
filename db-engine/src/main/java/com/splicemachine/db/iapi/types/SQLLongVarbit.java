@@ -30,6 +30,7 @@
  */
 
 package com.splicemachine.db.iapi.types;
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -101,6 +102,9 @@ public class SQLLongVarbit extends SQLVarbit
 		super(val);
 	}
 
+	public SQLLongVarbit(TypeMessage.SQLBinary sqlBinary) {
+		init(sqlBinary);
+	}
 	/**
 	 * Normalization method - this method may be called when putting
 	 * a value into a SQLVarbit, for example, when inserting into a SQLVarbit

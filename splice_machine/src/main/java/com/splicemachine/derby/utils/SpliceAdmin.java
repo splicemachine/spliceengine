@@ -700,7 +700,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
      *                   than one table, if the table has an index, for instance.
      * @throws SQLException
      */
-    public static void SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(String schemaName,String tableName) throws SQLException {
+    public static void SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(String schemaName, String tableName) throws SQLException {
         LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
         assert lcc != null;
         DataDictionary dd = lcc.getDataDictionary();
@@ -734,6 +734,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
             }
             try (Partition partition = tableFactory.getTable(Long.toString(conglomID))) {
+                partition.flush();
                 partition.compact(true);
             } catch (IOException e) {
                 throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
@@ -961,13 +962,13 @@ public class SpliceAdmin extends BaseAdminProcedures{
             // Transform the descriptors into the rows.
             for(Object aList : list){
                 SPSDescriptor spsd=(SPSDescriptor)aList;
-                ExecPreparedStatement ps=spsd.getPreparedStatement(false);
+                ExecPreparedStatement ps=spsd.getPreparedStatement(false, lcc);
                 dvds[0].setValue(spsd.getName());
                 dvds[1].setValue(spsd.getTypeAsString());
                 dvds[2].setValue(spsd.isValid());
                 dvds[3].setValue(spsd.getCompileTime());
                 dvds[4].setValue(spsd.initiallyCompilable());
-                dvds[5].setValue(spsd.getPreparedStatement(false)==null?null:"[object]");
+                dvds[5].setValue(spsd.getPreparedStatement(false, lcc)==null?null:"[object]");
                 rows.add(dataTemplate.getClone());
             }
 
@@ -1725,9 +1726,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     SpliceLogUtils.debug(LOG, "restoring snapshot %s for table %d", sname, conglomerateNumber);
                 }
 
-                admin.disableTable("splice:" + conglomerateNumber);
+                admin.disableTable(Long.toString(conglomerateNumber));
                 admin.restoreSnapshot(sname);
-                admin.enableTable("splice:" + conglomerateNumber);
+                admin.enableTable(Long.toString(conglomerateNumber));
                 dd.deleteSnapshot(snapshotName, conglomerateNumber, tc);
                 SnapshotDescriptor descriptor = new SnapshotDescriptor(snapshotName, schemaName, objectName,
                         conglomerateNumber, creationTime, lastRestoreTime);
@@ -1763,7 +1764,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             }
             SnapshotDescriptor descriptor =
                     new SnapshotDescriptor(snapshotName, schemaName, objectName, conglomerateNumber,creationTime, null);
-            admin.snapshot(sname, "splice:" + conglomerateNumber);
+            admin.snapshot(sname, Long.toString(conglomerateNumber));
             dd.addSnapshot(descriptor, tc);
             snapshotList.add(sname);
             if (LOG.isDebugEnabled())

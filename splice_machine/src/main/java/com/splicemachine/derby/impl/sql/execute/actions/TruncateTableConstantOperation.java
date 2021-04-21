@@ -150,37 +150,37 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         }
         emptyHeapRow = td.getEmptyExecRow();
         long oldHeapConglom = td.getHeapConglomerateId();
-        ConglomerateController compressHeapCC = tc.openConglomerate(
+        ColumnOrdering[] columnOrdering = null;
+        try (ConglomerateController compressHeapCC = tc.openConglomerate(
                 oldHeapConglom,
                 false,
                 TransactionController.OPENMODE_FORUPDATE,
                 TransactionController.MODE_TABLE,
-                TransactionController.ISOLATION_SERIALIZABLE);
+                TransactionController.ISOLATION_SERIALIZABLE)) {
 
-        // Get column ordering for new conglomerate
-        SpliceConglomerate conglomerate = (SpliceConglomerate) ((SpliceTransactionManager)tc).findConglomerate(oldHeapConglom);
-        int[] columnOrder = conglomerate.getColumnOrdering();
-        ColumnOrdering[] columnOrdering = null;
-        if (columnOrder != null) {
-            columnOrdering = new ColumnOrdering[columnOrder.length];
-            for (int i = 0; i < columnOrder.length; i++) {
-                columnOrdering[i] = new IndexColumnOrder(columnOrder[i]);
+            // Get column ordering for new conglomerate
+            SpliceConglomerate conglomerate = (SpliceConglomerate) ((SpliceTransactionManager) tc).findConglomerate(oldHeapConglom);
+            int[] columnOrder = conglomerate.getColumnOrdering();
+            if (columnOrder != null) {
+                columnOrdering = new ColumnOrdering[columnOrder.length];
+                for (int i = 0; i < columnOrder.length; i++) {
+                    columnOrdering[i] = new IndexColumnOrder(columnOrder[i]);
+                }
             }
+
+            // Get the properties on the old heap
+            compressHeapCC.getInternalTablePropertySet(properties);
         }
 
-        // Get the properties on the old heap
-        compressHeapCC.getInternalTablePropertySet(properties);
-        compressHeapCC.close();
-
             /*
-		    ** Inform the data dictionary that we are about to write to it.
-		    ** There are several calls to data dictionary "get" methods here
-		    ** that might be done in "read" mode in the data dictionary, but
-		    ** it seemed safer to do this whole operation in "write" mode.
-		    **
-		    ** We tell the data dictionary we're done writing at the end of
-		    ** the transaction.
-		     */
+            ** Inform the data dictionary that we are about to write to it.
+            ** There are several calls to data dictionary "get" methods here
+            ** that might be done in "read" mode in the data dictionary, but
+            ** it seemed safer to do this whole operation in "write" mode.
+            **
+            ** We tell the data dictionary we're done writing at the end of
+            ** the transaction.
+             */
         dd.startWriting(lcc);
 
 
