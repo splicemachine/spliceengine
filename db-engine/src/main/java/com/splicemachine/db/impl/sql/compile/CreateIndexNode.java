@@ -255,6 +255,18 @@ public class CreateIndexNode extends DDLStatementNode
                 throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION,
                         columnDescriptor.getType().getTypeId().getSQLTypeName());
             }
+
+            // unset exclude flags that has no effect
+            // consider only the first index column
+            if (i == 0) {
+                if (excludeNulls && !columnDescriptor.getType().isNullable()) {
+                    excludeNulls = false;
+                }
+
+                if (excludeDefaults && columnDescriptor.getDefaultValue() == null) {
+                    excludeDefaults = false;
+                }
+            }
         }
 
         /* Check for number of key columns to be less than 16 to match DB2 */
