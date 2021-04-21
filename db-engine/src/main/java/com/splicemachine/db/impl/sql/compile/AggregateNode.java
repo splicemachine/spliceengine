@@ -425,6 +425,8 @@ public class AggregateNode extends UnaryOperatorNode {
 
         setType(resultType);
 
+        addSPSPropertyDependency();
+
         return this;
     }
 
