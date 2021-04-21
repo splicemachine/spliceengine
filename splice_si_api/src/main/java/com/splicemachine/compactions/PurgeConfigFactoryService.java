@@ -14,20 +14,27 @@
 
 package com.splicemachine.compactions;
 
+import org.apache.log4j.Logger;
+
 import java.util.Iterator;
 import java.util.ServiceLoader;
 
 /**
  */
 public class PurgeConfigFactoryService {
-    public static PurgeConfigFactory loadPurgeConfigFactory(){
+    private static final Logger LOG = Logger.getLogger(PurgeConfigFactoryService.class);
+    public static PurgeConfigFactory loadPurgeConfigFactory() {
         ServiceLoader<PurgeConfigFactory> loader = ServiceLoader.load(PurgeConfigFactory.class);
         Iterator<PurgeConfigFactory> iter = loader.iterator();
-        if(!iter.hasNext())
-            throw new IllegalStateException("No PurgeConfigFactory found!");
+        if (!iter.hasNext()) {
+            LOG.error("No PurgeConfigFactory found!");
+            return null;
+        }
         PurgeConfigFactory pcf = iter.next();
-        if(iter.hasNext())
-            throw new IllegalStateException("More than one PurgeConfigFactory is found!");
+        if (iter.hasNext()) {
+            LOG.error("More than one PurgeConfigFactory is found!");
+            return null;
+        }
         return pcf;
     }
 }
