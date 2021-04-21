@@ -35,6 +35,7 @@ import org.apache.commons.io.IOUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -92,12 +93,79 @@ public class ExportOperationIT {
         this.useKeywords = useKeywords;
     }
 
+    class ExportBuilder {
+        String selectQuery;
+        String exportPath = temporaryFolder.getAbsolutePath();
+        String compression;
+        String replicationCount;
+        String encoding;
+        String fieldSeparator;
+        String quoteCharacter;
+        String quoteMode;
+        String floatingPointNotation;
+        String timestampFormat;
+        ExportBuilder(String selectQuery) {
+            this.selectQuery = selectQuery;
+        }
+        ExportBuilder exportPath(String val) { exportPath = val; return this; }
+        ExportBuilder compression(String val) { compression = val; return this; }
+        ExportBuilder replicationCount(String val) { replicationCount = val; return this; }
+        ExportBuilder encoding(String val) { encoding = val; return this; }
+        ExportBuilder fieldSeparator(String val) { fieldSeparator = val; return this; }
+        ExportBuilder quoteCharacter(String val) { quoteCharacter = val; return this; }
+        ExportBuilder quoteMode(String val) { quoteMode = val; return this; }
+        ExportBuilder floatingPointNotation(String val) { floatingPointNotation = val; return this; }
+        ExportBuilder timestampFormat(String val) { timestampFormat = val; return this; }
+
+        String exportSql() {
+            return buildExportSQL(selectQuery, exportPath, compression,
+                    replicationCount, encoding, fieldSeparator,
+                    quoteCharacter, quoteMode, floatingPointNotation, timestampFormat);
+        }
+        String strOrNull(String s) {
+            if( s == null)
+                return "null, ";
+            else
+                return "'" + s + "', ";
+        }
+        String importSql(String schema, String table) {
+            return "call SYSCS_UTIL.IMPORT_DATA(" + strOrNull(schema) + strOrNull(table) +
+                    "null, " + //  insertColumnList
+                    strOrNull(exportPath) + // path
+                    strOrNull(fieldSeparator) + // columnDelimiter
+                    strOrNull(quoteCharacter) + // characterDelimiter
+                    strOrNull( timestampFormat) +
+                    strOrNull(null) + // dateFormat
+                    strOrNull( null) + // timeFormat
+                    "'0', " + // badRecordsAllowed
+                    "'/tmp', " + // badRecordLogDirectory
+                    "false, " + // oneLineRecords
+                    "null" + // charset
+                    ")";
+        }
+
+        void testImportExport(String tableName, String columns, long expectedExportRowCount) throws Exception {
+
+            exportAndAssertExportResults(exportSql(), expectedExportRowCount);
+
+            String res1 = methodWatcher.executeToString("select " + columns + " from " + tableName, true);
+
+            methodWatcher.execute("DELETE FROM " + tableName);
+            methodWatcher.execute(importSql( CLASS_NAME, tableName));
+
+            String res2 = methodWatcher.executeToString("select " + columns + " from " + tableName, true);
+            Assert.assertEquals(res1, res2);
+        }
+
+    }
+
     @Test
     public void export() throws Exception {
+        String tableName = String.format("export_test_%s", getSuffix());
 
         TestConnection conn=methodWatcher.getOrCreateConnection();
         new TableCreator(conn)
-                .withCreate(String.format("create table export_test_%s(\n" +
+                .withCreate("create table " + tableName + "(\n" +
                         "a smallint,\n" +
                         "b integer,\n" +
                         "c bigint,\n" +
@@ -109,8 +177,8 @@ public class ExportOperationIT {
                         "i char,\n" +
                         "j date,\n" +
                         "k time\n" +
-                        ")", getSuffix()))
-                .withInsert(String.format("insert into export_test_%s values(?,?,?,?,?,?,?,?,?,?,?)", getSuffix()))
+                        ")")
+                .withInsert("insert into " + tableName + " values(?,?,?,?,?,?,?,?,?,?,?)")
                 .withRows(
                         rows(
                                 row(25, 1000000000, 2000000000000000L, 3.14159, 3.14159, 2.1, 2.3423423423, "varchar", "c", "2014-10-01", "14:30:20"),
@@ -124,41 +192,38 @@ public class ExportOperationIT {
                         )
                 ).create();
 
-        String exportSQL = new ExportBuilder(String.format("select * from export_test_%s order by a", getSuffix())).getSql();
+        if(!useNativeSyntax) return; // todo
+        ExportBuilder builder = new ExportBuilder("select * from " + tableName + " order by a").quoteMode("always");
+        builder.testImportExport(tableName, "*", 8);
 
-        exportAndAssertExportResults(exportSQL,8);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
-        assertEquals("" +
-                        "25,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
-                        "26,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
-                        "27,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
-                        "28,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
-                        "29,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
-                        "30,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
-                        "31,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
-                        "32,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n",
+        assertEquals("25,1000000000,2000000000000000,3.14159,3.14159,2,2.34,\"varchar\",\"c\",2014-10-01,14:30:20\n" +
+                        "26,1000000000,2000000000000000,3.14159,3.14159,2,2.34,\"varchar\",\"c\",2014-10-01,14:30:20\n" +
+                        "27,1000000000,2000000000000000,3.14159,3.14159,2,2.34,\"varchar\",\"c\",2014-10-01,14:30:20\n" +
+                        "28,1000000000,2000000000000000,3.14159,3.14159,2,2.34,\"varchar\",\"c\",2014-10-01,14:30:20\n" +
+                        "29,1000000000,2000000000000000,3.14159,3.14159,2,2.34,\"varchar\",\"c\",2014-10-01,14:30:20\n" +
+                        "30,1000000000,2000000000000000,3.14159,3.14159,2,2.34,\"varchar\",\"c\",2014-10-01,14:30:20\n" +
+                        "31,1000000000,2000000000000000,3.14159,3.14159,2,2.34,\"varchar\",\"c\",2014-10-01,14:30:20\n" +
+                        "32,1000000000,2000000000000000,3.14159,3.14159,2,2.34,\"varchar\",\"c\",2014-10-01,14:30:20\n",
                 Files.toString(files[0], Charsets.UTF_8));
 
         try(CallableStatement cs = conn.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,false)")){
             cs.setString(1,SCHEMA_WATCHER.schemaName);
             cs.execute();
         }
-
     }
 
     @Test
     public void export_defaultDelimiter() throws Exception {
+        if(!useNativeSyntax) return;
+        String tableName = createTestTableWithSuffix("export_local");
+        ExportBuilder builder = new ExportBuilder("select * from " + tableName + " order by a asc");
 
-        new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table export_local_%s(a smallint,b double, c time,d varchar(20), e varchar(20) for bit data)", getSuffix()))
-                .withInsert(String.format("insert into export_local_%s values(?,?,?,?,?)", getSuffix()))
-                .withRows(getTestRows()).create();
-
-        String exportSQL = new ExportBuilder(String.format("select * from export_local_%s order by a asc", getSuffix()))
-                .compression("None").getSql();
-
-        exportAndAssertExportResults(exportSQL, 8);
+        // todo: problems with varchar null/""
+        String columns = //"a, b, c, d, cast(e AS VARCHAR(32))"
+                        "a, b, c";
+        builder.testImportExport(tableName, columns, 8);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
         assertEquals(
@@ -175,16 +240,11 @@ public class ExportOperationIT {
 
     @Test
     public void export_withAlternateRecordDelimiter() throws Exception {
+        String tableName = createTestTableWithSuffix("pipe");
+        ExportBuilder builder = new ExportBuilder("select * from " + tableName + " order by a asc")
+                                    .compression("None").fieldSeparator("|");
 
-        new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table pipe_%s(a smallint,b double, c time,d varchar(20), e varchar(20) for bit data)", getSuffix()))
-                .withInsert(String.format("insert into pipe_%s values(?,?,?,?,?)", getSuffix()))
-                .withRows(getTestRows()).create();
-
-        String exportSQL = new ExportBuilder(String.format("select * from pipe_%s order by a asc", getSuffix()))
-                                    .compression("None").fieldSeparator("|").getSql();
-
-        exportAndAssertExportResults(exportSQL, 8);
+        builder.testImportExport(tableName, "a, b, c", 8);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
         assertEquals(
@@ -201,16 +261,11 @@ public class ExportOperationIT {
 
     @Test
     public void export_withTabs() throws Exception {
+        String tableName = createTestTableWithSuffix("tabs");
+        ExportBuilder builder = new ExportBuilder(String.format("select * from tabs_%s order by a asc", getSuffix()))
+                .compression(" none ").fieldSeparator("\\t");
 
-        new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table tabs_%s(a smallint,b double, c time,d varchar(20), e varchar(20) for bit data)", getSuffix()))
-                .withInsert(String.format("insert into tabs_%s values(?,?,?,?,?)", getSuffix()))
-                .withRows(getTestRows()).create();
-
-        String exportSQL = new ExportBuilder(String.format("select * from tabs_%s order by a asc", getSuffix()))
-                .compression(" none ").fieldSeparator("\\t").getSql();
-
-        exportAndAssertExportResults(exportSQL, 8);
+        builder.testImportExport(tableName, "a, b, c", 8);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
         assertEquals(
@@ -230,7 +285,7 @@ public class ExportOperationIT {
     @Test
     public void exportEmptyTableDoesNotBlowup() throws Exception {
         methodWatcher.executeUpdate(String.format("create table empty_%s (a int)", getSuffix()));
-        String exportSQL = new ExportBuilder(String.format("select * from empty_%s", getSuffix())).getSql();
+        String exportSQL = new ExportBuilder(String.format("select * from empty_%s", getSuffix())).exportSql();
         exportAndAssertExportResults(exportSQL, 0);
     }
 
@@ -251,7 +306,7 @@ public class ExportOperationIT {
 
         String exportSQL = new ExportBuilder(String.format(
                 "select * from a_%s cross join b_%<s cross join c_%<s cross join d_%<s cross join e_%<s",
-                getSuffix())).getSql();
+                getSuffix())).exportSql();
 
         exportAndAssertExportResults(exportSQL, 243);
     }
@@ -272,25 +327,28 @@ public class ExportOperationIT {
                 "select aa_%s.c1,aa_%<s.c2*100,bb_%<s.c2*300,bb_%<s.c3 " +
                 "from aa_%<s " +
                 "join bb_%<s on aa_%<s.c1 =bb_%<s.c1 " +
-                "where bb_%<s.c3 > 2", getSuffix())).getSql();
+                "where bb_%<s.c3 > 2", getSuffix())).exportSql();
 
         exportAndAssertExportResults(exportSQL, 3);
     }
 
-    @Test
-    public void export_compressed_bz2() throws Exception {
+    @FunctionalInterface
+    public interface FunctionWithException<T, R> {
+        R apply(T t) throws Exception;
+    }
 
-        new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table export_compressed_bz2_%s(a smallint,b double, c time,d varchar(20), e varchar(20) for bit data)", getSuffix()))
-                .withInsert(String.format("insert into export_compressed_bz2_%s values(?,?,?,?,?)", getSuffix()))
-                .withRows(getTestRows()).create();
+    public void export_compressed(String compression, FunctionWithException<FileInputStream, InputStream> f,
+                                  String pattern) throws Exception {
+        String tableName = createTestTableWithSuffix("export_compressed_" + compression);
+        ExportBuilder builder = new ExportBuilder("select * from " + tableName + " order by a asc")
+                .compression(compression);
 
-        String exportSQL = new ExportBuilder(String.format("select * from export_compressed_bz2_%s order by a asc", getSuffix()))
-                                .compression("BZ2").getSql();
-
-        exportAndAssertExportResults(exportSQL, 8);
-        File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv.bz2"));
+        // todo: column D, E have problems with NULL
+        builder.testImportExport(tableName, "a, b, c", 8);
+        File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(pattern));
         assertEquals(1, files.length);
+
+        InputStream is = f.apply(new FileInputStream(files[0]));
         assertEquals(
                 "0,0.0,00:00:00,,\n" +
                         "25,3.14159,14:31:20,varchar1,6269746461746131\n" +
@@ -300,58 +358,24 @@ public class ExportOperationIT {
                         "29,3.14159,14:31:20,\"varchar1 \"\" quote\",6269746461746120222c2031\n" +
                         "30,3.14159,14:31:20,varchar1,6269746461746131\n" +
                         ",,,,\n",
-                IOUtils.toString(new BZip2CompressorInputStream(new FileInputStream(files[0]))));
+
+                IOUtils.toString( is) );
+    }
+
+
+    @Test
+    public void export_compressed_bz2() throws Exception {
+        export_compressed("bz2", BZip2CompressorInputStream::new, ".*csv.bz2" );
     }
 
     @Test
     public void export_compressed_gz() throws Exception {
-
-        new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table export_compressed_gz_%s(a smallint,b double, c time,d varchar(20), e varchar(20) for bit data)", getSuffix()))
-                .withInsert(String.format("insert into export_compressed_gz_%s values(?,?,?,?,?)", getSuffix()))
-                .withRows(getTestRows()).create();
-
-        String exportSQL = new ExportBuilder(String.format("select * from export_compressed_gz_%s order by a asc", getSuffix()))
-                                    .compression("GZIP").getSql();
-
-        exportAndAssertExportResults(exportSQL, 8);
-        File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv.gz"));
-        assertEquals(1, files.length);
-        assertEquals(
-                "0,0.0,00:00:00,,\n" +
-                        "25,3.14159,14:31:20,varchar1,6269746461746131\n" +
-                        "26,3.14159,14:31:20,varchar1,6269746461746131\n" +
-                        "27,3.14159,14:31:20,varchar1 space,626974206461746131\n" +
-                        "28,3.14159,14:31:20,\"varchar1 , comma\",62697464617461202c2031\n" +
-                        "29,3.14159,14:31:20,\"varchar1 \"\" quote\",6269746461746120222c2031\n" +
-                        "30,3.14159,14:31:20,varchar1,6269746461746131\n" +
-                        ",,,,\n",
-                IOUtils.toString(new GZIPInputStream(new FileInputStream(files[0]))));
+        export_compressed("GZIP", GZIPInputStream::new, ".*csv.gz" );
     }
 
     @Test
     public void export_compressed_gz2() throws Exception {
-
-        new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table export_compressed_gz2_%s(a smallint,b double, c time,d varchar(20),e varchar(20) for bit data)", getSuffix()))
-                .withInsert(String.format("insert into export_compressed_gz2_%s values(?,?,?,?,?)", getSuffix()))
-                .withRows(getTestRows()).create();
-
-        String exportSQL = new ExportBuilder(String.format("select * from export_compressed_gz2_%s order by a asc", getSuffix()))
-                                .compression("true").getSql();
-
-        exportAndAssertExportResults(exportSQL, 8);
-        File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv.gz"));
-        assertEquals(1, files.length);
-        assertEquals("0,0.0,00:00:00,,\n" +
-                        "25,3.14159,14:31:20,varchar1,6269746461746131\n" +
-                        "26,3.14159,14:31:20,varchar1,6269746461746131\n" +
-                        "27,3.14159,14:31:20,varchar1 space,626974206461746131\n" +
-                        "28,3.14159,14:31:20,\"varchar1 , comma\",62697464617461202c2031\n" +
-                        "29,3.14159,14:31:20,\"varchar1 \"\" quote\",6269746461746120222c2031\n" +
-                        "30,3.14159,14:31:20,varchar1,6269746461746131\n" +
-                        ",,,,\n",
-                IOUtils.toString(new GZIPInputStream(new FileInputStream(files[0]))));
+        export_compressed("true", GZIPInputStream::new, ".*csv.gz" );
     }
 
     @Test
@@ -365,7 +389,7 @@ public class ExportOperationIT {
         //
         // default column order
         //
-        String exportSQL = new ExportBuilder(String.format("select * from export_decimal_%s order by a asc", getSuffix())).getSql();
+        String exportSQL = new ExportBuilder(String.format("select * from export_decimal_%s order by a asc", getSuffix())).exportSql();
 
         exportAndAssertExportResults(exportSQL, 2);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
@@ -380,7 +404,7 @@ public class ExportOperationIT {
         //
         FileUtils.deleteDirectory(temporaryFolder);
         exportSQL = new ExportBuilder(String.format("select c,b,a from export_decimal_%s order by a asc", getSuffix()))
-                            .compression("NONE").getSql();
+                            .compression("NONE").exportSql();
 
         exportAndAssertExportResults(exportSQL, 2);
         files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
@@ -395,7 +419,7 @@ public class ExportOperationIT {
         //
         FileUtils.deleteDirectory(temporaryFolder);
         exportSQL = new ExportBuilder(String.format("select b from export_decimal_%s order by a asc", getSuffix()))
-                             .compression("NONE").getSql();
+                             .compression("NONE").exportSql();
 
         exportAndAssertExportResults(exportSQL, 2);
         files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
@@ -410,7 +434,7 @@ public class ExportOperationIT {
     @Test
     public void export_sysaliases() throws Exception {
         Long expectedRowCount = methodWatcher.query("select count(*) from sys.sysaliases");
-        String exportSQL = new ExportBuilder("select * from sys.sysaliases").compression("none").getSql();
+        String exportSQL = new ExportBuilder("select * from sys.sysaliases").compression("none").exportSql();
         exportAndAssertExportResults(exportSQL, expectedRowCount);
     }
 
@@ -431,7 +455,7 @@ public class ExportOperationIT {
 
     }
     void testFail(ExportBuilder exp, String expectedState, String expectedMsg) {
-        testFail(exp.getSql(), expectedState, expectedMsg);
+        testFail(exp.exportSql(), expectedState, expectedMsg);
     }
 
     /* It is important that we throw SQLException, given invalid parameters, rather than other exceptions which cause IJ to drop the connection.  */
@@ -521,42 +545,6 @@ public class ExportOperationIT {
         } catch (SQLException e) {
             assertEquals("Invalid error state", "XIE13", e.getSQLState());
             assertEquals("Invalid error message", "Unsuported compression format: WRONGFORMAT", e.getMessage());
-        }
-    }
-
-
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    //
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    class ExportBuilder {
-        String selectQuery;
-        String exportPath = temporaryFolder.getAbsolutePath();
-        String compression;
-        String replicationCount;
-        String encoding;
-        String fieldSeparator;
-        String quoteCharacter;
-        String quoteMode;
-        String floatingPointNotation;
-        String timestampFormat;
-        ExportBuilder(String selectQuery) {
-            this.selectQuery = selectQuery;
-        }
-        ExportBuilder exportPath(String val) { exportPath = val; return this; }
-        ExportBuilder compression(String val) { compression = val; return this; }
-        ExportBuilder replicationCount(String val) { replicationCount = val; return this; }
-        ExportBuilder encoding(String val) { encoding = val; return this; }
-        ExportBuilder fieldSeparator(String val) { fieldSeparator = val; return this; }
-        ExportBuilder quoteCharacter(String val) { quoteCharacter = val; return this; }
-        ExportBuilder quoteMode(String val) { quoteMode = val; return this; }
-        ExportBuilder floatingPointNotation(String val) { floatingPointNotation = val; return this; }
-        ExportBuilder timestampFormat(String val) { timestampFormat = val; return this; }
-
-        String getSql() {
-            return buildExportSQL(selectQuery, exportPath, compression,
-                    replicationCount, encoding, fieldSeparator,
-                    quoteCharacter, quoteMode, floatingPointNotation, timestampFormat);
         }
     }
 
@@ -655,18 +643,25 @@ public class ExportOperationIT {
 //        assertTrue(exportTimeMs >= 0);
     }
 
-    private Iterable<Iterable<Object>> getTestRows() {
-        return rows(
-                row(25, 3.14159, "14:31:20", "varchar1", "bitdata1"),
-                row(26, 3.14159, "14:31:20", "varchar1", "bitdata1"),
-                row(27, 3.14159, "14:31:20", "varchar1 space", "bit data1"),
-                row(28, 3.14159, "14:31:20", "varchar1 , comma", "bitdata , 1"),
-                row(29, 3.14159, "14:31:20", "varchar1 \" quote", "bitdata \", 1"),
-                row(30, 3.14159, "14:31:20", "varchar1", "bitdata1"),
-                row(null, null, null, null, null),
-                row(0, 0.0, "00:00:00", "", "")
+    String createTestTableWithSuffix(String name) throws SQLException {
+        Iterable<Iterable<Object>> testRows =  rows(
+                    row(25, 3.14159, "14:31:20", "varchar1", "bitdata1"),
+                    row(26, 3.14159, "14:31:20", "varchar1", "bitdata1"),
+                    row(27, 3.14159, "14:31:20", "varchar1 space", "bit data1"),
+                    row(28, 3.14159, "14:31:20", "varchar1 , comma", "bitdata , 1"),
+                    row(29, 3.14159, "14:31:20", "varchar1 \" quote", "bitdata \", 1"),
+                    row(30, 3.14159, "14:31:20", "varchar1", "bitdata1"),
+                    row(null, null, null, null, null),
+                    row(0, 0.0, "00:00:00", "", "")
 
-        );
+            );
+        String tableName = String.format(name + "_%s", getSuffix());
+        new TableCreator(methodWatcher.getOrCreateConnection())
+                .withCreate("create table " + tableName + " (a smallint, b double, c time, d varchar(20), e varchar(20) for bit data)")
+                .withInsert("insert into " + tableName + " values(?,?,?,?,?)")
+                .withRows(testRows).create();
+        return tableName;
+
     }
 
     @Test
@@ -679,7 +674,7 @@ public class ExportOperationIT {
                     .create();
 
             String exportSql = new ExportBuilder(String.format("select * from export_s3_test_%s", getSuffix()))
-                    .exportPath("s3a://molitorisspechial/temp/").getSql();
+                    .exportPath("s3a://molitorisspechial/temp/").exportSql();
             Long expectedRowCount = methodWatcher.query(exportSql);
             fail();
         } catch (SQLException sqle) {
@@ -694,17 +689,15 @@ public class ExportOperationIT {
     public void exportQuoteAlways() throws Exception {
         if (!useNativeSyntax)
             return;
+        String tableName = createTestTableWithSuffix("export_quote_always");
+        ExportBuilder builder = new ExportBuilder("select * from " + tableName + " order by a asc")
+                                .quoteMode("always");
 
-        new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table export_quote_always_%s (a smallint, b double, c time, d varchar(20), e varchar(20) for bit data)", getSuffix()))
-                .withInsert(String.format("insert into export_quote_always_%s values(?,?,?,?,?)", getSuffix()))
-                .withRows(getTestRows()).create();
+        // todo: column D, E have problems with NULL
+        String columns = //"a, b, c, d, cast(e AS VARCHAR(32))"
+                "a, b, c";
+        builder.testImportExport(tableName, columns, 8);
 
-        String exportPath = temporaryFolder.getAbsolutePath();
-        String exportSQL = new ExportBuilder(String.format("select * from export_quote_always_%s order by a asc", getSuffix()))
-                .exportPath(exportPath).quoteMode("always").getSql();
-
-        exportAndAssertExportResults(exportSQL, 8);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
         assertEquals("0,0.0,00:00:00,\"\",\"\"\n" +
@@ -722,46 +715,128 @@ public class ExportOperationIT {
     public void exportFloatingPointNotation() throws Exception {
         if (!useNativeSyntax)
             return;
-
+        String tableName = String.format("normalized_notation_%s", getSuffix());
         new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table normalized_notation_%s (a real, b double)", getSuffix()))
-                .withInsert(String.format("insert into normalized_notation_%s values(?, ?)", getSuffix()))
+                .withCreate("create table " + tableName + " (a real, b double)")
+                .withInsert("insert into " + tableName + " values(?, ?)")
                 .withRows(rows(row("123.123", "-0.0123123"))).create();
 
-        String exportPath = temporaryFolder.getAbsolutePath();
-        String exportSQL = new ExportBuilder(String.format("select * from normalized_notation_%s order by a asc", getSuffix()))
-                .exportPath(exportPath).floatingPointNotation("normalized").getSql();
+        ExportBuilder builder = new ExportBuilder("select * from " + tableName + " order by a asc")
+                .floatingPointNotation("normalized");
 
-        exportAndAssertExportResults(exportSQL, 1);
+        builder.testImportExport(tableName, "*", 1);
+
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
         assertEquals("1.23123E2,-1.23123E-2\n",
                 Files.toString(files[0], Charsets.UTF_8));
     }
 
-    @Test
-    public void exportTimestampFormat() throws Exception {
+    public void exportTimestampFormat(boolean truncated, String format, String expected, String expectedFile) throws Exception {
         if (!useNativeSyntax)
             return;
 
-        new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table timestamp_format_%s (a timestamp)", getSuffix()))
-                .withInsert(String.format("insert into timestamp_format_%s values(?)", getSuffix()))
-                .withRows(rows(row("2020-01-01 12:15:16.123456789"))).create();
+        String tableName = "timestamp_format";
+        try( TableCreator tc = new TableCreator(methodWatcher.getOrCreateConnection())
+                 .withTableName(tableName)
+                 .withCreate("create table %s (a timestamp)")
+                 .withInsert("insert into %s values(?)")
+                 .withRows(rows(row("2020-01-01 12:15:16.123456789"))).create())
+        {
 
-        String exportPath = temporaryFolder.getAbsolutePath();
-        String exportSQL = new ExportBuilder(String.format("select * from timestamp_format_%s order by a asc", getSuffix()))
-                .exportPath(exportPath).timestampFormat("yyyy/MM/dd HH:mm:ss.SSSS").getSql();
 
-        exportAndAssertExportResults(exportSQL, 1);
-        File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
-        assertEquals(1, files.length);
-        assertEquals("2020/01/01 12:15:16.1234\n",
-                Files.toString(files[0], Charsets.UTF_8));
+            ExportBuilder builder = new ExportBuilder("select * from " + tableName + " order by a asc")
+                    .timestampFormat(format);
+
+            if (!truncated)
+                builder.testImportExport(tableName, "*", 1);
+            else
+                exportAndAssertExportResults(builder.exportSql(), 1);
+            File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
+            assertEquals(1, files.length);
+            assertEquals(expectedFile + "\n",
+                    Files.toString(files[0], Charsets.UTF_8));
+
+            methodWatcher.execute("DELETE FROM " + tableName);
+            methodWatcher.execute(builder.importSql(CLASS_NAME, tableName));
+
+            Assert.assertEquals(expected,
+                    methodWatcher.executeGetString("select * from " + tableName, 1));
+        }
+    }
+
+    @Test
+    public void exportTimestampFormatDefault() throws Exception {
+        exportTimestampFormat(false, null, "2020-01-01 12:15:16.123456",
+                "2020-01-01 12:15:16.123456000");
+    }
+
+    @Test
+    public void exportTimestampFormatCustom() throws Exception {
+        exportTimestampFormat(false, "yyyy-MM-dd-HH.mm.ss.SSSSSS","2020-01-01 12:15:16.123456",
+                "2020-01-01-12.15.16.123456");
+    }
+
+    @Test
+    public void exportTimestampFormatCustomTruncated() throws Exception {
+        exportTimestampFormat(true, "yyyy-MM-dd-HH.mm.ss.SSSS","2020-01-01 12:15:16.1234",
+                "2020-01-01-12.15.16.1234");
     }
 
     private String getSuffix() {
         return useNativeSyntax + "_" + useKeywords;
+    }
+
+    public void exportNullEmpty(boolean empty_string_compatible, boolean quoteModeAlways) throws Exception {
+        if(empty_string_compatible)
+            methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.db2.import.empty_string_compatible', 'true')");
+        String tableName = String.format("export_test_null_empty_%s", getSuffix());
+
+        TestConnection conn=methodWatcher.getOrCreateConnection();
+        new TableCreator(conn)
+                .withCreate("create table " + tableName + "(\n" +
+                                "a integer, h varchar(20), i char)")
+                .withInsert("insert into " + tableName + " values(?,?,?)")
+                .withRows(
+                        rows(
+                                row("1", null, null),
+                                row("2", "", "")
+                        )
+                ).create();
+
+        if(!useNativeSyntax) return; // todo: no quote mode always
+        ExportBuilder builder = new ExportBuilder("select * from " + tableName + " order by a");
+        if(quoteModeAlways)
+            builder.quoteMode("always");
+
+        //builder.testImportExport(tableName, "a, b, c, d", 10);
+        builder.testImportExport(tableName, "*", 2);
+
+        File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
+        assertEquals(1, files.length);
+        assertEquals("1,,\n" +
+                        "2,\"\",\" \"\n",
+                Files.toString(files[0], Charsets.UTF_8));
+
+        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.db2.import.empty_string_compatible', null)");
+    }
+
+    @Test
+    public void exportNullEmpty_true_true() throws Exception {
+        exportNullEmpty(true, true);
+    }
+
+    @Ignore // doesn't work: VARCHAR column "" considered to be NULL
+    public void exportNullEmpty_true_false() throws Exception {
+        exportNullEmpty(true, false);
+    }
+    @Ignore  // doesn't work: VARCHAR column "" considered to be NULL
+    public void exportNullEmpty_false_true() throws Exception {
+        exportNullEmpty(false, true);
+    }
+    @Ignore  // doesn't work: VARCHAR column "" considered to be NULL
+    public void exportNullEmpty_false_false() throws Exception {
+        exportNullEmpty(false, false);
     }
 
 }

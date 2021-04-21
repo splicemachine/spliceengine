@@ -1241,6 +1241,8 @@ public interface Property {
 
     String SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE = "splice.db2.import.empty_string_compatible";
 
+    // if set to true, will treat "" as empty string in IMPORT_DATA
+    // if set to false or NULL, will treat "" as NULL in IMPORT_DATA
     String SPLICE_DB2_VARCHAR_COMPATIBLE = "splice.db2.varchar.compatible";
 
     String SPLICE_NEW_MERGE_JOIN =
