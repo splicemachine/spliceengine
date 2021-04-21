@@ -32,6 +32,7 @@
 package com.splicemachine.db.iapi.util;
 
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.BitSet;
 
@@ -47,7 +48,7 @@ import java.util.BitSet;
  * We want to make it look like JBitSet extends BitSet, so we need to
  * provide wrapper methods for all of BitSet's methods.
  */
-public final class JBitSet{
+public final class JBitSet implements Cloneable {
     /* The BitSet that we'd like to extend */
     private final BitSet bitSet;
     /* Cache size() of bitSet, since accessed a lot */
@@ -157,6 +158,7 @@ public final class JBitSet{
     }
 
     @Override
+    @SuppressFBWarnings(value = "EQ_CHECK_FOR_OPERAND_NOT_COMPATIBLE_WITH_THIS", justification = "intentional")
     public boolean equals(Object obj){
         if(obj instanceof BitSet){
             return bitSet.equals(obj);
