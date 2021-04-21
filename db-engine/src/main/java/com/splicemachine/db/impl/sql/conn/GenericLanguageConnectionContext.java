@@ -556,7 +556,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private String sessionUser = null;
 
     @Override
-    public void initialize() throws StandardException{ // XXX (arnaud/multidb) those default values must be set up per DB
+    public void initialize() throws StandardException{
         interruptedException = null;
         sessionUser = IdUtil.getUserAuthorizationId(userName);
         /*

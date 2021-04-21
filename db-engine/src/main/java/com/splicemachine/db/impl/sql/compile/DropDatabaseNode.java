@@ -78,7 +78,7 @@ public class DropDatabaseNode extends DDLStatementNode
                     SQLState.LANG_CANNOT_DROP_DEFAULT_DB, dbName));
         }
 
-        // XXX (arnaud multidb check privilege collection required (see drop schema node)
+        //TODO(multidb) (DB-11633) check privilege collection required (see drop schema node)
     }
 
     /**

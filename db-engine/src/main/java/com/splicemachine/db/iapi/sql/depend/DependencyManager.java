@@ -510,16 +510,6 @@ public interface DependencyManager {
     String getActionString(int action);
 
     /**
-     * Count the number of active dependencies, both stored and in memory,
-     * in the system.
-     *
-     * @return int        The number of active dependencies in the system.
-
-        @exception StandardException thrown if something goes wrong
-     */
-    int countDependencies()         throws StandardException;
-
-    /**
          Erases all of the dependencies the dependent has, be they
          valid or invalid, of any dependency type.  This action is
          usually performed as the first step in revalidating a

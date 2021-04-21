@@ -496,7 +496,7 @@ public abstract class InternalDriver implements ModuleControl {
     }
 
     // returns the authenticationService handle
-    public AuthenticationService getAuthenticationService() { // XXX (arnaud multidb) should we pass a dbname here?
+    public AuthenticationService getAuthenticationService() {
         //
         // If authenticationService handle not cached in yet, then
         // ask the monitor to find it for us and set it here in its

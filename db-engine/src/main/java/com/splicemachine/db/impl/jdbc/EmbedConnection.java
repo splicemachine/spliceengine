@@ -242,7 +242,7 @@ public abstract class EmbedConnection implements EngineConnection
             boolean shutdown = Boolean.parseBoolean(info.getProperty(Attribute.SHUTDOWN_ATTR));
 
             // see if database is already booted
-            InternalDatabase database = (InternalDatabase) Monitor.findService(Property.DATABASE_MODULE, DatabaseDescriptor.STD_DB_NAME); // XXX (arnaud multidb) should we use lower case here for backward compatibility?
+            InternalDatabase database = (InternalDatabase) Monitor.findService(Property.DATABASE_MODULE, DatabaseDescriptor.STD_DB_NAME);
 
             // See if user wants to create a new database.
             boolean    createBoot = createBoot(info);
@@ -738,7 +738,7 @@ public abstract class EmbedConnection implements EngineConnection
         //
         AuthenticationService authenticationService = null;
         try {
-            // Retrieve appropriate authentication service handle // XXX (arnaud multidb) get different authentication services for different DB?
+            // Retrieve appropriate authentication service handle
             if (dbname == null)
                 authenticationService =
                     getLocalDriver().getAuthenticationService();

@@ -95,7 +95,6 @@ public class DropDatabaseConstantOperation extends DDLConstantOperation {
         // Run remotely
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 
-        //dd.dropAllDatabasePermDescriptors(dbDesc.getObjectID(),tc); XXX (arnaud multidb) implement this
         dbDesc.drop(lcc, activation);
     }
 

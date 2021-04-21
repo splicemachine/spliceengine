@@ -299,12 +299,6 @@ public final class DatabaseDescriptor extends TupleDescriptor implements UniqueT
 
         dd.dropDatabaseDescriptor(getDatabaseName(), tc);
 
-        /*
-         ** If we have dropped the current default databae,
-         ** then we will set the default to null.  The
-         ** LCC is free to set the new default database to
-         ** some system defined default.
-         */
-        // lcc.resetSchemaUsages(activation, getDatabaseName()); XXX (arnaud multidb) implement that?
+        //TODO(multidb) (DB-11634) Terminate connection if current database was dropped
     }
 }

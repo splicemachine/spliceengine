@@ -443,7 +443,6 @@ public class DDLUtils {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
             try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
                 transactionResource.marshallTransaction(txn);
-                LanguageConnectionContext lcc = transactionResource.getLcc();
                 DDLMessage.UpdateSchemaOwner uso = change.getUpdateSchemaOwner();
                 DataDictionaryCache cache = dd.getDataDictionaryCache();
                 // remove corresponding schema cache entry
@@ -487,7 +486,6 @@ public class DDLUtils {
                 } else if (dropIndex.hasDbUUID()){
                     sd = dd.getSchemaDescriptor(ProtoUtil.getDerbyUUID(dropIndex.getDbUUID()), dropIndex.getSchemaName(), tc, true);
                 } else { // This was sent by a region server that does not support multidb yet. We don't know yet what to do but throw
-                    // XXX (arnaud multidb) invalidate All conglomerate descriptor in that case?
                     throw new IllegalStateException("preDropIndex called from a region server that does not support multidb");
                 }
                 ConglomerateDescriptor cd = dd.getConglomerateDescriptor(dropIndex.getIndexName(), sd, true);
@@ -634,7 +632,6 @@ public class DDLUtils {
                 cf.notifyModifyJar(njl.getReload());
                 if (njl.getDrop()) {
                     if (!njl.hasDbUUID()) { // This was sent by a region server that does not support multidb yet. We don't know yet what to do but throw
-                        // XXX (arnaud multidb) invalidate all file info descriptor in that case?
                         throw new IllegalStateException("preNotifyJarLoader called from a region server that does not support multidb");
                     }
                     SchemaDescriptor sd = dd.getSchemaDescriptor(ProtoUtil.getDerbyUUID(njl.getDbUUID()), njl.getSchemaName(), null, true);
@@ -715,7 +712,6 @@ public class DDLUtils {
                 TransactionController tc = lcc.getTransactionExecute();
                 if (!dropSequence.hasDbUUID()){
                     // This was sent by a region server that does not support multidb yet. We don't know yet what to do but throw
-                    // XXX (arnaud multidb) invalidate All conglomerate descriptor in that case?
                     throw new IllegalStateException("preDropSequence called from a region server that does not support multidb");
                 }
                 SchemaDescriptor sd = dd.getSchemaDescriptor(ProtoUtil.getDerbyUUID(dropSequence.getDbUUID()), dropSequence.getSchemaName(),tc,true);
@@ -831,7 +827,6 @@ public class DDLUtils {
             DDLMessage.DropRole dropRole = change.getDropRole();
             if (!dropRole.hasDbUUID()) {
                 // This was sent by a region server that does not support multidb yet. We don't know yet what to do but throw
-                // XXX (arnaud multidb) invalidate All role descriptors in that case?
                 throw new IllegalStateException("preDropRole called from a region server that does not support multidb");
             }
             UUID dbId = ProtoUtil.getDerbyUUID(dropRole.getDbUUID());

@@ -1611,16 +1611,6 @@ public interface DataDictionary{
     List<DependencyDescriptor> getProvidersDescriptorList(String providerID) throws StandardException;
 
     /**
-     * Build and return an List with DependencyDescriptors for
-     * all of the stored dependencies.
-     * This is useful for consistency checking.
-     *
-     * @return List        List of all DependencyDescriptors.
-     * @throws StandardException Thrown on failure
-     */
-    List<DependencyDescriptor> getAllDependencyDescriptorsList() throws StandardException;
-
-    /**
      * Drop a dependency from the data dictionary.
      *
      * @param dd The DependencyDescriptor.
@@ -2242,33 +2232,7 @@ public interface DataDictionary{
      * @param tc  TransactionController to use
      * @throws StandardException Thrown on failure
      */
-    void updateSystemSchemaAuthorization(String aid,TransactionController tc) throws StandardException;
-
-    /**
-     * Create a system stored procedure.
-     * PLEASE NOTE:
-     * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
-     * with tools to debug and repair databases and data dictionaries.
-     *
-     * @param schemaName name of the system schema
-     * @param procName   name of the system stored procedure
-     * @param tc         TransactionController to use
-     * @throws StandardException
-     */
-    void createSystemProcedure(String schemaName,String procName,TransactionController tc) throws StandardException;
-
-    /**
-     * Drop a system stored procedure.
-     * PLEASE NOTE:
-     * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
-     * with tools to debug and repair databases and data dictionaries.
-     *
-     * @param schemaName name of the system schema
-     * @param procName   name of the system stored procedure
-     * @param tc         TransactionController to use
-     * @throws StandardException
-     */
-    void dropSystemProcedure(String schemaName,String procName,TransactionController tc) throws StandardException;
+    void updateSystemSchemaAuthorization(UUID dbId, String aid,TransactionController tc) throws StandardException;
 
     DataDictionaryCache getDataDictionaryCache();
 

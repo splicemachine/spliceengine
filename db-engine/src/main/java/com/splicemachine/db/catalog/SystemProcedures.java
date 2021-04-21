@@ -1595,74 +1595,6 @@ public class SystemProcedures{
     }
 
     /**
-     * Create a system stored procedure.
-     * PLEASE NOTE:
-     * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
-     * with tools to debug and repair databases and data dictionaries.
-     *
-     * @param schemaName name of the system schema
-     * @param procName   name of the system stored procedure
-     * @throws SQLException
-     */
-    public static void SYSCS_CREATE_SYSTEM_PROCEDURE(String schemaName,String procName)
-            throws SQLException{
-        try{
-            LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
-            TransactionController tc=lcc.getTransactionExecute();
-            DataDictionary dd=lcc.getDataDictionary();
-
-            /*
-            ** Inform the data dictionary that we are about to write to it.
-            ** There are several calls to data dictionary "get" methods here
-            ** that might be done in "read" mode in the data dictionary, but
-            ** it seemed safer to do this whole operation in "write" mode.
-            **
-            ** We tell the data dictionary we're done writing at the end of
-            ** the transaction.
-            */
-            dd.startWriting(lcc);
-
-            dd.createSystemProcedure(schemaName,procName,tc);
-        }catch(Throwable t){
-            throw PublicAPI.wrapThrowable(t);
-        }
-    }
-
-    /**
-     * Drop a system stored procedure.
-     * PLEASE NOTE:
-     * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
-     * with tools to debug and repair databases and data dictionaries.
-     *
-     * @param schemaName name of the system schema
-     * @param procName   name of the system stored procedure
-     * @throws SQLException
-     */
-    public static void SYSCS_DROP_SYSTEM_PROCEDURE(String schemaName,String procName)
-            throws SQLException{
-        try{
-            LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
-            TransactionController tc=lcc.getTransactionExecute();
-            DataDictionary dd=lcc.getDataDictionary();
-
-            /*
-            ** Inform the data dictionary that we are about to write to it.
-            ** There are several calls to data dictionary "get" methods here
-            ** that might be done in "read" mode in the data dictionary, but
-            ** it seemed safer to do this whole operation in "write" mode.
-            **
-            ** We tell the data dictionary we're done writing at the end of
-            ** the transaction.
-            */
-            dd.startWriting(lcc);
-
-            dd.dropSystemProcedure(schemaName,procName,tc);
-        }catch(Throwable t){
-            throw PublicAPI.wrapThrowable(t);
-        }
-    }
-
-    /**
      * Empty as much of the cache as possible. It is not guaranteed
      * that the cache is empty after this call, as statements may be kept
      * by currently executing queries, activations that are about to be garbage
@@ -1857,7 +1789,7 @@ public class SystemProcedures{
              */
             dd.startWriting(lcc);
             // Change system schemas to be owned by aid
-            dd.updateSystemSchemaAuthorization(aid,tc); // XXX(arnaud multidb this needs to be DB specific)
+            dd.updateSystemSchemaAuthorization(lcc.getCurrentDatabase().getUUID(), aid,tc);
         }catch(Throwable t){
             throw PublicAPI.wrapThrowable(t);
         }

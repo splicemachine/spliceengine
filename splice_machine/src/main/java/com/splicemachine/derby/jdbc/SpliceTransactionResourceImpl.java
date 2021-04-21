@@ -16,6 +16,7 @@ package com.splicemachine.derby.jdbc;
 
 import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.database.Database;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
@@ -62,7 +63,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     protected String ipAddress;
     private boolean prepared = false;
 
-    public SpliceTransactionResourceImpl() throws SQLException{ // XXX(arnaud multidb) Remove this one and properly pass the right DB
+    public SpliceTransactionResourceImpl() throws SQLException{
         this(DatabaseDescriptor.STD_DB_NAME);
     }
 
@@ -79,14 +80,14 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
         rdbIntTkn = info.getProperty(Attribute.RDBINTTKN_ATTR, null);
         ipAddress = info.getProperty(Property.IP_ADDRESS,null);
 
-        database=(SpliceDatabase)Monitor.findService(Property.DATABASE_MODULE,dbname);
+        database=(SpliceDatabase)Monitor.findService(Property.DATABASE_MODULE,DatabaseDescriptor.STD_DB_NAME);
         if(database==null){
             SpliceLogUtils.debug(LOG,"database has not yet been created, creating now");
             try{
-                if(!Monitor.startPersistentService(dbname,info)){
+                if(!Monitor.startPersistentService(DatabaseDescriptor.STD_DB_NAME,info)){
                     throw new IllegalArgumentException("Unable to start database!");
                 }
-                database=(SpliceDatabase)Monitor.findService(Property.DATABASE_MODULE,dbname);
+                database=(SpliceDatabase)Monitor.findService(Property.DATABASE_MODULE, DatabaseDescriptor.STD_DB_NAME);
             }catch(StandardException e){
                 SpliceLogUtils.error(LOG,e);
                 throw PublicAPI.wrapStandardException(e);
