@@ -77,14 +77,14 @@ public class ExportOperationIT {
         return params;
     }
 
-    static File temporaryFolder;
-    @BeforeClass
-    public static void createTempDirectory() throws Exception {
+    File temporaryFolder;
+    @Before
+    public void createTempDirectory() throws Exception {
         temporaryFolder = SpliceUnitTest.createTempDirectory(CLASS_NAME);
     }
 
-    @AfterClass
-    public static void deleteTempDirectory() throws Exception {
+    @After
+    public void deleteTempDirectory() throws Exception {
         SpliceUnitTest.deleteTempDirectory(temporaryFolder);
     }
 
@@ -104,6 +104,7 @@ public class ExportOperationIT {
         String quoteMode;
         String floatingPointNotation;
         String timestampFormat;
+        String format = "csv";
         ExportBuilder(String selectQuery) {
             this.selectQuery = selectQuery;
         }
@@ -116,11 +117,13 @@ public class ExportOperationIT {
         ExportBuilder quoteMode(String val) { quoteMode = val; return this; }
         ExportBuilder floatingPointNotation(String val) { floatingPointNotation = val; return this; }
         ExportBuilder timestampFormat(String val) { timestampFormat = val; return this; }
+        ExportBuilder format(String val) { format = val; return this; }
 
         String exportSql() {
             return buildExportSQL(selectQuery, exportPath, compression,
                     replicationCount, encoding, fieldSeparator,
-                    quoteCharacter, quoteMode, floatingPointNotation, timestampFormat);
+                    quoteCharacter, quoteMode, floatingPointNotation,
+                    timestampFormat, format);
         }
         String strOrNull(String s) {
             if( s == null)
@@ -550,14 +553,14 @@ public class ExportOperationIT {
 
     private String buildExportSQL(String selectQuery, String exportPath, String compression, String replicationCount,
                                   String encoding, String fieldSeparator, String quoteCharacter, String quoteMode,
-                                  String floatingPointNotation, String timestampFormat) {
+                                  String floatingPointNotation, String timestampFormat, String format) {
         if (useNativeSyntax) {
             StringBuilder sql = new StringBuilder();
             sql.append("EXPORT TO '").append(exportPath).append("'");
             if (useKeywords)
-                sql.append(" AS CSV ");
+                sql.append(" AS " + format.toUpperCase() + " ");
             else
-                sql.append(" AS 'csv' ");
+                sql.append(" AS '" + format + "' ");
             if (compression != null) {
                 sql.append(" COMPRESSION ");
                 if (useKeywords)
@@ -809,7 +812,6 @@ public class ExportOperationIT {
         if(quoteModeAlways)
             builder.quoteMode("always");
 
-        //builder.testImportExport(tableName, "a, b, c, d", 10);
         builder.testImportExport(tableName, "*", 2);
 
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
@@ -826,7 +828,7 @@ public class ExportOperationIT {
         exportNullEmpty(true, true);
     }
 
-    @Ignore // doesn't work: VARCHAR column "" considered to be NULL
+    @Ignore // doesn't work: VARCHAR column "" written as ,, -> read as NULL
     public void exportNullEmpty_true_false() throws Exception {
         exportNullEmpty(true, false);
     }
@@ -839,4 +841,20 @@ public class ExportOperationIT {
         exportNullEmpty(false, false);
     }
 
+    public void exportX(String format) throws Exception {
+        if(!useNativeSyntax) return;
+        String tableName = createTestTableWithSuffix("export_" + format);
+        ExportBuilder builder = new ExportBuilder("select * from " + tableName + " order by a asc")
+                .format(format);
+
+        // todo: problems with varchar null/""
+        builder.testImportExport(tableName, "a, b, c, d, cast(e AS VARCHAR(32))", 8);
+        File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*" + format));
+        assertEquals(1, files.length);
+    }
+
+    @Test
+    public void exportParquet() throws Exception {
+        exportX("parquet");
+    }
 }

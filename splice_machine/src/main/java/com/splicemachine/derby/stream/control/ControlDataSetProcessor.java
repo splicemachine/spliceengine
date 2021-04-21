@@ -331,6 +331,11 @@ public class ControlDataSetProcessor implements DataSetProcessor{
                     context, qualifiers, probeValue,execRow, useSample, sampleFraction).toLocalIterator());
    }
 
+    public <V> DataSet<V> readFileX(String location, String extension, SpliceOperation op) throws StandardException {
+        DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
+        return proc.readFileX(location, extension, op);
+    }
+
     @Override
     public <V> DataSet<V> readAvroFile(StructType schema, int[] baseColumnMap, int[] partitionColumnMap,
                                        String location, OperationContext context,Qualifier[][] qualifiers,
