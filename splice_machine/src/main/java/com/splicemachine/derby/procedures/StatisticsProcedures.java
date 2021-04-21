@@ -12,7 +12,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.utils;
+package com.splicemachine.derby.procedures;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.PublicAPI;
@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
+import com.splicemachine.db.impl.sql.catalog.Procedure;
 import com.splicemachine.db.impl.sql.catalog.SYSCOLUMNSTATISTICSRowFactory;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
@@ -48,6 +49,8 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
+import com.splicemachine.derby.utils.EngineUtils;
+import com.splicemachine.derby.utils.StatisticsOperation;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
@@ -81,8 +84,162 @@ import static com.splicemachine.derby.utils.EngineUtils.verifyTableExists;
  * @author Scott Fines
  *         Date: 2/26/15
  */
-public class StatisticsAdmin extends BaseAdminProcedures {
-    private static final Logger LOG = Logger.getLogger(StatisticsAdmin.class);
+public class StatisticsProcedures extends BaseAdminProcedures {
+
+    public static void addProcedures(List<Procedure> procedures) {
+        /*
+         * Statistics procedures
+         */
+        Procedure collectStatsForTable = Procedure.newBuilder().name("COLLECT_TABLE_STATISTICS")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .varchar("schema",128)
+                .varchar("table",1024)
+                .arg("staleOnly", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                .ownerClass(StatisticsProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(collectStatsForTable);
+
+        Procedure collectSampleStatsForTable = Procedure.newBuilder().name("COLLECT_TABLE_SAMPLE_STATISTICS")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .varchar("schema",128)
+                .varchar("table",1024)
+                .arg("samplePercentage", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE).getCatalogType())
+                .arg("staleOnly", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                .ownerClass(StatisticsProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(collectSampleStatsForTable);
+
+        Procedure collectNonMergedStatsForTable = Procedure.newBuilder().name("COLLECT_NONMERGED_TABLE_STATISTICS")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .varchar("schema",128)
+                .varchar("table",1024)
+                .arg("staleOnly", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                .ownerClass(StatisticsProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(collectNonMergedStatsForTable);
+
+        Procedure collectNonMergedSampleStatsForTable = Procedure.newBuilder().name("COLLECT_NONMERGED_TABLE_SAMPLE_STATISTICS")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .varchar("schema",1024)
+                .varchar("table",1024)
+                .arg("samplePercentage", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE).getCatalogType())
+                .arg("staleOnly", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                .ownerClass(StatisticsProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(collectNonMergedSampleStatsForTable);
+
+        Procedure fakeStatsForTable = Procedure.newBuilder().name("FAKE_TABLE_STATISTICS")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .modifiesSql()
+                .catalog("schema")
+                .catalog("table")
+                .arg("rowCount", DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                .arg("meanRowsize", DataTypeDescriptor.getCatalogType(Types.INTEGER))
+                .arg("numPartitions", DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                .ownerClass(StatisticsProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(fakeStatsForTable);
+
+        Procedure fakeStatsForColumn = Procedure.newBuilder().name("FAKE_COLUMN_STATISTICS")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .modifiesSql()
+                .catalog("schema")
+                .catalog("table")
+                .varchar("column",1024)
+                .arg("nullCountRatio", DataTypeDescriptor.getCatalogType(Types.DOUBLE))
+                .arg("rowsPerValue", DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                .ownerClass(StatisticsProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(fakeStatsForColumn);
+
+        Procedure dropStatsForSchema = Procedure.newBuilder().name("DROP_SCHEMA_STATISTICS")
+                .numOutputParams(0)
+                .numResultSets(0)
+                .varchar("schema",128)
+                .ownerClass(StatisticsProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(dropStatsForSchema);
+
+        Procedure dropStatsForTable = Procedure.newBuilder().name("DROP_TABLE_STATISTICS")
+                .numOutputParams(0)
+                .numResultSets(0)
+                .varchar("schema",128)
+                .varchar("table",1024)
+                .ownerClass(StatisticsProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(dropStatsForTable);
+
+        Procedure collectStatsForSchema = Procedure.newBuilder().name("COLLECT_SCHEMA_STATISTICS")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .varchar("schema",128)
+                .arg("staleOnly", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                .ownerClass(StatisticsProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(collectStatsForSchema);
+
+        Procedure enableStatsForColumn = Procedure.newBuilder().name("ENABLE_COLUMN_STATISTICS")
+                .numOutputParams(0)
+                .numResultSets(0)
+                .modifiesSql()
+                .varchar("schema",1024)
+                .varchar("table",1024)
+                .varchar("column",1024)
+                .ownerClass(StatisticsProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(enableStatsForColumn);
+
+        Procedure disableStatsForColumn = Procedure.newBuilder().name("DISABLE_COLUMN_STATISTICS")
+                .numOutputParams(0)
+                .numResultSets(0)
+                .modifiesSql()
+                .varchar("schema",1024)
+                .varchar("table",1024)
+                .varchar("column",1024)
+                .ownerClass(StatisticsProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(disableStatsForColumn);
+
+        Procedure enableStatsForAllColumns = Procedure.newBuilder().name("ENABLE_ALL_COLUMN_STATISTICS")
+                .numOutputParams(0)
+                .numResultSets(0)
+                .modifiesSql()
+                .catalog("schema")
+                .catalog("table")
+                .ownerClass(StatisticsProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(enableStatsForAllColumns);
+
+        Procedure disableStatsForAllColumns = Procedure.newBuilder().name("DISABLE_ALL_COLUMN_STATISTICS")
+                .numOutputParams(0)
+                .numResultSets(0)
+                .modifiesSql()
+                .catalog("schema")
+                .catalog("table")
+                .ownerClass(StatisticsProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(disableStatsForAllColumns);
+
+        Procedure setStatsExtrapolationForColumn = Procedure.newBuilder().name("SET_STATS_EXTRAPOLATION_FOR_COLUMN")
+                .numOutputParams(0)
+                .numResultSets(0)
+                .modifiesSql()
+                .varchar("schema",1024)
+                .varchar("table",1024)
+                .varchar("column",1024)
+                .smallint("useExtrapolation")
+                .ownerClass(StatisticsProcedures.class.getCanonicalName())
+                .build();
+        procedures.add(setStatsExtrapolationForColumn);
+    }
+
+    private static final Logger LOG = Logger.getLogger(StatisticsProcedures.class);
     public static final String TABLEID_FROM_SCHEMA = "select tableid from sysvw.systablesView t where t.schemaid = ?";
 
     @SuppressWarnings("UnusedDeclaration")
@@ -305,7 +462,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             TransactionController transactionExecute = lcc.getTransactionExecute();
             transactionExecute.elevate("statistics");
             dropTableStatistics(tds, dd, tc);
-            ddlNotification(tc, tds);
             TxnView txn = ((SpliceTransactionManager) transactionExecute).getRawTransaction().getActiveStateTxn();
 
             HashMap<Long, Pair<String, String>> display = new HashMap<>();
@@ -316,6 +472,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
             IteratorNoPutResultSet resultsToWrap = wrapResults(conn,
                     displayTableStatistics(statisticsOperations,true, dd, transactionExecute, display), COLLECTED_STATS_OUTPUT_COLUMNS);
+            ddlNotification(tc, tds);
             outputResults[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
@@ -475,7 +632,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             int statsType = SYSTABLESTATISTICSRowFactory.FAKE_MERGED_STATS;
             long conglomerateId = tableDesc.getHeapConglomerateId();
 
-            statsRow = StatisticsAdmin.generateRowFromStats(conglomerateId, "-All-", rowCount, rowCount*meanRowWidth, meanRowWidth, numPartitions, statsType, 0.0d);
+            statsRow = StatisticsProcedures.generateRowFromStats(conglomerateId, "-All-", rowCount, rowCount*meanRowWidth, meanRowWidth, numPartitions, statsType, 0.0d);
             dd.addTableStatistics(statsRow, tc);
             ExecRow resultRow = generateOutputRow(schema, table, statsRow, new HashSet<>());
 
@@ -543,7 +700,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
             FakeColumnStatisticsImpl columnStatistics = new FakeColumnStatisticsImpl(columnDescriptor.getType().getNull(), nullCount, totalCount, cardinality);
             // compose the entry for a given column
-            ExecRow statsRow = StatisticsAdmin.generateRowFromStats(conglomerateId, "-All-", columnId, columnStatistics);
+            ExecRow statsRow = StatisticsProcedures.generateRowFromStats(conglomerateId, "-All-", columnId, columnStatistics);
             dd.addColumnStatistics(statsRow, tc);
 
             ExecRow resultRow = generateOutputRowForColumnStats(schema, table, column, "-All-", nullCount, totalCount, cardinality);
@@ -588,7 +745,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             dd.startWriting(conn.getLanguageConnection());
             TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
             dropTableStatistics(tds,dd,tc);
-            ddlNotification(tc, tds);
             TxnView txn = ((SpliceTransactionManager) tc).getRawTransaction().getActiveStateTxn();
 
             HashMap<Long,Pair<String,String>> display = new HashMap<>();
@@ -599,6 +755,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                     conn,
                     displayTableStatistics(ops, mergeStats, dd, tc, display),
                     COLLECTED_STATS_OUTPUT_COLUMNS);
+            ddlNotification(tc, tds);
             outputResults[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
@@ -1175,7 +1332,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                 ByteArrayInputStream bais = new ByteArrayInputStream(nextRow.getColumn(2).getBytes());
                                                 ObjectInputStream ois = new ObjectInputStream(bais);
                                                 // compose the entry for a given column
-                                                ExecRow statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", columnId, (ColumnStatisticsImpl) ois.readObject());
+                                                ExecRow statsRow = StatisticsProcedures.generateRowFromStats(conglomId, "-All-", columnId, (ColumnStatisticsImpl) ois.readObject());
                                                 try {
                                                     dataDictionary.addColumnStatistics(statsRow, tc);
                                                 } catch (StandardException e) {
@@ -1242,7 +1399,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                     } else {
                                         numOfRegions = getNumOfPartitions(cd);
                                     }
-                                    statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", rowCount, totalSize, avgRowWidth, numOfRegions, statsType, sampleFraction);
+                                    statsRow = StatisticsProcedures.generateRowFromStats(conglomId, "-All-", rowCount, totalSize, avgRowWidth, numOfRegions, statsType, sampleFraction);
                                     dataDictionary.addTableStatistics(statsRow, tc);
 
                                     return generateOutputRow(pair.getFirst(), pair.getSecond(), statsRow, skippedColIds);

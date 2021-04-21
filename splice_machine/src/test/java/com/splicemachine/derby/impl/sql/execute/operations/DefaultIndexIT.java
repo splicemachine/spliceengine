@@ -158,12 +158,15 @@ public class DefaultIndexIT extends SpliceUnitTest{
 
     @Test
     public void testIndexAfterLoadNullTable() throws Exception {
-        try {
-            SpliceIndexWatcher.createIndex(conn,schemaWatcher.schemaName,INDEX_AFTER_LOAD_NULL_TABLE.tableName,"INDEX_AFTER_LOAD_NULL_TABLE_IX","(i)",false,false,true);
-            methodWatcher.executeQuery(String.format("SELECT * FROM INDEX_AFTER_LOAD_NULL_TABLE --SPLICE-PROPERTIES index=INDEX_AFTER_LOAD_NULL_TABLE_IX\n"));
-            Assert.fail("did not throw exception");
-        } catch (SQLException sqle) {
-            Assert.assertEquals("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.", sqle.getMessage());
+        // Index is eligible because column i has no default value defined. Exclude default keys clause has no effect.
+        SpliceIndexWatcher.createIndex(conn,schemaWatcher.schemaName,INDEX_AFTER_LOAD_NULL_TABLE.tableName,"INDEX_AFTER_LOAD_NULL_TABLE_IX","(i)",false,false,true);
+        try (ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM INDEX_AFTER_LOAD_NULL_TABLE --SPLICE-PROPERTIES index=INDEX_AFTER_LOAD_NULL_TABLE_IX\n"))) {
+            String expected = "I  |  J  |\n" +
+                    "------------\n" +
+                    "NULL |NULL |\n" +
+                    "     |     |\n" +
+                    " SD  | SD  |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
 

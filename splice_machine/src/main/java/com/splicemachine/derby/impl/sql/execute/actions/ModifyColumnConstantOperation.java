@@ -84,6 +84,11 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
     protected void executeConstantActionBody(Activation activation) throws StandardException {
 
         // Do all the DDL data dictionary prep work for ALTER_TABLE. This will suffice since we're doing in-place DDL changes.
+        for (ConstantAction ca : constraintActions) {
+            if (ca instanceof CreateConstraintConstantOperation) {
+                ((CreateConstraintConstantOperation) ca).prePrepareDataDictionaryActions(activation);
+            }
+        }
         prepareDataDictionary(activation);
 
         executeColumnModificationAction(activation);

@@ -30,10 +30,19 @@
  */
 package com.splicemachine.db.iapi.stats;
 
-/**
- *
- * TODO
- *
- */
+import com.splicemachine.db.iapi.types.SQLChar;
+import org.junit.Assert;
+import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+
 public class TableStatisticsImplTest {
+    @Test
+    public void emptyStatsDoNotEvaluateToNaNSelectivity() {
+        List<PartitionStatistics> partitionStatistics = new ArrayList<>();
+        partitionStatistics.add(new FakePartitionStatisticsImpl("foo", "bar", 0, 0, 0.0d, 0.0d));
+        TableStatisticsImpl impl = new TableStatisticsImpl("foo", partitionStatistics, 0.0d, 0.0d);
+        Assert.assertEquals(0.0d, impl.selectivityExcludingValueIfSkewed(new SQLChar("    "), 0), 1e-15);
+    }
 }

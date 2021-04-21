@@ -27,6 +27,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLVarcharDB2Compatible;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedDatabaseMetaData;
+import com.splicemachine.derby.procedures.SpliceAdmin;
 import com.splicemachine.pipeline.ErrorState;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
