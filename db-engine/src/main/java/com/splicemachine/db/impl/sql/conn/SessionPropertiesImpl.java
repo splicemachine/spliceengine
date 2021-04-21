@@ -145,6 +145,8 @@ public class SessionPropertiesImpl implements SessionProperties {
                     case "BROADCAST":
                         properties[JOINSTRATEGY.getId()] = joinStrategy;
                         break;
+                    default:
+                        break;
                 }
                 break;
             default:

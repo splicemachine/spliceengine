@@ -2240,9 +2240,7 @@ public class ResultColumn extends ValueNode
         if (!(getExpression() instanceof ColumnReference))
             return false;
         ColumnReference columnReference = (ColumnReference)getExpression();
-        if (columnReference.getSource() instanceof ResultColumn)
-            return immutableVirtualColumn(columnReference.getSource());
-        return false;
+        return immutableVirtualColumn(columnReference.getSource());
     }
 }
 

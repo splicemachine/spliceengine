@@ -1526,10 +1526,7 @@ public class FromBaseTable extends FromTable {
                                     C_NodeTypes.FROM_LIST,
                                     getNodeFactory().doJoinOrderOptimization(),
                                     getContextManager());
-       if (!(source instanceof FromBaseTable)) {
-           throw StandardException.newException(LANG_INTERNAL_ERROR,
-            "Unexpected inner table source result set while processing unioned index scan.");
-       }
+
        FromBaseTable innerTableCopy = ((FromBaseTable)source).shallowClone();
        innerTableCopy.setIndexFriendlyJoinsOnly(true);
 
@@ -1606,6 +1603,7 @@ public class FromBaseTable extends FromTable {
     // If the UIS access path table has join predicates, pull in the single-table predicates
     // on the outer tables so they can reduce the number of rows considered in the join of each
     // UNION branch of a UIS access path.
+    @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification = "intentional")
     private boolean addPredsFromOuterRestrictionList(ProjectRestrictNode projectRestrict, ValueNode whereClause) {
        if (projectRestrict != null) {
            PredicateList restrictionList = null;
