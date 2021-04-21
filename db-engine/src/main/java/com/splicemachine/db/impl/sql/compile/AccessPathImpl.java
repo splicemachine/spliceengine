@@ -55,7 +55,6 @@ class AccessPathImpl implements AccessPath{
     private boolean isJoinStrategyHinted = false;
     private boolean missingHashKeyOK = false;
     private int numUnusedLeadingIndexFields;
-    private boolean useDNF = false;
     private Predicate uisPredicate;
     private Predicate uisRowIdPredicate;
     private FromTable unionOfIndexes = null;
