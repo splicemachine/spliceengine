@@ -62,12 +62,13 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
     private int batches;
     private volatile TaskContext taskContext;
     private transient CountDownLatch runningOnClient;
+    private int throttleMaxWait;
 
     // Serialization
     public ResultStreamer() {
     }
 
-    public ResultStreamer(OperationContext<?> context, UUID uuid, String host, int port, int numPartitions, int batches, int batchSize) {
+    public ResultStreamer(OperationContext<?> context, UUID uuid, String host, int port, int numPartitions, int batches, int batchSize, int throttleMaxWait) {
         this.context = context;
         this.uuid = uuid;
         this.host = host;
@@ -75,6 +76,7 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
         this.numPartitions = numPartitions;
         this.batches = batches;
         this.batchSize = batchSize;
+        this.throttleMaxWait = throttleMaxWait;
         this.permits = new Semaphore(batches - 1); // we start with one permit taken
     }
 
@@ -229,7 +231,6 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
             bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
             bootstrap.handler(new OpenHandler(this));
 
-
             ChannelFuture futureConnect = bootstrap.connect(socketAddr).sync();
 
             active.await();
@@ -246,13 +247,12 @@ public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements F
                 }
             }
             try {
-                this.runningOnClient.await(2, TimeUnit.MINUTES);
+                this.runningOnClient.await(this.throttleMaxWait, TimeUnit.SECONDS);
             } catch (Exception e) {
             }
             if (this.runningOnClient.getCount() > 0) {
                 this.runningOnClient.countDown();
                 futureConnect.channel().writeAndFlush(new StreamProtocol.RequestClose());
-                futureConnect.channel().closeFuture();
             } else {
                 futureConnect.channel().closeFuture().sync();
             }
