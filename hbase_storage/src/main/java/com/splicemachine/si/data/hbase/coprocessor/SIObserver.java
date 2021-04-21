@@ -223,13 +223,13 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
     public InternalScanner preFlush(ObserverContext<RegionCoprocessorEnvironment> c, Store store, InternalScanner scanner,
                                     FlushLifeCycleTracker tracker) throws IOException {
         SIDriver driver=SIDriver.driver();
-        if (driver.getPurgeConfigFactory() == null) {
-            LOG.error("Cannot purge during flush because PurgeConfigFactory is not properly set");
-            return scanner;
-        }
         // We must make sure the engine is started, otherwise we might try to resolve transactions against SPLICE_TXN which
         // hasn't been loaded yet, causing a deadlock
         if(tableEnvMatch && scanner != null && driver != null && driver.isEngineStarted() && driver.getConfiguration().getResolutionOnFlushes()) {
+            if (driver.getPurgeConfigFactory() == null) {
+                LOG.error("Cannot purge during flush because PurgeConfigFactory is not properly set");
+                return scanner;
+            }
             SimpleCompactionContext context = new SimpleCompactionContext();
             SICompactionState state = newCompactionState(driver, context);
             SConfiguration conf = driver.getConfiguration();
@@ -253,13 +253,13 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
             ObserverContext<RegionCoprocessorEnvironment> c, Store store, InternalScanner scanner)
             throws IOException {
         SIDriver driver=SIDriver.driver();
-        if (driver.getPurgeConfigFactory() == null) {
-            LOG.error("Cannot purge during memstore compaction because PurgeConfigFactory is not properly set");
-            return scanner;
-        }
         // We must make sure the engine is started, otherwise we might try to resolve transactions against SPLICE_TXN which
         // hasn't been loaded yet, causing a deadlock
         if(tableEnvMatch && scanner != null && driver != null && driver.isEngineStarted()) {
+            if (driver.getPurgeConfigFactory() == null) {
+                LOG.error("Cannot purge during memstore compaction because PurgeConfigFactory is not properly set");
+                return scanner;
+            }
             SimpleCompactionContext context = new SimpleCompactionContext();
             SICompactionState state = newCompactionState(driver, context);
             SConfiguration conf = driver.getConfiguration();
