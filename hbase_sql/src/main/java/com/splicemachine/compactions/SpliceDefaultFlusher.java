@@ -14,19 +14,11 @@
 
 package com.splicemachine.compactions;
 
-import com.splicemachine.si.impl.server.FlushLifeCycleTrackerWithConfig;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.monitoring.MonitoredTask;
 import org.apache.hadoop.hbase.regionserver.DefaultStoreFlusher;
-import org.apache.hadoop.hbase.regionserver.FlushLifeCycleTracker;
 import org.apache.hadoop.hbase.regionserver.HStore;
-import org.apache.hadoop.hbase.regionserver.MemStoreSnapshot;
-import org.apache.hadoop.hbase.regionserver.throttle.ThroughputController;
-import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.List;
 
 /**
  * We use this class to pass the PurgeConfig down the stack to flush logic in SIObserver.
@@ -34,17 +26,7 @@ import java.util.List;
  */
 @Deprecated
 public class SpliceDefaultFlusher extends DefaultStoreFlusher {
-    private static final Logger LOG = Logger.getLogger(SpliceDefaultFlusher.class);
-
     public SpliceDefaultFlusher(Configuration conf, HStore store) throws IOException {
         super(conf, store);
-    }
-
-    @Override
-    public List<Path> flushSnapshot(MemStoreSnapshot snapshot, long cacheFlushId,
-                                    MonitoredTask status, ThroughputController throughputController,
-                                    FlushLifeCycleTracker tracker) throws IOException {
-        return super.flushSnapshot(snapshot, cacheFlushId, status, throughputController,
-                new FlushLifeCycleTrackerWithConfig(tracker, null));
     }
 }
