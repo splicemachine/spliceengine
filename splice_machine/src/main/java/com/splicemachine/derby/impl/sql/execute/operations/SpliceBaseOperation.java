@@ -20,6 +20,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.services.timer.TimerFactory;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
@@ -97,6 +99,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     private volatile boolean isKilled = false;
     private volatile boolean isTimedout = false;
     private long startTime = System.nanoTime();
+    private CancelQueryTask cancelTask;
+    private volatile boolean cancelled = false;
 
     public SpliceBaseOperation(){
         super();
@@ -288,6 +292,12 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
+
+        if (cancelTask != null) {
+            cancelTask.cleanup();
+            cancelTask = null;
+        }
+
     }
 
     //	@Override
@@ -535,12 +545,24 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     @Override
     public void openCore() throws StandardException{
         DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation, this);
-        activation.getLanguageConnectionContext().getStatementContext().registerExpirable(this, Thread.currentThread());
-        if (dsp.getType() == DataSetProcessor.Type.SPARK && !isOlapServer() && !SpliceClient.isClient()) {
+        setTimeout();
+        if (dsp.getType() == DataSetProcessor.Type.SPARK && !(isOlapServer() && activation.isSubStatement()) && !SpliceClient.isClient()) {
             openDistributed();
         } else {
             openCore(dsp);
         }
+    }
+
+    private void setTimeout() {
+        long timeoutMillis = activation.getLanguageConnectionContext().getStatementContext().getTimeoutMillis();
+        if (timeoutMillis > 0) {
+            TimerFactory factory = Monitor.getMonitor().getTimerFactory();
+            Timer timer = factory.getCancellationTimer();
+            cancelTask = new CancelQueryTask(this);
+            cancelTask.registerExpirable(this, Thread.currentThread());
+            timer.schedule(cancelTask, timeoutMillis);
+        }
+
     }
 
     private void logExecutionStart(DataSetProcessor dsp) {
@@ -1037,7 +1059,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     public void kill() throws StandardException {
         this.isKilled = true;
         // The cancel flag is checked during Control execution
-        getActivation().getLanguageConnectionContext().getStatementContext().cancel();
+        getActivation().getResultSet().cancel();
         if (remoteQueryClient != null) {
             try {
                 remoteQueryClient.interrupt();
@@ -1154,5 +1176,90 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
     public boolean isFromTableStatement() {
         return false;
+    }
+
+    @Override
+    public void cancel() {
+        cancelled = true;
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    private static class CancelQueryTask
+            extends
+            TimerTask
+    {
+        /**
+         * Reference to the StatementContext for the executing statement
+         * which might time out.
+         */
+        private Expirable expirable;
+        private Thread thread;
+        private ResultSet rs;
+        /**
+         * Initializes a new task for timing out a statement's execution.
+         * This does not schedule it for execution, the caller is
+         * responsible for calling Timer.schedule() with this object
+         * as parameter.
+         */
+        public CancelQueryTask(ResultSet rs)
+        {
+             this.rs = rs;
+        }
+
+        /**
+         * Invoked by a Timer class to cancel an executing statement.
+         * This method just sets a volatile flag in the associated
+         * StatementContext object by calling StatementContext.cancel();
+         * it is the responsibility of the thread executing the statement
+         * to check this flag regularly.
+         */
+        public void run()
+        {
+            synchronized (this) {
+                LOG.info("Wake up to cancel the query");
+                if (rs != null) {
+                    rs.cancel();
+                    LOG.info("Canceled the query");
+                }
+                if (expirable != null) {
+                    try {
+                        expirable.timeout();
+                    } catch (StandardException e) {
+                        // ignore
+                        LOG.error("Ignoring exception raised during cancellation due to a timeout", e);
+                    }
+                    thread.interrupt();
+                }
+            }
+
+        }
+
+        /**
+         * Stops this task and prevents it from cancelling a statement.
+         * Guarantees that after this method returns, the associated
+         * StatementContext object will not be tampered with by this task.
+         * Thus, the StatementContext object may safely be allocated to
+         * other executing statements.
+         */
+        public void cleanup() {
+            synchronized (this) {
+                expirable = null;
+                thread = null;
+            }
+            cancel();
+        }
+
+        public void registerExpirable(Expirable expirable, Thread thread) {
+            synchronized (this) {
+                if (this.expirable == null) {
+                    this.expirable = expirable;
+                    this.thread = thread;
+                }
+            }
+        }
     }
 }

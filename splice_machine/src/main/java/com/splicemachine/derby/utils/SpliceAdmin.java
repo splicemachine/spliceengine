@@ -700,7 +700,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
      *                   than one table, if the table has an index, for instance.
      * @throws SQLException
      */
-    public static void SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(String schemaName,String tableName) throws SQLException {
+    public static void SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(String schemaName, String tableName) throws SQLException {
         LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
         assert lcc != null;
         DataDictionary dd = lcc.getDataDictionary();
@@ -734,6 +734,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
             }
             try (Partition partition = tableFactory.getTable(Long.toString(conglomID))) {
+                partition.flush();
                 partition.compact(true);
             } catch (IOException e) {
                 throw PublicAPI.wrapStandardException(Exceptions.parseException(e));

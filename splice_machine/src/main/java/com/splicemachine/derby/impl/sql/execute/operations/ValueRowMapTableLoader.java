@@ -18,13 +18,12 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.JoinTable;
+import com.splicemachine.derby.stream.function.IteratorUtils;
 import com.splicemachine.stream.Stream;
+import org.apache.spark.TaskContext;
 
 import javax.annotation.concurrent.ThreadSafe;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
@@ -39,16 +38,20 @@ class ValueRowMapTableLoader implements BroadcastJoinCache.JoinTableLoader{
     private ValueRowMapTableLoader(){} //singleton class
 
     @Override
-    public JoinTable.Factory load(Callable<Stream<ExecRow>> streamLoader,int[] innerHashKeys,int[] outerHashKeys, ExecRow outerTemplateRow) throws Exception {
+    public JoinTable.Factory load(Callable<Stream<ExecRow>> streamLoader,
+                                  int[] innerHashKeys,
+                                  int[] outerHashKeys,
+                                  ExecRow outerTemplateRow,
+                                  TaskContext taskContext) throws Exception {
         Map<ValueRow, List<ExecRow>> table=new HashMap<>();
 
         int numKeys = innerHashKeys.length;
         DataValueDescriptor[] keys = new DataValueDescriptor[numKeys];
         ValueRow keyRow = new ValueRow(keys);
         try(Stream<ExecRow> innerRows=streamLoader.call()){
-            ExecRow right;
-            while((right=innerRows.next())!=null){
-
+            Iterator<ExecRow> it = IteratorUtils.asInterruptibleIterator(taskContext, innerRows.asIterator());
+            while(it.hasNext()){
+                ExecRow right = it.next();
                 for (int i = 0; i < numKeys; i++) {
                     keyRow.setColumn(i+1, right.getColumn(innerHashKeys[i] + 1));
                 }

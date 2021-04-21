@@ -283,8 +283,7 @@ public class PropertyConglomerate {
         if (value != null) {
             // not a delete request, so insert the new property.
             row = makeNewTemplate(key, value);
-            try (ConglomerateController cc =
-                tc.openConglomerate(
+            try (ConglomerateController cc = tc.openConglomerate(
                     propertiesConglomId,
                     false,
                     TransactionController.OPENMODE_FORUPDATE,

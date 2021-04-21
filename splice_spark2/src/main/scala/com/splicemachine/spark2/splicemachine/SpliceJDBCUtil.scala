@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2020 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2021 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -15,9 +15,9 @@ package com.splicemachine.spark2.splicemachine
 
 import java.sql.{Connection, JDBCType, ResultSet, SQLException}
 
-import org.apache.spark.sql.execution.datasources.jdbc.{JDBCRDD, JdbcOptionsInWrite, JdbcUtils}
-import org.apache.spark.sql.jdbc.{JdbcDialect, JdbcDialects, JdbcType}
-import org.apache.spark.sql.sources._
+import org.apache.spark.sql.execution.datasources.jdbc.JDBCRDD
+import org.apache.spark.sql.jdbc.JdbcDialects
+import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types._
 
 import scala.collection.mutable.ArrayBuffer
@@ -76,17 +76,17 @@ object SpliceJDBCUtil {
     if (sb.length < 2) "" else sb.substring(2)
   }
 
-  def retrievePrimaryKeys(options: JdbcOptionsInWrite): Array[String] =
+  def retrievePrimaryKeys(tableName: String, con: Connection): Array[String] =
     retrieveMetaData(
-      options,
+      tableName, con,
       (conn,schema,tablename) => conn.getMetaData.getPrimaryKeys(null, schema, tablename),
       (conn,tablename) => conn.getMetaData.getPrimaryKeys(null, null, tablename),
       rs => Seq(rs.getString("COLUMN_NAME"))
     ).map(_(0))
 
-  def retrieveColumnInfo(options: JdbcOptionsInWrite): Array[Seq[String]] =
+  def retrieveColumnInfo(tableName: String, con: Connection): Array[Seq[String]] =
     retrieveMetaData(
-      options,
+      tableName, con,
       (conn,schema,tablename) => conn.getMetaData.getColumns(null, schema.toUpperCase, tablename.toUpperCase, null),
       (conn,tablename) => conn.getMetaData.getColumns(null, null, tablename.toUpperCase, null),
       rs => Seq(
@@ -97,9 +97,9 @@ object SpliceJDBCUtil {
       )
     )
 
-  def retrieveTableInfo(options: JdbcOptionsInWrite): Array[Seq[String]] =
+  def retrieveTableInfo(tableName: String, con: Connection): Array[Seq[String]] =
     retrieveMetaData(
-      options,
+      tableName, con,
       (conn,schema,tablename) => conn.getMetaData.getTables(null, schema.toUpperCase, tablename.toUpperCase, null),
       (conn,tablename) => conn.getMetaData.getTables(null, null, tablename.toUpperCase, null),
       rs => Seq(
@@ -110,30 +110,24 @@ object SpliceJDBCUtil {
     )
 
   private def retrieveMetaData(
-    options: JdbcOptionsInWrite,
+    tableName: String, con: Connection,
     getWithSchemaTablename: (Connection,String,String) => ResultSet,
     getWithTablename: (Connection,String) => ResultSet,
     getData: ResultSet => Seq[String]
   ): Array[Seq[String]] = {
-    val table = options.table
-    val conn: Connection = JdbcUtils.createConnectionFactory(options)()
-    try {
-      val rs: ResultSet =
-        if (table.contains(".")) {
-          val meta = table.split("\\.")
-          getWithSchemaTablename(conn, meta(0), meta(1))
-        }
-        else {
-          getWithTablename(conn, table)
-        }
-      val buffer = ArrayBuffer[Seq[String]]()
-      while (rs.next()) {
-        buffer += getData(rs)
+    val rs: ResultSet =
+      if (tableName.contains(".")) {
+        val meta = tableName.split("\\.")
+        getWithSchemaTablename(con, meta(0), meta(1))
       }
-      buffer.toArray
-    } finally {
-      conn.close()
+      else {
+        getWithTablename(con, tableName)
+      }
+    val buffer = ArrayBuffer[Seq[String]]()
+    while (rs.next()) {
+      buffer += getData(rs)
     }
+    buffer.toArray
   }
 
   /**
