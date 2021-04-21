@@ -26,7 +26,7 @@ import com.splicemachine.db.impl.sql.compile.ValueNode;
 import java.sql.Types;
 
 /**
- * An SPS property that governs timestamp field(s) in a query.
+ * An SPS property that governs COUNT functions in a query.
  */
 final class SPSPropertyCountReturnType extends SPSProperty {
 
