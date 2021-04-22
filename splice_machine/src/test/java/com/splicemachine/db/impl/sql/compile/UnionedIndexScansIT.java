@@ -19,7 +19,9 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.SerialTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import splice.com.google.common.collect.Lists;
@@ -33,6 +35,7 @@ import java.util.List;
 /**
  * Test Unioned Index Scans Access Path
  */
+@Category({SerialTest.class})
 @RunWith(Parameterized.class)
 public class UnionedIndexScansIT  extends SpliceUnitTest {
     
