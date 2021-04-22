@@ -251,7 +251,7 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
     public boolean isMemPlatform() { return isMemPlatform; };
 
     @Override
-    public JoinCostEstimationModel getCurrentJoinCostEstimationModel() {
+    public JoinCostEstimationModel getJoinCostEstimationModel() {
         return joinCostEstimationModel;
     }
 }

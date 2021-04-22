@@ -38,36 +38,35 @@ public class V1NestedLoopJoinCostEstimationModel implements StrategyJoinCostEsti
                              CostEstimate outerCost,
                              Optimizer optimizer,
                              CostEstimate innerCost) throws StandardException {
-
-        if (outerCost.isUninitialized() || (outerCost.localCost() == 0d && outerCost.getEstimatedRowCount() == 1.0)) {
+        if(outerCost.isUninitialized() ||(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0)){
             /*
              * Derby calls this method at the end of each table scan, even if it's not a join (or if it's
              * the left side of the join). When this happens, the outer cost is still unitialized, so there's
              * nothing to do in this method;
              */
             RowOrdering ro = outerCost.getRowOrdering();
-            if (ro != null)
+            if(ro!=null)
                 outerCost.setRowOrdering(ro); //force a cloning
             return;
         }
 
         //set the base costs for the join
         innerCost.setBase(innerCost.cloneMe());
-        double totalRowCount = outerCost.rowCount() * innerCost.rowCount();
+        double totalRowCount = outerCost.rowCount()*innerCost.rowCount();
 
         double nljOnSparkPenalty = getNljOnSparkPenalty(innerTable, predList, innerCost, outerCost, optimizer);
         innerCost.setRowOrdering(outerCost.getRowOrdering());
         innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalRowCount));
         innerCost.setParallelism(outerCost.getParallelism());
         innerCost.setRowCount(totalRowCount);
-        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer);
-        innerCost.setRemoteCost(remoteCostPerPartition);
-        innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
         double joinCost = nestedLoopJoinStrategyLocalCost(innerCost, outerCost, totalRowCount, optimizer.isForSpark());
         joinCost += nljOnSparkPenalty;
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerParallelTask(joinCost);
         innerCost.setSingleScanRowCount(innerCost.getEstimatedRowCount());
+        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer);
+        innerCost.setRemoteCost(remoteCostPerPartition);
+        innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
     }
 
     // Nested loop join is most useful if it can be used to
@@ -106,12 +105,10 @@ public class V1NestedLoopJoinCostEstimationModel implements StrategyJoinCostEsti
                 return retval;
         }
         return NLJ_ON_SPARK_PENALTY * multiplier;
-
-
     }
 
     private boolean isSingleTableScan(Optimizer optimizer) {
-        return optimizer.getJoinPosition() == 0 &&
+        return optimizer.getJoinPosition() == 0   &&
                 optimizer.getJoinType() < INNERJOIN;
     }
 
@@ -130,6 +127,17 @@ public class V1NestedLoopJoinCostEstimationModel implements StrategyJoinCostEsti
         }
         return false;
     }
+
+    /**
+     *
+     * Nested Loop Join Local Cost Computation
+     *
+     * Total Cost = (Left Side Cost)/Left Side Partition Count) + (Left Side Row Count/Left Side Partition Count)*(Right Side Cost + Right Side Transfer Cost)
+     *
+     * @param innerCost
+     * @param outerCost
+     * @return
+     */
 
     public static double nestedLoopJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost,
                                                          double numOfJoinedRows, boolean useSparkCostFormula) {
@@ -162,19 +170,22 @@ public class V1NestedLoopJoinCostEstimationModel implements StrategyJoinCostEsti
         // the primary key or index on the inner table, could be to sort the outer
         // table on the join key and then perform a merge join with the inner table.
 
-        double innerLocalCost = innerCost.getLocalCostPerParallelTask() * innerCost.getParallelism();
-        double innerRemoteCost = innerCost.getRemoteCostPerParallelTask() * innerCost.getParallelism();
+        /* DB-11662 note
+         * The explanation above makes sense, but it seems that not taking innerLocalCost per
+         * parallel task but the whole inner cost is too unfair for NLJ compared to other join
+         * strategies, especially when the inner table scan cost is very high.
+         */
+        double innerRemoteCost = innerCost.getRemoteCostPerParallelTask()*innerCost.getParallelism();
         if (useSparkCostFormula)
             return outerCost.getLocalCostPerParallelTask() +
-                    ((outerCost.rowCount() / outerCost.getParallelism())
-                            * innerLocalCost) +
-                    ((outerCost.rowCount()) * (innerRemoteCost))
-                    + joiningRowCost / outerCost.getParallelism();
+                    (Math.max(outerCost.rowCount() / outerCost.getParallelism(), 1)
+                            * innerCost.getLocalCostPerParallelTask()) +
+                    (outerCost.rowCount() * (innerRemoteCost + outerCost.getRemoteCost())) +  // this is not correct, but to avoid regression on OLAP
+                    joiningRowCost / outerCost.getParallelism();
         else
             return outerCost.getLocalCostPerParallelTask() +
-                    (outerCost.rowCount() / outerCost.getParallelism())
-                            * (innerCost.localCost() + innerCost.getRemoteCost()) +
+                    Math.max(outerCost.rowCount() / outerCost.getParallelism(), 1)
+                            * (innerCost.getLocalCostPerParallelTask()+innerCost.getRemoteCost()) +
                     joiningRowCost / outerCost.getParallelism();
-
     }
 }

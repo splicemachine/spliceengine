@@ -2836,7 +2836,7 @@ public class OptimizerImpl implements Optimizer{
     }
 
     @Override
-    public JoinCostEstimationModel getCurrentJoinCostEstimationModel() {
+    public JoinCostEstimationModel getJoinCostEstimationModel() {
         return joinCostEstimationModel;
     }
 }

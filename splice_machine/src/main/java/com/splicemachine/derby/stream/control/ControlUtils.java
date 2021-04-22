@@ -52,15 +52,6 @@ public class ControlUtils {
         return newMap;
     }
 
-    public static <K, V> Map<K,V> mapFromIterator(Iterator<Tuple2<K, V>> iterator) {
-        Map<K,V> newMap = new HashMap<>();
-        while (iterator.hasNext()) {
-            Tuple2<K, V> t = iterator.next();
-            newMap.putIfAbsent(t._1(), t._2());
-        }
-        return newMap;
-    }
-
     public static <E> Iterator<E> limit(Iterator<E> delegate, OperationContext context) {
         if (context == null) {
             // no context, iterator is unlimited
