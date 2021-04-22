@@ -618,7 +618,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 			// in case more calls come in on this resultSet
 
 			if (lcc != null)
-			    lcc.logEndFetching((uuid == null ? "" : uuid.toString()), getSQLText(), NumberofFetchedRows);
+			    lcc.logEndFetching(uuid, getSQLText(), NumberofFetchedRows);
 		}
 
 	}

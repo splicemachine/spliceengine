@@ -235,7 +235,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     public void close() throws StandardException {
         if (uuid != null) {
             EngineDriver.driver().getOperationManager().unregisterOperation(uuid);
-            if (isOpen) {
+            if (isOpen) { // && activation.getLanguageConnectionContext().isLoggingEnabled()) {
                 logExecutionEnd();
             }
         }
@@ -327,8 +327,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         try {
             DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation, this);
             String intTkn = activation.getLanguageConnectionContext().getRdbIntTkn();
-            uuid = EngineDriver.driver().getOperationManager().registerOperation(this, Thread.currentThread(),new Date(), dsp.getType(), intTkn);
-            logExecutionStart(dsp);
+            uuid = EngineDriver.driver().getOperationManager().
+                    registerOperation(this, Thread.currentThread(),
+                            new Date(), dsp.getType(), intTkn);
+            if(activation.getLanguageConnectionContext().isLoggingEnabled())
+                logExecutionStart(dsp);
             openCore();
         } catch (Exception e) {
             EngineDriver.driver().getOperationManager().unregisterOperation(uuid);
@@ -581,16 +584,18 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
     }
 
-    private void logExecutionStart(DataSetProcessor dsp) {
+    /**
+     * if matching statement cache ignore comment optimization is disabled, just use the stmt text in the preparedStatement;
+     * however, if this optimization is turned on, the statement text in the preparedStatment may not reflect the original statement
+     * that the user submitted(it could be a statement which differs from the user submitted one in comments).
+     * We need to log the original statement text, which is passed down through lcc.lastlogstmt.
+     * In both cases, there is a scenario where for internally generated statement, we explicitly set the sourceText, for example,
+     * a triggered statement(GenericTriggerExecutor.compile(), in those cases, we want to honor/use the explicitly set sourceText.
+     * @param ps PreparedStatement
+     * @return sql
+     */
+    private String getStatementForLogging(ExecPreparedStatement ps) {
         boolean ignoreComentOptEnabled = activation.getLanguageConnectionContext().getIgnoreCommentOptEnabled();
-        ExecPreparedStatement ps = activation.getPreparedStatement();
-        /* if matching statement cache ignore comment optimization is disabled, just use the stmt text in the preparedStatement;
-           however, if this optimization is turned on, the statement text in the preparedStatment may not reflect the original statement
-           that the user submitted(it could be a statement which differs from the user submitted one in comments).
-           We need to log the original statement text, which is passed down through lcc.lastlogstmt.
-           In both cases, there is a scenario where for internally generated statement, we explicitly set the sourceText, for example,
-           a triggered statement(GenericTriggerExecutor.compile(), in those cases, we want to honor/use the explicitly set sourceText.
-         */
         String stmtForLogging;
         if (!ignoreComentOptEnabled) {
             stmtForLogging = ps.getSource();
@@ -600,16 +605,24 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             else
                 stmtForLogging = ps.getSourceTxt();
         }
+        return stmtForLogging;
+    }
+
+    private void logExecutionStart(DataSetProcessor dsp) {
+        ExecPreparedStatement ps = activation.getPreparedStatement();
+        String stmtForLogging = getStatementForLogging(ps);
 
         activation.getLanguageConnectionContext().logStartExecuting(
-                uuid.toString(), dsp.getType().toString(), stmtForLogging,
+                uuid, dsp.getType() == DataSetProcessor.Type.CONTROL, stmtForLogging,
                 ps,
                 activation.getParameterValueSet()
         );
     }
 
     private void logExecutionEnd() {
-        activation.getLanguageConnectionContext().logEndExecuting(uuid.toString(),
+        ExecPreparedStatement ps = activation.getPreparedStatement();
+        activation.getLanguageConnectionContext().logEndExecuting(uuid,
+                getStatementForLogging(ps), ps, activation.getParameterValueSet(),
                 modifiedRowCount[0], badRecords, System.nanoTime() - startTime);
     }
 

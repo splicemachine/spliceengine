@@ -72,12 +72,14 @@ import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
+import com.splicemachine.qpt.SQLStatement;
 import com.splicemachine.utils.SparkSQLUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import splice.com.google.common.cache.CacheBuilder;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
@@ -95,6 +97,7 @@ import static com.splicemachine.db.iapi.reference.Property.MATCHING_STATEMENT_CA
 public class GenericLanguageConnectionContext extends ContextImpl implements LanguageConnectionContext {
 
     private final Logger stmtLogger = Logger.getLogger("splice-derby.statement");
+    private final Logger stmtLogger2 = Logger.getLogger("splice-log.statement");
     private static Logger LOG = Logger.getLogger(GenericLanguageConnectionContext.class);
     private static final int LOCAL_MANAGED_CACHE_MAX_SIZE = 256;
 
@@ -3965,29 +3968,45 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public void logStartFetching(String uuid, String statement) {
+    public void logStartFetching(java.util.UUID uuid, String statement) {
         if (stmtLogger.isInfoEnabled()) {
             stmtLogger.info(String.format("Start fetching from the result set. %s, uuid=%s, %s",
-                getLogHeader(), uuid, formatLogStmt(statement)));
+                getLogHeader(), uuid.toString(), formatLogStmt(statement)));
         }
     }
 
     @Override
-    public void logEndFetching(String uuid, String statement, long fetchedRows) {
+    public boolean isLoggingEnabled() {
+        return stmtLogger.isInfoEnabled();
+    }
+
+    @Override
+    public void logEndFetching(java.util.UUID uuid, String statement, long fetchedRows) {
         if (stmtLogger.isInfoEnabled()) {
             stmtLogger.info(String.format("End fetching from the result set. %s, uuid=%s, fetchedRows=%d, %s",
-                getLogHeader(), uuid, fetchedRows, formatLogStmt(statement)));
+                getLogHeader(), uuid.toString(), fetchedRows, formatLogStmt(statement)));
+        }
+    }
+
+    String getStatmentId(String stmt)
+    {
+        try {
+            return SQLStatement.getSqlStatement(stmt).getId();
+        } catch (Exception e) {
+            return "X#ERROR#";
         }
     }
 
     @Override
-    public void logStartExecuting(String uuid, String engine, String stmt, ExecPreparedStatement ps,
+    public void logStartExecuting(java.util.UUID uuid, boolean isOLTP, String stmt, ExecPreparedStatement ps,
                                   ParameterValueSet pvs) {
         if (stmtLogger.isInfoEnabled()) {
             stmtLogger.info(String.format(
-                "Start executing query. %s, uuid=%s, engine=%s, %s, paramsCount=%d, params=[ %s ], sessionProperties=[ %s ]",
-                getLogHeader(), uuid, engine, formatLogStmt(stmt),
-                pvs.getParameterCount(), pvs.toString(), ps.getSessionPropertyValues()));
+                "Start executing query. %s, uuid=%s, engine=%s, %s, paramsCount=%d, params=[ %s ], " +
+                        "sessionProperties=[ %s ], stmtId = %s",
+                getLogHeader(), uuid.toString(), isOLTP ? "OLTP" : "OLAP", formatLogStmt(stmt),
+                pvs.getParameterCount(), pvs.toString(), ps.getSessionPropertyValues(),
+                getStatmentId(stmt)));
         }
     }
 
@@ -4002,12 +4021,24 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public void logEndExecuting(String uuid, long modifiedRows, long badRecords, long
-        nanoTimeSpent) {
+    public void logEndExecuting(java.util.UUID uuid, String stmt, ExecPreparedStatement ps, ParameterValueSet pvs,
+                                long modifiedRows, long badRecords, long nanoTimeSpent) {
         if (stmtLogger.isInfoEnabled()) {
             stmtLogger.info(String.format("End executing query. %s, uuid=%s, timeSpent=%dms, " +
                     "modifiedRows=%d, badRecords=%d",
-                getLogHeader(), uuid, nanoTimeSpent / 1000000, modifiedRows, badRecords));
+                getLogHeader(), uuid.toString(), nanoTimeSpent / 1000000, modifiedRows, badRecords));
+        }
+
+        long MINIMUM_EXECUTION_TIME_TRACE_NS = 10000;
+        if(nanoTimeSpent > MINIMUM_EXECUTION_TIME_TRACE_NS) {
+            String engine = "unknown"; //isOLTP ? "OLTP" : "OLAP";
+            stmtLogger2.info(String.format(
+                "QUERY EXECUTED. %s, uuid=%s, engine=%s, statement=[ %s ], stmtId = %s, paramsCount=%d, params=[ %s ], " +
+                        "sessionProperties=[ %s ], timeSpent=%dus, modifiedRows=%d, badRecords=%d",
+                    getLogHeader(), uuid.toString(), engine, stmt,
+                    getStatmentId(stmt),
+                    pvs.getParameterCount(), pvs.toString(), ps.getSessionPropertyValues(),
+                    nanoTimeSpent / 1000, modifiedRows, badRecords));
         }
     }
 

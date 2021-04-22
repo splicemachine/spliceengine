@@ -1468,12 +1468,12 @@ public interface LanguageConnectionContext extends Context {
     void logErrorCompiling(String statement, Throwable t, long nanoTimeSpent);
     void logCommit();
     void logRollback();
-    void logStartFetching(String uuid, String statement);
-    void logEndFetching(String uuid, String statement, long fetchedRows);
+    void logStartFetching(java.util.UUID uuid, String statement);
+    void logEndFetching(java.util.UUID uuid, String statement, long fetchedRows);
     void logNextBatch(ParameterValueSet pvs);
-    void logStartExecuting(String uuid, String engine, String stmt, ExecPreparedStatement ps,
+    void logStartExecuting(java.util.UUID uuid, boolean isOLTP, String stmt, ExecPreparedStatement ps,
                            ParameterValueSet pvs);
-    void logEndExecuting(String uuid, long modifiedRows, long badRecords, long nanoTimeSpent);
+    void logEndExecuting(java.util.UUID uuid, String statementForLogging, ExecPreparedStatement ps, ParameterValueSet parameterValueSet, long modifiedRows, long badRecords, long nanoTimeSpent);
 
     void setSessionProperties(Properties newProperties);
     SessionProperties getSessionProperties();
@@ -1573,4 +1573,6 @@ public interface LanguageConnectionContext extends Context {
      * @note this method has side effects.
      */
     PreparedStatement lookupStatement(GenericStatement statement) throws StandardException;
+
+    boolean isLoggingEnabled();
 }

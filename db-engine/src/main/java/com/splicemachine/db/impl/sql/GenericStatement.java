@@ -855,7 +855,7 @@ public class GenericStatement implements Statement{
                                            StatementNode boundAndOptimizedStatement,
                                            boolean cacheMe,
                                            boolean forExplain) throws StandardException{
-       lcc.logStartCompiling(getSource());
+        lcc.logStartCompiling(getSource());
         long startTime = System.nanoTime();
         try {
 
