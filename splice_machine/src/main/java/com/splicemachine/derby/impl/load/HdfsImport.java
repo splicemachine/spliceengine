@@ -34,13 +34,14 @@ import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.load.ColumnInfo;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
+import com.splicemachine.db.impl.sql.catalog.Procedure;
 import com.splicemachine.db.impl.sql.compile.DeleteNode;
 import com.splicemachine.db.impl.sql.compile.InsertNode;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.derby.utils.EngineUtils;
-import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.derby.procedures.SpliceAdmin;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -1029,5 +1030,158 @@ public class HdfsImport {
             sb.append(IdUtil.normalToDelimited(pkColumns[i]));
         }
         return sb.toString();
+    }
+
+    public static void addProcedures(List<Procedure> procedures) {
+        Procedure importWithBadRecords = Procedure.newBuilder().name("IMPORT_DATA")
+                .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
+                .catalog("schemaName")
+                .catalog("tableName")
+                .varchar("insertColumnList",32672)
+                .varchar("fileName",32672)
+                .varchar("columnDelimiter",5)
+                .varchar("characterDelimiter", 5)
+                .varchar("timestampFormat",32672)
+                .varchar("dateFormat",32672)
+                .varchar("timeFormat",32672)
+                .bigint("maxBadRecords")
+                .varchar("badRecordDirectory",32672)
+                .varchar("oneLineRecords",5)
+                .varchar("charset",32672)
+                .build();
+        procedures.add(importWithBadRecords);
+
+
+        Procedure loadReplaceProc = Procedure.newBuilder().name("LOAD_REPLACE")
+                .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
+                .catalog("schemaName")
+                .catalog("tableName")
+                .varchar("insertColumnList",32672)
+                .varchar("fileName",32672)
+                .varchar("columnDelimiter",5)
+                .varchar("characterDelimiter", 5)
+                .varchar("timestampFormat",32672)
+                .varchar("dateFormat",32672)
+                .varchar("timeFormat",32672)
+                .bigint("maxBadRecords")
+                .varchar("badRecordDirectory",32672)
+                .varchar("oneLineRecords",5)
+                .varchar("charset",32672)
+                .build();
+        procedures.add(loadReplaceProc);
+
+        Procedure importUnsafe = Procedure.newBuilder().name("IMPORT_DATA_UNSAFE")
+                .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
+                .catalog("schemaName")
+                .catalog("tableName")
+                .varchar("insertColumnList",32672)
+                .varchar("fileName",32672)
+                .varchar("columnDelimiter",5)
+                .varchar("characterDelimiter", 5)
+                .varchar("timestampFormat",32672)
+                .varchar("dateFormat",32672)
+                .varchar("timeFormat",32672)
+                .bigint("maxBadRecords")
+                .varchar("badRecordDirectory",32672)
+                .varchar("oneLineRecords",5)
+                .varchar("charset",32672)
+                .build();
+        procedures.add(importUnsafe);
+
+        Procedure bulkImportHFile = Procedure.newBuilder().name("BULK_IMPORT_HFILE")
+                .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
+                .catalog("schemaName")
+                .catalog("tableName")
+                .varchar("insertColumnList",32672)
+                .varchar("fileName",32672)
+                .varchar("columnDelimiter",5)
+                .varchar("characterDelimiter", 5)
+                .varchar("timestampFormat",32672)
+                .varchar("dateFormat",32672)
+                .varchar("timeFormat",32672)
+                .bigint("maxBadRecords")
+                .varchar("badRecordDirectory",32672)
+                .varchar("oneLineRecords",5)
+                .varchar("charset",32672)
+                .varchar("bulkImportDirectory", 32672)
+                .varchar("skipSampling", 5)
+                .build();
+        procedures.add(bulkImportHFile);
+
+
+        Procedure sampleData = Procedure.newBuilder().name("SAMPLE_DATA")
+                .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
+                .catalog("schemaName")
+                .catalog("tableName")
+                .varchar("insertColumnList",32672)
+                .varchar("fileName",32672)
+                .varchar("columnDelimiter",5)
+                .varchar("characterDelimiter", 5)
+                .varchar("timestampFormat",32672)
+                .varchar("dateFormat",32672)
+                .varchar("timeFormat",32672)
+                .bigint("maxBadRecords")
+                .varchar("badRecordDirectory",32672)
+                .varchar("oneLineRecords",5)
+                .varchar("charset",32672)
+                .varchar("bulkImportDirectory", 32672)
+                .build();
+        procedures.add(sampleData);
+
+        Procedure computeSplitKey= Procedure.newBuilder().name("COMPUTE_SPLIT_KEY")
+                .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
+                .catalog("schemaName")
+                .catalog("tableName")
+                .catalog("indexName")
+                .varchar("columnList",32672)
+                .varchar("fileName",32672)
+                .varchar("columnDelimiter",5)
+                .varchar("characterDelimiter", 5)
+                .varchar("timestampFormat",32672)
+                .varchar("dateFormat",32672)
+                .varchar("timeFormat",32672)
+                .bigint("maxBadRecords")
+                .varchar("badRecordDirectory",32672)
+                .varchar("oneLineRecords",5)
+                .varchar("charset",32672)
+                .varchar("outputDirectory", 32672)
+                .build();
+        procedures.add(computeSplitKey);
+
+        Procedure upport = Procedure.newBuilder().name("UPSERT_DATA_FROM_FILE")
+                .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
+                .catalog("schemaName")
+                .catalog("tableName")
+                .varchar("insertColumnList",32672)
+                .varchar("fileName",32672)
+                .varchar("columnDelimiter",5)
+                .varchar("characterDelimiter", 5)
+                .varchar("timestampFormat",32672)
+                .varchar("dateFormat",32672)
+                .varchar("timeFormat",32672)
+                .bigint("maxBadRecords")
+                .varchar("badRecordDirectory",32672)
+                .varchar("oneLineRecords",5)
+                .varchar("charset",32672)
+                .build();
+        procedures.add(upport);
+
+        Procedure merge = Procedure.newBuilder().name("MERGE_DATA_FROM_FILE")
+                .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
+                .catalog("schemaName")
+                .catalog("tableName")
+                .varchar("insertColumnList",32672)
+                .varchar("fileName",32672)
+                .varchar("columnDelimiter",5)
+                .varchar("characterDelimiter", 5)
+                .varchar("timestampFormat",32672)
+                .varchar("dateFormat",32672)
+                .varchar("timeFormat",32672)
+                .bigint("maxBadRecords")
+                .varchar("badRecordDirectory",32672)
+                .varchar("oneLineRecords",5)
+                .varchar("charset",32672)
+                .build();
+        procedures.add(merge);
     }
 }

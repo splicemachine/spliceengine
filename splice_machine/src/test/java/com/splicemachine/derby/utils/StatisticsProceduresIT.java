@@ -34,14 +34,15 @@ import java.sql.*;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author Scott Fines
  *         Date: 3/2/15
  */
 @Category(SerialTest.class)
-public class StatisticsAdminIT extends SpliceUnitTest {
-    private static final String SCHEMA=StatisticsAdminIT.class.getSimpleName().toUpperCase();
+public class StatisticsProceduresIT extends SpliceUnitTest {
+    private static final String SCHEMA= StatisticsProceduresIT.class.getSimpleName().toUpperCase();
     private static final String SCHEMA2=SCHEMA+"2";
     private static final String SCHEMA3=SCHEMA+"3";
     private static final String SCHEMA4=SCHEMA+"4";
@@ -91,6 +92,9 @@ public class StatisticsAdminIT extends SpliceUnitTest {
 
     @Rule
     public final SpliceWatcher methodWatcher4=new SpliceWatcher(SCHEMA4);
+
+    @Rule
+    public final SpliceWatcher methodWatcher4_2 = new SpliceWatcher(SCHEMA4);
 
     @BeforeClass
     public static void createSharedTables() throws Exception{
@@ -1214,17 +1218,19 @@ public class StatisticsAdminIT extends SpliceUnitTest {
 
         // check the result of sys stats views
         ResultSet rs = methodWatcher4.executeQuery(format("select schemaname, tablename, total_row_count, avg_row_count, total_size, num_partitions, stats_type from sysvw.systablestatistics where schemaname='%s' and tablename='%s'", SCHEMA4, "T6"));
-        String expected = "SCHEMANAME     | TABLENAME | TOTAL_ROW_COUNT | AVG_ROW_COUNT |TOTAL_SIZE |NUM_PARTITIONS |STATS_TYPE |\n" +
-                "----------------------------------------------------------------------------------------------------------\n" +
-                "STATISTICSADMINIT4 |    T6     |      10000      |   2500.0000   |  1000000  |       4       |     4     |";
+        String expected =
+                "SCHEMANAME        | TABLENAME | TOTAL_ROW_COUNT | AVG_ROW_COUNT |TOTAL_SIZE |NUM_PARTITIONS |STATS_TYPE |\n" +
+                "---------------------------------------------------------------------------------------------------------------\n" +
+                "STATISTICSPROCEDURESIT4 |    T6     |      10000      |   2500.0000   |  1000000  |       4       |     4     |";
         String resultString = TestUtils.FormattedResult.ResultFactory.toString(rs);
         assertEquals("Fake table stats does not match expected result.", expected, resultString);
         rs.close();
 
         rs = methodWatcher4.executeQuery(format("select schemaname, tablename, columnname, cardinality, null_count, null_fraction, min_value, max_value from sysvw.syscolumnstatistics where schemaname='%s' and tablename='%s' and columnname='%s'", SCHEMA4, "T6", "B6"));
-        expected = "SCHEMANAME     | TABLENAME |COLUMNNAME | CARDINALITY |NULL_COUNT | NULL_FRACTION | MIN_VALUE | MAX_VALUE |\n" +
-                "--------------------------------------------------------------------------------------------------------------\n" +
-                "STATISTICSADMINIT4 |    T6     |    B6     |     10      |     0     |      0.0      |   NULL    |   NULL    |";
+        expected =
+                "SCHEMANAME        | TABLENAME |COLUMNNAME | CARDINALITY |NULL_COUNT | NULL_FRACTION | MIN_VALUE | MAX_VALUE |\n" +
+                "-------------------------------------------------------------------------------------------------------------------\n" +
+                "STATISTICSPROCEDURESIT4 |    T6     |    B6     |     10      |     0     |      0.0      |   NULL    |   NULL    |";
         resultString = TestUtils.FormattedResult.ResultFactory.toString(rs);
         assertEquals("Fake column stats does not match expected result.", expected, resultString);
         rs.close();
@@ -1273,10 +1279,79 @@ public class StatisticsAdminIT extends SpliceUnitTest {
         methodWatcher4.execute(format("call syscs_util.syscs_flush_table('%s', 'T7')", SCHEMA4));
         try(ResultSet rs = methodWatcher4.executeQuery("analyze table T7")) {
             String expected =
-                    "schemaName     | tableName | partition | rowsCollected | partitionSize |partitionCount | statsType |sampleFraction |skippedColumnIds |\n" +
-                    "------------------------------------------------------------------------------------------------------------------------------------------\n" +
-                    "STATISTICSADMINIT4 |    T7     |   -All-   |     36865     |    294920     |       1       |     2     |      0.0      |                 |";
+                    "schemaName        | tableName | partition | rowsCollected | partitionSize |partitionCount | statsType |sampleFraction |skippedColumnIds |\n" +
+                    "-----------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                    "STATISTICSPROCEDURESIT4 |    T7     |   -All-   |     36865     |    294920     |       1       |     2     |      0.0      |                 |";
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testInvalidateStoredPlanTimePointInCollectingStats() throws Exception {
+        Assume.assumeFalse("test is ignored in mem-platform until DB-11456 is fixed", isMemPlatform(methodWatcher));
+
+        String tableName = "TEST_INVALIDATE_STORED_PLAN";
+        methodWatcher4.execute(format("create table %s (a1 int, b1 char(200), c1 char(200))", tableName));
+        // get 0-stats
+        methodWatcher4.execute(format("analyze table %s", tableName));
+        // generate a plan under 0-stats
+        PreparedStatement ps = methodWatcher4.prepareStatement(format("explain select * from %s where a1 <= 10", tableName));
+        try (ResultSet rs = ps.executeQuery()) {
+            for (int i = 0; i < 3; ++i) {
+                rs.next();
+            }
+            Assert.assertTrue(rs.getString(1).contains("scannedRows=1,outputRows=1"));
+        }
+
+        // insert some rows
+        methodWatcher4.execute(format("insert into %s values (1,'a', 'a'), (2,'b','b'), (3,'c','c'), (4,'d','d'), (5,'e','e'), (6,'f','f'), (7,'g','g'),(8,'h','h'), (9,'i','i'), (10,'j','j')", tableName));
+        int factor = 10;
+        for (int i=0; i<12; i++) {
+            methodWatcher4.execute(format("insert into %1$s select a1+%2$d, b1, c1 from %1$s", tableName, factor));
+            factor *= 2;
+        }
+        // flush to disk
+        methodWatcher4.execute(format("call syscs_util.syscs_flush_table('%s', '%s')", SCHEMA4, tableName));
+
+        // analyze in a different thread
+        Thread thread1 = new Thread(() -> {
+            try {
+                try (PreparedStatement ps1 = methodWatcher4_2.prepareStatement(format("analyze table %s", tableName))) {
+                    ps1.executeQuery();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+
+        thread1.start();
+
+        // Once analyze start, run the prepared statement several times and assert that they all
+        // get the old stats. Note that they wouldn't get no stats, because analyze is also
+        // transactional.
+        // On standalone, about 15 runs can finish before analyze in thread 1 actually puts new
+        // stats available. Make the number half to anticipate slowness on Jenkins.
+        for (int i = 0; i < 7; ++i) {
+            try (ResultSet rs = ps.executeQuery()) {
+                for (int j = 0; j < 3; ++j) {
+                    rs.next();
+                }
+                Assert.assertTrue(rs.getString(1).contains("scannedRows=1,outputRows=1"));
+            }
+        }
+
+        thread1.join();
+
+        // Once analyze is done, running the prepared statement again would just pick up the
+        // latest stats.
+        try (ResultSet rs = ps.executeQuery()) {
+            for (int i = 0; i < 3; ++i) {
+                rs.next();
+            }
+            // Note: We cannot assert outputRows here. Most of the time it's 1, but there could be 1 out of
+            // 50 runs the number is something like 32. This might be related to DB-11736, non-determinism
+            // in sketch library.
+            Assert.assertTrue(rs.getString(1), rs.getString(1).contains("scannedRows=40960"));
         }
     }
 

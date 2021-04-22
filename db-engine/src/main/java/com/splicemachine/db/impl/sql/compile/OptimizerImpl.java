@@ -1656,6 +1656,18 @@ public class OptimizerImpl implements Optimizer{
         return optimizableList;
     }
 
+    @Override
+    public JBitSet getAssignedTableMap() {
+        return assignedTableMap;
+    }
+
+    @Override
+    public void setAssignedTableMap(JBitSet refMap) {
+        if (refMap != null) {
+            assignedTableMap.setTo(refMap);
+        }
+    }
+
     private void addCost(CostEstimate addend,CostEstimate destCost){
         destCost.setRemoteCost(addend.remoteCost());
         destCost.setLocalCost(destCost.localCost()+addend.localCost());

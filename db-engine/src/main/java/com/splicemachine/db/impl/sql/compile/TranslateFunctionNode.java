@@ -145,7 +145,7 @@ public class TranslateFunctionNode extends OperatorNode {
         LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, resultInterfaceType);
         operands.get(0).generateExpression(acb, mb);
         mb.upCast(interfaceTypes.get(0));
-        generateSetIgnoreTrailingWhitespacesInVarcharComparison(0, mb);
+        generateSetIgnoreTrailingWhitespacesInVarcharComparison(mb);
         for (int i = 1; i < operands.size(); ++i) {
             if (operands.get(i) != null)
             {

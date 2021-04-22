@@ -2034,4 +2034,9 @@ public class SpliceTransactionManager implements XATransactionController,
     public void rewritePropertyConglomerate() throws StandardException {
         accessmanager.getTransactionalProperties().rewritePropertyConglomerate(this);
     }
+
+    @Override
+    public void recoverPropertyConglomerateIfNecessary() throws StandardException {
+        accessmanager.getTransactionalProperties().recoverPropertyConglomerateIfNecessary(this);
+    }
 }
