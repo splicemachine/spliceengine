@@ -768,7 +768,7 @@ public abstract class TableOperatorNode extends FromTable{
                                                     null,
                                                     getCompilerContext().getMaximalPossibleTableCount(),
                                                     lcc,
-                                                    JoinCostEstimationModelRegistry.getJoinCostEstimationModel("v1"));
+                                                    lcc.getJoinCostEstimationModel());
             optimizer.prepForNextRound();
             optimizer.setAssignedTableMap(otherChildReferenceMap);
 

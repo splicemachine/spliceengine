@@ -14,6 +14,7 @@
 package com.splicemachine.db.iapi.sql.compile.costing;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class JoinCostEstimationModelRegistry {
@@ -30,5 +31,13 @@ public class JoinCostEstimationModelRegistry {
 
     public static JoinCostEstimationModel getJoinCostEstimationModel(String name) {
         return registry.get(name);
+    }
+
+    public static boolean exists(String modelName) {
+        return registry.containsKey(modelName);
+    }
+
+    public static Set<String> modelNames() {
+        return registry.keySet();
     }
 }
