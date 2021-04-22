@@ -71,8 +71,7 @@ public class SpliceLevel2OptimizerFactoryImpl extends OptimizerFactoryImpl {
                     new MergeSortJoinStrategy(),
                     new BroadcastJoinStrategy(),
                     new MergeJoinStrategy(),
-                    new CrossJoinStrategy(),
-//                    new HalfMergeSortJoinStrategy(),
+                    new CrossJoinStrategy()
             };
         }
 

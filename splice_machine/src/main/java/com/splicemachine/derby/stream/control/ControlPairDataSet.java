@@ -15,7 +15,6 @@
 package com.splicemachine.derby.stream.control;
 
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
-import org.apache.commons.collections.iterators.SingletonIterator;
 import splice.com.google.common.base.Function;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -289,20 +288,6 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
             result.add(new Tuple2<>(key,new Tuple2<Iterable<V>, Iterable<W>>(vs,ws)));
         }
         return new ControlPairDataSet<>(result.iterator());
-//        Multimap<K, V> left = multimapFromIterator(limit(ControlUtils.checkCancellation(source,operationContext), operationContext));
-//        Map<K,List<W>> right = new HashMap<>();
-//        Iterator<Tuple2<K, W>> it = limit(ControlUtils.checkCancellation(((ControlPairDataSet<K, W>) rightDataSet).source, operationContext), operationContext);
-//        while (it.hasNext()) {
-//            Tuple2<K, W> t = it.next();
-//            right.putIfAbsent(t._1(), Lists.newArrayList(t._2()));
-//        }
-//        List<Tuple2<K, Tuple2<Iterable<V>, Iterable<W>>>> result = new ArrayList<>();
-//        for(K key : left.keySet()) {
-//            if(right.containsKey(key)) {
-//                result.add(new Tuple2<>(key,new Tuple2<Iterable<V>, Iterable<W>>(left.get(key), right.get(key))));
-//            }
-//        }
-//        return new ControlPairDataSet<>(result.iterator());
     }
 
     @Override

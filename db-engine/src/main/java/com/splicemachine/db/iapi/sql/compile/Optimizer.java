@@ -425,5 +425,5 @@ public interface Optimizer{
 
     default boolean isMemPlatform() { return false; };
 
-    JoinCostEstimationModel getCurrentJoinCostEstimationModel();
+    JoinCostEstimationModel getJoinCostEstimationModel();
 }
