@@ -45,53 +45,53 @@ import static com.splicemachine.db.impl.sql.compile.ColumnReference.isBaseRowIdO
 
 public class RemapCRsForJoinVisitor implements Visitor
 {
-	public RemapCRsForJoinVisitor()
-	{
-	}
+    public RemapCRsForJoinVisitor()
+    {
+    }
 
-	public Visitable visit(Visitable node, QueryTreeNode parent)
-		throws StandardException
-	{
+    public Visitable visit(Visitable node, QueryTreeNode parent)
+        throws StandardException
+    {
             if (node instanceof ColumnReference)
             {
                 ColumnReference cr = (ColumnReference)node;
                 if (!isBaseRowIdOrRowId(cr.getColumnName()))
-                	return node;
+                    return node;
                 ResultColumn resultColumn = cr.getSource();
                 if (resultColumn != null) {
                     if (resultColumn.getExpression() instanceof VirtualColumnNode) {
-						VirtualColumnNode vcn = (VirtualColumnNode) resultColumn.getExpression();
+                        VirtualColumnNode vcn = (VirtualColumnNode) resultColumn.getExpression();
                         if (vcn.getSourceResultSet() instanceof JoinNode) {
-                        	// Remap twice to get to the left or right source of
-							// the join.
-							cr.remapColumnReferences();
-							cr.remapColumnReferences();
-						}
-					}
+                            // Remap twice to get to the left or right source of
+                            // the join.
+                            cr.remapColumnReferences();
+                            cr.remapColumnReferences();
+                        }
+                    }
                 }
             }
-	    return node;
-	}
-	/**
-	 * No need to go below a SubqueryNode.
-	 *
-	 * @return Whether or not to go below the node.
-	 */
-	public boolean skipChildren(Visitable node)
-	{
-		return (node instanceof SubqueryNode);
-	}
-	public boolean visitChildrenFirst(Visitable node)
-	{
-		return false;
-	}
-	public boolean stopTraversal()
-	{
-		return false;
-	}
-	////////////////////////////////////////////////
-	//
-	// CLASS INTERFACE
-	//
-	////////////////////////////////////////////////
-}	
+        return node;
+    }
+    /**
+     * No need to go below a SubqueryNode.
+     *
+     * @return Whether or not to go below the node.
+     */
+    public boolean skipChildren(Visitable node)
+    {
+        return (node instanceof SubqueryNode);
+    }
+    public boolean visitChildrenFirst(Visitable node)
+    {
+        return false;
+    }
+    public boolean stopTraversal()
+    {
+        return false;
+    }
+    ////////////////////////////////////////////////
+    //
+    // CLASS INTERFACE
+    //
+    ////////////////////////////////////////////////
+}    

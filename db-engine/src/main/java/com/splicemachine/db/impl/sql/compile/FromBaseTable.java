@@ -2007,8 +2007,8 @@ public class FromBaseTable extends FromTable {
                     //noinspection ConstantConditions
                     SanityManager.ASSERT(vd!=null,"vd not expected to be null for "+tableName);
                 }        // make sure there's a restriction list
-        restrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
-        baseTableRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+                restrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+                baseTableRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
 
 
                 cvn=(CreateViewNode)parseStatement(vd.getViewText(),false);
@@ -4924,9 +4924,7 @@ public class FromBaseTable extends FromTable {
     public boolean outerTableOnly() {
         if (outerTableOnly)
             return true;
-        return (bestAccessPath != null &&
-                bestAccessPath.getUisRowIdJoinBackToBaseTableResultSet() != null) ||
-               (trulyTheBestAccessPath != null &&
+        return (trulyTheBestAccessPath != null &&
                 trulyTheBestAccessPath.getUisRowIdJoinBackToBaseTableResultSet() != null);
     }
 
