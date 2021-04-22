@@ -24,11 +24,7 @@ import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.SlowTest;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -37,7 +33,6 @@ import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -162,12 +157,9 @@ public class StressSparkIT {
         assertTrue(HBaseTestUtils.setBlockPreCompact(true));
 
         try {
-            performTest(new Callback() {
-                @Override
-                public void callback(int i, HBaseAdmin admin, TableName tableName) throws Exception {
-                    if (i % 2 == 0) doFlush(admin, tableName);
-                    if (i % 3 == 0) doSplit(admin, tableName);
-                }
+            performTest((i, admin, tableName) -> {
+                if (i % 2 == 0) HBaseTestUtils.flush(admin, tableName, LOG);
+                if (i % 3 == 0) HBaseTestUtils.split(admin, tableName, LOG);
             });
         } finally {
             assertTrue(HBaseTestUtils.setBlockPreCompact(false));
@@ -176,84 +168,26 @@ public class StressSparkIT {
 
     @Test(timeout = 500000)
     public void testInsertsMatchDuringFlushesSplitsAndMajorCompactions() throws Throwable {
-        performTest(new Callback() {
-            @Override
-            public void callback(int i, HBaseAdmin admin, TableName tableName) throws Exception {
-                if (i % 2 == 0) doFlush(admin, tableName);
-                if (i % 3 == 0) doSplit(admin, tableName);
-                if (i % 4 == 0) doMajorCompact(admin, tableName);
-            }
+        performTest((i, admin, tableName) -> {
+            if (i % 2 == 0) HBaseTestUtils.flush(admin, tableName, LOG);
+            if (i % 3 == 0) HBaseTestUtils.split(admin, tableName, LOG);
+            if (i % 4 == 0) HBaseTestUtils.majorCompact(admin, tableName, LOG);
         });
     }
 
     @Test(timeout = 500000)
     public void testInsertsMatchDuringAsyncFlushesSplitsMovesAndCompacts() throws Throwable {
-        performTest(new Callback() {
-            @Override
-            public void callback(final int i, final HBaseAdmin admin, final TableName tableName) throws Exception {
-                executor.submit(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            Thread.sleep(500);
-                            if (i % 2 == 0) doFlush(admin, tableName);
-                            if (i % 3 == 0) doSplit(admin, tableName);
-                            if (i % 4 == 0) doMove(admin, tableName);
-                            if (i % 5 == 0) doCompact(admin, tableName);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                });
+        performTest((i, admin, tableName) -> executor.submit(() -> {
+            try {
+                Thread.sleep(500);
+                if (i % 2 == 0) HBaseTestUtils.flush(admin, tableName, LOG);
+                if (i % 3 == 0) HBaseTestUtils.split(admin, tableName, LOG);
+                if (i % 4 == 0) HBaseTestUtils.move(admin, tableName, LOG);
+                if (i % 5 == 0) HBaseTestUtils.compact(admin, tableName, LOG);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        });
-    }
-
-    private void doCompact(HBaseAdmin admin, TableName tableName) throws IOException {
-        LOG.trace("Compacting " + tableName);
-        admin.compact(tableName);
-        LOG.trace("Compacted " + tableName);
-    }
-
-    private void doMajorCompact(HBaseAdmin admin, TableName tableName) throws IOException {
-        LOG.trace("Major compacting " + tableName);
-        admin.majorCompact(tableName);
-        LOG.trace("Compacted " + tableName);
-    }
-
-
-    private void doMove(HBaseAdmin admin, TableName tableName) throws IOException {
-        LOG.trace("Preparing region move");
-        Collection<ServerName> servers = admin.getClusterStatus().getServers();
-        try (Connection connection = ConnectionFactory.createConnection(HConfiguration.unwrapDelegate())) {
-            List<HRegionLocation> locations = connection.getRegionLocator(tableName).getAllRegionLocations();
-            int r = new Random().nextInt(locations.size());
-            HRegionLocation location = locations.get(r);
-            location.getServerName().getServerName();
-            ServerName pick = null;
-            for (ServerName sn : servers) {
-                if (!sn.equals(location.getServerName())) {
-                    pick = sn;
-                    break;
-                }
-            }
-            if (pick != null) {
-                LOG.trace("Moving region");
-                admin.move(location.getRegionInfo().getEncodedNameAsBytes(), Bytes.toBytes(pick.getServerName()));
-            }
-        }
-    }
-
-    private void doSplit(HBaseAdmin admin, TableName tableName) throws IOException {
-        LOG.trace("Splitting " + tableName);
-        admin.split(tableName);
-        LOG.trace("Split " + tableName);
-    }
-
-    private void doFlush(HBaseAdmin admin, TableName tableName) throws IOException {
-        LOG.trace("Flushing " + tableName);
-        admin.flush(tableName);
-        LOG.trace("Flushed " + tableName);
+        }));
     }
 
     @Test(timeout = 500000)
@@ -262,11 +196,8 @@ public class StressSparkIT {
         assertTrue(HBaseTestUtils.setBlockPreCompact(true));
 
         try {
-            performTest(new Callback() {
-                @Override
-                public void callback(int i, final HBaseAdmin admin, final TableName tableName) throws Exception {
-                    if (i % 2 == 0) admin.flush(tableName);
-                }
+            performTest((i, admin, tableName) -> {
+                if (i % 2 == 0) admin.flush(tableName);
             });
         } finally {
             assertTrue(HBaseTestUtils.setBlockPreCompact(false));

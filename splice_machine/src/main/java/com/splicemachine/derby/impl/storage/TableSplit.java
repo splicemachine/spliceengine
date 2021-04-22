@@ -24,10 +24,11 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.Util;
+import com.splicemachine.db.impl.sql.catalog.Procedure;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.derby.utils.EngineUtils;
-import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.derby.procedures.SpliceAdmin;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
@@ -380,5 +381,64 @@ public class TableSplit{
                 return conn;
         }
         throw Util.noCurrentConnection();
+    }
+
+    public static void addProcedures(List<Procedure> procedures) {
+        Procedure splitProc = Procedure.newBuilder().name("SYSCS_SPLIT_TABLE")
+                .numOutputParams(0).numResultSets(0).ownerClass(TableSplit.class.getCanonicalName())
+                .catalog("schemaName")
+                .catalog("tableName")
+                .build();
+        procedures.add(splitProc);
+
+        Procedure splitProc1 = Procedure.newBuilder().name("SYSCS_SPLIT_TABLE_AT_POINTS")
+                .numOutputParams(0).numResultSets(0).ownerClass(TableSplit.class.getCanonicalName())
+                .catalog("schemaName")
+                .catalog("tableName")
+                .varchar("splitPoints", 32672)
+                .build();
+        procedures.add(splitProc1);
+
+        Procedure splitProc2 = Procedure.newBuilder().name("SYSCS_SPLIT_TABLE_EVENLY")
+                .numOutputParams(0).numResultSets(0).ownerClass(TableSplit.class.getCanonicalName())
+                .catalog("schemaName")
+                .catalog("tableName")
+                .integer("numSplits")
+                .build();
+        procedures.add(splitProc2);
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_SPLIT_REGION_AT_POINTS")
+                .numOutputParams(0).numResultSets(0).ownerClass(TableSplit.class.getCanonicalName())
+                .catalog("regionName")
+                .varchar("splitPoints", 32672)
+                .build());
+
+        Procedure splitProc3 = Procedure.newBuilder().name("SYSCS_SPLIT_TABLE_OR_INDEX_AT_POINTS")
+                .numOutputParams(0).numResultSets(0).ownerClass(TableSplit.class.getCanonicalName())
+                .catalog("schemaName")
+                .catalog("tableName")
+                .catalog("indexName")
+                .varchar("splitPoints", 32672)
+                .build();
+        procedures.add(splitProc3);
+
+        Procedure splitProc4 = Procedure.newBuilder().name("SYSCS_SPLIT_TABLE_OR_INDEX")
+                .numOutputParams(0).numResultSets(1).ownerClass(TableSplit.class.getCanonicalName())
+                .catalog("schemaName")
+                .catalog("tableName")
+                .catalog("indexName")
+                .varchar("columnList",32672)
+                .varchar("fileName",32672)
+                .varchar("columnDelimiter",5)
+                .varchar("characterDelimiter", 5)
+                .varchar("timestampFormat",32672)
+                .varchar("dateFormat",32672)
+                .varchar("timeFormat",32672)
+                .bigint("maxBadRecords")
+                .varchar("badRecordDirectory",32672)
+                .varchar("oneLineRecords",5)
+                .varchar("charset",32672)
+                .build();
+        procedures.add(splitProc4);
     }
 }

@@ -15,11 +15,13 @@
 package com.splicemachine.access.api;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.sql.compile.HashableJoinStrategy;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionServer;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -58,7 +60,7 @@ public interface PartitionAdmin extends AutoCloseable{
     void deleteSnapshot(String snapshotName) throws IOException;
 
     default Set<String> listSnapshots() throws IOException {
-        throw new RuntimeException("Not implemented");
+        return new HashSet();
     }
 
     void restoreSnapshot(String snapshotName) throws IOException;

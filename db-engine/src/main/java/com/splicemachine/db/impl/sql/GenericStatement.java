@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.depend.Dependency;
+import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
@@ -72,6 +73,7 @@ import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_COMPILE_VERSION;
@@ -938,7 +940,11 @@ public class GenericStatement implements Statement{
 
         // proceed to optimize and generate code for it
         StatementNode optimizedPlan = queryNode.fourPhasePrepare(lcc, null, new long[5], false, cc, null, cacheMe, true);
-
+        // mark the CC as in use so we use a new CC for the explain plan code generation.
+        cc.setCurrentDependent(preparedStmt);
+        if(!cc.getInUse()) {
+            cc.setInUse(true);
+        }
         // plug back the statement in the EXPLAIN plan, so we can proceed
         // with optimizing the EXPLAIN plan. The optimization of EXPLAIN
         // will bypass the underlying node since it is already optimized

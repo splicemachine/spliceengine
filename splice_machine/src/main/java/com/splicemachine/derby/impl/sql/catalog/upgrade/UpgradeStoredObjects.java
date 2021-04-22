@@ -20,13 +20,12 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
+import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
 
 public class UpgradeStoredObjects extends UpgradeScriptBase {
     public UpgradeStoredObjects(SpliceDataDictionary sdd, TransactionController tc) {
@@ -37,6 +36,18 @@ public class UpgradeStoredObjects extends UpgradeScriptBase {
     @Override
     protected void upgradeSystemTables() throws StandardException {
         try {
+            Splice_DD_Version catalogVersion=(Splice_DD_Version)tc.getProperty(SpliceDataDictionary.SPLICE_DATA_DICTIONARY_VERSION);
+            String s[] = catalogVersion.toString().split("\\.");
+            if (s.length > 3) {
+                int sprintNumber = Integer.parseInt(s[3]);
+                int minorVersionNumber = Integer.parseInt(s[1]);
+                if (minorVersionNumber == 1 && sprintNumber >= BaseDataDictionary.SERDE_UPGRADE_SPRINT) {
+                    // if serialization has already changed on 3.1 branch, skip this upgrade
+                    SpliceLogUtils.info(LOG, "Skipping data dictionary serialization upgrade for %s",
+                            catalogVersion.toString());
+                    return;
+                }
+            }
             SpliceLogUtils.info(LOG, "Start upgrading data dictionary serialization format.");
             // Make a copy of system tables that are to be upgrade. The original table will be truncated. We will
             // read from the copy in old serde format and write to original table in new format. Indexes will be
@@ -59,34 +70,17 @@ public class UpgradeStoredObjects extends UpgradeScriptBase {
         } catch (Exception e) {
             SpliceLogUtils.error(LOG, "Failed to upgrade data dictionary serialization format.");
             // If anything is wrong, roll back all dictionary changes. This will clone all snapshots to original tables.
-            rollback();
+            UpgradeUtils.rollback(sdd, tc);
             throw StandardException.plainWrapException(e);
         }
         finally {
             // Finally delete snapshot and cloned conglomerate.
-            deleteSnapshots();
-            dropClonedConglomerate();
+            UpgradeUtils.deleteSnapshots();
+            UpgradeUtils.dropClonedConglomerate(sdd, tc);
         }
     }
 
-    private void dropClonedConglomerate() throws StandardException {
-        try {
-            UpgradeUtils.dropClonedConglomerate(sdd, tc);
-            List<String> tableNames = Arrays.asList(
-                    HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME,
-                    HBaseConfiguration.CONGLOMERATE_TABLE_NAME);
-            PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
-            for (String tableName : tableNames) {
-                String backupTable = tableName + "_backup";
-                if (admin.tableExists(backupTable)) {
-                    admin.deleteTable(backupTable);
-                    SpliceLogUtils.info(LOG, "Dropped cloned table %s", backupTable);
-                }
-            }
-        } catch (IOException e) {
-            throw StandardException.plainWrapException(e);
-        }
-    }
+
 
     private void dropUnusedTable() throws StandardException{
         try {
@@ -99,27 +93,5 @@ public class UpgradeStoredObjects extends UpgradeScriptBase {
         }
     }
 
-    private void rollback() throws StandardException {
-        sdd.rollbackDataDictionarySerializationToV2(tc);
-        try {
-            List<String> tableNames = Arrays.asList("16",
-                    HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME,
-                    HBaseConfiguration.CONGLOMERATE_TABLE_NAME);
-            UpgradeUtils.rollBack(tableNames);
-        } catch (IOException ioe) {
-            throw StandardException.plainWrapException(ioe);
-        }
-    }
 
-    private void deleteSnapshots() throws StandardException {
-        try {
-            sdd.cleanupSerdeUpgrade(tc);
-            List<String> snapshotNames = Arrays.asList("16_snapshot",
-                    HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME + "_snapshot",
-                    HBaseConfiguration.CONGLOMERATE_TABLE_NAME + "_snapshot");
-            UpgradeUtils.deleteSnapshots(snapshotNames);
-        } catch (IOException e) {
-            throw StandardException.plainWrapException(e);
-        }
-    }
 }

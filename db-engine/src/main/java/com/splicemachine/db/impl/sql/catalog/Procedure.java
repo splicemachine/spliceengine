@@ -38,6 +38,7 @@ import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.JDBC30Translation;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -163,7 +164,18 @@ public class Procedure {
             throw new NoSuchMethodException("could not find correct function with signature for " + ownerClass + "." + name + ":\n"
                 + errors.toString());
         }
+    }
 
+    public Procedure debugCheck() {
+        if(SanityManager.DEBUG) {
+            try {
+                check();
+            } catch (Exception e) {
+                e.printStackTrace();
+                assert false;
+            }
+        }
+        return this;
     }
 
     public String getName() {
@@ -235,6 +247,10 @@ public class Procedure {
         dataDictionary.addDescriptor(ads,null,DataDictionary.SYSALIASES_CATALOG_NUM,false,tc,false);
 
         return ads;
+    }
+
+    public short getRoutineSqlControl() {
+        return routineSqlControl;
     }
 
     public static class Builder{

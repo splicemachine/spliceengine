@@ -809,6 +809,10 @@ public interface Property {
     // These are the different built-in providers Derby supports
 
 
+    String AUTHENTICATION_PROVIDER_JWT_TOKEN =
+            "TOKEN";
+
+
     /*
      ** Log
      */
@@ -1281,5 +1285,7 @@ public interface Property {
     String ENTERPRISE_KEY = "splicemachine.enterprise.key";
 
     String ENTERPRISE_ENABLE = "splicemachine.enterprise.enable";
+
+    String SPLICE_OLAP_PARALLEL_PARTITIONS = "splice.olapParallelPartitions";
 }
 

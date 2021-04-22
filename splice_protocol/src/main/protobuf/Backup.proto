@@ -9,6 +9,7 @@ message BackupJobStatus {
         TABLE = 1;
         SCHEMA = 2;
         DATABASE = 3;
+        META = 4;
     }
 
     optional int64 backupId = 1;
