@@ -1631,7 +1631,7 @@ public class ColumnReference extends ValueNode {
         if (columnName == null)
             return false;
 
-        return ROWID.equals(columnName) || BASEROWID.equals(columnName);
+        return isRowId(columnName) || isBaseRowId(columnName);
     }
 
     public static boolean isRowId(String columnName) {
@@ -1644,6 +1644,12 @@ public class ColumnReference extends ValueNode {
     public static boolean isBaseRowId(String columnName) {
         if (columnName == null)
             return false;
+
+        // These special column names for UPDATE and DELETE
+        // also refer to the base table RowID.
+        if (columnName.equals(UpdateNode.COLUMNNAME) ||
+            columnName.equals(DeleteNode.COLUMNNAME))
+            return true;
 
         return BASEROWID.equals(columnName);
     }

@@ -648,7 +648,10 @@ public class OrNode extends BinaryLogicalOperatorNode {
         if (depth == 0)
             disjuncts = new ArrayList<>();
         for (ValueNode pred:predicates) {
-            newOrNode = newOrNode(pred);
+            if (pred instanceof OrNode)
+                newOrNode = (OrNode)pred;
+            else
+                newOrNode = newOrNode(pred);
             if (depth == 0)
                 firstOrNode = newOrNode;
             else // Build a right-linked chain of OR nodes
@@ -677,7 +680,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
             }
             try {
                 CloneCRsVisitor cloneCRsVisitor = new CloneCRsVisitor();
-                firstAnd.accept(cloneCRsVisitor);
+                firstAnd = (AndNode)firstAnd.accept(cloneCRsVisitor);
             }
             catch (StandardException e) {
                 // If unable to clone all ColumnReferences, it is

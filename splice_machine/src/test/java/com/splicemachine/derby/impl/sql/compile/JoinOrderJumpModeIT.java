@@ -239,23 +239,18 @@ public class JoinOrderJumpModeIT extends SpliceUnitTest {
            different on join strategies or access paths. However, the join order must be the same.
         */
 
-        rowContainsQuery(new int[]{6,9,12,13,14,16,17,19,20,24,21,23,24,25,27,28,29}, sqlText, methodWatcher,
+        rowContainsQuery(new int[]{6,9,12,13,14,16,19,20,21,24,27,29}, sqlText, methodWatcher,
                 new String[] {"NestedLoopJoin"},                                              // 6
                 new String[] {"GroupBy"},                                                     // 9
                 new String[] {"IndexLookup", "outputRows=1"},                                 // 12
                 new String[] {"IndexScan[IDX_3", "outputRows=1"},                             // 13
                 new String[] {"Join"},                                                        // 14
-                new String[] {"ProjectRestrict"},                                             // 16
-                new String[] {"Join"},                                                        // 17
-                new String[] {"TableScan[TABLE_6", "scannedRows=2002,outputRows=2002"},       // 19
-                new String[] {"Distinct"},                                                    // 20
-                new String[] {"IndexScan[IDX_6", "scannedRows=1,outputRows=1"},               // 24
-                new String[] {"Join"},                                                        // 21
-                new String[] {"IndexLookup"},                                                 // 23
+                new String[] {"IndexScan"},                                                   // 16
+                new String[] {"Join"},                                                        // 19
+                new String[] {"TableScan[TABLE_4", "scannedRows=1,outputRows=1"},             // 20
+                new String[] {"NestedLoopJoin"},                                              // 21
                 new String[] {"IndexScan[IDX_3", "scannedRows=1,outputRows=1"},               // 24
-                new String[] {"Join"},                                                        // 25
                 new String[] {"IndexScan[IDX_2", "scannedRows=34609,outputRows=34609"},       // 27
-                new String[] {"IndexLookup"},                                                 // 28
                 new String[] {"IndexScan[IDX_1", "scannedRows=1,outputRows=1"}                // 29
                 );
     }

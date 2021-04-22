@@ -2370,7 +2370,9 @@ public class BinaryRelationalOperatorNode
     @Override
     public boolean isCloneable()
     {
-        return true;
+        // acceptChildren doesn't step into inListProbeSource,
+        // so if it's non-nil, we aren't cloneable.
+        return inListProbeSource == null;
     }
 
     /**
@@ -2381,7 +2383,5 @@ public class BinaryRelationalOperatorNode
     @Override
     public void acceptChildren(Visitor v) throws StandardException {
         super.acceptChildren(v);
-        if (inListProbeSource != null)
-            inListProbeSource = (InListOperatorNode)inListProbeSource.accept(v, this);
     }
 }
