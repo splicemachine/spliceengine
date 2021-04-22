@@ -1729,8 +1729,16 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
     public List<OptimizablePredicateList> separateOredPredicates() throws StandardException {
         List<OptimizablePredicateList> predicateLists = new ArrayList<>();
-        if (andNode.getLeftOperand() instanceof OrNode)
-            walkOredTerms(andNode.getLeftOperand(), predicateLists);
+        if (andNode.getLeftOperand() instanceof OrNode) {
+            try {
+                walkOredTerms(andNode.getLeftOperand(), predicateLists);
+            }
+            catch (StandardException e) {
+                // If we failed due to a cloning error in CloneCRsVisitor, don't error
+                // out, just disable UIS access path.
+                return null;
+            }
+        }
         if (predicateLists.isEmpty())
             return null;
         else
