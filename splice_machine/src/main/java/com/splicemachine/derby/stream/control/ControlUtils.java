@@ -23,9 +23,7 @@ import splice.com.google.common.base.Function;
 import splice.com.google.common.collect.*;
 import scala.Tuple2;
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 
 
@@ -50,6 +48,15 @@ public class ControlUtils {
         while (iterator.hasNext()) {
             Tuple2<K, V> t = iterator.next();
             newMap.put(t._1(), t._2());
+        }
+        return newMap;
+    }
+
+    public static <K, V> Map<K,V> mapFromIterator(Iterator<Tuple2<K, V>> iterator) {
+        Map<K,V> newMap = new HashMap<>();
+        while (iterator.hasNext()) {
+            Tuple2<K, V> t = iterator.next();
+            newMap.putIfAbsent(t._1(), t._2());
         }
         return newMap;
     }
