@@ -61,7 +61,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
         ONE_ROW_INNER
     }
     protected JoinType joinType;
-    protected boolean initialized;
+    protected boolean nljInitialized;
     protected int batchSize;
     protected Iterator<ExecRow> leftSideIterator;
     protected List<OperationContext> operationContextList;
@@ -196,7 +196,6 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
 
     @Override
     public boolean hasNext() {
-
         try {
             if (rightSideNLJIterator == null)
                 return false;
@@ -210,7 +209,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                     }
 
                     if (leftSideIterator.hasNext()) {
-                        // If we haven't consumed left side iterator, submit a task to scan righ side
+                        // If we haven't consumed left side iterator, submit a task to scan right side
                         ExecRow execRow = leftSideIterator.next();
                         OperationContext ctx = operationContextList.remove(0);
                         GetNLJoinIterator getNLJoinIterator = GetNLJoinIterator.makeGetNLJoinIterator(joinType,
@@ -220,7 +219,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                     }
 
                     if (nLeftRows > 0) {
-                        // If there are pending tasks, wait to get an iterator to righ side
+                        // If there are pending tasks, wait to get an iterator to right side
                         Future<Pair<OperationContext, Iterator<ExecRow>>> future = futures.remove(0);
                         if (taskContext != null && taskContext.isInterrupted()) {
                             LOG.warn("Task killed, raising exception!");
@@ -266,8 +265,9 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                 }
                 return result;
             }
-        }
-        catch (Exception e) {
+        } catch (RuntimeException e) {
+            throw e; // explicit RE catch/throw for findbugs
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
