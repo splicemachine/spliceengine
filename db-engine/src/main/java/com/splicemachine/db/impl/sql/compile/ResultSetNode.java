@@ -1130,7 +1130,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
                                                     requiredRowOrdering,
                                                     getCompilerContext().getMaximalPossibleTableCount(),
                                                     lcc,
-                                                    JoinCostEstimationModelRegistry.getJoinCostEstimationModel("v1"));
+                                                    lcc.getJoinCostEstimationModel());
         }
 
         optimizer.prepForNextRound();
