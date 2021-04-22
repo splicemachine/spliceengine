@@ -18,7 +18,7 @@ package com.splicemachine.hbase;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.derby.procedures.SpliceAdmin;
 import com.splicemachine.test.HBaseTestUtils;
 import com.splicemachine.test.SerialTest;
 import org.apache.hadoop.conf.Configuration;

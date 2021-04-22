@@ -6,6 +6,8 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.catalog.DefaultSystemProcedureGenerator;
 import com.splicemachine.db.impl.sql.catalog.Procedure;
 import com.splicemachine.derby.impl.sql.catalog.SpliceSystemProcedures;
+import com.splicemachine.derby.procedures.SpliceAdmin;
+import com.splicemachine.derby.procedures.StatisticsProcedures;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -32,7 +34,7 @@ public class ProcedureUnitTest {
                 .varchar("schema",128)
                 .varchar("table",1024)
                 .arg("staleOnly", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
-                .ownerClass(StatisticsAdmin.class.getCanonicalName())
+                .ownerClass(StatisticsProcedures.class.getCanonicalName())
                 .buildCheck();
     }
 
@@ -52,12 +54,12 @@ public class ProcedureUnitTest {
                     .numOutputParams(0)
                     .numResultSets(1)
                     .varchar("schema", 128)
-                    .ownerClass(StatisticsAdmin.class.getCanonicalName())
+                    .ownerClass(StatisticsProcedures.class.getCanonicalName())
                     .buildCheck();
             Assert.fail();
         }catch(Exception e) {
-            Assert.assertEquals("could not find correct function with signature for com.splicemachine.derby.utils.StatisticsAdmin.COLLECT_TABLE_STATISTICS:\n" +
-                            " public static void com.splicemachine.derby.utils.StatisticsAdmin.COLLECT_TABLE_STATISTICS(java.lang.String,java.lang.String,boolean,java.sql.ResultSet[]) throws java.sql.SQLException:\n" +
+            Assert.assertEquals("could not find correct function with signature for com.splicemachine.derby.procedures.StatisticsProcedures.COLLECT_TABLE_STATISTICS:\n" +
+                            " public static void com.splicemachine.derby.procedures.StatisticsProcedures.COLLECT_TABLE_STATISTICS(java.lang.String,java.lang.String,boolean,java.sql.ResultSet[]) throws java.sql.SQLException:\n" +
                             "  parameter count doesn't match: expected 2, but actual 4\n",
                     e.getMessage());
         }
@@ -72,12 +74,12 @@ public class ProcedureUnitTest {
                     .varchar("schema", 128)
                     .integer("WRONG_TYPE")
                     .arg("staleOnly", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
-                    .ownerClass(StatisticsAdmin.class.getCanonicalName())
+                    .ownerClass(StatisticsProcedures.class.getCanonicalName())
                     .buildCheck();
             Assert.fail();
         }catch(Exception e) {
-            Assert.assertEquals("could not find correct function with signature for com.splicemachine.derby.utils.StatisticsAdmin.COLLECT_TABLE_STATISTICS:\n" +
-                            " public static void com.splicemachine.derby.utils.StatisticsAdmin.COLLECT_TABLE_STATISTICS(java.lang.String,java.lang.String,boolean,java.sql.ResultSet[]) throws java.sql.SQLException:\n" +
+            Assert.assertEquals("could not find correct function with signature for com.splicemachine.derby.procedures.StatisticsProcedures.COLLECT_TABLE_STATISTICS:\n" +
+                            " public static void com.splicemachine.derby.procedures.StatisticsProcedures.COLLECT_TABLE_STATISTICS(java.lang.String,java.lang.String,boolean,java.sql.ResultSet[]) throws java.sql.SQLException:\n" +
                             "  parameter 1 has wrong type: expected type is INTEGER, but actual type is VARCHAR\n",
                     e.getMessage());
         }
@@ -196,5 +198,13 @@ public class ProcedureUnitTest {
         Assert.assertEquals(getRoutineControl(p, "SYSCS_RESTORE_DATABASE_OWNER"),        RoutineAliasInfo.NO_SQL);
         Assert.assertEquals(getRoutineControl(p, "SYSCS_SET_GLOBAL_DATABASE_PROPERTY"),  RoutineAliasInfo.MODIFIES_SQL_DATA);
         testProcedures(p);
+    }
+
+    @Test
+    public void testCheckSpliceSystemProcedures() {
+        List<Procedure> proc = new ArrayList<>();
+        SpliceSystemProcedures.createSysUtilProcedures(proc);
+        Assert.assertEquals(-630442100, proc.stream().map( procedure -> procedure.getName() ).sorted()
+                .map( s -> s.hashCode()).reduce(0, (subtotal, element) -> subtotal + element).longValue() );
     }
 }

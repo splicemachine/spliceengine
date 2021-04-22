@@ -37,10 +37,7 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
-import com.splicemachine.db.iapi.store.access.AccessFactory;
-import com.splicemachine.db.iapi.store.access.ColumnOrdering;
-import com.splicemachine.db.iapi.store.access.ScanController;
-import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.types.*;
@@ -54,6 +51,7 @@ import com.splicemachine.derby.impl.sql.depend.SpliceDependencyManager;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.*;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseController;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
 import com.splicemachine.management.Manager;
 import com.splicemachine.pipeline.Exceptions;
@@ -63,6 +61,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.log4j.Logger;
 
 import java.sql.Types;
@@ -1436,5 +1435,86 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     public TabInfoImpl getTableInfo(int catalogNum) throws StandardException{
         TabInfoImpl ti = (catalogNum < NUM_CORE) ? coreInfo[catalogNum] : getNonCoreTI(catalogNum);
         return ti;
+    }
+
+
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Intentional")
+    public void upgradeAddColumnToSystemTable(TransactionController tc, int catalogNumber, int[] colIds, ExecRow templateRow) throws StandardException {
+        int lastCol = colIds[colIds.length - 1];
+        TabInfoImpl tabInfo = getTabInfoByNumber(catalogNumber);
+        try {
+            TableDescriptor td = getTableDescriptor(tabInfo.getCatalogRowFactory().getCatalogName(),
+                    getSystemSchemaDescriptor(), tc );
+            long conglomID = td.getHeapConglomerateId();
+            try (ConglomerateController heapCC = tc.openConglomerate(conglomID,
+                    false,0,
+                    TransactionController.MODE_RECORD,
+                    TransactionController.ISOLATION_REPEATABLE_READ) ) {
+                // If upgrade has already been done, and we somehow got here again by
+                // mistake, don't re-add the columns to the conglomerate descriptor.
+                if (heapCC instanceof HBaseController) {
+                    HBaseController hCC = (HBaseController) heapCC;
+                    if (hCC.getConglomerate().getFormat_ids().length >= lastCol) {
+                        return;
+                    }
+                }
+            }
+            upgradeAddColumns(tabInfo.getCatalogRowFactory(), colIds, templateRow, tc);
+            SpliceLogUtils.info(LOG, "Catalog upgraded: updated system table %s", tabInfo.getTableName());
+        } catch (Exception e) {
+            SpliceLogUtils.error(LOG, "Attempt to upgrade %s failed. " +
+                            "Please check if it has already been upgraded and contains the correct number of columns: %s.",
+                    tabInfo.getTableName(), lastCol);
+        }
+    }
+
+    public void populateNewSystemTableColumns(TransactionController tc, int catalogNumber, int[] colIds, ExecRow templateRow) throws StandardException {
+        TabInfoImpl tabInfo = getTabInfoByNumber(catalogNumber);
+        TableDescriptor td = getTableDescriptor(tabInfo.getTableName(), systemSchemaDesc, tc);
+        DataValueDescriptor[] fetchedRow = new DataValueDescriptor[templateRow.length()];
+        DataValueDescriptor[] newRow = new DataValueDescriptor[templateRow.length()];
+
+        FormatableBitSet columnToUpdateSet=new FormatableBitSet(templateRow.length());
+        for(int i=0 ; i < templateRow.length() ; i++) {
+            columnToUpdateSet.set(i);
+        }
+
+        // Init the heap conglomerate here
+        for (ConglomerateDescriptor conglomerateDescriptor : td.getConglomerateDescriptors()) {
+            if (!conglomerateDescriptor.isIndex()) {
+                tabInfo.setHeapConglomerate(conglomerateDescriptor.getConglomerateNumber());
+                break;
+            }
+        }
+
+        try (ScanController sc=tc.openScan(
+                tabInfo.getHeapConglomerate(),
+                false,
+                0,
+                TransactionController.MODE_TABLE,
+                TransactionController.ISOLATION_REPEATABLE_READ,
+                null,
+                null,
+                0,
+                null,
+                null,
+                0)) {
+            while (sc.fetchNext(fetchedRow)) {
+                for (int i = 0; i < fetchedRow.length; ++i) {
+                    if (ArrayUtils.contains(colIds, i + 1)) {
+                        newRow[i] = templateRow.getColumn(i + 1).cloneValue(false);
+                    } else {
+                        newRow[i] = fetchedRow[i] == null ? null : fetchedRow[i].cloneValue(false);
+                    }
+                }
+                sc.replace(newRow, columnToUpdateSet);
+            }
+        }
+
+        if (catalogNumber >= NUM_CORE) {
+            // reset TI in NonCoreTI array, we only used the heap conglomerate here, so information about the indexes
+            // are not fully populated. This TI should not be reused for future operations.
+            clearNoncoreTable(catalogNumber - NUM_CORE);
+        }
     }
 }
