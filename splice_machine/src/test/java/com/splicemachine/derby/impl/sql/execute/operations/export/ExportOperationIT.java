@@ -37,7 +37,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.sql.CallableStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.zip.GZIPInputStream;
@@ -67,6 +66,13 @@ public class ExportOperationIT {
     String invalidParam = SQLState.UU_INVALID_PARAMETER.split("\\.")[0];
     String exportParamWrong = SQLState.EXPORT_PARAMETER_VALUE_IS_WRONG.split("\\.")[0];
 
+    class MyExportBuilder extends ExportBuilder {
+        MyExportBuilder(String selectQuery) {
+            super(ExportOperationIT.this.useNativeSyntax, ExportOperationIT.this.useKeywords,
+            CLASS_NAME, ExportOperationIT.this.methodWatcher, selectQuery);
+            path = temporaryFolder.getAbsolutePath();
+        }
+    }
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -91,75 +97,6 @@ public class ExportOperationIT {
     public ExportOperationIT(Boolean useNativeSyntax, Boolean useKeywords) {
         this.useNativeSyntax = useNativeSyntax;
         this.useKeywords = useKeywords;
-    }
-
-    class ExportBuilder {
-        String selectQuery;
-        String exportPath = temporaryFolder.getAbsolutePath();
-        String compression;
-        String replicationCount;
-        String encoding;
-        String fieldSeparator;
-        String quoteCharacter;
-        String quoteMode;
-        String floatingPointNotation;
-        String timestampFormat;
-        String format = "csv";
-        ExportBuilder(String selectQuery) {
-            this.selectQuery = selectQuery;
-        }
-        ExportBuilder exportPath(String val) { exportPath = val; return this; }
-        ExportBuilder compression(String val) { compression = val; return this; }
-        ExportBuilder replicationCount(String val) { replicationCount = val; return this; }
-        ExportBuilder encoding(String val) { encoding = val; return this; }
-        ExportBuilder fieldSeparator(String val) { fieldSeparator = val; return this; }
-        ExportBuilder quoteCharacter(String val) { quoteCharacter = val; return this; }
-        ExportBuilder quoteMode(String val) { quoteMode = val; return this; }
-        ExportBuilder floatingPointNotation(String val) { floatingPointNotation = val; return this; }
-        ExportBuilder timestampFormat(String val) { timestampFormat = val; return this; }
-        ExportBuilder format(String val) { format = val; return this; }
-
-        String exportSql() {
-            return buildExportSQL(selectQuery, exportPath, compression,
-                    replicationCount, encoding, fieldSeparator,
-                    quoteCharacter, quoteMode, floatingPointNotation,
-                    timestampFormat, format);
-        }
-        String strOrNull(String s) {
-            if( s == null)
-                return "null, ";
-            else
-                return "'" + s + "', ";
-        }
-        String importSql(String schema, String table) {
-            return "call SYSCS_UTIL.IMPORT_DATA(" + strOrNull(schema) + strOrNull(table) +
-                    "null, " + //  insertColumnList
-                    strOrNull(exportPath) + // path
-                    strOrNull(fieldSeparator) + // columnDelimiter
-                    strOrNull(quoteCharacter) + // characterDelimiter
-                    strOrNull( timestampFormat) +
-                    strOrNull(null) + // dateFormat
-                    strOrNull( null) + // timeFormat
-                    "'0', " + // badRecordsAllowed
-                    "'/tmp', " + // badRecordLogDirectory
-                    "false, " + // oneLineRecords
-                    "null" + // charset
-                    ")";
-        }
-
-        void testImportExport(String tableName, String columns, long expectedExportRowCount) throws Exception {
-
-            exportAndAssertExportResults(exportSql(), expectedExportRowCount);
-
-            String res1 = methodWatcher.executeToString("select " + columns + " from " + tableName, true);
-
-            methodWatcher.execute("DELETE FROM " + tableName);
-            methodWatcher.execute(importSql( CLASS_NAME, tableName));
-
-            String res2 = methodWatcher.executeToString("select " + columns + " from " + tableName, true);
-            Assert.assertEquals(res1, res2);
-        }
-
     }
 
     @Test
@@ -196,8 +133,8 @@ public class ExportOperationIT {
                 ).create();
 
         if(!useNativeSyntax) return; // todo
-        ExportBuilder builder = new ExportBuilder("select * from " + tableName + " order by a").quoteMode("always");
-        builder.testImportExport(tableName, "*", 8);
+        ExportBuilder builder = new MyExportBuilder("select * from " + tableName + " order by a").quoteMode("always");
+        builder.testImportExport( true,tableName, "*", 8);
 
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
@@ -221,7 +158,7 @@ public class ExportOperationIT {
     public void export_defaultDelimiter() throws Exception {
         if(!useNativeSyntax) return;
         String tableName = createTestTableWithSuffix("export_local");
-        ExportBuilder builder = new ExportBuilder("select * from " + tableName + " order by a asc");
+        ExportBuilder builder = new MyExportBuilder("select * from " + tableName + " order by a asc");
 
         // todo: problems with varchar null/""
         String columns = //"a, b, c, d, cast(e AS VARCHAR(32))"
@@ -244,7 +181,7 @@ public class ExportOperationIT {
     @Test
     public void export_withAlternateRecordDelimiter() throws Exception {
         String tableName = createTestTableWithSuffix("pipe");
-        ExportBuilder builder = new ExportBuilder("select * from " + tableName + " order by a asc")
+        ExportBuilder builder = new MyExportBuilder("select * from " + tableName + " order by a asc")
                                     .compression("None").fieldSeparator("|");
 
         builder.testImportExport(tableName, "a, b, c", 8);
@@ -265,7 +202,7 @@ public class ExportOperationIT {
     @Test
     public void export_withTabs() throws Exception {
         String tableName = createTestTableWithSuffix("tabs");
-        ExportBuilder builder = new ExportBuilder(String.format("select * from tabs_%s order by a asc", getSuffix()))
+        ExportBuilder builder = new MyExportBuilder(String.format("select * from tabs_%s order by a asc", getSuffix()))
                 .compression(" none ").fieldSeparator("\\t");
 
         builder.testImportExport(tableName, "a, b, c", 8);
@@ -285,10 +222,14 @@ public class ExportOperationIT {
                 Files.toString(files[0], Charsets.UTF_8));
     }
 
+    public void exportAndAssertExportResults(String exportSQL, long expectedExportRowCount) throws Exception {
+        ExportBuilder.exportAndAssertExportResults(methodWatcher, exportSQL, expectedExportRowCount);
+    }
+
     @Test
     public void exportEmptyTableDoesNotBlowup() throws Exception {
         methodWatcher.executeUpdate(String.format("create table empty_%s (a int)", getSuffix()));
-        String exportSQL = new ExportBuilder(String.format("select * from empty_%s", getSuffix())).exportSql();
+        String exportSQL = new MyExportBuilder(String.format("select * from empty_%s", getSuffix())).exportSql();
         exportAndAssertExportResults(exportSQL, 0);
     }
 
@@ -307,7 +248,7 @@ public class ExportOperationIT {
         tc.withTableName(String.format("d_%s", getSuffix())).create();
         tc.withTableName(String.format("e_%s", getSuffix())).create();
 
-        String exportSQL = new ExportBuilder(String.format(
+        String exportSQL = new MyExportBuilder(String.format(
                 "select * from a_%s cross join b_%<s cross join c_%<s cross join d_%<s cross join e_%<s",
                 getSuffix())).exportSql();
 
@@ -326,7 +267,7 @@ public class ExportOperationIT {
         tc.withTableName(String.format("aa_%s", getSuffix())).create();
         tc.withTableName(String.format("bb_%s", getSuffix())).create();
 
-        String exportSQL = new ExportBuilder(String.format("" +
+        String exportSQL = new MyExportBuilder(String.format("" +
                 "select aa_%s.c1,aa_%<s.c2*100,bb_%<s.c2*300,bb_%<s.c3 " +
                 "from aa_%<s " +
                 "join bb_%<s on aa_%<s.c1 =bb_%<s.c1 " +
@@ -343,7 +284,7 @@ public class ExportOperationIT {
     public void export_compressed(String compression, FunctionWithException<FileInputStream, InputStream> f,
                                   String pattern) throws Exception {
         String tableName = createTestTableWithSuffix("export_compressed_" + compression);
-        ExportBuilder builder = new ExportBuilder("select * from " + tableName + " order by a asc")
+        ExportBuilder builder = new MyExportBuilder("select * from " + tableName + " order by a asc")
                 .compression(compression);
 
         // todo: column D, E have problems with NULL
@@ -392,7 +333,7 @@ public class ExportOperationIT {
         //
         // default column order
         //
-        String exportSQL = new ExportBuilder(String.format("select * from export_decimal_%s order by a asc", getSuffix())).exportSql();
+        String exportSQL = new MyExportBuilder(String.format("select * from export_decimal_%s order by a asc", getSuffix())).exportSql();
 
         exportAndAssertExportResults(exportSQL, 2);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
@@ -406,7 +347,7 @@ public class ExportOperationIT {
         // alternate column order
         //
         FileUtils.deleteDirectory(temporaryFolder);
-        exportSQL = new ExportBuilder(String.format("select c,b,a from export_decimal_%s order by a asc", getSuffix()))
+        exportSQL = new MyExportBuilder(String.format("select c,b,a from export_decimal_%s order by a asc", getSuffix()))
                             .compression("NONE").exportSql();
 
         exportAndAssertExportResults(exportSQL, 2);
@@ -421,7 +362,7 @@ public class ExportOperationIT {
         // column subset
         //
         FileUtils.deleteDirectory(temporaryFolder);
-        exportSQL = new ExportBuilder(String.format("select b from export_decimal_%s order by a asc", getSuffix()))
+        exportSQL = new MyExportBuilder(String.format("select b from export_decimal_%s order by a asc", getSuffix()))
                              .compression("NONE").exportSql();
 
         exportAndAssertExportResults(exportSQL, 2);
@@ -437,12 +378,12 @@ public class ExportOperationIT {
     @Test
     public void export_sysaliases() throws Exception {
         Long expectedRowCount = methodWatcher.query("select count(*) from sys.sysaliases");
-        String exportSQL = new ExportBuilder("select * from sys.sysaliases").compression("none").exportSql();
+        String exportSQL = new MyExportBuilder("select * from sys.sysaliases").compression("none").exportSql();
         exportAndAssertExportResults(exportSQL, expectedRowCount);
     }
 
     ExportBuilder simpleExport() {
-        return new ExportBuilder("select 1 from sys.sysaliases").exportPath("/tmp");
+        return new MyExportBuilder("select 1 from sys.sysaliases").path("/tmp");
     }
 
     void testFail(String sql, String expectedState, String expectedMsg) {
@@ -465,7 +406,7 @@ public class ExportOperationIT {
     @Test
     public void export_throwsSQLException_givenBadArguments() throws Exception {
         // export path
-        testFail(simpleExport().exportPath(""), invalidParam,
+        testFail(simpleExport().path(""), invalidParam,
             "Invalid parameter 'export path'=''.");
 
         // encoding
@@ -481,7 +422,7 @@ public class ExportOperationIT {
                 "Invalid parameter 'quote character'='BBB'.");
 
         // no permission to create export dir
-        testFail(simpleExport().exportPath("/ExportOperationIT/"),invalidParam,
+        testFail(simpleExport().path("/ExportOperationIT/"),invalidParam,
                 "Invalid parameter 'cannot create export directory'='/ExportOperationIT/'.");
 
         // wrong replica count
@@ -551,101 +492,6 @@ public class ExportOperationIT {
         }
     }
 
-    private String buildExportSQL(String selectQuery, String exportPath, String compression, String replicationCount,
-                                  String encoding, String fieldSeparator, String quoteCharacter, String quoteMode,
-                                  String floatingPointNotation, String timestampFormat, String format) {
-        if (useNativeSyntax) {
-            StringBuilder sql = new StringBuilder();
-            sql.append("EXPORT TO '").append(exportPath).append("'");
-            if (useKeywords)
-                sql.append(" AS " + format.toUpperCase() + " ");
-            else
-                sql.append(" AS '" + format + "' ");
-            if (compression != null) {
-                sql.append(" COMPRESSION ");
-                if (useKeywords)
-                    sql.append(compression);
-                else
-                    sql.append("'").append(compression).append("'");
-            }
-            if (replicationCount != null) {
-                sql.append(" REPLICATION_COUNT ").append(replicationCount);
-            }
-            if (encoding != null) {
-                sql.append(" ENCODING '").append(encoding).append("'");
-            }
-            if (fieldSeparator != null) {
-                sql.append(" FIELD_SEPARATOR '").append(fieldSeparator).append("'");
-            }
-            if (quoteCharacter != null) {
-                sql.append(" QUOTE_CHARACTER '").append(quoteCharacter).append("'");
-            }
-            if (quoteMode != null) {
-                sql.append(" QUOTE_MODE ");
-                if (useKeywords)
-                    sql.append(quoteMode);
-                else
-                    sql.append("'").append(quoteMode).append("'");
-            }
-            if (floatingPointNotation != null) {
-                sql.append(" FLOATING_POINT_NOTATION ");
-                if (useKeywords)
-                    sql.append(floatingPointNotation);
-                else
-                    sql.append("'").append(floatingPointNotation).append("'");
-            }
-            if (timestampFormat != null) {
-                sql.append(" TIMESTAMP_FORMAT '").append(timestampFormat).append("'");
-            }
-            sql.append(" ").append(selectQuery);
-            return sql.toString();
-        } else {
-            StringBuilder sql = new StringBuilder();
-            sql.append("EXPORT('").append(exportPath).append("', ");
-            if (compression == null) {
-                sql.append("null, ");
-            } else if (compression.toUpperCase().equals("TRUE") || compression.toLowerCase().equals("FALSE")) {
-                sql.append(compression.toLowerCase()).append(", ");
-            } else {
-                sql.append("'").append(compression).append("', ");
-            }
-            if (replicationCount == null) {
-                sql.append("null, ");
-            } else {
-                sql.append(replicationCount).append(", ");
-            }
-            if (encoding == null) {
-                sql.append("null, ");
-            } else {
-                sql.append("'").append(encoding).append("', ");
-            }
-            if (fieldSeparator == null) {
-                sql.append("null, ");
-            } else {
-                sql.append("'").append(fieldSeparator).append("', ");
-            }
-            if (quoteCharacter == null) {
-                sql.append("null)");
-            } else {
-                sql.append("'").append(quoteCharacter).append("')");
-            }
-            sql.append(" ").append(selectQuery);
-            assert quoteMode == null;
-            assert floatingPointNotation == null;
-            assert timestampFormat == null;
-            return sql.toString();
-        }
-    }
-
-    private void exportAndAssertExportResults(String exportSQL, long expectedExportRowCount) throws Exception {
-        ResultSet resultSet = methodWatcher.executeQuery(exportSQL);
-        assertTrue(resultSet.next());
-        long exportedRowCount = resultSet.getLong(1);
-//        long exportTimeMs = resultSet.getLong(2);
-        assertEquals(expectedExportRowCount, exportedRowCount);
-//        assertTrue(exportTimeMs >= 0);
-    }
-
     String createTestTableWithSuffix(String name) throws SQLException {
         Iterable<Iterable<Object>> testRows =  rows(
                     row(25, 3.14159, "14:31:20", "varchar1", "bitdata1"),
@@ -676,8 +522,8 @@ public class ExportOperationIT {
                     .withRows(rows(row(1, 1, 1), row(2, 2, 2), row(3, 3, 3), row(4, 4, 4), row(5, 5, 5)))
                     .create();
 
-            String exportSql = new ExportBuilder(String.format("select * from export_s3_test_%s", getSuffix()))
-                    .exportPath("s3a://molitorisspechial/temp/").exportSql();
+            String exportSql = new MyExportBuilder(String.format("select * from export_s3_test_%s", getSuffix()))
+                    .path("s3a://molitorisspechial/temp/").exportSql();
             Long expectedRowCount = methodWatcher.query(exportSql);
             fail();
         } catch (SQLException sqle) {
@@ -693,7 +539,7 @@ public class ExportOperationIT {
         if (!useNativeSyntax)
             return;
         String tableName = createTestTableWithSuffix("export_quote_always");
-        ExportBuilder builder = new ExportBuilder("select * from " + tableName + " order by a asc")
+        ExportBuilder builder = new MyExportBuilder("select * from " + tableName + " order by a asc")
                                 .quoteMode("always");
 
         // todo: column D, E have problems with NULL
@@ -724,7 +570,7 @@ public class ExportOperationIT {
                 .withInsert("insert into " + tableName + " values(?, ?)")
                 .withRows(rows(row("123.123", "-0.0123123"))).create();
 
-        ExportBuilder builder = new ExportBuilder("select * from " + tableName + " order by a asc")
+        ExportBuilder builder = new MyExportBuilder("select * from " + tableName + " order by a asc")
                 .floatingPointNotation("normalized");
 
         builder.testImportExport(tableName, "*", 1);
@@ -748,7 +594,7 @@ public class ExportOperationIT {
         {
 
 
-            ExportBuilder builder = new ExportBuilder("select * from " + tableName + " order by a asc")
+            ExportBuilder builder = new MyExportBuilder("select * from " + tableName + " order by a asc")
                     .timestampFormat(format);
 
             if (!truncated)
@@ -761,7 +607,7 @@ public class ExportOperationIT {
                     Files.toString(files[0], Charsets.UTF_8));
 
             methodWatcher.execute("DELETE FROM " + tableName);
-            methodWatcher.execute(builder.importSql(CLASS_NAME, tableName));
+            methodWatcher.execute(builder.importSql("IMPORT_DATA",CLASS_NAME, tableName));
 
             Assert.assertEquals(expected,
                     methodWatcher.executeGetString("select * from " + tableName, 1));
@@ -808,7 +654,7 @@ public class ExportOperationIT {
                 ).create();
 
         if(!useNativeSyntax) return; // todo: no quote mode always
-        ExportBuilder builder = new ExportBuilder("select * from " + tableName + " order by a");
+        ExportBuilder builder = new MyExportBuilder("select * from " + tableName + " order by a");
         if(quoteModeAlways)
             builder.quoteMode("always");
 
@@ -844,11 +690,12 @@ public class ExportOperationIT {
     public void exportX(String format) throws Exception {
         if(!useNativeSyntax) return;
         String tableName = createTestTableWithSuffix("export_" + format);
-        ExportBuilder builder = new ExportBuilder("select * from " + tableName + " order by a asc")
+        ExportBuilder builder = new MyExportBuilder("select * from " + tableName + " order by a asc")
                 .format(format);
 
         // todo: problems with varchar null/""
-        builder.testImportExport(tableName, "a, b, c, d, cast(e AS VARCHAR(32))", 8);
+        builder.testImportExport(true, tableName,
+                "a, b, c, d, cast(e AS VARCHAR(32))", 8);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*" + format));
         assertEquals(1, files.length);
     }
