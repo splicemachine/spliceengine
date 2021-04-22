@@ -82,7 +82,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
 
     public Iterator<T> getIterator() {
         // Initialize first partition
-        PartitionState ps = partitionStateMap.computeIfAbsent(0, k -> new PartitionState(1, queueSize));
+        PartitionState ps = partitionStateMap.computeIfAbsent(0, k -> new PartitionState(0, queueSize));
         if (failure != null) {
             ps.messages.add(FAILURE);
         }
@@ -112,8 +112,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             // We can't block here, we negotiate throughput with the server to guarantee it
             state.messages.add(SENTINEL);
             // Let server know it can close the connection
-            ctx.writeAndFlush(new StreamProtocol.ConfirmClose());
-            ctx.close().sync();
+            state.readyToClose = true;
         } else if (msg instanceof StreamProtocol.ConfirmClose) {
             ctx.close().sync();
             partitionMap.remove(channel);
@@ -242,10 +241,15 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         }
     }
 
-    private void clearCurrentQueue() {
+    private void clearCurrentQueue() throws InterruptedException {
         PartitionState ps = partitionStateMap.remove(currentQueue);
-        if (ps != null && ps.channel != null)
+        if (ps != null && ps.channel != null) {
             partitionMap.remove(ps.channel);
+            if (ps.readyToClose) {
+                ps.channel.writeAndFlush(new StreamProtocol.ConfirmClose());
+                ps.channel.close().sync();
+            }
+        }
     }
 
     /**
@@ -404,6 +408,7 @@ class PartitionState {
     long consumed;
     long readTotal;
     boolean initialized;
+    boolean readyToClose;
     volatile PartitionState next = null; // used when a task is retried after a failure
 
     PartitionState(int partition, int queueSize) {
