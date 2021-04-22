@@ -207,7 +207,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
             }else{
                 DataCell currentKeyValue = keyValues.get(0);
                 if(template.nColumns()>0){
-                    if(!filterRowKey(currentKeyValue)||!filterRow(filter,keyValues)){
+                    if(!(filterRowKey(currentKeyValue) && filterRow(filter,keyValues))){
                         //filter the row first, then filter the row key
                         filterCounter.increment();
                         continue;
@@ -326,7 +326,12 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                              * This logic tries to avoid performing transactional resolution when we are not actually interested
                              * in the value anyway. In some cases we read a column which the accumulator is not interested in
                              * but we have to transactionally resolve anyway, for instance if the field we are actually interested
-                             * in is on the rowkey.
+                             * in is on the rowkey, i.e. in SITableScanner#next() we do the following:
+                             *      if(!(filterRowKey(currentKeyValue) && filterRow(filter,keyValues))){
+                             *          // filter out the row
+                             *      }
+                             * filterRowKey does not perform SI delegating it to filterRow which ends up calling this method,
+                             * so even if the accumulator finished, we still want to SI in this case.
                              */
                             if (keyValue.dataType() == CellType.USER_DATA  && (!accumulator.isInteresting(keyValue) || accumulator.isFinished()) && keyIncluded){
                                 return ReturnCode.INCLUDE;

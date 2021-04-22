@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
+import com.splicemachine.utils.Pair;
 
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -519,4 +520,61 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
             return true;
         }
     }
+
+    public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
+
+        List<ColumnDescriptor[]> cdsl = new ArrayList<>();
+        assert cdsl.size() == SYSVW_SYSTRIGGERSVIEW_SQL.getFirst();
+        cdsl.add( getSYSVW_SYSTRIGGERSVIEW_SQL_ColumnDescriptor(view, viewId) );
+        return cdsl;
+    }
+
+    private ColumnDescriptor[] getSYSVW_SYSTRIGGERSVIEW_SQL_ColumnDescriptor(TableDescriptor view, UUID viewId) {
+        return new ColumnDescriptor[]{
+                getCD(view, viewId, "TRIGGERID",             1, Types.CHAR, false, 36),
+                getCD(view, viewId, "TRIGGERNAME",           2, Types.VARCHAR, false, 128),
+                getCD(view, viewId, "SCHEMAID",              3, Types.CHAR, false, 36),
+                getCD(view, viewId, "CREATIONTIMESTAMP",     4, Types.TIMESTAMP, false),
+                getCD(view, viewId, "EVENT",                 5, Types.CHAR, false, 1),
+                getCD(view, viewId, "FIRINGTIME",            6, Types.CHAR, false, 1),
+                getCD(view, viewId, "TYPE",                  7, Types.CHAR, false, 1),
+                getCD(view, viewId, "STATE",                 8, Types.CHAR, false, 1),
+                getCD(view, viewId, "TABLEID",               9, Types.CHAR, false, 36),
+                getCD(view, viewId, "WHENSTMTID",            10, Types.CHAR, true, 36),
+                getCD(view, viewId, "ACTIONSTMTID",          11, Types.CHAR, true, 36),
+                getCD(view, viewId, "REFERENCEDCOLUMNS",     12, Types.VARCHAR, true, 64),
+                getCD(view, viewId, "TRIGGERDEFINITION",     13, Types.LONGVARCHAR, true),
+                getCD(view, viewId, "REFERENCINGOLD",        14, Types.BOOLEAN, true),
+                getCD(view, viewId, "REFERENCINGNEW",        15, Types.BOOLEAN, true),
+                getCD(view, viewId, "OLDREFERENCINGNAME",    16, Types.VARCHAR, true, 128),
+                getCD(view, viewId, "NEWREFERENCINGNAME",    17, Types.VARCHAR, true, 128),
+                getCD(view, viewId, "WHENCLAUSETEXT",        18, Types.LONGVARCHAR, true),
+                getCD(view, viewId, "TRIGGERDEFINITIONLIST", 19, Types.LONGVARCHAR, true),
+                getCD(view, viewId, "ACTIONSTMTIDLIST",      20, Types.VARCHAR, true, 64),
+        };
+    }
+
+    final public static Pair<Integer, String> SYSVW_SYSTRIGGERSVIEW_SQL = new Pair<>(0,
+            "create view SYSTRIGGERSVIEW as SELECT\n" +
+                    "TRIGGERID,\n" +
+                    "TRIGGERNAME,\n" +
+                    "SCHEMAID,\n" +
+                    "CREATIONTIMESTAMP,\n" +
+                    "EVENT,\n" +
+                    "FIRINGTIME,\n" +
+                    "TYPE,\n" +
+                    "STATE,\n" +
+                    "TABLEID,\n" +
+                    "WHENSTMTID,\n" +
+                    "ACTIONSTMTID,\n" +
+                    "cast(REFERENCEDCOLUMNS AS VARCHAR(64)) AS REFERENCEDCOLUMNS,\n" +
+                    "TRIGGERDEFINITION,\n" +
+                    "REFERENCINGOLD,\n" +
+                    "REFERENCINGNEW,\n" +
+                    "OLDREFERENCINGNAME,\n" +
+                    "NEWREFERENCINGNAME,\n" +
+                    "WHENCLAUSETEXT,\n" +
+                    "cast(TRIGGERDEFINITIONLIST AS LONG VARCHAR) AS TRIGGERDEFINITIONLIST,\n" +
+                    "cast(ACTIONSTMTIDLIST AS VARCHAR(64)) AS ACTIONSTMTIDLIST\n" +
+                    "FROM sys.SYSTRIGGERS");
 }

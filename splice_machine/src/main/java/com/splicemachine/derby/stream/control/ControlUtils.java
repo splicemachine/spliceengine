@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.stream.control;
 
+import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.derby.stream.function.AbstractSpliceFunction;
@@ -91,12 +92,12 @@ public class ControlUtils {
     public static <E> Iterator<E> checkCancellation(Iterator<E> iterator, OperationContext<?> opContext) {
         if (opContext == null)
             return iterator;
-        StatementContext context = opContext.getActivation().getLanguageConnectionContext().getStatementContext();
+        ResultSet rs = opContext.getActivation().getResultSet();
         return Iterators.transform(iterator, new Function<E, E>() {
             @Nullable
             @Override
             public E apply(@Nullable E v) {
-                if (context.isCancelled())
+                if (rs.isCancelled())
                     throw new CancellationException("Operation was cancelled");
                 return v;
             }

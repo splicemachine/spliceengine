@@ -298,9 +298,10 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
     val df = sqlContext.read.options(internalOptions).splicemachine
     val changedDF = df.withColumn("C6_INT", when(col("C6_INT").leq(10), col("C6_INT").plus(20)) )
 
-    splicemachineContext.bulkImportHFile(changedDF, internalTN, bulkImportOptions)
+    val returnedCount = splicemachineContext.bulkImportHFile(changedDF, internalTN, bulkImportOptions)
     val newDF = sqlContext.read.options(internalOptions).splicemachine
-    assert(newDF.count == 20)
+    org.junit.Assert.assertEquals("Incorrect row count in table", 20, newDF.count)
+    org.junit.Assert.assertEquals("Incorrect import count returned from function", 10, returnedCount)
   }
 
   test("bulkImportHFile using rdd") {  // DB-9394
@@ -320,9 +321,10 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
     val df = sqlContext.read.options(internalOptions).splicemachine
     val changedDF = df.withColumn("C6_INT", when(col("C6_INT").leq(10), col("C6_INT").plus(20)) )
 
-    splicemachineContext.bulkImportHFile(changedDF.rdd, changedDF.schema, internalTN, bulkImportOptions)
+    val returnedCount = splicemachineContext.bulkImportHFile(changedDF.rdd, changedDF.schema, internalTN, bulkImportOptions)
     val newDF = sqlContext.read.options(internalOptions).splicemachine
-    assert(newDF.count == 20)
+    org.junit.Assert.assertEquals("Incorrect row count in table", 20, newDF.count)
+    org.junit.Assert.assertEquals("Incorrect import count returned from function", 10, returnedCount)
   }
 
 

@@ -313,21 +313,4 @@ public class PermissionIT {
             adminConn.execute(format("drop view %s.v1", SCHEMA1));
         }
     }
-
-    void testPermissions(String sql) throws SQLException {
-        adminConn.execute(sql);
-        SpliceUnitTest.sqlExpectException(user1Conn, sql,
-                SQLState.AUTH_NO_GENERIC_PERMISSION, false);
-    }
-
-    @Test
-    public void testRestrictedMethods() throws Exception {
-        if( !SpliceUnitTest.isMemPlatform(methodWatcher) )
-            testPermissions("call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_CONFIG_INFO(null, 0)");
-        testPermissions("call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL('com.level.com', 'INFO')");
-        testPermissions("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('test', 'test')");
-        testPermissions("call SYSCS_UTIL.SYSCS_GET_GLOBAL_DATABASE_PROPERTY('test')");
-        testPermissions("call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL_LOCAL('test', 'INFO')");
-    }
-
 }

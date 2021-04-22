@@ -31,6 +31,7 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
+import com.splicemachine.db.impl.sql.catalog.Procedure;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.reference.SQLState;
@@ -40,8 +41,8 @@ import com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeSystemProcedures;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.utils.EngineUtils;
-import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.derby.procedures.SpliceAdmin;
 import com.splicemachine.procedures.ProcedureUtils;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
@@ -63,8 +64,157 @@ import java.util.TimeZone;
  * Created by jyuan on 2/12/15.
  */
 public class BackupSystemProcedures {
-
     private static Logger LOG = Logger.getLogger(BackupSystemProcedures.class);
+
+    public static void addProcedures(List<Procedure> procedures) {
+        /*
+         * Procedure to delete a backup
+         */
+        procedures.add(Procedure.newBuilder().name("SYSCS_DELETE_BACKUP")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .bigint("backupId")
+                .build());
+
+        /*
+         * Procedure to delete backups in a time window
+         */
+        procedures.add(Procedure.newBuilder().name("SYSCS_DELETE_OLD_BACKUPS")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .integer("backupWindow")
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_BACKUP_DATABASE_ASYNC")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .varchar("directory", 32672)
+                .varchar("type", 32672)
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_DATABASE_ASYNC")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .varchar("directory", 32672)
+                .bigint("backupId")
+                .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("VALIDATE_BACKUP")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .varchar("directory", 32672)
+                .bigint("backupId")
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("VALIDATE_TABLE_BACKUP")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .catalog("schemaName")
+                .catalog("tableName")
+                .varchar("directory", 32672)
+                .bigint("backupId")
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("VALIDATE_SCHEMA_BACKUP")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .catalog("schemaName")
+                .varchar("directory", 32672)
+                .bigint("backupId")
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_CANCEL_BACKUP")
+                .numOutputParams(0)
+                .bigint("backupId")
+                .numResultSets(0)
+                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .returnType(null).isDeterministic(false)
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_BACKUP_TABLE")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .catalog("schemaName")
+                .catalog("tableName")
+                .varchar("directory", 32672)
+                .varchar("type", 30)
+                .returnType(null).isDeterministic(false)
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_TABLE")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .catalog("destSchema")
+                .catalog("destTable")
+                .catalog("sourceSchema")
+                .catalog("sourceTable")
+                .varchar("directory", 32672)
+                .bigint("backupId")
+                .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                .returnType(null).isDeterministic(false)
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_BACKUP_SCHEMA")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .catalog("schemaName")
+                .varchar("directory", 32672)
+                .varchar("type", 30)
+                .returnType(null).isDeterministic(false)
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_SCHEMA")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .catalog("destSchema")
+                .catalog("sourceSchema")
+                .varchar("directory", 32672)
+                .bigint("backupId")
+                .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                .returnType(null).isDeterministic(false)
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_DATABASE_TO_TIMESTAMP")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .varchar("directory", 32672)
+                .bigint("backupId")
+                .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                .varchar("pointInTime", 100)
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_DATABASE_TO_TRANSACTION")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .varchar("directory", 32672)
+                .bigint("backupId")
+                .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                .bigint("transactionId")
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_GET_RUNNING_BACKUPS")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .returnType(null).isDeterministic(false)
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_ROLLBACK_DATABASE_TO_TRANSACTION")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_BACKUP_METADATA")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .varchar("directory", 32672)
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_METADATA")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .varchar("directory", 32672)
+                .bigint("backupId")
+                .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                .build());
+    }
 
     public static void VALIDATE_SCHEMA_BACKUP(String schemaName,
                                               String directory,
@@ -720,6 +870,86 @@ public class BackupSystemProcedures {
             } catch (IOException e) {
                 SpliceLogUtils.error(LOG, "Database rollback error at txn rollback", t);
             }
+        }
+    }
+
+    public static void SYSCS_BACKUP_METADATA(String directory, ResultSet[] resultSets)
+            throws StandardException, SQLException {
+        try {
+            // Check directory
+            if (directory == null || directory.isEmpty()) {
+                throw StandardException.newException(SQLState.INVALID_BACKUP_DIRECTORY, directory);
+            }
+
+            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
+            backupManager.backupMetadata(directory);
+            resultSets[0] = ProcedureUtils.generateResult("Success", String.format("Metadata backup to %s", directory));
+        } catch (Throwable t) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
+            SpliceLogUtils.error(LOG, "Database backup error", t);
+        }
+    }
+
+    public static void SYSCS_RESTORE_METADATA(String directory, long backupId, boolean validate, ResultSet[] resultSets) throws StandardException, SQLException {
+        IteratorNoPutResultSet inprs = null;
+
+        Connection conn = SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+        try {
+            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
+            // Check for ongoing backup...
+            BackupJobStatus[] backupJobStatuses = backupManager.getRunningBackups();
+            if (backupJobStatuses.length > 0) {
+                long runningBackupId = backupJobStatuses[0].getBackupId();
+                throw StandardException.newException(SQLState.NO_RESTORE_DURING_BACKUP, runningBackupId);
+            }
+            backupManager.restoreMetadata(directory, backupId,  validate);
+
+            // Print reboot statement
+            ResultColumnDescriptor[] rcds = {
+                    new GenericColumnDescriptor("result", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
+                    new GenericColumnDescriptor("warnings", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 1024))
+            };
+            ExecRow template = new ValueRow(2);
+            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar(), new SQLVarchar()});
+            List<ExecRow> rows = Lists.newArrayList();
+
+            Activation activation = lcc.getLastActivation();
+            SQLWarning warning = activation.getWarnings();
+            if (warning != null) {
+                while (warning != null) {
+                    template.getColumn(1).setValue(warning.getSQLState());
+                    template.getColumn(2).setValue(warning.getLocalizedMessage());
+                    rows.add(template.getClone());
+                    warning = warning.getNextWarning();
+                }
+                template.getColumn(1).setValue("Found inconsistencies in backup");
+                template.getColumn(2).setValue("To force a restore, set valid to false");
+                rows.add(template.getClone());
+            } else {
+                template.getColumn(1).setValue("Restore completed");
+                template.getColumn(2).setValue("Database has to be rebooted");
+                rows.add(template.getClone());
+                LOG.info("Restore completed. Database reboot is required.");
+            }
+            inprs = new IteratorNoPutResultSet(rows, rcds, lcc.getLastActivation());
+            inprs.openCore();
+
+        } catch (Throwable t) {
+            ResultColumnDescriptor[] rcds = {
+                    new GenericColumnDescriptor("Error", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, t.getMessage().length()))};
+            ExecRow template = new ValueRow(1);
+            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
+            List<ExecRow> rows = Lists.newArrayList();
+            template.getColumn(1).setValue(t.getMessage());
+
+            rows.add(template.getClone());
+            inprs = new IteratorNoPutResultSet(rows, rcds, lcc.getLastActivation());
+            inprs.openCore();
+            SpliceLogUtils.error(LOG, "Error recovering backup", t);
+
+        } finally {
+            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class), inprs, false, null, true);
         }
     }
 }

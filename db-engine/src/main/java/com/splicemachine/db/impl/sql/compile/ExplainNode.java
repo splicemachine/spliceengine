@@ -38,8 +38,10 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -156,6 +158,14 @@ public class ExplainNode extends DMLStatementNode {
     public void bindStatement() throws StandardException {
         if(!rootOptimized) {
             node.bindStatement();
+        } else {
+            CompilerContext cc = getCompilerContext();
+            CollectNodesVisitor cnv = new CollectNodesVisitor(FromBaseTable.class);
+            node.accept(cnv);
+            for (Object elem : cnv.getList()) {
+                FromBaseTable fbt = (FromBaseTable) elem;
+                cc.createDependency(fbt.getTableDescriptor());
+            }
         }
     }
 

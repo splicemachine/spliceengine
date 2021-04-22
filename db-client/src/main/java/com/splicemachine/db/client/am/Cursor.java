@@ -36,6 +36,7 @@ import java.io.ObjectInputStream;
 import java.io.UnsupportedEncodingException;
 import java.sql.Date;
 import java.sql.Time;
+import java.text.DecimalFormat;
 import java.util.Calendar;
 
 // When we calculate column offsets make sure we calculate the correct offsets for double byte charactr5er data
@@ -1055,7 +1056,13 @@ public abstract class Cursor {
             case java.sql.Types.DECIMAL:
                 // We could get better performance here if we didn't materialize the BigDecimal,
                 // but converted directly from decimal bytes to a string.
-                return String.valueOf(get_DECIMAL(column));
+                if (agent_.connection_.isDB2Compatible()) {
+                    BigDecimal value = get_DECIMAL(column);
+                    String formatStr = "." + new String(new char[value.scale()]).replace('\0', '#');
+                    return new DecimalFormat(formatStr).format(value);
+                } else {
+                    return String.valueOf(get_DECIMAL(column));
+                }
             case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
                 return String.valueOf(get_DECFLOAT(column));
             case java.sql.Types.DATE:

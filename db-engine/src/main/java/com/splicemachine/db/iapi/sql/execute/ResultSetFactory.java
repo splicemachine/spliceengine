@@ -367,7 +367,7 @@ public interface ResultSetFactory {
                                                double optimizerEstimatedRowCount,
                                                double optimizerEstimatedCost,
                                                String explainPlan,
-                                               String filterPred,
+                                               String[] filterPred,
                                                String[] expressions,
                                                boolean hasGroupingFunction,
                                                String subqueryText) throws StandardException;
@@ -386,7 +386,7 @@ public interface ResultSetFactory {
                                                double optimizerEstimatedRowCount,
                                                double optimizerEstimatedCost,
                                                String explainPlan,
-                                               String filterPred,
+                                               String[] filterPred,
                                                String[] expressions,
                                                boolean hasGroupingFunction) throws StandardException;
 
@@ -405,7 +405,7 @@ public interface ResultSetFactory {
                                                double optimizerEstimatedRowCount,
                                                double optimizerEstimatedCost,
                                                String explainPlan,
-                                               String filterPred,
+                                               String[] filterPred,
                                                String[] expressions) throws StandardException;
 
     NoPutResultSet getProjectRestrictResultSet(NoPutResultSet source,

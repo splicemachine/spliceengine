@@ -397,19 +397,23 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         // the primary key or index on the inner table, could be to sort the outer
         // table on the join key and then perform a merge join with the inner table.
 
-        double innerLocalCost = innerCost.getLocalCostPerParallelTask()*innerCost.getParallelism();
+        /* DB-11662 note
+         * The explanation above makes sense, but it seems that not taking innerLocalCost per
+         * parallel task but the whole inner cost is too unfair for NLJ compared to other join
+         * strategies, especially when the inner table scan cost is very high.
+         */
         double innerRemoteCost = innerCost.getRemoteCostPerParallelTask()*innerCost.getParallelism();
         if (useSparkCostFormula)
             return outerCost.getLocalCostPerParallelTask() +
-                   ((outerCost.rowCount()/outerCost.getParallelism())
-                    * innerLocalCost) +
+                   (Math.max(outerCost.rowCount() / outerCost.getParallelism(), 1)
+                    * innerCost.getLocalCostPerParallelTask()) +
                     (outerCost.rowCount() * (innerRemoteCost + outerCost.getRemoteCost())) +  // this is not correct, but to avoid regression on OLAP
-                    joiningRowCost/outerCost.getParallelism();
+                    joiningRowCost / outerCost.getParallelism();
         else
             return outerCost.getLocalCostPerParallelTask() +
-                   (outerCost.rowCount()/outerCost.getParallelism())
-                    * (innerCost.localCost()+innerCost.getRemoteCost()) +
-                   joiningRowCost/outerCost.getParallelism();
+                   Math.max(outerCost.rowCount() / outerCost.getParallelism(), 1)
+                    * (innerCost.getLocalCostPerParallelTask()+innerCost.getRemoteCost()) +
+                   joiningRowCost / outerCost.getParallelism();
     }
 
     /**

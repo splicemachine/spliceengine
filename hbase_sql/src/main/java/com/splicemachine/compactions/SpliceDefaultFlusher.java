@@ -58,7 +58,8 @@ public class SpliceDefaultFlusher extends DefaultStoreFlusher {
         long txnLowWatermark = SIConstants.OLDEST_TIME_TRAVEL_TX;
         if(SIDriver.driver().isEngineStarted() &&
                 SpliceCompactionUtils.needsSI(store.getTableName()) &&
-                !SIDriver.driver().lifecycleManager().isRestoreMode()) {
+                !SIDriver.driver().lifecycleManager().isRestoreMode() &&
+                !store.getHRegion().isClosing()) {
             try {
                 txnLowWatermark = SpliceCompactionUtils.getTxnLowWatermark(store);
             } catch (Exception e) {

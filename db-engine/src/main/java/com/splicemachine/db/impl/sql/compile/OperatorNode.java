@@ -47,6 +47,7 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.SqlXmlUtil;
+import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 
 /**
@@ -454,12 +455,21 @@ public abstract class OperatorNode extends ValueNode
     }
 
     public void castOperandAndBindCast(int operandIndex, DataTypeDescriptor type) throws StandardException {
+        castOperandAndBindCast(operandIndex, type, false);
+    }
+
+    public void castOperandAndBindCast(int operandIndex, DataTypeDescriptor type, boolean implicit) throws StandardException {
         operands.set(operandIndex,
                 (ValueNode) getNodeFactory().getNode(
                         C_NodeTypes.CAST_NODE,
                         operands.get(operandIndex),
                         type,
                         getContextManager()));
+        if (implicit) {
+            // DERBY-2910 - Match current schema collation for implicit cast as we do for
+            // explicit casts per SQL Spec 6.12 (10)
+            operands.get(operandIndex).setCollationUsingCompilationSchema();
+        }
         ((CastNode) operands.get(operandIndex)).bindCastNodeOnly();
     }
 
@@ -484,12 +494,13 @@ public abstract class OperatorNode extends ValueNode
         mb.callMethod(VMOpcode.INVOKEINTERFACE, resultInterfaceType, methodName, resultInterfaceType, operands.size());
     }
 
-    public void generateSetIgnoreTrailingWhitespacesInVarcharComparison(int operandIndex, MethodBuilder mb) throws StandardException {
+    public void generateSetIgnoreTrailingWhitespacesInVarcharComparison(MethodBuilder mb) throws StandardException {
         if (getCompilerContext().getVarcharDB2CompatibilityMode()) {
             mb.dup();
+            mb.upCast("java.lang.Object");
             mb.push(true);
-            mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.StringDataValue,
-                    "setIgnoreTrailingWhitespacesInVarcharComparison", "void", 1);
+            mb.callMethod(VMOpcode.INVOKESTATIC, ClassName.StringUtil,
+                    "setIgnoreTrailingWhitespacesInVarcharComparison", "void", 2);
         }
     }
 }

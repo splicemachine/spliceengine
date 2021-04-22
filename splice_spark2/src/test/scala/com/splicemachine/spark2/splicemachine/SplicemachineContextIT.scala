@@ -178,6 +178,15 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     dropCarTable
   }
 
+  test("Test Drop Table") {
+    if( ! splicemachineContext.tableExists(carSchemaTableName) ) {
+      createCarTable
+    }
+    org.junit.Assert.assertTrue( splicemachineContext.tableExists(carSchemaTableName) )
+    dropCarTable
+    org.junit.Assert.assertFalse( splicemachineContext.tableExists(carSchemaTableName) )
+  }
+
   test("Test Table Exists (One Param)") {
     createCarTable
     org.junit.Assert.assertTrue(
@@ -260,11 +269,12 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     val bulkImportDirectory = new File( System.getProperty("java.io.tmpdir")+s"/$module-SplicemachineContextIT/bulkImport" )
     bulkImportDirectory.mkdirs()
 
-    splicemachineContext.bulkImportHFile(internalTNDF, internalTN,
+    val returnedCount = splicemachineContext.bulkImportHFile(internalTNDF, internalTN,
       collection.mutable.Map("bulkImportDirectory" -> bulkImportDirectory.getAbsolutePath)
     )
 
     org.junit.Assert.assertEquals("Bulk Import Failed!", 1, rowCount(internalTN))
+    org.junit.Assert.assertEquals("Bulk Import function returned incorrect count!", 1, returnedCount)
   }
 
   test("Test SplitAndInsert") {
