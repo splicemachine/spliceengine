@@ -95,18 +95,18 @@ public class AndNode extends BinaryLogicalOperatorNode{
                                 PredicateList outerPredicateList) throws StandardException{
         /* If the left child is an OR, then mark it as the 1st OR in
          * the list.  That will allow us to consider converting the OR
-		 * to an IN list when we preprocess the 1st OR in the list.
-		 */
+         * to an IN list when we preprocess the 1st OR in the list.
+         */
         if(getLeftOperand() instanceof OrNode){
             ((OrNode)getLeftOperand()).setFirstOr();
         }
         setLeftOperand(getLeftOperand().preprocess(numTables,
                 outerFromList,outerSubqueryList,
                 outerPredicateList));
-		/* We need to rerun the changeToCNF() phase if our left operand
-		 * is an AndNode.  This can happen due to a predicate transformation,
-		 * such as the ones for LIKE and BETWEEN, underneath us.
-		 */
+        /* We need to rerun the changeToCNF() phase if our left operand
+         * is an AndNode.  This can happen due to a predicate transformation,
+         * such as the ones for LIKE and BETWEEN, underneath us.
+         */
         if(getLeftOperand() instanceof AndNode){
             // OrNode Cannot be Transformed to an AndNode.
             // This allows us to always believe we are a top AndNode...
@@ -139,7 +139,7 @@ public class AndNode extends BinaryLogicalOperatorNode{
             return this;
         }
 
-		/* Convert the AndNode to an OrNode */
+        /* Convert the AndNode to an OrNode */
         ValueNode orNode;
 
         orNode=(ValueNode)getNodeFactory().getNode(C_NodeTypes.OR_NODE,getLeftOperand(),getRightOperand(),getContextManager());
@@ -213,11 +213,11 @@ public class AndNode extends BinaryLogicalOperatorNode{
     public ValueNode changeToCNF(boolean underTopAndNode) throws StandardException{
         AndNode curAnd=this;
 
-		/* Top chain will be a chain of Ands terminated by a non-AndNode.
-		 * (putAndsOnTop() has taken care of this. If the last node in
-		 * the chain is not a true BooleanConstantNode then we need to do the
-		 * transformation to make it so.
-		 */
+        /* Top chain will be a chain of Ands terminated by a non-AndNode.
+         * (putAndsOnTop() has taken care of this. If the last node in
+         * the chain is not a true BooleanConstantNode then we need to do the
+         * transformation to make it so.
+         */
 
         /* Add the true BooleanConstantNode if not there yet */
         if (!(getRightOperand() instanceof AndNode) && !(getRightOperand().isBooleanTrue())) {
@@ -300,25 +300,25 @@ public class AndNode extends BinaryLogicalOperatorNode{
             else {
                 /* If leftOperand is an AndNode, then we modify the tree from:
                  *
-                 *				this
-                 *			   /	\
-                 *			And2	Nodex
-                 *		   /	\		...
-                 *		left2	right2
+                 *                this
+                 *               /    \
+                 *            And2    Nodex
+                 *           /    \        ...
+                 *        left2    right2
                  *
-                 *	to:
+                 *    to:
                  *
-                 *						this
-                 *					   /	\
-                 *	left2.changeToCNF()		 And2
-                 *							/	\
-                 *		right2.changeToCNF()	  Nodex.changeToCNF()
+                 *                        this
+                 *                       /    \
+                 *    left2.changeToCNF()         And2
+                 *                            /    \
+                 *        right2.changeToCNF()      Nodex.changeToCNF()
                  *
-                 *	NOTE: We could easily switch places between left2.changeToCNF() and
+                 *    NOTE: We could easily switch places between left2.changeToCNF() and
                  *  right2.changeToCNF().
                  *
                  */
-		        /* Pull up the AndNode chain to our left */
+                /* Pull up the AndNode chain to our left */
                 /* For "clarity", we first get the new and old operands */
                 ValueNode newLeft = ((AndNode) getLeftOperand()).getLeftOperand();
                 AndNode oldLeft = (AndNode) getLeftOperand();
@@ -358,7 +358,7 @@ public class AndNode extends BinaryLogicalOperatorNode{
      * Verify that changeToCNF() did its job correctly.  Verify that:
      * o  AndNode  - rightOperand is not instanceof OrNode
      * leftOperand is not instanceof AndNode
-     * o  OrNode	- rightOperand is not instanceof AndNode
+     * o  OrNode    - rightOperand is not instanceof AndNode
      * leftOperand is not instanceof OrNode
      *
      * @return Boolean which reflects validity of the tree.
