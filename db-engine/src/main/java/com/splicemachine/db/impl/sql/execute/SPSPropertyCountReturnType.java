@@ -35,16 +35,20 @@ final class SPSPropertyCountReturnType extends SPSProperty {
     }
 
     protected void checkAndAddDependency(final Node node, CompilerContext cc) throws StandardException {
-        if(node instanceof AggregateNode) {
-            AggregateNode aggregateNode = (AggregateNode) node;
-            switch (aggregateNode.getType()) {
-                case COUNT_FUNCTION:
-                case COUNT_STAR_FUNCTION:
-                    cc.createDependency(this);
-                    break;
-                default:
-                    break;
-            }
+        if(!(node instanceof AggregateNode)) {
+            return;
+        }
+        AggregateNode aggregateNode = (AggregateNode) node;
+        if (aggregateNode.getType() == null) {
+            return;
+        }
+        switch (aggregateNode.getType()) {
+            case COUNT_FUNCTION:
+            case COUNT_STAR_FUNCTION:
+                cc.createDependency(this);
+                break;
+            default:
+                break;
         }
     }
 }
