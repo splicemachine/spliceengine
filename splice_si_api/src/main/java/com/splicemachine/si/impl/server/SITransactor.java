@@ -418,6 +418,7 @@ public class SITransactor implements Transactor{
             }
             int end = toUse.offset();
             int length = end - start - 1; // -1  to remove field separator
+            if (length < 0) length = 0; // NULL field
             accumulator.add(i, toUse.array(), start, length);
         }
         BitIndex index = BitIndexing.getBestIndex(fields,scalarFields,floatFields,doubleFields);
