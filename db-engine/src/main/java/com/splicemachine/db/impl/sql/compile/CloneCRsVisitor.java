@@ -86,7 +86,21 @@ public class CloneCRsVisitor implements Visitor
 				"CloneCRsVisitor encountered unexpected SubqueryNode");
 		QueryTreeNode queryTreeNode = (QueryTreeNode)node;
 		if (queryTreeNode.isCloneable()) {
-			QueryTreeNode clone = queryTreeNode.getClone();
+			QueryTreeNode clone;
+			if (queryTreeNode instanceof OrNode) {
+				if (parent instanceof OrNode)
+					return node;
+				OrNode orNode = (OrNode)queryTreeNode;
+				clone = orNode.shallowCloneORChain();
+			}
+			else if (queryTreeNode instanceof AndNode) {
+				if (parent instanceof AndNode)
+					return node;
+				AndNode andNode = (AndNode)queryTreeNode;
+				clone = andNode.shallowCloneANDChain();
+			}
+			else
+			    clone = queryTreeNode.getClone();
 			if (isCR) {
 				ColumnReference cRef = (ColumnReference)clone;
 				// Scoped columns can do multiple levels of remapping, so let's
