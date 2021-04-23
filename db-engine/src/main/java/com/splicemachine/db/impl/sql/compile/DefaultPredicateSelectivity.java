@@ -59,7 +59,7 @@ public class DefaultPredicateSelectivity extends AbstractSelectivityHolder {
         if (selectivity == -1.0d) {
             if (isRowIdBinding() && optimizer != null && optimizer.getOuterTable() != null)
                 selectivity = getRowIdPredSelectivity();
-            else
+            if (selectivity == -1.0d)
                 selectivity = p.selectivity(baseTable);
             if (selectivityFactor > 0) // we may hint to adjust selectivity by a factor
                 selectivity *= selectivityFactor;
@@ -73,7 +73,15 @@ public class DefaultPredicateSelectivity extends AbstractSelectivityHolder {
         double outerRowCount = optimizer.getOuterTable().getCurrentAccessPath().getCostEstimate().rowCount();
         double innerRowCount = ((FromBaseTable)baseTable).getSingleScanRowCount();
         double lesserRowCount = Double.min(outerRowCount, innerRowCount);
-        double selectivity = lesserRowCount / innerRowCount;
+        double selectivity;
+        if (innerRowCount == 0.0d)
+            return -1.0d;
+
+        selectivity = lesserRowCount / innerRowCount;
+        if (selectivity > 1.0d)
+            selectivity = 1.0d;
+        if (selectivity < 0.0d)
+            selectivity = 0.0d;
         return selectivity;
     }
 
