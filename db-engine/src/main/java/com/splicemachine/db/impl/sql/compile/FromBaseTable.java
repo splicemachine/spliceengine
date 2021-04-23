@@ -4047,22 +4047,17 @@ public class FromBaseTable extends FromTable {
         if (getCompilerContext().getDisablePrefixIteratorMode())
             return false;
 
-        Optimizer optimizer = accessPath.getOptimizer();
-
-        long sparkRowThreshold = lcc.getOptimizerFactory().getDetermineSparkRowThreshold();
         long parallelism = accessPath.getCostEstimate().getParallelism();
 
         // We must have statistics collected on the base table to pick IndexPrefixIteratorMode
         // because the operation may get expensive if the number of values is underestimated.
         // Also, building of the MultiRowRangeFilter to handle the iteration may get expensive
-        // for large numbers of values, so limit it to 20000 on control and 200000 per parallel
-        // task on Spark, for now.
-        long sparkMaxPrefixIteratorValues = Long.min(MAX_ABSOLUTE_INDEX_PREFIX_VALUES,
-                                                     parallelism * MAX_PER_PARALLEL_TASK_INDEX_PREFIX_VALUES);
-        long maxPrefixIteratorValues = optimizer.isForSpark() ? sparkMaxPrefixIteratorValues :
-                                       sparkRowThreshold;
+        // for large numbers of values, so limit it to 200000 per parallel
+        // task.
+        long maxPrefixIteratorValues = Long.min(MAX_ABSOLUTE_INDEX_PREFIX_VALUES,
+                                                parallelism * MAX_PER_PARALLEL_TASK_INDEX_PREFIX_VALUES);
         return !skipStats &&
                useRealTableStats &&
-               currentIndexFirstColumnStats.getFirstIndexColumnRowsPerValue() <= maxPrefixIteratorValues;
+               currentIndexFirstColumnStats.getFirstIndexColumnCardinality() <= maxPrefixIteratorValues;
     }
 }
