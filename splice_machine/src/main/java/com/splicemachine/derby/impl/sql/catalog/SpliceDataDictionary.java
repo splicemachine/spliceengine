@@ -1202,7 +1202,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                     SYSTABLESRowFactory.MIN_RETENTION_PERIOD));
 
             // now upgrade the views if necessary
-            createOrUpdateSystemView(tc, "SYSVW", "SYSCOLUMNSVIEW");
+            createOrUpdateSystemView(tc, "SYSVW", SYSTABLESRowFactory.SYSTABLE_VIEW_NAME);
 
             SpliceLogUtils.info(LOG, String.format("%s upgraded: added a column: %s.", SYSTABLESRowFactory.SYSTABLE_VIEW_NAME,
                     SYSTABLESRowFactory.MIN_RETENTION_PERIOD));
