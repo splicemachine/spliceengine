@@ -516,7 +516,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
                 new ColumnDescriptor("SCHEMANAME"               ,15,15,
                         DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
                         null,null,view,viewId,0,0,0),
-                new ColumnDescriptor("SKETCHSIZE"               ,8,8,
+                new ColumnDescriptor("SKETCHSIZE"               ,16,16,
                         DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER, true),
                         null,null,view,viewId,0,0,0)
         });
