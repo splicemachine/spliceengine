@@ -36,5 +36,5 @@ public interface PropertyManager{
 
     void clearProperties() throws StandardException;
 
-    void removeProperty(String propertyName) throws StandardException;
+    void removeProperty(String propertyName);
 }
