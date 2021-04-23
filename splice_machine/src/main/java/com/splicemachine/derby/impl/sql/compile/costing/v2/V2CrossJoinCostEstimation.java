@@ -11,7 +11,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.impl.sql.compile.costing;
+package com.splicemachine.derby.impl.sql.compile.costing.v2;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
@@ -19,9 +19,9 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
-import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.derby.impl.sql.compile.costing.StrategyJoinCostEstimation;
 
-public class V1CrossJoinCostEstimation implements StrategyJoinCostEstimation{
+public class V2CrossJoinCostEstimation implements StrategyJoinCostEstimation {
     @Override
     public void estimateCost(Optimizable innerTable,
                              OptimizablePredicateList predList,

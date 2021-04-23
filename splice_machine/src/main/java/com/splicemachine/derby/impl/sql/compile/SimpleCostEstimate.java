@@ -219,6 +219,7 @@ public class SimpleCostEstimate implements CostEstimate{
         sb.append(attrDelim).append("outputHeapSize=").append(df.format(eHeap)).append(unit);
         sb.append(attrDelim).append("partitions=").append(partitionCount());
         sb.append(attrDelim).append("parallelTasks=").append(getParallelism());
+        sb.append(attrDelim).append("costModel=").append(optimizer.getCostModel());
 
         return sb.toString();
     }
@@ -255,7 +256,8 @@ public class SimpleCostEstimate implements CostEstimate{
                 ",rowOrdering="+rowOrdering+
                 ",predicateList="+predicateList+
                 ",singleRow="+isSingleRow()+
-                 ",firstColumnStats="+firstColumnStats;
+                 ",firstColumnStats="+firstColumnStats+
+                "(with CEM="+optimizer.getCostModel().toString()+")";
     }
 
     @Override public void setRowCount(double outerRows){

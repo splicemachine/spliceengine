@@ -11,7 +11,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.impl.sql.compile.costing;
+package com.splicemachine.derby.impl.sql.compile.costing.v2;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
@@ -24,7 +24,7 @@ import com.splicemachine.db.impl.sql.compile.*;
 import java.util.BitSet;
 import java.util.HashSet;
 
-public class V1ScanCostEstimator extends AbstractScanCostEstimator {
+public class V2ScanCostEstimator extends AbstractScanCostEstimator {
     /**
      * <pre>
      *
@@ -37,7 +37,7 @@ public class V1ScanCostEstimator extends AbstractScanCostEstimator {
      *
      * </pre>
      */
-    public V1ScanCostEstimator(Optimizable baseTable,
+    public V2ScanCostEstimator(Optimizable baseTable,
                                ConglomerateDescriptor cd,
                                StoreCostController scc,
                                CostEstimate scanCost,

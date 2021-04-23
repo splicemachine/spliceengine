@@ -11,7 +11,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.impl.sql.compile.costing;
+package com.splicemachine.derby.impl.sql.compile.costing.v2;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
@@ -24,10 +24,11 @@ import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import com.splicemachine.db.impl.sql.compile.Predicate;
 import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
 import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
+import com.splicemachine.derby.impl.sql.compile.costing.StrategyJoinCostEstimation;
 
 import static com.splicemachine.db.impl.sql.compile.JoinNode.INNERJOIN;
 
-public class V1NestedLoopJoinCostEstimationModel implements StrategyJoinCostEstimation {
+public class V2NestedLoopJoinCostEstimationModel implements StrategyJoinCostEstimation {
 
     private static final double NLJ_ON_SPARK_PENALTY = 1e15;  // msirek-temp
 
