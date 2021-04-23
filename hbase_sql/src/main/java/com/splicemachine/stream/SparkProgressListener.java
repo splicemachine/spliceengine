@@ -17,7 +17,9 @@ package com.splicemachine.stream;
 import com.splicemachine.db.shared.ProgressInfo;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.SpliceSpark;
+import org.apache.hadoop.hive.ql.exec.spark.Statistic.SparkStatisticsNames;
 import org.apache.spark.SparkContext;
+import org.apache.spark.executor.TaskMetrics;
 import org.apache.spark.scheduler.*;
 import org.apache.spark.status.api.v1.StageData;
 import scala.collection.JavaConverters;
@@ -94,6 +96,22 @@ public class SparkProgressListener extends SparkListener implements AutoCloseabl
     @Override
     public void onTaskEnd(SparkListenerTaskEnd taskEnd) {
         updateProgress(taskEnd.stageId());
+        TaskMetrics tm = taskEnd.taskMetrics();
+        StringBuffer sb = new StringBuffer();
+        sb.append("task End " + taskEnd.taskInfo().id() + "\n"
+                + "executorCpuTime = " + tm.executorCpuTime() + "\n"
+                + "resultSize = " + tm.resultSize() + "\n"
+                + "jvmGCTime = " + tm.jvmGCTime() + "\n"
+                + "peakExecutionMemory = " + tm.peakExecutionMemory() + "\n"
+                + "outputMetrics().bytesWritten() = " + tm.outputMetrics().bytesWritten() + "\n"
+                + "outputMetrics().recordsWritten = " + tm.outputMetrics().recordsWritten() + "\n"
+                + "inputMetrics().recordsRead = " + tm.inputMetrics().recordsRead() + "\n"
+                + "inputMetrics().bytesRead = " + tm.inputMetrics().bytesRead() + "\n");
+        String message = sb.toString();
+        try {java.io.FileOutputStream fos = new java.io.FileOutputStream("/tmp/log.txt", true); fos.write((message).getBytes()); fos.close(); } catch( Exception e) {}
+        TaskInfo info = taskEnd.taskInfo();
+        //execSummary.taskTime += info.duration;
+        //info.duration();
     }
 
     @Override
