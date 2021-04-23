@@ -63,6 +63,7 @@ public class SimpleCostEstimate implements CostEstimate{
     private boolean disablePerParallelTaskJoinCosting = CompilerContext.DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING;
     private boolean disablePerParallelTaskJoinCostingSet = false;
 	private FirstColumnOfIndexStats firstColumnStats;
+	private String costModel;
 
     public SimpleCostEstimate(){ }
 
@@ -116,7 +117,7 @@ public class SimpleCostEstimate implements CostEstimate{
         this.firstColumnStats = other.getFirstColumnStats();
         this.numPartitions =other.partitionCount();
         this.parallelism = other.getParallelism();
-        this.optimizer = other.getOptimizer();
+        setOptimizer(other.getOptimizer());
         this.numRows = other.rowCount();
         this.singleScanRowCount = other.singleScanRowCount();
         RowOrdering rowOrdering=other.getRowOrdering();
@@ -219,7 +220,7 @@ public class SimpleCostEstimate implements CostEstimate{
         sb.append(attrDelim).append("outputHeapSize=").append(df.format(eHeap)).append(unit);
         sb.append(attrDelim).append("partitions=").append(partitionCount());
         sb.append(attrDelim).append("parallelTasks=").append(getParallelism());
-        sb.append(attrDelim).append("costModel=").append(optimizer.getCostModel());
+        sb.append(attrDelim).append("costModel=").append(costModel);
 
         return sb.toString();
     }
@@ -256,8 +257,8 @@ public class SimpleCostEstimate implements CostEstimate{
                 ",rowOrdering="+rowOrdering+
                 ",predicateList="+predicateList+
                 ",singleRow="+isSingleRow()+
-                 ",firstColumnStats="+firstColumnStats+
-                "(with CEM="+optimizer.getCostModel().toString()+")";
+                ",firstColumnStats="+firstColumnStats+
+                ",costModel="+costModel+")";
     }
 
     @Override public void setRowCount(double outerRows){
@@ -637,6 +638,9 @@ public class SimpleCostEstimate implements CostEstimate{
                 disablePerParallelTaskJoinCosting = cc.getDisablePerParallelTaskJoinCosting();
                 disablePerParallelTaskJoinCostingSet = true;
             }
+        }
+        if(optimizer != null){
+            costModel = optimizer.getCostModel().toString();
         }
     }
 
