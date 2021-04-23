@@ -20,6 +20,8 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.LongCursor;
 import com.splicemachine.access.api.Durability;
 import com.splicemachine.access.configuration.SIConfigurations;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.*;
@@ -39,6 +41,8 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
 import com.splicemachine.storage.*;
+import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.storage.index.BitIndexing;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -343,6 +347,8 @@ public class SITransactor implements Transactor{
                 }
             }
 
+            mergeUpdate(kvPair, possibleConflicts, supplier);
+
             DataPut mutationToRun = getMutationToRun(
                     table, kvPair, family, qualifier, transaction, conflictResults, addFirstOccurrenceToken, skipWAL, toRollforward);
             finalMutationsToWrite.put(i,mutationToRun);
@@ -352,6 +358,77 @@ public class SITransactor implements Transactor{
         }
 
         return finalMutationsToWrite;
+    }
+
+    private void mergeUpdate(KVPair update, DataResult possibleConflicts, TxnSupplier supplier) throws IOException {
+        if (possibleConflicts == null || possibleConflicts.userData() == null)
+            return;
+
+        if (update.getType() != KVPair.Type.UPDATE && update.getType() != KVPair.Type.UPSERT)
+            return;
+
+        // Check visibility
+        DataCell data = possibleConflicts.userData();
+        if (supplier.getTransaction(data.version()).getEffectiveState() == Txn.State.ROLLEDBACK)
+            return;
+
+        EntryDecoder dataDecoder = new EntryDecoder(data.valueArray(), data.valueOffset(), data.valueLength());
+        BitIndex dataIndex = dataDecoder.getCurrentIndex();
+        ByteSlice updateSlice = update.valueSlice();
+        EntryDecoder updateDecoder = new EntryDecoder(updateSlice.array(), updateSlice.offset(), updateSlice.length());
+        BitIndex updateIndex = updateDecoder.getCurrentIndex();
+        com.carrotsearch.hppc.BitSet fields = (com.carrotsearch.hppc.BitSet) dataIndex.getFields().clone();
+        fields.remove(updateIndex.getFields());
+        if(fields.isEmpty())
+            return;
+
+        fields.union(updateIndex.getFields());
+        com.carrotsearch.hppc.BitSet scalarFields = (com.carrotsearch.hppc.BitSet) dataIndex.getScalarFields().clone();
+        scalarFields.union(updateIndex.getScalarFields());
+        com.carrotsearch.hppc.BitSet floatFields = (com.carrotsearch.hppc.BitSet) dataIndex.getFloatFields().clone();
+        floatFields.union(updateIndex.getFloatFields());
+        com.carrotsearch.hppc.BitSet doubleFields = (com.carrotsearch.hppc.BitSet) dataIndex.getDoubleFields().clone();
+        doubleFields.union(updateIndex.getDoubleFields());
+        MultiFieldDecoder updateFieldDecoder = updateDecoder.getEntryDecoder();
+        MultiFieldDecoder dataFieldDecoder = dataDecoder.getEntryDecoder();
+        ByteEntryAccumulator accumulator = new ByteEntryAccumulator(null, false, fields);
+        for (int i = fields.nextSetBit(0); i >= 0; i = fields.nextSetBit(i+1)) {
+            MultiFieldDecoder toUse, toAdvance = null;
+            if(updateIndex.getFields().get(i)) {
+                toUse = updateFieldDecoder;
+                if (dataIndex.getFields().get(i)) {
+                    toAdvance = dataFieldDecoder;
+                }
+            } else {
+                toUse = dataFieldDecoder;
+            }
+            int start = toUse.offset();
+            if (scalarFields.get(i)) {
+                toUse.skipLong();
+                if (toAdvance != null) toAdvance.skipLong();
+            } else if (floatFields.get(i)) {
+                toUse.skipFloat();
+                if (toAdvance != null) toAdvance.skipFloat();
+            } else if (doubleFields.get(i)) {
+                toUse.skipDouble();
+                if (toAdvance != null) toAdvance.skipDouble();
+            } else {
+                toUse.skip();
+                if (toAdvance != null) toAdvance.skip();
+            }
+            int end = toUse.offset();
+            int length = end - start - 1; // -1  to remove field separator
+            if (length < 0) length = 0; // NULL field
+            accumulator.add(i, toUse.array(), start, length);
+        }
+        BitIndex index = BitIndexing.getBestIndex(fields,scalarFields,floatFields,doubleFields);
+        byte[] indexBytes = index.encode();
+        byte[] dataBytes = accumulator.finish();
+
+        byte[] finalBytes = new byte[indexBytes.length+dataBytes.length+1];
+        System.arraycopy(indexBytes,0,finalBytes,0,indexBytes.length);
+        System.arraycopy(dataBytes,0,finalBytes,indexBytes.length+1,dataBytes.length);
+        update.setValue(finalBytes);
     }
 
     private boolean applyConstraint(ConstraintChecker constraintChecker,
