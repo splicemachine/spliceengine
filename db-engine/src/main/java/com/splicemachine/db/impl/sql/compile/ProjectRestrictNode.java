@@ -1492,18 +1492,18 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         }
         if (subqueryNode != null) {
             subqueryText = subqueryNode.printExplainInformation(",");
-            subqueryText = subqueryText.substring(subqueryText.indexOf("->") + 2).trim();
+            subqueryText = subqueryText.substring(subqueryText.indexOf("->") + 1).trim();
             if (subqueryNode.getResultSet() instanceof ProjectRestrictNode) {
                 ProjectRestrictNode prn = (ProjectRestrictNode) subqueryNode.getResultSet();
                 String prnExplainText = prn.printExplainInformation(",");
-                prnExplainText = prnExplainText.substring(prnExplainText.indexOf("->") + 2).trim();
+                prnExplainText = prnExplainText.substring(prnExplainText.indexOf("->") + 1).trim();
                 subqueryText = subqueryText + "\n" + prnExplainText;
                 while (prn.getChildResult() instanceof ProjectRestrictNode)
                     prn = (ProjectRestrictNode) prn.getChildResult();
                 if (prn.getChildResult() instanceof FromTable) {
                     FromTable table = (FromTable) prn.getChildResult();
                     String tableExplainText = table.printExplainInformation(",");
-                    tableExplainText = tableExplainText.substring(tableExplainText.indexOf("->") + 2).trim();
+                    tableExplainText = tableExplainText.substring(tableExplainText.indexOf("->") + 1).trim();
                     subqueryText = subqueryText + "\n" + tableExplainText;
                 }
             }
