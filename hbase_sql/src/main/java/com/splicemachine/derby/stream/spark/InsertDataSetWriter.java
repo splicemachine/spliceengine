@@ -122,17 +122,27 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                 writeOp.finalizeNestedTransaction();
             opContext.getOperation().fireAfterStatementTriggers();
         }
-        ValueRow valueRow=new ValueRow(3);
-        valueRow.setColumn(1,new SQLLongint(opContext.getRecordsWritten()));
-        valueRow.setColumn(2,new SQLLongint());
-        valueRow.setColumn(3,new SQLVarchar());
-        InsertOperation insertOperation=((InsertOperation)opContext.getOperation());
-        if(insertOperation!=null && opContext.isPermissive()) {
+        return getResultSet();
+    }
+
+    /**
+     * result structure is
+     * col 1 = records Written
+     * col 2 = numBadRecords
+     * col 3 = fileName
+     */
+    private DataSet<ExecRow> getResultSet() throws StandardException {
+        ValueRow valueRow = new ValueRow(3);
+        valueRow.setColumn(1, new SQLLongint(opContext.getRecordsWritten()));
+        valueRow.setColumn(2, new SQLLongint());
+        valueRow.setColumn(3, new SQLVarchar());
+        InsertOperation insertOperation = ((InsertOperation) opContext.getOperation());
+        if (insertOperation != null && opContext.isPermissive()) {
             long numBadRecords = opContext.getBadRecords();
-            valueRow.setColumn(2,new SQLLongint(numBadRecords));
+            valueRow.setColumn(2, new SQLLongint(numBadRecords));
             if (numBadRecords > 0) {
                 String fileName = opContext.getStatusDirectory();
-                valueRow.setColumn(3,new SQLVarchar(fileName));
+                valueRow.setColumn(3, new SQLVarchar(fileName));
                 if (insertOperation.isAboveFailThreshold(numBadRecords)) {
                     throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(fileName);
                 }
