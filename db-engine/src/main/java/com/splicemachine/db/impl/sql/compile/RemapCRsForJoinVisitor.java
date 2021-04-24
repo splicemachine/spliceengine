@@ -79,7 +79,8 @@ public class RemapCRsForJoinVisitor implements Visitor
      */
     public boolean skipChildren(Visitable node)
     {
-        return (node instanceof SubqueryNode);
+        return ((node instanceof ColumnReference) ||
+                (node instanceof SubqueryNode));
     }
     public boolean visitChildrenFirst(Visitable node)
     {
