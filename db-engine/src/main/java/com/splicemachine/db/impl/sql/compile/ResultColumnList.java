@@ -3992,4 +3992,14 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         this.fromExprIndex = fromExprIndex;
     }
 
+    // Does this list of columns have any referenced columns?
+    public boolean hasReferencedColumn() {
+        for(int index=0;index<size();index++){
+            ResultColumn rc=elementAt(index);
+            if (rc.isReferenced())
+                return true;
+        }
+        return false;
+    }
+
 }
