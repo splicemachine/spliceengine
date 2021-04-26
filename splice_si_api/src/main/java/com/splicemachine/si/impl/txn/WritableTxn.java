@@ -155,13 +155,16 @@ public class WritableTxn extends AbstractTxn{
                     case ROLLEDBACK:
                         throw exceptionFactory.cannotCommit(txnId, state);
                     case ACTIVE:
-                        commitTimestamp = tc.commit(txnId);
-                        state = State.COMMITTED;
-                        if (ROOT_TRANSACTION.equals(parentTxn)) {
-                            tc.unregisterActiveTransaction(getBeginTimestamp());
-                            SIDriver driver = SIDriver.driver();
-                            if (driver != null && driver.isEngineStarted()) {
-                                cacheCommittedStatus(driver.getTxnSupplier(), this);
+                        try {
+                            commitTimestamp = tc.commit(txnId);
+                            state = State.COMMITTED;
+                        } finally {
+                            if (ROOT_TRANSACTION.equals(parentTxn)) {
+                                tc.unregisterActiveTransaction(getBeginTimestamp());
+                                SIDriver driver = SIDriver.driver();
+                                if (state == State.COMMITTED && driver != null && driver.isEngineStarted()) {
+                                    cacheCommittedStatus(driver.getTxnSupplier(), this);
+                                }
                             }
                         }
                 }
@@ -218,11 +221,14 @@ public class WritableTxn extends AbstractTxn{
                         return;
                 }
 
-                if (ROOT_TRANSACTION.equals(parentTxn)) {
-                    tc.unregisterActiveTransaction(getBeginTimestamp());
+                try {
+                    tc.rollback(txnId);
+                    state = State.ROLLEDBACK;
+                } finally {
+                    if (ROOT_TRANSACTION.equals(parentTxn)) {
+                        tc.unregisterActiveTransaction(getBeginTimestamp());
+                    }
                 }
-                tc.rollback(txnId);
-                state = State.ROLLEDBACK;
             }
         } else {
             subRollback();
