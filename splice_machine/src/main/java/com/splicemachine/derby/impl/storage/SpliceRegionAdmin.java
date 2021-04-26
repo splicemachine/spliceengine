@@ -22,9 +22,11 @@ import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -38,6 +40,8 @@ import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stream.function.csv.CsvParserConfig;
 import com.splicemachine.derby.stream.function.csv.FileFunction;
 import com.splicemachine.derby.stream.function.csv.MutableCSVTokenizer;
@@ -52,14 +56,12 @@ import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.procedures.ProcedureUtils;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.DataResult;
-import com.splicemachine.storage.DataResultScanner;
-import com.splicemachine.storage.DataScan;
-import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.*;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -74,11 +76,12 @@ import org.supercsv.prefs.CsvPreference;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
-import java.sql.ResultSet;
-import java.sql.Types;
-import java.util.ArrayList;
-import java.util.GregorianCalendar;
-import java.util.List;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * Created by jyuan on 8/14/17.
@@ -89,6 +92,290 @@ public class SpliceRegionAdmin {
     public static final String HBASE_DIR = "hbase.rootdir";
 
 
+    /**
+     *
+     * @param schemaName
+     * @param objectName
+     * @param results
+     */
+    public static void GET_REGION_LOCATIONS(String schemaName,
+                                            String objectName,
+                                            ResultSet[] results) throws Exception{
+
+        schemaName = EngineUtils.validateSchema(schemaName);
+        objectName = EngineUtils.validateTable(objectName);
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        long conglomerateNumber = getConglomerateNumber(lcc, schemaName, objectName);
+        PartitionFactory partitionFactory = SIDriver.driver().getTableFactory();
+        Partition table = partitionFactory.getTable(Long.toString(conglomerateNumber));
+
+        ResultColumnDescriptor[] columnInfo=new ResultColumnDescriptor[4];
+        columnInfo[0]=new GenericColumnDescriptor("ENCODED_REGION_NAME",
+                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,50));
+        columnInfo[1]=new GenericColumnDescriptor("START_KEY",
+                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,1024));
+        columnInfo[2]=new GenericColumnDescriptor("END_KEY",
+                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,1024));
+        columnInfo[3]=new GenericColumnDescriptor("OWNING_SERVER",
+                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,32672));
+
+        ArrayList<ExecRow> rows=new ArrayList<>();
+        DataValueDescriptor[] dvds=new DataValueDescriptor[]{
+                new SQLVarchar(),
+                new SQLVarchar(),
+                new SQLVarchar(),
+                new SQLVarchar()
+        };
+
+        List<Partition> partitions =  table.subPartitions(new byte[0], new byte[0], true);
+        for (Partition p : partitions) {
+            ExecRow row=new ValueRow(dvds.length);
+            row.setRowArray(dvds);
+            String serverName = getServerName(p.owningServer().getHostname(),
+                    p.owningServer().getPort(),
+                    p.owningServer().getStartupTimestamp());
+            dvds[0].setValue(p.getEncodedName());
+            dvds[1].setValue(Bytes.toStringBinary(p.getStartKey()));
+            dvds[2].setValue(Bytes.toStringBinary(p.getEndKey()));
+            dvds[3].setValue(serverName);
+            rows.add(row.getClone());
+        }
+
+        EmbedConnection defaultConn=(EmbedConnection) SpliceAdmin.getDefaultConn();
+        Activation lastActivation=defaultConn.getLanguageConnection().getLastActivation();
+        IteratorNoPutResultSet resultsToWrap=new IteratorNoPutResultSet(rows,columnInfo,lastActivation);
+        resultsToWrap.openCore();
+        results[0] = new EmbedResultSet40(defaultConn,resultsToWrap,false,null,true);
+    }
+
+    public static final String SERVERNAME_SEPARATOR = ",";
+    static String getServerName(String hostName, int port, long startcode) {
+        final StringBuilder name = new StringBuilder();
+        name.append(hostName);
+        name.append(SERVERNAME_SEPARATOR);
+        name.append(port);
+        name.append(SERVERNAME_SEPARATOR);
+        name.append(startcode);
+        return name.toString();
+    }
+
+    private static long getConglomerateNumber(LanguageConnectionContext lcc, String schemaName, String objectName) throws SQLException, StandardException {
+        TransactionController tc = lcc.getTransactionExecute();
+        DataDictionary dd = lcc.getDataDictionary();
+        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        TableDescriptor td = dd.getTableDescriptor(objectName, sd, tc);
+        long conglomerateNumber = 0;
+        if (td != null) {
+            conglomerateNumber = td.getHeapConglomerateId();
+        }
+        else {
+            ConglomerateDescriptor cd = dd.getConglomerateDescriptor(objectName, sd, false);
+            if (cd == null) {
+                throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND, schemaName);
+            }
+            conglomerateNumber = cd.getConglomerateNumber();
+        }
+
+        return conglomerateNumber;
+    }
+    /**
+     *
+     * @param schemaName
+     * @param objectName
+     * @param resultSets
+     */
+    public static void ASSIGN_TO_SERVER(String schemaName,
+                                        String objectName,
+                                        String server,
+                                        ResultSet[] resultSets) throws StandardException, SQLException {
+
+        IteratorNoPutResultSet inprs = null;
+        try {
+            Connection conn = SpliceAdmin.getDefaultConn();
+            LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+
+            schemaName = EngineUtils.validateSchema(schemaName);
+            objectName = EngineUtils.validateTable(objectName);
+            long conglomerateNumber = getConglomerateNumber(lcc, schemaName, objectName);
+            PartitionFactory partitionFactory = SIDriver.driver().getTableFactory();
+            Partition table = partitionFactory.getTable(Long.toString(conglomerateNumber));
+            List<Partition> partitions = table.subPartitions(new byte[0], new byte[0], true);
+
+            String warning = null;
+            if (partitions.size() > 1) {
+                warning = "Operation not supported for table with more than 1 region.";
+            } else {
+                PartitionServer ps = partitions.get(0).owningServer();
+                String hostName = ps.getHostname();
+                String region = partitions.get(0).getEncodedName();
+                int port = ps.getPort();
+                long startupTimestamp = ps.getStartupTimestamp();
+                String sourceServer = getServerName(hostName, port, startupTimestamp);
+                if (sourceServer.compareToIgnoreCase(server.trim()) != 0) {
+                    PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
+                    admin.move(region, server);
+                } else {
+                    warning = "Object already on server " + server;
+                }
+            }
+
+            ResultColumnDescriptor[] rcds = {
+                    new GenericColumnDescriptor("Results", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 1024))
+            };
+            ExecRow template = new ValueRow(1);
+            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
+            List<ExecRow> rows = Lists.newArrayList();
+            if (warning == null) {
+                template.getColumn(1).setValue("Moved to server " + server);
+            } else {
+                template.getColumn(1).setValue(warning);
+            }
+            rows.add(template.getClone());
+            inprs = new IteratorNoPutResultSet(rows, rcds, lcc.getLastActivation());
+            inprs.openCore();
+            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class), inprs, false, null, true);
+        }
+        catch (Throwable t) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
+        }
+    }
+
+    /**
+     *
+     * @param schemaName
+     * @param tableName
+     * @param resultSets
+     */
+    public static void LOCALIZE_INDEXES_FOR_TABLE(String schemaName, String tableName, ResultSet[] resultSets) throws Exception {
+
+        Connection conn = SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+        TransactionController tc = lcc.getTransactionExecute();
+        TxnView txn = ((SpliceTransactionManager) tc).getActiveStateTxn();
+        schemaName = EngineUtils.validateSchema(schemaName);
+        tableName = EngineUtils.validateTable(tableName);
+        long conglomerateNumber = getConglomerateNumber(lcc, schemaName, tableName);
+        PartitionFactory partitionFactory = SIDriver.driver().getTableFactory();
+        Partition table = partitionFactory.getTable(Long.toString(conglomerateNumber));
+        List<Partition> partitions = table.subPartitions(new byte[0], new byte[0], true);
+        List<String> messages = Lists.newArrayList();
+        if (partitions.size() > 1) {
+            messages.add("Operation not supported for table with more than 1 region.");
+        } else {
+            MoveRegionTask task = new MoveRegionTask(txn, schemaName, tableName);
+            messages.addAll(task.call());
+        }
+        resultSets[0] = processResult(lcc, conn, messages);
+    }
+
+    /**
+     *
+     * @param schemaName
+     * @param resultSets
+     * @throws Exception
+     */
+    public static void LOCALIZE_INDEXES_FOR_SCHEMA(String schemaName, ResultSet[] resultSets) throws Exception {
+
+        List<String> tables = Lists.newArrayList();
+        schemaName = EngineUtils.validateSchema(schemaName);
+        String sql = String.format("select t.tablename from sysvw.systablesview t, sysvw.sysschemasview s, sysvw.sysconglomeratesview c" +
+                " where s.schemaname='%s' and s.schemaid=t.schemaid and c.tableid=t.tableid and stored is null and not c.isindex", schemaName);
+        Connection connection = SpliceAdmin.getDefaultConn();
+        try (Statement s = connection.createStatement();
+             ResultSet rs = s.executeQuery(sql)) {
+            while (rs.next()) {
+                tables.add(rs.getString(1));
+            }
+        }
+        LanguageConnectionContext lcc = connection.unwrap(EmbedConnection.class).getLanguageConnection();
+        TransactionController tc = lcc.getTransactionExecute();
+        TxnView txn = ((SpliceTransactionManager) tc).getActiveStateTxn();
+
+        List<MoveRegionTask> callables = Lists.newArrayList();
+        for (String table : tables) {
+            callables.add(new MoveRegionTask(txn, schemaName, table));
+        }
+
+        List<String> messages = Lists.newArrayList();
+        List<Future<List<String>>> results = SIDriver.driver().getExecutorService().invokeAll(callables);
+        for (Future<List<String>> result : results) {
+            messages.addAll(result.get());
+        }
+        resultSets[0] = processResult(lcc, connection, messages);
+    }
+
+    private static EmbedResultSet40 processResult(LanguageConnectionContext lcc,
+                                                  Connection connection,
+                                                  List<String> messages) throws StandardException, SQLException {
+        ResultColumnDescriptor[] rcds = {
+                new GenericColumnDescriptor("Results",
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 32672))
+        };
+        ExecRow template = new ValueRow(1);
+        template.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
+        List<ExecRow> rows = Lists.newArrayList();
+        for (String message : messages) {
+            template.getColumn(1).setValue(message);
+            rows.add(template.getClone());
+        }
+        IteratorNoPutResultSet inprs = new IteratorNoPutResultSet(rows, rcds, lcc.getLastActivation());
+        inprs.openCore();
+        return new EmbedResultSet40(connection.unwrap(EmbedConnection.class), inprs, false, null, true);
+    }
+
+    private static class  MoveRegionTask implements Callable<List<String>> {
+        private TxnView txn;
+        private String schemaName;
+        private String tableName;
+
+        public MoveRegionTask(TxnView txn,
+                              String schemaName,
+                              String tableName) {
+            this.txn = txn;
+            this.schemaName = schemaName;
+            this.tableName = tableName;
+        }
+
+        public List<String> call() {
+            List<String> result = Lists.newArrayList();
+            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()){
+                transactionResource.marshallTransaction(txn);
+                LanguageConnectionContext lcc = transactionResource.getLcc();
+                long conglomerateNumber = getConglomerateNumber(lcc, schemaName, tableName);
+                SpliceLogUtils.info(LOG, "schemaName=%s, tableName=%s, conglomerate=%d", schemaName, tableName, conglomerateNumber);
+                PartitionFactory partitionFactory = SIDriver.driver().getTableFactory();
+                Partition table = partitionFactory.getTable(Long.toString(conglomerateNumber));
+                List<Partition> partitions = table.subPartitions(new byte[0], new byte[0], true);
+                if (partitions.size() == 1) {
+                    PartitionServer ps = partitions.get(0).owningServer();
+                    String targetServer = getServerName(ps.getHostname(), ps.getPort(), ps.getStartupTimestamp());
+                    PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
+                    TableDescriptor td = DataDictionaryUtils.getTableDescriptor(lcc, schemaName, tableName);
+                    ConglomerateDescriptorList cds = td.getConglomerateDescriptorList();
+                    for (ConglomerateDescriptor cd : cds) {
+                        long cn = cd.getConglomerateNumber();
+                        if (cn != conglomerateNumber) {
+                            table = partitionFactory.getTable(Long.toString(cn));
+                            partitions = table.subPartitions(new byte[0], new byte[0], true);
+                            for (Partition p : partitions) {
+                                String region = p.getEncodedName();
+                                String server = getServerName(p.owningServer().getHostname(),
+                                        p.owningServer().getPort(), p.owningServer().getStartupTimestamp());
+                                if (server.compareToIgnoreCase(targetServer) != 0) {
+                                    admin.move(region, targetServer);
+                                    result.add(String.format("Moved index %s from %s to %s", cd.getConglomerateName(),
+                                            server, targetServer));
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (IOException | StandardException | SQLException e) {
+                throw new RuntimeException(e);
+            }
+            return result;
+        }
+    }
     /**
      *
      * @param schemaName name of the schema
