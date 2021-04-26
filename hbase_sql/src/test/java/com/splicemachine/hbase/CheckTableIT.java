@@ -120,7 +120,7 @@ public class CheckTableIT extends SpliceUnitTest {
                 .withInsert("insert into C(a,b) values(?,?)")
                 .withIndex("create index C1 on C(b) exclude null keys")
                 .withIndex("create index C2 on C(c) exclude default keys")
-                .withIndex("create index C3 on C(a,b) exclude null keys")
+                .withIndex("create index C3 on C(a,b) exclude null keys")  // exclude null keys has no effect because column a is not null
                 .withRows(rows(
                         row(1, null),
                         row(2, null),
@@ -140,7 +140,7 @@ public class CheckTableIT extends SpliceUnitTest {
                         row(3, 3)))
                 .create();
         spliceClassWatcher.execute("alter table D add c int not null default 10");
-        spliceClassWatcher.execute("create index t1 on D(c, a) exclude null keys");
+        spliceClassWatcher.execute("create index t1 on D(c, a) exclude null keys");  // exclude null keys has no effect because column c is not null
         spliceClassWatcher.execute("create index t2 on D(c, b) exclude default keys");
         spliceClassWatcher.execute("create index t3 on D(b, c) exclude null keys");
 
@@ -426,11 +426,11 @@ public class CheckTableIT extends SpliceUnitTest {
                 "Index count and base table count are not expected to match because index excludes null or default keys. The index should be checked at level 2 |\n" +
                 "Index count and base table count are not expected to match because index excludes null or default keys. The index should be checked at level 2 |\n" +
                 "Index count and base table count are not expected to match because index excludes null or default keys. The index should be checked at level 2 |\n" +
-                "Index count and base table count are not expected to match because index excludes null or default keys. The index should be checked at level 2 |\n" +
-                "Index count and base table count are not expected to match because index excludes null or default keys. The index should be checked at level 2 |\n" +
+                "                                                                   count = 3                                                                   |\n" +
                 "                                                                   count = 3                                                                   |\n" +
                 "                                                                   count = 3                                                                   |\n" +
                 "                                                                   count = 4                                                                   |\n" +
+                "                                                                   count = 5                                                                   |\n" +
                 "                                                                   count = 5                                                                   |\n" +
                 "                                                                 count = 99903                                                                 |\n" +
                 "                                                                 count = 99904                                                                 |\n" +
@@ -497,13 +497,13 @@ public class CheckTableIT extends SpliceUnitTest {
                 "------------------------------------------------------------------------------------------------------------------------------------------------\n" +
                 "Index count and base table count are not expected to match because index excludes null or default keys. The index should be checked at level 2 |\n" +
                 "Index count and base table count are not expected to match because index excludes null or default keys. The index should be checked at level 2 |\n" +
-                "Index count and base table count are not expected to match because index excludes null or default keys. The index should be checked at level 2 |\n" +
+                "                                                                   count = 5                                                                   |\n" +
                 "                                                                   count = 5                                                                   |\n" +
                 "                                                                      C1:                                                                      |\n" +
                 "                                                                      C2:                                                                      |\n" +
                 "                                                                      C3:                                                                      |\n" +
                 "                                                                      C:                                                                       |";
-        assertEquals(s, s, expected);
+        assertEquals(s, expected, s);
 
         rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, C, getResourceDirectory(), C));
         rs.next();

@@ -557,6 +557,12 @@ public class ColumnDefinitionNode extends TableElementNode
     void validateDefault(DataDictionary dd, TableDescriptor td)
         throws StandardException
     {
+        if(defaultValue != null && defaultValue.isNull() && type != null && !type.isNullable()) {
+            throw StandardException.newException(
+                    SQLState.LANG_DB2_INVALID_DEFAULT_VALUE,
+                    this.name);
+        }
+
         if (defaultNode == null) {
             if (defaultValue != null) {
                 // Empty default case
