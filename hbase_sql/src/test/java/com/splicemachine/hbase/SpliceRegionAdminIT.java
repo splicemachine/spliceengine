@@ -616,8 +616,22 @@ public class SpliceRegionAdminIT {
     }
 
     @Test
-    public void testMoveRegion() throws Exception {
+    public void testLocalizeIndexForTable() throws Exception {
 
+        separateIndexAndTable();
+        String sql = String.format("call syscs_util.localize_indexes_for_table('%s', 'T')", SCHEMA_NAME);
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            int count = 0;
+            while(rs.next()) {
+                count++;
+                String result = rs.getString(1);
+                Assert.assertTrue(result.contains("Moved"));
+            }
+            Assert.assertTrue(count > 0);
+        }
+    }
+
+    private void separateIndexAndTable() throws Exception {
         Map<String, List<String>> serverUsage = new HashMap();
         String sql = "call syscs_util.syscs_get_active_servers()";
         try (ResultSet rs = methodWatcher.executeQuery(sql)) {
@@ -668,19 +682,7 @@ public class SpliceRegionAdminIT {
                 }
             }
         }
-
-        sql = String.format("call syscs_util.localize_indexes_for_table('%s', 'T')", SCHEMA_NAME);
-        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
-            int count = 0;
-            while(rs.next()) {
-                count++;
-                String result = rs.getString(1);
-                Assert.assertTrue(result.contains("Moved"));
-            }
-            Assert.assertTrue(count > 0);
-        }
     }
-
     private String getAnotherServer(Map<String, List<String>> serverUsage , String server) {
         String result = null;
         for (String s : serverUsage.keySet()) {
@@ -690,5 +692,20 @@ public class SpliceRegionAdminIT {
             }
         }
         return result;
+    }
+
+    @Test
+    public void testLocalizeIndexForSchema() throws Exception {
+        separateIndexAndTable();
+        String sql = String.format("call syscs_util.localize_indexes_for_schema('%s')", SCHEMA_NAME);
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            int count = 0;
+            while(rs.next()) {
+                count++;
+                String result = rs.getString(1);
+                Assert.assertTrue(result.contains("Moved"));
+            }
+            Assert.assertTrue(count > 0);
+        }
     }
 }

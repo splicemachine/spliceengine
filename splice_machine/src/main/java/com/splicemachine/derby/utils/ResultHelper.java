@@ -58,7 +58,7 @@ import java.util.List;
  *   resultSet[0] = rs;
  *
  */
-class ResultHelper {
+public class ResultHelper {
     public VarcharColumn addVarchar(String name, int length) {
         VarcharColumn c = new VarcharColumn();
         c.add(name, length);
@@ -87,7 +87,7 @@ class ResultHelper {
         return columnDescriptors.toArray(new ResultColumnDescriptor[columnDescriptors.size()]);
     }
 
-    void newRow()
+    public void newRow()
     {
         finishRow();
         row = new ValueRow(numColumns());
@@ -135,7 +135,7 @@ class ResultHelper {
         public DataTypeDescriptor create(int length) { throw new RuntimeException("not implemented"); }
     }
 
-    class VarcharColumn extends Column {
+    public class VarcharColumn extends Column {
         @Override
         public DataTypeDescriptor create(int length)
         {
