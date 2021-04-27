@@ -22,6 +22,7 @@ import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
 import com.splicemachine.si.impl.ForwardingTxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.store.TestingTxnStore;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.si.testenv.*;
@@ -32,6 +33,10 @@ import splice.com.google.common.collect.Lists;
 
 import java.io.IOException;
 import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Tests that indicate the expected behavior of transactions, particularly
@@ -337,11 +342,67 @@ public class TransactionInteractionTest {
     }
 
     @Test
+    public void testRolledbackTxnIsntCached() throws Throwable {
+        String name = "scott6";
+        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+        transactionalInsert(name, userTxn, 29);
+        userTxn.rollback();
+
+        // Make sure transaction rollback is not cached as committed
+        TxnView cached = SIDriver.driver().getTxnSupplier().getTransactionFromCache(userTxn.getTxnId());
+        if (cached == null)
+            return; // not cached, we are good!
+        assertEquals(userTxn.getTxnId(), cached.getTxnId());
+        assertNotEquals(Txn.State.COMMITTED, cached.getEffectiveState());
+    }
+
+    @Test
+    public void testSubTxnIsntCached() throws Throwable {
+        String name = "scott6";
+        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+        transactionalInsert(name, userTxn, 29);
+
+        Txn subTxn = control.beginChildTransaction(userTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,false,DESTINATION_TABLE,true);
+        subTxn.commit();
+
+        // Make sure sub transaction is not cached as committed
+        TxnView cached = SIDriver.driver().getTxnSupplier().getTransactionFromCache(subTxn.getTxnId());
+        assertEquals("Txn state was cached: " + cached,null, cached);
+    }
+
+    @Test
+    public void testSubTxnIsCachedAfterParentCommits() throws Throwable {
+        String name = "scott6";
+        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+        transactionalInsert(name, userTxn, 29);
+
+        Txn subTxn = control.beginChildTransaction(userTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,false,DESTINATION_TABLE,true);
+        subTxn.commit();
+        userTxn.commit();
+
+        // Make sure sub transaction is cached as committed
+        TxnView subCached = SIDriver.driver().getTxnSupplier().getTransactionFromCache(subTxn.getTxnId());
+        assertNotNull("Txn state wasn't cached" ,  subCached);
+        assertEquals(Txn.State.COMMITTED, subCached.getEffectiveState());
+
+        TxnView cached = SIDriver.driver().getTxnSupplier().getTransactionFromCache(userTxn.getTxnId());
+        assertNotNull("Txn state wasn't cached" ,  cached);
+        assertEquals(Txn.State.COMMITTED, cached.getEffectiveState());
+    }
+
+    @Test
     public void testDeleteAndInsertInterleavedCommitAndCreatedThrowsWriteWriteConflict() throws Throwable {
         String name = "scott6";
         Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
         transactionalInsert(name, userTxn, 29);
         userTxn.commit();
+
+        // Make sure transaction commit is cached locally
+        TxnView cached = SIDriver.driver().getTxnSupplier().getTransactionFromCache(userTxn.getTxnId());
+        assertNotNull("Txn not cached", cached);
+        assertEquals(userTxn.getTxnId(), cached.getTxnId());
+        assertEquals(Txn.State.COMMITTED, cached.getEffectiveState());
+
         userTxn = control.beginTransaction(DESTINATION_TABLE);
 
         Txn deleteTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE);
