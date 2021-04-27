@@ -628,7 +628,7 @@ public class CompilerContextImpl extends ContextImpl
         /*
         ** Not found, so get a StoreCostController from the store.
         */
-        StoreCostController retval = lcc.getTransactionCompile().openStoreCost(td,cd,skipStats, defaultRowCount, requestedSplits);
+        StoreCostController retval = lcc.getTransactionCompile().openStoreCost(td,cd,skipStats, defaultRowCount, requestedSplits, getVarcharDB2CompatibilityMode());
 
         /* Put it in the array */
         storeCostControllers.put(pairedKey, retval);
