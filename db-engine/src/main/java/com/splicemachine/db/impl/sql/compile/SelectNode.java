@@ -3040,7 +3040,7 @@ public class SelectNode extends ResultSetNode {
         return result;
     }
 
-    public void pushFetchFirst(ValueNode fetchFirst) {
+    public void setFetchFirst(ValueNode fetchFirst) {
         this.fetchFirst=fetchFirst;
     }
 

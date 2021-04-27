@@ -102,6 +102,24 @@ public class QueryRewriteIT extends SpliceUnitTest {
         testQuery(query, expected, methodWatcher);
         testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
 
+        String secondSet =
+            "1  |  2  |  3  |\n" +
+            "------------------\n" +
+            "  0  |  0  |  0  |\n" +
+            "  1  |  1  |  1  |\n" +
+            "  1  | 10  | 100 |\n" +
+            " 10  | 100 |1000 |\n" +
+            " 11  | 110 |1100 |\n" +
+            "  2  | 20  | 200 |\n" +
+            "  5  | 50  | 500 |\n" +
+            "  8  | 80  | 800 |\n" +
+            "NULL |NULL |NULL |";
+        List<String> containedStrings2 = Arrays.asList("Limit");
+        query = format("select 1,1,1 from t2 a --SPLICE-PROPERTIES useSpark=%s\n" +
+                                " union " +
+                                "select * from t3", useSpark);
+        testQuery(query, secondSet, methodWatcher);
+        testExplainContains(query, methodWatcher, containedStrings2, notContainedStrings);
 
         query = format("select a.* from t2 a --SPLICE-PROPERTIES useSpark=%s\n" +
                                 ", t1 b union " +
@@ -233,6 +251,196 @@ public class QueryRewriteIT extends SpliceUnitTest {
                 new String[] {"Limit"},                                // 19
                 new String[] {"Limit"}                                 // 23
                 );
+    }
+
+    @Test
+    public void testDerivedTable() throws Exception {
+
+        String expected =
+                "A2  | B2  | C2  |\n" +
+                "------------------\n" +
+                "  0  |  0  |  0  |\n" +
+                "  1  | 10  | 100 |\n" +
+                " 10  | 100 |1000 |\n" +
+                " 11  | 110 |1100 |\n" +
+                "  2  | 20  | 200 |\n" +
+                "  3  | 30  | 300 |\n" +
+                "  5  | 50  | 500 |\n" +
+                "  6  | 60  | 600 |\n" +
+                "  8  | 80  | 800 |\n" +
+                "  9  | 90  | 900 |\n" +
+                "NULL |NULL |NULL |";
+
+        String secondSet =
+                "A2  | B2  | C2  |\n" +
+                "------------------\n" +
+                "  0  |  0  |  0  |\n" +
+                "  1  | 10  | 100 |\n" +
+                " 10  | 100 |1000 |\n" +
+                " 11  | 110 |1100 |\n" +
+                "  2  | 20  | 200 |\n" +
+                "  5  | 50  | 500 |\n" +
+                "  8  | 80  | 800 |\n" +
+                "NULL |NULL |NULL |";
+
+        String thirdSet =
+                "1  |  2  |  3  |\n" +
+                "------------------\n" +
+                "  0  |  0  |  0  |\n" +
+                "  1  |  1  |  1  |\n" +
+                "  1  | 10  | 100 |\n" +
+                " 10  | 100 |1000 |\n" +
+                " 11  | 110 |1100 |\n" +
+                "  2  | 20  | 200 |\n" +
+                "  5  | 50  | 500 |\n" +
+                "  8  | 80  | 800 |\n" +
+                "NULL |NULL |NULL |";
+
+        String query = format("select a.* from t2 a --SPLICE-PROPERTIES useSpark=%s\n" +
+                              ", (select * from t1) b union " +
+                              "select * from t3", useSpark);
+
+        List<String> containedStrings = Arrays.asList("Subquery", "Limit");
+        List<String> notContainedStrings = Arrays.asList("Join");
+        testQuery(query, expected, methodWatcher);
+        testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+
+        query = format("select a.* from t2 a --SPLICE-PROPERTIES useSpark=%s\n" +
+                              ", (select * from t1 where false) b union " +
+                              "select * from t3", useSpark);
+        testQuery(query, secondSet, methodWatcher);
+        testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+
+        query = format("select a.* from t2 a --SPLICE-PROPERTIES useSpark=%s\n" +
+                              ", (select * from t1) b, (select * from t1) c union " +
+                              "select * from t3", useSpark);
+        testQuery(query, expected, methodWatcher);
+        testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+
+        query = format("select a.* from t2 a --SPLICE-PROPERTIES useSpark=%s\n" +
+                              ", (select * from t1 a, t2 b) b union " +
+                              "select * from t3", useSpark);
+        notContainedStrings = null;
+        testQuery(query, expected, methodWatcher);
+        testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+
+        query = format("select a.* from t2 a --SPLICE-PROPERTIES useSpark=%s\n" +
+                              ", (select * from t1 a, t2 b) b union " +
+                              "select * from t3", useSpark);
+
+        testQuery(query, expected, methodWatcher);
+        testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+
+        query = format("select 1,1,1 from (select * from t2) b--SPLICE-PROPERTIES useSpark=%s\n" +
+                              " union " +
+                              "select * from t3", useSpark);
+
+        containedStrings = Arrays.asList("Limit");
+        notContainedStrings = Arrays.asList("Join");
+        testQuery(query, thirdSet, methodWatcher);
+        testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+
+        // Queries which should not use the rewrite.
+        containedStrings = null;
+        notContainedStrings = Arrays.asList("Subquery", "Limit");
+        query = format("select a.* from t2 a --SPLICE-PROPERTIES useSpark=%s\n" +
+                              ", (select * from t1) b where b.a1 in (select a1 from t1) union " +
+                              "select * from t3", useSpark);
+        testQuery(query, expected, methodWatcher);
+        testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+
+        query = format("select b.* from (select * from t2) b--SPLICE-PROPERTIES useSpark=%s\n" +
+                              " union " +
+                              "select * from t3", useSpark);
+
+        testQuery(query, expected, methodWatcher);
+        testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+    }
+
+    @Test
+    public void testOuterJoin() throws Exception {
+
+        String expected =
+                "A2  | B2  | C2  |\n" +
+                "------------------\n" +
+                "  0  |  0  |  0  |\n" +
+                "  1  | 10  | 100 |\n" +
+                " 10  | 100 |1000 |\n" +
+                " 11  | 110 |1100 |\n" +
+                "  2  | 20  | 200 |\n" +
+                "  3  | 30  | 300 |\n" +
+                "  5  | 50  | 500 |\n" +
+                "  6  | 60  | 600 |\n" +
+                "  8  | 80  | 800 |\n" +
+                "  9  | 90  | 900 |\n" +
+                "NULL |NULL |NULL |";
+
+        String secondSet =
+                "A2  | B2  | C2  |\n" +
+                "------------------\n" +
+                "  0  |  0  |  0  |\n" +
+                "  1  | 10  | 100 |\n" +
+                " 10  | 100 |1000 |\n" +
+                " 11  | 110 |1100 |\n" +
+                "  2  | 20  | 200 |\n" +
+                "  5  | 50  | 500 |\n" +
+                "  8  | 80  | 800 |\n" +
+                "NULL |NULL |NULL |";
+
+        String thirdSet =
+                "A2  | B2  | C2  |\n" +
+                "------------------\n" +
+                "NULL |NULL |NULL |";
+
+        String fourthSet =
+                "A2  | B2  | C2  |\n" +
+                "------------------\n" +
+                "  0  |  0  |  0  |\n" +
+                "  1  | 10  | 100 |\n" +
+                " 11  | 110 |1100 |\n" +
+                "  2  | 20  | 200 |\n" +
+                "  5  | 50  | 500 |\n" +
+                "NULL |NULL |NULL |";
+
+        String query = format("select a.* from t2 a --SPLICE-PROPERTIES useSpark=%s\n" +
+                              "left outer join t3 b on a2 = a3 and b2 = b3 \n" +
+                              ", (select * from t1) b union " +
+                              "select * from t3", useSpark);
+
+        List<String> containedStrings = Arrays.asList("Subquery", "Limit");
+        List<String> notContainedStrings = null;
+        testQuery(query, expected, methodWatcher);
+        testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+
+        query = format("select a.* from t2 a --SPLICE-PROPERTIES useSpark=%s\n" +
+                              "right outer join t3 b on a2 = a3 and b2 = b3 \n" +
+                              ", (select * from t1) b union " +
+                              "select * from t3", useSpark);
+        testQuery(query, secondSet, methodWatcher);
+        testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+
+        query = format("select a.* from (select * from t1) b, t2 a --SPLICE-PROPERTIES useSpark=%s\n" +
+                              "right outer join t3 b on a2 = a3 and b2 = b3 \n" +
+                              " union " +
+                              "select * from t3", useSpark);
+        testQuery(query, secondSet, methodWatcher);
+        testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+
+        query = format("select a.* from t2 a --SPLICE-PROPERTIES useSpark=%s\n" +
+                              "right outer join t3 b on a2 = a3 and b2 = b3 \n" +
+                              "right outer join t1 c on false \n" +
+                              ", (select * from t1) b union " +
+                              "select * from t3 where false", useSpark);
+        testQuery(query, thirdSet, methodWatcher);
+        testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+
+        query = format("select a.* from t2 a --SPLICE-PROPERTIES useSpark=%s\n" +
+                              "right outer join t3 b on a2 = a3 and b2 = b3 \n" +
+                              "right outer join t1 c on a1 = a3 and b1 = b3 \n" +
+                              ", (select * from t1) b union " +
+                              "select * from t3 where false", useSpark);
+        testQuery(query, fourthSet, methodWatcher);
+        testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
     }
 
     @Test
