@@ -185,7 +185,7 @@ public class V2NestedLoopJoinCostEstimationModel implements StrategyJoinCostEsti
          * smaller tables. Assuming less to be scanned sequential would lead to better estimation for small
          * tables but under estimates for big tables.
          */
-        double numOfJoiningRowsPerTask = Math.max(outerCost.rowCount() / outerCost.getParallelism(), 1);
+        double numOfJoiningRowsPerTask = Math.max(outerCost.rowCount() / outerCost.getParallelism(), 1) * innerCost.rowCount();
         double joiningRowCostPerTask = numOfJoiningRowsPerTask * (isOlap ? OLAP_JOINING_ONE_ROW_COST : OLTP_JOINING_ONE_ROW_COST);
         double localCost = 0.0;
         if (isIndexKeyAccessRhs) {

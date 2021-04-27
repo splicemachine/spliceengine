@@ -110,11 +110,11 @@ public class V2BroadcastJoinCostEstimation implements StrategyJoinCostEstimation
      * @param outerCost the LHS cost
      * @return the broadcast join cost
      */
-    public static double broadcastJoinStrategyLocalCost(CostEstimate innerCost,
-                                                        CostEstimate outerCost,
-                                                        double numOfJoinedRows,
-                                                        int innerHashKeyColCount,
-                                                        int innerNumColumnsReturned) {
+    private static double broadcastJoinStrategyLocalCost(CostEstimate innerCost,
+                                                         CostEstimate outerCost,
+                                                         double numOfJoinedRows,
+                                                         int innerHashKeyColCount,
+                                                         int innerNumColumnsReturned) {
         SConfiguration config = EngineDriver.driver().getConfiguration();
         double localLatency = config.getFallbackLocalLatency(); // set to 1-microsecond normally, involves cost of opening iterator, calling next, ... etc
 
