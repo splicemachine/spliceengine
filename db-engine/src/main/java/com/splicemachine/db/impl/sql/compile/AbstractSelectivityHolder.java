@@ -76,4 +76,16 @@ public abstract class AbstractSelectivityHolder implements SelectivityHolder {
         else
             return p.getNumReferencedTables();
     }
+
+    public String toString() {
+        StringBuilder s = new StringBuilder();
+        s.append(this.getClass().getName());
+        s.append("{");
+        s.append("'phase': ").append(phase).append(',');
+        s.append("'colNum': ").append(colNum).append(',');
+        s.append("'selectivity': ").append(selectivity).append(',');
+        s.append("'predicate': ").append(p.binaryRelOpColRefsToString());
+        s.append("}");
+        return s.toString();
+    }
 }

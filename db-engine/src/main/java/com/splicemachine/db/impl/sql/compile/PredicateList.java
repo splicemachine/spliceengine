@@ -1471,7 +1471,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 ** Is it just one more than the previous position?
                 */
                 if((thisIndexPosition-currentStartPosition)> numColsInStartPred ||
-                        !considerJoinPredicateAsKey && thisPred.isHashableJoinPredicate()){
+                        !considerJoinPredicateAsKey && thisPred.isHashableJoinPredicate() ||
+                        thisIndexPosition > varcharRangeKeyPos){
                     /*
                     ** There's a gap in the start positions.  Don't mark any
                     ** more predicates as start predicates.
@@ -1480,7 +1481,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                         !rowIdScan                  &&
                         currentStartPosition == (firstColumnIdx - 1) &&
                         (!thisPred.isHashableJoinPredicate() || considerJoinPredicateAsKey) &&
-                         (thisIndexPosition-currentStartPosition) == numColsInStartPred + 1) {
+                         (thisIndexPosition-currentStartPosition) == numColsInStartPred + 1 &&
+                        thisIndexPosition <= varcharRangeKeyPos) {
                         accessPath.setNumUnusedLeadingIndexFields(1);
                     }
                     else
@@ -1525,7 +1527,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             /* Same as above, except for stop keys */
             if(currentStopPosition + numColsInStopPred <= thisIndexPosition || thisIndexPosition == -1){
                 if((thisIndexPosition-currentStopPosition)> numColsInStopPred ||
-                        !considerJoinPredicateAsKey && thisPred.isHashableJoinPredicate()){
+                        !considerJoinPredicateAsKey && thisPred.isHashableJoinPredicate() ||
+                        thisIndexPosition > varcharRangeKeyPos){
                     /*
                     ** There's a gap in the start positions.  Don't mark any
                     ** more predicates as start predicates.
@@ -1534,7 +1537,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                         !rowIdScan                  &&
                         currentStopPosition == (firstColumnIdx - 1) &&
                         (!thisPred.isHashableJoinPredicate() || considerJoinPredicateAsKey) &&
-                         (thisIndexPosition-currentStopPosition) == numColsInStopPred + 1) {
+                         (thisIndexPosition-currentStopPosition) == numColsInStopPred + 1 &&
+                        thisIndexPosition <= varcharRangeKeyPos) {
                         accessPath.setNumUnusedLeadingIndexFields(1);
                     }
                     else
