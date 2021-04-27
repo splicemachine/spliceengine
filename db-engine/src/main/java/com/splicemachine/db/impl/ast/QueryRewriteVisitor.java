@@ -116,7 +116,7 @@ public class QueryRewriteVisitor extends AbstractSpliceVisitor {
                       numberOne = new NumericConstantNode(selectNode.getContextManager(),
                                                             C_NodeTypes.INT_CONSTANT_NODE,
                                                             Integer.valueOf(1));
-                    selectNode.pushFetchFirst(numberOne);
+                    selectNode.setFetchFirst(numberOne);
                 }
                 else {
                     fromList.removeElementAt(i);
