@@ -37,6 +37,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assume.assumeNotNull;
 
 /**
  * Tests that indicate the expected behavior of transactions, particularly
@@ -343,6 +344,8 @@ public class TransactionInteractionTest {
 
     @Test
     public void testRolledbackTxnIsntCached() throws Throwable {
+        assumeNotNull(SIDriver.driver());
+
         String name = "scott6";
         Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
         transactionalInsert(name, userTxn, 29);
@@ -358,9 +361,8 @@ public class TransactionInteractionTest {
 
     @Test
     public void testSubTxnIsntCached() throws Throwable {
-        String name = "scott6";
+        assumeNotNull(SIDriver.driver());
         Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
-        transactionalInsert(name, userTxn, 29);
 
         Txn subTxn = control.beginChildTransaction(userTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,false,DESTINATION_TABLE,true);
         subTxn.commit();
@@ -372,9 +374,9 @@ public class TransactionInteractionTest {
 
     @Test
     public void testSubTxnIsCachedAfterParentCommits() throws Throwable {
-        String name = "scott6";
+        assumeNotNull(SIDriver.driver());
+
         Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
-        transactionalInsert(name, userTxn, 29);
 
         Txn subTxn = control.beginChildTransaction(userTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION,false,DESTINATION_TABLE,true);
         subTxn.commit();
@@ -391,10 +393,10 @@ public class TransactionInteractionTest {
     }
 
     @Test
-    public void testDeleteAndInsertInterleavedCommitAndCreatedThrowsWriteWriteConflict() throws Throwable {
-        String name = "scott6";
+    public void testTxnIsCachedAfterCommit() throws Throwable {
+        assumeNotNull(SIDriver.driver());
+
         Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
-        transactionalInsert(name, userTxn, 29);
         userTxn.commit();
 
         // Make sure transaction commit is cached locally
@@ -402,6 +404,14 @@ public class TransactionInteractionTest {
         assertNotNull("Txn not cached", cached);
         assertEquals(userTxn.getTxnId(), cached.getTxnId());
         assertEquals(Txn.State.COMMITTED, cached.getEffectiveState());
+    }
+
+    @Test
+    public void testDeleteAndInsertInterleavedCommitAndCreatedThrowsWriteWriteConflict() throws Throwable {
+        String name = "scott6";
+        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+        transactionalInsert(name, userTxn, 29);
+        userTxn.commit();
 
         userTxn = control.beginTransaction(DESTINATION_TABLE);
 
