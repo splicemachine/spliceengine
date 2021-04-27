@@ -162,8 +162,8 @@ public class WritableTxn extends AbstractTxn{
                             if (ROOT_TRANSACTION.equals(parentTxn)) {
                                 tc.unregisterActiveTransaction(getBeginTimestamp());
                                 SIDriver driver = SIDriver.driver();
-                                if (state == State.COMMITTED && driver != null && driver.isEngineStarted()) {
-                                    cacheCommittedStatus(driver.getTxnSupplier(), this);
+                                if (state == State.COMMITTED && driver != null) {
+                                    cacheCommittedStatus(driver.getTxnSupplier());
                                 }
                             }
                         }
@@ -176,14 +176,14 @@ public class WritableTxn extends AbstractTxn{
             SpliceLogUtils.trace(LOG,"After commit: txn=%s,commitTimestamp=%s",this,commitTimestamp);
     }
 
-    private void cacheCommittedStatus(TxnSupplier txnSupplier, AbstractTxn txn) {
+    private void cacheCommittedStatus(TxnSupplier txnSupplier) {
         Deque<AbstractTxn> toProcess = new ArrayDeque<>();
         toProcess.add(this);
         while(!toProcess.isEmpty()) {
-            AbstractTxn t = toProcess.pop();
-            if (t.getState() == State.COMMITTED) {
-                txnSupplier.cache(new CommittedTxn(t.getTxnId(), this.commitTimestamp));
-                for (Txn c : t.children) {
+            AbstractTxn txn = toProcess.pop();
+            if (txn.getState() == State.COMMITTED) {
+                txnSupplier.cache(new CommittedTxn(txn.getTxnId(), this.commitTimestamp));
+                for (Txn c : txn.children) {
                     if (c instanceof AbstractTxn) {
                         toProcess.add((AbstractTxn) c);
                     }
