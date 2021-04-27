@@ -13,8 +13,6 @@
 
 package com.splicemachine.derby.impl.sql.compile.costing.v2;
 
-import com.splicemachine.EngineDriver;
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -31,6 +29,9 @@ import static com.splicemachine.db.impl.sql.compile.JoinNode.INNERJOIN;
 public class V2NestedLoopJoinCostEstimationModel implements StrategyJoinCostEstimation {
 
     private static final double NLJ_ON_SPARK_PENALTY = 1e15;  // msirek-temp
+    private static final double RHS_SEQUENTIAL_SCAN_PORTION = 0.5;
+    private static final double OLTP_JOINING_ONE_ROW_COST = 27;
+    private static final double OLAP_JOINING_ONE_ROW_COST = 77;
 
     @Override
     public void estimateCost(Optimizable innerTable,
@@ -53,14 +54,11 @@ public class V2NestedLoopJoinCostEstimationModel implements StrategyJoinCostEsti
 
         //set the base costs for the join
         innerCost.setBase(innerCost.cloneMe());
-        double totalRowCount = outerCost.rowCount()*innerCost.rowCount();
+        double totalRowCount = outerCost.rowCount() * innerCost.rowCount();
+        boolean isIndexKeyAccessRhs = hasJoinPredicateWithIndexKeyLookup(predList);
 
-        double nljOnSparkPenalty = getNljOnSparkPenalty(innerTable, predList, innerCost, outerCost, optimizer);
-        innerCost.setRowOrdering(outerCost.getRowOrdering());
-        innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalRowCount));
-        innerCost.setParallelism(outerCost.getParallelism());
-        innerCost.setRowCount(totalRowCount);
-        double joinCost = nestedLoopJoinStrategyLocalCost(innerCost, outerCost, totalRowCount, optimizer.isForSpark());
+        double nljOnSparkPenalty = getNljOnSparkPenalty(innerTable, innerCost, optimizer, isIndexKeyAccessRhs);
+        double joinCost = nestedLoopJoinStrategyLocalCost(innerCost, outerCost, isIndexKeyAccessRhs, optimizer.isForSpark());
         joinCost += nljOnSparkPenalty;
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerParallelTask(joinCost);
@@ -68,6 +66,10 @@ public class V2NestedLoopJoinCostEstimationModel implements StrategyJoinCostEsti
         double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer);
         innerCost.setRemoteCost(remoteCostPerPartition);
         innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
+        innerCost.setRowOrdering(outerCost.getRowOrdering());
+        innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalRowCount));
+        innerCost.setParallelism(outerCost.getParallelism());
+        innerCost.setRowCount(totalRowCount);
     }
 
     // Nested loop join is most useful if it can be used to
@@ -80,10 +82,9 @@ public class V2NestedLoopJoinCostEstimationModel implements StrategyJoinCostEsti
     // both a start key and a stop key.  If none are present,
     // return a large cost penalty so we'll avoid such joins.
     private double getNljOnSparkPenalty(Optimizable table,
-                                        OptimizablePredicateList predList,
                                         CostEstimate innerCost,
-                                        CostEstimate outerCost,
-                                        Optimizer optimizer) {
+                                        Optimizer optimizer,
+                                        boolean isIndexKeyAccessRhs) {
         double retval = 0.0d;
         if (!optimizer.isForSpark() || optimizer.isMemPlatform())
             return retval;
@@ -102,7 +103,7 @@ public class V2NestedLoopJoinCostEstimationModel implements StrategyJoinCostEsti
         if (olapAlwaysPenalizeNLJ == null || !olapAlwaysPenalizeNLJ.booleanValue()) {
             if (!isBaseTable(table))
                 return NLJ_ON_SPARK_PENALTY * multiplier;
-            if (hasJoinPredicateWithIndexKeyLookup(predList))
+            if (isIndexKeyAccessRhs)
                 return retval;
         }
         return NLJ_ON_SPARK_PENALTY * multiplier;
@@ -130,63 +131,73 @@ public class V2NestedLoopJoinCostEstimationModel implements StrategyJoinCostEsti
     }
 
     /**
-     *
      * Nested Loop Join Local Cost Computation
      *
-     * Total Cost = (Left Side Cost)/Left Side Partition Count) + (Left Side Row Count/Left Side Partition Count)*(Right Side Cost + Right Side Transfer Cost)
-     *
-     * @param innerCost
-     * @param outerCost
-     * @return
+     * @param innerCost RHS cost estimate
+     * @param outerCost LHS cost estimate
+     * @return local cost of NLJ on LHS and RHS
      */
 
-    public static double nestedLoopJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost,
-                                                         double numOfJoinedRows, boolean useSparkCostFormula) {
-        SConfiguration config = EngineDriver.driver().getConfiguration();
-        double localLatency = config.getFallbackLocalLatency();
-        double joiningRowCost = numOfJoinedRows * localLatency;
-
-        // Using nested loop join on spark is bad in general because we may incur thousands
-        // or millions of RPC calls to HBase, depending on the number of rows accessed
-        // in the outer table, which may saturate the network.
-
-        // If we divide inner table probe costs by outerCost.getParallelism(), as the number
-        // of partitions goes up, the cost of the join, according to the cost formula,
-        // goes down, making nested loop join appear cheap on spark.
-        // But is it really that cheap?
-        // We have multiple spark tasks simultaneously sending RPC requests
-        // in parallel (not just between tasks, but also in multiple threads within a task).
-        // Saying that as partition count goes up, the costs go down implies that we have
-        // infinite network bandwidth, which is not the case.
-        // We therefore adopt a cost model which assumes all RPC requests go through the
-        // same network pipeline, and remove the division of the inner table row lookup cost by the
-        // number of partitions.
-
-        // This change only applies to the spark path (for now) to avoid any possible
-        // performance regression in OLTP query plans.
-        // Perhaps this can be made the new formula for both spark and control
-        // after more testing to validate it.
-
-        // A possible better join strategy for OLAP queries, which still makes use of
-        // the primary key or index on the inner table, could be to sort the outer
-        // table on the join key and then perform a merge join with the inner table.
-
-        /* DB-11662 note
-         * The explanation above makes sense, but it seems that not taking innerLocalCost per
-         * parallel task but the whole inner cost is too unfair for NLJ compared to other join
-         * strategies, especially when the inner table scan cost is very high.
+    private static double nestedLoopJoinStrategyLocalCost(CostEstimate innerCost,
+                                                          CostEstimate outerCost,
+                                                          boolean isIndexKeyAccessRhs,
+                                                          boolean isOlap) {
+        /* NLJ cost explanation
+         *
+         * ### Thread-level parallelism
+         * In executing nested loop joins, RHS table has to be scanned for each LHS row. At the beginning of
+         * execution, we launch at maximum 25 asynchronous tasks to scan the RHS table for the first 25 LHS
+         * rows. Then the main thread waits for the first task to return.
+         * The asynchronous task returns an iterator on the RHS table pointing to the first matching row.
+         * Once the first task has returned, main thread takes this RHS iterator and merges the RHS row with
+         * the LHS row pointed by an LHS iterator. The main thread works sequentially. It calls next() of the
+         * RHS iterator until all rows are exhausted, then moves to the RHS iterator returned from the next
+         * asynchronous task.
+         * Also, once a RHS iterator is exhausted, the main thread will launch a new asynchronous task for
+         * the next LHS row.
+         * The asynchronous task returns immediately once it finds a matching row. If there are more matching
+         * rows to be joined later, it's done by the main thread because by then, the iterator is taken over
+         * by the main thread.
+         * In a nutshell, the tasks of scanning RHS table are done in parallel before meeting the first
+         * matching row. The rest of the scan are done by the main thread sequentially. It is important to
+         * model this in cost estimation to reflect actual execution.
+         *
+         * ### Index key access on RHS
+         * There are three important assumptions we make when we have an index key access on RHS:
+         * 1. Finding the first matching row on RHS is very fast because scan range is very limited
+         * 2. In case of a PK access, there are no more matching rows after the first matching row on RHS.
+         *    So the main thread doesn't scan RHS, effectively.
+         * 3. In case of an index access, there may be more matching rows, but they are stored together. The
+         *    main thread doesn't spend much time on finding the next matching row.
+         *
+         * In a word, we assume for index key access on RHS, main thread starts to output rows once the first
+         * asynchronous task is done. The main thread doesn't wait on producing the next output row.
+         *
+         * ### Non-key access on RHS
+         * In this case, we cannot assume main thread doesn't wait on producing the next output rows.
+         * Actually, when RHS is big, most of the time would be spent on main thread scanning RHS for the
+         * next matching row.
+         * We need to assume, however, how much portion of the RHS scanning tasks can be done in parallel,
+         * i.e., where the first matching row in RHS is. This cannot be generally answered.
+         * We currently assume that the first matching row in RHS is in the middle of the table. So half of
+         * the scan is done in parallel, half is done in the main thread in sequential. Assuming more to be
+         * scanned in sequential would lead to better estimation for big tables but over estimates for
+         * smaller tables. Assuming less to be scanned sequential would lead to better estimation for small
+         * tables but under estimates for big tables.
          */
-        double innerRemoteCost = innerCost.getRemoteCostPerParallelTask()*innerCost.getParallelism();
-        if (useSparkCostFormula)
-            return outerCost.getLocalCostPerParallelTask() +
-                    (Math.max(outerCost.rowCount() / outerCost.getParallelism(), 1)
-                            * innerCost.getLocalCostPerParallelTask()) +
-                    (outerCost.rowCount() * (innerRemoteCost + outerCost.getRemoteCost())) +  // this is not correct, but to avoid regression on OLAP
-                    joiningRowCost / outerCost.getParallelism();
-        else
-            return outerCost.getLocalCostPerParallelTask() +
-                    Math.max(outerCost.rowCount() / outerCost.getParallelism(), 1)
-                            * (innerCost.getLocalCostPerParallelTask()+innerCost.getRemoteCost()) +
-                    joiningRowCost / outerCost.getParallelism();
+        double numOfJoiningRowsPerTask = Math.max(outerCost.rowCount() / outerCost.getParallelism(), 1);
+        double joiningRowCostPerTask = numOfJoiningRowsPerTask * (isOlap ? OLAP_JOINING_ONE_ROW_COST : OLTP_JOINING_ONE_ROW_COST);
+        double localCost = 0.0;
+        if (isIndexKeyAccessRhs) {
+            localCost = innerCost.getLocalCost()                   // the first async task needs to finish first
+                    + outerCost.getLocalCostPerParallelTask()      // main thread scans LHS
+                    + joiningRowCostPerTask;                       // joining LHS rows and matching RHS rows
+        } else {
+            localCost = innerCost.getLocalCost() * (1 - RHS_SEQUENTIAL_SCAN_PORTION)  // the first async task returns after finding the first matching row on RHS
+                    + outerCost.getLocalCostPerParallelTask()                         // main thread scans LHS
+                    + joiningRowCostPerTask                                           // joining LHS rows and matching RHS rows
+                    + Math.max(outerCost.rowCount() / outerCost.getParallelism(), 1) * innerCost.getLocalCost() * RHS_SEQUENTIAL_SCAN_PORTION;  // main thread scans RHS sequentially for the rest of matching rows
+        }
+        return localCost;
     }
 }
