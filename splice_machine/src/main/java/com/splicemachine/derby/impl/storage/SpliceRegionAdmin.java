@@ -22,7 +22,6 @@ import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
@@ -50,6 +49,7 @@ import com.splicemachine.derby.stream.utils.BooleanList;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.procedures.SpliceAdmin;
+import com.splicemachine.derby.utils.ResultHelper;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
@@ -80,8 +80,6 @@ import java.sql.*;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 /**
  * Created by jyuan on 8/14/17.
@@ -93,9 +91,9 @@ public class SpliceRegionAdmin {
 
 
     /**
-     *
-     * @param schemaName
-     * @param objectName
+     * List region locations for an object (table or index)
+     * @param schemaName schema name of the object
+     * @param objectName table or index name
      * @param results
      */
     public static void GET_REGION_LOCATIONS(String schemaName,
@@ -109,46 +107,35 @@ public class SpliceRegionAdmin {
         PartitionFactory partitionFactory = SIDriver.driver().getTableFactory();
         Partition table = partitionFactory.getTable(Long.toString(conglomerateNumber));
 
-        ResultColumnDescriptor[] columnInfo=new ResultColumnDescriptor[4];
-        columnInfo[0]=new GenericColumnDescriptor("ENCODED_REGION_NAME",
-                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,50));
-        columnInfo[1]=new GenericColumnDescriptor("START_KEY",
-                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,1024));
-        columnInfo[2]=new GenericColumnDescriptor("END_KEY",
-                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,1024));
-        columnInfo[3]=new GenericColumnDescriptor("OWNING_SERVER",
-                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,32672));
-
-        ArrayList<ExecRow> rows=new ArrayList<>();
-        DataValueDescriptor[] dvds=new DataValueDescriptor[]{
-                new SQLVarchar(),
-                new SQLVarchar(),
-                new SQLVarchar(),
-                new SQLVarchar()
-        };
+        ResultHelper res = new ResultHelper();
+        ResultHelper.VarcharColumn colName   = res.addVarchar("ENCODED_REGION_NAME", 50);
+        ResultHelper.VarcharColumn colStart  = res.addVarchar("START_KEY", 1024);
+        ResultHelper.VarcharColumn colEnd    = res.addVarchar("END_KEY", 1024);
+        ResultHelper.VarcharColumn colOwning = res.addVarchar("OWNING_SERVER", 32672);
 
         List<Partition> partitions =  table.subPartitions(new byte[0], new byte[0], true);
         for (Partition p : partitions) {
-            ExecRow row=new ValueRow(dvds.length);
-            row.setRowArray(dvds);
             String serverName = getServerName(p.owningServer().getHostname(),
                     p.owningServer().getPort(),
                     p.owningServer().getStartupTimestamp());
-            dvds[0].setValue(p.getEncodedName());
-            dvds[1].setValue(Bytes.toStringBinary(p.getStartKey()));
-            dvds[2].setValue(Bytes.toStringBinary(p.getEndKey()));
-            dvds[3].setValue(serverName);
-            rows.add(row.getClone());
+            res.newRow();
+            colName.set(p.getEncodedName());
+            colStart.set(Bytes.toStringBinary(p.getStartKey()));
+            colEnd.set(Bytes.toStringBinary(p.getEndKey()));
+            colOwning.set(serverName);
         }
-
-        EmbedConnection defaultConn=(EmbedConnection) SpliceAdmin.getDefaultConn();
-        Activation lastActivation=defaultConn.getLanguageConnection().getLastActivation();
-        IteratorNoPutResultSet resultsToWrap=new IteratorNoPutResultSet(rows,columnInfo,lastActivation);
-        resultsToWrap.openCore();
-        results[0] = new EmbedResultSet40(defaultConn,resultsToWrap,false,null,true);
+        results[0] = res.getResultSet();
     }
 
     public static final String SERVERNAME_SEPARATOR = ",";
+
+    /**
+     * Get full region server name that includes port and startup timestamp
+     * @param hostName region server host name
+     * @param port region server port number
+     * @param startcode region server startup timestamp
+     * @return
+     */
     static String getServerName(String hostName, int port, long startcode) {
         final StringBuilder name = new StringBuilder();
         name.append(hostName);
@@ -159,6 +146,15 @@ public class SpliceRegionAdmin {
         return name.toString();
     }
 
+    /**
+     * Get conglomerate number for a splice table or index
+     * @param lcc
+     * @param schemaName
+     * @param objectName
+     * @return
+     * @throws SQLException
+     * @throws StandardException
+     */
     private static long getConglomerateNumber(LanguageConnectionContext lcc, String schemaName, String objectName) throws SQLException, StandardException {
         TransactionController tc = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
@@ -179,9 +175,10 @@ public class SpliceRegionAdmin {
         return conglomerateNumber;
     }
     /**
-     *
+     * Assigns a table or index to a region server
      * @param schemaName
-     * @param objectName
+     * @param objectName table or index name
+     * @param server the server to assign to
      * @param resultSets
      */
     public static void ASSIGN_TO_SERVER(String schemaName,
@@ -219,21 +216,13 @@ public class SpliceRegionAdmin {
                 }
             }
 
-            ResultColumnDescriptor[] rcds = {
-                    new GenericColumnDescriptor("Results", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 1024))
-            };
-            ExecRow template = new ValueRow(1);
-            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
-            List<ExecRow> rows = Lists.newArrayList();
+            List<String> messages = Lists.newArrayList();
             if (warning == null) {
-                template.getColumn(1).setValue("Moved to server " + server);
+                messages.add("Moved to server " + server);
             } else {
-                template.getColumn(1).setValue(warning);
+                messages.add(warning);
             }
-            rows.add(template.getClone());
-            inprs = new IteratorNoPutResultSet(rows, rcds, lcc.getLastActivation());
-            inprs.openCore();
-            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class), inprs, false, null, true);
+            resultSets[0] = processResult(messages);
         }
         catch (Throwable t) {
             resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
@@ -241,7 +230,7 @@ public class SpliceRegionAdmin {
     }
 
     /**
-     *
+     * Relocate all indexes to the region server that hosts the base table
      * @param schemaName
      * @param tableName
      * @param resultSets
@@ -262,14 +251,14 @@ public class SpliceRegionAdmin {
         if (partitions.size() > 1) {
             messages.add("Operation not supported for table with more than 1 region.");
         } else {
-            MoveRegionTask task = new MoveRegionTask(txn, schemaName, tableName);
+            LocalizeIndexesTask task = new LocalizeIndexesTask(txn, schemaName, tableName);
             messages.addAll(task.call());
         }
-        resultSets[0] = processResult(lcc, conn, messages);
+        resultSets[0] = processResult(messages);
     }
 
     /**
-     *
+     * Relocate all indexes to the region server that hosts the base table of a schema
      * @param schemaName
      * @param resultSets
      * @throws Exception
@@ -291,9 +280,9 @@ public class SpliceRegionAdmin {
         TransactionController tc = lcc.getTransactionExecute();
         TxnView txn = ((SpliceTransactionManager) tc).getActiveStateTxn();
 
-        List<MoveRegionTask> callables = Lists.newArrayList();
+        List<LocalizeIndexesTask> callables = Lists.newArrayList();
         for (String table : tables) {
-            callables.add(new MoveRegionTask(txn, schemaName, table));
+            callables.add(new LocalizeIndexesTask(txn, schemaName, table));
         }
 
         List<String> messages = Lists.newArrayList();
@@ -301,36 +290,30 @@ public class SpliceRegionAdmin {
         for (Future<List<String>> result : results) {
             messages.addAll(result.get());
         }
-        resultSets[0] = processResult(lcc, connection, messages);
+        resultSets[0] = processResult(messages);
     }
 
-    private static EmbedResultSet40 processResult(LanguageConnectionContext lcc,
-                                                  Connection connection,
-                                                  List<String> messages) throws StandardException, SQLException {
-        ResultColumnDescriptor[] rcds = {
-                new GenericColumnDescriptor("Results",
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 32672))
-        };
-        ExecRow template = new ValueRow(1);
-        template.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
-        List<ExecRow> rows = Lists.newArrayList();
+    private static ResultSet processResult(List<String> messages) throws StandardException, SQLException {
+        ResultHelper res = new ResultHelper();
+        ResultHelper.VarcharColumn col = res.addVarchar("Results", 32672);
         for (String message : messages) {
-            template.getColumn(1).setValue(message);
-            rows.add(template.getClone());
+            res.newRow();
+            col.set(message);
         }
-        IteratorNoPutResultSet inprs = new IteratorNoPutResultSet(rows, rcds, lcc.getLastActivation());
-        inprs.openCore();
-        return new EmbedResultSet40(connection.unwrap(EmbedConnection.class), inprs, false, null, true);
+        return res.getResultSet();
     }
 
-    private static class  MoveRegionTask implements Callable<List<String>> {
+    /**
+     * A thread to colocate indexes to the base table
+     */
+    private static class LocalizeIndexesTask implements Callable<List<String>> {
         private TxnView txn;
         private String schemaName;
         private String tableName;
 
-        public MoveRegionTask(TxnView txn,
-                              String schemaName,
-                              String tableName) {
+        public LocalizeIndexesTask(TxnView txn,
+                                   String schemaName,
+                                   String tableName) {
             this.txn = txn;
             this.schemaName = schemaName;
             this.tableName = tableName;
@@ -342,7 +325,10 @@ public class SpliceRegionAdmin {
                 transactionResource.marshallTransaction(txn);
                 LanguageConnectionContext lcc = transactionResource.getLcc();
                 long conglomerateNumber = getConglomerateNumber(lcc, schemaName, tableName);
-                SpliceLogUtils.info(LOG, "schemaName=%s, tableName=%s, conglomerate=%d", schemaName, tableName, conglomerateNumber);
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "Localize index for table %s.%s : %d",
+                            schemaName, tableName, conglomerateNumber);
+                }
                 PartitionFactory partitionFactory = SIDriver.driver().getTableFactory();
                 Partition table = partitionFactory.getTable(Long.toString(conglomerateNumber));
                 List<Partition> partitions = table.subPartitions(new byte[0], new byte[0], true);
@@ -355,6 +341,10 @@ public class SpliceRegionAdmin {
                     for (ConglomerateDescriptor cd : cds) {
                         long cn = cd.getConglomerateNumber();
                         if (cn != conglomerateNumber) {
+                            if (LOG.isDebugEnabled()) {
+                                SpliceLogUtils.debug(LOG, "Localize index %s for table %s.%s",
+                                        cd.getConglomerateName(), schemaName, tableName);
+                            }
                             table = partitionFactory.getTable(Long.toString(cn));
                             partitions = table.subPartitions(new byte[0], new byte[0], true);
                             for (Partition p : partitions) {
@@ -362,12 +352,25 @@ public class SpliceRegionAdmin {
                                 String server = getServerName(p.owningServer().getHostname(),
                                         p.owningServer().getPort(), p.owningServer().getStartupTimestamp());
                                 if (server.compareToIgnoreCase(targetServer) != 0) {
+                                    if (LOG.isDebugEnabled()) {
+                                        SpliceLogUtils.debug(LOG, "Moving index %s from %s to %s",
+                                                cd.getConglomerateName(), server, targetServer);
+                                    }
                                     admin.move(region, targetServer);
                                     result.add(String.format("Moved index %s from %s to %s", cd.getConglomerateName(),
                                             server, targetServer));
+                                    if (LOG.isDebugEnabled()) {
+                                        SpliceLogUtils.debug(LOG, "Moved index %s from %s to %s",
+                                                cd.getConglomerateName(), server, targetServer);
+                                    }
                                 }
                             }
                         }
+                    }
+                }
+                else {
+                    if (LOG.isDebugEnabled()) {
+                        SpliceLogUtils.debug(LOG, "Ignore table %s.%s because it has more than 1 region", schemaName, tableName);
                     }
                 }
             } catch (IOException | StandardException | SQLException e) {
