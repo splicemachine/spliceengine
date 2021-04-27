@@ -67,6 +67,16 @@ import java.util.*;
 public class ScanCostFunction{
     public static final Logger LOG = Logger.getLogger(ScanCostFunction.class);
 
+    /* These values are based on the results of index lookup microbenchmark (DB-11737) performed
+     * on an EKS cluster with 4 OLTP + 4 OLAP pods.
+     * Next step is to make them tunable (maybe as configurable parameters in site.xml). These
+     * numbers can be used as defaults. In theory, they can be set based on results of running
+     * index lookup microbenchmark in target environment.
+     */
+    private static final int OLTP_INDEXLOOKUP_COST_PER_ROW = 125;
+    private static final int OLAP_INDEXLOOKUP_COST_PER_ROW = 18;
+    private static final int OLAP_INDEXLOOKUP_STARTUP_COST = 85000;
+
     private static final int SCAN = 0;  // qualifier phase: BASE, FILTER_BASE
     private static final int TOP  = 1;  // qualifier phase: FILTER_PROJECTION
 
@@ -96,8 +106,18 @@ public class ScanCostFunction{
     // positions of columns used in estimating selectivity but missing real statistics
     private final HashSet<Integer> usedNoStatsColumnIds;
 
+    // when index lookup is needed, the maximum number of rows that can be fired as a batch
+    // controlled by splice.index.batchSize, default value in SQLConfiguration
+    private final int indexLookupBatchRowCount;
+
+    // when index lookup is needed, the maximum number of batches that can be fired concurrently
+    // controlled by splice.index.numConcurrentLookups, default value in SQLConfiguration
+    private final int indexLookupConcurrentBatchesCount;
+
     // will be used shortly
     private final boolean forUpdate;
+
+    private final boolean isOlap;
 
     // selectivity elements for scanning phase
     private final List<SelectivityHolder>[] scanSelectivityHolder;
@@ -127,14 +147,19 @@ public class ScanCostFunction{
      *
      * </pre>
      *
-     * @param baseTable
-     * @param cd
-     * @param scc
-     * @param scanCost
-     * @param resultColumns
-     * @param scanRowTemplate
-     * @param forUpdate
-     * @param usedNoStatsColumnIds
+     * @param baseTable  A base table on which a scan cost is going to be estimated.
+     * @param cd         A conglomerate descriptor of the base table to be considered.
+     * @param scc        A StoreCostController instance.
+     * @param scanCost   A CostEstimate instance where the result will be stored. Output parameter.
+     * @param resultColumns  The result columns of the base table.
+     * @param scanRowTemplate  The row template of the base table.
+     * @param baseColumnsInScan  The set of columns from the base table that will be scanned in store.
+     * @param baseColumnsInLookup  The set of columns that has to be looked up because of a non-covering index.
+     * @param indexLookupBatchRowCount  Maximum number of rows for which index lookup operation can be batched together.
+     * @param indexLookupConcurrentBatchesCount  Maximum number of index lookup batches that can run concurrently.
+     * @param forUpdate  Whether the base table is updatable (see forUpdate() for detailed explanation) or not (currently unused).
+     * @param isOlap  Whether estimating a cost for OLAP or not.
+     * @param usedNoStatsColumnIds  A set of columns which do not have statistics but should have to improve cost estimation. Output parameter.
      */
     public ScanCostFunction(Optimizable baseTable,
                             ConglomerateDescriptor cd,
@@ -144,7 +169,10 @@ public class ScanCostFunction{
                             DataValueDescriptor[] scanRowTemplate,
                             BitSet baseColumnsInScan,
                             BitSet baseColumnsInLookup,
+                            int indexLookupBatchRowCount,
+                            int indexLookupConcurrentBatchesCount,
                             boolean forUpdate,
+                            boolean isOlap,
                             HashSet<Integer> usedNoStatsColumnIds) throws StandardException {
         this.baseTable=baseTable;
         this.cd = cd;
@@ -157,7 +185,10 @@ public class ScanCostFunction{
         this.resultColumns = resultColumns;
         this.baseColumnsInScan = baseColumnsInScan;
         this.baseColumnsInLookup = baseColumnsInLookup;
-        this.forUpdate=forUpdate;
+        this.indexLookupBatchRowCount = indexLookupBatchRowCount;
+        this.indexLookupConcurrentBatchesCount = indexLookupConcurrentBatchesCount;
+        this.forUpdate = forUpdate;
+        this.isOlap = isOlap;
         this.usedNoStatsColumnIds = usedNoStatsColumnIds;
 
         /* We always allocate one extra column in a selectivity holder array because column
@@ -409,7 +440,7 @@ public class ScanCostFunction{
             scanCost.setIndexLookupRows(-1.0d);
             scanCost.setIndexLookupCost(-1.0d);
         } else {
-            lookupCost = totalRowCount*(scc.getOpenLatency()+scc.getCloseLatency());
+            lookupCost = estimateIndexLookupCost(totalRowCount, scc.getOpenLatency(), scc.getCloseLatency());
             scanCost.setIndexLookupRows(totalRowCount);
             scanCost.setIndexLookupCost(lookupCost+baseCost);
         }
@@ -535,9 +566,10 @@ public class ScanCostFunction{
             scanCost.setIndexLookupRows(-1.0d);
             scanCost.setIndexLookupCost(-1.0d);
         } else {
-            lookupCost = totalRowCount*filterBaseTableSelectivity*(openLatency+closeLatency);
-            scanCost.setIndexLookupRows(Math.round(filterBaseTableSelectivity*totalRowCount));
-            scanCost.setIndexLookupCost(lookupCost+baseCost);
+            double lookupRowsCount = totalRowCount * filterBaseTableSelectivity;
+            lookupCost = estimateIndexLookupCost(lookupRowsCount, openLatency, closeLatency);
+            scanCost.setIndexLookupRows(Math.round(lookupRowsCount));
+            scanCost.setIndexLookupCost(lookupCost + baseCost);
         }
         assert lookupCost >= 0 : "lookupCost cannot be negative -> " + lookupCost;
 
@@ -600,6 +632,36 @@ public class ScanCostFunction{
             scanCost.getProjectionRows(), scanCost.getProjectionCost(),
             scanCost.getLocalCost(), scc.getNumPartitions(), scanCost.getLocalCost()/scc.getNumPartitions()));
         }
+    }
+
+    private double estimateIndexLookupCost(double lookupRowsCount, double openLatency, double closeLatency) {
+        if (isOlap || lookupRowsCount == 1.0) {  // OLTP formula is simplified to OLAP formula if row count == 1
+            return lookupRowsCount * getIndexLookupCostPerRow() + openLatency + closeLatency
+                    + (isOlap ? OLAP_INDEXLOOKUP_STARTUP_COST : 0);
+        } else {
+            // a whole batch is a batch containing 'indexLookupBatchRowCount' rows
+            // if lookupRowsCount < indexLookupBatchRowCount, wholeBatchesCount == 0
+            double wholeBatchesCount = Math.floor(lookupRowsCount / indexLookupBatchRowCount);
+            double oneWholeBatchCost = indexLookupBatchRowCount * getIndexLookupCostPerRow() + openLatency + closeLatency;
+            double serialBatchesCount = Math.max(wholeBatchesCount / indexLookupConcurrentBatchesCount, 1);
+
+            boolean considerLastBatchSeparately = wholeBatchesCount % indexLookupConcurrentBatchesCount == 0;
+            if (considerLastBatchSeparately) {
+                // if we have k serial batch groups but the last batch group contains only one batch that is not a whole
+                // batch, calculate the cost of last batch separately
+                double lastBatchRowsCount = lookupRowsCount % indexLookupBatchRowCount;
+                double lastBatchCost = lastBatchRowsCount * getIndexLookupCostPerRow() + openLatency + closeLatency;
+                return oneWholeBatchCost * (wholeBatchesCount == 0 ? 0 : serialBatchesCount)
+                        + (lastBatchRowsCount == 0 ? 0 : lastBatchCost);
+            } else {
+                // if the last serial batch group has at least one whole batch, take it as a complete serial step
+                return oneWholeBatchCost * Math.ceil(serialBatchesCount);
+            }
+        }
+    }
+
+    private double getIndexLookupCostPerRow() {
+        return isOlap ? OLAP_INDEXLOOKUP_COST_PER_ROW : OLTP_INDEXLOOKUP_COST_PER_ROW;
     }
 
     /**

@@ -151,7 +151,7 @@ public class SQLConfiguration implements ConfigurationDefault {
      * Threshold in rows for using spark.  Default is 20000
      */
     public static final String DETERMINE_SPARK_ROW_THRESHOLD = "splice.optimizer.determineSparkRowThreshold";
-    private static final int DEFAULT_DETERMINE_SPARK_ROW_THRESHOLD = 20000;
+    private static final int DEFAULT_DETERMINE_SPARK_ROW_THRESHOLD = 80000;
 
     /**
      * The maximum number of Kryo objects to pool for reuse. This setting is generally

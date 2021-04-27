@@ -329,7 +329,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
             Assert.assertTrue("expect explain plan contains engine=OLTP", rs.getString(1).contains("engine=OLTP"));
         }
 
-        sql = format("explain select * from %s.%s", CLASS_NAME, TABLE_NAME);
+        sql = format("explain select * from %s.%s --SPLICE-PROPERTIES usedefaultrowcount=90000", CLASS_NAME, TABLE_NAME);
         try (ResultSet rs  = methodWatcher.executeQuery(sql)) {
             Assert.assertTrue(rs.next());
             Assert.assertTrue("expect explain plan contains engine=OLAP", rs.getString(1).contains("engine=OLAP"));
@@ -411,12 +411,12 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
         // full table scan, we should go for spark path as all rows need to be accessed, even though the output row count
         // is small after applying the predicate
-        try (ResultSet rs = methodWatcher.executeQuery("explain select * from t4 where b4=10000")) {
+        try (ResultSet rs = methodWatcher.executeQuery("explain select * from t4 --splice-properties usedefaultrowcount=90000\n where b4=10000")) {
             Assert.assertTrue(rs.next());
             Assert.assertTrue("expect explain plan to pick spark path", rs.getString(1).contains("engine=OLAP"));
         }
 
-        // test join case, base table scan may not exceeds the rowcount limit of 20000, if the join result rowcount exceeds this
+        // test join case, base table scan may not exceeds the rowcount limit of 80000, if the join result rowcount exceeds this
         // limit, we still need to go for Spark path
         try (ResultSet rs = methodWatcher.executeQuery("explain select * from t4 as X, t4 as Y where X.a4>30000 and Y.a4 >30000 and X.b4=Y.b4")) {
             Assert.assertTrue(rs.next());
@@ -466,13 +466,13 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         }
 
         /* Q2: test the switch from table scan to index scan */
-        String engine2[] = {"OLAP", "OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
-        int rowCount2[] = {1000000, 1000000, 1000000, 27, 1, 1, 1, 1};
+        String engine2[] = {"OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
+        int rowCount2[] = {1000000, 27000, 854, 27, 1, 1, 1, 1};
         for (int i=0; i < selectivity.length; i++) {
             try (ResultSet rs = methodWatcher.executeQuery(format("explain select * from t5 --splice-properties useDefaultRowCount=1000000, defaultSelectivityFactor=%.8f\n where b5=100001 and c5=3", selectivity[i]))) {
                 Assert.assertTrue(rs.next());
-                Assert.assertTrue(format("Iteration [%d]:expect explain plan to pick %s path", i, engine[i]), rs.getString(1).contains(format("engine=%s", engine2[i])));
-                if (i < 3) {
+            Assert.assertTrue(format("Iteration [%d]:expect explain plan to pick %s path", i, engine2[i]), rs.getString(1).contains(format("engine=%s", engine2[i])));
+                if (i < 1) {
                     //selectivity is not small enough to make index lookup plan win, so we expect TableScan plan
                     //skip the next step to get to the TableScan step
                     Assert.assertTrue(rs.next());
@@ -512,8 +512,8 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         }
 
         /* Q3: test join case */
-        String engine3[] = {"OLAP", "OLAP", "OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
-        int rowCount3[] = {1000000, 1000000, 1000000, 27, 1, 1, 1, 1};
+        String engine3[] = {"OLAP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP", "OLTP"};
+        int rowCount3[] = {1000000, 27000, 854, 27, 1, 1, 1, 1};
         String join3[] = {"BroadcastJoin", "BroadcastJoin", "BroadcastJoin",
                 "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin", "NestedLoopJoin"};
         for (int i=0; i < selectivity.length; i++) {
@@ -524,7 +524,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
                 Assert.assertTrue(format("Iteration [%d]:expect explain plan to pick %s path", i, engine3[i]), rs.getString(1).contains(format("engine=%s", engine3[i])));
                 // skip ScrollInsensitive step
                 Assert.assertTrue(rs.next());
-                if (i < 3) {
+                if (i < 1) {
                     //selectivity is not small enough to make index lookup plan win, so we expect TableScan plan
                     // with large input table rows, broadcast join should win
                     Assert.assertTrue(rs.next());
