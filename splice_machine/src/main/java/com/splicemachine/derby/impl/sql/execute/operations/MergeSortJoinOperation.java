@@ -198,7 +198,7 @@ public class MergeSortJoinOperation extends JoinOperation {
             SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
                     getJoinTypeString(), isAntiJoin(), restriction != null);
         }
-        //rightDataSet1.map(new CountJoinedRightFunction(operationContext));
+        rightDataSet1.map(new CountJoinedRightFunction(operationContext));
         DataSet<ExecRow> joined;
 
         if (useNativeSparkJoin){
