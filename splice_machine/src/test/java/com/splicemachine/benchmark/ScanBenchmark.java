@@ -14,6 +14,9 @@
 
 package com.splicemachine.benchmark;
 
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.BitSetIterator;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.test.Benchmark;
@@ -31,6 +34,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.splicemachine.db.iapi.util.RowIdUtil.toHBaseEscaped;
 import static org.junit.Assert.assertTrue;
 
 @Category(Benchmark.class)
@@ -46,7 +50,6 @@ public class ScanBenchmark extends Benchmark {
     private static final int NUM_WARMUP_RUNS = 5;
 
     private static final int TABLE_DEF = 0;
-    private static final int INDEX_DEF = 1;
     private static final int INSERT_PARAM = 2;
 
     private final int numTableColumns;
@@ -57,6 +60,7 @@ public class ScanBenchmark extends Benchmark {
     private final int batchSize;
     private final String tableDefStr;
     private final String insertParamStr;
+    private final boolean costOnly;
 
     public ScanBenchmark(int numTableColumns, int splitCount, int tableSize, boolean onOlap) {
         this.numTableColumns = Math.max(numTableColumns, 1);
@@ -67,6 +71,7 @@ public class ScanBenchmark extends Benchmark {
         this.batchSize = Math.min(tableSize, 1000);
         this.tableDefStr = getColumnDef(this.numTableColumns, TABLE_DEF);
         this.insertParamStr = getColumnDef(this.numTableColumns, INSERT_PARAM);
+        this.costOnly = Boolean.parseBoolean(System.getProperty("costOnly"));
     }
 
     @ClassRule
@@ -109,6 +114,58 @@ public class ScanBenchmark extends Benchmark {
         reportStats();
     }
 
+    private int getNumSplits(Connection c) throws SQLException {
+        int cnt = 0;
+        String getRegionsSQL = String.format("CALL SYSCS_UTIL.GET_REGIONS('%s', '%s', null,null, null, '|',null,null,null,null)",
+                                             SCHEMA, BASE_TABLE);
+        try (ResultSet rs = c.createStatement().executeQuery(getRegionsSQL)) {
+
+            while (rs.next()) {
+                LOG.info(String.format("Region %s, %s", rs.getString(2), rs.getString(3)));
+                cnt++;
+            }
+        }
+        return cnt;
+    }
+
+    private String rowIdOf(Connection conn, int pkColValue) {
+        String rowIdOfSql = String.format("SELECT ROWID FROM %s where col_0 = %d", BASE_TABLE, pkColValue);
+        try(ResultSet rs = conn.createStatement().executeQuery(rowIdOfSql)) {
+            rs.next();
+            return rs.getString(1);
+        } catch (SQLException t) {
+            LOG.error("Error running statement to get RowId", t);
+            System.exit(-1);
+            return "?";
+        }
+    }
+
+    private void splitAt(Connection conn, String rowId) {
+        String splitAtSql = null;
+        try {
+            splitAtSql = String.format("call SYSCS_UTIL.syscs_split_table_or_index_at_points('%s', '%s', null,'%s')",
+                                              SCHEMA, BASE_TABLE, toHBaseEscaped(rowId));
+        } catch (StandardException e) {
+            LOG.error("Error escapring rowId", e);
+            System.exit(-1);
+        }
+        try(Statement statement = conn.createStatement()) {
+            statement.execute(splitAtSql);
+        } catch (SQLException t) {
+            LOG.error("Error running statement to split", t);
+            System.exit(-1);
+        }
+    }
+
+    private void splitRegions(Connection conn, int numSplits) {
+        assert numSplits != 0;
+        int splitSize = tableSize / numSplits;
+        for(int i = 1; i < numSplits; i++) {
+            String rowId = rowIdOf(conn, splitSize * i);
+            splitAt(conn, rowId);
+        }
+    }
+
     static final String STAT_ERROR = "ERROR";
     static final String STAT_CREATE = "CREATE";
 
@@ -142,6 +199,7 @@ public class ScanBenchmark extends Benchmark {
         }
         catch (Throwable t) {
             LOG.error("Connection broken", t);
+            System.exit(-1);
         }
     }
 
@@ -155,16 +213,14 @@ public class ScanBenchmark extends Benchmark {
             if (i != 0) {
                 sb.append(", ");
             }
-
             switch (defStrType) {
                 case TABLE_DEF:
                     sb.append("col_");
                     sb.append(i);
                     sb.append(" int");
-                    break;
-                case INDEX_DEF:
-                    sb.append("col_");
-                    sb.append(i);
+                    if(i == 0) {
+                        sb.append(" primary key");
+                    }
                     break;
                 case INSERT_PARAM:
                     sb.append("?");
@@ -183,36 +239,72 @@ public class ScanBenchmark extends Benchmark {
         return rs.getInt(1);
     }
 
+    private static double extractCostFromPlanRow(String planRow) throws NumberFormatException {
+        double cost = 0.0;
+        if (planRow != null) {
+            String costField = planRow.split(",")[1];
+            if (costField != null) {
+                String costStr = costField.split("=")[1];
+                if (costStr != null) {
+                    cost = Double.parseDouble(costStr);
+                }
+            }
+        }
+        return cost;
+    }
+
     private void benchmark(int numSplits, int numExec, boolean warmUp, boolean onOlap) {
         String sqlText;
-        String dataLabel = "OLAP = " + onOlap;
-        if (numSplits == -1) {
-            sqlText = String.format("select count(col_0) from %s --splice-properties useSpark=%b", BASE_TABLE, onOlap);
-            dataLabel += ", SPLITS undefined";
-        } else {
-            sqlText = String.format("select count(col_0) from %s --splice-properties useSpark=%b, splits=%s", BASE_TABLE, onOlap, numSplits);
-            dataLabel += ", SPLITS = " + numSplits;
-        }
+        String dataLabel = "New Experiment with OLAP = " + onOlap;
+        sqlText = String.format("select count(col_0) from %s --splice-properties useSpark=%b", BASE_TABLE, onOlap);
+        dataLabel += ", SPLITS = " + numSplits;
         try (Connection conn = makeConnection()) {
-            try (PreparedStatement query = conn.prepareStatement(sqlText)) {
-                if (warmUp) {
-                    for (int i = 0; i < NUM_WARMUP_RUNS; ++i) {
-                        query.executeQuery();
-                    }
+            getNumSplits(conn);
+            if(numSplits > 0) {
+                LOG.info(String.format("After splitting to %d region(s)", numSplits));
+                splitRegions(conn, numSplits);
+                int actualSplitCount = getNumSplits(conn);
+                if(numSplits != actualSplitCount) {
+                    LOG.error(String.format("number of actual splits %d is not equal to what was requested (%d)", actualSplitCount, numSplits));
+                    System.exit(-1);
                 }
-
-                for (int i = 0; i < numExec; ++i) {
-                    long start = System.currentTimeMillis();
-                    try (ResultSet rs = query.executeQuery()) {
-                        if (getRowCount(rs) != tableSize) {
-                            updateStats(STAT_ERROR);
-                        } else {
-                            long stop = System.currentTimeMillis();
-                            updateStats(dataLabel, stop - start);
+            }
+            if (costOnly) {
+                double scanCost = 0.0d;
+                try (PreparedStatement ps = conn.prepareStatement("explain " + sqlText)) {
+                    try (ResultSet resultSet = ps.executeQuery()) {
+                        int i = 0;
+                        while (resultSet.next()) {
+                            i++;
+                            String resultString = resultSet.getString(1);
+                            if (i == 6) {
+                                scanCost = extractCostFromPlanRow(resultString);
+                            }
                         }
-                    } catch (SQLException ex) {
-                        LOG.error("ERROR execution " + i + " of scan benchmark on " + BASE_TABLE + ": " + ex.getMessage());
-                        updateStats(STAT_ERROR);
+                    }
+                    LOG.info(String.format("scanCost=%.3f", scanCost));
+                }
+            } else {
+                try (PreparedStatement query = conn.prepareStatement(sqlText)) {
+                    if (warmUp) {
+                        for (int i = 0; i < NUM_WARMUP_RUNS; ++i) {
+                            query.executeQuery();
+                        }
+                    }
+
+                    for (int i = 0; i < numExec; ++i) {
+                        long start = System.currentTimeMillis();
+                        try (ResultSet rs = query.executeQuery()) {
+                            if (getRowCount(rs) != tableSize) {
+                                updateStats(STAT_ERROR);
+                            } else {
+                                long stop = System.currentTimeMillis();
+                                updateStats(dataLabel, stop - start);
+                            }
+                        } catch (SQLException ex) {
+                            LOG.error("ERROR execution " + i + " of scan benchmark on " + BASE_TABLE + ": " + ex.getMessage());
+                            updateStats(STAT_ERROR);
+                        }
                     }
                 }
             }
@@ -240,7 +332,7 @@ public class ScanBenchmark extends Benchmark {
                 {10, -1, 150000, false},
                 {10, -1, 200000, false},
                 {10, -1, 500000, false},
-                {10, -1, 1000000, false},
+                {10, 2, 100000, false},
                 {10, 2, 1000, false },
                 {10, 2, 5000, false },
                 {10, 2, 10000, false },
