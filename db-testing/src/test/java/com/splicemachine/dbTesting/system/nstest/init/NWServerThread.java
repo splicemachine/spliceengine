@@ -36,6 +36,7 @@ import java.net.InetAddress;
 import com.splicemachine.db.drda.NetworkServerControl;
 
 /**
+ * FOR TESTING
  * NWServerThread: Start a Network Server in a new Thread, based on the
  * NsTest.START_SERVER_IN_SAME_VM setting
  */
