@@ -72,6 +72,7 @@ import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
+import com.splicemachine.qpt.SQLStatement;
 import com.splicemachine.utils.SparkSQLUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
@@ -3980,6 +3981,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         }
     }
 
+    String getStatmentId(String stmt)
+    {
+        try {
+            return SQLStatement.getSqlStatement(stmt).getId();
+        } catch (Exception e) {
+            return "X#ERROR#";
+        }
+    }
+
     @Override
     public void logStartExecuting(String uuid, String engine, String stmt, ExecPreparedStatement ps,
                                   ParameterValueSet pvs) {
@@ -4043,7 +4053,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             if (maxStatementLogLen >= 0 && maxStatementLogLen < statement.length()) {
                 subStatement = statement.substring(0, maxStatementLogLen) + " ... ";
             }
-            String result = String.format("sqlHash=%s, statement=[ %s ]", hash, subStatement);
+            String result = String.format("sqlHash=%s, stmtId = %s, statement=[ %s ]", getStatmentId(statement), hash, subStatement);
             lastLogStmt = statement;
             lastLogStmtFormat = result;
             return result;
