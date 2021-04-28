@@ -13,31 +13,23 @@
 
 package com.splicemachine.db.iapi.sql.compile.costing;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.sql.compile.Predicate;
 
-public class JoinCostEstimationModelRegistry {
+public interface ScanCostEstimator {
 
-    private static final Map<String, CostModel> registry = new ConcurrentHashMap<>();
+    /**
+     * Add Predicate and keep track of the selectivity.
+     */
+    void addPredicate(Predicate p, double defaultSelectivityFactor) throws StandardException;
 
-    public static void registerJoinCostEstimationModel(String name, CostModel model) {
-        registry.put(name, model);
-    }
+    /**
+     * Compute the Base Scan Cost by utilizing the passed in StoreCostController
+     */
+    void generateCost(long numFirstIndexColumnProbes) throws StandardException;
 
-    public static void unregisterJoinCostEstimationModel(String name) {
-        registry.remove(name);
-    }
-
-    public static CostModel getJoinCostEstimationModel(String name) {
-        return registry.get(name);
-    }
-
-    public static boolean exists(String modelName) {
-        return registry.containsKey(modelName);
-    }
-
-    public static Set<String> modelNames() {
-        return registry.keySet();
-    }
+    /**
+     * Compute the Base Scan Cost of a single row.
+     */
+    void generateOneRowCost() throws StandardException;
 }

@@ -16,7 +16,7 @@ package com.splicemachine.derby.impl.sql.compile;
 
 import java.util.List;
 
-import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModel;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -158,7 +158,7 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
     private final long maxTimeout;
     private final boolean isMemPlatform;
 
-    private final JoinCostEstimationModel joinCostEstimationModel;
+    private final CostModel costModel;
 
     public SpliceLevel2OptimizerImpl(OptimizableList optimizableList,
                                      OptimizablePredicateList predicateList,
@@ -172,7 +172,7 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
                                      RequiredRowOrdering requiredRowOrdering,
                                      int numTablesInQuery,
                                      LanguageConnectionContext lcc,
-                                     JoinCostEstimationModel joinCostEstimationModel) throws StandardException{
+                                     CostModel costModel) throws StandardException{
         super(optimizableList,
               predicateList,
               dDictionary,
@@ -184,12 +184,12 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
               tableLockThreshold,
               requiredRowOrdering,
               numTablesInQuery,
-              lcc, joinCostEstimationModel);
+              lcc, costModel);
         SConfiguration configuration=EngineDriver.driver().getConfiguration();
         this.minTimeout=configuration.getOptimizerPlanMinimumTimeout();
         this.maxTimeout=configuration.getOptimizerPlanMaximumTimeout();
         isMemPlatform = EngineDriver.isMemPlatform();
-        this.joinCostEstimationModel = joinCostEstimationModel;
+        this.costModel = costModel;
         tracer().trace(OptimizerFlag.STARTED,0,0,0.0,null);
     }
 
@@ -251,7 +251,7 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
     public boolean isMemPlatform() { return isMemPlatform; };
 
     @Override
-    public JoinCostEstimationModel getJoinCostEstimationModel() {
-        return joinCostEstimationModel;
+    public CostModel getCostModel() {
+        return costModel;
     }
 }

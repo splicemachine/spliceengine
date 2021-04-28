@@ -64,9 +64,11 @@ import java.util.*;
  * @author Scott Fines
  *         Date: 5/15/15
  */
-public class ScanCostFunction{
-    public static final Logger LOG = Logger.getLogger(ScanCostFunction.class);
+public abstract class AbstractScanCostEstimator implements com.splicemachine.db.iapi.sql.compile.costing.ScanCostEstimator {
+    public static final Logger LOG = Logger.getLogger(AbstractScanCostEstimator.class);
 
+    protected static final int SCAN = 0;  // qualifier phase: BASE, FILTER_BASE
+    protected static final int TOP  = 1;  // qualifier phase: FILTER_PROJECTION
     /* These values are based on the results of index lookup microbenchmark (DB-11737) performed
      * on an EKS cluster with 4 OLTP + 4 OLAP pods.
      * Next step is to make them tunable (maybe as configurable parameters in site.xml). These
@@ -77,31 +79,28 @@ public class ScanCostFunction{
     private static final int OLAP_INDEXLOOKUP_COST_PER_ROW = 18;
     private static final int OLAP_INDEXLOOKUP_STARTUP_COST = 85000;
 
-    private static final int SCAN = 0;  // qualifier phase: BASE, FILTER_BASE
-    private static final int TOP  = 1;  // qualifier phase: FILTER_PROJECTION
-
-    private final Optimizable baseTable;
-    private final ConglomerateDescriptor cd;
-    private final IndexDescriptor indexDescriptor;
+    protected final Optimizable            baseTable;
+    protected final ConglomerateDescriptor cd;
+    protected final IndexDescriptor        indexDescriptor;
     private final boolean isIndex;
     private final boolean isPrimaryKey;
-    private final boolean isIndexOnExpression;
+    protected final boolean isIndexOnExpression;
 
-    private final CostEstimate scanCost;
-    private final StoreCostController scc;
+    protected final CostEstimate scanCost;
+    protected final StoreCostController scc;
 
     // resultColumns from the base table
     // at this point, this seems to be always full column list because no access path is chosen
     private final ResultColumnList resultColumns;
 
     // base columns returned from scanning phase
-    private final BitSet baseColumnsInScan;
+    protected final BitSet baseColumnsInScan;
 
     // base columns returned from looking up phase
-    private final BitSet baseColumnsInLookup;
+    protected final BitSet baseColumnsInLookup;
 
     // whether it's possible to consider further scan predicates or not
-    private boolean scanPredicatePossible = true;
+    protected boolean scanPredicatePossible = true;
 
     // positions of columns used in estimating selectivity but missing real statistics
     private final HashSet<Integer> usedNoStatsColumnIds;
@@ -120,48 +119,40 @@ public class ScanCostFunction{
     private final boolean isOlap;
 
     // selectivity elements for scanning phase
-    private final List<SelectivityHolder>[] scanSelectivityHolder;
+    protected final List<SelectivityHolder>[] scanSelectivityHolder;
 
     // selectivity elements for look up and projection phase
-    private final List<SelectivityHolder>[] topSelectivityHolder;
+    protected final List<SelectivityHolder>[] topSelectivityHolder;
 
     // for base tables, this is null
     // for normal indexes and primary keys, stores column references to the base table
     // for indexes on expressions, stores the ASTs of index expressions in their defined order
-    private final ValueNode[] indexColumns;
+    protected final ValueNode[] indexColumns;
 
     // cost of evaluating all expressions used in added predicates per row
-    private double exprEvalCostPerRow = 0.0;
+    protected double exprEvalCostPerRow = 0.0;
 
     /**
-     *
-     *
-     * <pre>
-     *
      *     Selectivity is computed at 3 levels.
-     *
      *     BASE -> Qualifiers on the row keys (start/stop Qualifiers, Multiprobe)
      *     FILTER_BASE -> Qualifiers applied after the scan but before the index lookup.
      *     FILTER_PROJECTION -> Qualifers and Predicates applied after any potential lookup, usually performed on the Projection Node in the scan.
      *
-     *
-     * </pre>
-     *
-     * @param baseTable  A base table on which a scan cost is going to be estimated.
-     * @param cd         A conglomerate descriptor of the base table to be considered.
-     * @param scc        A StoreCostController instance.
-     * @param scanCost   A CostEstimate instance where the result will be stored. Output parameter.
-     * @param resultColumns  The result columns of the base table.
-     * @param scanRowTemplate  The row template of the base table.
-     * @param baseColumnsInScan  The set of columns from the base table that will be scanned in store.
-     * @param baseColumnsInLookup  The set of columns that has to be looked up because of a non-covering index.
-     * @param indexLookupBatchRowCount  Maximum number of rows for which index lookup operation can be batched together.
-     * @param indexLookupConcurrentBatchesCount  Maximum number of index lookup batches that can run concurrently.
-     * @param forUpdate  Whether the base table is updatable (see forUpdate() for detailed explanation) or not (currently unused).
-     * @param isOlap  Whether estimating a cost for OLAP or not.
-     * @param usedNoStatsColumnIds  A set of columns which do not have statistics but should have to improve cost estimation. Output parameter.
+     *  @param baseTable  A base table on which a scan cost is going to be estimated.
+     *  @param cd         A conglomerate descriptor of the base table to be considered.
+     *  @param scc        A StoreCostController instance.
+     *  @param scanCost   A CostEstimate instance where the result will be stored. Output parameter.
+     *  @param resultColumns  The result columns of the base table.
+     *  @param scanRowTemplate  The row template of the base table.
+     *  @param baseColumnsInScan  The set of columns from the base table that will be scanned in store.
+     *  @param baseColumnsInLookup  The set of columns that has to be looked up because of a non-covering index.
+     *  @param indexLookupBatchRowCount  Maximum number of rows for which index lookup operation can be batched together.
+     *  @param indexLookupConcurrentBatchesCount  Maximum number of index lookup batches that can run concurrently.
+     *  @param forUpdate  Whether the base table is updatable (see forUpdate() for detailed explanation) or not (currently unused).
+     *  @param isOlap  Whether estimating a cost for OLAP or not.
+     *  @param usedNoStatsColumnIds  A set of columns which do not have statistics but should have to improve cost estimation. Output parameter.
      */
-    public ScanCostFunction(Optimizable baseTable,
+    public AbstractScanCostEstimator(Optimizable baseTable,
                             ConglomerateDescriptor cd,
                             StoreCostController scc,
                             CostEstimate scanCost,
@@ -248,7 +239,7 @@ public class ScanCostFunction{
         }
     }
 
-    private int getTotalNumberOfBaseColumnsInvolved() {
+    protected int getTotalNumberOfBaseColumnsInvolved() {
         BitSet result = new BitSet(resultColumns.size());
         result.or(baseColumnsInScan);
         if (baseColumnsInLookup != null) {
@@ -275,7 +266,7 @@ public class ScanCostFunction{
      *
      * @param holder
      */
-    private void addSelectivity(SelectivityHolder holder, int phase) {
+    protected void addSelectivity(SelectivityHolder holder, int phase) {
         List<SelectivityHolder>[] selectivityHolder =
                 phase == SCAN ? scanSelectivityHolder : topSelectivityHolder;
         List<SelectivityHolder> holders = selectivityHolder[holder.getColNum()];
@@ -304,7 +295,7 @@ public class ScanCostFunction{
         return holders;
     }
 
-    private void collectNoStatsColumnsFromInListPred(Predicate p) throws StandardException {
+    protected void collectNoStatsColumnsFromInListPred(Predicate p) throws StandardException {
         if (p.getSourceInList() != null) {
             for (Object o : p.getSourceInList().leftOperandList) {
                 List<ColumnReference> crList = ((ValueNode)o).getHashableJoinColumnReference();
@@ -316,7 +307,7 @@ public class ScanCostFunction{
         }
     }
 
-    private void collectNoStatsColumnsFromUnaryAndBinaryPred(Predicate p) {
+    protected void collectNoStatsColumnsFromUnaryAndBinaryPred(Predicate p) {
         if (p.getRelop() != null) {
             ColumnReference cr = p.getRelop().getColumnOperand(baseTable);
             if (cr != null && !scc.useRealColumnStatistics(cr.isGeneratedToReplaceIndexExpression(), cr.getColumnNumber())) {
@@ -325,7 +316,7 @@ public class ScanCostFunction{
         }
     }
 
-    private void accumulateExprEvalCost(Predicate p) throws StandardException {
+    protected void accumulateExprEvalCost(Predicate p) throws StandardException {
         exprEvalCostPerRow += p.getAndNode().getLeftOperand().getBaseOperationCost();
     }
 
@@ -379,7 +370,7 @@ public class ScanCostFunction{
      * @param qualifierPhase
      * @throws StandardException
      */
-    private void performQualifierSelectivity (Predicate p, QualifierPhase qualifierPhase, boolean forIndexExpr, double selectivityFactor, int phase) throws StandardException {
+    protected void performQualifierSelectivity(Predicate p, QualifierPhase qualifierPhase, boolean forIndexExpr, double selectivityFactor, int phase) throws StandardException {
         if(p.compareWithKnownConstant(baseTable, true) &&
                 (p.getRelop().getColumnOperand(baseTable) != null ||
                         (forIndexExpr && p.getRelop().getExpressionOperand(baseTable.getTableNumber(), -1, (FromTable)baseTable, true) != null) && p.getIndexPosition() >= 0))

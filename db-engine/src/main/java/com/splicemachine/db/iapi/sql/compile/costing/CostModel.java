@@ -16,12 +16,18 @@ package com.splicemachine.db.iapi.sql.compile.costing;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.store.access.StoreCostController;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.compile.ResultColumnList;
+
+import java.util.BitSet;
+import java.util.HashSet;
 
 /**
  * The join cost estimation interface, for a given join strategy,
  * it returns the corresponding cost.
  */
-public interface JoinCostEstimationModel {
+public interface CostModel {
 
     /**
      * Get the estimated cost of a specific join strategy.
@@ -37,11 +43,25 @@ public interface JoinCostEstimationModel {
      *                         inner table, to be filled in with the cost of
      *                         doing the join.
      */
-    void estimateCost(JoinStrategy.JoinStrategyType joinStrategyType,
-                      Optimizable innerTable,
-                      OptimizablePredicateList predList,
-                      ConglomerateDescriptor cd,
-                      CostEstimate outerCost,
-                      Optimizer optimizer,
-                      CostEstimate costEstimate) throws StandardException;
+    void estimateJoinCost(JoinStrategy.JoinStrategyType joinStrategyType,
+                          Optimizable innerTable,
+                          OptimizablePredicateList predList,
+                          ConglomerateDescriptor cd,
+                          CostEstimate outerCost,
+                          Optimizer optimizer,
+                          CostEstimate costEstimate) throws StandardException;
+
+    ScanCostEstimator getNewScanCostEstimator(Optimizable baseTable,
+                                              ConglomerateDescriptor cd,
+                                              StoreCostController scc,
+                                              CostEstimate scanCost,
+                                              ResultColumnList resultColumns,
+                                              DataValueDescriptor[] scanRowTemplate,
+                                              BitSet baseColumnsInScan,
+                                              BitSet baseColumnsInLookup,
+                                              int indexLookupBatchRowCount,
+                                              int indexLookupConcurrentBatchesCount,
+                                              boolean forUpdate,
+                                              boolean isOlap,
+                                              HashSet<Integer> usedNoStatsColumnIds) throws StandardException;
 }
