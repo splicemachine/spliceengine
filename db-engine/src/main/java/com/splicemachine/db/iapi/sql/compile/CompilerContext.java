@@ -44,13 +44,12 @@ import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.depend.ProviderList;
 
-import com.splicemachine.db.iapi.types.DataType;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.store.access.SortCostController;
 import com.splicemachine.db.iapi.types.FloatingPointDataType;
-import com.splicemachine.db.iapi.types.NumberDataType;
+import com.splicemachine.db.impl.sql.compile.QueryHinter;
 import com.splicemachine.db.impl.sql.compile.subquery.aggregate.AggregateSubqueryFlatteningVisitor;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
@@ -221,6 +220,13 @@ public interface CompilerContext extends Context
      */
 
     NodeFactory getNodeFactory();
+
+    /**
+     * Get the QueryHinter from this CompilerContext.
+     *
+     * @return The QueryHinter associated with this CompilerContext
+     */
+    QueryHinter getQueryHinter();
 
     /**
      * Get the TypeCompilerFactory from this CompilerContext.
