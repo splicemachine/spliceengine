@@ -33,16 +33,6 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
     }
 
     @Override
-    public String getName(){
-        return "MERGE";
-    }
-
-    @Override
-    public String toString(){
-        return "MergeJoin";
-    }
-
-    @Override
     public String joinResultSetMethodName(){
         return "getMergeJoinResultSet";
     }

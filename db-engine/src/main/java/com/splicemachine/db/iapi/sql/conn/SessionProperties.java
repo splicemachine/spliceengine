@@ -32,6 +32,7 @@ package com.splicemachine.db.iapi.sql.conn;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModelRegistry;
 import com.splicemachine.utils.Pair;
 
 import java.sql.SQLException;
@@ -60,7 +61,8 @@ public interface SessionProperties {
         DISABLEPREDSFORINDEXORPKACCESSPATH(16),
         ALWAYSALLOWINDEXPREFIXITERATION(17),
         OLAPALWAYSPENALIZENLJ(18),
-        FAVORINDEXPREFIXITERATION(19);
+        FAVORINDEXPREFIXITERATION(19),
+        JOINCOSTESTIMATIONMODEL(20);
 
         public static final int COUNT = PROPERTYNAME.values().length;
 
@@ -94,7 +96,7 @@ public interface SessionProperties {
             property = SessionProperties.PROPERTYNAME.valueOf(propertyNameString);
         } catch (IllegalArgumentException e) {
             throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY,propertyNameString,
-                "useOLAP, useSpark (deprecated), defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit, tableLimitForExhaustiveSearch, minPlanTimeout, currentFunctionPath, disablePredsForIndexOrPkAccessPath, alwaysAllowIndexPrefixIteration, olapAlwaysPenalizeNLJ, favorIndexPrefixIteration");
+                "useOLAP, useSpark (deprecated), defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit, tableLimitForExhaustiveSearch, minPlanTimeout, currentFunctionPath, disablePredsForIndexOrPkAccessPath, alwaysAllowIndexPrefixIteration, olapAlwaysPenalizeNLJ, favorIndexPrefixIteration,joincostEstimationModel");
         }
 
         String valString = pair.getSecond();
@@ -154,6 +156,10 @@ public interface SessionProperties {
                     throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value should be a positive long");
                 }
                 break;
+            case JOINCOSTESTIMATIONMODEL:
+                if(!JoinCostEstimationModelRegistry.exists(valString)) {
+                    throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, String.format("value should be one of %s", JoinCostEstimationModelRegistry.modelNames()));
+                }
             default:
                 break;
         }

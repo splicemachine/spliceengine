@@ -23,9 +23,7 @@ import splice.com.google.common.base.Function;
 import splice.com.google.common.collect.*;
 import scala.Tuple2;
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 
 

@@ -52,11 +52,10 @@ import com.splicemachine.db.iapi.util.JBitSet;
 public interface JoinStrategy {
 
     enum JoinStrategyType {
-        NESTED_LOOP ("NESTED_LOOP",0,"NestedLoop",true),
-        MERGE_SORT ("MERGE_SORT",1,"MergeSort",false),
+        NESTED_LOOP ("NESTEDLOOP",0,"NestedLoop",true),
+        MERGE_SORT ("SORTMERGE" /*DB-11918*/,1,"MergeSort",false),
         BROADCAST ("BROADCAST",2,"Broadcast",false),
         MERGE ("MERGE",3, "Merge",false),
-        HALF_MERGE_SORT ("HALF_MERGE_SORT", 4, "HalfMergeSort", false),
         CROSS ("CROSS", 5, "Cross", false);
         private final String name;
         private final int strategyId;
@@ -186,13 +185,20 @@ public interface JoinStrategy {
      *                          doing the join.
      * @exception StandardException        Thrown on error
      */
-    void estimateCost(Optimizable innerTable,
-                      OptimizablePredicateList predList,
-                      ConglomerateDescriptor cd,
-                      CostEstimate outerCost,
-                      Optimizer optimizer,
-                      CostEstimate costEstimate)
-        throws StandardException;
+    default void estimateCost(Optimizable innerTable,
+                              OptimizablePredicateList predList,
+                              ConglomerateDescriptor cd,
+                              CostEstimate outerCost,
+                              Optimizer optimizer,
+                              CostEstimate costEstimate) throws StandardException {
+        optimizer.getJoinCostEstimationModel().estimateCost(getJoinStrategyType(),
+                                                            innerTable,
+                                                            predList,
+                                                            cd,
+                                                            outerCost,
+                                                            optimizer,
+                                                            costEstimate);
+    }
 
     /*
      * Get the output sort order of the join strategy. In most cases, it will inherit the join
