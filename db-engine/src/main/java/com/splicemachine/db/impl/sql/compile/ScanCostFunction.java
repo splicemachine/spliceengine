@@ -424,7 +424,8 @@ public class ScanCostFunction{
         scanCost.setParallelism(scc.getParallelism() != 0 ? scc.getParallelism() : 1);
         scanCost.setLocalCostPerParallelTask(scanCost.localCost(), scanCost.getParallelism());
         scanCost.setRemoteCostPerParallelTask(scanCost.remoteCost(), scanCost.getParallelism());
-            LOG.info(String.format("%n" +
+        if (LOG.isTraceEnabled()) {
+            LOG.trace(String.format("%n" +
                             "============= generateOneRowCost() for table: %s =============%n" +
                             "Conglomerate:               %s, %n" +
                             "totalRowCount:              %.1f, %n" +
@@ -449,7 +450,8 @@ public class ScanCostFunction{
                     scanCost.getFromBaseTableCost(), scanCost.getRemoteCost(),
                     scanCost.getIndexLookupRows(), scanCost.getIndexLookupCost(),
                     scanCost.getProjectionRows(), scanCost.getProjectionCost(),
-                    scanCost.getLocalCost(), scc.getNumPartitions(), scanCost.getLocalCost()/scc.getNumPartitions()));
+                    scanCost.getLocalCost(), scc.getNumPartitions(), scanCost.getLocalCost() / scc.getNumPartitions()));
+        }
     }
 
 
@@ -462,15 +464,17 @@ public class ScanCostFunction{
 
     public void generateCost(long numFirstIndexColumnProbes) throws StandardException {
 
-        LOG.info(String.format("Generate cost for %s", cd));
         double baseTableSelectivity = computePhaseSelectivity(scanSelectivityHolder, topSelectivityHolder, QualifierPhase.BASE);
-        LOG.info(String.format("Base Table Selectivity %s", baseTableSelectivity));
         double filterBaseTableSelectivity = computePhaseSelectivity(scanSelectivityHolder, topSelectivityHolder,QualifierPhase.BASE,QualifierPhase.FILTER_BASE);
-        LOG.info(String.format("Filter Base Table Selectivity %s", filterBaseTableSelectivity));
         double projectionSelectivity = computePhaseSelectivity(scanSelectivityHolder, topSelectivityHolder,QualifierPhase.FILTER_PROJECTION);
-        LOG.info(String.format("projection Selectivity %s", projectionSelectivity));
         double totalSelectivity = computeTotalSelectivity(scanSelectivityHolder, topSelectivityHolder);
-        LOG.info(String.format("total Selectivity %s", totalSelectivity));
+        if (LOG.isTraceEnabled()) {
+            LOG.trace(String.format("Generate cost for %s", cd));
+            LOG.trace(String.format("Base Table Selectivity %s", baseTableSelectivity));
+            LOG.trace(String.format("Filter Base Table Selectivity %s", filterBaseTableSelectivity));
+            LOG.trace(String.format("projection Selectivity %s", projectionSelectivity));
+            LOG.trace(String.format("total Selectivity %s", totalSelectivity));
+        }
 
         assert filterBaseTableSelectivity >= 0 && filterBaseTableSelectivity <= 1.0:"filterBaseTableSelectivity Out of Bounds -> " + filterBaseTableSelectivity;
         assert baseTableSelectivity >= 0 && baseTableSelectivity <= 1.0:"baseTableSelectivity Out of Bounds -> " + baseTableSelectivity;
@@ -571,7 +575,8 @@ public class ScanCostFunction{
         scanCost.setLocalCostPerParallelTask((baseCost + lookupCost + projectionCost), scanCost.getParallelism());
         scanCost.setRemoteCostPerParallelTask(scanCost.remoteCost(), scanCost.getParallelism());
 
-            LOG.info(String.format("%n" +
+        if (LOG.isTraceEnabled()) {
+            LOG.trace(String.format("%n" +
             "============= generateCost() for table: %s =============%n" +
             "Conglomerate:               %s, %n" +
             "baseTableSelectivity:       %.18f, %n" +
@@ -602,7 +607,8 @@ public class ScanCostFunction{
             scanCost.getFromBaseTableCost(), scanCost.getRemoteCost(),
             scanCost.getIndexLookupRows(), scanCost.getIndexLookupCost(),
             scanCost.getProjectionRows(), scanCost.getProjectionCost(),
-            scanCost.getLocalCost(), scc.getNumPartitions(), scanCost.getLocalCost()/scc.getNumPartitions()));
+            scanCost.getLocalCost(), scc.getNumPartitions(), scanCost.getLocalCost() / scc.getNumPartitions()));
+        }
     }
 
     /**
@@ -700,7 +706,9 @@ public class ScanCostFunction{
     public static double computeSqrtLevel(double selectivity, int level, SelectivityHolder holder) throws StandardException {
         if (level ==0) {
             selectivity *= holder.getSelectivity();
-            LOG.info(String.format("Holder: %s, computedSelectivity: %s", holder, selectivity));
+            if (LOG.isTraceEnabled()) {
+                LOG.trace(String.format("Holder: %s, computedSelectivity: %s", holder, selectivity));
+            }
             return selectivity;
         }
         double incrementalSelectivity = 0.0d;
@@ -708,7 +716,9 @@ public class ScanCostFunction{
         for (int i =1;i<=level;i++)
             incrementalSelectivity=Math.sqrt(incrementalSelectivity);
         selectivity*=incrementalSelectivity;
-        LOG.info(String.format("Holder: %s, computedSelectivity: %s", holder, selectivity));
+        if (LOG.isTraceEnabled()) {
+            LOG.trace(String.format("Holder: %s, computedSelectivity: %s", holder, selectivity));
+        }
         return selectivity;
     }
 
