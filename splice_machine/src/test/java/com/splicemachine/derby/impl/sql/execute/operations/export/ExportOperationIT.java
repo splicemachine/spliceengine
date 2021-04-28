@@ -702,6 +702,8 @@ public class ExportOperationIT {
 
     @Test
     public void exportParquet() throws Exception {
+        if (SpliceUnitTest.isMemPlatform(methodWatcher))
+            return; // parquet requires OLAP
         exportX("parquet");
     }
 }

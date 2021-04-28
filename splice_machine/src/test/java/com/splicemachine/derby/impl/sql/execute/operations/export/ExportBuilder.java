@@ -1,3 +1,17 @@
+/*
+ * Copyright (c) 2021 Splice Machine, Inc.
+ *
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -7,7 +21,6 @@ import java.sql.ResultSet;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-
 
 public class ExportBuilder {
     String selectQuery;
@@ -102,8 +115,10 @@ public class ExportBuilder {
         String query = "select " + columns + " from " + tableName;
         String res1 = methodWatcher.executeToString(query, true);
 
-        methodWatcher.execute("DELETE FROM " + tableName);
-        methodWatcher.execute(importSql( "IMPORT_DATA", schemaName, tableName));
+        String SQL = importSql( "IMPORT_DATA", schemaName, tableName);
+        System.out.println(SQL);
+//        methodWatcher.execute("DELETE FROM " + tableName);
+//        methodWatcher.execute(importSql( "IMPORT_DATA", schemaName, tableName));
 
         String res2 = methodWatcher.executeToString(query, true);
         Assert.assertEquals(res1, res2);

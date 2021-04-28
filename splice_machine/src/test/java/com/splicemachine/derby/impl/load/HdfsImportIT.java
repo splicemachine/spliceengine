@@ -2217,6 +2217,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 
     @Test
     public void testImportParquet() throws Exception {
+        if (isMemPlatform(spliceClassWatcher))
+            return; // parquet requires OLAP
         ExportBuilder builder = new ExportBuilder()
                 .path(getResourceDirectory() + "parquet_sample_one/partition1=BBB/part-r-00001-da882b05-9234-4b0b-832f-005d0f177e18.parquet");
         SpliceUnitTest.sqlExpectToString(methodWatcher,
@@ -2228,6 +2230,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 
     @Test
     public void testImportOrc() throws Exception {
+        if (isMemPlatform(spliceClassWatcher))
+            return; // ORC requires OLAP
         ExportBuilder builder = new ExportBuilder()
                 .path(getResourceDirectory() + "orc_partition_existing/c3=333/c1=CCC/part-00002-511e1530-b64d-4f6e-b726-1d11ff530a42.orc");
         SpliceUnitTest.sqlExpectToString(methodWatcher,
