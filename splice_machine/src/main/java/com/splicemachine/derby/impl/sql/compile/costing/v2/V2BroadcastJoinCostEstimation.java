@@ -136,7 +136,6 @@ public class V2BroadcastJoinCostEstimation implements StrategyJoinCostEstimation
                                                        double localLatency) {
         assert innerCost.getLocalCostPerParallelTask() != 0d || innerCost.localCost() == 0d;
         assert innerCost.getRemoteCostPerParallelTask() != 0d || innerCost.remoteCost() == 0d;
-        final double SCAN_COST_CORRECTION_FACTOR = 2.8; // Mircoseconds
         final double ONE_ROW_HASHING_COST = 0.001; // 1 ns
 
         //// estimate the size of the hash table
@@ -150,13 +149,13 @@ public class V2BroadcastJoinCostEstimation implements StrategyJoinCostEstimation
             result =  innerCost.getLocalCost()                                              // cost of scanning RHS
                     + innerCost.rowCount() * ONE_ROW_HASHING_COST                           // cost of hashing the RHS (on OlapServer, in case of OLAP)
                     + innerCost.remoteCost() * hashTableKeyFactor                           // cost of sending the hash table over the network
-                    + outerCost.getLocalCostPerParallelTask() * SCAN_COST_CORRECTION_FACTOR // cost of scanning the LHS (partitioned in OLAP, entirety in OLTP)
+                    + outerCost.getLocalCostPerParallelTask()                               // cost of scanning the LHS (partitioned in OLAP, entirety in OLTP)
                     + joiningRowCost;                                                       // cost of joining rows from LHS and RHS including the hash probing
         } else {                                                                            // nested loop join with RHS broadcast to executors (in case of OLAP)
             double joiningRowCost = numOfJoinedRows * localLatency;
             result =  innerCost.getLocalCost()                                              // cost of scanning RHS
                     + innerCost.remoteCost()                                                // cost of sending the hash table over the network
-                    + outerCost.getLocalCostPerParallelTask() * SCAN_COST_CORRECTION_FACTOR // cost of scanning the LHS (partitioned in OLAP, entirety in OLTP)
+                    + outerCost.getLocalCostPerParallelTask()                               // cost of scanning the LHS (partitioned in OLAP, entirety in OLTP)
                     + joiningRowCost;                                                       // cost of joining rows from LHS and RHS including the hash probing
         }
         return result;

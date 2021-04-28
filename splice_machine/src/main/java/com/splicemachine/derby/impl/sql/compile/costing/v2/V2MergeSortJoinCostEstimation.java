@@ -23,7 +23,7 @@ import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
 import com.splicemachine.derby.impl.sql.compile.costing.StrategyJoinCostEstimation;
 
 public class V2MergeSortJoinCostEstimation implements StrategyJoinCostEstimation {
-    static final double ONE_ROW_HASHING_COST = 2.8; // 2.8 microseconds
+    static final double ONE_ROW_HASHING_COST = 0.001; // 1 nanosecond
 
     @Override
     public void estimateCost(Optimizable innerTable,
