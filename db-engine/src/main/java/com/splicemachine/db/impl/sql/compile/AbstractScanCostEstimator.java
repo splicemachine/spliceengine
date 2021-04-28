@@ -35,6 +35,7 @@ import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.compile.costing.ScanCostEstimator;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -64,7 +65,7 @@ import java.util.*;
  * @author Scott Fines
  *         Date: 5/15/15
  */
-public abstract class AbstractScanCostEstimator implements com.splicemachine.db.iapi.sql.compile.costing.ScanCostEstimator {
+public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
     public static final Logger LOG = Logger.getLogger(AbstractScanCostEstimator.class);
 
     protected static final int SCAN = 0;  // qualifier phase: BASE, FILTER_BASE
