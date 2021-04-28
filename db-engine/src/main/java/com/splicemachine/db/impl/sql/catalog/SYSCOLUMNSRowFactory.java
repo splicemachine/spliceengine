@@ -425,7 +425,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
                 dataTypeServices, defaultValue, defaultInfo, uuid,
                 defaultUUID, autoincStart, autoincInc,
                 autoincValue,collectStats, columnPosition!=null?columnPosition.getInt():-1,
-                useExtrapolation);
+                useExtrapolation, sketchSize);
         return colDesc;
     }
 

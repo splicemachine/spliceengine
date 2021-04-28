@@ -277,6 +277,38 @@ public final class ColumnDescriptor extends TupleDescriptor
         this.useExtrapolation = useExtrapolation;
     }
 
+    public ColumnDescriptor(String columnName,
+                            int columnPosition,
+                            int storagePosition,
+                            DataTypeDescriptor columnType,
+                            DataValueDescriptor columnDefault,
+                            DefaultInfo columnDefaultInfo,
+                            UUID uuid,
+                            UUID defaultUUID,
+                            long autoincStart,
+                            long autoincInc,
+                            long autoincValue,
+                            boolean collectStats,
+                            int partitionPosition,
+                            byte useExtrapolation,
+                            int sketchSize){
+        this(columnName,
+                columnPosition,
+                storagePosition,
+                columnType,
+                columnDefault,
+                columnDefaultInfo,
+                uuid,
+                defaultUUID,
+                autoincStart,
+                autoincInc,
+                autoincValue,
+                collectStats,
+                partitionPosition,
+                useExtrapolation);
+        this.sketchSize = sketchSize;
+    }
+
     public boolean collectStatistics(){
         return collectStatistics;
     }
