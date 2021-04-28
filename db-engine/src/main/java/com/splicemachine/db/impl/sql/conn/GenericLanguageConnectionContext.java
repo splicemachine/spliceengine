@@ -50,7 +50,7 @@ import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.*;
 import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModel;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModelRegistry;
 import com.splicemachine.db.iapi.sql.conn.*;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
@@ -4134,7 +4134,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public JoinCostEstimationModel getJoinCostEstimationModel() {
+    public CostModel getJoinCostEstimationModel() {
         String joinCostEstimationModeName = getSessionProperties().getPropertyString(SessionProperties.PROPERTYNAME.JOINCOSTESTIMATIONMODEL);
         if(JoinCostEstimationModelRegistry.exists(joinCostEstimationModeName)) {
             return JoinCostEstimationModelRegistry.getJoinCostEstimationModel(joinCostEstimationModeName);

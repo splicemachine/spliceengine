@@ -37,7 +37,7 @@ import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModel;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -197,7 +197,7 @@ public class OptimizerImpl implements Optimizer{
     private long maxPlanTimeout = -1;
     boolean foundCompleteJoinPlan = false;
 
-    private JoinCostEstimationModel joinCostEstimationModel;
+    private CostModel costModel;
 
     protected OptimizerImpl(OptimizableList optimizableList,
                             OptimizablePredicateList predicateList,
@@ -210,7 +210,7 @@ public class OptimizerImpl implements Optimizer{
                             int tableLockThreshold,
                             RequiredRowOrdering requiredRowOrdering,
                             int numTablesInQuery,
-                            JoinCostEstimationModel joinCostEstimationModel) throws StandardException{
+                            CostModel costModel) throws StandardException{
         assert optimizableList!=null: "optimizableList is not expected to be null";
 
         outermostCostEstimate=getNewCostEstimate(0.0d,1.0d,1.0d);
@@ -279,7 +279,7 @@ public class OptimizerImpl implements Optimizer{
         this.currentRowOrdering=newRowOrdering();
         this.bestRowOrdering=newRowOrdering();
 
-        this.joinCostEstimationModel = joinCostEstimationModel;
+        this.costModel = costModel;
     }
 
     @Override
@@ -2787,7 +2787,7 @@ public class OptimizerImpl implements Optimizer{
     }
 
     @Override
-    public JoinCostEstimationModel getJoinCostEstimationModel() {
-        return joinCostEstimationModel;
+    public CostModel getCostModel() {
+        return costModel;
     }
 }

@@ -191,13 +191,13 @@ public interface JoinStrategy {
                               CostEstimate outerCost,
                               Optimizer optimizer,
                               CostEstimate costEstimate) throws StandardException {
-        optimizer.getJoinCostEstimationModel().estimateCost(getJoinStrategyType(),
-                                                            innerTable,
-                                                            predList,
-                                                            cd,
-                                                            outerCost,
-                                                            optimizer,
-                                                            costEstimate);
+        optimizer.getCostModel().estimateJoinCost(getJoinStrategyType(),
+                                                  innerTable,
+                                                  predList,
+                                                  cd,
+                                                  outerCost,
+                                                  optimizer,
+                                                  costEstimate);
     }
 
     /*

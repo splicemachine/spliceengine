@@ -33,7 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModel;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 
@@ -58,12 +58,12 @@ public class Level2OptimizerImpl extends OptimizerImpl{
                                RequiredRowOrdering requiredRowOrdering,
                                int numTablesInQuery,
                                LanguageConnectionContext lcc,
-                               JoinCostEstimationModel joinCostEstimationModel)
+                               CostModel costModel)
             throws StandardException{
         super(optimizableList, predicateList, dDictionary,
               ruleBasedOptimization, noTimeout, useStatistics, maxMemoryPerTable,
               joinStrategies, tableLockThreshold, requiredRowOrdering,
-              numTablesInQuery, joinCostEstimationModel);
+              numTablesInQuery, costModel);
 
         // Remember whether or not optimizer trace is on;
         optimizerTrace=lcc.getOptimizerTrace();
