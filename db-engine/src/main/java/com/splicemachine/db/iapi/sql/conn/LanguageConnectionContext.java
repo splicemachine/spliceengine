@@ -1539,7 +1539,7 @@ public interface LanguageConnectionContext extends Context {
 
     boolean favorIndexPrefixIteration();
 
-    CostModel getJoinCostEstimationModel();
+    CostModel getCostModel();
 
     void setupLocalSPSCache(boolean fromSparkExecution,
                             SPSDescriptor fromTableDmlSpsDescriptor) throws StandardException;

@@ -17,19 +17,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class JoinCostEstimationModelRegistry {
+public class CostModelRegistry {
 
     private static final Map<String, CostModel> registry = new ConcurrentHashMap<>();
 
-    public static void registerJoinCostEstimationModel(String name, CostModel model) {
+    public static void registerCostModel(String name, CostModel model) {
         registry.put(name, model);
     }
 
-    public static void unregisterJoinCostEstimationModel(String name) {
+    public static void unregisterCostModel(String name) {
         registry.remove(name);
     }
 
-    public static CostModel getJoinCostEstimationModel(String name) {
+    public static CostModel getCostModel(String name) {
         return registry.get(name);
     }
 
