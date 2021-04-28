@@ -14,9 +14,6 @@
 
 package com.splicemachine.benchmark;
 
-import com.carrotsearch.hppc.BitSet;
-import com.carrotsearch.hppc.BitSetIterator;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.test.Benchmark;
@@ -34,7 +31,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.splicemachine.db.iapi.util.RowIdUtil.toHBaseEscaped;
 import static org.junit.Assert.assertTrue;
 
 @Category(Benchmark.class)
@@ -96,6 +92,8 @@ public class ScanBenchmark extends Benchmark {
         testStatement = testConnection.createStatement();
         testStatement.execute("CREATE TABLE " + BASE_TABLE + tableDefStr);
 
+        splitTable(splitCount);
+
         curSize.set(0);
         runBenchmark(NUM_CONNECTIONS, () -> populateTables(tableSize));
 
@@ -114,6 +112,20 @@ public class ScanBenchmark extends Benchmark {
         reportStats();
     }
 
+    static String toHBaseEscaped(String s) {
+        if(s == null) {
+            return null;
+        }
+        if(s.length() % 2 != 0) {
+            throw new IllegalArgumentException("argument length must be an even number");
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < s.length(); i += 2) {
+            sb.append("\\x").append(s, i, i+2);
+        }
+        return sb.toString();
+    }
+
     private int getNumSplits(Connection c) throws SQLException {
         int cnt = 0;
         String getRegionsSQL = String.format("CALL SYSCS_UTIL.GET_REGIONS('%s', '%s', null,null, null, '|',null,null,null,null)",
@@ -129,29 +141,34 @@ public class ScanBenchmark extends Benchmark {
     }
 
     private String rowIdOf(Connection conn, int pkColValue) {
-        String rowIdOfSql = String.format("SELECT ROWID FROM %s where col_0 = %d", BASE_TABLE, pkColValue);
-        try(ResultSet rs = conn.createStatement().executeQuery(rowIdOfSql)) {
-            rs.next();
-            return rs.getString(1);
-        } catch (SQLException t) {
+        // remove once we figure out how to calculate rowid correctly.
+        try(Statement s = conn.createStatement()) {
+            s.execute(String.format("CREATE TABLE %s.TEMP_TABLE(col1 int primary key)", SCHEMA));
+            s.execute(String.format("INSERT INTO %s.TEMP_TABLE VALUES %d", SCHEMA, pkColValue));
+            try(ResultSet rs = s.executeQuery(String.format("SELECT ROWID FROM %s.TEMP_TABLE where col1 = %d", SCHEMA, pkColValue))) {
+                rs.next();
+                return rs.getString(1);
+            }
+        } catch(Throwable t) {
             LOG.error("Error running statement to get RowId", t);
             System.exit(-1);
             return "?";
+        } finally {
+            try {
+                conn.createStatement().execute(String.format("DROP TABLE %s.TEMP_TABLE", SCHEMA));
+            } catch (Exception e) {
+                // ignore.
+            }
         }
     }
 
-    private void splitAt(Connection conn, String rowId) {
+    private void splitAt(Connection conn, String splits) {
         String splitAtSql = null;
-        try {
-            splitAtSql = String.format("call SYSCS_UTIL.syscs_split_table_or_index_at_points('%s', '%s', null,'%s')",
-                                              SCHEMA, BASE_TABLE, toHBaseEscaped(rowId));
-        } catch (StandardException e) {
-            LOG.error("Error escapring rowId", e);
-            System.exit(-1);
-        }
-        try(Statement statement = conn.createStatement()) {
+        splitAtSql = String.format("call SYSCS_UTIL.syscs_split_table_or_index_at_points('%s', '%s', null,'%s')",
+                                   SCHEMA, BASE_TABLE, splits);
+        try (Statement statement = conn.createStatement()) {
             statement.execute(splitAtSql);
-        } catch (SQLException t) {
+        } catch (Throwable t) {
             LOG.error("Error running statement to split", t);
             System.exit(-1);
         }
@@ -160,10 +177,11 @@ public class ScanBenchmark extends Benchmark {
     private void splitRegions(Connection conn, int numSplits) {
         assert numSplits != 0;
         int splitSize = tableSize / numSplits;
+        String splits = "";
         for(int i = 1; i < numSplits; i++) {
-            String rowId = rowIdOf(conn, splitSize * i);
-            splitAt(conn, rowId);
+            splits += toHBaseEscaped(rowIdOf(conn, splitSize * i)) + ",";
         }
+        splitAt(conn, splits.substring(0, splits.length() - 1));
     }
 
     static final String STAT_ERROR = "ERROR";
@@ -253,63 +271,68 @@ public class ScanBenchmark extends Benchmark {
         return cost;
     }
 
-    private void benchmark(int numSplits, int numExec, boolean warmUp, boolean onOlap) {
-        String sqlText;
-        String dataLabel = "New Experiment with OLAP = " + onOlap;
-        sqlText = String.format("select count(col_0) from %s --splice-properties useSpark=%b", BASE_TABLE, onOlap);
-        dataLabel += ", SPLITS = " + numSplits;
-        try (Connection conn = makeConnection()) {
-            getNumSplits(conn);
-            if(numSplits > 0) {
+    private void splitTable(int numSplits) {
+        if (numSplits > 0) {
+            try (Connection conn = makeConnection()) {
+                getNumSplits(conn);
                 LOG.info(String.format("After splitting to %d region(s)", numSplits));
                 splitRegions(conn, numSplits);
                 int actualSplitCount = getNumSplits(conn);
-                if(numSplits != actualSplitCount) {
+                if (numSplits != actualSplitCount) {
                     LOG.error(String.format("number of actual splits %d is not equal to what was requested (%d)", actualSplitCount, numSplits));
-                    System.exit(-1);
                 }
-            }
-            if (costOnly) {
-                double scanCost = 0.0d;
-                try (PreparedStatement ps = conn.prepareStatement("explain " + sqlText)) {
-                    try (ResultSet resultSet = ps.executeQuery()) {
-                        int i = 0;
-                        while (resultSet.next()) {
-                            i++;
-                            String resultString = resultSet.getString(1);
-                            if (i == 6) {
-                                scanCost = extractCostFromPlanRow(resultString);
-                            }
-                        }
-                    }
-                    LOG.info(String.format("scanCost=%.3f", scanCost));
-                }
-            } else {
-                try (PreparedStatement query = conn.prepareStatement(sqlText)) {
-                    if (warmUp) {
-                        for (int i = 0; i < NUM_WARMUP_RUNS; ++i) {
-                            query.executeQuery();
-                        }
-                    }
-
-                    for (int i = 0; i < numExec; ++i) {
-                        long start = System.currentTimeMillis();
-                        try (ResultSet rs = query.executeQuery()) {
-                            if (getRowCount(rs) != tableSize) {
-                                updateStats(STAT_ERROR);
-                            } else {
-                                long stop = System.currentTimeMillis();
-                                updateStats(dataLabel, stop - start);
-                            }
-                        } catch (SQLException ex) {
-                            LOG.error("ERROR execution " + i + " of scan benchmark on " + BASE_TABLE + ": " + ex.getMessage());
-                            updateStats(STAT_ERROR);
-                        }
-                    }
-                }
+            } catch (Throwable t) {
+                LOG.error("Connection broken", t);
             }
         }
-        catch (Throwable t) {
+    }
+
+    private void benchmark(int numSplits, int numExec, boolean warmUp, boolean onOlap) {
+        String sqlText;
+        String dataLabel = "Base table scan with OLAP = " + onOlap;
+        sqlText = String.format("select count(col_0) from %s --splice-properties useSpark=%b", BASE_TABLE, onOlap);
+        dataLabel += ", SPLITS = " + numSplits;
+        try (Connection conn = makeConnection()) {
+            double scanCost = 0.0d;
+            try (PreparedStatement ps = conn.prepareStatement("explain " + sqlText)) {
+                try (ResultSet resultSet = ps.executeQuery()) {
+                    int i = 0;
+                    while (resultSet.next()) {
+                        i++;
+                        String resultString = resultSet.getString(1);
+                        if (i == 6) {
+                            scanCost = extractCostFromPlanRow(resultString);
+                        }
+                    }
+                }
+                LOG.info(String.format("scanCost=%.3f", scanCost));
+            }
+            if (costOnly) {
+                return;
+            }
+            try (PreparedStatement query = conn.prepareStatement(sqlText)) {
+                if (warmUp) {
+                    for (int i = 0; i < NUM_WARMUP_RUNS; ++i) {
+                        query.executeQuery();
+                    }
+                }
+
+                for (int i = 0; i < numExec; ++i) {
+                    long start = System.currentTimeMillis();
+                    try (ResultSet rs = query.executeQuery()) {
+                        if (getRowCount(rs) != tableSize) {
+                            updateStats(STAT_ERROR);
+                        } else {
+                            long stop = System.currentTimeMillis();
+                            updateStats(dataLabel, stop - start);
+                        }
+                    } catch (SQLException ex) {
+                        LOG.error("ERROR execution " + i + " of scan benchmark on " + BASE_TABLE + ": " + ex.getMessage());
+                        updateStats(STAT_ERROR);
+                    }
+                }
+            }
+        } catch (Throwable t) {
             LOG.error("Connection broken", t);
         }
     }
@@ -317,102 +340,170 @@ public class ScanBenchmark extends Benchmark {
     @Parameterized.Parameters
     public static Collection testParams() {
         return Arrays.asList(new Object[][]{
-                {10, -1, 1000, false},
-                {10, -1, 5000, false},
-                {10, -1, 10000, false},
-                {10, -1, 15000, false},
-                {10, -1, 20000, false},
-                {10, -1, 25000, false},
-                {10, -1, 30000, false},
-                {10, -1, 35000, false},
-                {10, -1, 40000, false},
-                {10, -1, 45000, false},
-                {10, -1, 50000, false},
-                {10, -1, 100000, false},
-                {10, -1, 150000, false},
-                {10, -1, 200000, false},
-                {10, -1, 500000, false},
-                {10, 2, 100000, false},
-                {10, 2, 1000, false },
-                {10, 2, 5000, false },
-                {10, 2, 10000, false },
-                {10, 2, 15000, false },
-                {10, 2, 20000, false },
-                {10, 2, 25000, false },
-                {10, 2, 30000, false },
-                {10, 2, 35000, false },
-                {10, 2, 40000, false },
-                {10, 2, 45000, false },
-                {10, 2, 50000, false },
-                {10, 2, 100000, false },
-                {10, 2, 150000, false },
-                {10, 2, 200000, false },
-                {10, 2, 500000, false},
-                {10, 2, 1000000, false},
-                {10, 10, 1000, false },
-                {10, 10, 5000, false },
-                {10, 10, 10000, false },
-                {10, 10, 15000, false },
-                {10, 10, 20000, false },
-                {10, 10, 25000, false },
-                {10, 10, 30000, false },
-                {10, 10, 35000, false },
-                {10, 10, 40000, false },
-                {10, 10, 45000, false },
-                {10, 10, 50000, false },
-                {10, 10, 100000, false },
-                {10, 10, 150000, false },
-                {10, 10, 200000, false },
-                {10, 10, 500000, false},
-                {10, 10, 1000000, false},
-                {10, -1, 1000, true },
-                {10, -1, 5000, true },
-                {10, -1, 10000, true },
-                {10, -1, 15000, true },
-                {10, -1, 20000, true },
-                {10, -1, 25000, true },
-                {10, -1, 30000, true },
-                {10, -1, 35000, true },
-                {10, -1, 40000, true },
-                {10, -1, 45000, true },
-                {10, -1, 50000, true },
-                {10, -1, 100000, true },
-                {10, -1, 150000, true },
-                {10, -1, 200000, true },
-                {10, -1, 500000, true},
+                {10, -1, 1000,    true},
+                {10, -1, 5000,    true},
+                {10, -1, 10000,   true},
+                {10, -1, 15000,   true},
+                {10, -1, 20000,   true},
+                {10, -1, 25000,   true},
+                {10, -1, 30000,   true},
+                {10, -1, 35000,   true},
+                {10, -1, 40000,   true},
+                {10, -1, 45000,   true},
+                {10, -1, 50000,   true},
+                {10, -1, 100000,  true},
+                {10, -1, 125000,  true},
+                {10, -1, 150000,  true},
+                {10, -1, 175000,  true},
+                {10, -1, 200000,  true},
+                {10, -1, 250000,  true},
+                {10, -1, 300000,  true},
+                {10, -1, 350000,  true},
+                {10, -1, 400000,  true},
+                {10, -1, 450000,  true},
+                {10, -1, 500000,  true},
+                {10, -1, 550000,  true},
+                {10, -1, 600000,  true},
+                {10, -1, 650000,  true},
+                {10, -1, 700000,  true},
+                {10, -1, 750000,  true},
+                {10, -1, 800000,  true},
+                {10, -1, 850000,  true},
+                {10, -1, 900000,  true},
+                {10, -1, 950000,  true},
                 {10, -1, 1000000, true},
-                {10, 2, 1000, true },
-                {10, 2, 5000, true },
-                {10, 2, 10000, true },
-                {10, 2, 15000, true },
-                {10, 2, 20000, true },
-                {10, 2, 25000, true },
-                {10, 2, 30000, true },
-                {10, 2, 35000, true },
-                {10, 2, 40000, true },
-                {10, 2, 45000, true },
-                {10, 2, 50000, true },
-                {10, 2, 100000, true },
-                {10, 2, 150000, true },
-                {10, 2, 200000, true },
-                {10, 2, 500000, true},
+
+                {10, 2, 1000,    true},
+                {10, 2, 5000,    true},
+                {10, 2, 10000,   true},
+                {10, 2, 15000,   true},
+                {10, 2, 20000,   true},
+                {10, 2, 25000,   true},
+                {10, 2, 30000,   true},
+                {10, 2, 35000,   true},
+                {10, 2, 40000,   true},
+                {10, 2, 45000,   true},
+                {10, 2, 50000,   true},
+                {10, 2, 100000,  true},
+                {10, 2, 125000,  true},
+                {10, 2, 150000,  true},
+                {10, 2, 175000,  true},
+                {10, 2, 200000,  true},
+                {10, 2, 250000,  true},
+                {10, 2, 300000,  true},
+                {10, 2, 350000,  true},
+                {10, 2, 400000,  true},
+                {10, 2, 450000,  true},
+                {10, 2, 500000,  true},
+                {10, 2, 550000,  true},
+                {10, 2, 600000,  true},
+                {10, 2, 650000,  true},
+                {10, 2, 700000,  true},
+                {10, 2, 750000,  true},
+                {10, 2, 800000,  true},
+                {10, 2, 850000,  true},
+                {10, 2, 900000,  true},
+                {10, 2, 950000,  true},
                 {10, 2, 1000000, true},
-                {10, 10, 1000, true },
-                {10, 10, 5000, true },
-                {10, 10, 10000, true },
-                {10, 10, 15000, true },
-                {10, 10, 20000, true },
-                {10, 10, 25000, true },
-                {10, 10, 30000, true },
-                {10, 10, 35000, true },
-                {10, 10, 40000, true },
-                {10, 10, 45000, true },
-                {10, 10, 50000, true },
-                {10, 10, 100000, true },
-                {10, 10, 150000, true },
-                {10, 10, 200000, true },
-                {10, 10, 500000, true },
-                {10, 10, 1000000, true},
+
+                {10, 4, 1000,    true},
+                {10, 4, 5000,    true},
+                {10, 4, 10000,   true},
+                {10, 4, 15000,   true},
+                {10, 4, 20000,   true},
+                {10, 4, 25000,   true},
+                {10, 4, 30000,   true},
+                {10, 4, 35000,   true},
+                {10, 4, 40000,   true},
+                {10, 4, 45000,   true},
+                {10, 4, 50000,   true},
+                {10, 4, 100000,  true},
+                {10, 4, 125000,  true},
+                {10, 4, 150000,  true},
+                {10, 4, 175000,  true},
+                {10, 4, 200000,  true},
+                {10, 4, 250000,  true},
+                {10, 4, 300000,  true},
+                {10, 4, 350000,  true},
+                {10, 4, 400000,  true},
+                {10, 4, 450000,  true},
+                {10, 4, 500000,  true},
+                {10, 4, 550000,  true},
+                {10, 4, 600000,  true},
+                {10, 4, 650000,  true},
+                {10, 4, 700000,  true},
+                {10, 4, 750000,  true},
+                {10, 4, 800000,  true},
+                {10, 4, 850000,  true},
+                {10, 4, 900000,  true},
+                {10, 4, 950000,  true},
+                {10, 4, 1000000, true},
+
+                {10, 8, 1000,    true},
+                {10, 8, 5000,    true},
+                {10, 8, 10000,   true},
+                {10, 8, 15000,   true},
+                {10, 8, 20000,   true},
+                {10, 8, 25000,   true},
+                {10, 8, 30000,   true},
+                {10, 8, 35000,   true},
+                {10, 8, 40000,   true},
+                {10, 8, 45000,   true},
+                {10, 8, 50000,   true},
+                {10, 8, 100000,  true},
+                {10, 8, 125000,  true},
+                {10, 8, 150000,  true},
+                {10, 8, 175000,  true},
+                {10, 8, 200000,  true},
+                {10, 8, 250000,  true},
+                {10, 8, 300000,  true},
+                {10, 8, 350000,  true},
+                {10, 8, 400000,  true},
+                {10, 8, 450000,  true},
+                {10, 8, 500000,  true},
+                {10, 8, 550000,  true},
+                {10, 8, 600000,  true},
+                {10, 8, 650000,  true},
+                {10, 8, 700000,  true},
+                {10, 8, 750000,  true},
+                {10, 8, 800000,  true},
+                {10, 8, 850000,  true},
+                {10, 8, 900000,  true},
+                {10, 8, 950000,  true},
+                {10, 8, 1000000, true},
+
+                {10, 16, 1000,    true},
+                {10, 16, 5000,    true},
+                {10, 16, 10000,   true},
+                {10, 16, 15000,   true},
+                {10, 16, 20000,   true},
+                {10, 16, 25000,   true},
+                {10, 16, 30000,   true},
+                {10, 16, 35000,   true},
+                {10, 16, 40000,   true},
+                {10, 16, 45000,   true},
+                {10, 16, 50000,   true},
+                {10, 16, 100000,  true},
+                {10, 16, 125000,  true},
+                {10, 16, 150000,  true},
+                {10, 16, 175000,  true},
+                {10, 16, 200000,  true},
+                {10, 16, 250000,  true},
+                {10, 16, 300000,  true},
+                {10, 16, 350000,  true},
+                {10, 16, 400000,  true},
+                {10, 16, 450000,  true},
+                {10, 16, 500000,  true},
+                {10, 16, 550000,  true},
+                {10, 16, 600000,  true},
+                {10, 16, 650000,  true},
+                {10, 16, 700000,  true},
+                {10, 16, 750000,  true},
+                {10, 16, 800000,  true},
+                {10, 16, 850000,  true},
+                {10, 16, 900000,  true},
+                {10, 16, 950000,  true},
+                {10, 16, 1000000, true},
         });
     }
 
@@ -424,6 +515,7 @@ public class ScanBenchmark extends Benchmark {
     @Test
     public void baseTableScanWarmup() throws Exception {
         LOG.info("baseTableScanWarmup");
+
         runBenchmark(1, () -> benchmark(splitCount, NUM_EXECS, true, onOlap));
     }
 }
