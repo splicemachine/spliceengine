@@ -1288,6 +1288,6 @@ public interface Property {
 
     String SPLICE_OLAP_PARALLEL_PARTITIONS = "splice.olapParallelPartitions";
 
-    String JOIN_COST_ESTIMATION_MODEL = "joinCostEstimationModel";
+    String COST_MODEL = "costModel";
 }
 

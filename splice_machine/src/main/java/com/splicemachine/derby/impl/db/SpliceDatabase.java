@@ -34,7 +34,7 @@ import com.splicemachine.db.iapi.services.property.PropertySetCallback;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
-import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModelRegistry;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModelRegistry;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -132,7 +132,7 @@ public class SpliceDatabase extends BasicDatabase{
             }
         }
 
-        JoinCostEstimationModelRegistry.registerJoinCostEstimationModel("v1", new V1CostModel());
+        CostModelRegistry.registerCostModel("v1", new V1CostModel());
 
         if(create){
             SpliceLogUtils.info(LOG,"Creating the Splice Machine database");
