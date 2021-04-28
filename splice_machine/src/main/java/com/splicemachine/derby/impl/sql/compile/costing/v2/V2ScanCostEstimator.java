@@ -25,6 +25,11 @@ import java.util.BitSet;
 import java.util.HashSet;
 
 public class V2ScanCostEstimator extends AbstractScanCostEstimator {
+    private static final double SCAN_OPEN_LATENCY   = 700;    // 700 microseconds
+    private static final double SCAN_CLOSE_LATENCY  = 700;    // 700 microseconds
+    private static final double LOCAL_LATENCY       = 3;      // 3   microseconds (per 100 bytes)
+    private static final double OLAP_START_OVERHEAD = 140000; // 140 milliseconds
+
     /**
      * <pre>
      *
@@ -136,17 +141,15 @@ public class V2ScanCostEstimator extends AbstractScanCostEstimator {
         assert baseTableAverageRowWidth >= 0 : "baseTableAverageRowWidth cannot be negative -> " + baseTableAverageRowWidth;
         assert baseTableColumnSizeFactor >= 0 : "baseTableColumnSizeFactor cannot be negative -> " + baseTableColumnSizeFactor;
 
-        double openLatency = scc.getOpenLatency();
-        double closeLatency = scc.getCloseLatency();
-        double localLatency = scc.getLocalLatency();
+        double openLatency = SCAN_OPEN_LATENCY;
+        double closeLatency = SCAN_CLOSE_LATENCY;
+        double localLatency = LOCAL_LATENCY;
         double remoteLatency = scc.getRemoteLatency();
+
         double remoteCost = (openLatency + closeLatency) +
                 (numFirstIndexColumnProbes*2)*remoteLatency*(1+colSizeFactor/1024d) +
                 totalRowCount*totalSelectivity*remoteLatency*(1+colSizeFactor/1024d); // Per Kb
 
-        assert openLatency >= 0 : "openLatency cannot be negative -> " + openLatency;
-        assert closeLatency >= 0 : "closeLatency cannot be negative -> " + closeLatency;
-        assert localLatency >= 0 : "localLatency cannot be negative -> " + localLatency;
         assert remoteLatency >= 0 : "remoteLatency cannot be negative -> " + remoteLatency;
         assert remoteCost >= 0 : "remoteCost cannot be negative -> " + remoteCost;
         // Heap Size is the avg row width of the columns for the base table*total rows
@@ -155,18 +158,30 @@ public class V2ScanCostEstimator extends AbstractScanCostEstimator {
         scanCost.setEstimatedHeapSize((long)(totalRowCount*totalSelectivity*colSizeFactor));
         // Should be the same for each conglomerate
         scanCost.setRemoteCost((long)remoteCost);
-        // Base Cost + LookupCost + Projection Cost
+
+        int parallelism = scc.getParallelism() != 0 ? scc.getParallelism() : 1;
+        assert parallelism >= 1 : "invalid parallelism: " + parallelism;
+
+        // base Cost
         double congAverageWidth = scc.getConglomerateAvgRowWidth();
-        double baseCost = openLatency+closeLatency;
-        assert numFirstIndexColumnProbes >= 0;
-        baseCost += (numFirstIndexColumnProbes*2)*localLatency*(1+congAverageWidth/100d);
-        baseCost += (totalRowCount*baseTableSelectivity*localLatency*(1+congAverageWidth/100d));
         assert congAverageWidth >= 0 : "congAverageWidth cannot be negative -> " + congAverageWidth;
+        assert numFirstIndexColumnProbes >= 0;
+
+        double baseCost = openLatency + closeLatency;
+        baseCost += (numFirstIndexColumnProbes * 2) * localLatency * (1 + congAverageWidth / 100d);
+        baseCost += (totalRowCount * baseTableSelectivity * localLatency * (1 + congAverageWidth / 100d));
+        if (isOlap) {
+            double olapReductionFactor = Math.min(2 + Math.log(parallelism), 3);
+            baseCost = baseCost / olapReductionFactor + OLAP_START_OVERHEAD;
+        }
+
         assert baseCost >= 0 : "baseCost cannot be negative -> " + baseCost;
         scanCost.setFromBaseTableRows(Math.round(filterBaseTableSelectivity * totalRowCount));
         scanCost.setFromBaseTableCost(baseCost);
         // set how many base table rows to scan
         scanCost.setScannedBaseTableRows(Math.round(baseTableSelectivity * totalRowCount));
+
+        // lookup cost
         double lookupCost;
         if (baseColumnsInLookup == null) {
             lookupCost = 0.0d;
@@ -184,6 +199,7 @@ public class V2ScanCostEstimator extends AbstractScanCostEstimator {
         }
         assert lookupCost >= 0 : "lookupCost cannot be negative -> " + lookupCost;
 
+        // projection cost
         double projectionCost;
         if (projectionSelectivity == 1.0d) {
             projectionCost = 0.0d;
@@ -205,9 +221,9 @@ public class V2ScanCostEstimator extends AbstractScanCostEstimator {
         scanCost.setLocalCost(localCost);
         scanCost.setFirstColumnStats(scc.getFirstColumnStats());
         scanCost.setNumPartitions(scc.getNumPartitions() != 0 ? scc.getNumPartitions() : 1);
-        scanCost.setParallelism(scc.getParallelism() != 0 ? scc.getParallelism() : 1);
-        scanCost.setLocalCostPerParallelTask((baseCost + lookupCost + projectionCost), scanCost.getParallelism());
-        scanCost.setRemoteCostPerParallelTask(scanCost.remoteCost(), scanCost.getParallelism());
+        scanCost.setParallelism(parallelism);
+        scanCost.setLocalCostPerParallelTask((baseCost + lookupCost + projectionCost), parallelism);
+        scanCost.setRemoteCostPerParallelTask(scanCost.remoteCost(), parallelism);
 
         if (LOG.isTraceEnabled()) {
             LOG.trace(String.format("%n" +
@@ -265,15 +281,24 @@ public class V2ScanCostEstimator extends AbstractScanCostEstimator {
         // We use the base table so the estimated heap size and remote cost are the same for all conglomerates
         double colSizeFactor = baseTableAverageRowWidth*baseTableColumnSizeFactor;
 
+        double openLatency = SCAN_OPEN_LATENCY;
+        double closeLatency = SCAN_CLOSE_LATENCY;
+        double localLatency = LOCAL_LATENCY;
+        double remoteLatency = scc.getRemoteLatency();
+
         // Heap Size is the avg row width of the columns for the base table*total rows
         // Average Row Width
         // This should be the same for every conglomerate path
-        scanCost.setEstimatedHeapSize((long)(totalRowCount*colSizeFactor));
+        scanCost.setEstimatedHeapSize((long) (totalRowCount * colSizeFactor));
         // Should be the same for each conglomerate
-        scanCost.setRemoteCost((long)(scc.getOpenLatency()+scc.getCloseLatency()+totalRowCount*scc.getRemoteLatency()*(1+colSizeFactor/100d)));
+        scanCost.setRemoteCost((long) (openLatency + closeLatency + totalRowCount * remoteLatency * (1 + colSizeFactor / 100d)));
         // Base Cost + LookupCost + Projection Cost
         double congAverageWidth = scc.getConglomerateAvgRowWidth();
-        double baseCost = scc.getOpenLatency()+scc.getCloseLatency()+(totalRowCount*scc.getLocalLatency()*(1+scc.getConglomerateAvgRowWidth()/100d));
+        double baseCost = openLatency + closeLatency + (totalRowCount * localLatency * (1 + scc.getConglomerateAvgRowWidth() / 100d));
+        if (isOlap) {
+            // baseCost should be very small for 1 row and dividing it by reduction factor doesn't make much difference
+            baseCost = baseCost + OLAP_START_OVERHEAD;
+        }
         scanCost.setFromBaseTableRows(totalRowCount);
         scanCost.setFromBaseTableCost(baseCost);
         scanCost.setScannedBaseTableRows(totalRowCount);
