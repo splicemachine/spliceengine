@@ -618,4 +618,34 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
         columnHolders.removeAll(toRemove);
         columnHolders.add(rsHolder);
     }
+
+    protected double estimateIndexLookupCost(double lookupRowsCount, double openLatency, double closeLatency) {
+        if (isOlap || lookupRowsCount == 1.0) {  // OLTP formula is simplified to OLAP formula if row count == 1
+            return lookupRowsCount * getIndexLookupCostPerRow() + openLatency + closeLatency
+                    + (isOlap ? OLAP_INDEXLOOKUP_STARTUP_COST : 0);
+        } else {
+            // a whole batch is a batch containing 'indexLookupBatchRowCount' rows
+            // if lookupRowsCount < indexLookupBatchRowCount, wholeBatchesCount == 0
+            double wholeBatchesCount = Math.floor(lookupRowsCount / indexLookupBatchRowCount);
+            double oneWholeBatchCost = indexLookupBatchRowCount * getIndexLookupCostPerRow() + openLatency + closeLatency;
+            double serialBatchesCount = Math.max(wholeBatchesCount / indexLookupConcurrentBatchesCount, 1);
+
+            boolean considerLastBatchSeparately = wholeBatchesCount % indexLookupConcurrentBatchesCount == 0;
+            if (considerLastBatchSeparately) {
+                // if we have k serial batch groups but the last batch group contains only one batch that is not a whole
+                // batch, calculate the cost of last batch separately
+                double lastBatchRowsCount = lookupRowsCount % indexLookupBatchRowCount;
+                double lastBatchCost = lastBatchRowsCount * getIndexLookupCostPerRow() + openLatency + closeLatency;
+                return oneWholeBatchCost * (wholeBatchesCount == 0 ? 0 : serialBatchesCount)
+                        + (lastBatchRowsCount == 0 ? 0 : lastBatchCost);
+            } else {
+                // if the last serial batch group has at least one whole batch, take it as a complete serial step
+                return oneWholeBatchCost * Math.ceil(serialBatchesCount);
+            }
+        }
+    }
+
+    private double getIndexLookupCostPerRow() {
+        return isOlap ? OLAP_INDEXLOOKUP_COST_PER_ROW : OLTP_INDEXLOOKUP_COST_PER_ROW;
+    }
 }

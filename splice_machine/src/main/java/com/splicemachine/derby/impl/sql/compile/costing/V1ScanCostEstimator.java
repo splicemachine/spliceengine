@@ -177,9 +177,10 @@ public class V1ScanCostEstimator extends AbstractScanCostEstimator {
             scanCost.setIndexLookupRows(-1.0d);
             scanCost.setIndexLookupCost(-1.0d);
         } else {
-            lookupCost = totalRowCount*filterBaseTableSelectivity*(openLatency+closeLatency);
-            scanCost.setIndexLookupRows(Math.round(filterBaseTableSelectivity*totalRowCount));
-            scanCost.setIndexLookupCost(lookupCost+baseCost);
+            double lookupRowsCount = totalRowCount * filterBaseTableSelectivity;
+            lookupCost = estimateIndexLookupCost(lookupRowsCount, openLatency, closeLatency);
+            scanCost.setIndexLookupRows(Math.round(lookupRowsCount));
+            scanCost.setIndexLookupCost(lookupCost + baseCost);
         }
         assert lookupCost >= 0 : "lookupCost cannot be negative -> " + lookupCost;
 
@@ -287,7 +288,7 @@ public class V1ScanCostEstimator extends AbstractScanCostEstimator {
             scanCost.setIndexLookupRows(-1.0d);
             scanCost.setIndexLookupCost(-1.0d);
         } else {
-            lookupCost = totalRowCount*(scc.getOpenLatency()+scc.getCloseLatency());
+            lookupCost = estimateIndexLookupCost(totalRowCount, scc.getOpenLatency(), scc.getCloseLatency());
             scanCost.setIndexLookupRows(totalRowCount);
             scanCost.setIndexLookupCost(lookupCost+baseCost);
         }
