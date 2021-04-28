@@ -140,6 +140,8 @@ public abstract class DMLStatementNode extends StatementNode {
         if (getCompilerContext().isProjectionPruningEnabled())
             accept(new ProjectionPruningVisitor());
 
+        /* Apply hints to known query patterns */
+        QueryHinting.hint(this);
         /* Perform subquery flattening if applicable. */
         SubqueryFlattening.flatten(this);
         /* it is possible that some where clause subquery will be converted to fromSubquery in preprocess(),
