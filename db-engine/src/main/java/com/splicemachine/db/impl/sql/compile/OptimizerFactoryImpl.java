@@ -59,6 +59,8 @@ public class OptimizerFactoryImpl
 	protected boolean useStatistics = true;
 	protected int maxMemoryPerTable = Integer.MAX_VALUE;//may need to be long, but this also can be defined in configuration
 	protected long determineSparkRowThreshold; //The default value is defined in SQLConfiguration
+	protected int indexBatchSize;              //The default value is defined in SQLConfiguration
+	protected int indexLookupBlocks;           //The default value is defined in SQLConfiguration
 
 
 	/*
@@ -227,5 +229,9 @@ public class OptimizerFactoryImpl
 	}
 
 	public long getDetermineSparkRowThreshold() { return determineSparkRowThreshold;}
+
+	public int getIndexBatchSize() { return indexBatchSize; }
+
+	public int getIndexLookupBlocks() { return indexLookupBlocks; }
 }
 

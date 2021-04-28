@@ -121,6 +121,16 @@ public class SpliceLevel2OptimizerFactoryImpl extends OptimizerFactoryImpl {
         SConfiguration configuration = EngineDriver.driver().getConfiguration();
         return configuration.getDetermineSparkRowThreshold();
     }
+
+    public int getIndexBatchSize() {
+        SConfiguration configuration = EngineDriver.driver().getConfiguration();
+        return configuration.getIndexBatchSize();
+    }
+
+    public int getIndexLookupBlocks() {
+        SConfiguration configuration = EngineDriver.driver().getConfiguration();
+        return configuration.getIndexLookupBlocks();
+    }
 }
 
 
