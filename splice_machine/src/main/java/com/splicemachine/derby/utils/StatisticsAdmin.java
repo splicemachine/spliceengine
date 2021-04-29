@@ -308,7 +308,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             TransactionController transactionExecute = lcc.getTransactionExecute();
             transactionExecute.elevate("statistics");
             dropTableStatistics(tds, dd, tc);
-            ddlNotification(tc, tds);
             TxnView txn = ((SpliceTransactionManager) transactionExecute).getRawTransaction().getActiveStateTxn();
 
             HashMap<Long, Pair<String, String>> display = new HashMap<>();
