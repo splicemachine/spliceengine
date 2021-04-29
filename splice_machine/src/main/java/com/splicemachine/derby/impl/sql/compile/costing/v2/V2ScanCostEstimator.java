@@ -162,6 +162,9 @@ public class V2ScanCostEstimator extends AbstractScanCostEstimator {
         int numPartitions = scc.getNumPartitions() != 0 ? scc.getNumPartitions() : 1;
         assert numPartitions >= 1 : "invalid number of partitions: " + numPartitions;
         int parallelism = scc.getParallelism() != 0 ? scc.getParallelism() : 1;
+        if (!isOlap) {
+            parallelism = 1;
+        }
         assert parallelism >= 1 : "invalid parallelism: " + parallelism;
 
         // base Cost
