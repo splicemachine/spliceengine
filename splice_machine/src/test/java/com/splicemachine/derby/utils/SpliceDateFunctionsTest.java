@@ -269,7 +269,6 @@ public class SpliceDateFunctionsTest {
         String format = "MM/dd/yyyy";
         String compare = "06/24/2014";
         assertEquals(compare, SpliceDateFunctions.TO_CHAR(date, format));
-
         assertEquals(compare, SpliceDateFunctions.TIMESTAMP_TO_CHAR(timestamp, format));
     }
 
