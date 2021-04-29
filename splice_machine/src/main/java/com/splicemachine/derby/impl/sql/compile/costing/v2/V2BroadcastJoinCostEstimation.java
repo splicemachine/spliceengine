@@ -145,13 +145,13 @@ public class V2BroadcastJoinCostEstimation implements StrategyJoinCostEstimation
             result =  innerCost.getLocalCost()                                              // cost of scanning RHS
                     + innerCost.rowCount() * ONE_ROW_HASH_TRANSMIT_COST                     // cost of hashing the RHS (on OlapServer, in case of OLAP)
                     + outerCost.getLocalCostPerParallelTask()                               // cost of scanning the LHS (partitioned in OLAP, entirety in OLTP)
-                    + joiningRowCost;                                                       // cost of joining rows from LHS and RHS including the hash probing
+                    + joiningRowCost / outerCost.getParallelism();                          // cost of joining rows from LHS and RHS including the hash probing
         } else {                                                                            // nested loop join with RHS broadcast to executors (in case of OLAP)
             double joiningRowCost = numOfJoinedRows * localLatency;
             result =  innerCost.getLocalCost()                                              // cost of scanning RHS
                     + innerCost.remoteCost()                                                // cost of sending the hash table over the network
                     + outerCost.getLocalCostPerParallelTask()                               // cost of scanning the LHS (partitioned in OLAP, entirety in OLTP)
-                    + joiningRowCost;                                                       // cost of joining rows from LHS and RHS including the hash probing
+                    + joiningRowCost / outerCost.getParallelism();                          // cost of joining rows from LHS and RHS including the hash probing
         }
         return result;
     }

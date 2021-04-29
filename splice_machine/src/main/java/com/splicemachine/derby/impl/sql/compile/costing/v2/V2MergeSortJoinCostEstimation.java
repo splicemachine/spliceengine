@@ -139,7 +139,7 @@ public class V2MergeSortJoinCostEstimation implements StrategyJoinCostEstimation
                     +joiningRowCost/outerCost.getParallelism();
         } else {
             // On OLTP, there is no sort-merge join happening
-            if (outerCost.getJoinType() == JoinNode.INNERJOIN) {
+            if (outerCost.getJoinType() <= JoinNode.INNERJOIN) {     // during cost estimation, getJoinType() could be 0, but it's still inner join
                 /* For inner join, build a MultiMap for RHS table and for each <K, V> from LHS, probe it in
                  * the MultiMap. For each matching row, put it in a List<<K, <K, V>>>. This is hashJoin()
                  * implementation in OLTP.
@@ -148,7 +148,7 @@ public class V2MergeSortJoinCostEstimation implements StrategyJoinCostEstimation
                 localCost = innerCost.getLocalCost()                                          // cost of scanning RHS
                         + innerCost.rowCount() * ONE_ROW_HASH_TRANSMIT_COST                   // cost of hashing the RHS (on OlapServer, in case of OLAP)
                         + outerCost.getLocalCostPerParallelTask()                             // cost of scanning the LHS (partitioned in OLAP, entirety in OLTP)
-                        + joiningRowCost;                                                     // cost of joining rows from LHS and RHS including the hash probing
+                        + joiningRowCost / outerCost.getParallelism();                        // cost of joining rows from LHS and RHS including the hash probing
             } else {
                 /* For other join types, build a MultiMap for LHS and also another MultiMap for RHS. Then
                  * iterate over the union of LHS key set and RHS key set. For each key that exists in both
@@ -160,7 +160,7 @@ public class V2MergeSortJoinCostEstimation implements StrategyJoinCostEstimation
                         + innerCost.rowCount() * ONE_ROW_HASH_TRANSMIT_COST                   // cost of hashing the RHS (on OlapServer, in case of OLAP)
                         + outerCost.getLocalCostPerParallelTask()                             // cost of scanning the LHS (partitioned in OLAP, entirety in OLTP)
                         + outerCost.rowCount() * ONE_ROW_HASH_TRANSMIT_COST                   // cost of hashing the LHS
-                        + joiningRowCost;                                                     // cost of joining rows from LHS and RHS including the hash probing
+                        + joiningRowCost / outerCost.getParallelism();                        // cost of joining rows from LHS and RHS including the hash probing
             }
             return localCost;
         }

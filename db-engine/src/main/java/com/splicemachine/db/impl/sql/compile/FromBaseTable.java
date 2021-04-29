@@ -1019,7 +1019,7 @@ public class FromBaseTable extends FromTable {
                 getLanguageConnectionContext().getOptimizerFactory().getIndexBatchSize(),
                 getLanguageConnectionContext().getOptimizerFactory().getIndexLookupBlocks(),
                 forUpdate(),
-                dataSetProcessorType.isOlap(),
+                optimizer.isForSpark(),
                 usedNoStatsColumnIds);
 
         // check if specialMaxScan is applicable
