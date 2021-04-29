@@ -252,4 +252,9 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
     public boolean getLoadReplaceMode() {
         return false;
     }
+
+    @Override
+    public DataSetWriterBuilder colMap(int[] colMap) {
+        return null; // only used for deletes
+    }
 }

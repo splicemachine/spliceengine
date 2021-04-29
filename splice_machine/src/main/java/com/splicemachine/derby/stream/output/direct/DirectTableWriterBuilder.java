@@ -164,4 +164,9 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
     public boolean getLoadReplaceMode() {
         return loadReplaceMode;
     }
+
+    @Override
+    public DataSetWriterBuilder colMap(int[] colMap) {
+        return this; // only used for delete 
+    }
 }

@@ -56,4 +56,6 @@ public interface DataSetWriterBuilder{
 
     DataSetWriterBuilder loadReplaceMode( boolean loadReplaceMode );
     boolean getLoadReplaceMode();
+
+    DataSetWriterBuilder colMap(int[] colMap);
 }

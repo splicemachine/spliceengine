@@ -32,6 +32,7 @@ import com.splicemachine.utils.ByteSlice;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
+import static com.splicemachine.encoding.Encoding.EMPTY_BYTE_ARRAY;
 import static com.splicemachine.pipeline.writehandler.UpdateUtils.deleteFromUpdate;
 import static com.splicemachine.pipeline.writehandler.UpdateUtils.getBaseUpdateMutation;
 import static com.splicemachine.pipeline.writehandler.UpdateUtils.halveSet;
@@ -104,7 +105,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
                 return createIndexRecord(mutation, ctx,null);
             case UPDATE:
                 if (transformer.areIndexKeysModified(mutation)) { // Do I need to update?
-                    delete = deleteIndexRecordFromUpdate(mutation, ctx);
+                    delete = deleteIndexRecordFromValues(deleteFromUpdate(mutation), mutation, ctx, false);
                     mutation = getBaseUpdateMutation(mutation);
                     return createIndexRecord(mutation, ctx, delete);
                 }
@@ -113,7 +114,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
                 delete = deleteIndexRecord(mutation, ctx, false);
                 return createIndexRecord(mutation, ctx,delete);
             case DELETE:
-                delete = deleteIndexRecord(mutation, ctx, true);
+                delete = deleteIndexRecordFromValues(mutation, mutation, ctx, true);
                 return  delete != null;
             case CANCEL:
                 if (transformer.isUniqueIndex())
@@ -125,23 +126,25 @@ public class IndexWriteHandler extends RoutingWriteHandler{
         }
     }
 
-    private KVPair deleteIndexRecordFromUpdate(KVPair mutation, WriteContext ctx) {
+    private KVPair deleteIndexRecordFromValues(KVPair values, KVPair original, WriteContext ctx, boolean add) {
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "index delete with %s", mutation);
-
+            SpliceLogUtils.trace(LOG, "index delete with %s", values);
         try {
-            KVPair toTransform = deleteFromUpdate(mutation);
 
-            KVPair indexDelete = transformer.translate(toTransform);
+            KVPair indexDelete = transformer.translate(values);
+            indexDelete.setValue(EMPTY_BYTE_ARRAY);
 
             if(keepState)
-                this.routedToBaseMutationMap.put(indexDelete,mutation);
+                this.routedToBaseMutationMap.put(indexDelete,original);
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG, "performing index delete on row %s", Bytes.toHex(indexDelete.getRowKey()));
 
+            if (add) {
+                indexBuffer.add(indexDelete);
+            }
             return indexDelete;
         } catch (Exception e) {
-            fail(mutation,ctx,e);
+            fail(original,ctx,e);
             return null;
         }
     }

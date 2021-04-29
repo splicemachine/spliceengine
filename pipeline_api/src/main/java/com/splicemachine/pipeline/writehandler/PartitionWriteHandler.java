@@ -41,6 +41,7 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 
+import static com.splicemachine.encoding.Encoding.EMPTY_BYTE_ARRAY;
 import static com.splicemachine.pipeline.writehandler.UpdateUtils.getBaseUpdateMutation;
 
 /**
@@ -92,6 +93,15 @@ public class PartitionWriteHandler implements WriteHandler {
                     break;
                 case UPDATE:
                     toWrite = getBaseUpdateMutation(kvPair);
+                    break;
+                case DELETE:
+                    if (kvPair.valueSlice().length() > 0) {
+                        toWrite = new KVPair(kvPair.rowKeySlice().array(), kvPair.rowKeySlice().offset(), kvPair.rowKeySlice().length(),
+                                EMPTY_BYTE_ARRAY, 0, 0,
+                                KVPair.Type.DELETE);
+                    } else {
+                        toWrite = kvPair;
+                    }
                     break;
                 default:
                     toWrite = kvPair;

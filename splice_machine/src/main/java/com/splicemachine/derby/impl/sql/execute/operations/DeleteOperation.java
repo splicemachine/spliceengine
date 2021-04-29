@@ -125,6 +125,7 @@ public class DeleteOperation extends DMLWriteOperation {
             }
             DataSetWriter dataSetWriter = dataSetWriterBuilder
                     .updateCounts(expectedUpdateCounts)
+                    .colMap(colMap)
                     .destConglomerate(heapConglom)
                     .tempConglomerateID(getTriggerConglomID())
                     .operationContext(operationContext)

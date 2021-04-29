@@ -259,4 +259,9 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
     public boolean getLoadReplaceMode() {
         return loadReplaceMode;
     }
+
+    @Override
+    public DataSetWriterBuilder colMap(int[] colMap) {
+        return this; // ignore, only used for deletes
+    }
 }

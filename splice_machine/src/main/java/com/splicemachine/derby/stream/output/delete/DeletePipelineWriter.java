@@ -14,7 +14,9 @@
 
 package com.splicemachine.derby.stream.output.delete;
 
+import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -22,7 +24,10 @@ import com.splicemachine.derby.impl.sql.execute.operations.DeleteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.AbstractPipelineWriter;
+import com.splicemachine.derby.stream.output.update.RowHash;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.Exceptions;
@@ -43,15 +48,17 @@ public class DeletePipelineWriter extends AbstractPipelineWriter<ExecRow>{
 
     public int rowsDeleted = 0;
     protected DeleteOperation deleteOperation;
+    protected int[] colMap;
 
     public DeletePipelineWriter(TxnView txn, byte[] token, long heapConglom, long tempConglomID,
                                 String tableVersion, ExecRow execRowDefinition, OperationContext operationContext,
-                                boolean loadReplaceMode)
+                                boolean loadReplaceMode,int[] colMap)
             throws StandardException {
         super(txn, token, heapConglom, tempConglomID, tableVersion, execRowDefinition, operationContext, loadReplaceMode);
         if (operationContext != null) {
             deleteOperation = (DeleteOperation)operationContext.getOperation();
         }
+        this.colMap = colMap;
     }
 
     public void open() throws StandardException {
@@ -96,7 +103,16 @@ public class DeletePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     }
 
     public DataHash getRowHash() throws StandardException {
-        return EMPTY_VALUES_ENCODER;
+        if (colMap == null)
+            return EMPTY_VALUES_ENCODER;
+        int[] colPositionMap = new int[colMap.length + 1]; // 1-based
+        FormatableBitSet valuesList = new FormatableBitSet(execRowDefinition.nColumns());
+        for(int i = 0; i < colMap.length; ++i) {
+            colPositionMap[i+1] = colMap[i] - 1;
+            valuesList.set(i+1);
+        }
+        DescriptorSerializer[] serializers= VersionedSerializers.forVersion(tableVersion,false).getSerializers(execRowDefinition);
+        return new RowHash(colPositionMap,null,serializers,valuesList);
     }
 
     public void delete(ExecRow execRow) throws StandardException {

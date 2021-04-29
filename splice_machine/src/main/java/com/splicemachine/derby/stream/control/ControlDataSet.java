@@ -726,7 +726,7 @@ public class ControlDataSet<V> implements DataSet<V> {
             public DataSetWriter build() throws StandardException{
                 assert txn!=null:"Txn is null";
                 DeletePipelineWriter dpw = new DeletePipelineWriter(txn,token,heapConglom, tempConglomID,
-                        tableVersion, execRowDefinition, operationContext, loadReplaceMode);
+                        tableVersion, execRowDefinition, operationContext, loadReplaceMode,colMap);
                 dpw.setRollforward(true);
                 return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,dpw,operationContext,
                         updateCounts, loadReplaceMode);

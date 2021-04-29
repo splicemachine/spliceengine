@@ -1497,7 +1497,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
         ResultColumnList    updatedColumns,
         FormatableBitSet    colBitSet,
         Vector                conglomVector,
-        boolean             isBulkDelete
+        boolean             isDelete
     )
         throws StandardException
     {
@@ -1549,7 +1549,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
             if (colBitSet != null) {
                 for (int col : cols) {
                     // Do not Add Primary Keys, we have them in the rowKey (BaseTable) or in the RowLocation (IndexTable)
-                    if (!ArrayUtils.contains(primaryKeyColumns, col) || isBulkDelete)
+                    if (!ArrayUtils.contains(primaryKeyColumns, col) || isDelete)
                         colBitSet.set(col);
                 }
             }    // end IF
