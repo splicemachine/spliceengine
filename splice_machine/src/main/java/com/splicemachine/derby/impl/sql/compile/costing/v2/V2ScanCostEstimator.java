@@ -159,6 +159,8 @@ public class V2ScanCostEstimator extends AbstractScanCostEstimator {
         // Should be the same for each conglomerate
         scanCost.setRemoteCost((long)remoteCost);
 
+        int numPartitions = scc.getNumPartitions() != 0 ? scc.getNumPartitions() : 1;
+        assert numPartitions >= 1 : "invalid number of partitions: " + numPartitions;
         int parallelism = scc.getParallelism() != 0 ? scc.getParallelism() : 1;
         assert parallelism >= 1 : "invalid parallelism: " + parallelism;
 
@@ -171,7 +173,7 @@ public class V2ScanCostEstimator extends AbstractScanCostEstimator {
         baseCost += (numFirstIndexColumnProbes * 2) * localLatency * (1 + congAverageWidth / 100d);
         baseCost += (totalRowCount * baseTableSelectivity * localLatency * (1 + congAverageWidth / 100d));
         if (isOlap) {
-            double olapReductionFactor = Math.min(2 + Math.log(parallelism), 3);
+            double olapReductionFactor = Math.max(2, Math.min(Math.log(numPartitions), Math.log(parallelism)));
             baseCost = baseCost / olapReductionFactor + OLAP_START_OVERHEAD;
         }
 
@@ -220,7 +222,7 @@ public class V2ScanCostEstimator extends AbstractScanCostEstimator {
         assert localCost >= 0 : "localCost cannot be negative -> " + localCost;
         scanCost.setLocalCost(localCost);
         scanCost.setFirstColumnStats(scc.getFirstColumnStats());
-        scanCost.setNumPartitions(scc.getNumPartitions() != 0 ? scc.getNumPartitions() : 1);
+        scanCost.setNumPartitions(numPartitions);
         scanCost.setParallelism(parallelism);
         scanCost.setLocalCostPerParallelTask((baseCost + lookupCost + projectionCost), parallelism);
         scanCost.setRemoteCostPerParallelTask(scanCost.remoteCost(), parallelism);

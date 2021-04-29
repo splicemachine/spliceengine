@@ -25,6 +25,8 @@ import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
 import com.splicemachine.derby.impl.sql.compile.costing.StrategyJoinCostEstimation;
 
 public class V2BroadcastJoinCostEstimation implements StrategyJoinCostEstimation {
+    static final double ONE_ROW_HASH_TRANSMIT_COST = 1; // 1 microsecond
+
     @Override
     public void estimateCost(Optimizable innerTable,
                              OptimizablePredicateList predList,
@@ -84,7 +86,7 @@ public class V2BroadcastJoinCostEstimation implements StrategyJoinCostEstimation
             double totalJoinedRows = SelectivityUtil.getTotalRows(joinSelectivityWithSearchConditionsOnly, outerCost.rowCount(), innerCost.rowCount());
             int[] hashKeyColumns = HashableJoinStrategy.findHashKeyColumns(innerTable, cd, predList, optimizer.getAssignedTableMap());
             int innerHashKeyColCount = hashKeyColumns == null ? 0 : hashKeyColumns.length;
-            double joinCost = broadcastJoinStrategyLocalCost(innerCost, outerCost, totalJoinedRows, innerHashKeyColCount, innerTable.getNumColumnsReturned());
+            double joinCost = broadcastJoinStrategyLocalCost(innerCost, outerCost, totalJoinedRows, innerHashKeyColCount);
             innerCost.setLocalCost(joinCost);
             innerCost.setLocalCostPerParallelTask(joinCost);
             innerCost.setParallelism(outerCost.getParallelism());
@@ -113,17 +115,16 @@ public class V2BroadcastJoinCostEstimation implements StrategyJoinCostEstimation
     private static double broadcastJoinStrategyLocalCost(CostEstimate innerCost,
                                                          CostEstimate outerCost,
                                                          double numOfJoinedRows,
-                                                         int innerHashKeyColCount,
-                                                         int innerNumColumnsReturned) {
+                                                         int innerHashKeyColCount) {
         SConfiguration config = EngineDriver.driver().getConfiguration();
         double localLatency = config.getFallbackLocalLatency(); // set to 1-microsecond normally, involves cost of opening iterator, calling next, ... etc
 
-        double result = broadCastJoinLocalCostHelper(innerCost, outerCost, numOfJoinedRows, innerHashKeyColCount, innerNumColumnsReturned, localLatency);
+        double result = broadCastJoinLocalCostHelper(innerCost, outerCost, numOfJoinedRows, innerHashKeyColCount, localLatency);
 
         // For full outer join, we need to broadcast the left side also to compute the non-matching rows
         // from the right, so add cost to reflect that.
         if (outerCost.getJoinType() == JoinNode.FULLOUTERJOIN) {
-            result += broadCastJoinLocalCostHelper(outerCost, innerCost, numOfJoinedRows, 0, 1, localLatency);
+            result += broadCastJoinLocalCostHelper(outerCost, innerCost, numOfJoinedRows, 0, localLatency);
         }
         return result;
     }
@@ -132,23 +133,17 @@ public class V2BroadcastJoinCostEstimation implements StrategyJoinCostEstimation
                                                        CostEstimate outerCost,
                                                        double numOfJoinedRows,
                                                        int innerHashKeyColCount,
-                                                       int innerNumColumnsReturned,
                                                        double localLatency) {
         assert innerCost.getLocalCostPerParallelTask() != 0d || innerCost.localCost() == 0d;
         assert innerCost.getRemoteCostPerParallelTask() != 0d || innerCost.remoteCost() == 0d;
-        final double ONE_ROW_HASHING_COST = 0.001; // 1 ns
+
 
         //// estimate the size of the hash table
         double result = 0.0d;
-
-        if(innerHashKeyColCount > 0) {                                          // actual broadcast join
-            double hashTableKeyFactor = 1 + (innerNumColumnsReturned == 0
-                    ? 0
-                    : innerHashKeyColCount / (double)innerNumColumnsReturned);
-            double joiningRowCost = outerCost.rowCount() * ONE_ROW_HASHING_COST;            // cost of probing each LHS row's key in the RHS hash table
+        if(innerHashKeyColCount > 0) {                                                      // actual broadcast join
+            double joiningRowCost = outerCost.rowCount() * ONE_ROW_HASH_TRANSMIT_COST;      // cost of probing each LHS row's key in the RHS hash table
             result =  innerCost.getLocalCost()                                              // cost of scanning RHS
-                    + innerCost.rowCount() * ONE_ROW_HASHING_COST                           // cost of hashing the RHS (on OlapServer, in case of OLAP)
-                    + innerCost.remoteCost() * hashTableKeyFactor                           // cost of sending the hash table over the network
+                    + innerCost.rowCount() * ONE_ROW_HASH_TRANSMIT_COST                     // cost of hashing the RHS (on OlapServer, in case of OLAP)
                     + outerCost.getLocalCostPerParallelTask()                               // cost of scanning the LHS (partitioned in OLAP, entirety in OLTP)
                     + joiningRowCost;                                                       // cost of joining rows from LHS and RHS including the hash probing
         } else {                                                                            // nested loop join with RHS broadcast to executors (in case of OLAP)

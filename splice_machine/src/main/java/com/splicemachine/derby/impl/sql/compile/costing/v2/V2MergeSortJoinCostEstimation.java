@@ -23,7 +23,7 @@ import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
 import com.splicemachine.derby.impl.sql.compile.costing.StrategyJoinCostEstimation;
 
 public class V2MergeSortJoinCostEstimation implements StrategyJoinCostEstimation {
-    static final double ONE_ROW_HASHING_COST = 0.001; // 1 nanosecond
+    static final double ONE_ROW_HASH_TRANSMIT_COST = 1; // 1 microsecond
 
     @Override
     public void estimateCost(Optimizable innerTable,
@@ -144,23 +144,23 @@ public class V2MergeSortJoinCostEstimation implements StrategyJoinCostEstimation
                  * the MultiMap. For each matching row, put it in a List<<K, <K, V>>>. This is hashJoin()
                  * implementation in OLTP.
                  */
-                double joiningRowCost = outerCost.rowCount() * ONE_ROW_HASHING_COST;    // cost of probing each LHS row's key in the RHS hash table
-                localCost = innerCost.getLocalCost()                                    // cost of scanning RHS
-                        + innerCost.rowCount() * ONE_ROW_HASHING_COST                   // cost of hashing the RHS (on OlapServer, in case of OLAP)
-                        + outerCost.getLocalCostPerParallelTask()                       // cost of scanning the LHS (partitioned in OLAP, entirety in OLTP)
-                        + joiningRowCost;                                               // cost of joining rows from LHS and RHS including the hash probing
+                double joiningRowCost = outerCost.rowCount() * ONE_ROW_HASH_TRANSMIT_COST;    // cost of probing each LHS row's key in the RHS hash table
+                localCost = innerCost.getLocalCost()                                          // cost of scanning RHS
+                        + innerCost.rowCount() * ONE_ROW_HASH_TRANSMIT_COST                   // cost of hashing the RHS (on OlapServer, in case of OLAP)
+                        + outerCost.getLocalCostPerParallelTask()                             // cost of scanning the LHS (partitioned in OLAP, entirety in OLTP)
+                        + joiningRowCost;                                                     // cost of joining rows from LHS and RHS including the hash probing
             } else {
                 /* For other join types, build a MultiMap for LHS and also another MultiMap for RHS. Then
                  * iterate over the union of LHS key set and RHS key set. For each key that exists in both
                  * LHS and RHS, add a matching row in a List<<K, <K, V>>>. This is cogroup() implementation
                  * in OLTP.
                  */
-                double joiningRowCost = numOfJoinedRows * ONE_ROW_HASHING_COST * 2;     // cost of probing each LHS row's key in the RHS hash table
-                localCost = innerCost.getLocalCost()                                    // cost of scanning RHS
-                        + innerCost.rowCount() * ONE_ROW_HASHING_COST                   // cost of hashing the RHS (on OlapServer, in case of OLAP)
-                        + outerCost.getLocalCostPerParallelTask()                       // cost of scanning the LHS (partitioned in OLAP, entirety in OLTP)
-                        + outerCost.rowCount() * ONE_ROW_HASHING_COST                   // cost of hashing the LHS
-                        + joiningRowCost;                                               // cost of joining rows from LHS and RHS including the hash probing
+                double joiningRowCost = numOfJoinedRows * ONE_ROW_HASH_TRANSMIT_COST * 2;     // cost of probing each LHS row's key in the RHS hash table
+                localCost = innerCost.getLocalCost()                                          // cost of scanning RHS
+                        + innerCost.rowCount() * ONE_ROW_HASH_TRANSMIT_COST                   // cost of hashing the RHS (on OlapServer, in case of OLAP)
+                        + outerCost.getLocalCostPerParallelTask()                             // cost of scanning the LHS (partitioned in OLAP, entirety in OLTP)
+                        + outerCost.rowCount() * ONE_ROW_HASH_TRANSMIT_COST                   // cost of hashing the LHS
+                        + joiningRowCost;                                                     // cost of joining rows from LHS and RHS including the hash probing
             }
             return localCost;
         }

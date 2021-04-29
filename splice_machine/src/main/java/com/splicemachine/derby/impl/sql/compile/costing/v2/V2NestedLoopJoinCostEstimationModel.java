@@ -30,8 +30,8 @@ public class V2NestedLoopJoinCostEstimationModel implements StrategyJoinCostEsti
 
     private static final double NLJ_ON_SPARK_PENALTY = 1e15;  // msirek-temp
     private static final double RHS_SEQUENTIAL_SCAN_PORTION = 0.5;
-    private static final double OLTP_JOINING_ONE_ROW_COST = 37;
-    private static final double OLAP_JOINING_ONE_ROW_COST = 79;
+    private static final double OLTP_JOINING_ONE_ROW_COST = 36;
+    private static final double OLAP_JOINING_ONE_ROW_COST = 148;
 
     @Override
     public void estimateCost(Optimizable innerTable,
