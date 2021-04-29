@@ -147,10 +147,30 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
                 .withRows(rows(row("abc".getBytes())))
                 .create();
 
+        new TableCreator(conn)
+                .withCreate("create table SelectivityTest(a varchar(5) primary key, b varchar(5), c varchar(5), d int)")
+                .withIndex("create index ST1 on SelectivityTest(b)")
+                .withIndex("create index ST2 on SelectivityTest(c, d)")
+                .withInsert("insert into SelectivityTest values(?,?,?,?)")
+                .withRows(rows(
+                        row("a", "b", "0", 0),
+                        row("a ", "b ", "0", 1),
+                        row("a  ", "b  ", "1", 2),
+                        row("a   ", "b   ", "1", 3),
+                        row("a    ", "b    ", "2", 4),
+                        row("a1", "b1", "3", 5),
+                        row("a2", "b2","3", 6),
+                        row("a3", "b3", "4", 7),
+                        row("a4", "b4", "5", 8),
+                        row("a5", "b5", "5", 9)))
+                .create();
+
+
         spliceClassWatcher.execute("insert into AG select a, b+1, c+1, d+1 from AG");
         spliceClassWatcher.execute("insert into AG select a, b+1, c+1, d+1 from AG");
         spliceClassWatcher.execute("insert into AG select a, b+1, c+1, d+1 from AG");
         spliceClassWatcher.execute("insert into AG select a, b+1, c+1, d+1 from AG");
+        spliceClassWatcher.execute("analyse table SelectivityTest");
     }
 
     @BeforeClass
@@ -667,5 +687,23 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
                 }
             }
         }
+    }
+
+    @Test
+    public void testSelectivityIndex() throws Exception {
+        testQueryContains(
+                "explain select * from SelectivityTest --splice-properties index=ST1\n where b = 'b'",
+                "scannedRows=5", methodWatcher);
+    }
+
+    @Test
+    public void testSelectivityCannotUseFullIndexStartStopKey() throws Exception {
+        // Without db2 compatibility mode, both c and d would have a start key and a stop key, so we would only read one
+        // row with the following query. With db2 compatibility mode however, d's start/stop keys cannot be used, so d = 2
+        // is only applied in the FILTER_BASE phase and not the BASE phase. We end up scanning two rows.
+        testQueryContains(
+                "explain select * from SelectivityTest --splice-properties index=ST2\n where c = '1' and d = 2",
+                "scannedRows=2,outputRows=1",
+                methodWatcher);
     }
 }

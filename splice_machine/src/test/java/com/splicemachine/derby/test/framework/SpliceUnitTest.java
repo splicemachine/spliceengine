@@ -439,6 +439,11 @@ public class SpliceUnitTest {
     }
 
     protected void testQueryContains(String sqlText, String containedString,
+                                     SpliceWatcher methodWatcher) throws Exception {
+        testQueryContains(sqlText, containedString, methodWatcher, true);
+    }
+
+    protected void testQueryContains(String sqlText, String containedString,
                                      SpliceWatcher methodWatcher,
                                      boolean caseInsensitive) throws Exception {
         ResultSet rs = null;
