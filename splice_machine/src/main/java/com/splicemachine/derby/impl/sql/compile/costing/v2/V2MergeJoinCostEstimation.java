@@ -13,8 +13,6 @@
 
 package com.splicemachine.derby.impl.sql.compile.costing.v2;
 
-import com.splicemachine.EngineDriver;
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -26,6 +24,7 @@ import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
 import com.splicemachine.derby.impl.sql.compile.costing.StrategyJoinCostEstimation;
 
 public class V2MergeJoinCostEstimation implements StrategyJoinCostEstimation {
+    private static final double ONE_ROW_JOINING_COST = 0.5;  // 0.5 microseconds
 
     private boolean isOuterTableEmpty(Optimizable innerTable, OptimizablePredicateList predList) throws StandardException {
         for (int i = 0; i < predList.size(); i++) {
@@ -114,20 +113,20 @@ public class V2MergeJoinCostEstimation implements StrategyJoinCostEstimation {
      * Merge Join Local Cost Computation
      * Total Cost = (Left Side Cost + Right Side Cost + Right Side Remote Cost)/Left Side Partition Count) + Open Cost + Close Cost
      */
-    public static double mergeJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, boolean outerTableEmpty, double numOfJoinedRows, double innerTableScaleFactor) {
-        SConfiguration config = EngineDriver.driver().getConfiguration();
-        double localLatency = config.getFallbackLocalLatency();
-        double joiningRowCost = numOfJoinedRows * localLatency;
+    public static double mergeJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost,
+                                                    boolean outerTableEmpty, double numOfJoinedRows,
+                                                    double innerTableScaleFactor) {
+        double joiningRowCost = numOfJoinedRows * ONE_ROW_JOINING_COST;
 
         assert innerCost.getRemoteCostPerParallelTask() != 0d || innerCost.remoteCost() == 0d;
         double innerRemoteCost = innerCost.getRemoteCostPerParallelTask() * innerTableScaleFactor *
                 innerCost.getParallelism();
         if (outerTableEmpty) {
-            return (outerCost.getLocalCostPerParallelTask()) + innerCost.getOpenCost() + innerCost.getCloseCost();
+            return outerCost.getLocalCostPerParallelTask();
         } else
-            return outerCost.getLocalCostPerParallelTask() + innerCost.getLocalCostPerParallelTask() * innerTableScaleFactor +
-                    innerRemoteCost / outerCost.getParallelism() +
-                    innerCost.getOpenCost() + innerCost.getCloseCost()
+            return outerCost.getLocalCostPerParallelTask()
+                    + innerCost.getLocalCost() * innerTableScaleFactor
+                    + innerRemoteCost / outerCost.getParallelism()
                     + joiningRowCost / outerCost.getParallelism();
     }
 

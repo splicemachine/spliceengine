@@ -25,7 +25,8 @@ import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
 import com.splicemachine.derby.impl.sql.compile.costing.StrategyJoinCostEstimation;
 
 public class V2BroadcastJoinCostEstimation implements StrategyJoinCostEstimation {
-    static final double ONE_ROW_HASH_TRANSMIT_COST = 1; // 1 microsecond
+    static final double LEFT_ONE_ROW_HASH_PROBE_COST     = 0.3;   // 0.3 microseconds
+    static final double RIGHT_ONE_ROW_HASH_TRANSMIT_COST = 1.2;   // 1.2 microseconds
 
     @Override
     public void estimateCost(Optimizable innerTable,
@@ -141,9 +142,9 @@ public class V2BroadcastJoinCostEstimation implements StrategyJoinCostEstimation
         //// estimate the size of the hash table
         double result = 0.0d;
         if(innerHashKeyColCount > 0) {                                                      // actual broadcast join
-            double joiningRowCost = outerCost.rowCount() * ONE_ROW_HASH_TRANSMIT_COST;      // cost of probing each LHS row's key in the RHS hash table
+            double joiningRowCost = outerCost.rowCount() * LEFT_ONE_ROW_HASH_PROBE_COST;    // cost of probing each LHS row's key in the RHS hash table
             result =  innerCost.getLocalCost()                                              // cost of scanning RHS
-                    + innerCost.rowCount() * ONE_ROW_HASH_TRANSMIT_COST                     // cost of hashing the RHS (on OlapServer, in case of OLAP)
+                    + innerCost.rowCount() * RIGHT_ONE_ROW_HASH_TRANSMIT_COST               // cost of hashing the RHS (on OlapServer, in case of OLAP)
                     + outerCost.getLocalCostPerParallelTask()                               // cost of scanning the LHS (partitioned in OLAP, entirety in OLTP)
                     + joiningRowCost / outerCost.getParallelism();                          // cost of joining rows from LHS and RHS including the hash probing
         } else {                                                                            // nested loop join with RHS broadcast to executors (in case of OLAP)

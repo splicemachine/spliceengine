@@ -28,10 +28,11 @@ import static com.splicemachine.db.impl.sql.compile.JoinNode.INNERJOIN;
 
 public class V2NestedLoopJoinCostEstimationModel implements StrategyJoinCostEstimation {
 
-    private static final double NLJ_ON_SPARK_PENALTY = 1e15;  // msirek-temp
-    private static final double RHS_SEQUENTIAL_SCAN_PORTION = 0.5;
-    private static final double OLTP_JOINING_ONE_ROW_COST = 35;
-    private static final double OLAP_JOINING_ONE_ROW_COST = 148;
+    private static final double NLJ_ON_SPARK_PENALTY = 1e15;          // msirek-temp
+    private static final double RHS_SEQUENTIAL_SCAN_PORTION_SMALL_RHS = 0.1;
+    private static final double RHS_SEQUENTIAL_SCAN_PORTION_BIG_RHS   = 0.9;
+    private static final double OLTP_JOINING_ONE_ROW_COST = 35;       // 35  microseconds
+    private static final double OLAP_JOINING_ONE_ROW_COST = 152;      // 152 microseconds
 
     @Override
     public void estimateCost(Optimizable innerTable,
@@ -184,19 +185,21 @@ public class V2NestedLoopJoinCostEstimationModel implements StrategyJoinCostEsti
          * scanned in sequential would lead to better estimation for big tables but over estimates for
          * smaller tables. Assuming less to be scanned sequential would lead to better estimation for small
          * tables but under estimates for big tables.
+         * Based on join microbenchmark result, 1000 rows on RHS table seems to be a good turning point.
          */
         double numOfJoiningRowsPerTask = Math.max(outerCost.rowCount() / outerCost.getParallelism(), 1) * innerCost.rowCount();
         double joiningRowCostPerTask = numOfJoiningRowsPerTask * (isOlap ? OLAP_JOINING_ONE_ROW_COST : OLTP_JOINING_ONE_ROW_COST);
+        double rhsSeqScanPortion = innerCost.rowCount() <= 1000 ? RHS_SEQUENTIAL_SCAN_PORTION_SMALL_RHS : RHS_SEQUENTIAL_SCAN_PORTION_BIG_RHS;
         double localCost = 0.0;
         if (isIndexKeyAccessRhs) {
             localCost = innerCost.getLocalCost()                   // the first async task needs to finish first
                     + outerCost.getLocalCostPerParallelTask()      // main thread scans LHS
                     + joiningRowCostPerTask;                       // joining LHS rows and matching RHS rows
         } else {
-            localCost = innerCost.getLocalCost() * (1 - RHS_SEQUENTIAL_SCAN_PORTION)  // the first async task returns after finding the first matching row on RHS
+            localCost = innerCost.getLocalCost() * (1 - rhsSeqScanPortion)            // the first async task returns after finding the first matching row on RHS
                     + outerCost.getLocalCostPerParallelTask()                         // main thread scans LHS
                     + joiningRowCostPerTask                                           // joining LHS rows and matching RHS rows
-                    + Math.max(outerCost.rowCount() / outerCost.getParallelism(), 1) * innerCost.getLocalCost() * RHS_SEQUENTIAL_SCAN_PORTION;  // main thread scans RHS sequentially for the rest of matching rows
+                    + Math.max(outerCost.rowCount() / outerCost.getParallelism(), 1) * innerCost.getLocalCost() * rhsSeqScanPortion;  // main thread scans RHS sequentially for the rest of matching rows
         }
         return localCost;
     }
