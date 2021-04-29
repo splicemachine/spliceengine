@@ -35,6 +35,7 @@ import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.compile.costing.ScanCostEstimator;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -64,9 +65,11 @@ import java.util.*;
  * @author Scott Fines
  *         Date: 5/15/15
  */
-public class ScanCostFunction{
-    public static final Logger LOG = Logger.getLogger(ScanCostFunction.class);
+public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
+    public static final Logger LOG = Logger.getLogger(AbstractScanCostEstimator.class);
 
+    protected static final int SCAN = 0;  // qualifier phase: BASE, FILTER_BASE
+    protected static final int TOP  = 1;  // qualifier phase: FILTER_PROJECTION
     /* These values are based on the results of index lookup microbenchmark (DB-11737) performed
      * on an EKS cluster with 4 OLTP + 4 OLAP pods.
      * Next step is to make them tunable (maybe as configurable parameters in site.xml). These
@@ -77,31 +80,28 @@ public class ScanCostFunction{
     private static final int OLAP_INDEXLOOKUP_COST_PER_ROW = 18;
     private static final int OLAP_INDEXLOOKUP_STARTUP_COST = 85000;
 
-    private static final int SCAN = 0;  // qualifier phase: BASE, FILTER_BASE
-    private static final int TOP  = 1;  // qualifier phase: FILTER_PROJECTION
-
-    private final Optimizable baseTable;
-    private final ConglomerateDescriptor cd;
-    private final IndexDescriptor indexDescriptor;
+    protected final Optimizable            baseTable;
+    protected final ConglomerateDescriptor cd;
+    protected final IndexDescriptor        indexDescriptor;
     private final boolean isIndex;
     private final boolean isPrimaryKey;
-    private final boolean isIndexOnExpression;
+    protected final boolean isIndexOnExpression;
 
-    private final CostEstimate scanCost;
-    private final StoreCostController scc;
+    protected final CostEstimate scanCost;
+    protected final StoreCostController scc;
 
     // resultColumns from the base table
     // at this point, this seems to be always full column list because no access path is chosen
     private final ResultColumnList resultColumns;
 
     // base columns returned from scanning phase
-    private final BitSet baseColumnsInScan;
+    protected final BitSet baseColumnsInScan;
 
     // base columns returned from looking up phase
-    private final BitSet baseColumnsInLookup;
+    protected final BitSet baseColumnsInLookup;
 
     // whether it's possible to consider further scan predicates or not
-    private boolean scanPredicatePossible = true;
+    protected boolean scanPredicatePossible = true;
 
     // positions of columns used in estimating selectivity but missing real statistics
     private final HashSet<Integer> usedNoStatsColumnIds;
@@ -120,48 +120,40 @@ public class ScanCostFunction{
     private final boolean isOlap;
 
     // selectivity elements for scanning phase
-    private final List<SelectivityHolder>[] scanSelectivityHolder;
+    protected final List<SelectivityHolder>[] scanSelectivityHolder;
 
     // selectivity elements for look up and projection phase
-    private final List<SelectivityHolder>[] topSelectivityHolder;
+    protected final List<SelectivityHolder>[] topSelectivityHolder;
 
     // for base tables, this is null
     // for normal indexes and primary keys, stores column references to the base table
     // for indexes on expressions, stores the ASTs of index expressions in their defined order
-    private final ValueNode[] indexColumns;
+    protected final ValueNode[] indexColumns;
 
     // cost of evaluating all expressions used in added predicates per row
-    private double exprEvalCostPerRow = 0.0;
+    protected double exprEvalCostPerRow = 0.0;
 
     /**
-     *
-     *
-     * <pre>
-     *
      *     Selectivity is computed at 3 levels.
-     *
      *     BASE -> Qualifiers on the row keys (start/stop Qualifiers, Multiprobe)
      *     FILTER_BASE -> Qualifiers applied after the scan but before the index lookup.
      *     FILTER_PROJECTION -> Qualifers and Predicates applied after any potential lookup, usually performed on the Projection Node in the scan.
      *
-     *
-     * </pre>
-     *
-     * @param baseTable  A base table on which a scan cost is going to be estimated.
-     * @param cd         A conglomerate descriptor of the base table to be considered.
-     * @param scc        A StoreCostController instance.
-     * @param scanCost   A CostEstimate instance where the result will be stored. Output parameter.
-     * @param resultColumns  The result columns of the base table.
-     * @param scanRowTemplate  The row template of the base table.
-     * @param baseColumnsInScan  The set of columns from the base table that will be scanned in store.
-     * @param baseColumnsInLookup  The set of columns that has to be looked up because of a non-covering index.
-     * @param indexLookupBatchRowCount  Maximum number of rows for which index lookup operation can be batched together.
-     * @param indexLookupConcurrentBatchesCount  Maximum number of index lookup batches that can run concurrently.
-     * @param forUpdate  Whether the base table is updatable (see forUpdate() for detailed explanation) or not (currently unused).
-     * @param isOlap  Whether estimating a cost for OLAP or not.
-     * @param usedNoStatsColumnIds  A set of columns which do not have statistics but should have to improve cost estimation. Output parameter.
+     *  @param baseTable  A base table on which a scan cost is going to be estimated.
+     *  @param cd         A conglomerate descriptor of the base table to be considered.
+     *  @param scc        A StoreCostController instance.
+     *  @param scanCost   A CostEstimate instance where the result will be stored. Output parameter.
+     *  @param resultColumns  The result columns of the base table.
+     *  @param scanRowTemplate  The row template of the base table.
+     *  @param baseColumnsInScan  The set of columns from the base table that will be scanned in store.
+     *  @param baseColumnsInLookup  The set of columns that has to be looked up because of a non-covering index.
+     *  @param indexLookupBatchRowCount  Maximum number of rows for which index lookup operation can be batched together.
+     *  @param indexLookupConcurrentBatchesCount  Maximum number of index lookup batches that can run concurrently.
+     *  @param forUpdate  Whether the base table is updatable (see forUpdate() for detailed explanation) or not (currently unused).
+     *  @param isOlap  Whether estimating a cost for OLAP or not.
+     *  @param usedNoStatsColumnIds  A set of columns which do not have statistics but should have to improve cost estimation. Output parameter.
      */
-    public ScanCostFunction(Optimizable baseTable,
+    public AbstractScanCostEstimator(Optimizable baseTable,
                             ConglomerateDescriptor cd,
                             StoreCostController scc,
                             CostEstimate scanCost,
@@ -248,7 +240,7 @@ public class ScanCostFunction{
         }
     }
 
-    private int getTotalNumberOfBaseColumnsInvolved() {
+    protected int getTotalNumberOfBaseColumnsInvolved() {
         BitSet result = new BitSet(resultColumns.size());
         result.or(baseColumnsInScan);
         if (baseColumnsInLookup != null) {
@@ -275,7 +267,7 @@ public class ScanCostFunction{
      *
      * @param holder
      */
-    private void addSelectivity(SelectivityHolder holder, int phase) {
+    protected void addSelectivity(SelectivityHolder holder, int phase) {
         List<SelectivityHolder>[] selectivityHolder =
                 phase == SCAN ? scanSelectivityHolder : topSelectivityHolder;
         List<SelectivityHolder> holders = selectivityHolder[holder.getColNum()];
@@ -304,7 +296,7 @@ public class ScanCostFunction{
         return holders;
     }
 
-    private void collectNoStatsColumnsFromInListPred(Predicate p) throws StandardException {
+    protected void collectNoStatsColumnsFromInListPred(Predicate p) throws StandardException {
         if (p.getSourceInList() != null) {
             for (Object o : p.getSourceInList().leftOperandList) {
                 List<ColumnReference> crList = ((ValueNode)o).getHashableJoinColumnReference();
@@ -316,7 +308,7 @@ public class ScanCostFunction{
         }
     }
 
-    private void collectNoStatsColumnsFromUnaryAndBinaryPred(Predicate p) {
+    protected void collectNoStatsColumnsFromUnaryAndBinaryPred(Predicate p) {
         if (p.getRelop() != null) {
             ColumnReference cr = p.getRelop().getColumnOperand(baseTable);
             if (cr != null && !scc.useRealColumnStatistics(cr.isGeneratedToReplaceIndexExpression(), cr.getColumnNumber())) {
@@ -325,50 +317,8 @@ public class ScanCostFunction{
         }
     }
 
-    private void accumulateExprEvalCost(Predicate p) throws StandardException {
+    protected void accumulateExprEvalCost(Predicate p) throws StandardException {
         exprEvalCostPerRow += p.getAndNode().getLeftOperand().getBaseOperationCost();
-    }
-
-    /**
-     *
-     * Add Predicate and keep track of the selectivity
-     *
-     * @param p
-     * @throws StandardException
-     */
-    public void addPredicate(Predicate p, double defaultSelectivityFactor) throws StandardException{
-        if (p.isMultiProbeQualifier(indexColumns)) {// MultiProbeQualifier against keys (BASE)
-            addSelectivity(new InListSelectivity(scc, p, isIndexOnExpression ? indexColumns : null, QualifierPhase.BASE, defaultSelectivityFactor), SCAN);
-            collectNoStatsColumnsFromInListPred(p);
-        } else if (p.isInQualifier(baseColumnsInScan)) { // In Qualifier in Base Table (FILTER_PROJECTION) // This is not as expected, needs more research.
-            addSelectivity(new InListSelectivity(scc, p, null, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor), SCAN);
-            accumulateExprEvalCost(p);
-            collectNoStatsColumnsFromInListPred(p);
-        }
-        else if (p.isInQualifier(baseColumnsInLookup)) { // In Qualifier against looked up columns (FILTER_PROJECTION)
-            addSelectivity(new InListSelectivity(scc, p, null, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor), TOP);
-            accumulateExprEvalCost(p);
-            collectNoStatsColumnsFromInListPred(p);
-        }
-        else if ( (p.isStartKey() || p.isStopKey()) && scanPredicatePossible) { // Range Qualifier on Start/Stop Keys (BASE)
-            performQualifierSelectivity(p, QualifierPhase.BASE, isIndexOnExpression, defaultSelectivityFactor, SCAN);
-            if (!p.isStartKey() || !p.isStopKey()) // Only allows = to further restrict BASE scan numbers
-                scanPredicatePossible = false;
-            collectNoStatsColumnsFromUnaryAndBinaryPred(p);
-        }
-        else if (p.isQualifier()) { // Qualifier in Base Table (FILTER_BASE)
-            performQualifierSelectivity(p, QualifierPhase.FILTER_BASE, isIndexOnExpression, defaultSelectivityFactor, SCAN);
-            collectNoStatsColumnsFromUnaryAndBinaryPred(p);
-        }
-        else if (PredicateList.isQualifier(p,baseTable,cd,false)) { // Qualifier on Base Table After Index Lookup (FILTER_PROJECTION)
-            performQualifierSelectivity(p, QualifierPhase.FILTER_PROJECTION, isIndexOnExpression, defaultSelectivityFactor, TOP);
-            accumulateExprEvalCost(p);
-            collectNoStatsColumnsFromUnaryAndBinaryPred(p);
-        }
-        else { // Project Restrict Selectivity Filter
-            addSelectivity(new DefaultPredicateSelectivity(p, baseTable, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor), TOP);
-            accumulateExprEvalCost(p);
-        }
     }
 
     /**
@@ -379,7 +329,7 @@ public class ScanCostFunction{
      * @param qualifierPhase
      * @throws StandardException
      */
-    private void performQualifierSelectivity (Predicate p, QualifierPhase qualifierPhase, boolean forIndexExpr, double selectivityFactor, int phase) throws StandardException {
+    protected void performQualifierSelectivity(Predicate p, QualifierPhase qualifierPhase, boolean forIndexExpr, double selectivityFactor, int phase) throws StandardException {
         if(p.compareWithKnownConstant(baseTable, true) &&
                 (p.getRelop().getColumnOperand(baseTable) != null ||
                         (forIndexExpr && p.getRelop().getExpressionOperand(baseTable.getTableNumber(), -1, (FromTable)baseTable, true) != null) && p.getIndexPosition() >= 0))
@@ -396,282 +346,8 @@ public class ScanCostFunction{
         }
     }
 
-
-    public void generateOneRowCost() throws StandardException {
-        // Total Row Count from the Base Conglomerate
-        double totalRowCount = 1.0d;
-        // Rows Returned is always the totalSelectivity (Conglomerate Independent)
-        scanCost.setEstimatedRowCount(Math.round(totalRowCount));
-
-        int numCols = getTotalNumberOfBaseColumnsInvolved();
-        if (isIndexOnExpression && numCols == 0) {
-            // Scanning a covering expression-based index. No base table columns is scanned if we choose this path,
-            // use number of index columns instead. This may over estimate because probably not all index columns
-            // are referenced but should be better than using 0. Otherwise, heap size is always 0 and remote cost is
-            // a constant value for a covering expression-based index scan.
-            numCols = indexDescriptor.getIndexColumnTypes().length;
-        }
-        double baseTableColumnSizeFactor = scc.baseTableColumnSizeFactor(numCols);
-        double baseTableAverageRowWidth = scc.getBaseTableAvgRowWidth();
-
-        // We use the base table so the estimated heap size and remote cost are the same for all conglomerates
-        double colSizeFactor = baseTableAverageRowWidth*baseTableColumnSizeFactor;
-
-        // Heap Size is the avg row width of the columns for the base table*total rows
-        // Average Row Width
-        // This should be the same for every conglomerate path
-        scanCost.setEstimatedHeapSize((long)(totalRowCount*colSizeFactor));
-        // Should be the same for each conglomerate
-        scanCost.setRemoteCost((long)(scc.getOpenLatency()+scc.getCloseLatency()+totalRowCount*scc.getRemoteLatency()*(1+colSizeFactor/100d)));
-        // Base Cost + LookupCost + Projection Cost
-        double congAverageWidth = scc.getConglomerateAvgRowWidth();
-        double baseCost = scc.getOpenLatency()+scc.getCloseLatency()+(totalRowCount*scc.getLocalLatency()*(1+scc.getConglomerateAvgRowWidth()/100d));
-        scanCost.setFromBaseTableRows(totalRowCount);
-        scanCost.setFromBaseTableCost(baseCost);
-        scanCost.setScannedBaseTableRows(totalRowCount);
-        double lookupCost;
-        if (baseColumnsInLookup == null) {
-            lookupCost = 0.0d;
-
-            /* we need to reset the lookup cost here, otherwise, we may see the lookup cost
-               from the previous access path
-               see how the cost and rowcount are initialized in SimpleCostEstimate
-             */
-            scanCost.setIndexLookupRows(-1.0d);
-            scanCost.setIndexLookupCost(-1.0d);
-        } else {
-            lookupCost = estimateIndexLookupCost(totalRowCount, scc.getOpenLatency(), scc.getCloseLatency());
-            scanCost.setIndexLookupRows(totalRowCount);
-            scanCost.setIndexLookupCost(lookupCost+baseCost);
-        }
-        double projectionCost = totalRowCount * (scc.getLocalLatency() * colSizeFactor*1d/1000d + exprEvalCostPerRow);
-        scanCost.setProjectionRows(scanCost.getEstimatedRowCount());
-        scanCost.setProjectionCost(lookupCost+baseCost+projectionCost);
-        scanCost.setLocalCost(baseCost+lookupCost+projectionCost);
-        scanCost.setFirstColumnStats(scc.getFirstColumnStats());
-        scanCost.setNumPartitions(scc.getNumPartitions() != 0 ? scc.getNumPartitions() : 1);
-        scanCost.setParallelism(scc.getParallelism() != 0 ? scc.getParallelism() : 1);
-        scanCost.setLocalCostPerParallelTask(scanCost.localCost(), scanCost.getParallelism());
-        scanCost.setRemoteCostPerParallelTask(scanCost.remoteCost(), scanCost.getParallelism());
-        if (LOG.isTraceEnabled()) {
-            LOG.trace(String.format("%n" +
-                            "============= generateOneRowCost() for table: %s =============%n" +
-                            "Conglomerate:               %s, %n" +
-                            "totalRowCount:              %.1f, %n" +
-                            "heapSize:                   %d, %n" +
-                            "congAverageWidth:           %.1f, %n" +
-                            "fromBaseTableRows:          %.1f, %n" +
-                            "scannedBaseTableRows:       %.1f, %n" +
-                            "fromBaseTableCost:          %.1f, %n" +
-                            "remoteCost:                 %.1f, %n" +
-                            "indexLookupRows:            %.1f, %n" +
-                            "lookupCost:                 %.1f, %n" +
-                            "projectRows:                %.1f, %n" +
-                            "projectCost:                %.1f, %n" +
-                            "localCost:                  %.1f, %n" +
-                            "numPartition:               %d, %n" +
-                            "localCostPerPartition:      %.1f %n" +
-                            "========================================================%n",
-                    baseTable.getBaseTableName(),
-                    baseTable.getCurrentAccessPath().getConglomerateDescriptor().toString(),
-                    scanCost.rowCount(), scanCost.getEstimatedHeapSize(), congAverageWidth,
-                    scanCost.getFromBaseTableRows(), scanCost.getScannedBaseTableRows(),
-                    scanCost.getFromBaseTableCost(), scanCost.getRemoteCost(),
-                    scanCost.getIndexLookupRows(), scanCost.getIndexLookupCost(),
-                    scanCost.getProjectionRows(), scanCost.getProjectionCost(),
-                    scanCost.getLocalCost(), scc.getNumPartitions(), scanCost.getLocalCost()/scc.getNumPartitions()));
-        }
-    }
-
-
     /**
-     *
-     * Compute the Base Scan Cost by utilizing the passed in StoreCostController
-     *
-     * @throws StandardException
-     */
-
-    public void generateCost(long numFirstIndexColumnProbes) throws StandardException {
-
-        double baseTableSelectivity = computePhaseSelectivity(scanSelectivityHolder, topSelectivityHolder, QualifierPhase.BASE);
-        double filterBaseTableSelectivity = computePhaseSelectivity(scanSelectivityHolder, topSelectivityHolder,QualifierPhase.BASE,QualifierPhase.FILTER_BASE);
-        double projectionSelectivity = computePhaseSelectivity(scanSelectivityHolder, topSelectivityHolder,QualifierPhase.FILTER_PROJECTION);
-        double totalSelectivity = computeTotalSelectivity(scanSelectivityHolder, topSelectivityHolder);
-
-        assert filterBaseTableSelectivity >= 0 && filterBaseTableSelectivity <= 1.0:"filterBaseTableSelectivity Out of Bounds -> " + filterBaseTableSelectivity;
-        assert baseTableSelectivity >= 0 && baseTableSelectivity <= 1.0:"baseTableSelectivity Out of Bounds -> " + baseTableSelectivity;
-        assert projectionSelectivity >= 0 && projectionSelectivity <= 1.0:"projectionSelectivity Out of Bounds -> " + projectionSelectivity;
-        assert totalSelectivity >= 0 && totalSelectivity <= 1.0:"totalSelectivity Out of Bounds -> " + totalSelectivity;
-
-        // Total Row Count from the Base Conglomerate
-        double totalRowCount = scc.baseRowCount();
-        assert totalRowCount >= 0 : "totalRowCount cannot be negative -> " + totalRowCount;
-        // Rows Returned is always the totalSelectivity (Conglomerate Independent)
-        scanCost.setEstimatedRowCount(Math.round(totalRowCount*totalSelectivity));
-
-        int numCols = getTotalNumberOfBaseColumnsInvolved();
-        if (isIndexOnExpression && numCols == 0) {
-            // Scanning a covering expression-based index. No base table columns is scanned if we choose this path,
-            // use number of index columns instead. This may over estimate because probably not all index columns
-            // are referenced but should be better than using 0. Otherwise, heap size is always 0 and remote cost is
-            // a constant value for a covering expression-based index scan.
-            numCols = indexDescriptor.getIndexColumnTypes().length;
-        }
-        double baseTableColumnSizeFactor = scc.baseTableColumnSizeFactor(numCols);
-        double baseTableAverageRowWidth = scc.getBaseTableAvgRowWidth();
-
-        // We use the base table so the estimated heap size and remote cost are the same for all conglomerates
-        double colSizeFactor = baseTableAverageRowWidth*baseTableColumnSizeFactor;
-        assert baseTableAverageRowWidth >= 0 : "baseTableAverageRowWidth cannot be negative -> " + baseTableAverageRowWidth;
-        assert baseTableColumnSizeFactor >= 0 : "baseTableColumnSizeFactor cannot be negative -> " + baseTableColumnSizeFactor;
-
-        double openLatency = scc.getOpenLatency();
-        double closeLatency = scc.getCloseLatency();
-        double localLatency = scc.getLocalLatency();
-        double remoteLatency = scc.getRemoteLatency();
-        double remoteCost = (openLatency + closeLatency) +
-                            (numFirstIndexColumnProbes*2)*remoteLatency*(1+colSizeFactor/1024d) +
-                            totalRowCount*totalSelectivity*remoteLatency*(1+colSizeFactor/1024d); // Per Kb
-
-        assert openLatency >= 0 : "openLatency cannot be negative -> " + openLatency;
-        assert closeLatency >= 0 : "closeLatency cannot be negative -> " + closeLatency;
-        assert localLatency >= 0 : "localLatency cannot be negative -> " + localLatency;
-        assert remoteLatency >= 0 : "remoteLatency cannot be negative -> " + remoteLatency;
-        assert remoteCost >= 0 : "remoteCost cannot be negative -> " + remoteCost;
-        // Heap Size is the avg row width of the columns for the base table*total rows
-        // Average Row Width
-        // This should be the same for every conglomerate path
-        scanCost.setEstimatedHeapSize((long)(totalRowCount*totalSelectivity*colSizeFactor));
-        // Should be the same for each conglomerate
-        scanCost.setRemoteCost((long)remoteCost);
-        // Base Cost + LookupCost + Projection Cost
-        double congAverageWidth = scc.getConglomerateAvgRowWidth();
-        double baseCost = openLatency+closeLatency;
-        assert numFirstIndexColumnProbes >= 0;
-        baseCost += (numFirstIndexColumnProbes*2)*localLatency*(1+congAverageWidth/100d);
-        baseCost += (totalRowCount*baseTableSelectivity*localLatency*(1+congAverageWidth/100d));
-        assert congAverageWidth >= 0 : "congAverageWidth cannot be negative -> " + congAverageWidth;
-        assert baseCost >= 0 : "baseCost cannot be negative -> " + baseCost;
-        scanCost.setFromBaseTableRows(Math.round(filterBaseTableSelectivity * totalRowCount));
-        scanCost.setFromBaseTableCost(baseCost);
-        // set how many base table rows to scan
-        scanCost.setScannedBaseTableRows(Math.round(baseTableSelectivity * totalRowCount));
-        double lookupCost;
-        if (baseColumnsInLookup == null) {
-            lookupCost = 0.0d;
-            /* we need to reset the lookup cost here, otherwise, we may see the lookup cost
-               from the previous access path
-               see how the cost and rowcount are initialized in SimpleCostEstimate
-             */
-            scanCost.setIndexLookupRows(-1.0d);
-            scanCost.setIndexLookupCost(-1.0d);
-        } else {
-            double lookupRowsCount = totalRowCount * filterBaseTableSelectivity;
-            lookupCost = estimateIndexLookupCost(lookupRowsCount, openLatency, closeLatency);
-            scanCost.setIndexLookupRows(Math.round(lookupRowsCount));
-            scanCost.setIndexLookupCost(lookupCost + baseCost);
-        }
-        assert lookupCost >= 0 : "lookupCost cannot be negative -> " + lookupCost;
-
-        double projectionCost;
-        if (projectionSelectivity == 1.0d) {
-            projectionCost = 0.0d;
-            /* we need to reset the lookup cost here, otherwise, we may see the lookup cost
-               from the previous access path
-               see how the cost and rowcount are initialized in SimpleCostEstimate
-             */
-            scanCost.setProjectionRows(-1.0d);
-            scanCost.setProjectionCost(-1.0d);
-        } else {
-            projectionCost = totalRowCount * filterBaseTableSelectivity * (localLatency * colSizeFactor*1d/1000d + exprEvalCostPerRow);
-            scanCost.setProjectionRows((double) scanCost.getEstimatedRowCount());
-            scanCost.setProjectionCost(lookupCost+baseCost+projectionCost);
-        }
-        assert projectionCost >= 0 : "projectionCost cannot be negative -> " + projectionCost;
-
-        double localCost = baseCost+lookupCost+projectionCost;
-        assert localCost >= 0 : "localCost cannot be negative -> " + localCost;
-        scanCost.setLocalCost(localCost);
-        scanCost.setFirstColumnStats(scc.getFirstColumnStats());
-        scanCost.setNumPartitions(scc.getNumPartitions() != 0 ? scc.getNumPartitions() : 1);
-        scanCost.setParallelism(scc.getParallelism() != 0 ? scc.getParallelism() : 1);
-        scanCost.setLocalCostPerParallelTask((baseCost + lookupCost + projectionCost), scanCost.getParallelism());
-        scanCost.setRemoteCostPerParallelTask(scanCost.remoteCost(), scanCost.getParallelism());
-
-        if (LOG.isTraceEnabled()) {
-            LOG.trace(String.format("%n" +
-            "============= generateCost() for table: %s =============%n" +
-            "Conglomerate:               %s, %n" +
-            "baseTableSelectivity:       %.18f, %n" +
-            "filterBaseTableSelectivity: %.18f, %n" +
-            "projectionSelectivity:      %.18f, %n" +
-            "totalSelectivity:           %.18f, %n" +
-            "totalRowCount:              %.1f, %n" +
-            "heapSize:                   %d, %n" +
-            "congAverageWidth:           %.1f, %n" +
-            "fromBaseTableRows:          %.1f, %n" +
-            "scannedBaseTableRows:       %.1f, %n" +
-            "fromBaseTableCost:          %.1f, %n" +
-            "remoteCost:                 %.1f, %n" +
-            "indexLookupRows:            %.1f, %n" +
-            "lookupCost:                 %.1f, %n" +
-            "projectRows:                %.1f, %n" +
-            "projectCost:                %.1f, %n" +
-            "localCost:                  %.1f, %n" +
-            "numPartition:               %d, %n" +
-            "localCostPerPartition:      %.1f %n" +
-            "========================================================%n",
-            baseTable.getBaseTableName(),
-            baseTable.getCurrentAccessPath().getConglomerateDescriptor().toString(),
-            baseTableSelectivity,
-            filterBaseTableSelectivity, projectionSelectivity, totalSelectivity,
-            scanCost.rowCount(), scanCost.getEstimatedHeapSize(), congAverageWidth,
-            scanCost.getFromBaseTableRows(), scanCost.getScannedBaseTableRows(),
-            scanCost.getFromBaseTableCost(), scanCost.getRemoteCost(),
-            scanCost.getIndexLookupRows(), scanCost.getIndexLookupCost(),
-            scanCost.getProjectionRows(), scanCost.getProjectionCost(),
-            scanCost.getLocalCost(), scc.getNumPartitions(), scanCost.getLocalCost()/scc.getNumPartitions()));
-        }
-    }
-
-    private double estimateIndexLookupCost(double lookupRowsCount, double openLatency, double closeLatency) {
-        if (isOlap || lookupRowsCount == 1.0) {  // OLTP formula is simplified to OLAP formula if row count == 1
-            return lookupRowsCount * getIndexLookupCostPerRow() + openLatency + closeLatency
-                    + (isOlap ? OLAP_INDEXLOOKUP_STARTUP_COST : 0);
-        } else {
-            // a whole batch is a batch containing 'indexLookupBatchRowCount' rows
-            // if lookupRowsCount < indexLookupBatchRowCount, wholeBatchesCount == 0
-            double wholeBatchesCount = Math.floor(lookupRowsCount / indexLookupBatchRowCount);
-            double oneWholeBatchCost = indexLookupBatchRowCount * getIndexLookupCostPerRow() + openLatency + closeLatency;
-            double serialBatchesCount = Math.max(wholeBatchesCount / indexLookupConcurrentBatchesCount, 1);
-
-            boolean considerLastBatchSeparately = wholeBatchesCount % indexLookupConcurrentBatchesCount == 0;
-            if (considerLastBatchSeparately) {
-                // if we have k serial batch groups but the last batch group contains only one batch that is not a whole
-                // batch, calculate the cost of last batch separately
-                double lastBatchRowsCount = lookupRowsCount % indexLookupBatchRowCount;
-                double lastBatchCost = lastBatchRowsCount * getIndexLookupCostPerRow() + openLatency + closeLatency;
-                return oneWholeBatchCost * (wholeBatchesCount == 0 ? 0 : serialBatchesCount)
-                        + (lastBatchRowsCount == 0 ? 0 : lastBatchCost);
-            } else {
-                // if the last serial batch group has at least one whole batch, take it as a complete serial step
-                return oneWholeBatchCost * Math.ceil(serialBatchesCount);
-            }
-        }
-    }
-
-    private double getIndexLookupCostPerRow() {
-        return isOlap ? OLAP_INDEXLOOKUP_COST_PER_ROW : OLTP_INDEXLOOKUP_COST_PER_ROW;
-    }
-
-    /**
-     *
      * Computing the total selectivity.  All conglomerates need to have the same total selectivity.
-     *
-     * @param scanSelectivityHolder
-     * @param topSelectivityHolder
-     * @return
-     * @throws StandardException
      */
     public static double computeTotalSelectivity(List<SelectivityHolder>[] scanSelectivityHolder,
                                                  List<SelectivityHolder>[] topSelectivityHolder) throws StandardException {
@@ -941,5 +617,35 @@ public class ScanCostFunction{
         }
         columnHolders.removeAll(toRemove);
         columnHolders.add(rsHolder);
+    }
+
+    protected double estimateIndexLookupCost(double lookupRowsCount, double openLatency, double closeLatency) {
+        if (isOlap || lookupRowsCount == 1.0) {  // OLTP formula is simplified to OLAP formula if row count == 1
+            return lookupRowsCount * getIndexLookupCostPerRow() + openLatency + closeLatency
+                    + (isOlap ? OLAP_INDEXLOOKUP_STARTUP_COST : 0);
+        } else {
+            // a whole batch is a batch containing 'indexLookupBatchRowCount' rows
+            // if lookupRowsCount < indexLookupBatchRowCount, wholeBatchesCount == 0
+            double wholeBatchesCount = Math.floor(lookupRowsCount / indexLookupBatchRowCount);
+            double oneWholeBatchCost = indexLookupBatchRowCount * getIndexLookupCostPerRow() + openLatency + closeLatency;
+            double serialBatchesCount = Math.max(wholeBatchesCount / indexLookupConcurrentBatchesCount, 1);
+
+            boolean considerLastBatchSeparately = wholeBatchesCount % indexLookupConcurrentBatchesCount == 0;
+            if (considerLastBatchSeparately) {
+                // if we have k serial batch groups but the last batch group contains only one batch that is not a whole
+                // batch, calculate the cost of last batch separately
+                double lastBatchRowsCount = lookupRowsCount % indexLookupBatchRowCount;
+                double lastBatchCost = lastBatchRowsCount * getIndexLookupCostPerRow() + openLatency + closeLatency;
+                return oneWholeBatchCost * (wholeBatchesCount == 0 ? 0 : serialBatchesCount)
+                        + (lastBatchRowsCount == 0 ? 0 : lastBatchCost);
+            } else {
+                // if the last serial batch group has at least one whole batch, take it as a complete serial step
+                return oneWholeBatchCost * Math.ceil(serialBatchesCount);
+            }
+        }
+    }
+
+    private double getIndexLookupCostPerRow() {
+        return isOlap ? OLAP_INDEXLOOKUP_COST_PER_ROW : OLTP_INDEXLOOKUP_COST_PER_ROW;
     }
 }
