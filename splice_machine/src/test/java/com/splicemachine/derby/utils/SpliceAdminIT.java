@@ -603,6 +603,7 @@ public class SpliceAdminIT extends SpliceUnitTest {
 
     @Test
     public void testGetGlobalDatabaseProperties() throws Exception {
+        methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.currentTimestampPrecision', NULL )");
         methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.timestampFormat', NULL )");
 
         try (ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_GLOBAL_DATABASE_PROPERTIES('splice*timestamp*', false)") ) {
