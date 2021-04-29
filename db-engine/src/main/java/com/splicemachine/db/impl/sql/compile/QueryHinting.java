@@ -31,23 +31,28 @@ public class QueryHinting {
                 return;
             CursorNode cn = (CursorNode) statementNode;
             ResultSetNode rsn = cn.getResultSetNode();
-            if (!(rsn instanceof SelectNode))
-                return;
-            SelectNode sn = (SelectNode) rsn;
 
             String stmtId = sqlStatementId(statementNode.getLanguageConnectionContext().getStatementContext().getStatementText());
             switch (stmtId) {
                 case "Sp3QPj57":
                 case "#yvYkFUJ": // explain
-                    hintDB11940(sn);
+                    hintDB11940(rsn);
                     break;
                 case "SmOINPGy":
                 case "#Jahtv3X": // explain
-                    hintDB11941(sn);
+                    hintDB11941(rsn);
                     break;
                 case "S5#YvaXt":
                 case "#qj#jlet": // explain
-                    hintDB11942(sn);
+                    hintDB11942(rsn);
+                    break;
+                case "SMopSK5W":
+                case "#9fzfFLU": //explain
+                    hintDB11967(rsn);
+                    break;
+                case "SQAzSQuw":
+                case "#0n9BLjL": //explain
+                    hintDB11968(rsn);
                     break;
             }
         } catch (Exception e) {
@@ -55,22 +60,61 @@ public class QueryHinting {
         }
     }
 
-    private static boolean hasTables(FromList fromList, List<String> tableNames) {
-        if (fromList == null || fromList.isEmpty())
-            return false;
-        if (fromList.size() != tableNames.size())
-            return false;
-        Iterator<String> it = tableNames.iterator();
-        for (QueryTreeNode qtn : fromList) {
+    private static void hintDB11968(ResultSetNode rsn) {
+        if (!(rsn instanceof SelectNode))
+            return;
+        SelectNode sn = (SelectNode) rsn;
+
+        if (!hasTables(sn.fromList, Arrays.asList("TVERTRAG"))) return;
+
+        SubqueryList sql = sn.getWhereSubquerys();
+        if (sql.size() != 2) return;
+
+        SubqueryNode sqn = sql.elementAt(1);
+        if (!(sqn.getResultSet() instanceof SelectNode)) return;
+
+        SelectNode ssn = (SelectNode) sqn.getResultSet();
+        if (!hasTables(ssn.fromList, Arrays.asList("TVERSVERTRAG", "TSP_PRODUKT"))) return;
+
+        for(QueryTreeNode qtn : ssn.getFromList()) {
             FromBaseTable fbt = (FromBaseTable) qtn;
-            String name = it.next();
-            if (!name.equals(fbt.getBaseTableName()))
-                return false;
+            FormatableProperties tableProps = new FormatableProperties();
+            tableProps.put("joinStrategy", "nestedloop");
+            fbt.setProperties(tableProps);
         }
-        return true;
     }
 
-    private static void hintDB11942(SelectNode sn) {
+    private static void hintDB11967(ResultSetNode rsn) throws StandardException {
+        if (!(rsn instanceof UnionNode))
+            return;
+        UnionNode un = (UnionNode) rsn;
+        ResultSetNode lrsn = un.getLeftResultSet();
+        if (!(lrsn instanceof SelectNode))
+            return;
+        SelectNode left = (SelectNode) lrsn;
+        if (!hasTables(left.fromList, Arrays.asList("TTERMIN", "TSCHADEN", "TREGVEREINB"))) return;
+
+        ResultSetNode rrsn = un.getRightResultSet();
+        if (!(rrsn instanceof SelectNode))
+            return;
+        SelectNode right = (SelectNode) rrsn;
+        if (!hasTables(right.fromList, Arrays.asList("TBATCHTERMIN",  "TSCHADEN", "TREGVEREINB"))) return;
+
+        for(QueryTreeNode qtn : right.getFromList()) {
+            FromBaseTable fbt = (FromBaseTable) qtn;
+            if ("TBATCHTERMIN".equals(fbt.getBaseTableName())) {
+                FormatableProperties tableProps = new FormatableProperties();
+                tableProps.put("index", "XPFBATTERMIN");
+                fbt.setProperties(tableProps);
+            }
+        }
+    }
+
+    private static void hintDB11942(ResultSetNode rsn) {
+        if (!(rsn instanceof SelectNode))
+            return;
+        SelectNode sn = (SelectNode) rsn;
+
         if (!hasTables(sn.fromList, Arrays.asList("TARCHIVINDEX"))) {
             return;
         }
@@ -83,7 +127,11 @@ public class QueryHinting {
         }
     }
 
-    private static void hintDB11941(SelectNode sn) {
+    private static void hintDB11941(ResultSetNode rsn) {
+        if (!(rsn instanceof SelectNode))
+            return;
+        SelectNode sn = (SelectNode) rsn;
+
         if (!hasTables(sn.fromList, Arrays.asList("TSEPA_MANDAT"))) {
             return;
         }
@@ -101,7 +149,11 @@ public class QueryHinting {
         }
     }
 
-    private static void hintDB11940(SelectNode sn) throws StandardException {
+    private static void hintDB11940(ResultSetNode rsn) throws StandardException {
+        if (!(rsn instanceof SelectNode))
+            return;
+        SelectNode sn = (SelectNode) rsn;
+
         if (!sn.hasDistinct()) return;
 
         if (!hasTables(sn.fromList, Arrays.asList("TVERTRAG", "TVORSCHREIBUNG", "TBUBASIS"))) {
@@ -134,6 +186,21 @@ public class QueryHinting {
          } catch (Exception e) {
              return "X#ERROR#";
          }
+    }
+
+    private static boolean hasTables(FromList fromList, List<String> tableNames) {
+        if (fromList == null || fromList.isEmpty())
+            return false;
+        if (fromList.size() != tableNames.size())
+            return false;
+        Iterator<String> it = tableNames.iterator();
+        for (QueryTreeNode qtn : fromList) {
+            FromBaseTable fbt = (FromBaseTable) qtn;
+            String name = it.next();
+            if (!name.equals(fbt.getBaseTableName()))
+                return false;
+        }
+        return true;
     }
 
 }
