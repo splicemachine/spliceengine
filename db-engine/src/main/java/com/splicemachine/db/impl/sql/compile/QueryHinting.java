@@ -20,7 +20,9 @@ import com.splicemachine.db.iapi.services.io.FormatableProperties;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.qpt.SQLStatement;
 
+import java.util.ArrayDeque;
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 
@@ -54,10 +56,51 @@ public class QueryHinting {
                 case "#0n9BLjL": //explain
                     hintDB11968(rsn);
                     break;
+                case "Sjq3JEny":
+                case "#sF7HBge": //explain
+                    hintDB11970(rsn);
+                    break;
+
             }
         } catch (Exception e) {
             // ignore, don't hint this query
         }
+    }
+
+    private static void hintDB11970(ResultSetNode rsn) {
+        if (!(rsn instanceof UnionNode))
+            return;
+
+        Deque<ResultSetNode> toProcess = new ArrayDeque<>();
+        toProcess.add(rsn);
+        while(!toProcess.isEmpty()) {
+            ResultSetNode top = toProcess.pop();
+            if (top instanceof UnionNode) {
+                UnionNode un = (UnionNode) top;
+                toProcess.add(un.getLeftResultSet());
+                toProcess.add(un.getRightResultSet());
+            } else if (top instanceof SelectNode) {
+                SelectNode sn = (SelectNode) top;
+
+                for(SubqueryNode sqn : sn.getWhereSubquerys()) {
+                    if (!(sqn.getResultSet() instanceof SelectNode))
+                        continue;
+
+                    for(QueryTreeNode qtn : ((SelectNode)sqn.getResultSet()).getFromList()) {
+                        FromBaseTable fbt = (FromBaseTable) qtn;
+                        switch (fbt.getBaseTableName()) {
+                            case "TTERMINVERW":
+                            case "TAUSSTEUERUNG":
+                                FormatableProperties tableProps = new FormatableProperties();
+                                tableProps.put("joinStrategy", "nestedloop");
+                                fbt.setProperties(tableProps);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
     }
 
     private static void hintDB11968(ResultSetNode rsn) {
