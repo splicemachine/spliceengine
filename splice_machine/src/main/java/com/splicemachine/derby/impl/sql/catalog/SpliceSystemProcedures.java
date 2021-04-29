@@ -874,6 +874,42 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .build();
         procedures.add(deleteRegion);
 
+        Procedure getRegionLocations = Procedure.newBuilder().name("GET_REGION_LOCATIONS")
+                .catalog("schemaName")
+                .catalog("objectName")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
+                .build();
+        procedures.add(getRegionLocations);
+
+        Procedure assignRegionToServer = Procedure.newBuilder().name("ASSIGN_TO_SERVER")
+                .catalog("schemaName")
+                .catalog("objectName")
+                .varchar("server", 32672)
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
+                .build();
+        procedures.add(assignRegionToServer);
+
+        Procedure  localizeIndexesForTable = Procedure.newBuilder().name("LOCALIZE_INDEXES_FOR_TABLE")
+                .catalog("schemaName")
+                .catalog("tableName")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
+                .build();
+        procedures.add(localizeIndexesForTable);
+
+        Procedure  localizeIndexesForSchema = Procedure.newBuilder().name("LOCALIZE_INDEXES_FOR_SCHEMA")
+                .catalog("schemaName")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
+                .build();
+        procedures.add(localizeIndexesForSchema);
+
         Procedure invalidateLocalCache = Procedure.newBuilder().name("INVALIDATE_DICTIONARY_CACHE")
                 .numOutputParams(0)
                 .numResultSets(0)
