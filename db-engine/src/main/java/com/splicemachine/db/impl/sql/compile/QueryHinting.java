@@ -100,6 +100,11 @@ public class QueryHinting {
         SelectNode right = (SelectNode) rrsn;
         if (!hasTables(right.fromList, Arrays.asList("TBATCHTERMIN",  "TSCHADEN", "TREGVEREINB"))) return;
 
+        FormatableProperties fromProps = new FormatableProperties();
+        fromProps.put("joinOrder", "fixed");
+        left.getFromList().setProperties(fromProps);
+        right.getFromList().setProperties(fromProps);
+
         for(QueryTreeNode qtn : right.getFromList()) {
             FromBaseTable fbt = (FromBaseTable) qtn;
             if ("TBATCHTERMIN".equals(fbt.getBaseTableName())) {
