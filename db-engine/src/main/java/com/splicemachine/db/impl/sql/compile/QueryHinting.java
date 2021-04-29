@@ -60,10 +60,43 @@ public class QueryHinting {
                 case "#sF7HBge": //explain
                     hintDB11970(rsn);
                     break;
-
+                case "S9wSWJg8":
+                case "#uHJq5bA": //explain
+                    hintDB11971(rsn);
+                    break;
             }
         } catch (Exception e) {
             // ignore, don't hint this query
+        }
+    }
+
+    private static void hintDB11971(ResultSetNode rsn) throws StandardException {
+        if (!(rsn instanceof UnionNode))
+            return;
+
+        UnionNode un = (UnionNode) rsn;
+        ResultSetNode node = un.getRightResultSet();
+        if (!(node instanceof SelectNode)) return;
+
+        SelectNode sn = (SelectNode) node;
+
+        if (!hasTables(sn.fromList, Arrays.asList("TBATCHTERMIN", "TGSCHFAKT", "TVERTRAG"))) return;
+
+        fixedJoinOrder(sn.getFromList());
+
+        for(QueryTreeNode qtn : sn.getFromList()) {
+            FromBaseTable fbt = (FromBaseTable) qtn;
+            FormatableProperties tableProps = new FormatableProperties();
+            switch (fbt.getBaseTableName()) {
+                case "TBATCHTERMIN":
+                    tableProps.put("index", "XPFBATTERMIN");
+                    fbt.setProperties(tableProps);
+                    break;
+                case "TGSCHFAKT":
+                    tableProps.put("joinStrategy", "nestedloop");
+                    fbt.setProperties(tableProps);
+                    break;
+            }
         }
     }
 
@@ -143,10 +176,8 @@ public class QueryHinting {
         SelectNode right = (SelectNode) rrsn;
         if (!hasTables(right.fromList, Arrays.asList("TBATCHTERMIN",  "TSCHADEN", "TREGVEREINB"))) return;
 
-        FormatableProperties fromProps = new FormatableProperties();
-        fromProps.put("joinOrder", "fixed");
-        left.getFromList().setProperties(fromProps);
-        right.getFromList().setProperties(fromProps);
+        fixedJoinOrder(left.getFromList());
+        fixedJoinOrder(right.getFromList());
 
         for(QueryTreeNode qtn : right.getFromList()) {
             FromBaseTable fbt = (FromBaseTable) qtn;
@@ -208,9 +239,7 @@ public class QueryHinting {
             return;
         }
 
-        FormatableProperties fromProps = new FormatableProperties();
-        fromProps.put("joinOrder", "fixed");
-        sn.getFromList().setProperties(fromProps);
+        fixedJoinOrder(sn.getFromList());
 
         for(QueryTreeNode qtn : sn.getFromList()) {
             FromBaseTable fbt = (FromBaseTable) qtn;
@@ -249,6 +278,13 @@ public class QueryHinting {
                 return false;
         }
         return true;
+    }
+
+
+    private static void fixedJoinOrder(FromList fromList) throws StandardException {
+        FormatableProperties fromProps = new FormatableProperties();
+        fromProps.put("joinOrder", "fixed");
+        fromList.setProperties(fromProps);
     }
 
 }
