@@ -557,7 +557,7 @@ public class ControlDataSet<V> implements DataSet<V> {
      */
     @Override
     @SuppressFBWarnings(value="REC_CATCH_EXCEPTION", justification="DB-9846")
-    public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp, int[] partitionBy, String location, String compression, OperationContext context) {
+    public DataSet<ExecRow> writeParquetFile(int[] partitionBy, String location, String compression, OperationContext context) {
 
         try {
             //Generate Table Schema
@@ -609,7 +609,6 @@ public class ControlDataSet<V> implements DataSet<V> {
      *
      * Not Supported
      *
-     * @param dsp
      * @param partitionBy
      * @param location
      * @param context
@@ -624,14 +623,13 @@ public class ControlDataSet<V> implements DataSet<V> {
      *
      * Not Supported
      *
-     * @param baseColumnMap
      * @param partitionBy
      * @param location
      * @param context
      * @return
      */
     @Override
-    public DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location, String compression, OperationContext context) {
+    public DataSet<ExecRow> writeORCFile(int[] partitionBy, String location, String compression, OperationContext context) {
         throw new UnsupportedOperationException("Cannot write orc files");
     }
 
