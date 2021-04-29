@@ -132,20 +132,19 @@ public class ExportOperationIT {
                         )
                 ).create();
 
-        if(!useNativeSyntax) return; // todo
-        ExportBuilder builder = new MyExportBuilder("select * from " + tableName + " order by a").quoteMode("always");
+        ExportBuilder builder = new MyExportBuilder("select * from " + tableName + " order by a");
         builder.testImportExport( true,tableName, "*", 8);
 
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
-        assertEquals("25,1000000000,2000000000000000,3.14159,3.14159,2,2.34,\"varchar\",\"c\",2014-10-01,14:30:20\n" +
-                        "26,1000000000,2000000000000000,3.14159,3.14159,2,2.34,\"varchar\",\"c\",2014-10-01,14:30:20\n" +
-                        "27,1000000000,2000000000000000,3.14159,3.14159,2,2.34,\"varchar\",\"c\",2014-10-01,14:30:20\n" +
-                        "28,1000000000,2000000000000000,3.14159,3.14159,2,2.34,\"varchar\",\"c\",2014-10-01,14:30:20\n" +
-                        "29,1000000000,2000000000000000,3.14159,3.14159,2,2.34,\"varchar\",\"c\",2014-10-01,14:30:20\n" +
-                        "30,1000000000,2000000000000000,3.14159,3.14159,2,2.34,\"varchar\",\"c\",2014-10-01,14:30:20\n" +
-                        "31,1000000000,2000000000000000,3.14159,3.14159,2,2.34,\"varchar\",\"c\",2014-10-01,14:30:20\n" +
-                        "32,1000000000,2000000000000000,3.14159,3.14159,2,2.34,\"varchar\",\"c\",2014-10-01,14:30:20\n",
+        assertEquals("25,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
+                        "26,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
+                        "27,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
+                        "28,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
+                        "29,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
+                        "30,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
+                        "31,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
+                        "32,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n",
                 Files.toString(files[0], Charsets.UTF_8));
 
         try(CallableStatement cs = conn.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,false)")){
@@ -160,7 +159,7 @@ public class ExportOperationIT {
         String tableName = createTestTableWithSuffix("export_local");
         ExportBuilder builder = new MyExportBuilder("select * from " + tableName + " order by a asc");
 
-        // todo: problems with varchar null/""
+        // todo DB-11909: problems with varchar null/""
         String columns = //"a, b, c, d, cast(e AS VARCHAR(32))"
                         "a, b, c";
         builder.testImportExport(tableName, columns, 8);
@@ -287,7 +286,7 @@ public class ExportOperationIT {
         ExportBuilder builder = new MyExportBuilder("select * from " + tableName + " order by a asc")
                 .compression(compression);
 
-        // todo: column D, E have problems with NULL
+        // todo DB-11909: column D, E have problems with NULL
         builder.testImportExport(tableName, "a, b, c", 8);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(pattern));
         assertEquals(1, files.length);
@@ -542,7 +541,7 @@ public class ExportOperationIT {
         ExportBuilder builder = new MyExportBuilder("select * from " + tableName + " order by a asc")
                                 .quoteMode("always");
 
-        // todo: column D, E have problems with NULL
+        // todo DB-11909: column D, E have problems with NULL
         String columns = //"a, b, c, d, cast(e AS VARCHAR(32))"
                 "a, b, c";
         builder.testImportExport(tableName, columns, 8);
@@ -653,7 +652,7 @@ public class ExportOperationIT {
                         )
                 ).create();
 
-        if(!useNativeSyntax) return; // todo: no quote mode always
+        if(!useNativeSyntax) return; // todo DB-11909: native syntax has no quote mode always
         ExportBuilder builder = new MyExportBuilder("select * from " + tableName + " order by a");
         if(quoteModeAlways)
             builder.quoteMode("always");
@@ -693,7 +692,7 @@ public class ExportOperationIT {
         ExportBuilder builder = new MyExportBuilder("select * from " + tableName + " order by a asc")
                 .format(format);
 
-        // todo: problems with varchar null/""
+        // todo DB-11909: problems with varchar null/""
         builder.testImportExport(true, tableName,
                 "a, b, c, d, cast(e AS VARCHAR(32))", 8);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*" + format));
