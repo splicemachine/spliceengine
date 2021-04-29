@@ -367,7 +367,6 @@ public class utilMain implements java.security.PrivilegedAction {
                 command = null;
                 out.flush();
                 command = commandGrabber[currCE].nextStatement();
-                if(command == null) return 0;
 
                 if (doSpool) {
                     assert out.getOutputStream() instanceof ForkOutputStream;
