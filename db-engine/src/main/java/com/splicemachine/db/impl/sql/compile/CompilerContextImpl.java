@@ -59,6 +59,7 @@ import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.SQLWarning;
+import java.sql.Types;
 import java.util.*;
 
 import static com.splicemachine.db.iapi.sql.compile.DataSetProcessorType.*;
@@ -323,6 +324,11 @@ public class CompilerContextImpl extends ContextImpl
         floatingPointNotation = value;
     }
 
+    public void setCountReturnType(int value)
+    {
+        countReturnType = value;
+    }
+
     public void setCursorUntypedExpressionType(DataTypeDescriptor type)
     {
         cursorUntypedExpressionType = type;
@@ -342,6 +348,10 @@ public class CompilerContextImpl extends ContextImpl
 
     public int getFloatingPointNotation() {
         return floatingPointNotation;
+    }
+
+    public int getCountReturnType() {
+        return countReturnType;
     }
 
     public DataTypeDescriptor getCursorUntypedExpressionType() {
@@ -1222,6 +1232,7 @@ public class CompilerContextImpl extends ContextImpl
 
     private       String                              timestampFormat                              = DEFAULT_TIMESTAMP_FORMAT;
     private       int                                 floatingPointNotation                        = DEFAULT_FLOATING_POINT_NOTATION;
+    private       int                                 countReturnType                              = DEFAULT_COUNT_RETURN_TYPE;
     private       String                              secondFunctionCompatibilityMode              = DEFAULT_SECOND_FUNCTION_COMPATIBILITY_MODE;
     private       DataTypeDescriptor                  cursorUntypedExpressionType                  = null;
     // Used to track the flattened half outer joins.

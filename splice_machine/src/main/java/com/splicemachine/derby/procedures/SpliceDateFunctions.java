@@ -12,14 +12,20 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.utils;
+package com.splicemachine.derby.procedures;
 
+import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DateTimeDataValue;
 import com.splicemachine.db.iapi.types.SQLTimestamp;
+import com.splicemachine.db.impl.sql.catalog.Procedure;
 import com.splicemachine.db.impl.sql.compile.CurrentDatetimeOperatorNode;
+import com.splicemachine.derby.utils.NumericFunctions;
+import com.splicemachine.derby.utils.SpliceDateTimeFormatter;
 import com.splicemachine.pipeline.ErrorState;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeFieldType;
@@ -27,13 +33,12 @@ import org.joda.time.Months;
 import splice.com.google.common.collect.ImmutableMap;
 
 import java.math.BigDecimal;
-import java.sql.Date;
-import java.sql.SQLException;
-import java.sql.Time;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.time.*;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Map;
 
 import static com.splicemachine.derby.utils.SpliceDateTimeFormatter.*;
@@ -46,6 +51,143 @@ import static com.splicemachine.derby.utils.SpliceDateTimeFormatter.*;
  * without including the schema prefix in SQL statements.
  */
 public class SpliceDateFunctions {
+
+    public static List<Procedure> getProcedures() throws StandardException {
+        return Arrays.asList(
+                //
+                // Date functions
+                //
+                Procedure.newBuilder().name("ADD_YEARS")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .sqlControl(RoutineAliasInfo.NO_SQL)
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
+                        .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                        .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
+                        .integer("NUMOFYEARS")
+                        .build(),
+                Procedure.newBuilder().name("ADD_MONTHS")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .sqlControl(RoutineAliasInfo.NO_SQL)
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
+                        .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                        .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
+                        .integer("NUMOFMONTHS")
+                        .build(),
+                Procedure.newBuilder().name("ADD_DAYS")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .sqlControl(RoutineAliasInfo.NO_SQL)
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
+                        .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                        .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
+                        .integer("NUMOFDAYS")
+                        .build(),
+                Procedure.newBuilder().name("LAST_DAY")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .sqlControl(RoutineAliasInfo.NO_SQL)
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
+                        .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                        .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
+                        .build(),
+                Procedure.newBuilder().name("TO_DATE")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .sqlControl(RoutineAliasInfo.NO_SQL)
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
+                        .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                        .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
+                        .varchar("FORMAT", Limits.DB2_VARCHAR_MAXWIDTH)
+                        .build(),
+                Procedure.newBuilder().name("TO_TIMESTAMP")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .sqlControl(RoutineAliasInfo.NO_SQL)
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.TIMESTAMP))
+                        .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                        .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
+                        .varchar("FORMAT", Limits.DB2_VARCHAR_MAXWIDTH)
+                        .build(),
+                Procedure.newBuilder().name("TO_TIME")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .sqlControl(RoutineAliasInfo.NO_SQL)
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.TIME))
+                        .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                        .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
+                        .varchar("FORMAT", Limits.DB2_VARCHAR_MAXWIDTH)
+                        .build(),
+                Procedure.newBuilder().name("NEXT_DAY")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .sqlControl(RoutineAliasInfo.NO_SQL)
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
+                        .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                        .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
+                        .varchar("WEEKDAY", Limits.DB2_VARCHAR_MAXWIDTH)
+                        .build(),
+                Procedure.newBuilder().name("MONTH_BETWEEN")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .sqlControl(RoutineAliasInfo.NO_SQL)
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.DOUBLE))
+                        .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                        .arg("SOURCE1", DataTypeDescriptor.getCatalogType(Types.DATE))
+                        .arg("SOURCE2", DataTypeDescriptor.getCatalogType(Types.DATE))
+                        .build(),
+                Procedure.newBuilder().name("TO_CHAR")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .sqlControl(RoutineAliasInfo.NO_SQL)
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR))
+                        .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                        .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
+                        .varchar("FORMAT", Limits.DB2_VARCHAR_MAXWIDTH)
+                        .build(),
+                Procedure.newBuilder().name("TIMESTAMP_TO_CHAR")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .sqlControl(RoutineAliasInfo.NO_SQL)
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR))
+                        .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                        .arg("STAMP", DataTypeDescriptor.getCatalogType(Types.TIMESTAMP))
+                        .varchar("OUTPUT", Limits.DB2_VARCHAR_MAXWIDTH)
+                        .build(),
+                Procedure.newBuilder().name("TRUNC_DATE")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .sqlControl(RoutineAliasInfo.NO_SQL)
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.TIMESTAMP))
+                        .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
+                        .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.TIMESTAMP))
+                        .varchar("FIELD", Limits.DB2_VARCHAR_MAXWIDTH)
+                        .build(),
+
+                //numeric functions
+                Procedure.newBuilder().name("SCALAR_POW")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .sqlControl(RoutineAliasInfo.NO_SQL)
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                        .isDeterministic(true).ownerClass(NumericFunctions.class.getCanonicalName())
+                        .arg("BASE", DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                        .arg("SCALE", DataTypeDescriptor.getCatalogType(Types.INTEGER))
+                        .build(),
+                Procedure.newBuilder().name("POW")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .sqlControl(RoutineAliasInfo.NO_SQL)
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.DOUBLE))
+                        .isDeterministic(true).ownerClass(NumericFunctions.class.getCanonicalName())
+                        .arg("BASE", DataTypeDescriptor.getCatalogType(Types.DOUBLE))
+                        .arg("SCALE", DataTypeDescriptor.getCatalogType(Types.DOUBLE))
+                        .build()
+
+        );
+    }
+
     private static final Map<String, Integer> WEEK_DAY_MAP = new ImmutableMap.Builder<String, Integer>()
             .put("sunday", 1).put("monday", 2).put("tuesday", 3).put("wednesday", 4).put("thursday", 5)
             .put("friday", 6).put("saturday", 7).build();

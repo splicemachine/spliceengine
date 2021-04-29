@@ -206,6 +206,7 @@ public class ConfigurationBuilder {
     public String sparkIoCompressionCodec;
     public int sparkResultStreamingBatchSize;
     public int sparkResultStreamingBatches;
+    public int sparkResultStreamingThrottleMaxWait;
     public int sparkSlowResultStreamingBatchSize;
     public int sparkSlowResultStreamingBatches;
     public int olapCompactionMaximumWait;

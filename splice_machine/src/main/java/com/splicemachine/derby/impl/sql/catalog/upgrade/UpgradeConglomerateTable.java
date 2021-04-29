@@ -8,8 +8,6 @@ import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 
-import java.io.IOException;
-
 public class UpgradeConglomerateTable extends UpgradeScriptBase {
 
     private static boolean tableCreated = false;
@@ -23,12 +21,13 @@ public class UpgradeConglomerateTable extends UpgradeScriptBase {
         PartitionAdmin admin = null;
         try {
             admin = SIDriver.driver().getTableFactory().getAdmin();
-            if (!admin.tableExists(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME)) {
-                admin.createSITable(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME);
-                admin.setCatalogVersion(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME, "1");
-                UpgradeUtils.initializeConglomerateSITable(tc);
-                tableCreated = true;
+            if (admin.tableExists(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME)){
+                admin.deleteTable(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME);
             }
+            admin.createSITable(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME);
+            admin.setCatalogVersion(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME, "1");
+            UpgradeUtils.initializeConglomerateSITable(tc);
+            tableCreated = true;
         }
         catch (Exception e) {
             // If upgrade fails for some reasons, roll back CONGLOMERATE_SI table and throw an exception

@@ -14,6 +14,7 @@
 
 package com.splicemachine.pipeline.writehandler;
 
+import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.access.api.RegionBusyException;
 import com.splicemachine.access.api.WrongPartitionException;
@@ -32,10 +33,15 @@ import org.apache.log4j.Logger;
 import splice.com.google.common.base.Predicate;
 import splice.com.google.common.collect.Collections2;
 import splice.com.google.common.collect.Lists;
+import splice.com.google.common.collect.Maps;
+
 import java.io.IOException;
 import java.util.Collection;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
+
+import static com.splicemachine.pipeline.writehandler.UpdateUtils.getBaseUpdateMutation;
 
 /**
  * @author Scott Fines
@@ -47,6 +53,13 @@ public class PartitionWriteHandler implements WriteHandler {
     protected List<KVPair> mutations = Lists.newArrayList();
     protected ResettableCountDownLatch writeLatch;
     protected BatchConstraintChecker constraintChecker;
+
+    /*
+     * A Map from the modified KVPair (i.e. the actual update) to the
+     * original (i.e. the updated + old values) KVPair. This allows us to backtrack and identify the source for a given
+     * destination write.
+     */
+    protected final IdentityHashMap<KVPair, KVPair> writeToOriginalMap= Maps.newIdentityHashMap();
 
     public PartitionWriteHandler(TransactionalRegion region,
                                  ResettableCountDownLatch writeLatch,
@@ -72,11 +85,20 @@ public class PartitionWriteHandler implements WriteHandler {
         else if(!region.rowInRange(kvPair.rowKeySlice()))
             ctx.failed(kvPair, WriteResult.wrongRegion());
         else {
-            if (kvPair.getType() == KVPair.Type.CANCEL){
-                mutations.add(new KVPair(kvPair.getRowKey(), kvPair.getValue(), KVPair.Type.DELETE));
+            KVPair toWrite;
+            switch (kvPair.getType()) {
+                case CANCEL:
+                    toWrite = new KVPair(kvPair.getRowKey(), kvPair.getValue(), KVPair.Type.DELETE);
+                    break;
+                case UPDATE:
+                    toWrite = getBaseUpdateMutation(kvPair);
+                    break;
+                default:
+                    toWrite = kvPair;
+                    break;
             }
-            else
-                mutations.add(kvPair);
+            mutations.add(toWrite);
+            writeToOriginalMap.put(toWrite, kvPair);
             ctx.sendUpstream(kvPair);
         }
     }
@@ -105,7 +127,7 @@ public class PartitionWriteHandler implements WriteHandler {
         Collection<KVPair> filteredMutations = Collections2.filter(mutations, new Predicate<KVPair>() {
             @Override
             public boolean apply(KVPair input) {
-                return ctx.canRun(input);
+                return ctx.canRun(original(input));
             }
         });
         try {
@@ -120,23 +142,23 @@ public class PartitionWriteHandler implements WriteHandler {
             if(t instanceof WriteConflict){
                 WriteResult result=new WriteResult(Code.WRITE_CONFLICT,wce.getMessage());
                 for(KVPair mutation : filteredMutations){
-                    ctx.result(mutation,result);
+                    ctx.result(original(mutation),result);
                 }
             }else if(t instanceof NotServingPartitionException){
                 WriteResult result = WriteResult.notServingRegion();
                 for (KVPair mutation : filteredMutations) {
-                    ctx.result(mutation, result);
+                    ctx.result(original(mutation), result);
                 }
             }else if(t instanceof RegionBusyException){
                 WriteResult result = WriteResult.regionTooBusy();
                 for (KVPair mutation : filteredMutations) {
-                    ctx.result(mutation, result);
+                    ctx.result(original(mutation), result);
                 }
             }else if(t instanceof WrongPartitionException){
                 //this shouldn't happen, but just in case
                 WriteResult result = WriteResult.wrongRegion();
                 for (KVPair mutation : filteredMutations) {
-                    ctx.result(mutation, result);
+                    ctx.result(original(mutation), result);
                 }
             } else{
                 /*
@@ -149,12 +171,16 @@ public class PartitionWriteHandler implements WriteHandler {
                 LOG.error("Unexpected exception", wce);
                 WriteResult result=WriteResult.failed(wce.getClass().getSimpleName()+":"+wce.getMessage());
                 for(KVPair mutation : filteredMutations){
-                    ctx.result(mutation,result);
+                    ctx.result(original(mutation),result);
                 }
             }
         } finally {
             filteredMutations.clear();
         }
+    }
+
+    private KVPair original(KVPair mutation) {
+        return writeToOriginalMap.get(mutation);
     }
 
     private void doWrite(WriteContext ctx, Collection<KVPair> toProcess) throws IOException {
@@ -185,19 +211,19 @@ public class PartitionWriteHandler implements WriteHandler {
             MutationStatus stat = statusIter.next();
             KVPair mutation = mutationIter.next();
             if(stat.isNotRun())
-                ctx.notRun(mutation);
+                ctx.notRun(original(mutation));
             else if(stat.isSuccess()){
-                ctx.success(mutation);
+                ctx.success(original(mutation));
             } else{
                 //assume it's a failure
                 //see if it's due to constraints, otherwise just pass it through
                 if (constraintChecker != null && constraintChecker.matches(stat)) {
-                    ctx.result(mutation, constraintChecker.asWriteResult(stat));
+                    ctx.result(original(mutation), constraintChecker.asWriteResult(stat));
                 }else if (stat.errorMessage().contains("Write conflict")) {
                     WriteResult conflict = new WriteResult(Code.WRITE_CONFLICT,stat.errorMessage());
-                    ctx.result(mutation, conflict);
+                    ctx.result(original(mutation), conflict);
                 }else {
-                    ctx.failed(mutation, WriteResult.failed(stat.errorMessage()));
+                    ctx.failed(original(mutation), WriteResult.failed(stat.errorMessage()));
                 }
                 failed++;
             }

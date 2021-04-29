@@ -12,12 +12,13 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.utils;
+package com.splicemachine.derby.procedures;
 
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import com.splicemachine.db.impl.sql.catalog.Procedure;
 import splice.com.google.common.collect.Lists;
 import com.splicemachine.hbase.jmx.JMXUtils;
 
@@ -56,13 +57,30 @@ import com.splicemachine.utils.Pair;
  * @author Walt Koetke
  */
 @SuppressWarnings("unused")
-public class TimestampAdmin extends BaseAdminProcedures {
+public class TimestampProcedures extends BaseAdminProcedures {
+
+	public static void addProcedures(List<Procedure> procedures) {
+		procedures.add( getSYSCS_GET_TIMESTAMP_GENERATOR_INFO() );
+		procedures.add( getSYSCS_GET_TIMESTAMP_REQUEST_INFO() );
+
+	}
 
 	private static final ResultColumnDescriptor[] TIMESTAMP_GENERATOR_INFO_COLUMNS = new GenericColumnDescriptor[] {
 		new GenericColumnDescriptor("numberTimestampsCreated", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
 		new GenericColumnDescriptor("numberBlocksReserved",    DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
 	};
-	
+
+	/*
+	 * Procedure to return timestamp generator info
+	 */
+	public static Procedure getSYSCS_GET_TIMESTAMP_GENERATOR_INFO() {
+		return Procedure.newBuilder().name("SYSCS_GET_TIMESTAMP_GENERATOR_INFO")
+				.numOutputParams(0)
+				.numResultSets(1)
+				.ownerClass(TimestampProcedures.class.getCanonicalName())
+				.build().debugCheck();
+	}
+
     public static void SYSCS_GET_TIMESTAMP_GENERATOR_INFO(final ResultSet[] resultSet) throws SQLException {
         operateOnMaster(new JMXServerOperation() {
             @Override
@@ -76,7 +94,7 @@ public class TimestampAdmin extends BaseAdminProcedures {
     			ExecRow row = new ValueRow(2);
     			row.setColumn(1, new SQLLongint(numberOfTimestamps));
     			row.setColumn(2, new SQLLongint(numberOfBlocks));
-    			EmbedConnection defaultConn = (EmbedConnection)SpliceAdmin.getDefaultConn();
+    			EmbedConnection defaultConn = (EmbedConnection) SpliceAdmin.getDefaultConn();
     			Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
     			IteratorNoPutResultSet rs = new IteratorNoPutResultSet(Collections.singletonList(row), TIMESTAMP_GENERATOR_INFO_COLUMNS, lastActivation);
     			try {
@@ -94,7 +112,17 @@ public class TimestampAdmin extends BaseAdminProcedures {
 		new GenericColumnDescriptor("totalRequestCount",  DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
 		new GenericColumnDescriptor("avgRequestDuration", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE))
 	};
-	
+	/*
+	 * Procedure to return timestamp request info
+	 */
+	public static Procedure getSYSCS_GET_TIMESTAMP_REQUEST_INFO() {
+		return Procedure.newBuilder().name("SYSCS_GET_TIMESTAMP_REQUEST_INFO")
+				.numOutputParams(0)
+				.numResultSets(1)
+				.ownerClass(TimestampProcedures.class.getCanonicalName())
+				.build().debugCheck();
+	}
+
 	public static void SYSCS_GET_TIMESTAMP_REQUEST_INFO(final ResultSet[] resultSet) throws SQLException {
         operate(new JMXServerOperation() {
             @Override

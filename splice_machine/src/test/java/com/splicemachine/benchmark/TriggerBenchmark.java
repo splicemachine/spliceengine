@@ -104,10 +104,10 @@ public class TriggerBenchmark extends Benchmark {
             PreparedStatement insert2 = conn.prepareStatement("INSERT INTO " + NOTRIGGER_TABLE + " VALUES (?, 0)");
 
             for (;;) {
-                int newSize = curSize.getAndAdd(batchSize);
-                if (newSize >= size) break;
-                int maxi = Math.min(newSize + batchSize, size);
-                for (int i = newSize; i < maxi; ++i) {
+                int mini = curSize.getAndAdd(batchSize);
+                int maxi = Math.min(mini + batchSize, size);
+                if (mini >= maxi) break;
+                for (int i = mini; i < maxi; ++i) {
                     insert1.setInt(1, i);
                     insert1.addBatch();
 
@@ -119,7 +119,7 @@ public class TriggerBenchmark extends Benchmark {
                 long end = System.currentTimeMillis();
                 int count = 0;
                 for (int c : counts) count += c;
-                if (count != batchSize) {
+                if (count != maxi - mini) {
                     updateStats(STAT_ERROR);
                 }
                 if (count > 0) {
@@ -131,7 +131,7 @@ public class TriggerBenchmark extends Benchmark {
                 end = System.currentTimeMillis();
                 count = 0;
                 for (int c : counts) count += c;
-                if (count != batchSize) {
+                if (count != maxi - mini) {
                     updateStats(STAT_ERROR);
                 }
                 if (count > 0) {

@@ -32,6 +32,7 @@
 package com.splicemachine.db.iapi.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModel;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
@@ -382,6 +383,10 @@ public interface Optimizer{
 
     OptimizableList getOptimizableList();
 
+    JBitSet getAssignedTableMap();
+
+    void setAssignedTableMap(JBitSet refMap);
+
     void updateBestPlanMaps(short action,Object planKey) throws StandardException;
 
     void addScopedPredicatesToList(OptimizablePredicateList predList) throws StandardException;
@@ -419,4 +424,6 @@ public interface Optimizer{
     int getJoinPosition();
 
     default boolean isMemPlatform() { return false; };
+
+    JoinCostEstimationModel getJoinCostEstimationModel();
 }
