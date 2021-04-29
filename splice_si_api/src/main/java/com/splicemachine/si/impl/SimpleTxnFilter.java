@@ -41,6 +41,8 @@ import java.io.IOException;
  *         Date: 6/23/14
  */
 public class SimpleTxnFilter implements TxnFilter{
+    private static int MAX_COMMITTED_KVS = 5; // number of committed kvs we process
+
     private final TxnSupplier transactionStore;
     private final TxnView myTxn;
     private final ReadResolver readResolver;
@@ -143,7 +145,7 @@ public class SimpleTxnFilter implements TxnFilter{
         switch (type) {
             case COMMIT_TIMESTAMP:
                 ensureTransactionIsCached(keyValue);
-                return count < 5 ? DataFilter.ReturnCode.SKIP : ReturnCode.NEXT_COL;
+                return count < MAX_COMMITTED_KVS ? DataFilter.ReturnCode.SKIP : ReturnCode.NEXT_COL;
             case FOREIGN_KEY_COUNTER:
             case FIRST_WRITE_TOKEN:
             case DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN:
