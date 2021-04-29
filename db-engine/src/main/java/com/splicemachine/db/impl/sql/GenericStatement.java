@@ -497,6 +497,7 @@ public class GenericStatement implements Statement{
         setTimestampFormat(lcc, cc);
         setSecondFunctionCompatibilityMode(lcc, cc);
         setFloatingPointNotation(lcc, cc);
+        setCountReturnType(lcc, cc);
         setOuterJoinFlatteningDisabled(lcc, cc);
         setCursorUntypedExpressionType(lcc, cc);
 
@@ -834,6 +835,19 @@ public class GenericStatement implements Statement{
                     break;
                 default:
                     cc.setFloatingPointNotation(CompilerContext.DEFAULT_FLOATING_POINT_NOTATION);
+            }
+        }
+    }
+
+    private void setCountReturnType(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String countReturnTypeString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.COUNT_RETURN_TYPE);
+        if(countReturnTypeString == null) {
+            cc.setCountReturnType(CompilerContext.DEFAULT_COUNT_RETURN_TYPE);
+        } else {
+            if (countReturnTypeString.toLowerCase().startsWith("int")) {
+                cc.setCountReturnType(Types.INTEGER);
+            } else {
+                cc.setCountReturnType(Types.BIGINT);
             }
         }
     }
