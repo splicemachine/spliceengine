@@ -14,10 +14,7 @@
 
 package com.splicemachine.derby.utils;
 
-import java.sql.CallableStatement;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -549,5 +546,26 @@ public class SpliceAdminIT extends SpliceUnitTest {
 
         SpliceUnitTest.sqlExpectException(methodWatcher, "CALL SYSCS_UTIL.LIST_DIRECTORY('/not/existing/directory')",
                 "X0X14", false);
+    }
+
+    @Test
+    public void testSelectivityEstimationIncludingSkewed() throws Exception {
+        String sql = "call syscs_util.syscs_get_global_database_property('derby.database.selectivityEstimationIncludingSkewedDefault')";
+        try (TestConnection conn = methodWatcher.getOrCreateConnection()) {
+            setProperty("derby.database.selectivityEstimationIncludingSkewedDefault", "true");
+            try(Statement s = conn.createStatement();
+                ResultSet rs = s.executeQuery(sql)) {
+                while(rs.next()) {
+                    String result = rs.getString("PROPERTY_VALUE");
+                    Assert.assertTrue(result.compareToIgnoreCase("true") == 0);
+                }
+            }
+        } finally {
+            setProperty("derby.database.selectivityEstimationIncludingSkewedDefault", "NULL");
+        }
+    }
+
+    private void setProperty(String property, String value) throws Exception {
+        methodWatcher.execute(format("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( '%s', '%s')", property, value));
     }
 }
