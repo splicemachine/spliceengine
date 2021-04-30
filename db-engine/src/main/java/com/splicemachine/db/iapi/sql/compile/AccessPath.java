@@ -35,10 +35,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.impl.sql.compile.FirstColumnOfIndexStats;
-import com.splicemachine.db.impl.sql.compile.FromTable;
-import com.splicemachine.db.impl.sql.compile.Predicate;
-import com.splicemachine.db.impl.sql.compile.ResultSetNode;
+import com.splicemachine.db.impl.sql.compile.*;
 
 /**
  * AccessPath represents a proposed access path for an Optimizable.
@@ -230,13 +227,13 @@ public interface AccessPath {
 	 * The tree of UnionNodes that combines results of the OR'ed index scans,
 	 * for a unioned index scans access path
 	 */
-    FromTable getUnionOfIndexes();
+    UnionNode getUnionOfIndexes();
 
 	/**
 	 * Store in the access path the tree of UnionNodes that combines results
 	 * of OR'ed index scans for a unioned index scans access path.
 	 */
-    void setUnionOfIndexes(FromTable unionOfIndexes);
+    void setUnionOfIndexes(UnionNode unionOfIndexes);
 
 	/**
 	 * The entire optimized result set tree of the unioned index scans

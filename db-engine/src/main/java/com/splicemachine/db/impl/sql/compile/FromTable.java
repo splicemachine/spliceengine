@@ -1589,7 +1589,12 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return outerTableOnly;
     }
 
-    public void setOuterTableOnly(boolean outerTableOnly) {
+    // This is a special-purpose method for tagging an optimizable to be used
+    // as the outer table of a join in very limited scenarios, usually when
+    // we are planning only a single join between it and another table.
+    // Please do not use this for queries of all forms, and only
+    // use it if you have a targeted, specific and limited use case.
+    protected void setOuterTableOnly(boolean outerTableOnly) {
         this.outerTableOnly = outerTableOnly;
     }
 
