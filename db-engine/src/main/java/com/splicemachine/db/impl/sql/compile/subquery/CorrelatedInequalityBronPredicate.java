@@ -57,6 +57,7 @@ public class CorrelatedInequalityBronPredicate implements Predicate<BinaryRelati
     @Override
     public boolean apply(BinaryRelationalOperatorNode bron) {
         try {
+            correlatedColRefCollectingVisitor.initialize();
             bron.accept(correlatedColRefCollectingVisitor);
         }
         catch (StandardException e) {
@@ -64,6 +65,12 @@ public class CorrelatedInequalityBronPredicate implements Predicate<BinaryRelati
         }
 
         return !correlatedColRefCollectingVisitor.getCollected().isEmpty();
+    }
+
+    public ColumnReference popCorrelatedColumn() {
+        if (correlatedColRefCollectingVisitor.getCollected().isEmpty())
+            return null;
+        return (ColumnReference)correlatedColRefCollectingVisitor.getCollected().remove(0);
     }
 
 

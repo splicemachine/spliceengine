@@ -75,4 +75,9 @@ public class CorrelatedColRefCollectingVisitor<T> extends ColumnCollectingVisito
     public List<T> getCollected() {
         return correlatedColumns;
     }
+
+    public void initialize() {
+        correlatedColumns.clear();
+        done = false;
+    }
 }
