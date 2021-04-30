@@ -3,6 +3,7 @@ package com.splicemachine.qpt;
 import com.splicemachine.qpt.SQLTokenizer.Token;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 
 public class SQLStatement {
 
@@ -53,8 +54,8 @@ public class SQLStatement {
 
     public static SQLStatement getSqlStatement(String statement) throws IOException {
         if(statement == null) statement = "";
-        InputStream is = new ByteArrayInputStream(statement.getBytes());
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(is))) {
+        InputStream is = new ByteArrayInputStream(statement.getBytes(StandardCharsets.UTF_8));
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
             SQLTokenizer lexer = new SQLTokenizer(in);
             return new SQLStatement(lexer.tokenize());
         }

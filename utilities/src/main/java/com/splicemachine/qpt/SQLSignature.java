@@ -66,6 +66,8 @@ public class SQLSignature {
                 case SQLTokenizer.TOKEN_UPDATE:
                 case SQLTokenizer.TOKEN_INSERT:
                 case SQLTokenizer.TOKEN_DELETE:
+                case SQLTokenizer.TOKEN_OPTIMIZE:
+                case SQLTokenizer.TOKEN_FETCH:
                     allowParameters = false;
                     break;
                 case SQLTokenizer.TOKEN_BY:
@@ -73,9 +75,7 @@ public class SQLSignature {
                         allowParameters = false;
                     }
                     break;
-                case SQLTokenizer.TOKEN_OPTIMIZE:
-                case SQLTokenizer.TOKEN_FETCH:
-                    allowParameters = false;
+                default:
                     break;
             }
 
