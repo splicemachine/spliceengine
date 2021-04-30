@@ -67,8 +67,8 @@ public class Benchmark {
 
         statsCnt.addAndGet(idx, increment);
         statsSum.addAndGet(idx, delta);
-        statsMin.accumulateAndGet(idx, delta, Math::min);
-        statsMax.accumulateAndGet(idx, delta, Math::max);
+        statsMin.accumulateAndGet(idx, delta / increment, Math::min);
+        statsMax.accumulateAndGet(idx, (delta + increment - 1) / increment, Math::max);
 
         long curTime = System.currentTimeMillis();
         long t = nextReport.get();
