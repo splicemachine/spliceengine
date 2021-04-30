@@ -477,6 +477,10 @@ public interface Optimizable {
      * For a given binary join involving an <code>Optimizable</code> marked as
      * <code>outerTableOnly</code>, the optimizer will only allow that
      * <code>Optimizable</code> to participate as the outer table of the join.
+     * This will only return true in limited scenarios when a table may
+     * only join with a single other table and no public interface to
+     * mark an optimizable as outerTableOnly is provided, on purpose,
+     * as this is an internal limited-use mechanism.
      */
     default boolean outerTableOnly() { return false; }
 

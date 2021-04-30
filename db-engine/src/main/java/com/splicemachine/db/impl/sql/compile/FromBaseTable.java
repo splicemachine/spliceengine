@@ -951,7 +951,7 @@ public class FromBaseTable extends FromTable {
     // multiple index and/or PK accesses followed by a RowID join back to the
     // base table to collect all referenced columns.
     private void bindAndOptimizeUnionedIndexScansPath(AccessPath uisAccessPath, Optimizer optimizer) throws StandardException {
-        FromTable unionOfIndexes = uisAccessPath.getUnionOfIndexes();
+        UnionNode unionOfIndexes = uisAccessPath.getUnionOfIndexes();
         NodeFactory nodeFactory = getNodeFactory();
         // A copy of this base table which we can bind and optimize without
         // affecting the original.
@@ -1242,7 +1242,6 @@ public class FromBaseTable extends FromTable {
         bestAP.setJoinStrategy(bestAP.getOptimizer().getJoinStrategy(JoinStrategy.JoinStrategyType.NESTED_LOOP.ordinal()));
         trulyBestAP.setJoinStrategy(trulyBestAP.getOptimizer().getJoinStrategy(JoinStrategy.JoinStrategyType.NESTED_LOOP.ordinal()));
         fromTable.setSkipBindAndOptimize(true);
-        fromTable.setOuterTableOnly(true);
     }
 
     // A special purpose assignResultSetNumber method which gets a result set number
@@ -1454,7 +1453,7 @@ public class FromBaseTable extends FromTable {
         AccessPath uisAccessPath = new AccessPathImpl(optimizer);
         uisAccessPath.copy(currentAccessPath);
         uisAccessPath.setUisPredicate((Predicate)uisPred);
-        uisAccessPath.setUnionOfIndexes(combinedResults);
+        uisAccessPath.setUnionOfIndexes((UnionNode)combinedResults);
         return uisAccessPath;
     }
 
@@ -1643,7 +1642,7 @@ public class FromBaseTable extends FromTable {
     }
 
     // Build a UNION node between 2 branches in a Unioned Index Scans access path.
-    private FromTable getUnionNode(ResultSetNode leftSide, FromTable rightSide, Optimizer optimizer) throws StandardException {
+    private UnionNode getUnionNode(ResultSetNode leftSide, FromTable rightSide, Optimizer optimizer) throws StandardException {
        ResultSetNode leftTree = buildSelectNode(leftSide, optimizer);
        if (leftTree == null)
            return null;
@@ -1652,7 +1651,7 @@ public class FromBaseTable extends FromTable {
            return null;
 
        return
-        (FromTable) getNodeFactory().getNode(
+        (UnionNode) getNodeFactory().getNode(
                 C_NodeTypes.UNION_NODE,
                 leftTree,
                 rightTree,

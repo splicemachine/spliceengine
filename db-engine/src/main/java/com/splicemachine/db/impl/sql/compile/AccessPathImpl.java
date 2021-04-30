@@ -57,7 +57,7 @@ class AccessPathImpl implements AccessPath{
     private int numUnusedLeadingIndexFields;
     private Predicate uisPredicate;
     private Predicate uisRowIdPredicate;
-    private FromTable unionOfIndexes = null;
+    private UnionNode unionOfIndexes = null;
     private ResultSetNode uisRowIdJoinBackToBaseTableResultSet = null;
 
 
@@ -215,12 +215,12 @@ class AccessPathImpl implements AccessPath{
     }
 
     @Override
-    public FromTable getUnionOfIndexes() {
+    public UnionNode getUnionOfIndexes() {
         return unionOfIndexes;
     }
 
     @Override
-    public void setUnionOfIndexes(FromTable unionOfIndexes) {
+    public void setUnionOfIndexes(UnionNode unionOfIndexes) {
         this.unionOfIndexes = unionOfIndexes;
     }
 
