@@ -110,7 +110,6 @@ public class PropertyConglomerate {
             serviceProperties.put(Property.DATABASE_PROPERTIES_ONLY, "false");
             serviceProperties.put(Property.DEFAULT_CONNECTION_MODE_PROPERTY, "fullAccess");
             serviceProperties.put(PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM, PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT);
-            serviceProperties.put(Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED, "false");
             for (Object key: serviceProperties.keySet()) {
                 propertyManager.addProperty((String)key,serviceProperties.getProperty((String)key));
             }
@@ -119,6 +118,10 @@ public class PropertyConglomerate {
         try {
             Set<String> props = propertyManager.listProperties();
             for (String child: props) {
+                if (child.equals(Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED)) {
+                    propertyManager.removeProperty(child);
+                    continue;
+                }
                 String value = startParams != null ? startParams.getProperty(child) : null;
                 if (value == null) {
                     value = propertyManager.getProperty(child);
