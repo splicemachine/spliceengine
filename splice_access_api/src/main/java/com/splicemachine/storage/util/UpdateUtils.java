@@ -88,7 +88,10 @@ public class UpdateUtils {
     }
 
     /**
-     * Returns the first half of a bit set
+     * Returns the first half of a bit set. It expects the input BitSet to be
+     * the concatenation of two copies of an original BitSet, and returns that
+     * original BitSet by keeping the first half of the set bits.
+     * E.g. bitset = [0,0,1,0,1,0,0,1,0,1]  returns = [0,0,1,0,1]
      */
     public static BitSet halveSet(BitSet bitSet) {
         BitSet result = new BitSet(bitSet.capacity()/2);
