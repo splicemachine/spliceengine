@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class V2CostModel implements CostModel {
     private static Map<JoinStrategy.JoinStrategyType, StrategyJoinCostEstimation> joinCostEstimationMap = new ConcurrentHashMap<>();
     static {
+        joinCostEstimationMap.put(JoinStrategy.JoinStrategyType.CARDINALITY_ESTIMATOR, new V2JoinCardinalityEstimation());
         joinCostEstimationMap.put(JoinStrategy.JoinStrategyType.BROADCAST, new V2BroadcastJoinCostEstimation());
         joinCostEstimationMap.put(JoinStrategy.JoinStrategyType.CROSS, new V2CrossJoinCostEstimation());
         joinCostEstimationMap.put(JoinStrategy.JoinStrategyType.MERGE, new V2MergeJoinCostEstimation());

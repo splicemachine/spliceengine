@@ -631,4 +631,14 @@ public class CostEstimateImpl implements CostEstimate {
 
     @Override
     public Optimizer getOptimizer() { return null; }
+
+    @Override
+    public void setJoinSelectionCardinality(double rowCount) {
+        // no-op
+    }
+
+    @Override
+    public double getJoinSelectionCardinality() {
+        return -1.0d;
+    }
 }

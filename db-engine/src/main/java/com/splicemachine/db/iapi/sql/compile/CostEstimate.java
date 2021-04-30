@@ -327,4 +327,8 @@ public interface CostEstimate extends StoreCostResult {
     void setOptimizer(Optimizer optimizer);
 
     Optimizer getOptimizer();
+
+    void setJoinSelectionCardinality(double rowCount);
+
+    double getJoinSelectionCardinality();
 }

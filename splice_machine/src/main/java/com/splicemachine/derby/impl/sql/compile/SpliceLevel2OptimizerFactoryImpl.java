@@ -67,6 +67,7 @@ public class SpliceLevel2OptimizerFactoryImpl extends OptimizerFactoryImpl {
          */
         if (joinStrategySet == null) { // Do not change order...
             joinStrategySet = new JoinStrategy[]{
+                    new JoinCardinalityEstimatorStrategy(),
                     new NestedLoopJoinStrategy(),
                     new MergeSortJoinStrategy(),
                     new BroadcastJoinStrategy(),

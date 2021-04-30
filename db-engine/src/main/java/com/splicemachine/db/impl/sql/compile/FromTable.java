@@ -260,7 +260,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             // but a single-table scan, so only consider nested loop
             // join in that case (which is what ends up getting
             // picked for single-table scan anyways).
-            if (joinStrategyNumber == 0 || !isSingleTableScan(optimizer)) {
+            if (joinStrategyNumber == 0 || joinStrategyNumber == 1 || !isSingleTableScan(optimizer)) {
 
                 /* Step through the join strategies. */
                 ap.setJoinStrategy(optimizer.getJoinStrategy(joinStrategyNumber));

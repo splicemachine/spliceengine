@@ -52,10 +52,11 @@ import com.splicemachine.db.iapi.util.JBitSet;
 public interface JoinStrategy {
 
     enum JoinStrategyType {
-        NESTED_LOOP ("NESTEDLOOP",0,"NestedLoop",true),
-        MERGE_SORT ("SORTMERGE" /*DB-11918*/,1,"MergeSort",false),
-        BROADCAST ("BROADCAST",2,"Broadcast",false),
-        MERGE ("MERGE",3, "Merge",false),
+        CARDINALITY_ESTIMATOR("CARDINALITYESTIMATOR", 0,"CardinalityEstimator", false),
+        NESTED_LOOP ("NESTEDLOOP",1,"NestedLoop",true),
+        MERGE_SORT ("SORTMERGE" /*DB-11918*/,2,"MergeSort",false),
+        BROADCAST ("BROADCAST",3,"Broadcast",false),
+        MERGE ("MERGE",4, "Merge",false),
         CROSS ("CROSS", 5, "Cross", false);
         private final String name;
         private final int strategyId;

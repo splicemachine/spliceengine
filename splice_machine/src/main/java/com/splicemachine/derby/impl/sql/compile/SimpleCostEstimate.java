@@ -64,6 +64,7 @@ public class SimpleCostEstimate implements CostEstimate{
     private boolean disablePerParallelTaskJoinCostingSet = false;
 	private FirstColumnOfIndexStats firstColumnStats;
 	private String costModel;
+    private double joinRowCount;
 
     public SimpleCostEstimate(){ }
 
@@ -80,6 +81,7 @@ public class SimpleCostEstimate implements CostEstimate{
         this.parallelism = parallelism;
         setLocalCostPerParallelTask(localCost, getParallelism());
         setRemoteCostPerParallelTask(remoteCost, getParallelism());
+        this.joinRowCount = -1.0d;
     }
 
     @Override
@@ -650,6 +652,16 @@ public class SimpleCostEstimate implements CostEstimate{
 
     private void setDisablePerParallelTaskJoinCostingSet (boolean newVal) {
         disablePerParallelTaskJoinCostingSet = newVal;
+    }
+
+    @Override
+    public void setJoinSelectionCardinality(double rowCount) {
+        this.joinRowCount = rowCount;
+    }
+
+    @Override
+    public double getJoinSelectionCardinality() {
+        return joinRowCount;
     }
 
 }
