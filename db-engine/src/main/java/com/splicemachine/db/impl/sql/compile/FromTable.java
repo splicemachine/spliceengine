@@ -230,12 +230,21 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             ** looked at the strategy, so go back to null.
             */
             if(ap.getJoinStrategy()!=null){
-                ap.setJoinStrategy(null);
-
-                found=false;
+                if (ap.getJoinStrategy().getJoinStrategyType() == JoinStrategy.JoinStrategyType.CARDINALITY_ESTIMATOR) {
+                    ap.setJoinStrategy(optimizer.getJoinStrategy(userSpecifiedJoinStrategy));
+                    found = true;
+                } else {
+                    ap.setJoinStrategy(null);
+                    found = false;
+                }
             }else{
-                ap.setJoinStrategy(optimizer.getJoinStrategy(userSpecifiedJoinStrategy));
-                ap.setHintedJoinStrategy(true);
+                JoinStrategy js = optimizer.getJoinStrategy(userSpecifiedJoinStrategy);
+                if (js.getJoinStrategyType() == JoinStrategy.JoinStrategyType.NESTED_LOOP) {
+                    ap.setJoinStrategy(optimizer.getJoinStrategy("CardinalityEstimator"));
+                } else {
+                    ap.setJoinStrategy(js);
+                    ap.setHintedJoinStrategy(true);
+                }
 
                 if(ap.getJoinStrategy()==null){
                     throw StandardException.newException(SQLState.LANG_INVALID_JOIN_STRATEGY,

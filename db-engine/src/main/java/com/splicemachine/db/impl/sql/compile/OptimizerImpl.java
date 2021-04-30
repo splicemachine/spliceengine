@@ -2771,7 +2771,11 @@ public class OptimizerImpl implements Optimizer{
 
     boolean checkPathMemoryUsage(Optimizable optimizable, boolean checkSortAvoidancePlan) {
         AccessPath currentAp = optimizable.getCurrentAccessPath();
-        if (currentAp.getJoinStrategy().getJoinStrategyType() != JoinStrategy.JoinStrategyType.BROADCAST)
+        JoinStrategy.JoinStrategyType jst = currentAp.getJoinStrategy().getJoinStrategyType();
+        if (jst == JoinStrategy.JoinStrategyType.CARDINALITY_ESTIMATOR) {
+            return false;  // never remember cardinality estimator path
+        }
+        if (jst != JoinStrategy.JoinStrategyType.BROADCAST)
             return true;
 
         /* if it is hinted, skip the check */

@@ -24,8 +24,8 @@ public class V2MergeSortJoinCostEstimation implements StrategyJoinCostEstimation
     static final double OLTP_LEFT_ONE_ROW_HASH_PROBE_COST     = 0.6;   // 0.6 microseconds
     static final double OLTP_RIGHT_ONE_ROW_HASH_TRANSMIT_COST = 1.4;   // 1.4 microseconds
 
-    private static final double OLAP_LOCAL_LATENCY       = 0.3;        // 0.3 microseconds
-    private static final double OLAP_SHUFFLE_OVERHEAD = 160000;        // 160 milliseconds
+    private static final double OLAP_LOCAL_LATENCY       = 0.45;       // 0.45 microseconds
+    private static final double OLAP_SHUFFLE_OVERHEAD = 160000;        // 160  milliseconds
 
     @Override
     public void estimateCost(Optimizable innerTable,

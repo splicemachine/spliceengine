@@ -69,7 +69,7 @@ public class JoinCardinalityEstimatorStrategy extends BaseJoinStrategy {
             String location,
             int partitionRefItem
     ) throws StandardException {
-        return -1;
+        throw new UnsupportedOperationException("Join Cardinality Estimator doesn't support getScanArgs");
     }
 
 
