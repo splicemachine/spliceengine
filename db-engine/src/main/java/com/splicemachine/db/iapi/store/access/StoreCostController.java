@@ -163,7 +163,7 @@ public interface StoreCostController extends RowCountable{
                           boolean includeStart,
                           DataValueDescriptor stop,
                           boolean includeStop,
-                          boolean useExtrapolation);
+                          boolean useExtrapolation) throws StandardException;
 
     /**
      * @return the total number of rows in the store (including null and non-null)

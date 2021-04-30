@@ -17,24 +17,17 @@ package com.splicemachine.pipeline;
 import java.io.IOException;
 
 import com.carrotsearch.hppc.BitSet;
-import com.carrotsearch.hppc.BitSetIterator;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
-import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.RoutingWriteHandler;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.storage.index.BitIndexing;
-import com.splicemachine.utils.ByteSlice;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
-import static com.splicemachine.pipeline.writehandler.UpdateUtils.deleteFromUpdate;
-import static com.splicemachine.pipeline.writehandler.UpdateUtils.getBaseUpdateMutation;
-import static com.splicemachine.pipeline.writehandler.UpdateUtils.halveSet;
+import static com.splicemachine.storage.util.UpdateUtils.deleteFromWrite;
+import static com.splicemachine.storage.util.UpdateUtils.updateFromWrite;
 
 /**
  * Intercepts UPDATE/UPSERT/INSERT/DELETE mutations to a base table and sends corresponding mutations to the index table.
@@ -105,7 +98,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
             case UPDATE:
                 if (transformer.areIndexKeysModified(mutation)) { // Do I need to update?
                     delete = deleteIndexRecordFromUpdate(mutation, ctx);
-                    mutation = getBaseUpdateMutation(mutation);
+                    mutation = updateFromWrite(mutation);
                     return createIndexRecord(mutation, ctx, delete);
                 }
                 return true; // No index columns modifies ignore...
@@ -130,7 +123,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
             SpliceLogUtils.trace(LOG, "index delete with %s", mutation);
 
         try {
-            KVPair toTransform = deleteFromUpdate(mutation);
+            KVPair toTransform = deleteFromWrite(mutation);
 
             KVPair indexDelete = transformer.translate(toTransform);
 

@@ -1560,4 +1560,13 @@ public class SpliceDateFunctionsIT extends SpliceUnitTest {
             assertEquals("22007", e.getSQLState());
         }
     }
+
+    @Test
+    public void testBindTimezoneOperation() throws Exception {
+        // See DB-11973
+        testQueryContains(
+                "select timestamp(trim('2016-08-05-07.12.59.000000')) + current timezone from sysibm.sysdummy1",
+                "2016-08-05",
+                methodWatcher);
+    }
 }
