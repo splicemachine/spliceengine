@@ -36,7 +36,6 @@ import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.impl.ast.CollectingVisitorBuilder;
 import com.splicemachine.db.impl.ast.ColumnUtils;
-import com.splicemachine.db.impl.ast.CorrelatedColRefCollectingVisitor;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.subquery.*;
 import org.apache.log4j.Logger;
@@ -88,8 +87,6 @@ class ExistsSubqueryWhereVisitor implements Visitor {
 
     private final CorrelatedColumnPredicate correlatedColumnPredicate;
 
-    private CorrelatedColRefCollectingVisitor<QueryTreeNode> correlatedColRefCollectingVisitor;
-
     private boolean multipleOuterTables;
 
     /**
@@ -104,8 +101,6 @@ class ExistsSubqueryWhereVisitor implements Visitor {
         this.typeCPredicate = new CorrelatedBronPredicate(this.outerNestingLevel);
         this.typeEPredicate = new CorrelatedInequalityBronPredicate(this.outerNestingLevel);
         this.correlatedColumnPredicate = new CorrelatedColumnPredicate(this.outerNestingLevel);
-        correlatedColRefCollectingVisitor =
-            new CorrelatedColRefCollectingVisitor<>(1, outerNestingLevel);
     }
 
     @Override
@@ -136,9 +131,8 @@ class ExistsSubqueryWhereVisitor implements Visitor {
             }
 
             if (typeEPredicate.apply(bron)) {
-                bron.accept(correlatedColRefCollectingVisitor);
                 // Columns from Type E predicates are processed in the same manner as those from Type D predicates
-                correlatedColumnReferences.add((ColumnReference)correlatedColRefCollectingVisitor.getCollected().remove(0));
+                correlatedColumnReferences.add(typeEPredicate.popCorrelatedColumn());
                 return node;
             }
 
