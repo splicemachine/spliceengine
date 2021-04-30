@@ -57,7 +57,7 @@ public class V2NestedLoopJoinCostEstimationModel implements StrategyJoinCostEsti
         innerCost.setBase(innerCost.cloneMe());
         double totalRowCount = outerCost.rowCount() * innerCost.rowCount();
         if(outerCost.getJoinSelectionCardinality() >= 0) {
-            totalRowCount = outerCost.getJoinSelectionCardinality();
+            totalRowCount = Math.min(outerCost.getJoinSelectionCardinality(), totalRowCount);
         }
         boolean isIndexKeyAccessRhs = hasJoinPredicateWithIndexKeyLookup(predList);
 
