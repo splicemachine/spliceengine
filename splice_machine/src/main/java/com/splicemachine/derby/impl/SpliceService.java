@@ -61,8 +61,10 @@ public class SpliceService implements PersistentService {
 			Set<String> properties = propertyManager.listProperties();
 //			List<String> children = ZkUtils.getChildren(zkSpliceDerbyPropertyPath, false);
 			for (String property: properties) {
-				String value = propertyManager.getProperty(property);
-				service.setProperty(property, value);
+				if (!property.equals(Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED)) {
+					String value = propertyManager.getProperty(property);
+					service.setProperty(property, value);
+				}
 			}
 		} catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG, "getServiceProperties Failed", Exceptions.parseException(e));
