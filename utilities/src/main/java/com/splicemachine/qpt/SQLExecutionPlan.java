@@ -13,6 +13,8 @@ public class SQLExecutionPlan {
     private String scaleID;     // scale signature
 
     static class ParseException extends RuntimeException {
+        private static final long serialVersionUID = 3951256302961292385L;
+
         ParseException(String msg) {
             super(msg);
         }
