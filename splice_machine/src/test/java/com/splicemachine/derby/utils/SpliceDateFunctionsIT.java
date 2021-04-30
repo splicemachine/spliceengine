@@ -1564,11 +1564,9 @@ public class SpliceDateFunctionsIT extends SpliceUnitTest {
     @Test
     public void testBindTimezoneOperation() throws Exception {
         // See DB-11973
-        testQuery(
+        testQueryContains(
                 "select timestamp(trim('2016-08-05-07.12.59.000000')) + current timezone from sysibm.sysdummy1",
-                "1           |\n" +
-                        "-----------------------\n" +
-                        "2016-08-05 08:12:59.0 |",
+                "2016-08-05",
                 methodWatcher);
     }
 }
