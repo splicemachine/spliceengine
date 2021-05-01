@@ -54,4 +54,9 @@ public class DirectPropertyManager implements PropertyManager{
     public void clearProperties() throws StandardException{
         properties.clear();
     }
+
+    @Override
+    public void removeProperty(String propertyName) throws StandardException {
+        properties.remove(propertyName);
+    }
 }
