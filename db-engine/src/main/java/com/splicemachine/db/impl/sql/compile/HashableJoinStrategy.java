@@ -175,39 +175,10 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
                 !(innerTable instanceof RowResultSetNode)                     &&
                 !(innerTable instanceof SetOperatorNode)) {
 
-                // Base tables only supported for inequality broadcast
-                // join in the first pass to reduce risk.
-                FromTable prn = (FromTable)innerTable;
-                while (prn instanceof ProjectRestrictNode &&
-                       ((ProjectRestrictNode)prn).childResult instanceof FromTable)
-                    prn = (FromTable)((ProjectRestrictNode)prn).childResult;
-                if (!(prn instanceof FromBaseTable))
-                    return false;
-
-                Predicate pred = null;
-                // If we do not currently have a join predicate, it may just
-                // be because the predicate can't be applied given the current
-                // access path, so for now don't consider joins that have
-                // no join predicates.
-                for (int i = 0; i < predList.size(); i++) {
-                    pred = (Predicate)predList.getOptPredicate(i);
-                    if (pred.isHashableJoinPredicate()) {
-                        ap.setMissingHashKeyOK(true);
-
-                        AndNode andNode = pred.getAndNode();
-                        if (!(andNode.getLeftOperand() instanceof BinaryRelationalOperatorNode))
-                            continue;
-
-                        if (pred.isScopedForPush())
-                            continue;
-
-                        foundUnPushedJoinPred = true;
-                    }
-                }
-                if (ap.isMissingHashKeyOK() && foundUnPushedJoinPred)
-                    return true;
-
-                ap.setMissingHashKeyOK(false);
+                // Consider BroadcastNestedLoopJoin for anything other
+                // than single-table scan.
+                if (!isSingleTableScan(optimizer))
+                    ap.setMissingHashKeyOK(true);
             }
         }
 
