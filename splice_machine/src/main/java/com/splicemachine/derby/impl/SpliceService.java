@@ -29,6 +29,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Enumeration;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -61,8 +62,10 @@ public class SpliceService implements PersistentService {
 			Set<String> properties = propertyManager.listProperties();
 //			List<String> children = ZkUtils.getChildren(zkSpliceDerbyPropertyPath, false);
 			for (String property: properties) {
-				String value = propertyManager.getProperty(property);
-				service.setProperty(property, value);
+				if (!property.equals(Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED)) {
+					String value = propertyManager.getProperty(property);
+					service.setProperty(property, value);
+				}
 			}
 		} catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG, "getServiceProperties Failed", Exceptions.parseException(e));
@@ -83,9 +86,17 @@ public class SpliceService implements PersistentService {
 
 	public void saveServiceProperties(String serviceName, StorageFactory storageFactory, Properties properties, boolean replace) throws StandardException {
 		SpliceLogUtils.trace(LOG,"saveServiceProperties with storageFactory serviceName: %s, properties %s, replace %s",serviceName, properties, replace);
-		for (Object key :properties.keySet()) {
-			if (!propertyManager.propertyExists((String)key)) {
-				propertyManager.addProperty((String)key,properties.getProperty((String)key));
+		for (Map.Entry<Object, Object> entry : properties.entrySet()) {
+			String key = (String)entry.getKey();
+			String value = (String)properties.get(key);
+			String v = null;
+			try {
+				v = propertyManager.getProperty((String) key);
+			} catch (Exception e) {
+				//Ignore exceptions
+			}
+			if (v == null || !v.equals(value)) {
+				propertyManager.addProperty((String) key, value);
 			}
 		}
 	}

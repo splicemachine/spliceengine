@@ -67,8 +67,14 @@ public class ZkPropertyManager implements PropertyManager{
 
     @Override
     public void addProperty(String propertyName,String propertyValue) throws StandardException{
+        String path = zkSpliceDerbyPropertyPath + "/" + propertyName;
         try{
-            ZkUtils.safeCreate(zkSpliceDerbyPropertyPath+"/"+propertyName,Bytes.toBytes(propertyValue),ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
+            if (ZkUtils.getRecoverableZooKeeper().exists(path, false) == null) {
+                ZkUtils.safeCreate(path, Bytes.toBytes(propertyValue), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+            }
+            else {
+                ZkUtils.setData(path, Bytes.toBytes(propertyValue), -1);
+            }
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -83,6 +89,15 @@ public class ZkPropertyManager implements PropertyManager{
             }
         }catch(Exception e){
             throw Exceptions.parseException(e);
+        }
+    }
+
+    @Override
+    public void removeProperty(String propertyName) throws StandardException {
+        try {
+            ZkUtils.safeDelete(zkSpliceDerbyPropertyPath + "/" + propertyName, -1);
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
         }
     }
 }
