@@ -761,6 +761,7 @@ public abstract class TableOperatorNode extends FromTable{
                                            CostEstimate outerCost) throws StandardException{
         ResultSetNode retval;
 
+        boolean forSpark = optimizer != null ? optimizer.isForSpark() : false;
         if(sourceResultSet instanceof FromTable){
             FromList optList=(FromList)getNodeFactory().getNode(
                     C_NodeTypes.FROM_LIST,
@@ -782,6 +783,7 @@ public abstract class TableOperatorNode extends FromTable{
                     null,
                     getCompilerContext().getMaximalPossibleTableCount(),
                     lcc);
+            optimizer.setForSpark(forSpark);
             optimizer.prepForNextRound();
             optimizer.setAssignedTableMap(otherChildReferenceMap);
 
