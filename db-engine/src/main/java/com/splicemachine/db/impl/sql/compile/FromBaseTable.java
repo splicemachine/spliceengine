@@ -1180,7 +1180,7 @@ public class FromBaseTable extends FromTable {
         (ColumnReference) nodeFactory.getNode(
                                 C_NodeTypes.COLUMN_REFERENCE,
                                 BASEROWID,
-                                outerBaseTable.getTableName(),
+                                outerBaseTable.getExposedTableName(),
                                 getContextManager());
         ridCol2 = (ColumnReference)fromList.bindColumnReference(ridCol2);
         ridCol2.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
@@ -1463,7 +1463,7 @@ public class FromBaseTable extends FromTable {
         ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
                                 C_NodeTypes.COLUMN_REFERENCE,
                                 columnName,
-                                getTableName(),
+                                getExposedTableName(),
                                 getContextManager());
 
         ResultColumn rowIdResultColumn =
@@ -1484,10 +1484,12 @@ public class FromBaseTable extends FromTable {
     // Add a BASEROWID2 column referencing the base rowid of the outer table of the current join.
     void addOuterTableRowIdToRCList(ResultColumnList resultColumnList, FromTable outerTable) throws StandardException {
         String columnName = BASEROWID;
+        TableName outerTableName = outerTable instanceof FromBaseTable ?
+                                   ((FromBaseTable) outerTable).getExposedTableName() : outerTable.getTableName();
         ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
                                 C_NodeTypes.COLUMN_REFERENCE,
                                 columnName,
-                                outerTable.getTableName(),
+                                outerTableName,
                                 getContextManager());
         ResultColumn rowIdResultColumn =
             (ResultColumn)getNodeFactory().getNode(
