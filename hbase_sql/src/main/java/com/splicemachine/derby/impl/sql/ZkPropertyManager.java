@@ -85,4 +85,13 @@ public class ZkPropertyManager implements PropertyManager{
             throw Exceptions.parseException(e);
         }
     }
+
+    @Override
+    public void removeProperty(String propertyName) throws StandardException {
+        try {
+            ZkUtils.safeDelete(zkSpliceDerbyPropertyPath + "/" + propertyName, -1);
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
 }
