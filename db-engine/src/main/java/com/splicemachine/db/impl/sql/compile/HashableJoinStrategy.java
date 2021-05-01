@@ -168,10 +168,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
                 return true;
             }
 
-            if (innerTable instanceof FromTable                               &&
-                predList != null                                              &&
-                !outerCost.isSingleRow()                                      &&
-                (innerTable.isMaterializable() ||
+            if ((innerTable.isMaterializable() ||
                  innerTable.supportsMultipleInstantiations())                 &&
                 optimizer instanceof OptimizerImpl                            &&
                 !(innerTable instanceof RowResultSetNode)                     &&
@@ -179,9 +176,13 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 
                 // Consider BroadcastNestedLoopJoin for anything other
                 // than single-table scan.
-                if (!isSingleTableScan(optimizer))
+                if (!isSingleTableScan(optimizer)) {
                     ap.setMissingHashKeyOK(true);
+                    return true;
+                }
             }
+            else
+                ap.setMissingHashKeyOK(false);  // msirek-temp
         }
 
         return hashKeyColumns!=null;
