@@ -338,11 +338,6 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         return NLJ_ON_SPARK_PENALTY * multiplier;
     }
 
-    private boolean isSingleTableScan(Optimizer optimizer) {
-        return optimizer.getJoinPosition() == 0   &&
-               optimizer.getJoinType() < INNERJOIN;
-    }
-
     private boolean isBaseTable(Optimizable table) {
         return table instanceof FromBaseTable;
     }
