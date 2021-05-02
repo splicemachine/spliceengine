@@ -932,11 +932,11 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
         if (pushPreds) {
             handleRowIdJoinPredicateForUnionedIndexScans(accessPath);
-            // We can't push any predicates down to a base table with a Unioned Index Scans
-            // access path because the statement tree has already been built.
-            if (optTable.getTrulyTheBestAccessPath().getUisRowIdJoinBackToBaseTableResultSet() != null)
-                return;
         }
+        // We can't push any predicates down to a base table with a Unioned Index Scans
+        // access path because the statement tree has already been built.
+        if (accessPath.getUisRowIdJoinBackToBaseTableResultSet() != null)
+            return;
 
         ConglomerateDescriptor cd = accessPath.getConglomerateDescriptor();
         boolean primaryKey=false;
