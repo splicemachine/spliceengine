@@ -1585,6 +1585,8 @@ public class FromBaseTable extends FromTable {
                outerRelation.setOuterTableOnly(true);
                fromList.addFromTable(outerRelation);
            }
+           else  // Must be joining to a table if the UIS predicate is a join predicate
+               return null;
        }
 
        SelectNode selectNode = (SelectNode) getNodeFactory().getNode(
