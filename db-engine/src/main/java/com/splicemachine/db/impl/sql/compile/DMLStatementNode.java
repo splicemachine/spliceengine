@@ -69,6 +69,10 @@ public abstract class DMLStatementNode extends StatementNode {
     ResultSetNode resultSet;
 
     /**
+     * If this is non-null, then force spark costing if true, and OLTP costing if false;
+     */
+    private Boolean useSparkOverride = null;
+    /**
      * Initializer for a DMLStatementNode
      *
      * @param resultSet A ResultSetNode for the result set of the DML statement
@@ -248,6 +252,8 @@ public abstract class DMLStatementNode extends StatementNode {
     }
 
     private boolean shouldRunControl(ResultSetNode resultSet) throws StandardException {
+        if (useSparkOverride != null)
+            return !useSparkOverride;
         DataSetProcessorType type = getCompilerContext().getDataSetProcessorType();
         CollectNodesVisitor cnv = new CollectNodesVisitor(FromTable.class);
         resultSet.accept(cnv);
@@ -261,6 +267,8 @@ public abstract class DMLStatementNode extends StatementNode {
     }
 
     private boolean shouldRunSpark(ResultSetNode resultSet) throws StandardException {
+        if (useSparkOverride != null)
+            return useSparkOverride;
         DataSetProcessorType type = getCompilerContext().getDataSetProcessorType();
         SparkExecutionType sparkExecType = getCompilerContext().getSparkExecutionType();
         if (!type.isOlap() && (type.isHinted() || type.isForced())) {
@@ -520,5 +528,13 @@ public abstract class DMLStatementNode extends StatementNode {
         addNodeToExplainTree(tree, this, depth);
         if (resultSet != null)
             resultSet.buildTree(tree, depth + 1);
+    }
+
+    public Boolean getUseSparkOverride() {
+        return useSparkOverride;
+    }
+
+    public void setUseSparkOverride(Boolean useSparkOverride) {
+        this.useSparkOverride = useSparkOverride;
     }
 }

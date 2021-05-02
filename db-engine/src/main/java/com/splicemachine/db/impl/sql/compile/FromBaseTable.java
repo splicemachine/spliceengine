@@ -1088,6 +1088,7 @@ public class FromBaseTable extends FromTable {
                 ReuseFactory.getInteger(CursorNode.UNSPECIFIED),
                 null,
                 getContextManager());
+        stmt.setUseSparkOverride(Boolean.valueOf(optimizer.isForSpark()));
         stmt.bindStatement();
         walkAST(getLanguageConnectionContext(), stmt, CompilationPhase.AFTER_BIND);
         stmt.optimizeStatement();
