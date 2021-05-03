@@ -96,7 +96,13 @@ public class IndexLookupCostEstimationIT extends SpliceUnitTest {
         // assert that index lookup costs fall into ±11% of expected factors respectively
         double epsilon = 0.11;
 
+        methodWatcher.execute("set session_property costModel='v1'");
         testIndexLookupCost(rowCounts, expectedCosts, epsilon, false);
+
+        methodWatcher.execute("set session_property costModel='v2'");
+        testIndexLookupCost(rowCounts, expectedCosts, epsilon, false);
+
+        methodWatcher.execute("set session_property costModel='v1'");
     }
 
     @Test
@@ -107,6 +113,12 @@ public class IndexLookupCostEstimationIT extends SpliceUnitTest {
         // assert that index lookup costs fall into ±14% of expected factors respectively
         double epsilon = 0.14;
 
+        methodWatcher.execute("set session_property costModel='v1'");
         testIndexLookupCost(rowCounts, expectedCosts, epsilon, true);
+
+        methodWatcher.execute("set session_property costModel='v2'");
+        testIndexLookupCost(rowCounts, expectedCosts, epsilon, true);
+
+        methodWatcher.execute("set session_property costModel='v1'");
     }
 }

@@ -1566,12 +1566,12 @@ public class BinaryRelationalOperatorNode
      * ColumnReferences are heavily used to determine when we can use statistics for computations.  It would be nice
      * to remove the instance of bits and focus more on the implementation at the node level (TODO).
      *
-     * @param optTable
-     * @param currentCd
-     * @param innerRowCount
-     * @param outerRowCount
-     * @param selectivityJoinType
-     * @return
+     * @param optTable RHS of the join.
+     * @param currentCd Conglomerate descriptor being considered in current access path.
+     * @param innerRowCount RHS row count. This is the output row count of the RHS subtree.
+     * @param outerRowCount LHS row count. This is the output row count of the LHS subtree.
+     * @param selectivityJoinType Join type.
+     * @return An estimate of join selectivity of this join.
      * @throws StandardException
      */
     @Override
@@ -1599,14 +1599,22 @@ public class BinaryRelationalOperatorNode
                 if (!left.useRealColumnStatistics()) {
                     noStatsColumns.add(left.getSchemaQualifiedColumnName());
                 }
+
+                // For the join, cardinality of LHS and RHS are not necessarily the raw numbers from column
+                // statistics. We should apply them on LHS and RHS output row counts proportionally.
+                double leftColumnIndexSelectivity = left.nonZeroCardinality(outerRowCount) / left.rowCountEstimate();
+                double rightColumnIndexSelectivity = right.nonZeroCardinality(innerRowCount) / right.rowCountEstimate();
+                double leftNonZeroCardinality = Math.max(1.0, leftColumnIndexSelectivity * outerRowCount);
+                double rightNonZeroCardinality = Math.max(1.0, rightColumnIndexSelectivity * innerRowCount);
+
                 selectivity = ((1.0d - left.nullSelectivity()) * (1.0d - right.nullSelectivity())) /
-                        Math.min(left.nonZeroCardinality(outerRowCount), right.nonZeroCardinality(innerRowCount));
+                        Math.min(leftNonZeroCardinality, rightNonZeroCardinality);
                 selectivity = selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.INNER) ?
                         selectivity : 1.0d - selectivity;
                 if (optTable instanceof FromTable && ((FromTable) optTable).getExistsTable()) {
-                    selectivity = selectivity * left.nonZeroCardinality(outerRowCount)/outerRowCount;
+                    selectivity = selectivity * leftNonZeroCardinality / outerRowCount;
                     if ((optTable instanceof FromBaseTable) && ((FromBaseTable) optTable).isAntiJoin()) {
-                        selectivity = selectivity /(innerRowCount - (double)innerRowCount/right.nonZeroCardinality(innerRowCount) + 1);
+                        selectivity = selectivity /(innerRowCount - (double)innerRowCount / rightNonZeroCardinality + 1);
                     }
                 }
             } else { // No Left Column Reference
@@ -1615,7 +1623,8 @@ public class BinaryRelationalOperatorNode
         } else { // No Right ColumnReference
             selectivity = super.joinSelectivity(optTable, currentCd, innerRowCount, outerRowCount, selectivityJoinType);
         }
-        assert selectivity >= 0.0d:"selectivity is out of bounds " + selectivity + this + " right-> " + getRightOperand() + " left -> " + getLeftOperand();
+        assert selectivity >= 0.0d && selectivity <= 1.0d
+                : "selectivity is out of bounds " + selectivity + this + " right-> " + getRightOperand() + " left -> " + getLeftOperand();
         return selectivity;
     }
 
