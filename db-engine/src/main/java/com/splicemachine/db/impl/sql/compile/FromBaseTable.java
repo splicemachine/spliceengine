@@ -73,6 +73,7 @@ import splice.com.google.common.collect.Lists;
 import java.lang.reflect.Modifier;
 import java.util.*;
 
+import static com.splicemachine.db.impl.ast.RSUtils.isNLJ;
 import static com.splicemachine.db.impl.ast.RSUtils.isRSN;
 import static com.splicemachine.db.impl.sql.compile.ColumnReference.*;
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
@@ -951,7 +952,11 @@ public class FromBaseTable extends FromTable {
     // generating a TableScanOperation.  The statement tree is a UNION of
     // multiple index and/or PK accesses followed by a RowID join back to the
     // base table to collect all referenced columns.
-    private void bindAndOptimizeUnionedIndexScansPath(AccessPath uisAccessPath, Optimizer optimizer) throws StandardException {
+    private void bindAndOptimizeUnionedIndexScansPath(AccessPath uisAccessPath,
+                                                      ConglomerateDescriptor cd,
+                                                      CostEstimate outerCost,
+                                                      Optimizer optimizer,
+                                                      OptimizablePredicateList predList) throws StandardException {
         UnionNode unionOfIndexes = uisAccessPath.getUnionOfIndexes();
         NodeFactory nodeFactory = getNodeFactory();
         // A copy of this base table which we can bind and optimize without
@@ -1141,7 +1146,19 @@ public class FromBaseTable extends FromTable {
         unionOfIndexes.setSkipBindAndOptimize(true);
 
         // Finally, record the cost of the UIS operations in the access path.
-        uisAccessPath.setCostEstimate(uisRowIdJoinBackToBaseTableResultSet.getCostEstimate().cloneMe());
+        CostEstimate uisCost = uisRowIdJoinBackToBaseTableResultSet.getCostEstimate().cloneMe();
+        if (baseRowId2RC == null && optimizer.getOuterTable() != null) {
+            // Now add the cost of the join with the outer table.
+            AccessPath currentAccessPath = getCurrentAccessPath();
+            JoinStrategy currentJoinStrategy=currentAccessPath.getJoinStrategy();
+            currentJoinStrategy.getBasePredicates(predList,baseTableRestrictionList,this);
+            uisCost.setPredicateList(baseTableRestrictionList);
+            currentJoinStrategy.estimateCost(this, baseTableRestrictionList, cd, outerCost, optimizer, uisCost);
+            currentJoinStrategy.putBasePredicates(predList, baseTableRestrictionList);
+            uisAccessPath.setJoinStrategy(currentJoinStrategy);
+            uisAccessPath.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
+        }
+        uisAccessPath.setCostEstimate(uisCost);
     }
 
     // Build a uisResultSet.BASEROWID2 = outerTable.BASEROWID join predicate.
@@ -1343,7 +1360,7 @@ public class FromBaseTable extends FromTable {
             // If a UIS UNION tree was built, construct the ROWID join(s) to get
             // the final rows, optimize the tree, and cost it.
             if (uisAccessPath != null)
-                bindAndOptimizeUnionedIndexScansPath(uisAccessPath, optimizer);
+                bindAndOptimizeUnionedIndexScansPath(uisAccessPath, cd, outerCost, optimizer, predList);
         }
 
         // Cost the standard base table access path.
@@ -1535,8 +1552,9 @@ public class FromBaseTable extends FromTable {
        fromList.addFromTable(innerTableCopy);
        ResultColumnList resultColumnList = singleRowIdColumnResultColumnList();
 
+       int joinPosition = optimizer.getJoinPosition();
        if (pred.getReferencedSet().cardinality() > 1) {
-           int joinPosition = optimizer.getJoinPosition();
+
            if (joinPosition > 0) {
                FromTable outerTable = (FromTable) optimizer.getOuterTable();
                ProjectRestrictNode
@@ -1588,6 +1606,14 @@ public class FromBaseTable extends FromTable {
                fromList.addFromTable(outerRelation);
            }
            else  // Must be joining to a table if the UIS predicate is a join predicate
+               return null;
+       }
+       else if (optimizer.isForSpark() && joinPosition > 0) {
+           AccessPath currentAccessPath = getCurrentAccessPath();
+           // Similar to the spark nested loop join cost penalty,
+           // avoid nested loop joins on spark when there are no
+           // index-enabling join predicates.
+           if (isNLJ(currentAccessPath))
                return null;
        }
 
