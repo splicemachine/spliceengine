@@ -23,6 +23,7 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.io.hfile.SpliceHFileUtil;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.log4j.Logger;
 import splice.com.google.common.collect.Lists;

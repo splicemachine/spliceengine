@@ -382,6 +382,16 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         procedures.add(getActiveTxn);
 
         /*
+         * Procedure to clear HBase's block cache
+         */
+        Procedure clearBlockCache = Procedure.newBuilder().name("SYSCS_CLEAR_BLOCK_CACHE")
+                .numOutputParams(0)
+                .numResultSets(0)
+                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .build();
+        procedures.add(clearBlockCache);
+
+        /*
          * Procedure to list a directory
          */
         Procedure ANALYZE_EXTERNAL_TABLE = Procedure.newBuilder().name("ANALYZE_EXTERNAL_TABLE")

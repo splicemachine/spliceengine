@@ -73,7 +73,6 @@ import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.DbEngineUtils;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.logging.Logging;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
@@ -652,7 +651,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
 
             List<Future<Long>> futures = Lists.newArrayList();
             for (PartitionServer server : servers) {
-                GetOldestActiveTransactionTask task = SIDriver.driver().getOldestActiveTransactionTaskFactory().get(
+                GetOldestActiveTransactionTask task = SIDriver.driver().getCoprocessorTaskFactory().getOldestActiveTransactionTask(
                         server.getHostname(), server.getPort(), server.getStartupTimestamp());
                 futures.add(executorService.submit(task));
             }
@@ -1729,6 +1728,27 @@ public class SpliceAdmin extends BaseAdminProcedures {
         res.newRow();
         col.set(getOldestActiveTransaction());
         resultSet[0] = res.getResultSet();
+    }
+
+
+    public static void SYSCS_CLEAR_BLOCK_CACHE() throws SQLException{
+        try {
+            PartitionAdmin pa = SIDriver.driver().getTableFactory().getAdmin();
+            ExecutorService executorService = SIDriver.driver().getExecutorService();
+            Collection<PartitionServer> servers = pa.allServers();
+
+            List<Future<?>> futures = Lists.newArrayList();
+            for (PartitionServer server : servers) {
+                ClearBlockCacheTask task = SIDriver.driver().getCoprocessorTaskFactory().clearBlockCacheTask(
+                        server.getHostname(), server.getPort(), server.getStartupTimestamp());
+                futures.add(executorService.submit(task));
+            }
+            for (Future<?> future : futures) {
+                future.get();
+            }
+        } catch (Exception e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
     }
 
     private static List<ExecRow> getRunningOperations() throws SQLException {

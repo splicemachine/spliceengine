@@ -18,7 +18,6 @@ import com.splicemachine.access.api.GetOldestActiveTransactionTask;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.MoreExecutors;
-import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -99,7 +98,7 @@ public class TransactionsWatcher {
 
         List<Future<Long>> futures = Lists.newArrayList();
         for (PartitionServer server : servers) {
-            GetOldestActiveTransactionTask task = SIDriver.driver().getOldestActiveTransactionTaskFactory().get(
+            GetOldestActiveTransactionTask task = SIDriver.driver().getCoprocessorTaskFactory().getOldestActiveTransactionTask(
                     server.getHostname(), server.getPort(), server.getStartupTimestamp());
             futures.add(executorService.submit(task));
         }

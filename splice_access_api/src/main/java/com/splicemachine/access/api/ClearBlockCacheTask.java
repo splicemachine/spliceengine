@@ -14,8 +14,5 @@
 
 package com.splicemachine.access.api;
 
-import java.io.IOException;
-
-public interface OldestActiveTransactionTaskFactory {
-    GetOldestActiveTransactionTask get(String hostName, int port, long startupTimestamp) throws IOException;
+public interface ClearBlockCacheTask extends Runnable {
 }

@@ -122,6 +122,9 @@ message KV {
     required bytes row = 2;
 }
 
+message Empty {
+}
+
 service SpliceIndexManagementService {
     rpc dropIndex(DropIndexRequest)
       returns (DropIndexResponse);
@@ -245,6 +248,8 @@ service SpliceRSRpcServices {
     rpc getOldestActiveTransaction(SpliceOldestActiveTransactionRequest)
         returns (SpliceOldestActiveTransactionResponse);
 
+    rpc clearBlockCache(Empty)
+        returns (Empty);
 }
 
 message SpliceRegionInfo{

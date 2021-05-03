@@ -54,7 +54,7 @@ public class MPipelineEnv  implements PipelineEnvironment{
     private SIEnvironment siEnv;
     private BulkWriterFactory writerFactory;
     private ContextFactoryDriver ctxFactoryDriver;
-    private OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory;
+    private CoprocessorTaskFactory coprocessorTaskFactory;
     private final WritePipelineFactory pipelineFactory= new MappedPipelineFactory();
 
     public MPipelineEnv(SIEnvironment siEnv) throws IOException{
@@ -64,9 +64,9 @@ public class MPipelineEnv  implements PipelineEnvironment{
                 new AtomicSpliceWriteControl(Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE),
                 pipelineExceptionFactory(),pipelineMeter());
         this.ctxFactoryDriver = ContextFactoryDriverService.loadDriver();
-        this.oldestActiveTransactionTaskFactory = new OldestActiveTransactionTaskFactory() {
+        this.coprocessorTaskFactory = new CoprocessorTaskFactory() {
             @Override
-            public GetOldestActiveTransactionTask get(String hostName, int port, long startupTimestamp) throws IOException {
+            public GetOldestActiveTransactionTask getOldestActiveTransactionTask(String hostName, int port, long startupTimestamp) throws IOException {
                 throw new UnsupportedOperationException("Operation not supported in Mem profile");
             }
         };
@@ -88,8 +88,8 @@ public class MPipelineEnv  implements PipelineEnvironment{
     }
 
     @Override
-    public OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory(){
-        return oldestActiveTransactionTaskFactory;
+    public CoprocessorTaskFactory oldestActiveTransactionTaskFactory(){
+        return coprocessorTaskFactory;
     }
 
     @Override

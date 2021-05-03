@@ -18,6 +18,15 @@ import java.util.List;
 public class SpliceHFileUtil {
     private static final Logger LOG=Logger.getLogger(HFileUtil.class);
 
+    public static void clearCache() {
+        if (CacheConfig.GLOBAL_BLOCK_CACHE_INSTANCE instanceof LruBlockCache) {
+            ((LruBlockCache)CacheConfig.GLOBAL_BLOCK_CACHE_INSTANCE).clearCache();
+        } else if (CacheConfig.GLOBAL_BLOCK_CACHE_INSTANCE instanceof CombinedBlockCache) {
+            CombinedBlockCache cbc = (CombinedBlockCache) CacheConfig.GLOBAL_BLOCK_CACHE_INSTANCE;
+            cbc.onHeapCache.clearCache();
+        }
+    }
+
     public static int addStoreFileCutpoints(List<byte[]> cutpoints, HFile.Reader fileReader, long storeFileInBytes, int carry, Pair<byte[], byte[]> range, int splitBlockSize) throws IOException {
         HFileBlockIndex.BlockIndexReader indexReader = fileReader.getDataBlockIndexReader();
         int size = indexReader.getRootBlockCount();

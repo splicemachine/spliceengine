@@ -26,6 +26,7 @@ import org.apache.hadoop.hbase.client.IsolationLevel;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorException;
 import org.apache.hadoop.hbase.coprocessor.RegionServerCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionServerCoprocessorEnvironment;
+import org.apache.hadoop.hbase.io.hfile.SpliceHFileUtil;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.Region;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
@@ -67,6 +68,10 @@ public class SpliceRSRpcServices extends SpliceMessage.SpliceRSRpcServices imple
         return services;
     }
 
+    @Override
+    public void clearBlockCache(RpcController controller, SpliceMessage.Empty request, RpcCallback<SpliceMessage.Empty> callback) {
+        SpliceHFileUtil.clearCache();
+    }
 
     @Override
     public void getWALPositions(RpcController controller,

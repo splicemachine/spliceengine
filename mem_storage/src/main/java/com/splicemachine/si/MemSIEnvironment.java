@@ -19,10 +19,7 @@ import java.net.URISyntaxException;
 import java.nio.file.FileSystems;
 
 import com.splicemachine.access.api.*;
-import com.splicemachine.access.configuration.ConfigurationBuilder;
-import com.splicemachine.access.configuration.HConfigurationDefaultsList;
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.concurrent.ConcurrentTicker;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
@@ -55,7 +52,7 @@ public class MemSIEnvironment implements SIEnvironment{
     private final TimestampSource tsSource = new MemTimestampSource();
     private final TxnStore txnStore;
     private final PartitionFactory tableFactory;
-    private final OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory;
+    private final CoprocessorTaskFactory coprocessorTaskFactory;
     private final DataFilterFactory filterFactory = MFilterFactory.INSTANCE;
     private final SnowflakeFactory snowflakeFactory = MSnowflakeFactory.INSTANCE;
     private final OperationStatusFactory operationStatusFactory =MOpStatusFactory.INSTANCE;
@@ -77,9 +74,9 @@ public class MemSIEnvironment implements SIEnvironment{
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory,opFactory);
         this.kaScheduler = new ManualKeepAliveScheduler(txnStore);
         this.clock = clock;
-        this.oldestActiveTransactionTaskFactory = new OldestActiveTransactionTaskFactory() {
+        this.coprocessorTaskFactory = new CoprocessorTaskFactory() {
             @Override
-            public GetOldestActiveTransactionTask get(String hostName, int port, long startupTimestamp) throws IOException {
+            public GetOldestActiveTransactionTask getOldestActiveTransactionTask(String hostName, int port, long startupTimestamp) throws IOException {
                 throw new UnsupportedOperationException("Operation not supported in Mem profile");
             }
         };
@@ -136,8 +133,8 @@ public class MemSIEnvironment implements SIEnvironment{
     }
 
     @Override
-    public OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory(){
-        return oldestActiveTransactionTaskFactory;
+    public CoprocessorTaskFactory oldestActiveTransactionTaskFactory(){
+        return coprocessorTaskFactory;
     }
 
     @Override

@@ -14,17 +14,24 @@
 
 package com.splicemachine.si.data.hbase.coprocessor;
 
+import com.splicemachine.access.api.ClearBlockCacheTask;
 import com.splicemachine.access.api.GetOldestActiveTransactionTask;
-import com.splicemachine.access.api.OldestActiveTransactionTaskFactory;
+import com.splicemachine.access.api.CoprocessorTaskFactory;
 import org.apache.hadoop.hbase.ServerName;
 
 import java.io.IOException;
 
-public class HOldestActiveTransactionTaskFactory implements OldestActiveTransactionTaskFactory {
+public class HCoprocessorTaskFactory implements CoprocessorTaskFactory {
 
     @Override
-    public GetOldestActiveTransactionTask get(String hostName, int port, long startupTimestamp) throws IOException {
+    public GetOldestActiveTransactionTask getOldestActiveTransactionTask(String hostName, int port, long startupTimestamp) throws IOException {
         ServerName serverName = ServerName.valueOf(hostName, port, startupTimestamp);
         return new HGetOldestActiveTransactionTask(serverName);
+    }
+
+    @Override
+    public ClearBlockCacheTask clearBlockCacheTask(String hostName, int port, long startupTimestamp) throws IOException {
+        ServerName serverName = ServerName.valueOf(hostName, port, startupTimestamp);
+        return new HClearBlockCacheTask(serverName);
     }
 }

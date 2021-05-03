@@ -74,7 +74,7 @@ public class AdapterSIEnvironment implements SIEnvironment{
 
     private final TimestampSource timestampSource;
     private final PartitionFactory<TableName> partitionFactory;
-    private final OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory;
+    private final CoprocessorTaskFactory coprocessorTaskFactory;
     private final TxnStore txnStore;
     private final TxnSupplier txnSupplier;
     private final IgnoreTxnSupplier ignoreTxnSupplier;
@@ -116,7 +116,7 @@ public class AdapterSIEnvironment implements SIEnvironment{
         this.partitionFactory = new AdapterTableFactory(connectionPool);
         this.partitionFactory.initialize(clock, this.config, partitionCache);
         TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer(this.config);
-        this.oldestActiveTransactionTaskFactory = new HOldestActiveTransactionTaskFactory();
+        this.coprocessorTaskFactory = new HCoprocessorTaskFactory();
         this.opFactory =HOperationFactory.INSTANCE;
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory(),opFactory);
         this.ignoreTxnSupplier = new IgnoreTxnSupplierImpl(partitionFactory, txnOpFactory);
@@ -148,7 +148,7 @@ public class AdapterSIEnvironment implements SIEnvironment{
         this.partitionFactory = new AdapterTableFactory(connectionPool);
         this.partitionFactory.initialize(clock, this.config, partitionCache);
         TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer(this.config);
-        this.oldestActiveTransactionTaskFactory = new HOldestActiveTransactionTaskFactory();
+        this.coprocessorTaskFactory = new HCoprocessorTaskFactory();
         this.opFactory =HOperationFactory.INSTANCE;
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory(),opFactory);
         this.ignoreTxnSupplier = new IgnoreTxnSupplierImpl(partitionFactory, txnOpFactory);
@@ -179,8 +179,8 @@ public class AdapterSIEnvironment implements SIEnvironment{
     }
 
     @Override
-    public OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory(){
-        return oldestActiveTransactionTaskFactory;
+    public CoprocessorTaskFactory oldestActiveTransactionTaskFactory(){
+        return coprocessorTaskFactory;
     }
 
     @Override
