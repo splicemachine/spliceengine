@@ -47,6 +47,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
+
 
 /**
  * The strategy for the four types of exists subqueries this class will flatten:
@@ -102,7 +104,6 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
     private final int originalNestingLevel;
     private int flattenedCount = 0;
     private SubqueryNodeFactory nf;
-    private FromTable outerTableOfSubquery = null;
 
     public ExistsSubqueryFlatteningVisitor(int originalNestingLevel) {
         this.originalNestingLevel = originalNestingLevel;
@@ -380,6 +381,10 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
             FromTable outerFromTable =
                 getFromTableContainingOuterColumnReference(outerSelectNode.getFromList(),
                                                            outerColumnReference);
+            if (outerFromTable == null && outerSelectNode.getFromList().size() > 1) {
+                throw StandardException.newException(LANG_INTERNAL_ERROR,
+                     "Could not identify the outer table during NOT EXISTS correlated subquery flattening.");
+            }
 
             HalfOuterJoinNode outerJoinNode = nf.buildOuterJoinNode(outerSelectNode.getFromList(), fromSubquery, joinClause, outerFromTable);
 
@@ -392,12 +397,20 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
             /*
              * Insert the new FromSubquery into to origSelectNode's From list.
              */
-            if (outerColumnReference == null)
+            // For cases with multiple items in the FROM clause, remove the appropriate
+            // table, otherwise just clear the FROM list.
+            if (outerFromTable == null) {
                 outerSelectNode.getFromList().getNodes().clear();
-            else
+            }
+            else {
+                int originalSize = outerSelectNode.getFromList().size();
                 outerSelectNode.getFromList().removeElement(outerFromTable);
+                if (outerSelectNode.getFromList().size() == originalSize)
+                    throw StandardException.newException(LANG_INTERNAL_ERROR,
+                         "Did not properly process NOT EXISTS correlated subquery flattening.");
+            }
+
             outerSelectNode.getFromList().addFromTable(outerJoinNode);
-            // outerTableOfSubquery = outerJoinNode; // msirek-temp
         }
         return fromSubquery;
     }
@@ -410,15 +423,15 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
             FromTable table = (FromTable)fromList.elementAt(i);
             if (table.getTableNumber() == tableNumber)
                 return table;
-            if (table instanceof HalfOuterJoinNode) {
-                if (containsOuterTableNumber((HalfOuterJoinNode)table, tableNumber))
+            if (table instanceof JoinNode) {
+                if (containsOuterTableNumber((JoinNode)table, tableNumber))
                     return table;
             }
         }
         return null;
     }
 
-    boolean containsOuterTableNumber(HalfOuterJoinNode joinNode, int outerTableNumber) {
+    boolean containsOuterTableNumber(JoinNode joinNode, int outerTableNumber) {
         if (joinNode.getTableNumber() == outerTableNumber)
             return true;
         if (joinNode.getLeftResultSet() instanceof FromTable) {
@@ -426,7 +439,14 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
             if (leftFromTable.getTableNumber() == outerTableNumber)
                 return true;
             if (leftFromTable instanceof HalfOuterJoinNode)
-                return containsOuterTableNumber((HalfOuterJoinNode)leftFromTable, outerTableNumber);
+                return containsOuterTableNumber((JoinNode)leftFromTable, outerTableNumber);
+        }
+        else if (joinNode.getRightResultSet() instanceof FromTable) {
+            FromTable rightFromTable = (FromTable)joinNode.getLeftResultSet();
+            if (rightFromTable.getTableNumber() == outerTableNumber)
+                return true;
+            if (rightFromTable instanceof JoinNode)
+                return containsOuterTableNumber((JoinNode)rightFromTable, outerTableNumber);
         }
         return false;
     }

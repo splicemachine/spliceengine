@@ -618,6 +618,21 @@ public class Subquery_Flattening_NotExists_IT {
                 " 3 |30 | 3 |30 |\n" +
                 " 6 |60 | 6 |60 |");
 
+        // 2 outer tables, one which is a JoinNode.  two subquery tables
+        sql = "select * from C CC, A join B on a1=b1 where CC.c1 > B.b1+5 and NOT exists (select 1 from C join D on c1=d1 where a1=c1)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
+                "C1 |C2  |A1 |A2 |B1 |B2 |\n" +
+                "-------------------------\n" +
+                "10 |100 | 2 |20 | 2 |20 |\n" +
+                "10 |100 | 3 |30 | 3 |30 |\n" +
+                "11 |110 | 2 |20 | 2 |20 |\n" +
+                "11 |110 | 2 |20 | 2 |20 |\n" +
+                "11 |110 | 2 |20 | 2 |20 |\n" +
+                "11 |110 | 3 |30 | 3 |30 |\n" +
+                "11 |110 | 3 |30 | 3 |30 |\n" +
+                "11 |110 | 3 |30 | 3 |30 |\n" +
+                " 8 |80  | 2 |20 | 2 |20 |");
+
         // different two outer tables, right join
         sql = "select * from A right join D on a1=d1 where NOT exists (select 1 from C join B on c1=b1 where a1=c1)";
         assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
@@ -673,7 +688,7 @@ public class Subquery_Flattening_NotExists_IT {
 
         // two outer tables, two subquery queries
         sql = "select * from A, B where a1=b1 and b2 > 20 and NOT exists (select 1 from C,D where c1=d1 and a1=d1)";
-        assertUnorderedResult(conn(), sql, 1, "" +
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
                 "A1 |A2 |B1 |B2 |\n" +
                 "----------------\n" +
                 " 3 |30 | 3 |30 |\n" +
