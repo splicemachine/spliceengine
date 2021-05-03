@@ -85,7 +85,7 @@ public class V2BroadcastJoinCostEstimation implements StrategyJoinCostEstimation
             double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
             double joinSelectivityWithSearchConditionsOnly = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.HASH_SEARCH);
             double totalJoinedRows = SelectivityUtil.getTotalRows(joinSelectivityWithSearchConditionsOnly, outerCost.rowCount(), innerCost.rowCount());
-            int[] hashKeyColumns = HashableJoinStrategy.findHashKeyColumns(innerTable, cd, predList, optimizer.getAssignedTableMap());
+            int[] hashKeyColumns = HashableJoinStrategy.findHashKeyColumns(innerTable, innerTable.isBaseTable() ? cd : null, predList, optimizer.getAssignedTableMap());
             int innerHashKeyColCount = hashKeyColumns == null ? 0 : hashKeyColumns.length;
             double joinCost = broadcastJoinStrategyLocalCost(innerCost, outerCost, totalJoinedRows, innerHashKeyColCount);
             innerCost.setLocalCost(joinCost);
