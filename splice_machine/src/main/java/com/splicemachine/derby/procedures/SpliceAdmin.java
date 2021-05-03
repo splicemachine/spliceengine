@@ -43,7 +43,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.drda.RemoteUser;
 import com.splicemachine.db.impl.jdbc.*;
-import com.splicemachine.db.impl.jdbc.ResultSetBuilder.RowBuilder;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.GenericActivationHolder;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
@@ -421,17 +420,12 @@ public class SpliceAdmin extends BaseAdminProcedures {
         boolean matchName=(configRoot!=null && !configRoot.isEmpty());
         int hostIdx=0;
         String hostName;
-        ResultSetBuilder rsBuilder;
-        RowBuilder rowBuilder;
 
         try{
-            rsBuilder=new ResultSetBuilder();
-            rsBuilder.getColumnBuilder()
-                    .addColumn("HOST_NAME",Types.VARCHAR,32)
-                    .addColumn("CONFIG_NAME",Types.VARCHAR,128)
-                    .addColumn("CONFIG_VALUE",Types.VARCHAR,128);
-
-            rowBuilder=rsBuilder.getRowBuilder();
+            ResultHelper res = new ResultHelper();
+            ResultHelper.VarcharColumn colHostname = res.addVarchar("HOST_NAME", 32);
+            ResultHelper.VarcharColumn colConfigName = res.addVarchar("CONFIG_NAME", 32);
+            ResultHelper.VarcharColumn colConfigValue = res.addVarchar("CONFIG_VALUE", 32);
             // We arbitrarily pick DatabaseVersion MBean even though
             // we do not fetch anything from it. We just use it as our
             // mechanism for our region server context.
@@ -450,15 +444,15 @@ public class SpliceAdmin extends BaseAdminProcedures {
                 // Iterate through sorted configs and add to result set
                 Set<Entry<String, String>> configSet=configMap.entrySet();
                 for(Entry<String, String> configEntry : configSet){
-                    rowBuilder.getDvd(0).setValue(hostName);
-                    rowBuilder.getDvd(1).setValue(configEntry.getKey());
-                    rowBuilder.getDvd(2).setValue(configEntry.getValue());
-                    rowBuilder.addRow();
+                    res.newRow();
+                    colHostname.set(hostName);
+                    colConfigName.set(configEntry.getKey());
+                    colConfigValue.set(configEntry.getValue());
                 }
                 hostIdx++;
             }
 
-            resultSet[0]=rsBuilder.buildResultSet((EmbedConnection)getDefaultConn());
+            resultSet[0] = res.getResultSet();
 
             configMap.clear();
 
@@ -1050,35 +1044,24 @@ public class SpliceAdmin extends BaseAdminProcedures {
     @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
     public static void SYSCS_GET_GLOBAL_DATABASE_PROPERTY(final String key,final ResultSet[] resultSet) throws SQLException{
 
-        List<ExecRow> rows = new ArrayList<>();
+        ResultHelper res = new ResultHelper();
+        ResultHelper.VarcharColumn colHostname = res.addVarchar("HOST_NAME", 120);
+        ResultHelper.VarcharColumn colProperty = res.addVarchar("PROPERTY_VALUE", 120);
+
         executeOnAllServers( (server, connection) -> {
                 try (PreparedStatement ps = connection.prepareStatement("values SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY(?)")) {
                     ps.setString(1, key);
                     try (ResultSet rs = ps.executeQuery()) {
                         while (rs.next()) {
-                            ExecRow row = new ValueRow(2);
-                            row.setColumn(1, new SQLVarchar(server.toString()));
-                            row.setColumn(2, new SQLVarchar(rs.getString(1)));
-                            rows.add(row);
+                            res.newRow();
+                            colHostname.set((server.toString()));
+                            colProperty.set(rs.getString(1));
                         }
                     }
                 }
             } );
 
-        GenericColumnDescriptor[] descriptors = {
-                new GenericColumnDescriptor("HOST_NAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
-                new GenericColumnDescriptor("PROPERTY_VALUE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
-        };
-
-        EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, descriptors, lastActivation);
-        try {
-            resultsToWrap.openCore();
-        } catch (StandardException se) {
-            throw PublicAPI.wrapStandardException(se);
-        }
-        resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+        resultSet[0] = res.getResultSet();
     }
 
     public static void SYSCS_SET_GLOBAL_DATABASE_PROPERTY(final String key, final String value,
@@ -1438,31 +1421,20 @@ public class SpliceAdmin extends BaseAdminProcedures {
     public static void SYSCS_GET_SESSION_INFO(final ResultSet[] resultSet) throws SQLException{
         EmbedConnection conn = (EmbedConnection)getDefaultConn();
         LanguageConnectionContext lcc = conn.getLanguageConnection();
-        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-
-        int sessionNumber = lcc.getInstanceNumber();
 
         SConfiguration config=EngineDriver.driver().getConfiguration();
         String hostname = NetworkUtils.getHostname(config);
         int port = config.getNetworkBindPort();
+        int sessionNumber = lcc.getInstanceNumber();
 
-        List<ExecRow> rows = new ArrayList<>(1);
-        ExecRow row = new ValueRow(2);
-        row.setColumn(1, new SQLVarchar(hostname + ":" + port));
-        row.setColumn(2, new SQLInteger(sessionNumber));
-        rows.add(row);
+        ResultHelper res = new ResultHelper();
+        ResultHelper.VarcharColumn colHostname = res.addVarchar("HOSTNAME", 120);
+        ResultHelper.IntegerColumn colSession = res.addInteger("SESSION");
+        res.newRow();
+        colHostname.set(hostname + ":" + port);
+        colSession.set(sessionNumber);
 
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, new GenericColumnDescriptor[]{
-                new GenericColumnDescriptor("HOSTNAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
-                new GenericColumnDescriptor("SESSION", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
-        },
-                lastActivation);
-        try {
-            resultsToWrap.openCore();
-        } catch (StandardException se) {
-            throw PublicAPI.wrapStandardException(se);
-        }
-        resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+        resultSet[0] = res.getResultSet();
     }
 
     public static void SYSCS_GET_OLDEST_ACTIVE_TRANSACTION(ResultSet[] resultSet) throws SQLException{
