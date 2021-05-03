@@ -81,18 +81,12 @@ class ExistsSubqueryPredicate implements splice.com.google.common.base.Predicate
         }
         SelectNode subquerySelectNode = (SelectNode) subqueryResultSet;
 
-        /* Don't currently do NOT-EXISTS flattening when the outer select's fromList has multiple elements. If there
-         * are multiple tables under a single join node in the FromList ok, but multiple elements in the FromList
-         * is not currently supported. This just because I haven't yet figured out how to put multiple FromList elements
-         * under the left side of the left join node we add for not-exists flattening.
+        /* NOT-EXISTS flattening is now supported when the outer select's fromList has multiple elements.
          *
-         * OK           : select * from A join B where not exists....
-         * NOT FLATTENED: select * from A,B where not exists...
+         * OK : select * from A join B where not exists....
+         * OK : select * from A,B where not exists...
          *
          * */
-//        if (notExistsSubquery && outerSelectNode.getFromList().size() > 1) {
-//            return false;
-//        }  // msirek-temp
         boolean multipleOuterTables = outerSelectNode.getFromList().size() > 1;
 
         /* Must be directly under an And in predicates */

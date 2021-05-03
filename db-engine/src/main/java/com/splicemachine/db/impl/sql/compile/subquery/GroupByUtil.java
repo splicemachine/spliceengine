@@ -43,6 +43,7 @@ import java.util.List;
 
 import static com.splicemachine.db.iapi.sql.compile.C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE;
 import static com.splicemachine.db.impl.sql.compile.AndNode.newAndNode;
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
 public class GroupByUtil {
 
@@ -95,7 +96,7 @@ public class GroupByUtil {
                 CorrelatedColRefCollectingVisitor correlatedColRefCollectingVisitor
                     = new CorrelatedColRefCollectingVisitor<>(1, outerNestingLevel);
                 bro.accept(correlatedColRefCollectingVisitor);
-                if (correlatedColRefCollectingVisitor.getCollected().isEmpty())  // msirek-temp
+                if (correlatedColRefCollectingVisitor.getCollected().isEmpty())
                     throw new IllegalArgumentException("Did not find correlated column ref on either side of BRON");
                 else {
                         ColumnReference leftColRef, rightColRef, correlatedColumnReference;
@@ -105,8 +106,12 @@ public class GroupByUtil {
                         rightColRef = (ColumnReference)correlatedColumnReference.getClone();
 
 
-                        FromTable fromTable = outerSelectNode.getFromList().
-                                           getFromTableByName(correlatedColumnReference.getTableName(),correlatedColumnReference.getSchemaName(), true) ;
+                        FromTable fromTable;
+                        String tableName = correlatedColumnReference.getTableName();
+                        String schemaName = correlatedColumnReference.getSchemaName();
+                        fromTable = outerSelectNode.getFromList().
+                                             getFromTableByName(correlatedColumnReference.getTableName(),
+                                                                correlatedColumnReference.getSchemaName(), true);
                         if (fromTable instanceof FromBaseTable) {
                             FromBaseTable fromBaseTable = (FromBaseTable)fromTable;
                             FromBaseTable pushedFromBaseTable = fromBaseTable.shallowClone();
@@ -116,24 +121,28 @@ public class GroupByUtil {
                             rightColRef = (ColumnReference) outerSelectNode.bindExtraExpressions(rightColRef);
                             outerColumnReference = rightColRef;
                             BinaryRelationalOperatorNode bron =
-                            (BinaryRelationalOperatorNode)
-                            leftColRef.getNodeFactory().getNode(
-                                BINARY_EQUALS_OPERATOR_NODE,
-                                leftColRef,
-                                rightColRef,
-                                leftColRef.getContextManager());
+                                (BinaryRelationalOperatorNode)
+                                leftColRef.getNodeFactory().getNode(
+                                    BINARY_EQUALS_OPERATOR_NODE,
+                                    leftColRef,
+                                    rightColRef,
+                                    leftColRef.getContextManager());
 
                             // Append new predicate to correlatedSubqueryPredsD as we need
-                            // to process them in the same manner as with correlated subqueries
-                            // with equality join conditions.
+                            // to process the generated equality condition in the same manner
+                            // as in subqueries with correlated equality join conditions.
                             correlatedSubqueryPreds.add(bron);
 
                             AndNode andNode = newAndNode(bro, false);
                             andNode = (AndNode)subquerySelectNode.bindExtraExpressions(andNode);
                             appendAndConditionToWhereClause(subquerySelectNode, andNode);
-                        }
 
-                        addGroupByNodes(subquerySelectNode, correlatedColumnReference);
+                            addGroupByNodes(subquerySelectNode, leftColRef);
+                        }
+                        else {
+                            throw StandardException.newException(LANG_INTERNAL_ERROR,
+                                "Unable to build new predicate during subquery flattening.");
+                        }
                 }
             }
         }

@@ -45,13 +45,20 @@ public class CorrelatedColRefCollectingVisitor<T> extends ColumnCollectingVisito
                 if (!colRef.getCorrelated())
                     continue;
                 if (colRef.getSourceLevel() != sourceLevel) {
-                    if (colRef.getSourceLevel() == sourceLevel+1) // msirek-temp
+                    // Allow any number of column references at the subquery
+                    // level, but no other level.
+                    if (colRef.getSourceLevel() == sourceLevel+1)
                         continue;
                     correlatedColumns.clear();
                     done = true;
                     break;
                 }
                 if (correlatedColumns.size() == maxAllowableHits) {
+                    correlatedColumns.clear();
+                    done = true;
+                    break;
+                }
+                else if (colRef.getTableNameNode() == null) {
                     correlatedColumns.clear();
                     done = true;
                     break;

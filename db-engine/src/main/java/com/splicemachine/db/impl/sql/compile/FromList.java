@@ -273,6 +273,24 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
     }
 
     /**
+     * Find the FromTable with a given table number
+     *
+     * @param tableNumber       The table number to search for
+     * @return The FromTable, if any, with the specified table number
+     * @throws StandardException Thrown on error
+     */
+    public FromTable getFromTableByTableNumber(int tableNumber) {
+        int size=size();
+        for(int index=0;index<size;index++){
+            FromTable fromTable=(FromTable)elementAt(index);
+
+            if (tableNumber == fromTable.getTableNumber())
+                return fromTable;
+        }
+        return null;
+    }
+
+    /**
      * Go through the list of the tables and see if the passed ResultColumn
      * is a join column for a right outer join with USING/NATURAL clause.
      *
