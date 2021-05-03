@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2021 Splice Machine, Inc.
+ * Copyright (c) 2021 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -10,7 +10,6 @@
  * See the GNU Affero General Public License for more details.
  * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
  * If not, see <http://www.gnu.org/licenses/>.
- *
  */
 
 package com.splicemachine.qpt;
@@ -67,7 +66,7 @@ public class SQLTokenizer {
 
     public static class Token {
         public int      value;
-        public String string;
+        public String   string;
 
         Token(int v, String s) {
             this.value = v;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2021 Splice Machine, Inc.
+ * Copyright (c) 2021 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -10,7 +10,6 @@
  * See the GNU Affero General Public License for more details.
  * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
  * If not, see <http://www.gnu.org/licenses/>.
- *
  */
 
 package com.splicemachine.qpt;
@@ -22,9 +21,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class SQLSignature {
 
-    private static ConcurrentHashMap<Long, SQLSignature> signatures = new ConcurrentHashMap<>();
+    private static ConcurrentHashMap<Long,SQLSignature> signatures = new ConcurrentHashMap<>();
 
-    private String id;
+    private String      id;
     private Token[]     tokens;
     private long        hashCode;
 
@@ -81,8 +80,6 @@ public class SQLSignature {
                 case SQLTokenizer.TOKEN_UPDATE:
                 case SQLTokenizer.TOKEN_INSERT:
                 case SQLTokenizer.TOKEN_DELETE:
-                case SQLTokenizer.TOKEN_OPTIMIZE:
-                case SQLTokenizer.TOKEN_FETCH:
                     allowParameters = false;
                     break;
                 case SQLTokenizer.TOKEN_BY:
@@ -90,8 +87,12 @@ public class SQLSignature {
                         allowParameters = false;
                     }
                     break;
-                default:
+                case SQLTokenizer.TOKEN_OPTIMIZE:
+                case SQLTokenizer.TOKEN_FETCH:
+                    allowParameters = false;
                     break;
+                default:
+                    // fallthrough
             }
 
             if (isExcluded(token) && allowParameters) {
@@ -102,7 +103,7 @@ public class SQLSignature {
                 }
                 else if (token.value == SQLTokenizer.TOKEN_STRINGS) {
                     if (prevToken != SQLTokenizer.TOKEN_PIPED && nextToken != SQLTokenizer.TOKEN_PIPED &&
-                        prevToken != SQLTokenizer.TOKEN_CONCAT && nextToken != SQLTokenizer.TOKEN_CONCAT) {
+                            prevToken != SQLTokenizer.TOKEN_CONCAT && nextToken != SQLTokenizer.TOKEN_CONCAT) {
                         token = parameter;
                     }
                 }
