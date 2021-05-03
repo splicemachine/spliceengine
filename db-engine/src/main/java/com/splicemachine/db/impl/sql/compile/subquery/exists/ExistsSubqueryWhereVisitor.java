@@ -181,7 +181,7 @@ class ExistsSubqueryWhereVisitor implements Visitor {
                 ColumnReference firstColumn = correlatedColumnReferences.get(0);
                 TableName tableName = firstColumn.getTableNameNode();
                 for (int i = 1; i < correlatedColumnReferences.size(); i++) {
-                    if (!correlatedColumnReferences.get(i).equals(tableName))
+                    if (!correlatedColumnReferences.get(i).getTableNameNode().equals(tableName))
                         return true;
                 }
             }
