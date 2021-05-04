@@ -31,7 +31,9 @@
 package com.splicemachine.db.impl.sql.conn;
 
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
+import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.util.StringUtil;
+import org.apache.zookeeper.txn.Txn;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -135,9 +137,15 @@ public class SessionPropertiesImpl implements SessionProperties {
             case JOINCOSTESTIMATIONMODEL:
                 properties[JOINCOSTESTIMATIONMODEL.getId()] = valString;
                 break;
+            case ISOLATIONLEVEL:
+                String isolationLevel = parseIsolationLevel(valString);
             default:
                 assert false;
         }
+    }
+
+    private String parseIsolationLevel(String valString) {
+        Transaction.KEEP_LOCKS
     }
 
     /**

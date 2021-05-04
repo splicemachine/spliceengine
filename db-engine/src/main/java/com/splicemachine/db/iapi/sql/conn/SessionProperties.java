@@ -62,7 +62,8 @@ public interface SessionProperties {
         ALWAYSALLOWINDEXPREFIXITERATION(17),
         OLAPALWAYSPENALIZENLJ(18),
         FAVORINDEXPREFIXITERATION(19),
-        JOINCOSTESTIMATIONMODEL(20);
+        JOINCOSTESTIMATIONMODEL(20),
+        ISOLATIONLEVEL(21);
 
         public static final int COUNT = PROPERTYNAME.values().length;
 
@@ -96,7 +97,7 @@ public interface SessionProperties {
             property = SessionProperties.PROPERTYNAME.valueOf(propertyNameString);
         } catch (IllegalArgumentException e) {
             throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY,propertyNameString,
-                "useOLAP, useSpark (deprecated), defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit, tableLimitForExhaustiveSearch, minPlanTimeout, currentFunctionPath, disablePredsForIndexOrPkAccessPath, alwaysAllowIndexPrefixIteration, olapAlwaysPenalizeNLJ, favorIndexPrefixIteration,joincostEstimationModel");
+                "useOLAP, useSpark (deprecated), defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit, tableLimitForExhaustiveSearch, minPlanTimeout, currentFunctionPath, disablePredsForIndexOrPkAccessPath, alwaysAllowIndexPrefixIteration, olapAlwaysPenalizeNLJ, favorIndexPrefixIteration,joincostEstimationModel, isolationLevel");
         }
 
         String valString = pair.getSecond();
@@ -160,6 +161,8 @@ public interface SessionProperties {
                 if(!JoinCostEstimationModelRegistry.exists(valString)) {
                     throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, String.format("value should be one of %s", JoinCostEstimationModelRegistry.modelNames()));
                 }
+                break;
+            case ISOLATIONLEVEL: // fallthrough
             default:
                 break;
         }

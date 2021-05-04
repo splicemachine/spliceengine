@@ -15,15 +15,18 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.sql.Driver;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -257,6 +260,8 @@ public class TransactionImpl extends BaseTransaction {
                         txn=lifecycleManager.beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(),additive,table);
                     else
                         txn=lifecycleManager.beginTransaction();
+                    ConnectionUtil.getCurrentLCC().getPrepareIsolationLevel()
+
 
                     txnStack.push(new TransactionState(transName,txn));
                     state=ACTIVE;

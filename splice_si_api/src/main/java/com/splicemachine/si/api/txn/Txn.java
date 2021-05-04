@@ -348,6 +348,8 @@ public interface Txn extends TxnView{
             public String toHumanFriendlyString(){
                 return "READ UNCOMMITTED";
             }
+
+            public boolean isSupported() { return true; }
         },
         READ_COMMITTED(2){
             @Override
@@ -364,6 +366,8 @@ public interface Txn extends TxnView{
             public String toHumanFriendlyString(){
                 return "READ COMMITTED";
             }
+
+            public boolean isSupported() { return true; }
         },
         SNAPSHOT_ISOLATION(3){
             @Override
@@ -412,6 +416,18 @@ public interface Txn extends TxnView{
             }
         }
 
+        public static IsolationLevel fromString(String val) {
+            if(SNAPSHOT_ISOLATION.toHumanFriendlyString().equalsIgnoreCase(val)) {
+                return SNAPSHOT_ISOLATION;
+            } else if (READ_COMMITTED.toHumanFriendlyString().equalsIgnoreCase(val)) {
+                return READ_COMMITTED;
+            } else if (READ_UNCOMMITTED.toHumanFriendlyString().equalsIgnoreCase(val)) {
+                return READ_UNCOMMITTED;
+            } else {
+                throw new IllegalArgumentException(String.format("Cannot parse isolation level from %s", val));
+            }
+        }
+
         public byte encode(){
             return (byte)level;
         }
@@ -419,6 +435,8 @@ public interface Txn extends TxnView{
         public String toHumanFriendlyString(){
             throw new AbstractMethodError();
         }
+
+        public boolean isSupported() { return true; }
     }
 
     /**
