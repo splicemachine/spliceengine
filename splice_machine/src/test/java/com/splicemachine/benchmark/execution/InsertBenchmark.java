@@ -1,22 +1,22 @@
 package com.splicemachine.benchmark.execution;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.Benchmark;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
-import org.junit.After;
 import org.junit.Before;
-import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import static org.junit.Assert.assertTrue;
+import static java.lang.String.format;
 
 @Category(Benchmark.class)
 @RunWith(Parameterized.class)
@@ -25,20 +25,24 @@ public class InsertBenchmark extends ExecutionBenchmark {
 
     private final int numTableColumns;
     private final int numIndexTables;
-    private final int tableSize;
+    private final int dataSize;
     private final boolean onOlap;
 
     private final String tableDefStr;
     private final String indexDefStr;
     private final String insertParamStr;
 
-    @ClassRule
+    public static SpliceWatcher spliceWatcher = new SpliceWatcher(SCHEMA);
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
-    public InsertBenchmark(int numTableColumns, int numIndexColumns, int numIndexTables, int tableSize, boolean onOlap) {
+    @Rule
+    public TestRule chain = RuleChain.outerRule(spliceWatcher)
+        .around(spliceSchemaWatcher);
+
+    public InsertBenchmark(int numTableColumns, int numIndexColumns, int numIndexTables, int dataSize, boolean onOlap) {
         this.numTableColumns = Math.max(numTableColumns, 1);
         this.numIndexTables = numIndexTables;
-        this.tableSize = tableSize;
+        this.dataSize = dataSize;
         this.onOlap = onOlap;
 
         int realIndexColumns = Math.max(Math.min(numIndexColumns, numTableColumns), 1);
@@ -52,51 +56,39 @@ public class InsertBenchmark extends ExecutionBenchmark {
     public void setUp() throws Exception {
         getInfo();
 
-        LOG.info("Create tables");
-        testConnection = makeConnection(spliceSchemaWatcher, onOlap);
-        testStatement = testConnection.createStatement();
-        testStatement.execute("CREATE TABLE " + BASE_TABLE + tableDefStr);
+        LOG.info("Setup connection and creating tables");
+        spliceWatcher.setConnection(spliceWatcher.connectionBuilder().useOLAP(false).schema(SCHEMA).build());
+        spliceWatcher.execute("CREATE TABLE " + BASE_TABLE + tableDefStr);
+
+        createIndexes(spliceWatcher, numIndexTables, indexDefStr);
     }
 
-    @After
-    public void tearDown() throws Exception {
-        testStatement.execute("DROP TABLE " + BASE_TABLE);
-        testStatement.close();
-        testConnection.close();
-    }
-
-    private void benchmark(int numIndexTables, boolean isBatch, boolean onOlap) {
-        createIndexes(numIndexTables, indexDefStr);
-
-        try (Connection conn = makeConnection(spliceSchemaWatcher, onOlap)) {
+    private void benchmark(boolean isBatch) {
+        try {
             // warmup
-            if (isBatch) runBatchInserts(true, conn);
-            else runInserts(true, conn);
+            if (isBatch)
+                runBatchInserts(true, curSize.getAndAdd(dataSize));
+            else
+                runInserts(true, curSize.getAndAdd(dataSize));
 
-
-            if (isBatch) runBatchInserts(false, conn);
-            else runInserts(false, conn);
-        }
-        catch (Throwable t) {
-            LOG.error("Connection broken", t);
+            if (isBatch)
+                runBatchInserts(false, curSize.getAndAdd(dataSize));
+            else
+                runInserts(false, curSize.getAndAdd(dataSize));
+        } catch (SQLException e) {
+            LOG.error("Error occurs while initializing test connection", e);
         }
     }
 
-    private void refreshTableState() throws SQLException {
-        testStatement.execute(String.format("call syscs_util.syscs_flush_table('%s', '%s')", SCHEMA, BASE_TABLE));
-        try (ResultSet rs = testStatement.executeQuery("ANALYZE SCHEMA " + SCHEMA)) {
-            assertTrue(rs.next());
-        }
-        testStatement.execute("call SYSCS_UTIL.VACUUM()");
-    }
+    private void runInserts(boolean warmup, int concurrency) throws SQLException {
+        spliceWatcher.setConnection(spliceWatcher.connectionBuilder().useOLAP(onOlap).schema(SCHEMA).build());
 
-    private void runInserts(boolean warmup, Connection conn) {
-        try (PreparedStatement insert1 = conn.prepareStatement("INSERT INTO " + BASE_TABLE + insertParamStr)) {
+        try (PreparedStatement insert1 = spliceWatcher.prepareStatement("INSERT INTO " + BASE_TABLE + insertParamStr)) {
             for (int i = 0; i < ExecutionBenchmark.NUM_WARMUP_RUNS; ++i) {
-                refreshTableState();
+                refreshTableState(spliceWatcher, SCHEMA);
 
                 long start = System.currentTimeMillis();
-                for (int j = 0; j < tableSize; ++j) {
+                for (int j = concurrency; j < concurrency + dataSize; ++j) {
                     for (int k = 1; k <= numTableColumns; ++k) {
                         insert1.setInt(k, j);
                     }
@@ -105,7 +97,7 @@ public class InsertBenchmark extends ExecutionBenchmark {
                 long end = System.currentTimeMillis();
 
                 if (!warmup) {
-                    updateStats(STAT_INSERT, tableSize, end - start);
+                    updateStats(STAT_INSERT, dataSize, end - start);
                 }
             }
         }
@@ -114,15 +106,16 @@ public class InsertBenchmark extends ExecutionBenchmark {
         }
     }
 
-    private void runBatchInserts(boolean warmup, Connection conn) {
-        int batchSize = Math.min(tableSize, 1000);
+    private void runBatchInserts(boolean warmup, int concurrency) throws SQLException {
+        int batchSize = Math.min(dataSize, 1000);
+        spliceWatcher.setConnection(spliceWatcher.connectionBuilder().useOLAP(onOlap).schema(SCHEMA).build());
 
-        try (PreparedStatement insert1 = conn.prepareStatement("INSERT INTO " + BASE_TABLE + insertParamStr)) {
+        try (PreparedStatement insert1 = spliceWatcher.prepareStatement("INSERT INTO " + BASE_TABLE + insertParamStr)) {
             for (int t = 0; t < ExecutionBenchmark.NUM_WARMUP_RUNS; ++t) {
-                refreshTableState();
+                refreshTableState(spliceWatcher, SCHEMA);
 
-                for (int k = 0; k < tableSize / batchSize; ++k) {
-                    for (int i = k * batchSize; i < (k + 1) * batchSize; ++i) {
+                for (int k = 0; k < dataSize / batchSize; ++k) {
+                    for (int i = concurrency + k * batchSize; i < concurrency + (k + 1) * batchSize; ++i) {
                         for (int j = 1; j <= numTableColumns; ++j) {
                             insert1.setInt(j, i);
                         }
@@ -197,12 +190,12 @@ public class InsertBenchmark extends ExecutionBenchmark {
     @Test
     public void insertIntoIndexedTable() throws Exception {
         LOG.info("insert");
-        runBenchmark(1, () -> benchmark(numIndexTables, false, onOlap));
+        runBenchmark(1, () -> benchmark(false));
     }
 
     @Test
     public void insertBatchIntoIndexedTable() throws Exception {
         LOG.info("insert-batch");
-        runBenchmark(1, () -> benchmark(numIndexTables, true, onOlap));
+        runBenchmark(1, () -> benchmark(true));
     }
 }

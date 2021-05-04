@@ -1,23 +1,23 @@
 package com.splicemachine.benchmark.execution;
 
-import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.Benchmark;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.After;
 import org.junit.Before;
-import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import static java.lang.String.format;
 import static org.junit.Assert.assertTrue;
 
 @Category(Benchmark.class)
@@ -33,7 +33,7 @@ public class UpdateBenchmark extends ExecutionBenchmark {
 
     private final int numTableColumns;
     private final int numIndexTables;
-    private final int tableSize;
+    private final int dataSize;
     private final boolean onOlap;
 
     private final int batchSize;
@@ -43,13 +43,13 @@ public class UpdateBenchmark extends ExecutionBenchmark {
     private final String insertParamStr;
     private final String updateParamStr;
 
-    public UpdateBenchmark(int numTableColumns, int numIndexColumns, int numIndexTables, int tableSize,
+    public UpdateBenchmark(int numTableColumns, int numIndexColumns, int numIndexTables, int dataSize,
         boolean onOlap) {
         this.numTableColumns = Math.max(numTableColumns, 1);
         this.numIndexTables = numIndexTables;
-        this.tableSize = tableSize;
+        this.dataSize = dataSize;
         this.onOlap = onOlap;
-        this.batchSize = Math.min(tableSize, 1000);
+        this.batchSize = Math.min(dataSize, 1000);
 
         int realIndexColumns = Math.max(Math.min(numIndexColumns, numTableColumns), 1);
 
@@ -69,46 +69,38 @@ public class UpdateBenchmark extends ExecutionBenchmark {
     public void setUp() throws Exception {
         getInfo();
 
-        LOG.info("Create tables");
-        testConnection = makeConnection(spliceSchemaWatcher, false);
-        testStatement = testConnection.createStatement();
-        testStatement.execute("CREATE TABLE " + BASE_TABLE + tableDefStr);
+        LOG.info("Setup connection and creating tables");
+        spliceWatcher.setConnection(spliceWatcher.connectionBuilder().useOLAP(false).schema(SCHEMA).build());
+        spliceWatcher.execute("CREATE TABLE " + BASE_TABLE + tableDefStr);
 
-        createIndexes(numIndexTables, indexDefStr);
+        createIndexes(spliceWatcher, numIndexTables, indexDefStr);
 
+        LOG.info("Populating tables");
         curSize.set(0);
-        runBenchmark(NUM_CONNECTIONS, () -> populateTables(spliceSchemaWatcher, tableSize, curSize, batchSize, numTableColumns, insertParamStr));
+        runBenchmark(NUM_CONNECTIONS, () -> populateTables(spliceWatcher, dataSize, batchSize, numTableColumns, insertParamStr, curSize.addAndGet(dataSize)));
 
-        testStatement.execute(String.format("call syscs_util.syscs_flush_table('%s', '%s')", SCHEMA, BASE_TABLE));
-        LOG.info("Collect statistics");
-        try (ResultSet rs = testStatement.executeQuery("ANALYZE SCHEMA " + SCHEMA)) {
-            assertTrue(rs.next());
-        }
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        testStatement.execute("DROP TABLE " + BASE_TABLE);
-        testStatement.close();
-        testConnection.close();
+        refreshTableState(spliceWatcher, SCHEMA);
     }
 
     private void benchmark(boolean singleRowUpdate) {
+        int concurrency = curSize.getAndAdd(dataSize);
         String sqlText = String.format("UPDATE %s SET %s = %s WHERE col_0 = ?",
             BASE_TABLE,
             updateDefStr,
             updateParamStr);
 
-        try (Connection conn = makeConnection(spliceSchemaWatcher, true)) {
-            try (PreparedStatement query = conn.prepareStatement(sqlText)) {
+        try {
+            spliceWatcher.setConnection(spliceWatcher.connectionBuilder().useOLAP(onOlap).schema(SCHEMA).build());
+
+            try (PreparedStatement query = spliceWatcher.prepareStatement(sqlText)) {
                 for (int i = 0; i < NUM_WARMUP_RUNS; ++i) {
                     if (singleRowUpdate) {
-                        for (int k = 0; k < tableSize; k++) {
+                        for (int k = concurrency; k < concurrency + dataSize; k++) {
                             executeUpdate(true, query, 0, 1);
                         }
                     }
                     else {
-                        for (int k = 0; k < tableSize; k++) {
+                        for (int k = concurrency; k < concurrency + dataSize; k++) {
                             executeUpdate(true, query, 0, k);
                         }
                     }
@@ -116,19 +108,23 @@ public class UpdateBenchmark extends ExecutionBenchmark {
 
                 for (int i = 0; i < ExecutionBenchmark.NUM_EXECS; ++i) {
                     if (singleRowUpdate) {
-                        for (int k = 0; k < tableSize; k++) {
+                        for (int k = concurrency; k < concurrency + dataSize; k++) {
                             executeUpdate(false, query, i, 1);
                         }
-                    } else {
-                        for (int k = 0; k < tableSize; k++) {
+                    }
+                    else {
+                        for (int k = concurrency; k < concurrency + dataSize; k++) {
                             executeUpdate(false, query, i, k);
                         }
                     }
                 }
+
             }
-        }
-        catch (Throwable t) {
-            LOG.error("Connection broken", t);
+            catch (Throwable t) {
+                LOG.error("Connection broken", t);
+            }
+        } catch (SQLException e) {
+            LOG.error("Error occurs while initializing test connection", e);
         }
     }
 
@@ -201,12 +197,12 @@ public class UpdateBenchmark extends ExecutionBenchmark {
     @Test
     public void updateSingleRow() throws Exception {
         LOG.info("update-single-row");
-        runBenchmark(1, () -> benchmark(onOlap));
+        runBenchmark(1, () -> benchmark(true));
     }
 
     @Test
     public void updateAllRows() throws Exception {
         LOG.info("update-multiple-rows");
-        runBenchmark(1, () -> benchmark(onOlap));
+        runBenchmark(1, () -> benchmark(false));
     }
 }

@@ -1,15 +1,14 @@
 package com.splicemachine.benchmark.execution;
 
 import com.splicemachine.benchmark.IndexLookupBenchmark;
-import com.splicemachine.derby.test.framework.SpliceNetConnection;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.Benchmark;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.log4j.Logger;
+
+import static java.lang.String.format;
 
 public class ExecutionBenchmark extends Benchmark {
     protected static final Logger LOG = Logger.getLogger(IndexLookupBenchmark.class);
@@ -32,18 +31,23 @@ public class ExecutionBenchmark extends Benchmark {
     static final String STAT_INSERT = "INSERT";
 
     protected static Connection testConnection;
-    protected Statement testStatement;
 
     protected void createIndexes(int numIndexTables, String indexDefStr) {
         try {
             LOG.info("Creating " + numIndexTables + " indexes");
             for (int i = 1; i <= numIndexTables; i++) {
-                testStatement.execute("CREATE INDEX " + BASE_TABLE_IDX + "_" + i + " on " + BASE_TABLE + indexDefStr);
+                spliceWatcher.execute("CREATE INDEX " + BASE_TABLE_IDX + "_" + i + " on " + BASE_TABLE + indexDefStr);
             }
         }
-        catch (SQLException e) {
+        catch (Exception e) {
             LOG.error(e);
         }
+    }
+
+    protected void refreshTableState(SpliceWatcher spliceWatcher, String schema) throws Exception {
+        spliceWatcher.execute(format("call syscs_util.syscs_flush_table('%s', '%s')", schema, BASE_TABLE));
+        spliceWatcher.execute("ANALYZE SCHEMA " + schema);
+        spliceWatcher.execute("call SYSCS_UTIL.VACUUM()");
     }
 
     protected static String getColumnDef(int numColumns, int defStrType) {
@@ -85,37 +89,32 @@ public class ExecutionBenchmark extends Benchmark {
         return sb.toString();
     }
 
-    static Connection makeConnection(SpliceSchemaWatcher spliceSchemaWatcher, boolean useOLAP) throws SQLException {
-        Connection connection = SpliceNetConnection.newBuilder().useOLAP(useOLAP).build();
-        connection.setSchema(spliceSchemaWatcher.schemaName);
-        connection.setAutoCommit(true);
-        return connection;
-    }
-
-    protected void populateTables(SpliceSchemaWatcher spliceSchemaWatcher, int size, AtomicInteger curSize, int batchSize, int numTableColumns, String insertParamStr) {
-        try (Connection conn = makeConnection(spliceSchemaWatcher, false)) {
-            try (PreparedStatement insert1 = conn.prepareStatement("INSERT INTO " + BASE_TABLE + insertParamStr)) {
-                for (; ; ) {
-                    int newSize = curSize.getAndAdd(batchSize);
-                    if (newSize >= size) break;
-                    for (int i = newSize; i < newSize + batchSize; ++i) {
-                        for (int j = 1; j <= numTableColumns; ++j) {
-                            insert1.setInt(j, i);
-                        }
-                        insert1.addBatch();
+    protected void populateTables(SpliceWatcher spliceWatcher, int size, int batchSize, int numTableColumns,
+        String insertParamStr, int concurrency) {
+        try (PreparedStatement insert1 = spliceWatcher.prepareStatement("INSERT INTO " + BASE_TABLE + insertParamStr)) {
+            int newSize = concurrency;
+            for (; ; ) {
+                if (newSize >= concurrency + size)
+                    break;
+                for (int i = newSize; i < newSize + batchSize; ++i) {
+                    for (int j = 1; j <= numTableColumns; ++j) {
+                        insert1.setInt(j, i);
                     }
-                    long start = System.currentTimeMillis();
-                    int[] counts = insert1.executeBatch();
-                    long end = System.currentTimeMillis();
-                    int count = 0;
-                    for (int c : counts) count += c;
-                    if (count != batchSize) {
-                        updateStats(STAT_ERROR);
-                    }
-                    if (count > 0) {
-                        updateStats(STAT_INSERT, count, end - start);
-                    }
+                    insert1.addBatch();
                 }
+                long start = System.currentTimeMillis();
+                int[] counts = insert1.executeBatch();
+                long end = System.currentTimeMillis();
+                int count = 0;
+                for (int c : counts)
+                    count += c;
+                if (count != batchSize) {
+                    updateStats(STAT_ERROR);
+                }
+                if (count > 0) {
+                    updateStats(STAT_INSERT, count, end - start);
+                }
+                newSize += batchSize;
             }
         }
         catch (Throwable t) {
