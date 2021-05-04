@@ -42,11 +42,7 @@ public class V1ScanCostEstimator extends AbstractScanCostEstimator {
     }
 
     /**
-     *
-     * Add Predicate and keep track of the selectivity
-     *
-     * @param p
-     * @throws StandardException
+     * {@inheritDoc}
      */
     public void addPredicate(Predicate p, double defaultSelectivityFactor) throws StandardException{
         if (p.isMultiProbeQualifier(indexColumns)) {// MultiProbeQualifier against keys (BASE)
@@ -84,103 +80,7 @@ public class V1ScanCostEstimator extends AbstractScanCostEstimator {
     }
 
     /**
-     *
-     * Compute the Base Scan Cost by utilizing the passed in StoreCostController
-     *
-     * @throws StandardException
-     */
-    public void generateOneRowCost() throws StandardException {
-        // Total Row Count from the Base Conglomerate
-        double totalRowCount = 1.0d;
-        // Rows Returned is always the totalSelectivity (Conglomerate Independent)
-        scanCost.setEstimatedRowCount(Math.round(totalRowCount));
-
-        int numCols = getTotalNumberOfBaseColumnsInvolved();
-        if (isIndexOnExpression && numCols == 0) {
-            // Scanning a covering expression-based index. No base table columns is scanned if we choose this path,
-            // use number of index columns instead. This may over estimate because probably not all index columns
-            // are referenced but should be better than using 0. Otherwise, heap size is always 0 and remote cost is
-            // a constant value for a covering expression-based index scan.
-            numCols = indexDescriptor.getIndexColumnTypes().length;
-        }
-        double baseTableColumnSizeFactor = scc.baseTableColumnSizeFactor(numCols);
-        double baseTableAverageRowWidth = scc.getBaseTableAvgRowWidth();
-
-        // We use the base table so the estimated heap size and remote cost are the same for all conglomerates
-        double colSizeFactor = baseTableAverageRowWidth*baseTableColumnSizeFactor;
-
-        // Heap Size is the avg row width of the columns for the base table*total rows
-        // Average Row Width
-        // This should be the same for every conglomerate path
-        scanCost.setEstimatedHeapSize((long)(totalRowCount*colSizeFactor));
-        // Should be the same for each conglomerate
-        scanCost.setRemoteCost((long)(scc.getOpenLatency()+scc.getCloseLatency()+totalRowCount*scc.getRemoteLatency()*(1+colSizeFactor/100d)));
-        // Base Cost + LookupCost + Projection Cost
-        double congAverageWidth = scc.getConglomerateAvgRowWidth();
-        double baseCost = scc.getOpenLatency()+scc.getCloseLatency()+(totalRowCount*scc.getLocalLatency()*(1+scc.getConglomerateAvgRowWidth()/100d));
-        scanCost.setFromBaseTableRows(totalRowCount);
-        scanCost.setFromBaseTableCost(baseCost);
-        scanCost.setScannedBaseTableRows(totalRowCount);
-        double lookupCost;
-        if (baseColumnsInLookup == null) {
-            lookupCost = 0.0d;
-
-            /* we need to reset the lookup cost here, otherwise, we may see the lookup cost
-               from the previous access path
-               see how the cost and rowcount are initialized in SimpleCostEstimate
-             */
-            scanCost.setIndexLookupRows(-1.0d);
-            scanCost.setIndexLookupCost(-1.0d);
-        } else {
-            lookupCost = totalRowCount*(scc.getOpenLatency()+scc.getCloseLatency());
-            scanCost.setIndexLookupRows(totalRowCount);
-            scanCost.setIndexLookupCost(lookupCost+baseCost);
-        }
-        double projectionCost = totalRowCount * (scc.getLocalLatency() * colSizeFactor*1d/1000d + exprEvalCostPerRow);
-        scanCost.setProjectionRows(scanCost.getEstimatedRowCount());
-        scanCost.setProjectionCost(lookupCost+baseCost+projectionCost);
-        scanCost.setLocalCost(baseCost+lookupCost+projectionCost);
-        scanCost.setFirstColumnStats(scc.getFirstColumnStats());
-        scanCost.setNumPartitions(scc.getNumPartitions() != 0 ? scc.getNumPartitions() : 1);
-        scanCost.setParallelism(scc.getParallelism() != 0 ? scc.getParallelism() : 1);
-        scanCost.setLocalCostPerParallelTask(scanCost.localCost(), scanCost.getParallelism());
-        scanCost.setRemoteCostPerParallelTask(scanCost.remoteCost(), scanCost.getParallelism());
-        if (LOG.isTraceEnabled()) {
-            LOG.trace(String.format("%n" +
-                                            "============= generateOneRowCost() for table: %s =============%n" +
-                                            "Conglomerate:               %s, %n" +
-                                            "totalRowCount:              %.1f, %n" +
-                                            "heapSize:                   %d, %n" +
-                                            "congAverageWidth:           %.1f, %n" +
-                                            "fromBaseTableRows:          %.1f, %n" +
-                                            "scannedBaseTableRows:       %.1f, %n" +
-                                            "fromBaseTableCost:          %.1f, %n" +
-                                            "remoteCost:                 %.1f, %n" +
-                                            "indexLookupRows:            %.1f, %n" +
-                                            "lookupCost:                 %.1f, %n" +
-                                            "projectRows:                %.1f, %n" +
-                                            "projectCost:                %.1f, %n" +
-                                            "localCost:                  %.1f, %n" +
-                                            "numPartition:               %d, %n" +
-                                            "localCostPerPartition:      %.1f %n" +
-                                            "========================================================%n",
-                                    baseTable.getBaseTableName(),
-                                    baseTable.getCurrentAccessPath().getConglomerateDescriptor().toString(),
-                                    scanCost.rowCount(), scanCost.getEstimatedHeapSize(), congAverageWidth,
-                                    scanCost.getFromBaseTableRows(), scanCost.getScannedBaseTableRows(),
-                                    scanCost.getFromBaseTableCost(), scanCost.getRemoteCost(),
-                                    scanCost.getIndexLookupRows(), scanCost.getIndexLookupCost(),
-                                    scanCost.getProjectionRows(), scanCost.getProjectionCost(),
-                                    scanCost.getLocalCost(), scc.getNumPartitions(), scanCost.getLocalCost() / scc.getNumPartitions()));
-        }
-    }
-
-
-    /**
-     *
-     * Compute the Base Scan Cost by utilizing the passed in StoreCostController
-     *
-     * @throws StandardException
+     * {@inheritDoc}
      */
     public void generateCost(long numFirstIndexColumnProbes) throws StandardException {
 
@@ -322,6 +222,95 @@ public class V1ScanCostEstimator extends AbstractScanCostEstimator {
                                     baseTable.getCurrentAccessPath().getConglomerateDescriptor().toString(),
                                     baseTableSelectivity,
                                     filterBaseTableSelectivity, projectionSelectivity, totalSelectivity,
+                                    scanCost.rowCount(), scanCost.getEstimatedHeapSize(), congAverageWidth,
+                                    scanCost.getFromBaseTableRows(), scanCost.getScannedBaseTableRows(),
+                                    scanCost.getFromBaseTableCost(), scanCost.getRemoteCost(),
+                                    scanCost.getIndexLookupRows(), scanCost.getIndexLookupCost(),
+                                    scanCost.getProjectionRows(), scanCost.getProjectionCost(),
+                                    scanCost.getLocalCost(), scc.getNumPartitions(), scanCost.getLocalCost() / scc.getNumPartitions()));
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public void generateOneRowCost() throws StandardException {
+        // Total Row Count from the Base Conglomerate
+        double totalRowCount = 1.0d;
+        // Rows Returned is always the totalSelectivity (Conglomerate Independent)
+        scanCost.setEstimatedRowCount(Math.round(totalRowCount));
+
+        int numCols = getTotalNumberOfBaseColumnsInvolved();
+        if (isIndexOnExpression && numCols == 0) {
+            // Scanning a covering expression-based index. No base table columns is scanned if we choose this path,
+            // use number of index columns instead. This may over estimate because probably not all index columns
+            // are referenced but should be better than using 0. Otherwise, heap size is always 0 and remote cost is
+            // a constant value for a covering expression-based index scan.
+            numCols = indexDescriptor.getIndexColumnTypes().length;
+        }
+        double baseTableColumnSizeFactor = scc.baseTableColumnSizeFactor(numCols);
+        double baseTableAverageRowWidth = scc.getBaseTableAvgRowWidth();
+
+        // We use the base table so the estimated heap size and remote cost are the same for all conglomerates
+        double colSizeFactor = baseTableAverageRowWidth*baseTableColumnSizeFactor;
+
+        // Heap Size is the avg row width of the columns for the base table*total rows
+        // Average Row Width
+        // This should be the same for every conglomerate path
+        scanCost.setEstimatedHeapSize((long)(totalRowCount*colSizeFactor));
+        // Should be the same for each conglomerate
+        scanCost.setRemoteCost((long)(scc.getOpenLatency()+scc.getCloseLatency()+totalRowCount*scc.getRemoteLatency()*(1+colSizeFactor/100d)));
+        // Base Cost + LookupCost + Projection Cost
+        double congAverageWidth = scc.getConglomerateAvgRowWidth();
+        double baseCost = scc.getOpenLatency()+scc.getCloseLatency()+(totalRowCount*scc.getLocalLatency()*(1+scc.getConglomerateAvgRowWidth()/100d));
+        scanCost.setFromBaseTableRows(totalRowCount);
+        scanCost.setFromBaseTableCost(baseCost);
+        scanCost.setScannedBaseTableRows(totalRowCount);
+        double lookupCost;
+        if (baseColumnsInLookup == null) {
+            lookupCost = 0.0d;
+
+            /* we need to reset the lookup cost here, otherwise, we may see the lookup cost
+               from the previous access path
+               see how the cost and rowcount are initialized in SimpleCostEstimate
+             */
+            scanCost.setIndexLookupRows(-1.0d);
+            scanCost.setIndexLookupCost(-1.0d);
+        } else {
+            lookupCost = totalRowCount*(scc.getOpenLatency()+scc.getCloseLatency());
+            scanCost.setIndexLookupRows(totalRowCount);
+            scanCost.setIndexLookupCost(lookupCost+baseCost);
+        }
+        double projectionCost = totalRowCount * (scc.getLocalLatency() * colSizeFactor*1d/1000d + exprEvalCostPerRow);
+        scanCost.setProjectionRows(scanCost.getEstimatedRowCount());
+        scanCost.setProjectionCost(lookupCost+baseCost+projectionCost);
+        scanCost.setLocalCost(baseCost+lookupCost+projectionCost);
+        scanCost.setFirstColumnStats(scc.getFirstColumnStats());
+        scanCost.setNumPartitions(scc.getNumPartitions() != 0 ? scc.getNumPartitions() : 1);
+        scanCost.setParallelism(scc.getParallelism() != 0 ? scc.getParallelism() : 1);
+        scanCost.setLocalCostPerParallelTask(scanCost.localCost(), scanCost.getParallelism());
+        scanCost.setRemoteCostPerParallelTask(scanCost.remoteCost(), scanCost.getParallelism());
+        if (LOG.isTraceEnabled()) {
+            LOG.trace(String.format("%n" +
+                                            "============= generateOneRowCost() for table: %s =============%n" +
+                                            "Conglomerate:               %s, %n" +
+                                            "totalRowCount:              %.1f, %n" +
+                                            "heapSize:                   %d, %n" +
+                                            "congAverageWidth:           %.1f, %n" +
+                                            "fromBaseTableRows:          %.1f, %n" +
+                                            "scannedBaseTableRows:       %.1f, %n" +
+                                            "fromBaseTableCost:          %.1f, %n" +
+                                            "remoteCost:                 %.1f, %n" +
+                                            "indexLookupRows:            %.1f, %n" +
+                                            "lookupCost:                 %.1f, %n" +
+                                            "projectRows:                %.1f, %n" +
+                                            "projectCost:                %.1f, %n" +
+                                            "localCost:                  %.1f, %n" +
+                                            "numPartition:               %d, %n" +
+                                            "localCostPerPartition:      %.1f %n" +
+                                            "========================================================%n",
+                                    baseTable.getBaseTableName(),
+                                    baseTable.getCurrentAccessPath().getConglomerateDescriptor().toString(),
                                     scanCost.rowCount(), scanCost.getEstimatedHeapSize(), congAverageWidth,
                                     scanCost.getFromBaseTableRows(), scanCost.getScannedBaseTableRows(),
                                     scanCost.getFromBaseTableCost(), scanCost.getRemoteCost(),
