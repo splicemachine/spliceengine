@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 
 import com.splicemachine.access.HConfiguration;
@@ -93,11 +94,11 @@ public class ZkPropertyManager implements PropertyManager{
     }
 
     @Override
-    public void removeProperty(String propertyName) throws StandardException {
+    public void removeProperty(String propertyName){
         try {
             ZkUtils.safeDelete(zkSpliceDerbyPropertyPath + "/" + propertyName, -1);
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
+        } catch (KeeperException | InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 }

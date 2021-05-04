@@ -118,10 +118,6 @@ public class PropertyConglomerate {
         try {
             Set<String> props = propertyManager.listProperties();
             for (String child: props) {
-                if (child.equals(Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED)) {
-                    propertyManager.removeProperty(child);
-                    continue;
-                }
                 String value = startParams != null ? startParams.getProperty(child) : null;
                 if (value == null) {
                     value = propertyManager.getProperty(child);
