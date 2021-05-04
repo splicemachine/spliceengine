@@ -96,7 +96,7 @@ public class V1MergeJoinCostEstimation implements StrategyJoinCostEstimation {
         // Adjust the scanned rows so we can possibly avoid spark execution.
         double rightRowCount = innerTableScaleFactor * innerCost.rowCount();
         baseInnerCost.setScannedBaseTableRows(rightRowCount);
-        //innerCost.setRowCount(rightRowCount);
+        baseInnerCost.setRowCount(rightRowCount);
 
         double joinCost = mergeJoinStrategyLocalCost(innerCost, outerCost, empty, totalJoinedRows, innerTableScaleFactor);
         innerCost.setLocalCost(joinCost);
