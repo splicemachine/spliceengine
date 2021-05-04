@@ -15,6 +15,7 @@ package com.splicemachine.derby.impl.sql.compile.costing.v2;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.costing.SelectivityEstimator;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.impl.sql.compile.BinaryRelationalOperatorNode;
@@ -61,8 +62,7 @@ public class V2MergeJoinCostEstimation implements StrategyJoinCostEstimation {
                              OptimizablePredicateList predList,
                              ConglomerateDescriptor cd,
                              CostEstimate outerCost,
-                             Optimizer optimizer,
-                             CostEstimate innerCost) throws StandardException {
+                             CostEstimate innerCost, Optimizer optimizer, SelectivityEstimator selectivityEstimator) throws StandardException {
         if (outerCost.localCost() == 0d && outerCost.getEstimatedRowCount() == 1.0) {
             /*
              * Derby calls this method at the end of each table scan, even if it's not a join (or if it's
@@ -77,9 +77,15 @@ public class V2MergeJoinCostEstimation implements StrategyJoinCostEstimation {
         //preserve the underlying CostEstimate for the inner table
         CostEstimate baseInnerCost = innerCost.cloneMe();
         innerCost.setBase(baseInnerCost);
-        double joinSelectivityWithSearchConditionsOnly = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.MERGE_SEARCH);
-        double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.ALL);
-        double scanSelectivity = SelectivityUtil.estimateScanSelectivity(innerTable, predList, SelectivityUtil.JoinPredicateType.MERGE_SEARCH);
+        double joinSelectivityWithSearchConditionsOnly =
+                SelectivityUtil.estimateJoinSelectivity(selectivityEstimator, innerTable, cd, predList,
+                                                        (long) innerCost.rowCount(), (long) outerCost.rowCount(),
+                                                        outerCost, SelectivityEstimator.JoinPredicateType.MERGE_SEARCH);
+        double joinSelectivity =
+                SelectivityUtil.estimateJoinSelectivity(selectivityEstimator, innerTable, cd, predList,
+                                                        (long) innerCost.rowCount(), (long) outerCost.rowCount(),
+                                                        outerCost, SelectivityEstimator.JoinPredicateType.ALL);
+        double scanSelectivity = SelectivityUtil.estimateScanSelectivity(innerTable, predList, SelectivityEstimator.JoinPredicateType.MERGE_SEARCH);
         double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity * scanSelectivity, outerCost.rowCount(), innerCost.rowCount());
         innerCost.setParallelism(outerCost.getParallelism());
         boolean empty = isOuterTableEmpty(innerTable, predList);

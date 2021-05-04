@@ -15,6 +15,7 @@ package com.splicemachine.derby.impl.sql.compile.costing.v2;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.costing.SelectivityEstimator;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -39,8 +40,9 @@ public class V2NestedLoopJoinCostEstimationModel implements StrategyJoinCostEsti
                              OptimizablePredicateList predList,
                              ConglomerateDescriptor cd,
                              CostEstimate outerCost,
+                             CostEstimate innerCost,
                              Optimizer optimizer,
-                             CostEstimate innerCost) throws StandardException {
+                             SelectivityEstimator selectivityEstimator) throws StandardException {
         if(outerCost.isUninitialized() ||(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0)){
             /*
              * Derby calls this method at the end of each table scan, even if it's not a join (or if it's

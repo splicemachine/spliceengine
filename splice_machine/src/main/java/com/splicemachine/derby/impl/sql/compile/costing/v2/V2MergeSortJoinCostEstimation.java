@@ -15,6 +15,7 @@ package com.splicemachine.derby.impl.sql.compile.costing.v2;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.costing.SelectivityEstimator;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
@@ -32,8 +33,7 @@ public class V2MergeSortJoinCostEstimation implements StrategyJoinCostEstimation
                              OptimizablePredicateList predList,
                              ConglomerateDescriptor cd,
                              CostEstimate outerCost,
-                             Optimizer optimizer,
-                             CostEstimate innerCost) throws StandardException {
+                             CostEstimate innerCost, Optimizer optimizer, SelectivityEstimator selectivityEstimator) throws StandardException {
         if(outerCost.isUninitialized() ||(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0d)){
             RowOrdering ro=outerCost.getRowOrdering();
             if(ro!=null)
@@ -42,9 +42,15 @@ public class V2MergeSortJoinCostEstimation implements StrategyJoinCostEstimation
         }
         //set the base costing so that we don't lose the underlying table costs
         innerCost.setBase(innerCost.cloneMe());
-        double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.ALL);
+        double joinSelectivity =
+                SelectivityUtil.estimateJoinSelectivity(selectivityEstimator, innerTable, cd, predList,
+                                                        (long) innerCost.rowCount(), (long) outerCost.rowCount(),
+                                                        outerCost, SelectivityEstimator.JoinPredicateType.ALL);
         double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
-        double joinSelectivityWithSearchConditionsOnly = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.HASH_SEARCH);
+        double joinSelectivityWithSearchConditionsOnly =
+                SelectivityUtil.estimateJoinSelectivity(selectivityEstimator, innerTable, cd, predList,
+                                                        (long) innerCost.rowCount(), (long) outerCost.rowCount(),
+                                                        outerCost, SelectivityEstimator.JoinPredicateType.HASH_SEARCH);
         double totalJoinedRows = SelectivityUtil.getTotalRows(joinSelectivityWithSearchConditionsOnly, outerCost.rowCount(), innerCost.rowCount());
         double joinCost = mergeSortJoinStrategyLocalCost(innerCost, outerCost, totalJoinedRows, optimizer.isForSpark());
         innerCost.setLocalCost(joinCost);

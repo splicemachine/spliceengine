@@ -17,6 +17,7 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.costing.SelectivityEstimator;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import com.splicemachine.db.impl.sql.compile.JoinNode;
@@ -29,8 +30,9 @@ public class V1BroadcastJoinCostEstimation implements StrategyJoinCostEstimation
                              OptimizablePredicateList predList,
                              ConglomerateDescriptor cd,
                              CostEstimate outerCost,
+                             CostEstimate innerCost,
                              Optimizer optimizer,
-                             CostEstimate innerCost) throws StandardException{
+                             SelectivityEstimator selectivityEstimator) throws StandardException{
         /*
          * Broadcast Joins are relatively straightforward. Before scanning a single outer row,
          * it first reads all inner table rows into a local hashtable; then, as each outer row
@@ -77,9 +79,15 @@ public class V1BroadcastJoinCostEstimation implements StrategyJoinCostEstimation
                                 (innerTable instanceof FromBaseTable && optimizer.isForSpark()));
 
         if (costIt) {
-            double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.ALL);
+            double joinSelectivity =
+                    SelectivityUtil.estimateJoinSelectivity(selectivityEstimator, innerTable, cd, predList,
+                                                            (long) innerCost.rowCount(), (long) outerCost.rowCount(),
+                                                            outerCost, SelectivityEstimator.JoinPredicateType.ALL);
             double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
-            double joinSelectivityWithSearchConditionsOnly = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.HASH_SEARCH);
+            double joinSelectivityWithSearchConditionsOnly =
+                    SelectivityUtil.estimateJoinSelectivity(selectivityEstimator, innerTable, cd, predList,
+                                                            (long) innerCost.rowCount(), (long) outerCost.rowCount(),
+                                                            outerCost, SelectivityEstimator.JoinPredicateType.HASH_SEARCH);
             double totalJoinedRows = SelectivityUtil.getTotalRows(joinSelectivityWithSearchConditionsOnly, outerCost.rowCount(), innerCost.rowCount());
             innerCost.setParallelism(outerCost.getParallelism());
             double joinCost = broadcastJoinStrategyLocalCost(innerCost, outerCost, totalJoinedRows);

@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.costing.SelectivityEstimator;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.store.access.ScanController;
@@ -305,8 +306,12 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     }
 
     @Override
-    public double joinSelectivity(Optimizable table,ConglomerateDescriptor cd, long innerRowCount, long outerRowCount,SelectivityUtil.SelectivityJoinType selectivityJoinType) throws StandardException{
-        return andNode.getLeftOperand().joinSelectivity(table,cd,innerRowCount,outerRowCount,selectivityJoinType);
+    public double joinSelectivity(SelectivityEstimator selectivityEstimator,
+                                  Optimizable table, ConglomerateDescriptor cd,
+                                  long innerRowCount, long outerRowCount,
+                                  SelectivityEstimator.SelectivityJoinType selectivityJoinType) throws StandardException{
+        return andNode.getLeftOperand().joinSelectivity(selectivityEstimator, table, cd,
+                                                        innerRowCount, outerRowCount, selectivityJoinType);
     }
 
     @Override

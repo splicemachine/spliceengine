@@ -17,10 +17,10 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.costing.SelectivityEstimator;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
 import com.splicemachine.derby.impl.sql.compile.costing.StrategyJoinCostEstimation;
-import com.splicemachine.utils.SpliceLogUtils;
 
 public class V1CrossJoinCostEstimation implements StrategyJoinCostEstimation {
     @Override
@@ -28,8 +28,9 @@ public class V1CrossJoinCostEstimation implements StrategyJoinCostEstimation {
                              OptimizablePredicateList predList,
                              ConglomerateDescriptor cd,
                              CostEstimate outerCost,
+                             CostEstimate innerCost,
                              Optimizer optimizer,
-                             CostEstimate innerCost) throws StandardException {
+                             SelectivityEstimator selectivityEstimator) throws StandardException {
 
         if(outerCost.isUninitialized() ||(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0)){
             /*
@@ -45,7 +46,10 @@ public class V1CrossJoinCostEstimation implements StrategyJoinCostEstimation {
 
         // Only use cross join when it is inner join and run on Spark
         innerCost.setBase(innerCost.cloneMe());
-        double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.ALL);
+        double joinSelectivity =
+                SelectivityUtil.estimateJoinSelectivity(selectivityEstimator, innerTable, cd, predList,
+                                                        (long) innerCost.rowCount(), (long) outerCost.rowCount(),
+                                                        outerCost, SelectivityEstimator.JoinPredicateType.ALL);
         double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
         double totalJoinedRows = outerCost.rowCount() * innerCost.rowCount();
         double joinCost = crossJoinStrategyLocalCost(innerCost, outerCost, totalJoinedRows);

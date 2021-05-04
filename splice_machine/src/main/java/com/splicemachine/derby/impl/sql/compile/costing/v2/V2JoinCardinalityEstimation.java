@@ -13,10 +13,9 @@
 
 package com.splicemachine.derby.impl.sql.compile.costing.v2;
 
-import com.splicemachine.EngineDriver;
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.costing.SelectivityEstimator;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
 import com.splicemachine.derby.impl.sql.compile.costing.StrategyJoinCostEstimation;
@@ -27,8 +26,9 @@ public class V2JoinCardinalityEstimation implements StrategyJoinCostEstimation {
                              OptimizablePredicateList predList,
                              ConglomerateDescriptor cd,
                              CostEstimate outerCost,
+                             CostEstimate innerCost,
                              Optimizer optimizer,
-                             CostEstimate innerCost) throws StandardException {
+                             SelectivityEstimator selectivityEstimator) throws StandardException {
 
         if(outerCost.isUninitialized() ||(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0)){
             /*
@@ -43,9 +43,10 @@ public class V2JoinCardinalityEstimation implements StrategyJoinCostEstimation {
         }
 
         innerCost.setBase(innerCost.cloneMe());
-        double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(),
+        double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(selectivityEstimator, innerTable, cd, predList,
+                                                                         (long) innerCost.rowCount(),
                                                                          (long) outerCost.rowCount(), outerCost,
-                                                                         SelectivityUtil.JoinPredicateType.ALL);
+                                                                         SelectivityEstimator.JoinPredicateType.ALL);
         double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
         outerCost.setJoinSelectionCardinality(totalOutputRows);
         innerCost.setLocalCost(Double.MAX_VALUE);

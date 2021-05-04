@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
+import com.splicemachine.db.iapi.sql.compile.costing.SelectivityEstimator;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.*;
@@ -1031,24 +1032,13 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
         }
     }
 
-    public double joinSelectivity(Optimizable optTable,
+    public double joinSelectivity(SelectivityEstimator selectivityEstimator,
+                                  Optimizable optTable,
                                   ConglomerateDescriptor currentCd,
-                                  long innerRowCount, long outerRowCount, SelectivityUtil.SelectivityJoinType selectivityJoinType) throws StandardException {
+                                  long innerRowCount, long outerRowCount,
+                                  SelectivityEstimator.SelectivityJoinType selectivityJoinType) throws StandardException {
 //        assert outerRowCount != 0: "0 Rows Passed in";
-        double selectivity = 0.0d;
-        switch(selectivityJoinType) {
-            case LEFTOUTER:
-            case FULLOUTER:
-                selectivity = 1.0d/innerRowCount;
-                break;
-            case INNER:
-                selectivity = (1.0d-.1d)*(1.0d-.1d)/Math.min(innerRowCount,outerRowCount);
-                break;
-            case ANTIJOIN:
-                selectivity = 1.0d-((1.0d-.1d)*(1.0d-.1d)/Math.min(innerRowCount,outerRowCount));
-                break;
-        }
-        return selectivity;
+        return selectivityEstimator.defaultJoinSelectivity(outerRowCount, innerRowCount, selectivityJoinType);
     }
 
     public double scanSelectivity(Optimizable innerTable) throws StandardException{

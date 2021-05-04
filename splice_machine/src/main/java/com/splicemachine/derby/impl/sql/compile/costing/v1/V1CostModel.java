@@ -18,12 +18,12 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import com.splicemachine.db.iapi.sql.compile.costing.ScanCostEstimator;
+import com.splicemachine.db.iapi.sql.compile.costing.SelectivityEstimator;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.compile.ResultColumnList;
 import com.splicemachine.derby.impl.sql.compile.costing.StrategyJoinCostEstimation;
-import com.splicemachine.derby.impl.sql.compile.costing.v1.V1ScanCostEstimator;
 
 import java.util.BitSet;
 import java.util.HashSet;
@@ -41,6 +41,8 @@ public class V1CostModel implements CostModel {
         joinCostEstimationMap.put(JoinStrategy.JoinStrategyType.NESTED_LOOP, new V1NestedLoopJoinCostEstimationModel());
     }
 
+    private static final SelectivityEstimator selectivityEstimator = new V1SelectivityEstimator();
+
     @Override
     public void estimateJoinCost(JoinStrategy.JoinStrategyType joinStrategyType,
                                  Optimizable innerTable,
@@ -54,7 +56,7 @@ public class V1CostModel implements CostModel {
             SanityManager.ASSERT(joinCostEstimation != null,
                                  String.format("unexpected missing cost estimation for %s", joinStrategyType.niceName()));
         }
-        joinCostEstimation.estimateCost(innerTable, predList, cd, outerCost, optimizer, costEstimate);
+        joinCostEstimation.estimateCost(innerTable, predList, cd, outerCost, costEstimate, optimizer, selectivityEstimator);
     }
 
     @Override
