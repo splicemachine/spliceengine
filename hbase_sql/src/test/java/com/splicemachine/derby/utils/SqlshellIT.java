@@ -7,6 +7,7 @@ import com.splicemachine.db.impl.tools.ij.Main;
 import com.splicemachine.db.impl.tools.ij.ijCommands;
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.io.IOUtils;
 import org.junit.*;
@@ -415,8 +416,15 @@ public class SqlshellIT {
     }
 
     @Test
-    public void testShowVersion() {
-        Assert.assertTrue(execute("show version local;\n").contains("http://www.splicemachine.com"));
+    public void testShowVersion() throws Exception {
+        String contain;
+        if( SpliceUnitTest.isMemPlatform(new SpliceWatcher()) ) {
+            contain = "UNKNOWN";
+        }
+        else {
+            contain = "http://www.splicemachine.com";
+        }
+        Assert.assertTrue(execute("show version local;\n").contains(contain));
     }
 
     @Test

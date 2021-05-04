@@ -1018,12 +1018,13 @@ public class SpliceTransactionManager implements XATransactionController,
      *
      * @param cd  The descriptor of the conglomerate to open.
      *
+     * @param useDb2CompatibleVarchars
      * @exception StandardException Standard exception policy.
      *
      * @see StoreCostController
      **/
     @Override
-    public StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor cd, boolean skipDictionaryStats, long defaultRowCount, int requestedSplits) throws StandardException {
+    public StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor cd, boolean skipDictionaryStats, long defaultRowCount, int requestedSplits, boolean useDb2CompatibleVarchars) throws StandardException {
         List<PartitionStatisticsDescriptor> tablePartitionStatistics = new ArrayList<>();
         List<PartitionStatisticsDescriptor> exprIndexPartitionStatistics = new ArrayList<>();
         if (!skipDictionaryStats) {
@@ -1035,7 +1036,7 @@ public class SpliceTransactionManager implements XATransactionController,
                 exprIndexPartitionStatistics = dd.getPartitionStatistics(cd.getConglomerateNumber(), this);
             }
         }
-        return new StoreCostControllerImpl(td, cd, tablePartitionStatistics, exprIndexPartitionStatistics, skipDictionaryStats?defaultRowCount:0, requestedSplits);
+        return new StoreCostControllerImpl(td, cd, tablePartitionStatistics, exprIndexPartitionStatistics, skipDictionaryStats?defaultRowCount:0, requestedSplits, useDb2CompatibleVarchars);
     }
      /**
      * @see TransactionController#getProperty

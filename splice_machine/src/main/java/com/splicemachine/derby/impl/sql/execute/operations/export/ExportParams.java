@@ -147,7 +147,7 @@ public class ExportParams implements Serializable {
         }
         if (compression!= null && compression.length() > 0) {
             String f = format.trim().toUpperCase();
-            if (f.equals("PARQUET")) {
+            if (f.equals("PARQUET") || f.equals("ORC")) {
                 // Only support snappy compression for parquet
                 if (compression.equals("SNAPPY") ||
                         compression.equals("TRUE")) {

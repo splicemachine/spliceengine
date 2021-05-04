@@ -37,6 +37,9 @@ public class ImportNullityIT{
     public static final SpliceSchemaWatcher schemaWatcher =
             new SpliceSchemaWatcher(SCHEMA_NAME);
 
+    @Rule
+    public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
+
     private final TableRule withDefault = new TableRule(conn,"T","(a varchar(10),b varchar(10),c varchar(20) NOT NULL default 'nullDefault')");
 
     private final TableRule tableA = new TableRule(conn,"A","(c1 int, c2 timestamp)");
@@ -104,7 +107,6 @@ public class ImportNullityIT{
         }
     }
 
-    @Test
     public void testQuotedEmptyIsNull() throws Exception {
         String file =SpliceUnitTest.getResourceDirectory()+"/import/quotedEmpty.csv";
         try(Statement s = conn.createStatement()) {
@@ -131,5 +133,18 @@ public class ImportNullityIT{
                 Assert.assertEquals("Incorrect number of rows imported!",expectedRowCount,count);
             }
         }
+    }
+
+    @Test
+    public void testQuotedEmptyIsNullEmptyStringCompatibleFalse() throws Exception {
+        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.db2.import.empty_string_compatible', NULL)");
+        testQuotedEmptyIsNull();
+    }
+
+    @Test
+    public void testQuotedEmptyIsNullEmptyStringCompatibleTrue() throws Exception {
+        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.db2.import.empty_string_compatible', 'true')");
+        testQuotedEmptyIsNull();
+        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.db2.import.empty_string_compatible', NULL)");
     }
 }

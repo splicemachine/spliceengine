@@ -39,9 +39,11 @@ import com.splicemachine.db.iapi.sql.compile.costing.ScanCostEstimator;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.log4j.Logger;
+import scala.reflect.internal.Trees;
 
 import java.util.*;
 
@@ -373,10 +375,10 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
      */
     public static double computeSelectivity(double selectivity, List<SelectivityHolder> holders) throws StandardException {
         int level = 0;
-        for (int i = 0; i< holders.size();i++) {
+        for (SelectivityHolder holder: holders) {
             // Do not include join predicates unless join strategy is nested loop.
-            if (holders.get(i).shouldApplySelectivity()) {
-                selectivity = computeSqrtLevel(selectivity, level, holders.get(i));
+            if (holder.shouldApplySelectivity()) {
+                selectivity = computeSqrtLevel(selectivity, level, holder);
                 level++;
             }
         }
@@ -396,6 +398,9 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
     public static double computeSqrtLevel(double selectivity, int level, SelectivityHolder holder) throws StandardException {
         if (level ==0) {
             selectivity *= holder.getSelectivity();
+            if (LOG.isTraceEnabled()) {
+                LOG.trace(String.format("Holder: %s, computedSelectivity: %s", holder, selectivity));
+            }
             return selectivity;
         }
         double incrementalSelectivity = 0.0d;
@@ -403,6 +408,9 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
         for (int i =1;i<=level;i++)
             incrementalSelectivity=Math.sqrt(incrementalSelectivity);
         selectivity*=incrementalSelectivity;
+        if (LOG.isTraceEnabled()) {
+            LOG.trace(String.format("Holder: %s, computedSelectivity: %s", holder, selectivity));
+        }
         return selectivity;
     }
 
