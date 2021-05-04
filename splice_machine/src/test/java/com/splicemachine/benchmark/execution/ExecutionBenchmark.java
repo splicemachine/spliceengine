@@ -32,7 +32,9 @@ public class ExecutionBenchmark extends Benchmark {
 
     protected static Connection testConnection;
 
-    protected void createIndexes(int numIndexTables, String indexDefStr) {
+    static AtomicInteger curSize = new AtomicInteger(0);
+
+    protected void createIndexes(SpliceWatcher spliceWatcher, int numIndexTables, String indexDefStr) {
         try {
             LOG.info("Creating " + numIndexTables + " indexes");
             for (int i = 1; i <= numIndexTables; i++) {

@@ -60,10 +60,12 @@ public class UpdateBenchmark extends ExecutionBenchmark {
         this.updateParamStr = getColumnDef(this.numTableColumns, UPDATE_PARAM);
     }
 
-    @ClassRule
+    public static SpliceWatcher spliceWatcher = new SpliceWatcher(SCHEMA);
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
-    static AtomicInteger curSize = new AtomicInteger(0);
+    @Rule
+    public TestRule chain = RuleChain.outerRule(spliceWatcher)
+        .around(spliceSchemaWatcher);
 
     @Before
     public void setUp() throws Exception {
