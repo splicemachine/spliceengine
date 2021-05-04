@@ -32,6 +32,7 @@ import splice.com.google.common.collect.Lists;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.util.Arrays;
 import java.util.Collection;
 
 import static com.splicemachine.test_tools.Rows.row;
@@ -45,15 +46,17 @@ import static org.junit.Assert.assertEquals;
 public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
 
     private Boolean useSpark;
+    private String costModelVersion;
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
-        Collection<Object[]> params = Lists.newArrayListWithCapacity(1);
         // Join plans vary too much depending on the number of executors
         // when run on Spark.
         //params.add(new Object[]{true});
-        params.add(new Object[]{false});
-        return params;
+        return Arrays.asList(new Object[][] {
+                { false, CM_V1 },
+                { false, CM_V2 },
+        });
     }
 
     public static final String CLASS_NAME = NLJPredicatePushedToDerivedTableIT.class.getSimpleName().toUpperCase();
@@ -66,8 +69,9 @@ public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
-    public NLJPredicatePushedToDerivedTableIT(Boolean useSpark) {
+    public NLJPredicatePushedToDerivedTableIT(Boolean useSpark, String costModelVersion) {
         this.useSpark = useSpark;
+        this.costModelVersion = costModelVersion;
     }
 
     public static void createData(Connection conn, String schemaName) throws Exception {
@@ -227,14 +231,14 @@ public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
         10 rows selected
          */
         if (!useSpark)
-            rowContainsQuery(new int[]{4, 8, 9, 10}, "explain " + sqlText, methodWatcher,
+            rowContainsQuery(new int[]{4, 8, 9, 10}, "explain " + sqlText, costModelVersion, methodWatcher,
                     new String[]{"NestedLoopJoin", "outputRows=3"},
                     new String[]{"TableScan[T2", "scannedRows=1,outputRows=1", "preds=[(A1[1:1] = A2[2:1])]"},
                     new String[]{"ProjectRestrict", "outputRows=3", "preds=[(B1[0:2] IN (1,2,3))]"},
                     new String[]{"TableScan[T1", "scannedRows=3,outputRows=3"}
                     );
         else
-            rowContainsQuery(new int[]{8, 9, 10}, "explain " + sqlText, methodWatcher,
+            rowContainsQuery(new int[]{8, 9, 10}, "explain " + sqlText, costModelVersion, methodWatcher,
                     new String[]{"TableScan[T4"},
                     new String[]{"ProjectRestrict", "outputRows=3", "preds=[(B1[0:2] IN (1,2,3))]"},
                     new String[]{"TableScan[T1", "scannedRows=3,outputRows=3"}
@@ -406,9 +410,9 @@ public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
         11 rows selected
 
          */
-        rowContainsQuery(new int[]{3, 5, 6, 7, 9, 10, 11}, "explain " + sqlText, methodWatcher,
+        rowContainsQuery(new int[]{3, 5, 6, 7, 9, 10, 11}, "explain " + sqlText, costModelVersion, methodWatcher,
                 new String[]{"NestedLoopJoin", "outputRows=3"},
-                new String[]{"MergeJoin", "outputRows=1"},
+                new String[]{costModelVersion.equals(CM_V1) ? "MergeJoin" : "NestedLoopJoin", "outputRows=1"},
                 new String[]{"TableScan[T2"},
                 new String[]{"TableScan[T3"},
                 new String[]{"MergeJoin", "outputRows=3"},
