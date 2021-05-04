@@ -58,11 +58,6 @@ public class CorrelatedColRefCollectingVisitor<T> extends ColumnCollectingVisito
                     done = true;
                     break;
                 }
-                else if (colRef.getTableNameNode() == null) {
-                    correlatedColumns.clear();
-                    done = true;
-                    break;
-                }
                 else
                     correlatedColumns.add((T)colRef);
             }
@@ -81,6 +76,12 @@ public class CorrelatedColRefCollectingVisitor<T> extends ColumnCollectingVisito
     @Override
     public List<T> getCollected() {
         return correlatedColumns;
+    }
+
+    public T popColumn() {
+        T colRef = correlatedColumns.isEmpty() ? null :
+                   correlatedColumns.remove(0);
+        return colRef;
     }
 
     public void initialize() {

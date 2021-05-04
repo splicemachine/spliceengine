@@ -87,7 +87,6 @@ class ExistsSubqueryPredicate implements splice.com.google.common.base.Predicate
          * OK : select * from A,B where not exists...
          *
          * */
-        boolean multipleOuterTables = outerSelectNode.getFromList().size() > 1;
 
         /* Must be directly under an And in predicates */
         if (!subqueryNode.getUnderTopAndNode()) {
@@ -123,17 +122,17 @@ class ExistsSubqueryPredicate implements splice.com.google.common.base.Predicate
 
         /* correlated subquery cannot contain a union */
         if (subqueryResultSet.getFromList().containsNode(UnionNode.class)) {
-            return isUnionSubqueryOk(subqueryNode, subquerySelectNode.getNestingLevel(), notExistsSubquery, multipleOuterTables);
+            return isUnionSubqueryOk(subqueryNode, subquerySelectNode.getNestingLevel(), notExistsSubquery, outerSelectNode);
         }
 
         /* subquery where clause must meet several conditions */
         ValueNode whereClause = subquerySelectNode.getWhereClause();
 
-        return whereClause == null || isWhereClauseOk(whereClause, notExistsSubquery, subquerySelectNode.getNestingLevel(), multipleOuterTables);
+        return whereClause == null || isWhereClauseOk(whereClause, notExistsSubquery, subquerySelectNode.getNestingLevel(), outerSelectNode);
     }
 
-    private boolean isWhereClauseOk(ValueNode whereClause, boolean notExistsSubquery, int nestingLevel, boolean multipleOuterTables) throws StandardException {
-        ExistsSubqueryWhereVisitor subqueryWhereVisitor = new ExistsSubqueryWhereVisitor(nestingLevel, notExistsSubquery, multipleOuterTables);
+    private boolean isWhereClauseOk(ValueNode whereClause, boolean notExistsSubquery, int nestingLevel, SelectNode outerSelectNode) throws StandardException {
+        ExistsSubqueryWhereVisitor subqueryWhereVisitor = new ExistsSubqueryWhereVisitor(nestingLevel, notExistsSubquery, outerSelectNode);
         whereClause.accept(subqueryWhereVisitor);
         return !subqueryWhereVisitor.isFoundUnsupported();
     }
@@ -193,9 +192,10 @@ class ExistsSubqueryPredicate implements splice.com.google.common.base.Predicate
      * scheme like that).
      */
     private boolean isUnionSubqueryOk(SubqueryNode subqueryNode, int subqueryNestingLevel,
-                                      boolean notExistsSubquery, boolean multipleOuterTables) throws StandardException {
+                                      boolean notExistsSubquery, SelectNode outerSelectNode) throws StandardException {
         List<UnionNode> unionNodes = FlatteningUtils.findSameLevelUnionNodes(subqueryNode);
         List<SelectNode> selectNodes = FlatteningUtils.findSameLevelSelectNodes(subqueryNode);
+        boolean multipleOuterTables = outerSelectNode.getFromList().size() > 1;
 
         assert unionNodes.size() >= 1 && unionNodes.size() + 1 == selectNodes.size() : "Sanity check, one more select node than union node";
 
@@ -203,7 +203,7 @@ class ExistsSubqueryPredicate implements splice.com.google.common.base.Predicate
             return false;
         ColumnReference outerColumnReference = null;
         for (SelectNode selectNode : selectNodes) {
-            ExistsSubqueryWhereVisitor subqueryWhereVisitor = new ExistsSubqueryWhereVisitor(subqueryNestingLevel, notExistsSubquery, multipleOuterTables);
+            ExistsSubqueryWhereVisitor subqueryWhereVisitor = new ExistsSubqueryWhereVisitor(subqueryNestingLevel, notExistsSubquery, outerSelectNode);
             selectNode.getWhereClause().accept(subqueryWhereVisitor);
 
             /* No union subquery can have OR nodes, etc */

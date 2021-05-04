@@ -89,12 +89,15 @@ class ExistsSubqueryWhereVisitor implements Visitor {
 
     private boolean multipleOuterTables;
 
+    private SelectNode outerSelectNode;
+
     /**
      * @param subqueryLevel       The level of the subquery we are considering flattening in the enclosing predicate
      * @param isNotExistsSubquery Are we looking at a NOT EXISTS subquery.
      */
-    public ExistsSubqueryWhereVisitor(int subqueryLevel, boolean isNotExistsSubquery, boolean multipleOuterTables) {
-        this.multipleOuterTables = multipleOuterTables;
+    public ExistsSubqueryWhereVisitor(int subqueryLevel, boolean isNotExistsSubquery, SelectNode outerSelectNode) {
+        this.outerSelectNode     = outerSelectNode;
+        this.multipleOuterTables = outerSelectNode.getFromList().size() > 1;
         this.isNotExistsSubquery = isNotExistsSubquery;
         this.outerNestingLevel = subqueryLevel - 1;
         this.typeDPredicate = new CorrelatedEqualityBronPredicate(this.outerNestingLevel);
@@ -131,9 +134,12 @@ class ExistsSubqueryWhereVisitor implements Visitor {
             }
 
             if (typeEPredicate.apply(bron)) {
-                // Columns from Type E predicates are processed in the same manner as those from Type D predicates
-                correlatedColumnReferences.add(typeEPredicate.popCorrelatedColumn());
-                return node;
+                ColumnReference correlatedColumnReference = typeEPredicate.popCorrelatedColumn();
+                if (canLocateColumnInOuterSelect(correlatedColumnReference, outerSelectNode)) {
+                    // Columns from Type E predicates are processed in the same manner as those from Type D predicates
+                    correlatedColumnReferences.add(correlatedColumnReference);
+                    return node;
+                }
             }
 
             /*
@@ -151,6 +157,19 @@ class ExistsSubqueryWhereVisitor implements Visitor {
             }
         }
         return node;
+    }
+
+    private boolean canLocateColumnInOuterSelect(ColumnReference correlatedColumnReference, SelectNode outerSelectNode) throws StandardException {
+        String tableName = correlatedColumnReference.getTableName();
+        String schemaName = correlatedColumnReference.getSchemaName();
+        FromTable fromTable;
+        if (tableName == null || schemaName == null)
+            fromTable = outerSelectNode.getFromList().getFromTableByTableNumber(correlatedColumnReference.getTableNumber());
+        else
+            fromTable = outerSelectNode.getFromList().
+                             getFromTableByName(correlatedColumnReference.getTableName(),
+                                                correlatedColumnReference.getSchemaName(), true);
+        return fromTable != null;
     }
 
     @Override

@@ -68,9 +68,7 @@ public class CorrelatedInequalityBronPredicate implements Predicate<BinaryRelati
     }
 
     public ColumnReference popCorrelatedColumn() {
-        if (correlatedColRefCollectingVisitor.getCollected().isEmpty())
-            return null;
-        return (ColumnReference)correlatedColRefCollectingVisitor.getCollected().remove(0);
+        return (ColumnReference)correlatedColRefCollectingVisitor.popColumn();
     }
 
 

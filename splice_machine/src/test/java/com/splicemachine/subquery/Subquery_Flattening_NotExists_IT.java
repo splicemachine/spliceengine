@@ -187,6 +187,17 @@ public class Subquery_Flattening_NotExists_IT {
                         "  7  |\n" +
                         "NULL |"
         );
+        /* no extra predicates, inequality */
+        assertUnorderedResult(conn(),
+                "select a1 from A where NOT exists (select 1 from B join C on b1=c1 where a1<=b1)", ZERO_SUBQUERY_NODES, "" +
+                        "A1  |\n" +
+                         "------\n" +
+                         " 12  |\n" +
+                         " 12  |\n" +
+                         " 13  |\n" +
+                         " 13  |\n" +
+                         "NULL |"
+        );
         /* restriction on C */
         assertUnorderedResult(conn(),
                 "select a1 from A where NOT exists (select 1 from B join C on b1=c1 where a1=b1 and b1!=0)", ZERO_SUBQUERY_NODES, "" +
@@ -203,6 +214,17 @@ public class Subquery_Flattening_NotExists_IT {
                         "  6  |\n" +
                         "  7  |\n" +
                         "NULL |"
+        );
+        /* restriction on C, inequality */
+        assertUnorderedResult(conn(),
+                "select a1 from A where NOT exists (select 1 from B join C on b1=c1 where a1<=b1 and b1!=0)", ZERO_SUBQUERY_NODES, "" +
+                        "A1  |\n" +
+                         "------\n" +
+                         " 12  |\n" +
+                         " 12  |\n" +
+                         " 13  |\n" +
+                         " 13  |\n" +
+                         "NULL |"
         );
         /* restriction on B and C */
         assertUnorderedResult(conn(),
@@ -222,6 +244,17 @@ public class Subquery_Flattening_NotExists_IT {
                         "  7  |\n" +
                         "NULL |"
         );
+        /* restriction on B and C, inequality */
+        assertUnorderedResult(conn(),
+                "select a1 from A where NOT exists (select 1 from B join C on b1=c1 where a1<=b1 and b1!=0 and c1!=2)", ZERO_SUBQUERY_NODES, "" +
+                        "A1  |\n" +
+                         "------\n" +
+                         " 12  |\n" +
+                         " 12  |\n" +
+                         " 13  |\n" +
+                         " 13  |\n" +
+                         "NULL |"
+        );
     }
 
     @Test
@@ -239,6 +272,15 @@ public class Subquery_Flattening_NotExists_IT {
                 "  6  |\n" +
                 "  7  |\n" +
                 "NULL |";
+
+        String S = "A1  |\n" +
+                   "------\n" +
+                   " 11  |\n" +
+                   " 12  |\n" +
+                   " 12  |\n" +
+                   " 13  |\n" +
+                   " 13  |\n" +
+                   "NULL |";
 
         // A join B join C join D
         assertUnorderedResult(conn(), "select a1 from A where NOT exists (select 1 from B join C on b1=c1 join D on c1=d1 where a1=b1)", ZERO_SUBQUERY_NODES, R);
@@ -258,6 +300,22 @@ public class Subquery_Flattening_NotExists_IT {
                 "NULL |\n" +
                 "NULL |\n" +
                 "NULL |");
+
+        // Inequality join version of the above:
+        // A join B join C join D
+        assertUnorderedResult(conn(), "select a1 from A where NOT exists (select 1 from B join C on b1=c1 join D on c1=d1 where a1<b1)", ZERO_SUBQUERY_NODES, S);
+        // A join D join C join B
+        assertUnorderedResult(conn(), "select a1 from A where NOT exists (select 1 from D join C on d1=c1 join B on c1=b1 where a1<b1)", ZERO_SUBQUERY_NODES, S);
+
+        // D join A join B join C
+        assertUnorderedResult(conn(), "select d1 from D where NOT exists (select 1 from A join B on a1=b1 join C on c1=b1 where a1<d1)", ZERO_SUBQUERY_NODES, "" +
+                "D1  |\n" +
+                  "------\n" +
+                  "  0  |\n" +
+                  "NULL |\n" +
+                  "NULL |\n" +
+                  "NULL |\n" +
+                  "NULL |");
     }
 
     @Test
@@ -272,6 +330,26 @@ public class Subquery_Flattening_NotExists_IT {
                         "  3  |\n" +
                         "  4  |\n" +
                         "NULL |");
+
+        // Inequality joins
+        assertUnorderedResult(conn(),
+                "select a1 from A where not exists (select 1 from D where a1<d1 and a2>d2)", ZERO_SUBQUERY_NODES, "" +
+                        "A1  |\n" +
+                          "------\n" +
+                          "  0  |\n" +
+                          "  1  |\n" +
+                          " 11  |\n" +
+                          " 12  |\n" +
+                          " 12  |\n" +
+                          " 13  |\n" +
+                          " 13  |\n" +
+                          "  2  |\n" +
+                          "  3  |\n" +
+                          "  4  |\n" +
+                          "  5  |\n" +
+                          "  6  |\n" +
+                          "  7  |\n" +
+                          "NULL |");
     }
 
     /* We do flatten these for EXISTS. But not for NOT EXISTS.  See notes on why in ExistsSubqueryWhereVisitor.java*/
@@ -385,6 +463,35 @@ public class Subquery_Flattening_NotExists_IT {
                         " 13  |\n" +
                         "  4  |\n" +
                         "NULL |");
+
+        // Inequality join
+        // one tables in 2 subqueries
+        assertUnorderedResult(conn(),
+                "select a1 from A where " +
+                        "NOT exists (select 1 from B join C on b1=c1 where a1<=b1)" +
+                        " and " +
+                        "NOT exists (select 1 from D where a1<=d1)", ZERO_SUBQUERY_NODES, "" +
+                        "A1  |\n" +
+                          "------\n" +
+                          " 13  |\n" +
+                          " 13  |\n" +
+                          "NULL |"
+        );
+        // one tables in 3 subqueries
+        assertUnorderedResult(conn(),
+                "select a1 from A where " +
+                        "NOT exists (select 1 from B where a1<=b1)" +
+                        " and " +
+                        "NOT exists (select 1 from C where a1<=c1)" +
+                        " and " +
+                        "NOT exists (select 1 from D where a1<=d1 and d1 in (3,5,7))", ZERO_SUBQUERY_NODES, "" +
+                        "A1  |\n" +
+                        "------\n" +
+                        " 12  |\n" +
+                        " 12  |\n" +
+                        " 13  |\n" +
+                        " 13  |\n" +
+                        "NULL |");
     }
 
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -410,6 +517,22 @@ public class Subquery_Flattening_NotExists_IT {
                         "  7  |\n" +
                         "NULL |"
         );
+        // Inequality
+        assertUnorderedResult(conn(),
+                "select a1 from A where NOT exists (select * from C right join D on c1=d1 where c1 != 0 and mod(a1, c1) > 3)", ZERO_SUBQUERY_NODES, "" +
+                        "A1  |\n" +
+                        "------\n" +
+                        "  0  |\n" +
+                        "  1  |\n" +
+                        " 11  |\n" +
+                        " 12  |\n" +
+                        " 12  |\n" +
+                        " 13  |\n" +
+                        " 13  |\n" +
+                        "  2  |\n" +
+                        "  3  |\n" +
+                        "NULL |"
+        );
     }
 
     @Test
@@ -427,6 +550,18 @@ public class Subquery_Flattening_NotExists_IT {
                         "  6  |\n" +
                         "  7  |\n" +
                         "NULL |"
+        );
+        // Inequality
+        assertUnorderedResult(conn(),
+                "select a1 from A where NOT exists (select * from C left join D on c1=d1 where c1 != 0 and mod(a1, c1) > 3)", ZERO_SUBQUERY_NODES, "" +
+                        "A1  |\n" +
+                           "------\n" +
+                           "  0  |\n" +
+                           "  1  |\n" +
+                           " 11  |\n" +
+                           "  2  |\n" +
+                           "  3  |\n" +
+                           "NULL |"
         );
     }
 
@@ -508,6 +643,35 @@ public class Subquery_Flattening_NotExists_IT {
                 "  6  | 60  |NULL |   NN    |\n" +
                 "  7  | 70  |NULL |   NN    |\n" +
                 "NULL |NULL |NULL |   NN    |");
+        // Inequality.  Cannot currently flatten.
+        sql = "" +
+                "select A.a1," +
+                "       A.a2," +
+                "      foo.b1," +
+                "      (case when foo.b1 is null then 'NN' else 'YY' end) as \"colAlias\"" +
+                " from A " +
+                "left outer join (select B.b1 " +
+                "                 from B" +
+                "                 inner join C on b1=c1" +
+                "                 where NOT exists (select 1 from D, B BB where c1<=d1)" +
+                "                 and B.b1 > 0)  AS foo on a1=foo.b1";
+        assertUnorderedResult(conn(), sql, ONE_SUBQUERY_NODE, "" +
+                "A1  | A2  | B1  |colAlias |\n" +
+                "----------------------------\n" +
+                "  0  |  0  |NULL |   NN    |\n" +
+                "  1  | 10  |NULL |   NN    |\n" +
+                " 11  | 110 |NULL |   NN    |\n" +
+                " 12  | 120 |NULL |   NN    |\n" +
+                " 12  | 120 |NULL |   NN    |\n" +
+                " 13  |  0  |NULL |   NN    |\n" +
+                " 13  |  1  |NULL |   NN    |\n" +
+                "  2  | 20  |NULL |   NN    |\n" +
+                "  3  | 30  |NULL |   NN    |\n" +
+                "  4  | 40  |NULL |   NN    |\n" +
+                "  5  | 50  |NULL |   NN    |\n" +
+                "  6  | 60  |NULL |   NN    |\n" +
+                "  7  | 70  |NULL |   NN    |\n" +
+                "NULL |NULL |NULL |   NN    |");
     }
 
 
@@ -535,6 +699,29 @@ public class Subquery_Flattening_NotExists_IT {
                 "  2  | 20  |\n" +
                 "  4  | 40  |\n" +
                 "  5  | 50  |\n" +
+                "  7  | 70  |\n" +
+                "NULL |NULL |"
+        );
+
+        // Inequality
+        sql = "select A.* from A where NOT exists(" +
+                "select 1 from B, D where a1<=b1 and NOT exists(" +
+                "select 1 from C, A AA where b1<=c1" + "))";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
+                "A1  | A2  |\n" +
+                "------------\n" +
+                "  0  |  0  |\n" +
+                "  1  | 10  |\n" +
+                " 11  | 110 |\n" +
+                " 12  | 120 |\n" +
+                " 12  | 120 |\n" +
+                " 13  |  0  |\n" +
+                " 13  |  1  |\n" +
+                "  2  | 20  |\n" +
+                "  3  | 30  |\n" +
+                "  4  | 40  |\n" +
+                "  5  | 50  |\n" +
+                "  6  | 60  |\n" +
                 "  7  | 70  |\n" +
                 "NULL |NULL |"
         );
@@ -576,6 +763,34 @@ public class Subquery_Flattening_NotExists_IT {
                 "  5  | 50  |\n" +
                 "  7  | 70  |\n" +
                 "NULL |NULL |");
+
+        // Inequality
+        sql = "select A.* from A where NOT exists(" +
+                "select 1 from A A2, B where A.a1<=b1 and NOT exists(" +
+                "select 1 from A A3, C where b1<=c1 and NOT exists(" +
+                "select 1 from A A4, D where d1<=c1" + ")))";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
+                "A1  | A2  |\n" +
+                "------------\n" +
+                " 12  | 120 |\n" +
+                " 12  | 120 |\n" +
+                " 13  |  0  |\n" +
+                " 13  |  1  |\n" +
+                "NULL |NULL |");
+
+        sql = "select A.* from A where NOT exists(" +
+                "select 1 from A A2, B where A.a1<=b1 and b1!=11 and NOT exists(" +
+                "select 1 from A A2, C where b1<=c1 and c1!=11 and NOT exists(" +
+                "select 1 from A A2, D where d1<=c1 and d1!=11" + ")))";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
+                "A1  | A2  |\n" +
+                "------------\n" +
+                " 11  | 110 |\n" +
+                " 12  | 120 |\n" +
+                " 12  | 120 |\n" +
+                " 13  |  0  |\n" +
+                " 13  |  1  |\n" +
+                "NULL |NULL |");
     }
 
 
@@ -598,6 +813,14 @@ public class Subquery_Flattening_NotExists_IT {
         assertUnorderedResult(conn(), "select a1 from AA where NOT exists(select 1 from BB join CC on b2=c1 where b1=a1)", ZERO_SUBQUERY_NODES, "");
         /* uncorrelated */
         assertUnorderedResult(conn(), "select a1 from AA where NOT exists(select 1 from BB join CC on b2=c1)", ONE_SUBQUERY_NODE, "");
+
+        // Inequality
+        /* correlated */
+        assertUnorderedResult(conn(), "select a1 from AA where NOT exists(select 1 from BB join CC on b2=c1 where b1-a1>0)", ZERO_SUBQUERY_NODES, "A1 |\n" +
+                                                                                                                                                  "----\n" +
+                                                                                                                                                  " 2 |");
+        /* uncorrelated */
+        assertUnorderedResult(conn(), "select a1 from AA where NOT exists(select 1 from BB join CC on (b2+c1) is null)", ONE_SUBQUERY_NODE, "");
     }
 
     @Test
@@ -618,6 +841,19 @@ public class Subquery_Flattening_NotExists_IT {
                 " 3 |30 | 3 |30 |\n" +
                 " 6 |60 | 6 |60 |");
 
+        // Inequality, Cannot currently flatten due to is null condition
+        sql = "select * from A join B on a1=b1 where NOT exists (select 1 from C join D on c1=d1 where (a1+c1) is null)";
+        assertUnorderedResult(conn(), sql, ONE_SUBQUERY_NODE, "" +
+                "A1 |A2  |B1 |B2  |\n" +
+                "------------------\n" +
+                " 0 | 0  | 0 | 0  |\n" +
+                " 1 |10  | 1 |10  |\n" +
+                "11 |110 |11 |110 |\n" +
+                "11 |110 |11 |110 |\n" +
+                " 2 |20  | 2 |20  |\n" +
+                " 3 |30  | 3 |30  |\n" +
+                " 6 |60  | 6 |60  |");
+
         // 2 outer tables, one which is a JoinNode.  two subquery tables
         sql = "select * from C CC, A join B on a1=b1 where CC.c1 > B.b1+5 and NOT exists (select 1 from C join D on c1=d1 where a1=c1)";
         assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
@@ -633,6 +869,17 @@ public class Subquery_Flattening_NotExists_IT {
                 "11 |110 | 3 |30 | 3 |30 |\n" +
                 " 8 |80  | 2 |20 | 2 |20 |");
 
+        // Inequality, correlated reference to table in JoinNode.  Currently can't flatten.
+        sql = "select * from C CC, A join B on a1=b1 where CC.c1 > B.b1+5 and NOT exists (select 1 from C join D on c1=d1 where a1>c1)";
+        assertUnorderedResult(conn(), sql, ONE_SUBQUERY_NODE, "" +
+                "C1 |C2  |A1 |A2 |B1 |B2 |\n" +
+                "-------------------------\n" +
+                "10 |100 | 0 | 0 | 0 | 0 |\n" +
+                "11 |110 | 0 | 0 | 0 | 0 |\n" +
+                "11 |110 | 0 | 0 | 0 | 0 |\n" +
+                "11 |110 | 0 | 0 | 0 | 0 |\n" +
+                " 8 |80  | 0 | 0 | 0 | 0 |");
+
         // different two outer tables, right join
         sql = "select * from A right join D on a1=d1 where NOT exists (select 1 from C join B on c1=b1 where a1=c1)";
         assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
@@ -645,6 +892,17 @@ public class Subquery_Flattening_NotExists_IT {
                 "  5  | 50  |  5  | 50  |\n" +
                 "  6  | 60  |  6  | 60  |\n" +
                 "  7  | 70  |  7  | 70  |\n" +
+                "NULL |NULL |NULL |NULL |\n" +
+                "NULL |NULL |NULL |NULL |\n" +
+                "NULL |NULL |NULL |NULL |\n" +
+                "NULL |NULL |NULL |NULL |");
+
+        // Inequality, correlated reference to table in JoinNode.  Currently can't flatten.
+        sql = "select * from A right join D on a1=d1 where NOT exists (select 1 from C join B on c1=b1 where a1>c1)";
+        assertUnorderedResult(conn(), sql, ONE_SUBQUERY_NODE, "" +
+                "A1  | A2  | D1  | D2  |\n" +
+                "------------------------\n" +
+                "  0  |  0  |  0  |  0  |\n" +
                 "NULL |NULL |NULL |NULL |\n" +
                 "NULL |NULL |NULL |NULL |\n" +
                 "NULL |NULL |NULL |NULL |\n" +
@@ -750,6 +1008,26 @@ public class Subquery_Flattening_NotExists_IT {
                 "----\n" +
                 " 3 |"
         );
+
+        // Inequality correlated predicates.
+        assertUnorderedResult(conn(), "" +
+                "select a1 from A where " +
+                "exists (select b1 from B where a1>=b1 and b1 in (3,5))" +
+                "and " +
+                "NOT exists (select b1 from B where a1>=b1 and b2 = 50)", ZERO_SUBQUERY_NODES, "" +
+                "A1 |\n" +
+                 "----\n" +
+                 "11 |\n" +
+                 "12 |\n" +
+                 "12 |\n" +
+                 "13 |\n" +
+                 "13 |\n" +
+                 " 3 |\n" +
+                 " 4 |\n" +
+                 " 5 |\n" +
+                 " 6 |\n" +
+                 " 7 |"
+        );
     }
 
     @Test
@@ -777,6 +1055,30 @@ public class Subquery_Flattening_NotExists_IT {
                 "  6  |\n" +
                 "  7  |\n" +
                 "NULL |"
+        );
+
+        // Inequality
+        assertUnorderedResult(conn(), "" +
+                "select a1 from A where exists (select 1 from C,B where a1>=b1 and NOT exists (select 1 from D, C where c1>=b1+5))" +
+                "", ZERO_SUBQUERY_NODES, "" +
+                "A1 |\n" +
+                   "----\n" +
+                   "11 |\n" +
+                   "12 |\n" +
+                   "12 |\n" +
+                   "13 |\n" +
+                   "13 |"
+        );
+        assertUnorderedResult(conn(), "" +
+                "select a1 from A where NOT exists (select 1 from B where a1<=b1 and exists (select 1 from C where c1<=b1+5))" +
+                "", ZERO_SUBQUERY_NODES, "" +
+                "A1  |\n" +
+                   "------\n" +
+                   " 12  |\n" +
+                   " 12  |\n" +
+                   " 13  |\n" +
+                   " 13  |\n" +
+                   "NULL |"
         );
     }
 
@@ -884,7 +1186,28 @@ public class Subquery_Flattening_NotExists_IT {
                         "  7  | 70  |\n" +
                         "NULL |NULL |"
         );
-
+        // Inequality
+        assertUnorderedResult(conn(),
+                "select A.* from A where " +
+                        "NOT exists(select 1 from B where a1<=b1 and " +
+                        "NOT exists(select 1 from C where c1<=a1))", 2, "" +
+                        "A1  | A2  |\n" +
+                        "------------\n" +
+                        "  0  |  0  |\n" +
+                        "  1  | 10  |\n" +
+                        " 11  | 110 |\n" +
+                        " 12  | 120 |\n" +
+                        " 12  | 120 |\n" +
+                        " 13  |  0  |\n" +
+                        " 13  |  1  |\n" +
+                        "  2  | 20  |\n" +
+                        "  3  | 30  |\n" +
+                        "  4  | 40  |\n" +
+                        "  5  | 50  |\n" +
+                        "  6  | 60  |\n" +
+                        "  7  | 70  |\n" +
+                        "NULL |NULL |"
+        );
     }
 
     @Test

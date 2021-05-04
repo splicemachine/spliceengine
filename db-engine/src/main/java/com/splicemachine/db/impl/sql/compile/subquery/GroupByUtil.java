@@ -102,23 +102,28 @@ public class GroupByUtil {
                         ColumnReference leftColRef, rightColRef, correlatedColumnReference;
                         correlatedColumnReference =
                             (ColumnReference)correlatedColRefCollectingVisitor.getCollected().get(0);
-                        leftColRef = (ColumnReference)correlatedColumnReference.getClone();
-                        rightColRef = (ColumnReference)correlatedColumnReference.getClone();
-
 
                         FromTable fromTable;
                         String tableName = correlatedColumnReference.getTableName();
                         String schemaName = correlatedColumnReference.getSchemaName();
-                        fromTable = outerSelectNode.getFromList().
+                        if (tableName == null || schemaName == null) {
+                            fromTable = outerSelectNode.getFromList().getFromTableByTableNumber(correlatedColumnReference.getTableNumber());
+                            correlatedColumnReference.setTableNameNode(fromTable.getTableName());
+                        }
+                        else
+                            fromTable = outerSelectNode.getFromList().
                                              getFromTableByName(correlatedColumnReference.getTableName(),
                                                                 correlatedColumnReference.getSchemaName(), true);
+                        leftColRef = (ColumnReference)correlatedColumnReference.getClone();
+                        rightColRef = (ColumnReference)correlatedColumnReference.getClone();
+
                         if (fromTable instanceof FromBaseTable) {
                             FromBaseTable fromBaseTable = (FromBaseTable)fromTable;
                             FromBaseTable pushedFromBaseTable = fromBaseTable.shallowClone();
                             pushedFromBaseTable = (FromBaseTable)subquerySelectNode.getFromList().bindExtraTableAndAddToFromClause(pushedFromBaseTable);
                             pushedFromBaseTable.setLevel(subquerySelectNode.getNestingLevel());
                             leftColRef = (ColumnReference) subquerySelectNode.bindExtraExpressions(leftColRef);
-                            rightColRef = (ColumnReference) outerSelectNode.bindExtraExpressions(rightColRef);
+
                             outerColumnReference = rightColRef;
                             BinaryRelationalOperatorNode bron =
                                 (BinaryRelationalOperatorNode)
@@ -128,13 +133,20 @@ public class GroupByUtil {
                                     rightColRef,
                                     leftColRef.getContextManager());
 
+                            bron.bindExpression(subquerySelectNode.getFromList(), null, null);
+                            // rebind one of the columns to refer to the outer table.
+                            outerSelectNode.bindExtraExpressions(rightColRef);
+
                             // Append new predicate to correlatedSubqueryPredsD as we need
                             // to process the generated equality condition in the same manner
                             // as in subqueries with correlated equality join conditions.
                             correlatedSubqueryPreds.add(bron);
 
-                            AndNode andNode = newAndNode(bro, false);
-                            andNode = (AndNode)subquerySelectNode.bindExtraExpressions(andNode);
+                            // Re-bind the correlated column reference in bro, so it points
+                            // to the column in copy of the table that was pushed into
+                            // the subquery.
+                            subquerySelectNode.bindExtraExpressions(correlatedColumnReference);
+                            AndNode andNode = newAndNode(bro, true);
                             appendAndConditionToWhereClause(subquerySelectNode, andNode);
 
                             addGroupByNodes(subquerySelectNode, leftColRef);
