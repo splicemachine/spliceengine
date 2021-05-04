@@ -119,7 +119,7 @@ public class DDLWatchRefresher{
                     seenDDLChanges.add(changeId);
                     newChanges.add(new Pair<DDLChange, String>(change,null));
                 } catch (Exception e) {
-                    LOG.error("Encountered an exception processing DDL change",e);
+                    LOG.error(String.format("Encountered an exception processing DDL change with id %s", changeId), e);
                     newChanges.add(new Pair<>(change,e.getLocalizedMessage()));
                 }
             }
@@ -239,7 +239,7 @@ public class DDLWatchRefresher{
                 watchChecker.assignDDLDemarcationPoint(ddlChange.getTxnId());
             }
         } catch (Exception e) {
-            LOG.error("Couldn't create ddlFilter", e);
+            LOG.error(String.format("Couldn't create ddlFilter for change with id %s", ddlChange.getChangeId()), e);
         }
 
     }
@@ -298,6 +298,7 @@ public class DDLWatchRefresher{
             DDLFilter filter = ddlDemarcationPoint.get();
             return filter == null || filter.isVisibleBy(((SpliceTransactionManager)xact_mgr).getActiveStateTxn());
         } catch (IOException e) {
+            LOG.warn("Could not get the demarcation point", e);
             // Stay on the safe side, assume it's not visible
             return false;
         }
