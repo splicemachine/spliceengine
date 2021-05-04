@@ -232,6 +232,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             if(ap.getJoinStrategy()!=null){
                 if (ap.getJoinStrategy().getJoinStrategyType() == JoinStrategy.JoinStrategyType.CARDINALITY_ESTIMATOR) {
                     ap.setJoinStrategy(optimizer.getJoinStrategy(userSpecifiedJoinStrategy));
+                    ap.setHintedJoinStrategy(true);
                     found = true;
                 } else {
                     ap.setJoinStrategy(null);
