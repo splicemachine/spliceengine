@@ -1287,5 +1287,10 @@ public interface Property {
     String ENTERPRISE_ENABLE = "splicemachine.enterprise.enable";
 
     String SPLICE_OLAP_PARALLEL_PARTITIONS = "splice.olapParallelPartitions";
+
+    /** The property is used to get the default value for default frequency sketch size of a column.
+     */
+    String FREQUENCY_SKETCH_SIZE = "splice.statistics.defaultFrequencySketchSize";
+    int DEFAULT_FREQUENCY_SKETCH_SIZE = 1024;
 }
 

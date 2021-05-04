@@ -35,8 +35,12 @@ import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.DefaultInfoImpl;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
@@ -45,6 +49,7 @@ import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import splice.com.google.common.collect.Lists;
 
+import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -203,7 +208,15 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             collectStats = column.collectStatistics();
             partitionPosition = column.getPartitionPosition();
             useExtrapolation = column.getUseExtrapolation();
-            sketchSize = column.getSketchSize();
+            try{
+                LanguageConnectionContext lcc= ConnectionUtil.getCurrentLCC();
+                String sketchSizeStr =
+                        PropertyUtil.getDatabaseProperty(lcc.getTransactionExecute(), Property.FREQUENCY_SKETCH_SIZE);
+                if (sketchSizeStr == null) sketchSize = Property.DEFAULT_FREQUENCY_SKETCH_SIZE;
+                else sketchSize = Integer.parseInt(sketchSizeStr);
+            }catch(SQLException t){
+                t.printStackTrace();
+            }
         }
 
 		/* Insert info into syscolumns */
@@ -216,7 +229,8 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
 		    /* Build the row to insert  */
         row = getExecutionFactory().getValueRow(SYSCOLUMNS_COLUMN_COUNT);
         setRowColumns(row, colName, defaultID, tabID, colID, storageNumber, typeDesc, defaultSerializable, autoincStart,
-                autoincInc, autoincValue, partitionPosition, autoinc_create_or_modify_Start_Increment, collectStats, useExtrapolation, sketchSize);
+                autoincInc, autoincValue, partitionPosition, autoinc_create_or_modify_Start_Increment,
+                collectStats, useExtrapolation, sketchSize);
 
         return row;
     }
