@@ -42,6 +42,11 @@ public class V2JoinCardinalityEstimation implements StrategyJoinCostEstimation {
             return;
         }
 
+        /* Use estimateJoinSelectivity() to estimate output row count of this join. This is the routine used
+         * by all join strategies except NLJ. Our goal is to make the output row count of this join the same
+         * for all join strategies. Since NLJ has its own way of estimating it, we need to make this number
+         * available to NLJ.
+         */
         innerCost.setBase(innerCost.cloneMe());
         double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(selectivityEstimator, innerTable, cd, predList,
                                                                          (long) innerCost.rowCount(),

@@ -707,8 +707,9 @@ public class HalfOuterJoinNode extends JoinNode{
 		*/
         CostEstimate outerCost=getLeftResultSet().getCostEstimate();
 
-        if(costEstimate.rowCount()<outerCost.rowCount()){
-            costEstimate.setCost(costEstimate.getEstimatedCost(), outerCost.rowCount(), outerCost.rowCount());
+        if (costEstimate.rowCount() < outerCost.rowCount()){
+            costEstimate.setCost(costEstimate.getEstimatedCost(), outerCost.rowCount(),
+                                 outerCost.rowCount(), outerCost.getRawRowCount());
         }
     }
 

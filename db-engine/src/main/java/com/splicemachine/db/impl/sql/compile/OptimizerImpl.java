@@ -1696,6 +1696,7 @@ public class OptimizerImpl implements Optimizer{
         destCost.setLocalCostPerParallelTask(destCost.getLocalCostPerParallelTask()+addend.getLocalCostPerParallelTask());
         destCost.setRowCount(addend.rowCount());
         destCost.setSingleScanRowCount(addend.singleScanRowCount());
+        destCost.setRawRowCount(addend.getRawRowCount());
         destCost.setEstimatedHeapSize(addend.getEstimatedHeapSize());
         destCost.setFirstColumnStats(addend.getFirstColumnStats());
         destCost.setNumPartitions(addend.partitionCount());
@@ -1733,20 +1734,21 @@ public class OptimizerImpl implements Optimizer{
             proposedJoinOrder[joinPosition]=-1;
             if(joinPosition==0) break;
         }
-        currentCost.setCost(0.0d,0.0d,0.0d);
+        currentCost.setCost(0.0d,0.0d,0.0d,0.0d);
         currentCost.setRemoteCost(0.0d);
         currentCost.setRemoteCostPerParallelTask(0.0d);
         currentCost.setBase(null);
         currentCost.setRowOrdering(null);
 
 
-        currentSortAvoidanceCost.setCost(0.0d,0.0d,0.0d);
+        currentSortAvoidanceCost.setCost(0.0d,0.0d,0.0d,0.0d);
         currentSortAvoidanceCost.setRemoteCost(0.0d);
         currentSortAvoidanceCost.setRemoteCostPerParallelTask(0.0d);
         currentSortAvoidanceCost.setBase(null);
         currentSortAvoidanceCost.setRowOrdering(null);
         assignedTableMap.clearAll();
-        outermostCostEstimate.setCost(0.0d,outermostCostEstimate.getEstimatedRowCount(),0d);
+        outermostCostEstimate.setCost(0.0d,outermostCostEstimate.getEstimatedRowCount(),
+                                      0d,outermostCostEstimate.getRawRowCount());
         outermostCostEstimate.setBase(null);
         outermostCostEstimate.setRowOrdering(null);
 

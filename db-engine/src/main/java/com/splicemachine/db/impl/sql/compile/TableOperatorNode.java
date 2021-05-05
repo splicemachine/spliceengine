@@ -631,9 +631,9 @@ public abstract class TableOperatorNode extends FromTable{
 
         /* The cost is the sum of the two child costs */
         costEstimate.setCost(leftResultSet.getCostEstimate().getEstimatedCost(),
-                leftResultSet.getCostEstimate().rowCount(),
-                leftResultSet.getCostEstimate().singleScanRowCount()+
-                        rightResultSet.getCostEstimate().singleScanRowCount());
+                             leftResultSet.getCostEstimate().rowCount(),
+                             leftResultSet.getCostEstimate().singleScanRowCount() + rightResultSet.getCostEstimate().singleScanRowCount(),
+                             leftResultSet.getCostEstimate().getRawRowCount() + rightResultSet.getCostEstimate().getRawRowCount());
 
         costEstimate.add(rightResultSet.costEstimate,costEstimate);
 

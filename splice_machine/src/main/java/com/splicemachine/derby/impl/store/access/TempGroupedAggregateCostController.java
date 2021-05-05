@@ -97,6 +97,7 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
         //output information
         newEstimate.setRowCount(outputRows);
         newEstimate.setSingleScanRowCount(outputRows);
+        newEstimate.setRawRowCount(outputRows);  // it doesn't make sense to set it less than 1 for aggregation
         newEstimate.setEstimatedHeapSize((long) (outputRows*heapPerRow) );
 
         //cost information

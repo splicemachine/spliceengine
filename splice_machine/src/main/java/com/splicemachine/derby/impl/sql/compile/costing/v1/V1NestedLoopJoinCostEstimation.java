@@ -29,7 +29,7 @@ import com.splicemachine.derby.impl.sql.compile.costing.StrategyJoinCostEstimati
 
 import static com.splicemachine.db.impl.sql.compile.JoinNode.INNERJOIN;
 
-public class V1NestedLoopJoinCostEstimationModel implements StrategyJoinCostEstimation {
+public class V1NestedLoopJoinCostEstimation implements StrategyJoinCostEstimation {
 
     private static final double NLJ_ON_SPARK_PENALTY = 1e15;  // msirek-temp
 

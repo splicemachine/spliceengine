@@ -123,7 +123,9 @@ public class V2ScanCostEstimator extends AbstractScanCostEstimator {
         double totalRowCount = scc.baseRowCount();
         assert totalRowCount >= 0 : "totalRowCount cannot be negative -> " + totalRowCount;
         // Rows Returned is always the totalSelectivity (Conglomerate Independent)
-        scanCost.setEstimatedRowCount(Math.round(totalRowCount*totalSelectivity));
+        double outputRowCount = totalRowCount * totalSelectivity;
+        scanCost.setEstimatedRowCount(Math.round(outputRowCount));
+        scanCost.setRawRowCount(outputRowCount);
 
         int numCols = getTotalNumberOfBaseColumnsInvolved();
         if (isIndexOnExpression && numCols == 0) {
@@ -271,6 +273,7 @@ public class V2ScanCostEstimator extends AbstractScanCostEstimator {
         double totalRowCount = 1.0d;
         // Rows Returned is always the totalSelectivity (Conglomerate Independent)
         scanCost.setEstimatedRowCount(Math.round(totalRowCount));
+        scanCost.setRawRowCount(totalRowCount);
 
         int numCols = getTotalNumberOfBaseColumnsInvolved();
         if (isIndexOnExpression && numCols == 0) {

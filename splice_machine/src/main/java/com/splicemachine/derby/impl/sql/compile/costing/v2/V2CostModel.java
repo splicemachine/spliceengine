@@ -38,7 +38,7 @@ public class V2CostModel implements CostModel {
         joinCostEstimationMap.put(JoinStrategy.JoinStrategyType.CROSS, new V2CrossJoinCostEstimation());
         joinCostEstimationMap.put(JoinStrategy.JoinStrategyType.MERGE, new V2MergeJoinCostEstimation());
         joinCostEstimationMap.put(JoinStrategy.JoinStrategyType.MERGE_SORT, new V2MergeSortJoinCostEstimation());
-        joinCostEstimationMap.put(JoinStrategy.JoinStrategyType.NESTED_LOOP, new V2NestedLoopJoinCostEstimationModel());
+        joinCostEstimationMap.put(JoinStrategy.JoinStrategyType.NESTED_LOOP, new V2NestedLoopJoinCostEstimation());
     }
 
     private static final SelectivityEstimator selectivityEstimator = new V2SelectivityEstimator();

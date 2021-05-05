@@ -639,12 +639,12 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         CostEstimate ce=getBestAccessPath().getCostEstimate();
 
         if(ce!=null)
-            ce.setCost(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
+            ce.setCost(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
 
         ce=getBestSortAvoidancePath().getCostEstimate();
 
         if(ce!=null)
-            ce.setCost(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
+            ce.setCost(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
 
         if(!canBeOrdered())
             rowOrdering.addUnorderedOptimizable(this);

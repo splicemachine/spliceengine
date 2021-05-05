@@ -60,6 +60,7 @@ public class V2CrossJoinCostEstimation implements StrategyJoinCostEstimation {
         innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
         innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalOutputRows));
         innerCost.setRowCount(totalOutputRows);
+        innerCost.setRawRowCount(totalOutputRows);
         innerCost.setParallelism(outerCost.getParallelism());
         innerCost.setRowOrdering(null);
     }

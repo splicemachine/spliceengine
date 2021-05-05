@@ -222,7 +222,8 @@ public class FromVTI extends FromTable implements VTIEnvironment {
          * it doesn't appear to be uninitialized to the optimizer during
          * join planning (which may cause join planning to loop forever).
          */
-        costEstimate.setCost(Double.MAX_VALUE*0.9d,Double.MAX_VALUE*0.9d,Double.MAX_VALUE*0.9d);
+        double initValue = Double.MAX_VALUE * 0.9d;
+        costEstimate.setCost(initValue, initValue, initValue, initValue);
 
         super.startOptimizing(optimizer,rowOrdering);
     }
@@ -299,6 +300,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                 costEstimate.setEstimatedCost(estimatedCost);
                 costEstimate.setRowCount(estimatedRowCount);
                 costEstimate.setSingleScanRowCount(estimatedRowCount);
+                costEstimate.setRawRowCount(estimatedRowCount);
                 costEstimate.setLocalCost(estimatedCost);
                 costEstimate.setRemoteCost(estimatedCost);
                 costEstimate.setLocalCostPerParallelTask(estimatedCost, costEstimate.getParallelism());

@@ -14,6 +14,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test_tools.TableCreator;
@@ -30,7 +31,7 @@ import static com.splicemachine.test_tools.Rows.rows;
  *
  *
  */
-public class BaseJoinSelectivityIT {
+public class BaseJoinSelectivityIT extends SpliceUnitTest {
 
     @SuppressWarnings("unchecked")
     public static void createJoinDataSet(SpliceWatcher spliceClassWatcher, String schemaName) throws Exception {

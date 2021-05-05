@@ -27,7 +27,7 @@ import com.splicemachine.derby.impl.sql.compile.costing.StrategyJoinCostEstimati
 
 import static com.splicemachine.db.impl.sql.compile.JoinNode.INNERJOIN;
 
-public class V2NestedLoopJoinCostEstimationModel implements StrategyJoinCostEstimation {
+public class V2NestedLoopJoinCostEstimation implements StrategyJoinCostEstimation {
 
     private static final double NLJ_ON_SPARK_PENALTY = 1e15;          // msirek-temp
     private static final double RHS_SEQUENTIAL_SCAN_PORTION_SMALL_RHS = 0.1;
@@ -57,8 +57,20 @@ public class V2NestedLoopJoinCostEstimationModel implements StrategyJoinCostEsti
 
         //set the base costs for the join
         innerCost.setBase(innerCost.cloneMe());
-        double totalRowCount = outerCost.rowCount() * innerCost.rowCount();
-        if(outerCost.getJoinSelectionCardinality() >= 0) {
+
+        /* In v1, we calculate total row count as the following:
+         * totalRowCount = outerCost.rowCount() * innerCost.rowCount().
+         * CostEstimate.rowCount() returns at least 1.0. Join output row count is then over estimated when
+         * selectivity on one side is very low, leading to a row count smaller than 1.0. In extreme cases
+         * where one side produces 0 rows, using 1 instead would lead to 1 * n = n rows instead of
+         * 0 * n = 0 rows. When n is big, this difference is not negligible.
+         */
+        double totalRowCount = Math.max(1.0d, outerCost.getRawRowCount() * innerCost.getRawRowCount());
+
+        /* Compare the output row count estimated by NLJ to the one estimated by estimateJoinSelectivity().
+         * Take the smaller estimate.
+         */
+        if (outerCost.getJoinSelectionCardinality() >= 0) {
             totalRowCount = Math.min(outerCost.getJoinSelectionCardinality(), totalRowCount);
         }
         boolean isIndexKeyAccessRhs = hasJoinPredicateWithIndexKeyLookup(predList);
@@ -76,6 +88,10 @@ public class V2NestedLoopJoinCostEstimationModel implements StrategyJoinCostEsti
         innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalRowCount));
         innerCost.setParallelism(outerCost.getParallelism());
         innerCost.setRowCount(totalRowCount);
+        innerCost.setRawRowCount(totalRowCount);
+        if (totalRowCount < outerCost.getJoinSelectionCardinality()) {
+            outerCost.setJoinSelectionCardinality(totalRowCount);
+        }
     }
 
     // Nested loop join is most useful if it can be used to

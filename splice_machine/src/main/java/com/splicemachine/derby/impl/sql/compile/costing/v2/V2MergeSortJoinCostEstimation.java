@@ -61,6 +61,7 @@ public class V2MergeSortJoinCostEstimation implements StrategyJoinCostEstimation
         innerCost.setParallelism(outerCost.getParallelism());
         innerCost.setEstimatedHeapSize((long)SelectivityUtil.getTotalHeapSize(innerCost,outerCost,totalOutputRows));
         innerCost.setRowCount(totalOutputRows);
+        innerCost.setRawRowCount(totalOutputRows);
         innerCost.setParallelism(outerCost.getParallelism());
         innerCost.setRowOrdering(null);
     }

@@ -113,6 +113,7 @@ public class V2MergeJoinCostEstimation implements StrategyJoinCostEstimation {
         innerCost.setRowOrdering(outerCost.getRowOrdering());
         innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalOutputRows));
         innerCost.setRowCount(totalOutputRows);
+        innerCost.setRawRowCount(totalOutputRows);
     }
 
     /**

@@ -40,6 +40,7 @@ public class SimpleCostEstimate implements CostEstimate{
     private int parallelism = 1;
     private double numRows = Double.MAX_VALUE;
     private double singleScanRowCount = Double.MAX_VALUE;
+    private double rawRowCount = Double.MAX_VALUE;
     private RowOrdering rowOrdering;
     private OptimizablePredicateList predicateList;
     private SimpleCostEstimate baseCost;
@@ -64,7 +65,10 @@ public class SimpleCostEstimate implements CostEstimate{
     private boolean disablePerParallelTaskJoinCostingSet = false;
 	private FirstColumnOfIndexStats firstColumnStats;
 	private String costModel;
-    private double joinRowCount;
+	// no need to propagate joinRowCount
+    // it's overwritten for each tuple (outerCost, inner optTable, inner cd)
+    // and it's relevant only for current tuple
+    private double joinRowCount = -1.0d;
 
     public SimpleCostEstimate(){ }
 
@@ -94,20 +98,22 @@ public class SimpleCostEstimate implements CostEstimate{
     @Override public void setCloseCost(double closeCost){ this.closeCost = closeCost;}
 
     @Override
-    public void setCost(double cost,double rowCount,double singleScanRowCount){
-        setCost(cost,rowCount,singleScanRowCount,1,1);
+    public void setCost(double cost, double rowCount, double singleScanRowCount, double rawRowCount) {
+        setCost(cost, rowCount, singleScanRowCount, rawRowCount, 1, 1);
     }
 
     @Override
-    public void setCost(double cost,double rowCount,double singleScanRowCount,int numPartitions,int parallelism){
+    public void setCost(double cost, double rowCount, double singleScanRowCount, double rawRowCount,
+                        int numPartitions, int parallelism) {
         this.localCost = cost;
         this.numRows = rowCount > 1 ? rowCount : 1;
         this.singleScanRowCount = singleScanRowCount;
+        this.rawRowCount = rawRowCount;
         this.numPartitions = numPartitions;
         this.parallelism = parallelism;
         assert (numPartitions >= 1);
         assert (parallelism >= 1);
-        this.localCostPerParallelTask = localCost/getParallelism();
+        this.localCostPerParallelTask = localCost / getParallelism();
     }
 
     @Override
@@ -122,6 +128,7 @@ public class SimpleCostEstimate implements CostEstimate{
         setOptimizer(other.getOptimizer());
         this.numRows = other.rowCount();
         this.singleScanRowCount = other.singleScanRowCount();
+        this.rawRowCount = other.getRawRowCount();
         RowOrdering rowOrdering=other.getRowOrdering();
         if(rowOrdering!=null)
             this.rowOrdering = rowOrdering.getClone();
@@ -148,6 +155,7 @@ public class SimpleCostEstimate implements CostEstimate{
         this.remoteCostPerParallelTask = other.getRemoteCostPerParallelTask();
         this.accumulatedMemory = other.getAccumulatedMemory();
         this.setSingleRow(other.isSingleRow());
+        this.setJoinSelectionCardinality(other.getJoinSelectionCardinality());
     }
 
     @Override
@@ -320,8 +328,8 @@ public class SimpleCostEstimate implements CostEstimate{
     @Override public void setLocalCost(double localCost){ this.localCost = localCost; }
 
     @Override
-    public void setEstimatedRowCount(long count){
-        this.numRows = count>1?count:1;
+    public void setEstimatedRowCount(long count) {
+        this.numRows = count > 1 ? count : 1;
         this.singleScanRowCount = this.numRows;
     }
 
@@ -337,6 +345,7 @@ public class SimpleCostEstimate implements CostEstimate{
             roClone =this.rowOrdering.getClone();
         }
         SimpleCostEstimate clone=new SimpleCostEstimate(localCost,remoteCost,numRows,singleScanRowCount,numPartitions,parallelism);
+        clone.rawRowCount = this.rawRowCount;
         clone.isAntiJoin = this.isAntiJoin;
         clone.joinType = this.getJoinType();
         clone.setRowOrdering(roClone);
@@ -362,6 +371,8 @@ public class SimpleCostEstimate implements CostEstimate{
         clone.setDisablePerParallelTaskJoinCostingSet(disablePerParallelTaskJoinCostingSet);
         clone.setOptimizer(optimizer);
         clone.setFirstColumnStats(firstColumnStats);
+        clone.costModel = costModel;
+        clone.setJoinSelectionCardinality(joinRowCount);
         return clone;
     }
 
@@ -416,20 +427,21 @@ public class SimpleCostEstimate implements CostEstimate{
     }
 
     @Override
-    public CostEstimate add(CostEstimate addend,CostEstimate retval){
+    public CostEstimate add(CostEstimate addend, CostEstimate retval){
         assert addend!=null: "Cannot add a null cost estimate";
 
         double sumLocalCost = addend.localCost()+localCost;
         double sumRemoteCost = addend.remoteCost()+remoteCost;
         double sumRemoteCostPerParallelTask = addend.getRemoteCostPerParallelTask()+ remoteCostPerParallelTask;
         double rowCount = addend.rowCount()+numRows;
+        double newRawRowCount = addend.getRawRowCount()+rawRowCount;
 
         if(retval==null)
             retval = new SimpleCostEstimate();
 
         retval.setRemoteCost(sumRemoteCost);
         retval.setRemoteCostPerParallelTask(sumRemoteCostPerParallelTask);
-        retval.setCost(sumLocalCost,rowCount,singleScanRowCount,numPartitions,parallelism);
+        retval.setCost(sumLocalCost,rowCount,singleScanRowCount,newRawRowCount,numPartitions,parallelism);
         retval.setEstimatedHeapSize(estimatedHeapSize+addend.getEstimatedHeapSize());
         return retval;
     }
@@ -451,13 +463,14 @@ public class SimpleCostEstimate implements CostEstimate{
         double multRemoteCost = remoteCost*multiplicand;
         double multRemoteCostPerPartition = remoteCostPerParallelTask *multiplicand;
         double rowCount = numRows*multiplicand;
+        double newRawRowCount = rawRowCount*multiplicand;
 
         if(retval==null)
             retval = new SimpleCostEstimate();
 
         retval.setRemoteCost(multRemoteCost);
         retval.setRemoteCostPerParallelTask(multRemoteCostPerPartition);
-        retval.setCost(multLocalCost,rowCount,singleScanRowCount,numPartitions,parallelism);
+        retval.setCost(multLocalCost,rowCount,singleScanRowCount,newRawRowCount,numPartitions,parallelism);
         retval.setEstimatedHeapSize((long)(estimatedHeapSize*multiplicand));
         return retval;
     }
@@ -468,13 +481,14 @@ public class SimpleCostEstimate implements CostEstimate{
         double dividedRemoteCost = remoteCost/divisor;
         double dividedRemoteCostPerPartition = remoteCostPerParallelTask /divisor;
         double rowCount = numRows/divisor;
+        double newRawRowCount = rawRowCount/divisor;
 
         if(retval==null)
             retval = new SimpleCostEstimate();
 
         retval.setRemoteCost(dividedRemoteCost);
         retval.setRemoteCostPerParallelTask(dividedRemoteCostPerPartition);
-        retval.setCost(dividedLocalCost,rowCount,singleScanRowCount,numPartitions,parallelism);
+        retval.setCost(dividedLocalCost,rowCount,singleScanRowCount,newRawRowCount,numPartitions,parallelism);
         retval.setEstimatedHeapSize((long)(estimatedHeapSize/divisor));
         return retval;
     }
@@ -662,6 +676,16 @@ public class SimpleCostEstimate implements CostEstimate{
     @Override
     public double getJoinSelectionCardinality() {
         return joinRowCount;
+    }
+
+    @Override
+    public void setRawRowCount(double rawRowCount) {
+        this.rawRowCount = rawRowCount;
+    }
+
+    @Override
+    public double getRawRowCount() {
+        return rawRowCount >= 0 ? rawRowCount : numRows;
     }
 
 }

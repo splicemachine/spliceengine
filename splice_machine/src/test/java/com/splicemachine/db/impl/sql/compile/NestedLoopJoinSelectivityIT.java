@@ -150,4 +150,42 @@ public class NestedLoopJoinSelectivityIT extends BaseJoinSelectivityIT {
             }
         }
     }
+
+    @Test
+    public void testOutputRowEstimationOnEmptyInputTable() throws Exception {
+        // T1 is empty, on the right
+        String sqlText = "select * from --splice-properties joinOrder=fixed\n" +
+                "t2 --splice-properties index=null\n" +
+                ", t1 --splice-properties joinStrategy=nestedloop, index=null\n" +
+                "where t2.j=t1.i";
+
+        int[] rows = new int[]{3,4,5};
+        String[] row3 = new String[]{"NestedLoopJoin", "outputRows=4096,"};
+        String[] row4 = new String[]{"TableScan[T1", "outputRows=1,"};
+        String[] row5 = new String[]{"TableScan[T2", "outputRows=4096,"};
+
+        // Although we know T1 is empty, we bump its output row count to 1 as the test above
+        // explains. However, doing so greatly over estimates join output row count.
+        rowContainsQuery(rows, "explain " + sqlText, CM_V1, methodWatcher, row3, row4, row5);
+
+        row3[1] = "outputRows=1,";
+        rowContainsQuery(rows, "explain " + sqlText, CM_V2, methodWatcher, row3, row4, row5);
+
+        // T1 is empty, on the left
+        sqlText = "select * from --splice-properties joinOrder=fixed\n" +
+                "t1 --splice-properties index=null\n" +
+                ", t2 --splice-properties joinStrategy=nestedloop, index=null\n" +
+                "where t2.j=t1.i";
+
+        // DB-11521
+        // Note that under v1 cost model, t2 join t1 is estimated to output 1024 rows while
+        // t1 join t2 is estimated to have 4096 rows. Under v2 cost model they are the same.
+        // But that's only for this test case. Generally, we still have the same issue.
+        row3[1] = "outputRows=1024,";
+        row5[1] = "outputRows=1024,";
+        rowContainsQuery(rows, "explain " + sqlText, CM_V1, methodWatcher, row3, row5, row4);
+
+        row3[1] = "outputRows=1,";
+        rowContainsQuery(rows, "explain " + sqlText, CM_V2, methodWatcher, row3, row5, row4);
+    }
 }

@@ -322,7 +322,7 @@ public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
 
         10 rows selected
          */
-        rowContainsQuery(new int[]{4, 8, 9, 10}, "explain " + sqlText, methodWatcher,
+        rowContainsQuery(new int[]{4, 8, 9, 10}, "explain " + sqlText, costModelVersion, methodWatcher,
                 new String[]{"NestedLoopJoin", "outputRows=3"},
                 new String[]{"TableScan[T2", "scannedRows=1,outputRows=1", "preds=[(A1[1:1] = A2[2:1])]"},
                 new String[]{"ProjectRestrict", "outputRows=3", "preds=[(B1[0:2] IN (1,2,3))]"},
@@ -364,7 +364,7 @@ public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
 
         11 rows selected
          */
-        rowContainsQuery(new int[]{3, 5, 6, 8, 9, 10, 11}, "explain " + sqlText, methodWatcher,
+        rowContainsQuery(new int[]{3, 5, 6, 8, 9, 10, 11}, "explain " + sqlText, costModelVersion, methodWatcher,
                 new String[]{"NestedLoopJoin", "outputRows=3"},
                 new String[]{"NestedLoopJoin", "outputRows=1"},
                 new String[]{"TableScan[T2", "scannedRows=1,outputRows=1", "preds=[(A2[10:1] = DT.A3[9:1])]"},
@@ -454,8 +454,8 @@ public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
 
         10 rows selected
          */
-        rowContainsQuery(new int[]{4, 6, 7, 8, 9, 10}, "explain " + sqlText, methodWatcher,
-                new String[]{"NestedLoopJoin", "outputRows=3000"},
+        rowContainsQuery(new int[]{4, 6, 7, 8, 9, 10}, "explain " + sqlText, costModelVersion, methodWatcher,
+                new String[]{"NestedLoopJoin", costModelVersion.equals(CM_V1) ? "outputRows=3000" : "outputRows=2700"},
                 new String[]{"BroadcastJoin", "outputRows=1000", "preds=[(A2[6:2] = A4[6:1])]"},
                 new String[]{"TableScan[T2", "scannedRows=10000,outputRows=10000", "preds=[(A1[1:1] = T2.A2[4:1])]"},
                 new String[]{"TableScan[T4", "scannedRows=1000,outputRows=1000"},
@@ -497,9 +497,9 @@ public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
 
         10 rows selected
          */
-        rowContainsQuery(new int[]{4, 5, 7, 8, 9, 10}, "explain " + sqlText, methodWatcher,
-                new String[]{"NestedLoopJoin", "outputRows=10000"},
-                new String[] {"ProjectRestrict", "outputRows=10000", "preds=[((A1[1:1] + 1) = A2[8:1])]"},
+        rowContainsQuery(new int[]{4, 5, 7, 8, 9, 10}, "explain " + sqlText, costModelVersion, methodWatcher,
+                new String[]{"NestedLoopJoin", costModelVersion.equals(CM_V1) ? "outputRows=10000" : "outputRows=8100"},
+                new String[] {"ProjectRestrict", costModelVersion.equals(CM_V1) ? "outputRows=10000" : "outputRows=8100", "preds=[((A1[1:1] + 1) = A2[8:1])]"},
                 new String[]{"BroadcastJoin", "outputRows=10000", "preds=[(B2[6:2] = B4[6:3])]"},
                 new String[]{"TableScan[T4", "scannedRows=1000,outputRows=1000"},
                 new String[]{"TableScan[T2", "scannedRows=10000,outputRows=10000"},
@@ -538,9 +538,9 @@ public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
 
         10 rows selected
          */
-        rowContainsQuery(new int[]{4, 5, 7}, "explain " + sqlText, methodWatcher,
-                new String[]{"NestedLoopJoin", "outputRows=10000"},
-                new String[] {"ProjectRestrict", "outputRows=10000", "preds=[(A1[1:1] = A[8:1])]"},
+        rowContainsQuery(new int[]{4, 5, 7}, "explain " + sqlText, costModelVersion, methodWatcher,
+                new String[]{"NestedLoopJoin", costModelVersion.equals(CM_V1) ? "outputRows=10000" : "outputRows=8100"},
+                new String[] {"ProjectRestrict", costModelVersion.equals(CM_V1) ? "outputRows=10000" : "outputRows=8100", "preds=[(A1[1:1] = A[8:1])]"},
                 new String[]{"BroadcastJoin", "outputRows=10000"}
         );
 
@@ -576,9 +576,9 @@ public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
 
         10 rows selected
          */
-        rowContainsQuery(new int[]{4, 5, 7}, "explain " + sqlText, methodWatcher,
-                new String[]{"NestedLoopJoin", "outputRows=10000"},
-                new String[] {"ProjectRestrict", "outputRows=10000", "preds=[(A1[1:1] = A[8:1])]"},
+        rowContainsQuery(new int[]{4, 5, 7}, "explain " + sqlText, costModelVersion, methodWatcher,
+                new String[]{"NestedLoopJoin", costModelVersion.equals(CM_V1) ? "outputRows=10000" : "outputRows=8100"},
+                new String[] {"ProjectRestrict", costModelVersion.equals(CM_V1) ? "outputRows=10000" : "outputRows=8100", "preds=[(A1[1:1] = A[8:1])]"},
                 new String[]{"BroadcastJoin", "outputRows=10000"}
         );
 
@@ -617,9 +617,9 @@ public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
 
         12 rows selected
          */
-        rowContainsQuery(new int[]{4, 5, 7, 9, 10, 11, 12, 13}, "explain " + sqlText, methodWatcher,
-                new String[]{"NestedLoopJoin", "outputRows=10000"},
-                new String[] {"ProjectRestrict", "outputRows=10000", "preds=[(A1[1:1] = A[10:1])]"},
+        rowContainsQuery(new int[]{4, 5, 7, 9, 10, 11, 12, 13}, "explain " + sqlText, costModelVersion, methodWatcher,
+                new String[]{"NestedLoopJoin", costModelVersion.equals(CM_V1) ? "outputRows=10000" : "outputRows=8100"},
+                new String[] {"ProjectRestrict", costModelVersion.equals(CM_V1) ? "outputRows=10000" : "outputRows=8100", "preds=[(A1[1:1] = A[10:1])]"},
                 new String[] {"GroupBy"},
                 new String[]{"BroadcastJoin", "outputRows=10000", "preds=[(B2[6:2] = B4[6:3])]"},
                 new String[]{"TableScan[T4", "scannedRows=1000,outputRows=1000"},
@@ -662,7 +662,7 @@ public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
 
         13 rows selected
          */
-        rowContainsQuery(new int[]{4, 5}, "explain " + sqlText, methodWatcher,
+        rowContainsQuery(new int[]{4, 5}, "explain " + sqlText, costModelVersion, methodWatcher,
                 new String[]{"NestedLoopJoin"},
                 new String[] {"ProjectRestrict", "preds=[(DT.RNK[10:2] = 1),(A1[1:1] = A2[10:1])]"}
         );

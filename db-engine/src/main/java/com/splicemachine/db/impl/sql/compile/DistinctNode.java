@@ -200,6 +200,7 @@ public class DistinctNode extends SingleChildResultSetNode
         costEstimate.setLocalCostPerParallelTask(totalLocalCost);
         costEstimate.setRemoteCostPerParallelTask(totalRemoteCost);
         costEstimate.setRowCount(tableCardinality);
+        costEstimate.setRawRowCount(tableCardinality);
         costEstimate.setEstimatedHeapSize((long)outputHeapSize);
 
         return costEstimate;
@@ -264,7 +265,8 @@ public class DistinctNode extends SingleChildResultSetNode
 
         costEstimate.setCost(childResult.getCostEstimate().getEstimatedCost(),
                              childResult.getCostEstimate().rowCount(),
-                             childResult.getCostEstimate().singleScanRowCount());
+                             childResult.getCostEstimate().singleScanRowCount(),
+                             childResult.getCostEstimate().getRawRowCount());
 
         return this;
     }

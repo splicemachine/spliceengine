@@ -105,6 +105,7 @@ public class V2BroadcastJoinCostEstimation implements StrategyJoinCostEstimation
             innerCost.setRowOrdering(outerCost.getRowOrdering());
             innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalOutputRows));
             innerCost.setRowCount(totalOutputRows);
+            innerCost.setRawRowCount(totalOutputRows);
         } else {
             // Set cost to max to rule out broadcast join
             innerCost.setLocalCost(Double.MAX_VALUE);
