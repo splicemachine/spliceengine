@@ -93,7 +93,7 @@ public class HashableJoinIT extends SpliceUnitTest {
                 "                    and L.c2 = D.c2" +
                 "                    and L.e = 'X'))", useSpark);
 
-        rowContainsQuery(new int[]{4, 6}, "explain " + sqlText, methodWatcher, "Subquery", useSpark ? "BroadcastJoin" : "NestedLoopJoin");
+        rowContainsQuery(new int[]{11}, "explain " + sqlText, methodWatcher, "BroadcastJoin");
 
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             assertFalse(rs.next());
