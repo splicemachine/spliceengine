@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.ast.CorrelatedColRefCollectingVisitor;
 import com.splicemachine.db.impl.sql.compile.BinaryRelationalOperatorNode;
 import com.splicemachine.db.impl.sql.compile.ColumnReference;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import splice.com.google.common.base.Predicate;
 
 /**
@@ -45,11 +46,9 @@ import splice.com.google.common.base.Predicate;
  */
 public class CorrelatedInequalityBronPredicate implements Predicate<BinaryRelationalOperatorNode> {
 
-    private int sourceLevel;
     private CorrelatedColRefCollectingVisitor correlatedColRefCollectingVisitor;
 
     public CorrelatedInequalityBronPredicate(int sourceLevel) {
-        this.sourceLevel = sourceLevel;
         correlatedColRefCollectingVisitor =
             new CorrelatedColRefCollectingVisitor<>(1, sourceLevel);
     }
