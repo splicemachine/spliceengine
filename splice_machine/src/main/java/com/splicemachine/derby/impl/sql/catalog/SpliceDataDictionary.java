@@ -1260,6 +1260,14 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
     }
 
+    public void addSketchSizeColumn(TransactionController tc) throws StandardException {
+        ExecRow templateRow = getExecutionFactory().getValueRow(SYSCOLUMNSRowFactory.SYSCOLUMNS_COLUMN_COUNT);
+        templateRow.setColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_SKETCHSIZE, new SQLInteger(256));
+        upgradeAddColumnToSystemTable(tc, DataDictionary.SYSCOLUMNS_CATALOG_NUM, new int[]{SYSCOLUMNSRowFactory.SYSCOLUMNS_SKETCHSIZE}, templateRow);
+        populateNewSystemTableColumns(tc, DataDictionary.SYSCOLUMNS_CATALOG_NUM, new int[]{SYSCOLUMNSRowFactory.SYSCOLUMNS_SKETCHSIZE}, templateRow);
+
+    }
+
     public void setJavaClassNameColumnInSysAliases(TransactionController tc) throws StandardException {
         TabInfoImpl ti = getNonCoreTI(SYSALIASES_CATALOG_NUM);
 

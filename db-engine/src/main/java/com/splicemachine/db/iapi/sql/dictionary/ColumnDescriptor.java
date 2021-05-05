@@ -81,6 +81,7 @@ public final class ColumnDescriptor extends TupleDescriptor
     private boolean collectStatistics;
     private int partitionPosition = -1;
     private byte  useExtrapolation = 0;
+    private int sketchSize = 0;
     /* Used for Serde */
     //Following variable is used to see if the user is adding an autoincrement
     //column, or if user is altering the existing autoincrement column to change
@@ -276,6 +277,38 @@ public final class ColumnDescriptor extends TupleDescriptor
         this.useExtrapolation = useExtrapolation;
     }
 
+    public ColumnDescriptor(String columnName,
+                            int columnPosition,
+                            int storagePosition,
+                            DataTypeDescriptor columnType,
+                            DataValueDescriptor columnDefault,
+                            DefaultInfo columnDefaultInfo,
+                            UUID uuid,
+                            UUID defaultUUID,
+                            long autoincStart,
+                            long autoincInc,
+                            long autoincValue,
+                            boolean collectStats,
+                            int partitionPosition,
+                            byte useExtrapolation,
+                            int sketchSize){
+        this(columnName,
+                columnPosition,
+                storagePosition,
+                columnType,
+                columnDefault,
+                columnDefaultInfo,
+                uuid,
+                defaultUUID,
+                autoincStart,
+                autoincInc,
+                autoincValue,
+                collectStats,
+                partitionPosition,
+                useExtrapolation);
+        this.sketchSize = sketchSize;
+    }
+
     public boolean collectStatistics(){
         return collectStatistics;
     }
@@ -287,6 +320,8 @@ public final class ColumnDescriptor extends TupleDescriptor
     public byte getUseExtrapolation() {
         return useExtrapolation;
     }
+
+    public int getSketchSize() { return sketchSize; }
 
     public void setUseExtrapolation(byte useExtrapolation) {
         this.useExtrapolation = useExtrapolation;
