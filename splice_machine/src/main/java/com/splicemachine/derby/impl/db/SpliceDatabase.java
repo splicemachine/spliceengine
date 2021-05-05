@@ -156,8 +156,9 @@ public class SpliceDatabase extends BasicDatabase{
         afterOptVisitors.add(LimitOffsetVisitor.class);
         afterOptVisitors.add(PlanPrinter.class);
 
-        List<Class<? extends ISpliceVisitor>> afterBindVisitors=new ArrayList<>(1);
+        List<Class<? extends ISpliceVisitor>> afterBindVisitors=new ArrayList<>(2);
         afterBindVisitors.add(RepeatedPredicateVisitor.class);
+        afterBindVisitors.add(QueryRewriteVisitor.class);
 
         List<Class<? extends ISpliceVisitor>> afterParseClasses=Collections.emptyList();
         lctx.setASTVisitor(new SpliceASTWalker(afterParseClasses, afterBindVisitors, afterOptVisitors));
