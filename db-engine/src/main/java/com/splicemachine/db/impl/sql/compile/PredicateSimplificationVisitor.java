@@ -37,7 +37,7 @@ import java.util.List;
  * This visitor walks the tree bottom-up, so that predicates simplified at lower
  * levels can affect more simplification at higher levels.
  */
-class PredicateSimplificationVisitor implements Visitor {
+public class PredicateSimplificationVisitor implements Visitor {
 
     private final FromList fromListParam;
     private Class skipOverClass;
