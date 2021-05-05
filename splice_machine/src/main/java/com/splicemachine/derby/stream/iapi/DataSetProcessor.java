@@ -146,6 +146,8 @@ public interface DataSetProcessor {
                                    OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,
                                    ExecRow execRow, boolean useSample, double sampleFraction) throws StandardException;
 
+    <V> DataSet<V> readFileX(String location, String extension, SpliceOperation op) throws StandardException;
+
     /**
      *
      * Reads Avro files given the scan variables.

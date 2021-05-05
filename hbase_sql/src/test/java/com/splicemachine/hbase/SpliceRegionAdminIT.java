@@ -37,9 +37,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -151,6 +149,11 @@ public class SpliceRegionAdminIT {
             String split = String.format("call syscs_util.syscs_split_table_or_index_at_points('SPLICEREGIONADMINIT', 'D', null,'\\x%d')", i);
             spliceClassWatcher.execute(split);
         }
+
+        new TableCreator(conn)
+                .withCreate("create table T (i int, j int unique)")
+                .withIndex("create index ti on t(i)")
+                .create();
     }
 
     @Test
@@ -610,5 +613,99 @@ public class SpliceRegionAdminIT {
 
     private static String getResource(String name) {
         return SpliceUnitTest.getResourceDirectory() + "tcph/data/" + name;
+    }
+
+    @Test
+    public void testLocalizeIndexForTable() throws Exception {
+
+        separateIndexAndTable();
+        String sql = String.format("call syscs_util.localize_indexes_for_table('%s', 'T')", SCHEMA_NAME);
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            int count = 0;
+            while(rs.next()) {
+                count++;
+                String result = rs.getString(1);
+                Assert.assertTrue(result.contains("Moved"));
+            }
+            Assert.assertTrue(count > 0);
+        }
+    }
+
+    private void separateIndexAndTable() throws Exception {
+        Map<String, List<String>> serverUsage = new HashMap();
+        String sql = "call syscs_util.syscs_get_active_servers()";
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            while(rs.next()) {
+                String server = rs.getString(1) + "," + rs.getLong(2) + "," + rs.getLong(3);
+                serverUsage.put(server, Lists.newArrayList());
+            }
+        }
+
+        sql = String.format("call syscs_util.get_region_locations('%s', 'T')", SCHEMA_NAME);
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            rs.next();
+            String s = rs.getString("OWNING_SERVER");
+            List<String> objects = serverUsage.get(s);
+            objects.add("T");
+        }
+
+        sql = String.format("select conglomeratename from sys.sysconglomerates c, sys.sysschemas s, sys.systables t " +
+                "where t.tableid=c.tableid and " +
+                "s.schemaid=t.schemaid and " +
+                "schemaname='%s' and " +
+                "tablename='T' and c.isindex", SCHEMA_NAME);
+        try (ResultSet resultSet = methodWatcher.executeQuery(sql)) {
+            while (resultSet.next()) {
+                String indexName = resultSet.getString(1);
+                sql = String.format("call syscs_util.get_region_locations('%s', '%s')", SCHEMA_NAME, indexName);
+                try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+                    rs.next();
+                    String s = rs.getString("OWNING_SERVER");
+                    List<String> objects = serverUsage.get(s);
+                    objects.add(indexName);
+                }
+            }
+        }
+
+        for (String server : serverUsage.keySet()) {
+            List<String> objects = serverUsage.get(server);
+            if (objects.size() == 0)
+                continue;
+            else if (objects.size() == 3) {
+                // If all table and indexes are in the same server, move table to the other server
+                String otherServer = getAnotherServer(serverUsage, server);
+                sql = String.format("call syscs_util.assign_to_server('%s', 'T', '%s')", SCHEMA_NAME, otherServer);
+                try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+                    rs.next();
+                    String result = rs.getString(1);
+                    Assert.assertTrue(result.contains("Moved"));
+                }
+            }
+        }
+    }
+    private String getAnotherServer(Map<String, List<String>> serverUsage , String server) {
+        String result = null;
+        for (String s : serverUsage.keySet()) {
+            if (!s.equals(server)) {
+                result = s;
+                break;
+            }
+        }
+        return result;
+    }
+
+    @Test
+    public void testLocalizeIndexForSchema() throws Exception {
+        separateIndexAndTable();
+        String sql = String.format("call syscs_util.localize_indexes_for_schema('%s')", SCHEMA_NAME);
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            int count = 0;
+            while(rs.next()) {
+                count++;
+                String result = rs.getString(1);
+                Assert.assertTrue(result.contains("Moved"));
+            }
+            Assert.assertTrue(count > 0);
+        }
     }
 }

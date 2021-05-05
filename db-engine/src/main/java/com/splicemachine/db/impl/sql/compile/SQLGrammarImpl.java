@@ -20,6 +20,8 @@ import com.splicemachine.db.iapi.util.StringUtil;
 import org.python.antlr.op.Param;
 
 import java.sql.Types;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
 
@@ -1334,5 +1336,61 @@ class SQLGrammarImpl {
         ((CastNode) value).setForExternallyGeneratedCASTnode();
         ((CastNode) value).setForNullsInConditionalNode();
         return value;
+    }
+
+    void
+    validateParameters(boolean isExternal, String storageFormat, ValueNode terminationChar, ValueNode escapedByChar,
+                       ValueNode linesTerminatedByChar, ValueNode location, String compression,
+                       ResultColumnList partitionedResultColumns, TableElementList tableElementList)
+            throws StandardException
+    {
+        {
+            if (isExternal && partitionedResultColumns != null){
+                List<String> columnsPartitions = Arrays.asList(partitionedResultColumns.getColumnNames());
+
+                for(String columnPartititon : columnsPartitions){
+                    ColumnDefinitionNode definition = tableElementList.findColumnDefinition(columnPartititon);
+                    if(definition ==  null){
+                        throw StandardException.newException(SQLState.EXTERNAL_TABLES_PARTITIONS_REQUIRED, columnPartititon);
+                    }
+                }
+            }
+
+            if (isExternal && storageFormat == null)
+                throw StandardException.newException(
+                        SQLState.STORED_AS_REQUIRED_WITH_EXTERNAL_TABLES);
+            if (isExternal && location == null)
+                throw StandardException.newException(
+                        SQLState.LOCATION_REQUIRED_WITH_EXTERNAL_TABLES);
+
+            //COMPRESSION ERROR WITH TEXT
+            if(compression != "none" && storageFormat.equals("T")){
+                throw StandardException.newException(SQLState.COMPRESSION_NOT_ALLOWED_WITH_TEXT_FILE);
+            }
+
+            // PARQUET ERRORS
+            if (storageFormat != null && storageFormat.equals("P")) {
+                if (terminationChar !=null || escapedByChar !=null || linesTerminatedByChar != null)
+                    throw StandardException.newException(
+                            SQLState.ROW_FORMAT_NOT_ALLOWED_WITH_PARQUET);
+            }
+            // AVRO ERRORS
+            if (storageFormat != null && storageFormat.equals("A")) {
+                if (terminationChar !=null || escapedByChar !=null || linesTerminatedByChar != null)
+                    throw StandardException.newException(
+                            SQLState.ROW_FORMAT_NOT_ALLOWED_WITH_AVRO);
+            }
+            // ORC Errors
+            if (storageFormat != null && storageFormat.equals("O")) {
+                if (terminationChar !=null || escapedByChar !=null || linesTerminatedByChar != null)
+                    throw StandardException.newException(
+                            SQLState.ROW_FORMAT_NOT_ALLOWED_WITH_ORC);
+            }
+            // STORAGE OR LOCATION WITHOUT EXTERNAL
+            if ( (storageFormat != null || location !=null) && !isExternal)
+                throw StandardException.newException(
+                        SQLState.STORED_AS_OR_LOCATION_WITHOUT_EXTERNAL);
+
+        }
     }
 }
