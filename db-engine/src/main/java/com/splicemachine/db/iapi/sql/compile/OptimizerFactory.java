@@ -31,7 +31,7 @@
 
 package com.splicemachine.db.iapi.sql.compile;
 
-import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModel;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -75,7 +75,7 @@ public interface OptimizerFactory {
                            RequiredRowOrdering requiredRowOrdering,
                            int numTablesInQuery,
                            LanguageConnectionContext lcc,
-                           JoinCostEstimationModel joinCostEstimationModel)
+                           CostModel costModel)
             throws StandardException;
 
 

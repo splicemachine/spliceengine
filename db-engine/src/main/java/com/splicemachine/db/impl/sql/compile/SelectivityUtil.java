@@ -40,7 +40,7 @@ import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 
 import java.util.*;
 
-import static com.splicemachine.db.impl.sql.compile.ScanCostFunction.computeSqrtLevel;
+import static com.splicemachine.db.impl.sql.compile.AbstractScanCostEstimator.computeSqrtLevel;
 
 /**
  *

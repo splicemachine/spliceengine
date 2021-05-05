@@ -38,7 +38,7 @@ import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
 import com.splicemachine.db.iapi.sql.compile.RequiredRowOrdering;
 
-import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModel;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -91,7 +91,7 @@ public class Level2OptimizerFactoryImpl
 			RequiredRowOrdering requiredRowOrdering,
 			int numTablesInQuery,
 			LanguageConnectionContext lcc,
-			JoinCostEstimationModel joinCostEstimationModel)
+			CostModel costModel)
 				throws StandardException
 	{
 
@@ -108,7 +108,7 @@ public class Level2OptimizerFactoryImpl
 							requiredRowOrdering,
 							numTablesInQuery,
 							lcc,
-							joinCostEstimationModel);
+							costModel);
 	}
 
 	/**
