@@ -180,7 +180,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
                 }
             }
             else
-                ap.setMissingHashKeyOK(false);  // msirek-temp
+                ap.setMissingHashKeyOK(false);
         }
 
         return hashKeyColumns!=null;
