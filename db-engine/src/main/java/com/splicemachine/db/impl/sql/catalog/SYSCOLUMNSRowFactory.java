@@ -232,6 +232,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
                 autoincInc, autoincValue, partitionPosition, autoinc_create_or_modify_Start_Increment,
                 collectStats, useExtrapolation, sketchSize);
 
+
         return row;
     }
 

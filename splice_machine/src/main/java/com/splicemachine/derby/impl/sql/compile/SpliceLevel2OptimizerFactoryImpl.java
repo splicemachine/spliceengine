@@ -25,99 +25,102 @@ import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
 import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
 import com.splicemachine.db.iapi.sql.compile.RequiredRowOrdering;
+import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModel;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.impl.sql.compile.OptimizerFactoryImpl;
 
 public class SpliceLevel2OptimizerFactoryImpl extends OptimizerFactoryImpl {
 
-	public void boot(boolean create, Properties startParams) throws StandardException {
-		super.boot(create, startParams);
-	}
+    public void boot(boolean create, Properties startParams) throws StandardException {
+        super.boot(create, startParams);
+    }
 
 
-	/**
-	 * @see OptimizerFactory#supportsOptimizerTrace
-	 */
-	public boolean supportsOptimizerTrace() {
-		return true;
-	}
+    /**
+     * @see OptimizerFactory#supportsOptimizerTrace
+     */
+    public boolean supportsOptimizerTrace() {
+        return true;
+    }
 
-	public SpliceLevel2OptimizerFactoryImpl()  {
-		
-	}
-	@Override
-	public Optimizer getOptimizer(OptimizableList optimizableList,
-			  OptimizablePredicateList predList,
-			  DataDictionary dDictionary,
-			  RequiredRowOrdering requiredRowOrdering,
-			  int numTablesInQuery,
-			  LanguageConnectionContext lcc) throws StandardException {
-	/* Get/set up the array of join strategies.
-	* See comment in boot().  If joinStrategySet
-	* is null, then we may do needless allocations
-	* in a multi-user environment if multiple
-	* users find it null on entry.  However, 
-	* assignment of array is atomic, so system
-	* will be consistent even in rare case
-	* where users get different arrays.
-	*/
-		if (joinStrategySet == null) { // Do not change order...
-			joinStrategySet = new JoinStrategy[]{
-					new NestedLoopJoinStrategy(),
-					new MergeSortJoinStrategy(),
-					new BroadcastJoinStrategy(),
-					new MergeJoinStrategy(),
-                    new CrossJoinStrategy(),
-//					new HalfMergeSortJoinStrategy(),
-			};
-		}
+    public SpliceLevel2OptimizerFactoryImpl() {
 
-return getOptimizerImpl(optimizableList,
-		predList,
-		dDictionary,
-		requiredRowOrdering,
-		numTablesInQuery,
-		lcc);
-}
+    }
+
+    @Override
+    public Optimizer getOptimizer(OptimizableList optimizableList,
+                                  OptimizablePredicateList predList,
+                                  DataDictionary dDictionary,
+                                  RequiredRowOrdering requiredRowOrdering,
+                                  int numTablesInQuery,
+                                  LanguageConnectionContext lcc,
+                                  JoinCostEstimationModel joinCostEstimationModel) throws StandardException {
+        /* Get/set up the array of join strategies.
+         * See comment in boot().  If joinStrategySet
+         * is null, then we may do needless allocations
+         * in a multi-user environment if multiple
+         * users find it null on entry.  However,
+         * assignment of array is atomic, so system
+         * will be consistent even in rare case
+         * where users get different arrays.
+         */
+        if (joinStrategySet == null) { // Do not change order...
+            joinStrategySet = new JoinStrategy[]{
+                    new NestedLoopJoinStrategy(),
+                    new MergeSortJoinStrategy(),
+                    new BroadcastJoinStrategy(),
+                    new MergeJoinStrategy(),
+                    new CrossJoinStrategy()
+            };
+        }
+
+        return getOptimizerImpl(optimizableList,
+                                predList,
+                                dDictionary,
+                                requiredRowOrdering,
+                                numTablesInQuery,
+                                lcc,
+                                joinCostEstimationModel);
+    }
 
 
-	protected Optimizer getOptimizerImpl(
-							  OptimizableList optimizableList,
-							  OptimizablePredicateList predList,
-							  DataDictionary dDictionary,
-							  RequiredRowOrdering requiredRowOrdering,
-							  int numTablesInQuery,
-							  LanguageConnectionContext lcc) throws StandardException {
+    protected Optimizer getOptimizerImpl(
+            OptimizableList optimizableList,
+            OptimizablePredicateList predList,
+            DataDictionary dDictionary,
+            RequiredRowOrdering requiredRowOrdering,
+            int numTablesInQuery,
+            LanguageConnectionContext lcc,
+            JoinCostEstimationModel joinCostEstimationModel) throws StandardException {
 
-	return new SpliceLevel2OptimizerImpl(
-						optimizableList,
-						predList,
-						dDictionary,
-						ruleBasedOptimization,
-						noTimeout,
-						useStatistics,
-						maxMemoryPerTable,
-						joinStrategySet,
-						lcc.getLockEscalationThreshold(),
-						requiredRowOrdering,
-						numTablesInQuery,
-						lcc);
-}
+        return new SpliceLevel2OptimizerImpl(
+                optimizableList,
+                predList,
+                dDictionary,
+                ruleBasedOptimization,
+                noTimeout,
+                useStatistics,
+                maxMemoryPerTable,
+                joinStrategySet,
+                lcc.getLockEscalationThreshold(),
+                requiredRowOrdering,
+                numTablesInQuery,
+                lcc,
+                joinCostEstimationModel);
+    }
 
-	/**
-	 * @see OptimizerFactory#getCostEstimate
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public CostEstimate getCostEstimate() throws StandardException {
-		return new SimpleCostEstimate();
-	}
+    /**
+     * @see OptimizerFactory#getCostEstimate
+     */
+    public CostEstimate getCostEstimate() throws StandardException {
+        return new SimpleCostEstimate();
+    }
 
-	public long getDetermineSparkRowThreshold() {
-		SConfiguration configuration = EngineDriver.driver().getConfiguration();
-		return configuration.getDetermineSparkRowThreshold();
-	}
+    public long getDetermineSparkRowThreshold() {
+        SConfiguration configuration = EngineDriver.driver().getConfiguration();
+        return configuration.getDetermineSparkRowThreshold();
+    }
 }
 
 

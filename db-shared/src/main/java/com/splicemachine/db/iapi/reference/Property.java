@@ -1287,6 +1287,8 @@ public interface Property {
     String ENTERPRISE_ENABLE = "splicemachine.enterprise.enable";
 
     String SPLICE_OLAP_PARALLEL_PARTITIONS = "splice.olapParallelPartitions";
+  
+    String JOIN_COST_ESTIMATION_MODEL = "joinCostEstimationModel";
 
     /** The property is used to get the default value for default frequency sketch size of a column.
      */
