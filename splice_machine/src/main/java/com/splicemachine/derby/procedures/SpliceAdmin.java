@@ -56,6 +56,7 @@ import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.utils.*;
+import com.splicemachine.derby.vti.SpliceFileVTI;
 import com.splicemachine.hbase.JMXThreadPool;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.ErrorState;
@@ -1770,9 +1771,17 @@ public class SpliceAdmin extends BaseAdminProcedures {
     }
 
     public static void ANALYZE_EXTERNAL_TABLE(String location, final ResultSet[] resultSet) throws IOException, SQLException {
+        String extension = SpliceFileVTI.getDirectoryContentExtension(location, true);
+        String storedAs = "t";
+        if(extension.equals("parquet"))
+            storedAs = "p";
+        else if(extension.equals("orc"))
+            storedAs = "o";
+        else if(extension.equals("avro"))
+            storedAs = "a";
 
         GetSchemaExternalResult result = DistributedGetSchemaExternalJob.execute(location, getCurrentUserId()+"_analyze",
-                    null, false, new CsvOptions(), null, null);
+                    storedAs, false, new CsvOptions(), null, null);
 
         String[] res = result.getSuggestedSchema("\n").split("\n");
         int maxLen = Arrays.stream(res).map(String::length).max(Integer::compareTo).get();

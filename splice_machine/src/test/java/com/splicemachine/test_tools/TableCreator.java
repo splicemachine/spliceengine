@@ -54,7 +54,7 @@ import static splice.com.google.common.base.Preconditions.checkState;
  *
  * </pre>
  */
-public class TableCreator {
+public class TableCreator implements AutoCloseable {
 
     private Connection connection;
     private String tableName;
@@ -104,28 +104,26 @@ public class TableCreator {
         return this;
     }
 
-    public void create() throws SQLException {
+    public TableCreator create() throws SQLException {
         createTable();
         createIndexes();
         if (rowCreator != null) {
             checkState(insertSql != null, "must provide insert statement if providing rows");
             insertRows();
         }
+        return this;
     }
 
     private void createTable() throws SQLException {
         String baseSql = createSql;
-        if(constraints!=null){
+        if (constraints != null) {
             int lastParenthesis = baseSql.lastIndexOf(")");
-            baseSql = baseSql.substring(0,lastParenthesis)+","+constraints+")";
+            baseSql = baseSql.substring(0, lastParenthesis) + "," + constraints + ")";
         }
-        String CREATE_SQL=tableName!=null?String.format(baseSql,tableName):baseSql;
-        Statement statement = connection.createStatement();
-        statement.setQueryTimeout(queryTimeout);
-        try {
+        String CREATE_SQL = tableName != null ? String.format(baseSql, tableName) : baseSql;
+        try (Statement statement = connection.createStatement()) {
+            statement.setQueryTimeout(queryTimeout);
             statement.execute(CREATE_SQL);
-        } finally {
-            DbUtils.close(statement);
         }
     }
 
@@ -168,6 +166,14 @@ public class TableCreator {
                 }
 
             }
+        }
+    }
+
+    @Override
+    public void close() throws Exception {
+        if(tableName == null) return;
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("DROP TABLE " + tableName);
         }
     }
 }
