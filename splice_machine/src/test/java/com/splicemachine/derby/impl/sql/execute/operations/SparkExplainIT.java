@@ -826,14 +826,14 @@ public class SparkExplainIT extends SpliceUnitTest {
                 "        t1 --splice-properties useSpark=true\n" +
                 "        inner join big on 1=1";
         // BIG table should be on the left side (bigger row index)
-        String[] expectedList = {"CrossJoin", "TableScan[T1(", "TableScan[BIG("};
+        String[] expectedList = {"BroadcastJoin", "TableScan[T1(", "TableScan[BIG("};
         rowContainsQuery(new int[]{6, 7, 9}, sqlText, methodWatcher, expectedList);
 
         sqlText = "sparkexplain select count(*) from\n" +
                 "        t1 --splice-properties useSpark=true\n" +
                 "        inner join big on 1=1";
         // expecting broadcast on the right side and BIG table is on the left side
-        String[] expectedList2 = {"BroadcastNestedLoopJoin BuildRight, Cross", "Scan ExistingRDD[]", "-> TableScan[BIG("};
+        String[] expectedList2 = {"BroadcastNestedLoopJoin BuildRight", "Scan ExistingRDD[]", "-> TableScan[BIG("};
         rowContainsQuery(new int[]{5, 6, 7}, sqlText, methodWatcher, expectedList2);
     }
 
