@@ -62,6 +62,7 @@ import javax.management.ObjectName;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 
 /**
  *
@@ -581,32 +582,19 @@ public class DataDictionaryCache {
         statementCache.invalidateAll();
     }
 
-    public void statementCacheAdd(GenericStatement gs, GenericStorablePreparedStatement gsp) throws StandardException {
-        if (!dd.canWriteCache(null))
-            return;
-        if (LOG.isDebugEnabled())
-            LOG.debug("statementCacheAdd " + gs.toString());
-        statementCache.put(gs,new StatementCacheValue(gsp));
-    }
-
     public List<Pair<String, Timestamp>> cachedStatements() throws StandardException {
-        if (!dd.canReadCache(null))
-            return null;
         List<Pair<String, Timestamp>> result = new ArrayList<>();
         statementCache.asMap().forEach((key, value) -> result.add(new Pair<String, Timestamp>(key.getStatementText(), value.getTimestamp())));
         return result;
     }
 
-    public GenericStorablePreparedStatement statementCacheFind(GenericStatement gs) throws StandardException {
-        if (!dd.canReadCache(null))
-            return null;
-        StatementCacheValue value = statementCache.getIfPresent(gs);
-        if (LOG.isDebugEnabled())
-            LOG.debug("statementCacheFind " + gs.toString() +(value != null ? " found" : " null"));
-        if(value == null) {
-            return null;
-        } else {
+    public GenericStorablePreparedStatement cacheIfAbsent(GenericStatement gs) throws StandardException {
+        try {
+            StatementCacheValue value = statementCache.getManagedCache().get(gs, () -> new StatementCacheValue(new GenericStorablePreparedStatement(gs)));
             return value.getStatement();
+        }
+        catch (ExecutionException ex) {
+            throw StandardException.newException("unexpected exception", ex);
         }
     }
 
