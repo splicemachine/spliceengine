@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.Statement;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.depend.Dependency;
 import com.splicemachine.db.iapi.sql.depend.Provider;
@@ -65,6 +66,7 @@ import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
+import scala.reflect.internal.Trees;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -146,6 +148,9 @@ public class GenericStatement implements Statement{
 
         final int depth=lcc.getStatementDepth();
         boolean recompile=false;
+        if (lcc.isReadCommittedIsolationLevel()) {
+            lcc.pushNestedTransaction(lcc.getTransactionCompile().startedNestedTransaction(true, null, false));
+        }
         try{
             return prepMinion(lcc,true,null,null,forMetaData, boundAndOptimizedStatement);
         } catch(Throwable t){
@@ -193,6 +198,9 @@ public class GenericStatement implements Statement{
                     lcc.popStatementContext(
                             lcc.getStatementContext(),null);
                 }
+            }
+            if (lcc.isReadCommittedIsolationLevel()) {
+                lcc.popNestedTransaction().abort();
             }
         }
     }

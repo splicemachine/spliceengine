@@ -348,6 +348,11 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
                 rePrepare(lccToUse);
             }
 
+            boolean isReadCommitted = lccToUse.isReadCommittedIsolationLevel();
+            if(isReadCommitted) {
+                boolean toWrite = lccToUse.getTransactionExecute().isElevated();
+                lccToUse.pushNestedTransaction(lccToUse.getTransactionExecute().startedNestedTransaction(!toWrite, null, false));
+            }
             StatementContext statementContext = lccToUse.pushStatementContext(
                     isAtomic, updateMode == CursorNode.READ_ONLY, getSource(), pvs, rollbackParentContext, timeoutMillis);
 
@@ -390,6 +395,11 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
             }
 
             lccToUse.popStatementContext(statementContext, null);
+            if(isReadCommitted) {
+                lccToUse.getTransactionExecute().commit();
+                //lccToUse.getTransactionExecute().destroy();
+                lccToUse.popNestedTransaction();
+            }
 
             if (activation.isSingleExecution()) {
 

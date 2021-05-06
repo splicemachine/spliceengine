@@ -1576,4 +1576,6 @@ public interface LanguageConnectionContext extends Context {
      * @note this method has side effects.
      */
     PreparedStatement lookupStatement(GenericStatement statement) throws StandardException;
+
+    boolean isReadCommittedIsolationLevel();
 }

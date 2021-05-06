@@ -14,8 +14,12 @@
 
 package com.splicemachine.si.impl;
 
+import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
@@ -26,6 +30,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.Driver;
 import java.util.Deque;
 import java.util.Iterator;
@@ -256,12 +261,22 @@ public class TransactionImpl extends BaseTransaction {
                 synchronized(this){
                     SpliceLogUtils.trace(LOG,"setActiveState: parent "+parentTxn);
                     Txn txn;
-                    if(nested)
-                        txn=lifecycleManager.beginChildTransaction(parentTxn,parentTxn.getIsolationLevel(),additive,table);
-                    else
-                        txn=lifecycleManager.beginTransaction();
-                    ConnectionUtil.getCurrentLCC().getPrepareIsolationLevel()
-
+                    if(nested) {
+                        txn = lifecycleManager.beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(), additive, table);
+                    } else {
+                        Integer isolationLevelNum = Connection.TRANSACTION_SERIALIZABLE;
+                        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLccOrNull();
+                        if(lcc != null && lcc.getSessionProperties() != null) {
+                            isolationLevelNum = (Integer)lcc
+                                    .getSessionProperties()
+                                    .getProperty(SessionProperties.PROPERTYNAME.ISOLATIONLEVEL);
+                            if(isolationLevelNum == null) {
+                                isolationLevelNum = Connection.TRANSACTION_SERIALIZABLE;
+                            }
+                        }
+                        Txn.IsolationLevel isolationLevel = Txn.IsolationLevel.fromInt(isolationLevelNum);
+                        txn = lifecycleManager.beginTransaction(isolationLevel);
+                    }
 
                     txnStack.push(new TransactionState(transName,txn));
                     state=ACTIVE;

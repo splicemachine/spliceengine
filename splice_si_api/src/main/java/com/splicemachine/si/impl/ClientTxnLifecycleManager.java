@@ -131,7 +131,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
         if(parentTxn.getState()!=Txn.State.ACTIVE)
             throw exceptionFactory.doNotRetry("Cannot create a child of an inactive transaction. Parent: "+parentTxn);
         if(destinationTable!=null){
-            if (inMemory && parentTxn.allowsSubtransactions()) {
+            if (inMemory && parentTxn.allowsSubtransactions() && parentTxn.getIsolationLevel() != Txn.IsolationLevel.READ_COMMITTED) {
                 Txn parent = (Txn) parentTxn;
                 long subId = parent.newSubId();
                 if (subId <= SIConstants.SUBTRANSANCTION_ID_MASK)
@@ -212,15 +212,16 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
                 Bytes.compareTo(destinationTable, "replication".getBytes(Charset.defaultCharset().name())) != 0) {
             throw new IOException(StandardException.newException(SQLState.READ_ONLY));
         }
-        if(!txn.allowsWrites()){
+        if(!txn.allowsWrites()) {
             //we've elevated from a read-only to a writable, so make sure that we add
             //it to the keep alive
-            Txn writableTxn=new WritableTxn(txn,this,destinationTable,exceptionFactory);
+            Txn writableTxn = new WritableTxn(txn, this, destinationTable, exceptionFactory);
             store.recordNewTransaction(writableTxn);
             keepAliveScheduler.scheduleKeepAlive(writableTxn);
-            txn=writableTxn;
-        }else
-            store.elevateTransaction(txn,destinationTable);
+            txn = writableTxn;
+        }else {
+            store.elevateTransaction(txn, destinationTable);
+        }
         return txn;
     }
 
@@ -315,7 +316,13 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
             store.registerActiveTransaction(newTxn);
             return newTxn;
         }else{
-            return ReadOnlyTxn.createReadOnlyChildTransaction(parentTxn,this,additive,exceptionFactory);
+            long beginTimestamp = parentTxn.getBeginTimestamp();
+            if(parentTxn.getIsolationLevel() == Txn.IsolationLevel.READ_COMMITTED) {
+                beginTimestamp = getTimestamp();
+            }
+            return new ReadOnlyTxn(beginTimestamp,
+                                   beginTimestamp,
+                                   parentTxn.getIsolationLevel(),parentTxn,this,exceptionFactory,additive);
         }
     }
 

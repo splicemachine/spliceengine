@@ -855,6 +855,12 @@ public interface TransactionController
 			boolean inMemoryTxn)
         throws StandardException;
 
+	TransactionController startedNestedTransaction(
+			boolean readOnly,
+			byte[] destinationTable,
+			boolean inMemoryTxn
+	) throws StandardException;
+
     TransactionController startIndependentInternalTransaction(boolean readOnly) throws StandardException;
 
     /**

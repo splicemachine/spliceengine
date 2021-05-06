@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.util.StringUtil;
 import org.apache.zookeeper.txn.Txn;
 
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -138,14 +139,21 @@ public class SessionPropertiesImpl implements SessionProperties {
                 properties[JOINCOSTESTIMATIONMODEL.getId()] = valString;
                 break;
             case ISOLATIONLEVEL:
-                String isolationLevel = parseIsolationLevel(valString);
+                properties[ISOLATIONLEVEL.getId()] = parseIsolationLevel(valString);
+                break;
             default:
                 assert false;
         }
     }
 
-    private String parseIsolationLevel(String valString) {
-        Transaction.KEEP_LOCKS
+    // todo (hatyo) use StringValidator once DB-11538 PR is in.
+    private int parseIsolationLevel(String valString) {
+        if("READ COMMITTED".equalsIgnoreCase(valString)) {
+            return Connection.TRANSACTION_READ_COMMITTED;
+        } else {
+            return Connection.TRANSACTION_SERIALIZABLE; // fallback to SI as a sane default.
+        }
+
     }
 
     /**

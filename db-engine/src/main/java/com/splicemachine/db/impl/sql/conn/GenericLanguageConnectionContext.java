@@ -84,6 +84,7 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.sql.Connection;
 import java.util.*;
 
 import static com.splicemachine.db.iapi.reference.Property.MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED;
@@ -4289,4 +4290,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         return activeStateTxId;
     }
 
+    @Override
+    public boolean isReadCommittedIsolationLevel() {
+        return getSessionProperties() != null
+                && (Integer)getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.ISOLATIONLEVEL) != null
+                && (Integer)getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.ISOLATIONLEVEL) == Connection.TRANSACTION_READ_COMMITTED;
+    }
 }

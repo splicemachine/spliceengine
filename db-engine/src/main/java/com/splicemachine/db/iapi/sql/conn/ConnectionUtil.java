@@ -50,8 +50,7 @@ public class ConnectionUtil {
 	public static LanguageConnectionContext getCurrentLCC()
 		throws SQLException {
 
-			LanguageConnectionContext lcc = (LanguageConnectionContext)
-				ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
+			LanguageConnectionContext lcc = getCurrentLccOrNull();
 
 			if (lcc == null)
 				throw new SQLException(
@@ -62,5 +61,9 @@ public class ConnectionUtil {
 							ExceptionSeverity.SESSION_SEVERITY);
 
 			return lcc;
+	}
+
+	public static LanguageConnectionContext getCurrentLccOrNull() {
+		return 	(LanguageConnectionContext)ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
 	}
 }

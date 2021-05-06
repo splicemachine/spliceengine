@@ -1761,6 +1761,47 @@ public class SpliceTransactionManager implements XATransactionController,
         return (rt);
     }
 
+    public TransactionController startedNestedTransaction(
+            boolean readOnly,
+            byte[] destinationTable,
+            boolean inMemoryTxn ) throws StandardException
+    {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "Before startedNestedTransaction: parentTxn=%s, readOnly=%b, nestedTxnStack=\n%s", getRawTransaction(), readOnly, getNestedTransactionStackString());
+        // Get the context manager.
+        ContextManager cm = ContextService.getCurrentContextManager();
+
+        if(rawtran instanceof PastTransaction) {
+            if (!readOnly)
+                throw StandardException.newException(LANG_INTERNAL_ERROR,
+                                                     "Attempting to elevate transaction in time travel query.");
+            SpliceTransactionManager rt = new SpliceTransactionManager(accessmanager, ((PastTransaction)rawtran).getClone(), this);
+
+            //this actually does some work, so don't remove it
+            new SpliceTransactionManagerContext(
+                    cm, AccessFactoryGlobals.RAMXACT_CHILD_CONTEXT_ID, rt, true /* abortAll */);
+            return rt;
+        }
+
+        // Force the current transaction at the top of the txnStack to be the parent transaction.
+        SpliceTransactionManager rt = new SpliceTransactionManager(accessmanager, rawtran, this, cm);
+
+        Transaction childTxn;
+        if(rawtran instanceof SpliceTransaction)
+            childTxn=rt.getChildTransaction(readOnly, cm,
+                                            (SpliceTransaction)rawtran, destinationTable, inMemoryTxn, true);
+        else
+            childTxn = rt.getChildTransactionFromView(readOnly, cm,
+                                                      (SpliceTransactionView)rawtran, destinationTable, inMemoryTxn, true);
+
+        rt = new SpliceTransactionManager(accessmanager, childTxn, this, cm);
+        SpliceTransactionManagerContext spliceTransactionManagerContext =
+                (SpliceTransactionManagerContext)cm.getContext(AccessFactoryGlobals.RAMXACT_CONTEXT_ID);
+
+        rt.setContext(spliceTransactionManagerContext);
+        return (rt);
+    }
+
     private Transaction getChildTransaction(boolean readOnly,ContextManager cm,SpliceTransaction spliceTxn,
                                             byte[] destinationTable, boolean inMemoryTxn,
 			                                boolean skipTransactionContextPush) throws StandardException{

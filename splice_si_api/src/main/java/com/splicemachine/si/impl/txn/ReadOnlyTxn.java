@@ -212,7 +212,7 @@ public class ReadOnlyTxn extends AbstractTxn{
             SpliceLogUtils.trace(LOG,"Before elevateToWritable: txn=%s,writeTable=%s",this,writeTable);
         assert state.get()==State.ACTIVE:"Cannot elevate an inactive transaction!";
         Txn newTxn;
-        if((parentTxn!=null && !ROOT_TRANSACTION.equals(parentTxn))){
+        if((parentTxn!=null && !ROOT_TRANSACTION.equals(parentTxn) && getIsolationLevel() != IsolationLevel.READ_COMMITTED)){
            /*
 		    * We are a read-only child transaction of a parent. This means that we didn't actually
 			* create a child transaction id or a begin timestamp of our own. Instead of elevating,
