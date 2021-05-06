@@ -178,7 +178,7 @@ public class BroadcastJoinOperation extends JoinOperation{
          * so route to the rdd implementation for now for SSQ.  Also, spark join can't handle a zero length
          * hash key, so it will use rdd as well.
          */
-        if (rightFromSSQ || (leftHashKeys.length == 0 && !hasSparkJoinPredicate()))
+        if (rightFromSSQ)
             useDataset = false;
 
         DataSet<ExecRow> result;

@@ -1124,7 +1124,7 @@ public class FullOuterJoinIT extends SpliceUnitTest {
         8 rows selected
          */
         rowContainsQuery(new int[]{3,4,5,6,8}, "explain " + sqlText, methodWatcher,
-                new String[]{useSpark.equals("true")? "CrossJoin" : "NestedLoopJoin"},
+                new String[]{useSpark.equals("true")? "BroadcastJoin" : "NestedLoopJoin"},
                 new String[]{"TableScan[T3"},
                 new String[]{"LeftOuterJoin"},
                 new String[]{"TableScan[T2"},

@@ -905,6 +905,8 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                     expr = i != 0 ? expr.and(joinEquality) : joinEquality;
                 }
             }
+            if (expr == null && rightJoinKeys.length == 0)
+                expr = lit(true);
             DataSet joinedSet;
 
             if (op.wasRightOuterJoin) {
