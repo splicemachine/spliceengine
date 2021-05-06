@@ -753,14 +753,9 @@ public class GenericStatement implements Statement{
         String disablePrefixIteratorModeString =
             PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_INDEX_PREFIX_ITERATION);
         boolean disablePrefixIteratorMode = CompilerContext.DEFAULT_DISABLE_INDEX_PREFIX_ITERATION;
-        try {
-            if (disablePrefixIteratorModeString != null)
-                disablePrefixIteratorMode =
-                Boolean.parseBoolean(disablePrefixIteratorModeString);
-        } catch (Exception e) {
-            // If the property value failed to convert to a boolean, don't throw an error,
-            // just use the default setting.
-        }
+        if (disablePrefixIteratorModeString != null)
+            disablePrefixIteratorMode =
+            Boolean.parseBoolean(disablePrefixIteratorModeString);
         cc.setDisablePrefixIteratorMode(disablePrefixIteratorMode);
     }
 
@@ -768,14 +763,9 @@ public class GenericStatement implements Statement{
         String disableUnionedIndexScansString =
             PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_UNIONED_INDEX_SCANS);
         boolean disableUnionedIndexScans = CompilerContext.DEFAULT_DISABLE_UNIONED_INDEX_SCANS;
-        try {
-            if (disableUnionedIndexScansString != null)
-                disableUnionedIndexScans =
-                Boolean.parseBoolean(disableUnionedIndexScansString);
-        } catch (Exception e) {
-            // If the property value failed to convert to a boolean, don't throw an error,
-            // just use the default setting.
-        }
+        if (disableUnionedIndexScansString != null)
+            disableUnionedIndexScans =
+            Boolean.parseBoolean(disableUnionedIndexScansString);
         cc.setDisableUnionedIndexScans(disableUnionedIndexScans);
     }
 

@@ -505,9 +505,9 @@ public abstract class OperatorNode extends ValueNode
         }
     }
 
-    public void copy(OperatorNode other) throws StandardException
+    public void copyFrom(OperatorNode other) throws StandardException
     {
-        super.copy(other);
+        super.copyFrom(other);
         this.operator = other.operator;
         this.methodName = other.methodName;
         this.operands = new ArrayList<>(other.operands);

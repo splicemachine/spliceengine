@@ -2137,7 +2137,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
         return null;
     }
 
-    public void copy(OperatorNode other) throws StandardException
+    public void copyFrom(OperatorNode other) throws StandardException
     {
         // Do not copy this.depth, it is instance-dependent.
         this.isPrivilegeCollectionRequired = other.isPrivilegeCollectionRequired;

@@ -1642,9 +1642,9 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
 
     public double getBaseOperationCost() throws StandardException { return 0.0; }
 
-    public void copy(OperatorNode other) throws StandardException
+    public void copyFrom(OperatorNode other) throws StandardException
     {
-        super.copy(other);
+        super.copyFrom(other);
         this.dataTypeServices = other.dataTypeServices;
         this.transformed = other.transformed;
     }

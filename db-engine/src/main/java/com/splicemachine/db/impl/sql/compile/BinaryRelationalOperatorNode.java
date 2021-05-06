@@ -2348,9 +2348,9 @@ public class BinaryRelationalOperatorNode
         return noStatsColumns;
      }
 
-    public void copy(BinaryRelationalOperatorNode other) throws StandardException
+    public void copyFrom(BinaryRelationalOperatorNode other) throws StandardException
     {
-    	super.copy(other);
+        super.copyFrom(other);
         this.operatorType = other.operatorType;
         this.outerJoinLevel = other.outerJoinLevel;
         this.inListProbeSource = other.inListProbeSource;
@@ -2363,7 +2363,7 @@ public class BinaryRelationalOperatorNode
     public ValueNode getClone() throws StandardException
     {
         BinaryRelationalOperatorNode brol = new BinaryRelationalOperatorNode();
-        brol.copy(this);
+        brol.copyFrom(this);
         return brol;
     }
 

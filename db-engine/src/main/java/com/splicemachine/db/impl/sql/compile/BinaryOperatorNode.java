@@ -980,9 +980,9 @@ public class BinaryOperatorNode extends OperatorNode
         castOperandAndBindCast(1, type);
     }
 
-    public void copy(BinaryOperatorNode other) throws StandardException
+    public void copyFrom(BinaryOperatorNode other) throws StandardException
     {
-    	super.copy(other);
+        super.copyFrom(other);
         this.operatorType = other.operatorType;
         this.leftMatchIndexExpr = other.leftMatchIndexExpr;
         this.rightMatchIndexExpr = other.rightMatchIndexExpr;

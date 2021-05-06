@@ -259,7 +259,7 @@ public class RSUtils {
         PredicateList storeRestrictionList = t.storeRestrictionList;
         for (int i = 0; i < storeRestrictionList.size(); ++i) {
             OptimizablePredicate pred = storeRestrictionList.getOptPredicate(i);
-            if (!pred.isKey() && !contains(pl, pred)) {
+            if (!pred.isScanKey() && !contains(pl, pred)) {
                 pl.addOptPredicate(pred);
             }
         }
@@ -280,7 +280,7 @@ public class RSUtils {
         PredicateList storeRestrictionList = t.storeRestrictionList;
         for (int i = 0; i < storeRestrictionList.size(); ++i) {
             OptimizablePredicate pred = storeRestrictionList.getOptPredicate(i);
-            if (pred.isKey() && !contains(pl, pred)) {
+            if (pred.isScanKey() && !contains(pl, pred)) {
                 pl.addOptPredicate(pred);
             }
         }

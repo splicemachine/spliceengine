@@ -192,7 +192,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     }
 
     @Override
-    public boolean isKey(){
+    public boolean isScanKey(){
         return startKey || stopKey;
     }
 
@@ -1679,7 +1679,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
             tempAccessPath.setConglomerateDescriptor(conglomDescs[i]);
             predicateList.categorize();
             predicateList.classify(optTable, tempAccessPath, true);
-            foundKey = predicate.isKey();
+            foundKey = predicate.isScanKey();
             predicate.clearScanFlags();
             if (foundKey) {
                 if (predicate.getReferencedSet().cardinality() < 2)
@@ -1699,7 +1699,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         return foundKey;
     }
 
-    public boolean isIndexEnablingORedPredicate(FromBaseTable optTable, AccessPath accessPath, Optimizer optimizer) throws StandardException {
+    public boolean isDisjunctionOfScanKeys(FromBaseTable optTable, AccessPath accessPath, Optimizer optimizer) throws StandardException {
         if (andNode.getLeftOperand() instanceof OrNode) {
             OrNode orNode = (OrNode) andNode.getLeftOperand();
             if (orNode.getLeftOperand() instanceof AndNode ||

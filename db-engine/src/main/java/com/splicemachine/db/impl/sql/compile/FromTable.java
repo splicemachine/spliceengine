@@ -294,6 +294,13 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
                     correlationName);
             }
         }
+        // Reset Unioned Index Scans access path in case the
+        // previous path chose to use it.
+        ap.setUisPredicate(null);
+        ap.setUisRowIdPredicate(null);
+        ap.setUnionOfIndexes(null);
+        ap.setUisRowIdJoinBackToBaseTableResultSet(null);
+
         ap.setMissingHashKeyOK(false);
 
         // Tell the RowOrdering about columns that are equal to constant

@@ -933,10 +933,12 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         if (pushPreds) {
             handleRowIdJoinPredicateForUnionedIndexScans(accessPath);
         }
-        // We can't push any predicates down to a base table with a Unioned Index Scans
+
+        // Beyond hashable join predicates, we can't push any predicates
+        // down to a base table with a Unioned Index Scans
         // access path because the statement tree has already been built.
-        if (accessPath.getUisRowIdJoinBackToBaseTableResultSet() != null)
-            return;
+        boolean pushOnlyHashableJoinPreds =
+                (accessPath.getUisRowIdJoinBackToBaseTableResultSet() != null);
 
         ConglomerateDescriptor cd = accessPath.getConglomerateDescriptor();
         boolean primaryKey=false;
@@ -991,6 +993,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         JoinStrategy joinStrategy = accessPath.getJoinStrategy();
         boolean isHashableJoin = joinStrategy instanceof HashableJoinStrategy;
 
+        if (pushOnlyHashableJoinPreds && !isHashableJoin)
+            return;
+
         IndexRowGenerator irg = cd == null ? null : cd.getIndexDescriptor();
         if (irg != null && irg.getIndexDescriptor() == null) {
             irg = null;
@@ -1027,7 +1032,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             for(int index=0;index<size;index++){
                 Predicate pred=elementAt(index);
 
-                if(isQualifier(pred,optTable,cd,pushPreds) ||
+                if(isQualifier(pred,optTable,cd,pushPreds) && !pushOnlyHashableJoinPreds ||
                         (isHashableJoin && isQualifierForHashableJoin(pred, optTable, cd, pushPreds))
                         ) {
                     pred.markQualifier();
@@ -1137,7 +1142,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                         hasUsefulPredicate[position] = true;
                 }
             }else{
-                if(primaryKey && isQualifier(pred,optTable,cd,pushPreds) ||
+                if(primaryKey && isQualifier(pred,optTable,cd,pushPreds && !pushOnlyHashableJoinPreds) ||
                 isHashableJoin && isQualifierForHashableJoin(pred, optTable, cd, pushPreds)){
                     pred.markQualifier();
                     if(pushPreds){
@@ -1147,6 +1152,10 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     }
                 }
             }
+        }
+        if (pushOnlyHashableJoinPreds) {
+            usefulCount = 0;
+            inlistPosition = -1;
         }
         if (inlistPosition >= 0)
             isEquality[inlistPosition] = true;
@@ -1423,7 +1432,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         //we still need to mark the remaining inlist conditions
         for (Predicate pred : inListNonQualifiedPreds) {
             if (!inlistQualified || pred.getIndexPosition() < 0) {
-                if(primaryKey && isQualifier(pred,optTable,cd,pushPreds) ||
+                if(primaryKey && isQualifier(pred,optTable,cd,pushPreds && !pushOnlyHashableJoinPreds) ||
                         isHashableJoin && isQualifierForHashableJoin(pred, optTable, cd, pushPreds)){
                     pred.markQualifier();
                     if(pushPreds){
@@ -1434,6 +1443,10 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 }
             }
         }
+        // We've executed all code that can push predicates for hashable joins.
+        // Time to exit if that's all we're allowed to push.
+        if (pushOnlyHashableJoinPreds)
+            return;
 
         for(Predicate pred : predicates){
             removeOptPredicate(pred);
@@ -5077,7 +5090,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             return null;
         for (int i = 0; i < size(); i++) {
             OptimizablePredicate pred = getOptPredicate(i);
-            if (pred.isIndexEnablingORedPredicate(optTable, accessPath, optimizer))
+            if (pred.isDisjunctionOfScanKeys(optTable, accessPath, optimizer))
                 return pred;
         }
         return null;

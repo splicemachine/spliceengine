@@ -576,7 +576,7 @@ public class FromBaseTable extends FromTable {
     public void pullNonKeyPredicates(OptimizablePredicateList optimizablePredicates) throws StandardException{
         for(int i=restrictionList.size()-1;i>=0;i--){
             OptimizablePredicate pred = restrictionList.getOptPredicate(i);
-            if (pred.isKey())
+            if (pred.isScanKey())
                 continue;
             optimizablePredicates.addOptPredicate(restrictionList.getOptPredicate(i));
             restrictionList.removeOptPredicate(i);
@@ -587,7 +587,7 @@ public class FromBaseTable extends FromTable {
     public void pullKeyPredicates(OptimizablePredicateList optimizablePredicates) throws StandardException{
         for(int i=restrictionList.size()-1;i>=0;i--){
             OptimizablePredicate pred = restrictionList.getOptPredicate(i);
-            if (!pred.isKey())
+            if (!pred.isScanKey())
                 continue;
             optimizablePredicates.addOptPredicate(restrictionList.getOptPredicate(i));
             restrictionList.removeOptPredicate(i);
@@ -1341,6 +1341,13 @@ public class FromBaseTable extends FromTable {
         CostEstimate finalCostEstimate;
         CostEstimate firstPassCostEstimate;
 
+        // Reset Unioned Index Scans access path in case the
+        // previous path chose to use it.
+        currentAccessPath.setUisPredicate(null);
+        currentAccessPath.setUisRowIdPredicate(null);
+        currentAccessPath.setUnionOfIndexes(null);
+        currentAccessPath.setUisRowIdJoinBackToBaseTableResultSet(null);
+
         // Unioned index scans access path
         AccessPath uisAccessPath = null;
 
@@ -1369,10 +1376,6 @@ public class FromBaseTable extends FromTable {
         AccessPath currentAccessPath = getCurrentAccessPath();
 
         LanguageConnectionContext lcc = getLanguageConnectionContext();
-        currentAccessPath.setUisPredicate(null);
-        currentAccessPath.setUisRowIdPredicate(null);
-        currentAccessPath.setUnionOfIndexes(null);
-        currentAccessPath.setUisRowIdJoinBackToBaseTableResultSet(null);
 
         boolean hintedUISAccessPath = false;
 
@@ -1674,7 +1677,7 @@ public class FromBaseTable extends FromTable {
     }
 
     // Build a UNION node between 2 branches in a Unioned Index Scans access path.
-    private UnionNode getUnionNode(ResultSetNode leftSide, FromTable rightSide, Optimizer optimizer) throws StandardException {
+    private UnionNode getUnionNode(ResultSetNode leftSide, ResultSetNode rightSide, Optimizer optimizer) throws StandardException {
        ResultSetNode leftTree = buildSelectNode(leftSide, optimizer);
        if (leftTree == null)
            return null;

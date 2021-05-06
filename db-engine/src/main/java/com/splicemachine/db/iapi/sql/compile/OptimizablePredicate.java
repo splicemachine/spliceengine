@@ -88,7 +88,7 @@ public interface OptimizablePredicate
 	boolean isStopKey();
 
 	/** Is this predicate a start or stop key? */
-	boolean isKey();
+	boolean isScanKey();
 
 	/**
 	 * Tell the predicate that it is to be used as a qualifier in an index
@@ -197,7 +197,7 @@ public interface OptimizablePredicate
 	boolean isFullJoinPredicate();
 
 	// Is this an OR of two or more relational operators which all are start keys or stop keys?
-	boolean isIndexEnablingORedPredicate(FromBaseTable optTable, AccessPath accessPath, Optimizer optimizer) throws StandardException;
+	boolean isDisjunctionOfScanKeys(FromBaseTable optTable, AccessPath accessPath, Optimizer optimizer) throws StandardException;
 
 	// Collect the OR'ed conditions in this Predicate into a list of PredicateLists,
 	// with each PredicateList containing a single Predicate which is the left child
