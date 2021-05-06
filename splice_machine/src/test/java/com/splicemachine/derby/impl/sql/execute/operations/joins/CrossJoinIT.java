@@ -730,7 +730,7 @@ public class CrossJoinIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testBroadcastJoinPreserveSortOrderNoJoinStrategyHint() throws Exception {
+    public void testCrossOrBroadcastJoinPreserveSortOrderNoJoinStrategyHint() throws Exception {
         String sqlText = format("select tt2.a from \n" +
                 "tab2 tt2 --splice-properties useSpark=%s\n" +
                 "inner join %s ttb\n" +
@@ -739,7 +739,7 @@ public class CrossJoinIT extends SpliceUnitTest {
         if (useSpark) {
             try (ResultSet rs = classWatcher.executeQuery("explain " + sqlText)) {
                 String matchString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-                assertTrue("Cross join is not selected for OLAP", matchString.contains("BroadcastJoin"));
+                assertTrue("Cross or Broadcast join is not selected for OLAP", matchString.contains("BroadcastJoin") || matchString.contains("CrossJoin"));
             }
         }
 
@@ -782,7 +782,7 @@ public class CrossJoinIT extends SpliceUnitTest {
             String explainQuery = "explain " + sqlText;
             // The table with predicate "BH.A4 = 1" is smaller.
             // Make sure it is picked as the right table.
-            rowContainsQuery(new int[]{6,7,8}, explainQuery, classWatcher, "BroadcastJoin", "(BH.A4[2:1] = 1)", "(BU.B4[0:1] <> 1)])");
+            rowContainsQuery(new int[]{6,7,8}, explainQuery, classWatcher, "Join", "(BH.A4[2:1] = 1)", "(BU.B4[0:1] <> 1)])");
         }
     }
 }
