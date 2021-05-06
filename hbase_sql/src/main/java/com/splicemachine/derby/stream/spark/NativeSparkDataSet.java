@@ -985,6 +985,8 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                 }
             }
         }
+        if (!isCross && filterExpr == null && rightJoinKeys.length == 0)
+            filterExpr= lit(true);
 
         if (isBroadcast) {
             rightDF = broadcast(rightDF);
