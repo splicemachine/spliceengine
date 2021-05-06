@@ -264,17 +264,11 @@ public class TransactionImpl extends BaseTransaction {
                     if(nested) {
                         txn = lifecycleManager.beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(), additive, table);
                     } else {
-                        Integer isolationLevelNum = Connection.TRANSACTION_SERIALIZABLE;
+                        Txn.IsolationLevel isolationLevel = Txn.IsolationLevel.SNAPSHOT_ISOLATION;
                         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLccOrNull();
-                        if(lcc != null && lcc.getSessionProperties() != null) {
-                            isolationLevelNum = (Integer)lcc
-                                    .getSessionProperties()
-                                    .getProperty(SessionProperties.PROPERTYNAME.ISOLATIONLEVEL);
-                            if(isolationLevelNum == null) {
-                                isolationLevelNum = Connection.TRANSACTION_SERIALIZABLE;
-                            }
+                        if(lcc != null && lcc.isReadCommittedIsolationLevel()) {
+                            isolationLevel = Txn.IsolationLevel.READ_COMMITTED;
                         }
-                        Txn.IsolationLevel isolationLevel = Txn.IsolationLevel.fromInt(isolationLevelNum);
                         txn = lifecycleManager.beginTransaction(isolationLevel);
                     }
 
