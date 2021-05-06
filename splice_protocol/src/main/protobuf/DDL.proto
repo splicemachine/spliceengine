@@ -433,5 +433,5 @@ message DDLChange {
     optional SetReplicationRole setReplicationRole = 38;
     optional UpdateSystemProcedures updateSystemProcedures = 39;
     optional RollingUpgrade rollingUpgrade = 40;
-    repeated DDLChange changes = 41;
+    repeated DDLChange change = 41;
 }

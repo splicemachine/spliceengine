@@ -360,7 +360,7 @@ public class DDLUtils {
 
     public static void preMultipleChanges(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
         run(change.getTxnId(), null, lcc -> {
-            for (DDLMessage.DDLChange subChange : change.getChangesList()) {
+            for (DDLMessage.DDLChange subChange : change.getChangeList()) {
                 dispatchChangeAction(subChange, dd, dm, lcc);
             }
         });
@@ -581,7 +581,7 @@ public class DDLUtils {
 
     public static void preNotifyModifyClasspath(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
         if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG,"preDropView with change=%s",change);
+            SpliceLogUtils.debug(LOG,"preNotifyModifyClasspath with change=%s",change);
         run(change.getTxnId(), null,
                 lcc -> lcc.getLanguageConnectionFactory().getClassFactory().notifyModifyClasspath(change.getNotifyModifyClasspath().getClasspath())
         );

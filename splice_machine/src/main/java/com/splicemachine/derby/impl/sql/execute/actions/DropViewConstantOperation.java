@@ -28,12 +28,14 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  *    This class  describes actions that are ALWAYS performed for a
@@ -74,10 +76,8 @@ public class DropViewConstantOperation extends DDLConstantOperation {
      *
      * @exception StandardException        Thrown on failure
      */
-    public void executeConstantAction( Activation activation ) throws StandardException {
+    public void executeConstantAction(Activation activation, boolean notify) throws StandardException {
         SpliceLogUtils.trace(LOG, "executeConstantAction for activation %s",activation);
-        TableDescriptor td;
-        ViewDescriptor vd;
 
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
@@ -93,30 +93,45 @@ public class DropViewConstantOperation extends DDLConstantOperation {
         */
         dd.startWriting(lcc);
 
-        /* Get the table descriptor.  We're responsible for raising
-         * the error if it isn't found
-         */
-        td = dd.getTableDescriptor(tableName, sd,
-                lcc.getTransactionExecute());
-
-        if (td == null) {
-            throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, fullTableName);
-        }
-
-        /* Verify that TableDescriptor represents a view */
-        if (td.getTableType() != TableDescriptor.VIEW_TYPE) {
-            throw StandardException.newException(SQLState.LANG_DROP_VIEW_ON_NON_VIEW, fullTableName);
-        }
-        vd = dd.getViewDescriptor(td);
+        TableDescriptor td = getTableDescriptor(activation);
+        ViewDescriptor vd = dd.getViewDescriptor(td);
         invalidate(dd.getDependencyManager(),td,DependencyManager.DROP_VIEW,lcc);
 
         TransactionController tc = lcc.getTransactionExecute();
-        notifyMetadataChanges(tc, ProtoUtil.dropView(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) td.getUUID()));
+        if (notify) {
+            notifyMetadataChanges(tc,
+                    generateDDLChanges(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), activation));
+        }
         drop(lcc, sd, td, DependencyManager.DROP_VIEW, vd);
     }
 
     public String getScopeName() {
         return String.format("Drop View %s", fullTableName);
+    }
+
+    public TableDescriptor getTableDescriptor(Activation activation) throws StandardException {
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        /* Get the table descriptor.  We're responsible for raising
+         * the error if it isn't found
+         */
+        TableDescriptor td = dd.getTableDescriptor(tableName, sd,
+                lcc.getTransactionExecute());
+
+        if (td == null) {
+            throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, fullTableName);
+        }
+        /* Verify that TableDescriptor represents a view */
+        if (td.getTableType() != TableDescriptor.VIEW_TYPE) {
+            throw StandardException.newException(SQLState.LANG_DROP_VIEW_ON_NON_VIEW, fullTableName);
+        }
+        return td;
+    }
+
+    @Override
+    public List<DDLMessage.DDLChange> generateDDLChanges(long txnId, Activation activation) throws StandardException {
+        TableDescriptor td = getTableDescriptor(activation);
+        return Collections.singletonList(ProtoUtil.dropView(txnId, (BasicUUID) td.getUUID()));
     }
 
     /**

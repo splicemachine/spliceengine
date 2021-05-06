@@ -34,6 +34,9 @@ import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  *    This class  describes actions that are ALWAYS performed for a
  *    DROP TRIGGER Statement at Execution time.
@@ -66,7 +69,7 @@ public class DropTriggerConstantOperation extends DDLSingleTableConstantOperatio
      *
      * @exception StandardException        Thrown on failure
      */
-    public void executeConstantAction( Activation activation ) throws StandardException {
+    public void executeConstantAction(Activation activation, boolean notify) throws StandardException {
         TriggerDescriptor             triggerd;
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
@@ -110,7 +113,7 @@ public class DropTriggerConstantOperation extends DDLSingleTableConstantOperatio
         }
 
         /*
-         ** Prepare all dependents to invalidate.  (This is there chance
+         ** Prepare all dependents to invalidate.  (This is their chance
         ** to say that they can't be invalidated.  For example, an open
         ** cursor referencing a table/trigger that the user is attempting to
         ** drop.) If no one objects, then invalidate any dependent objects.
@@ -118,15 +121,15 @@ public class DropTriggerConstantOperation extends DDLSingleTableConstantOperatio
 
         DependencyManager dm = dd.getDependencyManager();
         dm.invalidateFor(triggerd, DependencyManager.DROP_TRIGGER, lcc);
+        if (notify) {
+            long txnId = ((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId();
+            notifyMetadataChanges(tc, generateDDLChanges(txnId, activation));
+        }
 
         // Drop the spses
         for (UUID actionId: triggerd.getActionIdList()) {
             SPSDescriptor spsd = dd.getSPSDescriptor(actionId);
             dm.invalidateFor(spsd, DependencyManager.DROP_TRIGGER, lcc);
-
-            notifyMetadataChanges(tc, ProtoUtil.dropTrigger(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
-                    (BasicUUID) this.tableId, (BasicUUID) triggerd.getUUID(),
-                    (BasicUUID) actionId));
 
             dm.clearDependencies(lcc, spsd);
 
@@ -146,7 +149,20 @@ public class DropTriggerConstantOperation extends DDLSingleTableConstantOperatio
             dm.clearDependencies(lcc, spsd);
             dd.dropSPSDescriptor(spsd, tc);
         }
+    }
 
+    @Override
+    public List<DDLMessage.DDLChange> generateDDLChanges(long txnId, Activation activation) throws StandardException {
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        TriggerDescriptor triggerDescriptor = dd.getTriggerDescriptor(triggerName, sd);
+        List<DDLMessage.DDLChange> changes = new ArrayList<>();
+        for (UUID actionId: triggerDescriptor.getActionIdList()) {
+            changes.add(ProtoUtil.dropTrigger(txnId,
+                    (BasicUUID) this.tableId, (BasicUUID) triggerDescriptor.getUUID(),
+                    (BasicUUID) actionId));
+        }
+        return changes;
     }
 
     public String toString()

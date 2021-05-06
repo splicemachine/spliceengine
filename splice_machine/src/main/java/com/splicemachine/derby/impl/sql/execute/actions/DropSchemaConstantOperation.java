@@ -34,62 +34,59 @@ import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.execute.GenericConstantActionFactory;
 import com.splicemachine.db.impl.sql.execute.GenericExecutionFactory;
 import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 /**
- *	This class  describes actions that are ALWAYS performed for a
- *	DROP SCHEMA Statement at Execution time.
+ *    This class  describes actions that are ALWAYS performed for a
+ *    DROP SCHEMA Statement at Execution time.
  *
  */
 
 public class DropSchemaConstantOperation extends DDLConstantOperation {
     private static final Logger LOG = Logger.getLogger(DropSchemaConstantOperation.class);
-	private final String schemaName;
-	private final int dropBehavior;
-	/**
-	 *	Make the ConstantAction for a DROP TABLE statement.
-	 *
-	 *	@param	schemaName			Table name.
-	 *
-	 */
-	public DropSchemaConstantOperation(String	schemaName, int dropBehavior) {
-		this.schemaName = schemaName;
-		this.dropBehavior = dropBehavior;
-	}
+    private final String schemaName;
+    private final int dropBehavior;
+    /**
+     *    Make the ConstantAction for a DROP TABLE statement.
+     *
+     *    @param    schemaName            Table name.
+     *
+     */
+    public DropSchemaConstantOperation(String    schemaName, int dropBehavior) {
+        this.schemaName = schemaName;
+        this.dropBehavior = dropBehavior;
+    }
 
-    public	String	toString() {
+    public    String    toString() {
         return "DROP SCHEMA " + schemaName + (dropBehavior== StatementType.DROP_CASCADE?" CASCADE" :" RESTRICT");
     }
 
     /**
-     *	This is the guts of the Execution-time logic for DROP TABLE.
+     *    This is the guts of the Execution-time logic for DROP TABLE.
      *
-     *	@see ConstantAction#executeConstantAction
+     *    @see ConstantAction#executeConstantAction
      *
-     * @exception StandardException		Thrown on failure
+     * @exception StandardException        Thrown on failure
      */
     public void executeConstantAction( Activation activation ) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         DependencyManager dm = dd.getDependencyManager();
 
-				/*
-				 * Inform the data dictionary that we are about to write to it.
-				 * There are several calls to data dictionary "get" methods here
-				 * that might be done in "read" mode in the data dictionary, but
-				 * it seemed safer to do this whole operation in "write" mode.
-				 *
-				 * We tell the data dictionary we're done writing at the end of
-				 * the transaction.
-				 */
+        /*
+         * Inform the data dictionary that we are about to write to it.
+         * There are several calls to data dictionary "get" methods here
+         * that might be done in "read" mode in the data dictionary, but
+         * it seemed safer to do this whole operation in "write" mode.
+         *
+         * We tell the data dictionary we're done writing at the end of
+         * the transaction.
+         */
         dd.startWriting(lcc);
         SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
         SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
@@ -120,46 +117,42 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
         // drop views, aliases and tables need to be considered together due to the dependencies among them
         // views could be defined on other views/tables/aliases, and aliases could be on tables/views
 
-        //get all the table/view/alias
-        ArrayList<TupleDescriptor> tableList = dd.getTablesInSchema(sd);
-
-        // get all the table/view/alias and their dependents in the pendingDropList
-        ArrayList<TupleDescriptor> pendingDropList = new ArrayList<>();
-        HashSet<UUID> droppedList = new HashSet<>();
-        for (TupleDescriptor td: tableList) {
-            getDependenciesForTable(td, sd, pendingDropList, dd);
+        LinkedHashMap<UUID, TupleDescriptor> pendingDropMap = new LinkedHashMap<>();
+        for (TriggerDescriptor descriptor : dd.getTriggersInSchema(sd.getUUID().toString())) {
+            pendingDropMap.putIfAbsent(descriptor.getUUID(), descriptor);
+        }
+        for (SequenceDescriptor descriptor: dd.getSequencesInSchema(sd.getUUID().toString())) {
+            pendingDropMap.putIfAbsent(descriptor.getUUID(), descriptor);
+        }
+        for (AliasDescriptor descriptor: dd.getAliasesInSchema(sd.getUUID().toString())) {
+            pendingDropMap.putIfAbsent(descriptor.getUUID(), descriptor);
+        }
+        // get all the table/view/alias and their dependents in the pendingDropMap
+        for (TupleDescriptor td: dd.getTablesInSchema(sd)) {
+            getDependenciesForTable(td, sd, pendingDropMap, dd);
         }
 
-        // drop the objects in the pendingDropList in the reverse order
-        for (int i=pendingDropList.size()-1; i>=0; i--) {
-            TupleDescriptor tupleDescriptor = pendingDropList.get(i);
-            // drop each table if it hasn't been dropped
-            if (tupleDescriptor.getUUID() != null) {
-                if (!droppedList.contains(tupleDescriptor.getUUID())) {
-                    dropObject(tupleDescriptor, sd, lcc, tc, activation);
-                    droppedList.add(tupleDescriptor.getUUID());
-                }
-            }
+        ArrayList<DDLConstantOperation> pendingDropOperations = new ArrayList<>();
+        for (TupleDescriptor tupleDescriptor: pendingDropMap.values()) {
+            ConstantAction action = getDropConstantAction(tupleDescriptor, sd, lcc, tc, activation);
+            if (action != null)
+                pendingDropOperations.add((DDLConstantOperation)action);
         }
 
-        // drop aliases - we still need to look at alias for other objects like procedures, functions
-        ArrayList<AliasDescriptor> aliasList = dd.getAliasesInSchema(sd.getUUID().toString());
-        for (AliasDescriptor aliasDescriptor: aliasList) {
-            // we'are done with aliases for table/view already, so no need to check here
-            if (aliasDescriptor.getAliasType() != AliasInfo.ALIAS_NAME_SPACE_SYNONYM_AS_CHAR)
-                dropObject(aliasDescriptor, sd, lcc, tc, activation);
-        }
+        // Objects should be dropped in the reverse order because the list should be reverse topologically sorted
+        Collections.reverse(pendingDropOperations);
 
-        // drop sequences
-        ArrayList<SequenceDescriptor> sequenceList = dd.getSequencesInSchema(sd.getUUID().toString());
-        for (SequenceDescriptor sequenceDescriptor: sequenceList) {
-            dropObject(sequenceDescriptor, sd, lcc, tc, activation);
+        // Construct grouped DDL notification for remote RS cache invalidation
+        long txnId = ((SpliceTransactionManager)tc).getActiveStateTxn().getTxnId();
+        List<DDLMessage.DDLChange> ddlChanges = new ArrayList<>();
+        for (DDLConstantOperation operation : pendingDropOperations) {
+            ddlChanges.addAll(operation.generateDDLChanges(txnId, activation));
         }
+        notifyMetadataChanges(tc, ProtoUtil.createMultiChange(txnId, ddlChanges));
 
-        // drop triggers
-        ArrayList<TriggerDescriptor> triggerList = dd.getTriggersInSchema(sd.getUUID().toString());
-        for (TriggerDescriptor triggerDescriptor: triggerList) {
-            dropObject(triggerDescriptor, sd, lcc, tc, activation);
+        // Drop everything
+        for (DDLConstantOperation operation : pendingDropOperations) {
+            operation.executeConstantAction(activation, false);
         }
 
         // drop files
@@ -170,11 +163,10 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
 
     }
 
-    private void dropObject(TupleDescriptor tupleDescriptor, SchemaDescriptor sd, LanguageConnectionContext lcc, TransactionController tc, Activation activation) throws StandardException {
+    private ConstantAction getDropConstantAction(TupleDescriptor tupleDescriptor, SchemaDescriptor sd, LanguageConnectionContext lcc, TransactionController tc, Activation activation) throws StandardException {
         DataDictionary dd = lcc.getDataDictionary();
         GenericExecutionFactory execFactory = (GenericExecutionFactory) lcc.getLanguageConnectionFactory().getExecutionFactory();
         GenericConstantActionFactory constantActionFactory = execFactory.getConstantActionFactory();
-        ConstantAction action;
 
         // check the type of the descriptor
         if (tupleDescriptor instanceof TableDescriptor) {
@@ -183,56 +175,48 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
                 case TableDescriptor.BASE_TABLE_TYPE:
                 case TableDescriptor.EXTERNAL_TYPE:
                 case TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE:
-                    action = constantActionFactory.getDropTableConstantAction(td.getQualifiedName(),
+                    return constantActionFactory.getDropTableConstantAction(td.getQualifiedName(),
                             td.getName(),
                             td.getSchemaDescriptor(),
                             td.getHeapConglomerateId(),
                             td.getUUID(), StatementType.DROP_DEFAULT);
-                    action.executeConstantAction(activation);
-                    break;
                 case TableDescriptor.VIEW_TYPE:
-                    action = constantActionFactory.getDropViewConstantAction(td.getQualifiedName(),
+                    return constantActionFactory.getDropViewConstantAction(td.getQualifiedName(),
                             td.getName(),
                             td.getSchemaDescriptor());
-                    action.executeConstantAction(activation);
-                    break;
                 case TableDescriptor.SYNONYM_TYPE:
-                    action = constantActionFactory.getDropAliasConstantAction(td.getSchemaDescriptor(),
+                    return constantActionFactory.getDropAliasConstantAction(td.getSchemaDescriptor(),
                             td.getName(),
                             AliasInfo.ALIAS_NAME_SPACE_SYNONYM_AS_CHAR);
-                    action.executeConstantAction(activation);
-                    break;
                 default:
                     assert true : "we should not be dropping table types reaching here";
+                    return null;
             }
         } else if (tupleDescriptor instanceof ViewDescriptor) {
             TableDescriptor viewTableDescriptor = dd.getTableDescriptor(((ViewDescriptor) tupleDescriptor).getObjectID());
-            action = constantActionFactory.getDropViewConstantAction(viewTableDescriptor.getQualifiedName(),
+            return constantActionFactory.getDropViewConstantAction(viewTableDescriptor.getQualifiedName(),
                     viewTableDescriptor.getName(),
                     viewTableDescriptor.getSchemaDescriptor());
-            action.executeConstantAction(activation);
         } else if (tupleDescriptor instanceof AliasDescriptor) {
             AliasDescriptor aliasDescriptor = (AliasDescriptor)tupleDescriptor;
-            action = constantActionFactory.getDropAliasConstantAction(sd,
+            return constantActionFactory.getDropAliasConstantAction(sd,
                     aliasDescriptor.getName(),
                     aliasDescriptor.getNameSpace());
-            action.executeConstantAction(activation);
         } else if (tupleDescriptor instanceof SequenceDescriptor) {
             SequenceDescriptor sequenceDescriptor = (SequenceDescriptor) tupleDescriptor;
-            action = constantActionFactory.getDropSequenceConstantAction(sd,sequenceDescriptor.getDescriptorName());
-            action.executeConstantAction(activation);
+            return constantActionFactory.getDropSequenceConstantAction(sd,sequenceDescriptor.getDescriptorName());
         } else if (tupleDescriptor instanceof TriggerDescriptor) {
             TriggerDescriptor triggerDescriptor = (TriggerDescriptor)tupleDescriptor;
-            action = constantActionFactory.getDropTriggerConstantAction(sd,triggerDescriptor.getDescriptorName(), triggerDescriptor.getTableDescriptor().getUUID());
-            action.executeConstantAction(activation);
+            return constantActionFactory.getDropTriggerConstantAction(sd,triggerDescriptor.getDescriptorName(), triggerDescriptor.getTableDescriptor().getUUID());
         } else {
             assert false:"should not reach here!";
+            return null;
         }
     }
 
     private void walkDependencyTree(TupleDescriptor tupleDescriptor,
                                     SchemaDescriptor sd,
-                                    ArrayList<TupleDescriptor> pendingDropList,
+                                    LinkedHashMap<UUID, TupleDescriptor> pendingDropMap,
                                     HashSet<UUID> ancestors,
                                     DataDictionary dd) throws StandardException {
 
@@ -263,7 +247,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
             // check whether the dependent objects are within the same schema
             checkSchema(sd, tupleDescriptor, dependentTupleDescriptor, dd);
 
-            // only add table/view/alias to the pendingDropList, the other dependencies are secondary and can be dropped
+            // only add table/view/alias to the pendingDropMap, the other dependencies are secondary and can be dropped
             // at the time the primary objects(table/view/alias) are dropped
             if (dependentTupleDescriptor instanceof TableDescriptor ||
                     dependentTupleDescriptor instanceof ViewDescriptor ||
@@ -277,9 +261,9 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
                     throw StandardException.newException(SQLState.LANG_CYCLIC_DEPENDENCY_DETECTED,
                             sd.getSchemaName(), tupleDescriptor.getDescriptorName(), dependentTupleDescriptor.getDescriptorName());
                 }
-                pendingDropList.add(dependentTupleDescriptor);
+                pendingDropMap.putIfAbsent(dependentTupleDescriptor.getUUID(), dependentTupleDescriptor);
                 ancestors.add(dependentTupleDescriptor.getUUID());
-                walkDependencyTree(dependentTupleDescriptor, sd, pendingDropList, ancestors, dd);
+                walkDependencyTree(dependentTupleDescriptor, sd, pendingDropMap, ancestors, dd);
                 ancestors.remove(dependentTupleDescriptor.getUUID());
             }
         }
@@ -311,9 +295,9 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
                                 throw StandardException.newException(SQLState.LANG_CYCLIC_DEPENDENCY_DETECTED,
                                         sd.getSchemaName(), tupleDescriptor.getDescriptorName(), dependentTableDescriptor.getDescriptorName());
                             }
-                            pendingDropList.add(dependentTableDescriptor);
+                            pendingDropMap.putIfAbsent(dependentTableDescriptor.getUUID(), dependentTableDescriptor);
                             ancestors.add(dependentTableDescriptor.getUUID());
-                            walkDependencyTree(dependentTableDescriptor, sd, pendingDropList, ancestors, dd);
+                            walkDependencyTree(dependentTableDescriptor, sd, pendingDropMap, ancestors, dd);
                             ancestors.remove(dependentTableDescriptor.getUUID());
                         }
                     }
@@ -322,14 +306,14 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
         }
     }
 
-    private void getDependenciesForTable(TupleDescriptor td, SchemaDescriptor sd, ArrayList<TupleDescriptor> pendingDropList, DataDictionary dd) throws StandardException {
+    private void getDependenciesForTable(TupleDescriptor td, SchemaDescriptor sd, LinkedHashMap<UUID, TupleDescriptor> pendingDropMap, DataDictionary dd) throws StandardException {
         // the dependency among the objects is supposed to be a DAG, we will walk through it using pre-order tree traversal from the root
         // keep a hashset of the path to the root, if during the traversal, we get a child which also appears as an ancestor on the path
         // to the root, then there is a cyclic dependency
         HashSet<UUID> ancestors = new HashSet<>();
-        pendingDropList.add(td);
+        pendingDropMap.putIfAbsent(td.getUUID(), td);
         ancestors.add(td.getUUID());
-        walkDependencyTree(td, sd, pendingDropList, ancestors, dd);
+        walkDependencyTree(td, sd, pendingDropMap, ancestors, dd);
         ancestors.remove(td.getUUID());
     }
 
@@ -341,7 +325,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
             return returnList;
         }
 
-	   /* borrowed some code from BaseDependentcyManger.getDependencyDescriptorList() */
+       /* borrowed some code from BaseDependentcyManger.getDependencyDescriptorList() */
         for (DependencyDescriptor aStoredList : storedList) {
             DependableFinder finder = aStoredList.getDependentFinder();
             Dependent tempD = (Dependent) finder.getDependable(dd, aStoredList.getUUID());
