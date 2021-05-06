@@ -102,9 +102,9 @@ public class GrantRevokeConstantOperation extends DDLConstantOperation {
             PermDescriptor permDescriptor = (PermDescriptor)permissionsDescriptor;
             boolean restrict = ((GenericPrivilegeInfo)privileges).isRestrict();
             notifyMetadataChanges(tc, ProtoUtil.createRevokeGenericPrivilege(txnId, permDescriptor, restrict, grant));
+        } else {
+            throw new RuntimeException("Unsupported permission descriptor type");
         }
-
-        throw new RuntimeException("Unsupported permission descriptor type");
     }
 }
 
