@@ -124,11 +124,9 @@ public class DropTriggerConstantOperation extends DDLSingleTableConstantOperatio
             SPSDescriptor spsd = dd.getSPSDescriptor(actionId);
             dm.invalidateFor(spsd, DependencyManager.DROP_TRIGGER, lcc);
 
-            DDLMessage.DDLChange ddlChange = ProtoUtil.dropTrigger(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
+            notifyMetadataChanges(tc, ProtoUtil.dropTrigger(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
                     (BasicUUID) this.tableId, (BasicUUID) triggerd.getUUID(),
-                    (BasicUUID) actionId);
-            // Run Remotely
-            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+                    (BasicUUID) actionId));
 
             dm.clearDependencies(lcc, spsd);
 

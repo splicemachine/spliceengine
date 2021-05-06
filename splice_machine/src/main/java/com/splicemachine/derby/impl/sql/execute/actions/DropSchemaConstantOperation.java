@@ -104,7 +104,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
         // Run locally first to capture any errors.
         dm.invalidateFor(sd, DependencyManager.DROP_SCHEMA, lcc);
         // Run Remotely
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+        notifyMetadataChanges(tc, ddlChange);
 
         dd.dropAllSchemaPermDescriptors(sd.getObjectID(),tc);
         sd.drop(lcc, activation);

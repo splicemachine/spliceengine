@@ -194,11 +194,8 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
 
                     /* we need to invalidate the defaultRole cache if the grantee's defaultRole list is changed,
                      * also invalidate the roleGrantCache */
-                    DDLMessage.DDLChange ddlChange =
-                            ProtoUtil.createGrantRevokeRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
-                                    role, grantee, grantor, false);
-                    tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
-
+                    notifyMetadataChanges(tc, ProtoUtil.createGrantRevokeRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
+                                    role, grantee, grantor, false));
                 } else {
                     activation.addWarning
                         (StandardException.newWarning

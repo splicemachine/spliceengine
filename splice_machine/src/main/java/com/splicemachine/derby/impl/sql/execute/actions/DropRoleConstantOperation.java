@@ -99,8 +99,7 @@ public class DropRoleConstantOperation extends DDLConstantOperation {
 
         rdDef.drop(lcc);
 
-        DDLMessage.DDLChange change = ProtoUtil.createDropRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), roleName);
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(change));
+        notifyMetadataChanges(tc, ProtoUtil.createDropRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), roleName));
 
         /*
          * We dropped a role, now drop all dependents:

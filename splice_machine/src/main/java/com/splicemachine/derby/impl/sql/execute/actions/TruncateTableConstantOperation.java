@@ -184,10 +184,8 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
              */
         dd.startWriting(lcc);
 
-
         // Invalidate cache
-        DDLMessage.DDLChange change = ProtoUtil.createTruncateTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) tableId);
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(change));
+        notifyMetadataChanges(tc, ProtoUtil.createTruncateTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) tableId));
 
         properties.setProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR, td.getSchemaName());
         properties.setProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR, td.getName());

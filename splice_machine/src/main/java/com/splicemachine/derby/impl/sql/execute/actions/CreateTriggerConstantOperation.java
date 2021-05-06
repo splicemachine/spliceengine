@@ -261,9 +261,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         */
         dm.invalidateFor(triggerTable, DependencyManager.CREATE_TRIGGER, lcc);
 
-        DDLMessage.DDLChange ddlChange = ProtoUtil.createTrigger(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) this.tableId);
-        // Run Remotely
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+        notifyMetadataChanges(tc, ProtoUtil.createTrigger(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) this.tableId));
 
         /*
         ** Lets get our trigger id up front, we'll use it when

@@ -152,10 +152,8 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
                     /* we need to invalidate the defaultRole cache as the grantee's defaultRole list has changed;
                        also we need to invalidate the roleGrant cache
                      */
-                    DDLMessage.DDLChange ddlChange =
-                            ProtoUtil.createGrantRevokeRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
-                                    role, grantee, grantor, true);
-                    tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+                    notifyMetadataChanges(tc, ProtoUtil.createGrantRevokeRole(
+                            ((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), role, grantee, grantor, true));
                 } else if (rgd == null) {
                     // Check if the grantee is a role (if not, it is a user)
                     RoleGrantDescriptor granteeDef =
@@ -183,10 +181,8 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
                     /* we need to invalidate the defaultRole cache as the grantee's defaultRole list has changed;
                        also we need to invalidate the roleGrant cache
                      */
-                    DDLMessage.DDLChange ddlChange =
-                            ProtoUtil.createGrantRevokeRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
-                                    role, grantee, grantor, true);
-                    tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+                    notifyMetadataChanges(tc, ProtoUtil.createGrantRevokeRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
+                                    role, grantee, grantor, true));
 
                 } // else exists already, no need to add
             }

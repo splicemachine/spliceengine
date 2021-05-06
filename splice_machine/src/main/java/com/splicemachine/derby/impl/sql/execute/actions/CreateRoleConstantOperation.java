@@ -46,7 +46,7 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
      *  @param roleName     The name of the role being created
      */
     public CreateRoleConstantOperation(String roleName) {
-    	SpliceLogUtils.trace(LOG, "CreateRoleConstantOperation with role name {%s}",roleName);
+        SpliceLogUtils.trace(LOG, "CreateRoleConstantOperation with role name {%s}",roleName);
         this.roleName = roleName;
     }
 
@@ -58,7 +58,7 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
      * @exception StandardException     Thrown on failure
      */
     public void executeConstantAction(Activation activation) throws StandardException {
-    	SpliceLogUtils.trace(LOG, "executeConstantAction with activation {%s}",activation);
+        SpliceLogUtils.trace(LOG, "executeConstantAction with activation {%s}",activation);
         noGrantCheck();
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
@@ -101,9 +101,8 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
                              "User", roleName);
         }
 
-        DDLMessage.DDLChange change = ProtoUtil.createAddRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), roleName);
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(change));
 
+        notifyMetadataChanges(tc, ProtoUtil.createAddRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), roleName));
 
         rdDef = ddg.newRoleGrantDescriptor(
             dd.getUUIDFactory().createUUID(),
@@ -148,7 +147,7 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
                               DataDictionary dd,
                               TransactionController tc)
             throws StandardException {
-    	SpliceLogUtils.trace(LOG, "knownUser called with role %s and currentUser %s",roleName, currentUser);
+        SpliceLogUtils.trace(LOG, "knownUser called with role %s and currentUser %s",roleName, currentUser);
         //
         AuthenticationService s = lcc.getDatabase().getAuthenticationService();
 

@@ -392,8 +392,7 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
         TxnView uTxn = userTxnManager.getRawTransaction().getActiveStateTxn();
         TransactionController tc = lcc.getTransactionExecute();
         final TxnView userTxn = uTxn;
-        DDLMessage.DDLChange ddlChange = ProtoUtil.createDropIndex(indexConglomId, tableConglomId, userTxn.getTxnId(), (BasicUUID) tableId,schemaName,indexName);
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+        notifyMetadataChanges(tc, ProtoUtil.createDropIndex(indexConglomId, tableConglomId, userTxn.getTxnId(), (BasicUUID) tableId,schemaName,indexName));
     }
 }
 

@@ -43,7 +43,7 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 3/4/14
  */
-public abstract class AbstractDropIndexConstantOperation extends IndexConstantOperation{
+public abstract class AbstractDropIndexConstantOperation extends IndexConstantOperation {
     private String fullIndexName;
     private long tableConglomerateId;
 
@@ -135,8 +135,7 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
          * Broadcast a message to invalidate the related plans.
          */
         List<TableDescriptor> tds = Collections.singletonList(td);
-        DDLMessage.DDLChange ddlChange = ProtoUtil.alterStats(userTxnManager.getActiveStateTxn().getTxnId(), tds);
-        userTxnManager.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+        notifyMetadataChanges(userTxnManager, ProtoUtil.alterStats(userTxnManager.getActiveStateTxn().getTxnId(), tds));
     }
 
     public String getScopeName() {

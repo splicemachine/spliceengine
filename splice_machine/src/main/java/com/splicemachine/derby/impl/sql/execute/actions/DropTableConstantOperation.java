@@ -154,7 +154,7 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
             // Run locally first to capture any errors.
             dm.invalidateFor(td, DependencyManager.DROP_TABLE, lcc);
             // Run Remotely
-            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+            notifyMetadataChanges(tc, ddlChange);
 
             // The table itself can depend on the user defined types of its columns. Drop all of those dependencies now.
             adjustUDTDependencies(activation, null, true);

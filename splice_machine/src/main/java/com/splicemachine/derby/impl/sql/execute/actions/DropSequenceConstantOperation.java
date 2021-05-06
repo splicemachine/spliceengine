@@ -78,9 +78,7 @@ public class DropSequenceConstantOperation extends DDLConstantOperation {
         // invalidate compiled statements which depend on this sequence
         dm.invalidateFor(sequenceDescriptor, DependencyManager.DROP_SEQUENCE, lcc);
 
-        DDLMessage.DDLChange ddlChange = ProtoUtil.dropSequence(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), schemaDescriptor.getSchemaName(),sequenceName);
-        // Run Remotely
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+        notifyMetadataChanges(tc, ProtoUtil.dropSequence(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), schemaDescriptor.getSchemaName(),sequenceName));
         // drop the sequence
         dd.dropSequenceDescriptor(sequenceDescriptor, tc);
         // Clear the dependencies for the sequence
