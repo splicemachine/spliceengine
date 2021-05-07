@@ -285,16 +285,6 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         }
     }
 
-    /** @see com.splicemachine.db.iapi.sql.compile.JoinStrategy#estimateCost */
-    public void estimateCost(Optimizable innerTable,
-                             OptimizablePredicateList predList,
-                             ConglomerateDescriptor cd,
-                             CostEstimate outerCost,
-                             Optimizer optimizer,
-                             CostEstimate costEstimate) throws StandardException{
-        throw new UnsupportedOperationException("Cost estimate not implemented for class " +this.getClass());
-    }
-
     /** @see JoinStrategy#maxCapacity */
     public int maxCapacity( int userSpecifiedCapacity, int maxMemoryPerTable, double perRowUsage) {
         if( userSpecifiedCapacity >= 0)
@@ -639,9 +629,6 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             return (int[]) null;
     }
 
-    public String toString() {
-        return getName();
-    }
     /**
      * Can this join strategy be used on the
      * outermost table of a join.
@@ -652,9 +639,6 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
     protected boolean validForOutermostTable() {
         return true;
     }
-
-     /** @see JoinStrategy#getName */
-    public abstract String getName();
 
     /** @see JoinStrategy#joinResultSetMethodName */
     public abstract String joinResultSetMethodName();

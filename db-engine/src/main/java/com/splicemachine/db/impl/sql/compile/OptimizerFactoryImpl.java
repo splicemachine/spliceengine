@@ -38,6 +38,8 @@ import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
 import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
 import com.splicemachine.db.iapi.sql.compile.RequiredRowOrdering;
+import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModel;
+import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModelRegistry;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.services.monitor.ModuleControl;
@@ -52,7 +54,6 @@ import java.util.Properties;
 public class OptimizerFactoryImpl
 	implements ModuleControl, OptimizerFactory {
 
-	protected String optimizerId = null;
 	protected boolean ruleBasedOptimization = false;
 	protected boolean noTimeout = false;
 	protected boolean useStatistics = true;
@@ -134,12 +135,14 @@ public class OptimizerFactoryImpl
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
+	@Override
 	public Optimizer getOptimizer(OptimizableList optimizableList,
 								  OptimizablePredicateList predList,
 								  DataDictionary dDictionary,
 								  RequiredRowOrdering requiredRowOrdering,
 								  int numTablesInQuery,
-								  LanguageConnectionContext lcc)
+								  LanguageConnectionContext lcc,
+								  JoinCostEstimationModel joinCostEstimationModel)
 				throws StandardException
 	{
 		/* Get/set up the array of join strategies.
@@ -161,7 +164,8 @@ public class OptimizerFactoryImpl
 							dDictionary,
 							requiredRowOrdering,
 							numTablesInQuery,
-							lcc);
+							lcc,
+							joinCostEstimationModel);
 	}
 
 	/**
@@ -190,11 +194,12 @@ public class OptimizerFactoryImpl
 	}
 
 	protected Optimizer getOptimizerImpl(OptimizableList optimizableList,
-								  OptimizablePredicateList predList,
-								  DataDictionary dDictionary,
-								  RequiredRowOrdering requiredRowOrdering,
-								  int numTablesInQuery,
-								  LanguageConnectionContext lcc)
+										 OptimizablePredicateList predList,
+										 DataDictionary dDictionary,
+										 RequiredRowOrdering requiredRowOrdering,
+										 int numTablesInQuery,
+										 LanguageConnectionContext lcc,
+										 JoinCostEstimationModel joinCostEstimationModel)
 				throws StandardException
 	{
 
@@ -209,7 +214,8 @@ public class OptimizerFactoryImpl
 							joinStrategySet,
 							lcc.getLockEscalationThreshold(),
 							requiredRowOrdering,
-							numTablesInQuery);
+							numTablesInQuery,
+							joinCostEstimationModel);
 	}
 
 	/**

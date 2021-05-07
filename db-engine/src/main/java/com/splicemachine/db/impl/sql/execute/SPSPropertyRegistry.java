@@ -36,6 +36,7 @@ public class SPSPropertyRegistry {
         propertySet.add(new SPSPropertyCurrentTimestampFormat(new BasicUUID("b2decb1d-acc2-4402-9278-d4aab1fc6431"), Property.SPLICE_CURRENT_TIMESTAMP_PRECISION));
         propertySet.add(new SPSPropertyFloatingpointNotation(new BasicUUID("e8027088-78d8-41aa-be8e-ede5c646ae0a"), Property.FLOATING_POINT_NOTATION));
         propertySet.add(new SPSPropertySecondFunction(new BasicUUID("01fc4415-bc53-4ac1-b829-93e0e61b0c5f"), Property.SPLICE_SECOND_FUNCTION_COMPATIBILITY_MODE));
+        propertySet.add(new SPSPropertyCountReturnType(new BasicUUID("20e3d160-b514-4e82-b8a0-3a7888c253c5"), Property.COUNT_RETURN_TYPE));
     };
 
     public static SPSProperty forName(String propertyName) {

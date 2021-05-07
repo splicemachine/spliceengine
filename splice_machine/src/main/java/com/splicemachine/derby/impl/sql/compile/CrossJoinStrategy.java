@@ -34,14 +34,6 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
     public CrossJoinStrategy() { }
 
     /**
-     * @see JoinStrategy#getName
-     */
-    public String getName() {
-        return "CROSS";
-    }
-
-
-    /**
      * @see JoinStrategy#joinResultSetMethodName
      */
     @Override
@@ -216,82 +208,8 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
     }
 
     @Override
-    public void estimateCost(Optimizable innerTable,
-                             OptimizablePredicateList predList,
-                             ConglomerateDescriptor cd,
-                             CostEstimate outerCost,
-                             Optimizer optimizer,
-                             CostEstimate innerCost) throws StandardException{
-
-        if(outerCost.isUninitialized() ||(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0)){
-            /*
-             * Derby calls this method at the end of each table scan, even if it's not a join (or if it's
-             * the left side of the join). When this happens, the outer cost is still unitialized, so there's
-             * nothing to do in this method;
-             */
-            RowOrdering ro = outerCost.getRowOrdering();
-            if(ro!=null)
-                outerCost.setRowOrdering(ro); //force a cloning
-            return;
-        }
-
-        SpliceLogUtils.trace(LOG,"rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s",outerCost,innerCost);
-
-        // Only use cross join when it is inner join and run on Spark
-        innerCost.setBase(innerCost.cloneMe());
-        double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.ALL);
-        double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
-        double totalJoinedRows = outerCost.rowCount() * innerCost.rowCount();
-        double joinCost = crossJoinStrategyLocalCost(innerCost, outerCost, totalJoinedRows);
-        innerCost.setLocalCost(joinCost);
-        innerCost.setLocalCostPerParallelTask(joinCost);
-        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer);
-        innerCost.setRemoteCost(remoteCostPerPartition);
-        innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
-        innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalOutputRows));
-        innerCost.setRowCount(totalOutputRows);
-        innerCost.setParallelism(outerCost.getParallelism());
-        innerCost.setRowOrdering(null);
-    }
-
-    /**
-     *
-     * Cross Join Local Cost Computation
-     *
-     * Total Cost = (Left Side Cost)/Left Side Partition Count) + (Right Side Transfer Cost) +
-     * (Right Side Cost) + (Joining Row Cost)
-     *
-     * @param innerCost
-     * @param outerCost
-     * @return
-     */
-
-    public static double crossJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost,
-                                                double numOfJoinedRows) {
-        SConfiguration config = EngineDriver.driver().getConfiguration();
-        double localLatency = config.getFallbackLocalLatency();
-        double joiningRowCost = numOfJoinedRows * localLatency;
-        assert outerCost.getLocalCostPerParallelTask() != 0d || outerCost.localCost() == 0d;
-        assert innerCost.getLocalCostPerParallelTask() != 0d || innerCost.localCost() == 0d;
-        assert innerCost.getRemoteCostPerParallelTask() != 0d || innerCost.remoteCost() == 0d;
-        assert outerCost.getRemoteCostPerParallelTask() != 0d || outerCost.remoteCost() == 0d;
-        double innerLocalCost = innerCost.getLocalCostPerParallelTask()*innerCost.getParallelism();
-        double innerRemoteCost = innerCost.getRemoteCostPerParallelTask()*innerCost.getParallelism();
-        return outerCost.getLocalCostPerParallelTask() +
-                innerRemoteCost + innerLocalCost +
-                joiningRowCost;
-    }
-
-
-
-    @Override
     public int maxCapacity(int userSpecifiedCapacity, int maxMemoryPerTable, double perRowUsage) {
         return Integer.MAX_VALUE;
-    }
-
-    @Override
-    public String toString(){
-        return "CrossJoin";
     }
 
     @Override

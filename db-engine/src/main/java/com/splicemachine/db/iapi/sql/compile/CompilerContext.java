@@ -55,6 +55,7 @@ import com.splicemachine.db.impl.sql.compile.subquery.aggregate.AggregateSubquer
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
 
+import java.sql.Types;
 import java.util.List;
 import java.util.Vector;
 import java.sql.SQLWarning;
@@ -189,6 +190,7 @@ public interface CompilerContext extends Context
     String DEFAULT_TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss.SSSSSSSSS";
     String DEFAULT_SECOND_FUNCTION_COMPATIBILITY_MODE = "splice";
     int DEFAULT_FLOATING_POINT_NOTATION = FloatingPointDataType.PLAIN;
+    int DEFAULT_COUNT_RETURN_TYPE = Types.BIGINT;
     boolean DEFAULT_OUTERJOIN_FLATTENING_DISABLED = false;
     boolean DEFAULT_SSQ_FLATTENING_FOR_UPDATE_DISABLED = false;
     NewMergeJoinExecutionType DEFAULT_SPLICE_NEW_MERGE_JOIN = NewMergeJoinExecutionType.SYSTEM;
@@ -741,6 +743,8 @@ public interface CompilerContext extends Context
 
     void setFloatingPointNotation(int floatingPointNotation);
 
+    void setCountReturnType(int countReturnType);
+
     void setCursorUntypedExpressionType(DataTypeDescriptor type);
 
     DataTypeDescriptor getCursorUntypedExpressionType();
@@ -750,6 +754,8 @@ public interface CompilerContext extends Context
     String getSecondFunctionCompatibilityMode();
 
     int getFloatingPointNotation();
+
+    int getCountReturnType();
 
     int getNextOJLevel();
 

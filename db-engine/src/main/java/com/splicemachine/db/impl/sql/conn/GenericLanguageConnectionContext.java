@@ -50,6 +50,8 @@ import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.*;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModel;
+import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModelRegistry;
 import com.splicemachine.db.iapi.sql.conn.*;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Provider;
@@ -516,6 +518,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             if (favorIndexPrefixIteration != null &&
                     favorIndexPrefixIteration.equalsIgnoreCase("true")) {
                 this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.FAVORINDEXPREFIXITERATION, "TRUE".toString());
+            }
+            String joinCostEstimationModel = connectionProperties.getProperty(Property.JOIN_COST_ESTIMATION_MODEL);
+            if(joinCostEstimationModel != null && JoinCostEstimationModelRegistry.exists(joinCostEstimationModel)) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.JOINCOSTESTIMATIONMODEL, joinCostEstimationModel);
             }
         }
         if (type.isSessionHinted()) {
@@ -4125,6 +4131,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         }
 
         return false;
+    }
+
+    @Override
+    public JoinCostEstimationModel getJoinCostEstimationModel() {
+        String joinCostEstimationModeName = getSessionProperties().getPropertyString(SessionProperties.PROPERTYNAME.JOINCOSTESTIMATIONMODEL);
+        if(JoinCostEstimationModelRegistry.exists(joinCostEstimationModeName)) {
+            return JoinCostEstimationModelRegistry.getJoinCostEstimationModel(joinCostEstimationModeName);
+        } else {
+            return JoinCostEstimationModelRegistry.getJoinCostEstimationModel("v1");
+        }
     }
 
     @Override
