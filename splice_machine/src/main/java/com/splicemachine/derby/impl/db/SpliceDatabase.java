@@ -136,7 +136,6 @@ public class SpliceDatabase extends BasicDatabase{
         CostModelRegistry.registerCostModel("v1", new V1CostModel());
         CostModelRegistry.registerCostModel("v2", new V2CostModel());
 
-
         if(create){
             SpliceLogUtils.info(LOG,"Creating the Splice Machine database");
         }else{
