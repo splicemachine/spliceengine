@@ -291,7 +291,7 @@ class SpliceTestPlatformConfig {
         //
         // Memstore, store files, splits
         //
-        config.setLong(HConstants.HREGION_MAX_FILESIZE, 2 * MiB); // hbase.hregion.max.filesize
+        config.setLong(HConstants.HREGION_MAX_FILESIZE, 32 * MiB); // hbase.hregion.max.filesize
         config.setLong("hbase.hregion.memstore.flush.size", 128 * MiB); // was 512 MiB
         config.setLong("hbase.hregion.memstore.block.multiplier", 4);
         config.setFloat("hbase.regionserver.global.memstore.size", 0.25f); // set mem store to 25% of heap
