@@ -93,7 +93,7 @@ public class IndexLookupCostEstimationIT extends SpliceUnitTest {
         // values in expectedCosts array are obtained from index lookup microbenchmark results (DB-11737)
         int[] rowCounts = {1000, 5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000, 100000, 200000};
         double[] expectedCosts = {127, 528, 557, 546, 562, 1018, 1038, 1098, 1108, 2687, 5423};
-        // assert that index lookup costs fall into ±11% of expected factors respectively
+        // assert that index lookup costs fall into ±11% of expected costs respectively
         double epsilon = 0.11;
 
         methodWatcher.execute("set session_property costModel='v1'");
@@ -110,7 +110,7 @@ public class IndexLookupCostEstimationIT extends SpliceUnitTest {
         // values in expectedCosts array are obtained from index lookup microbenchmark results (DB-11737)
         int[] rowCounts = {1000, 5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000, 100000, 200000};
         double[] expectedCosts = {94, 205, 306, 403, 500, 570, 677, 732, 801, 1708, 3807};
-        // assert that index lookup costs fall into ±14% of expected factors respectively
+        // assert that index lookup costs fall into ±14% of expected costs respectively
         double epsilon = 0.14;
 
         methodWatcher.execute("set session_property costModel='v1'");
