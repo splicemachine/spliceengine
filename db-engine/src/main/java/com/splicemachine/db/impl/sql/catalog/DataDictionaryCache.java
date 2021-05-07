@@ -589,6 +589,9 @@ public class DataDictionaryCache {
     }
 
     public GenericStorablePreparedStatement cacheIfAbsent(GenericStatement gs) throws StandardException {
+        if (!dd.canReadCache(null) || !dd.canWriteCache(null)) {
+            return new GenericStorablePreparedStatement(gs);
+        }
         try {
             StatementCacheValue value = statementCache.getManagedCache().get(gs, () -> new StatementCacheValue(new GenericStorablePreparedStatement(gs)));
             return value.getStatement();
