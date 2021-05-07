@@ -149,7 +149,9 @@ public class PropertyHelper {
                 } ).filter( f -> f != null );
     }
 
-    // return all properties defined in reference.Property + (new) GlobalDBProperties
+    /**
+     * @return  all properties defined in reference.Property + (new) GlobalDBProperties
+     */
     public static Stream<GlobalDBProperties.PropertyType> getAllProperties() {
         Stream<GlobalDBProperties.PropertyType> s1 = PropertyHelper.getAllReferenceProperties()
                 .map(s -> new GlobalDBProperties.PropertyType(s, "", null));
