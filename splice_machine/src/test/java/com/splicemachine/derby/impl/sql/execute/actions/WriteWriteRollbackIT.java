@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.Transactions;
 import org.junit.Assert;
@@ -27,7 +28,9 @@ import org.junit.runner.Description;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-
+import java.sql.SQLException;
+import java.sql.Statement;
+import static org.junit.Assert.fail;
 /**
  * Index tests. Using more manual SQL, rather than SpliceIndexWatcher.
  */
@@ -37,15 +40,19 @@ public class WriteWriteRollbackIT extends SpliceUnitTest {
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String TABLE_NAME_1 = "A";
+	public static final String TABLE_NAME_2 = "B";
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
-    private static String tableDef = "(col1 int, col2 int)";
-    protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME, tableDef);
+    private static String tableDef1 = "(col1 int, col2 int)";
+    protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME, tableDef1);
 
+    private static String tableDef2 = "(i int primary key, j int)";
+	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME, tableDef2);
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
             .around(spliceTableWatcher1)
+			.around(spliceTableWatcher2)
             .around(new SpliceDataWatcher(){
 			@Override
 			protected void starting(Description description) {
@@ -97,6 +104,30 @@ public class WriteWriteRollbackIT extends SpliceUnitTest {
     		Assert.fail("Unexpected exception " + e);
     	}
     }
-    
+
+	@Test
+	public void testConstraintViolationWithOlderVersion() throws Exception {
+
+    	try(Connection c1 = methodWatcher.createConnection();
+			Connection c2 = methodWatcher.createConnection();
+			Statement s1 = c1.createStatement();
+			Statement s2 = c2.createStatement()) {
+			c1.setAutoCommit(false);
+			c2.setAutoCommit(false);
+
+			s1.execute(String.format("insert into %s.%s values (1,1)", CLASS_NAME, TABLE_NAME_2));
+			c1.commit();
+			s1.execute(String.format("update %s.%s set j= j+ 1", CLASS_NAME, TABLE_NAME_2));
+			Thread.sleep(20000);
+			c1.rollback();
+			c2.commit();
+
+			s2.execute(String.format("insert into %s.%s values (1,5)", CLASS_NAME, TABLE_NAME_2));
+			fail();
+		}
+    	catch (SQLException e) {
+    		Assert.assertTrue(e.getSQLState().equals(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT));
+		}
+	}
 
 }

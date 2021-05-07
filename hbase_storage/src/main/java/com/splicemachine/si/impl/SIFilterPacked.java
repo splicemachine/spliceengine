@@ -40,7 +40,7 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter{
     }
 
     @Override
-    public Filter.ReturnCode filterKeyValue(Cell keyValue){
+    public Filter.ReturnCode filterCell(Cell keyValue){
         try{
             initFilterStateIfNeeded();
             DataFilter.ReturnCode code=filterState.filterCell(new HCell(keyValue));
