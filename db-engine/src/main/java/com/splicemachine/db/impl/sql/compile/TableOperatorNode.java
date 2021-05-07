@@ -34,7 +34,6 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModelRegistry;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
@@ -768,7 +767,7 @@ public abstract class TableOperatorNode extends FromTable{
                                                     null,
                                                     getCompilerContext().getMaximalPossibleTableCount(),
                                                     lcc,
-                                                    lcc.getJoinCostEstimationModel());
+                                                    lcc.getCostModel());
             optimizer.prepForNextRound();
             optimizer.setAssignedTableMap(otherChildReferenceMap);
 

@@ -34,7 +34,7 @@ import com.splicemachine.db.iapi.services.property.PropertySetCallback;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
-import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModelRegistry;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModelRegistry;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -44,7 +44,6 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.ast.*;
 import com.splicemachine.db.impl.db.BasicDatabase;
@@ -56,7 +55,7 @@ import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.ddl.DDLMessage.DDLChange;
 import com.splicemachine.derby.ddl.*;
-import com.splicemachine.derby.impl.sql.compile.costing.V1JoinCostEstimationModel;
+import com.splicemachine.derby.impl.sql.compile.costing.V1CostModel;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -133,7 +132,7 @@ public class SpliceDatabase extends BasicDatabase{
             }
         }
 
-        JoinCostEstimationModelRegistry.registerJoinCostEstimationModel("v1", new V1JoinCostEstimationModel());
+        CostModelRegistry.registerCostModel("v1", new V1CostModel());
 
         if(create){
             SpliceLogUtils.info(LOG,"Creating the Splice Machine database");
@@ -157,8 +156,9 @@ public class SpliceDatabase extends BasicDatabase{
         afterOptVisitors.add(LimitOffsetVisitor.class);
         afterOptVisitors.add(PlanPrinter.class);
 
-        List<Class<? extends ISpliceVisitor>> afterBindVisitors=new ArrayList<>(1);
+        List<Class<? extends ISpliceVisitor>> afterBindVisitors=new ArrayList<>(2);
         afterBindVisitors.add(RepeatedPredicateVisitor.class);
+        afterBindVisitors.add(QueryRewriteVisitor.class);
 
         List<Class<? extends ISpliceVisitor>> afterParseClasses=Collections.emptyList();
         lctx.setASTVisitor(new SpliceASTWalker(afterParseClasses, afterBindVisitors, afterOptVisitors));

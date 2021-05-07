@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.costing.ScanCostEstimator;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.*;
@@ -1006,7 +1007,7 @@ public class FromBaseTable extends FromTable {
             scanColumnList = new BitSet();
         }
         DataValueDescriptor[] rowTemplate=getRowTemplate(cd,getBaseCostController());
-        ScanCostFunction scf = new ScanCostFunction(
+        ScanCostEstimator scf = optimizer.getCostModel().getNewScanCostEstimator(
                 this,
                 cd,
                 scc,
