@@ -980,16 +980,16 @@ public class DDLUtils {
     public static void dispatchChangeAction(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm, LanguageConnectionContext lcc) throws StandardException {
         switch(change.getDdlChangeType()){
             case MULTIPLE_CHANGES:
-                DDLUtils.preMultipleChanges(change, dd, dm);
+                preMultipleChanges(change, dd, dm);
                 break;
             case CREATE_INDEX:
-                DDLUtils.preCreateIndex(change,dd,dm);
+                preCreateIndex(change,dd,dm);
                 break;
             case DROP_INDEX:
-                DDLUtils.preDropIndex(change,dd,dm, lcc);
+                preDropIndex(change,dd,dm, lcc);
                 break;
             case DROP_SEQUENCE:
-                DDLUtils.preDropSequence(change,dd,dm, lcc);
+                preDropSequence(change,dd,dm, lcc);
                 break;
             case CHANGE_PK:
             case ADD_CHECK:
@@ -1005,52 +1005,52 @@ public class DDLUtils {
             case CREATE_SCHEMA:
                 break;
             case DROP_TABLE:
-                DDLUtils.preDropTable(change,dd,dm, lcc);
+                preDropTable(change,dd,dm, lcc);
                 break;
             case DROP_VIEW:
-                DDLUtils.preDropView(change,dd,dm, lcc);
+                preDropView(change,dd,dm, lcc);
                 break;
             case ALTER_TABLE:
-                DDLUtils.preAlterTable(change,dd,dm);
+                preAlterTable(change,dd,dm);
                 break;
             case RENAME_TABLE:
-                DDLUtils.preRenameTable(change,dd,dm);
+                preRenameTable(change,dd,dm);
                 break;
             case CREATE_TRIGGER:
-                DDLUtils.preCreateTrigger(change,dd,dm);
+                preCreateTrigger(change,dd,dm);
                 break;
             case CREATE_ROLE:
-                DDLUtils.preCreateRole(change,dd,dm);
+                preCreateRole(change,dd,dm);
                 break;
             case DROP_TRIGGER:
-                DDLUtils.preDropTrigger(change,dd,dm, lcc);
+                preDropTrigger(change,dd,dm, lcc);
                 break;
             case DROP_ALIAS:
-                DDLUtils.preDropAlias(change,dd,dm, lcc);
+                preDropAlias(change,dd,dm, lcc);
                 break;
             case RENAME_INDEX:
-                DDLUtils.preRenameIndex(change,dd,dm);
+                preRenameIndex(change,dd,dm);
                 break;
             case RENAME_COLUMN:
-                DDLUtils.preRenameColumn(change,dd,dm);
+                preRenameColumn(change,dd,dm);
                 break;
             case DROP_SCHEMA:
-                DDLUtils.preDropSchema(change,dd,dm, lcc);
+                preDropSchema(change,dd,dm, lcc);
                 break;
             case UPDATE_SCHEMA_OWNER:
-                DDLUtils.preUpdateSchemaOwner(change,dd);
+                preUpdateSchemaOwner(change,dd);
                 break;
             case DROP_ROLE:
-                DDLUtils.preDropRole(change,dd,dm);
+                preDropRole(change,dd,dm);
                 break;
             case TRUNCATE_TABLE:
-                DDLUtils.preTruncateTable(change,dd,dm);
+                preTruncateTable(change,dd,dm);
                 break;
             case REVOKE_PRIVILEGE:
-                DDLUtils.preRevokePrivilege(change,dd,dm);
+                preRevokePrivilege(change,dd,dm);
                 break;
             case ALTER_STATS:
-                DDLUtils.preAlterStats(change,dd,dm);
+                preAlterStats(change,dd,dm);
                 break;
             case ENTER_RESTORE_MODE:
                 SIDriver.driver().lifecycleManager().enterRestoreMode();
@@ -1078,32 +1078,32 @@ public class DDLUtils {
                 }
                 break;
             case NOTIFY_JAR_LOADER:
-                DDLUtils.preNotifyJarLoader(change,dd,dm);
+                preNotifyJarLoader(change,dd,dm);
                 break;
             case NOTIFY_MODIFY_CLASSPATH:
-                DDLUtils.preNotifyModifyClasspath(change,dd,dm);
+                preNotifyModifyClasspath(change,dd,dm);
                 break;
             case REFRESH_ENTRPRISE_FEATURES:
                 EngineDriver.driver().refreshEnterpriseFeatures();
                 break;
             case GRANT_REVOKE_ROLE:
-                DDLUtils.preGrantRevokeRole(change, dd);
+                preGrantRevokeRole(change, dd);
                 break;
             case SET_DATABASE_PROPERTY:
-                DDLUtils.preSetDatabaseProperty(change, dd);
+                preSetDatabaseProperty(change, dd);
                 break;
             case UPDATE_SYSTEM_PROCEDURES:
-                DDLUtils.preUpdateSystemProcedures(change, dd);
+                preUpdateSystemProcedures(change, dd);
                 break;
             case CREATE_ALIAS:
             case CREATE_VIEW:
                 break;
             case LEAVE_RESTORE_MODE:
-                DDLUtils.preLeaveRestore(change, dd);
+                preLeaveRestore(change, dd);
                 break;
             case ADD_FOREIGN_KEY: // fallthrough, this is necessary since the parent of the foreign key now has one extra child!
             case DROP_FOREIGN_KEY:
-                DDLUtils.preDropForeignKey(change, dd);
+                preDropForeignKey(change, dd);
             default:
                 break;
         }
