@@ -51,7 +51,6 @@ public class RenameConstantOperation extends DDLSingleTableConstantOperation {
     private String newTableName;
     private String oldObjectName;
     private String newObjectName;
-    private UUID schemaId;
     private SchemaDescriptor sd;
     /* You can rename using either alter table or rename command to
      * rename a table/column. An index can only be renamed with rename
@@ -211,7 +210,7 @@ public class RenameConstantOperation extends DDLSingleTableConstantOperation {
         */
         if (sd == null)
         {
-            sd = getAndCheckSchemaDescriptor(dd, schemaId, "RENAME TABLE");
+            sd = getAndCheckSchemaDescriptor(dd, null, "RENAME TABLE");
         }
 
 
