@@ -38,8 +38,10 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+import splice.com.google.common.collect.Iterables;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 /**
  *    This class  describes actions that are ALWAYS performed for a
@@ -113,46 +115,53 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
 
     private void dropAllSchemaObjects(SchemaDescriptor sd, LanguageConnectionContext lcc, TransactionController tc, Activation activation) throws StandardException {
         DataDictionary dd = lcc.getDataDictionary();
+        DependencyBucketing<UUID> dependencyBucketing = new DependencyBucketing<>();
+        Map<UUID, TupleDescriptor> dropMap = new HashMap<>();
 
         // drop views, aliases and tables need to be considered together due to the dependencies among them
         // views could be defined on other views/tables/aliases, and aliases could be on tables/views
 
-        LinkedHashMap<UUID, TupleDescriptor> pendingDropMap = new LinkedHashMap<>();
-        for (TriggerDescriptor descriptor : dd.getTriggersInSchema(sd.getUUID().toString())) {
-            pendingDropMap.putIfAbsent(descriptor.getUUID(), descriptor);
-        }
-        for (SequenceDescriptor descriptor: dd.getSequencesInSchema(sd.getUUID().toString())) {
-            pendingDropMap.putIfAbsent(descriptor.getUUID(), descriptor);
-        }
-        for (AliasDescriptor descriptor: dd.getAliasesInSchema(sd.getUUID().toString())) {
-            pendingDropMap.putIfAbsent(descriptor.getUUID(), descriptor);
-        }
         // get all the table/view/alias and their dependents in the pendingDropMap
         for (TupleDescriptor td: dd.getTablesInSchema(sd)) {
-            getDependenciesForTable(td, sd, pendingDropMap, dd);
+            getDependenciesForTable(td, sd, dependencyBucketing, dropMap, dd);
         }
 
-        ArrayList<DDLConstantOperation> pendingDropOperations = new ArrayList<>();
-        for (TupleDescriptor tupleDescriptor: pendingDropMap.values()) {
+        List<List<UUID>> dropBuckets = dependencyBucketing.getBuckets();
+
+        // Add triggers, sequences and aliases to the last bucket
+        dropBuckets.add(new ArrayList<>());
+        Stream.of(dd.getTriggersInSchema(sd.getUUID().toString()),
+                dd.getSequencesInSchema(sd.getUUID().toString()),
+                dd.getAliasesInSchema(sd.getUUID().toString()))
+                .flatMap(Collection::stream)
+                .forEach(descriptor -> {
+                    if (!dropMap.containsKey(descriptor.getUUID())) {
+                        dropMap.put(descriptor.getUUID(), descriptor);
+                        dropBuckets.get(dropBuckets.size() - 1).add(descriptor.getUUID());
+                    }
+                });
+
+        Map<UUID, DDLConstantOperation> dropOperations = new HashMap<>();
+        for (TupleDescriptor tupleDescriptor: dropMap.values()) {
             ConstantAction action = getDropConstantAction(tupleDescriptor, sd, lcc, tc, activation);
             if (action != null)
-                pendingDropOperations.add((DDLConstantOperation)action);
+                dropOperations.put(tupleDescriptor.getUUID(), (DDLConstantOperation)action);
         }
 
-        // Objects should be dropped in the reverse order because the list should be reverse topologically sorted
-        Collections.reverse(pendingDropOperations);
+        // Send metadata changes by waves of independent tuple descriptors
+        for (List<UUID> dropBucket : dropBuckets) {
+            // Construct grouped DDL notification for remote RS cache invalidation
+            long txnId = ((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId();
+            List<DDLMessage.DDLChange> ddlChanges = new ArrayList<>();
+            for (UUID uuid: dropBucket) {
+                ddlChanges.addAll(dropOperations.get(uuid).generateDDLChanges(txnId, activation));
+            }
+            notifyMetadataChanges(tc, ProtoUtil.createMultiChange(txnId, ddlChanges));
 
-        // Construct grouped DDL notification for remote RS cache invalidation
-        long txnId = ((SpliceTransactionManager)tc).getActiveStateTxn().getTxnId();
-        List<DDLMessage.DDLChange> ddlChanges = new ArrayList<>();
-        for (DDLConstantOperation operation : pendingDropOperations) {
-            ddlChanges.addAll(operation.generateDDLChanges(txnId, activation));
-        }
-        notifyMetadataChanges(tc, ProtoUtil.createMultiChange(txnId, ddlChanges));
-
-        // Drop everything
-        for (DDLConstantOperation operation : pendingDropOperations) {
-            operation.executeConstantAction(activation, false);
+            // Drop everything
+            for (UUID uuid: dropBucket) {
+                dropOperations.get(uuid).executeConstantAction(activation, false);
+            }
         }
 
         // drop files
@@ -216,7 +225,8 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
 
     private void walkDependencyTree(TupleDescriptor tupleDescriptor,
                                     SchemaDescriptor sd,
-                                    LinkedHashMap<UUID, TupleDescriptor> pendingDropMap,
+                                    DependencyBucketing<UUID> dependencyBucketing,
+                                    Map<UUID, TupleDescriptor> dropMap,
                                     HashSet<UUID> ancestors,
                                     DataDictionary dd) throws StandardException {
 
@@ -261,9 +271,10 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
                     throw StandardException.newException(SQLState.LANG_CYCLIC_DEPENDENCY_DETECTED,
                             sd.getSchemaName(), tupleDescriptor.getDescriptorName(), dependentTupleDescriptor.getDescriptorName());
                 }
-                pendingDropMap.putIfAbsent(dependentTupleDescriptor.getUUID(), dependentTupleDescriptor);
+                dependencyBucketing.addDependency(dependentTupleDescriptor.getUUID(), tupleDescriptor.getUUID());
+                dropMap.putIfAbsent(dependentTupleDescriptor.getUUID(), dependentTupleDescriptor);
                 ancestors.add(dependentTupleDescriptor.getUUID());
-                walkDependencyTree(dependentTupleDescriptor, sd, pendingDropMap, ancestors, dd);
+                walkDependencyTree(dependentTupleDescriptor, sd, dependencyBucketing, dropMap, ancestors, dd);
                 ancestors.remove(dependentTupleDescriptor.getUUID());
             }
         }
@@ -295,9 +306,10 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
                                 throw StandardException.newException(SQLState.LANG_CYCLIC_DEPENDENCY_DETECTED,
                                         sd.getSchemaName(), tupleDescriptor.getDescriptorName(), dependentTableDescriptor.getDescriptorName());
                             }
-                            pendingDropMap.putIfAbsent(dependentTableDescriptor.getUUID(), dependentTableDescriptor);
+                            dependencyBucketing.addDependency(dependentTableDescriptor.getUUID(), tupleDescriptor.getUUID());
+                            dropMap.putIfAbsent(dependentTableDescriptor.getUUID(), dependentTableDescriptor);
                             ancestors.add(dependentTableDescriptor.getUUID());
-                            walkDependencyTree(dependentTableDescriptor, sd, pendingDropMap, ancestors, dd);
+                            walkDependencyTree(dependentTableDescriptor, sd, dependencyBucketing, dropMap, ancestors, dd);
                             ancestors.remove(dependentTableDescriptor.getUUID());
                         }
                     }
@@ -306,14 +318,15 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
         }
     }
 
-    private void getDependenciesForTable(TupleDescriptor td, SchemaDescriptor sd, LinkedHashMap<UUID, TupleDescriptor> pendingDropMap, DataDictionary dd) throws StandardException {
+    private void getDependenciesForTable(TupleDescriptor td, SchemaDescriptor sd, DependencyBucketing<UUID> dependencyBucketing, Map<UUID, TupleDescriptor> dropMap, DataDictionary dd) throws StandardException {
         // the dependency among the objects is supposed to be a DAG, we will walk through it using pre-order tree traversal from the root
         // keep a hashset of the path to the root, if during the traversal, we get a child which also appears as an ancestor on the path
         // to the root, then there is a cyclic dependency
         HashSet<UUID> ancestors = new HashSet<>();
-        pendingDropMap.putIfAbsent(td.getUUID(), td);
+        dependencyBucketing.addSingleNode(td.getUUID());
+        dropMap.putIfAbsent(td.getUUID(), td);
         ancestors.add(td.getUUID());
-        walkDependencyTree(td, sd, pendingDropMap, ancestors, dd);
+        walkDependencyTree(td, sd, dependencyBucketing, dropMap, ancestors, dd);
         ancestors.remove(td.getUUID());
     }
 
