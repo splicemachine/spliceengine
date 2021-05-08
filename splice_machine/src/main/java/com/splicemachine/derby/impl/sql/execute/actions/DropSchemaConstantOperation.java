@@ -156,7 +156,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
             for (UUID uuid: dropBucket) {
                 ddlChanges.addAll(dropOperations.get(uuid).generateDDLChanges(txnId, activation));
             }
-            notifyMetadataChanges(tc, ProtoUtil.createMultiChange(txnId, ddlChanges));
+            notifyMetadataChanges(tc, ddlChanges);
 
             // Drop everything
             for (UUID uuid: dropBucket) {
