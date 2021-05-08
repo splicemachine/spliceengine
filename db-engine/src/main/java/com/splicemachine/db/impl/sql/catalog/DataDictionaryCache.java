@@ -589,16 +589,21 @@ public class DataDictionaryCache {
     }
 
     public GenericStorablePreparedStatement cacheIfAbsent(GenericStatement gs) throws StandardException {
-        if (!dd.canReadCache(null) || !dd.canWriteCache(null)) {
-            return new GenericStorablePreparedStatement(gs);
+        if (dd.canReadCache(null)) {
+            GenericStorablePreparedStatement result = statementCache.getIfPresent(gs).getStatement();
+            if (result != null) {
+                return result;
+            }
+            if (dd.canWriteCache(null)) {
+                try {
+                    StatementCacheValue value = statementCache.getManagedCache().get(gs, () -> new StatementCacheValue(new GenericStorablePreparedStatement(gs)));
+                    return value.getStatement();
+                } catch (ExecutionException ex) {
+                    // ignore unlikely exception 
+                }
+            }
         }
-        try {
-            StatementCacheValue value = statementCache.getManagedCache().get(gs, () -> new StatementCacheValue(new GenericStorablePreparedStatement(gs)));
-            return value.getStatement();
-        }
-        catch (ExecutionException ex) {
-            throw StandardException.newException("unexpected exception", ex);
-        }
+        return new GenericStorablePreparedStatement(gs);
     }
 
     public void roleCacheAdd(String roleName, Optional<RoleGrantDescriptor> optional) throws StandardException {
