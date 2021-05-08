@@ -105,12 +105,7 @@ public class DropTriggerConstantOperation extends DDLSingleTableConstantOperatio
         ** Get the trigger descriptor.  We're responsible for raising
         ** the error if it isn't found
         */
-        triggerd = dd.getTriggerDescriptor(triggerName, sd);
-
-        if (triggerd == null) {
-            throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "TRIGGER",
-                    (sd.getSchemaName() + "." + triggerName));
-        }
+        triggerd = getTriggerDescriptor(activation);
 
         /*
          ** Prepare all dependents to invalidate.  (This is their chance
@@ -153,9 +148,7 @@ public class DropTriggerConstantOperation extends DDLSingleTableConstantOperatio
 
     @Override
     public List<DDLMessage.DDLChange> generateDDLChanges(long txnId, Activation activation) throws StandardException {
-        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-        DataDictionary dd = lcc.getDataDictionary();
-        TriggerDescriptor triggerDescriptor = dd.getTriggerDescriptor(triggerName, sd);
+        TriggerDescriptor triggerDescriptor = getTriggerDescriptor(activation);
         List<DDLMessage.DDLChange> changes = new ArrayList<>();
         for (UUID actionId: triggerDescriptor.getActionIdList()) {
             changes.add(ProtoUtil.dropTrigger(txnId,
@@ -170,5 +163,21 @@ public class DropTriggerConstantOperation extends DDLSingleTableConstantOperatio
         // Do not put this under SanityManager.DEBUG - it is needed for
         // error reporting.
         return "DROP TRIGGER "+triggerName;
+    }
+
+    private TriggerDescriptor getTriggerDescriptor(Activation activation) throws StandardException {
+        /*
+         ** Get the trigger descriptor.  We're responsible for raising
+         ** the error if it isn't found
+         */
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        TriggerDescriptor triggerd = dd.getTriggerDescriptor(triggerName, sd);
+
+        if (triggerd == null) {
+            throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "TRIGGER",
+                    (sd.getSchemaName() + "." + triggerName));
+        }
+        return triggerd;
     }
 }

@@ -117,29 +117,24 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
         DataDictionary dd = lcc.getDataDictionary();
         DependencyBucketing<UUID> dependencyBucketing = new DependencyBucketing<>();
         Map<UUID, TupleDescriptor> dropMap = new HashMap<>();
+        String schemaId = sd.getUUID().toString();
+
+        // Add trigger descriptors to our dependency bucketing
+        for (TriggerDescriptor td: dd.getTriggersInSchema(schemaId)) {
+            if (td.getTableDescriptor().getSchemaDescriptor().getUUID().equals(sd.getUUID())) {
+                dependencyBucketing.addDependency(td.getUUID(), td.getTableDescriptor().getUUID());
+            } else {
+                dependencyBucketing.addSingleNode(td.getUUID());
+            }
+            dropMap.put(td.getUUID(), td);
+        }
 
         // drop views, aliases and tables need to be considered together due to the dependencies among them
         // views could be defined on other views/tables/aliases, and aliases could be on tables/views
-
-        // get all the table/view/alias and their dependents in the pendingDropMap
+        // get all the table/view/alias and their dependents in the dependencyBucketing
         for (TupleDescriptor td: dd.getTablesInSchema(sd)) {
             getDependenciesForTable(td, sd, dependencyBucketing, dropMap, dd);
         }
-
-        List<List<UUID>> dropBuckets = dependencyBucketing.getBuckets();
-
-        // Add triggers, sequences and aliases to the last bucket
-        dropBuckets.add(new ArrayList<>());
-        Stream.of(dd.getTriggersInSchema(sd.getUUID().toString()),
-                dd.getSequencesInSchema(sd.getUUID().toString()),
-                dd.getAliasesInSchema(sd.getUUID().toString()))
-                .flatMap(Collection::stream)
-                .forEach(descriptor -> {
-                    if (!dropMap.containsKey(descriptor.getUUID())) {
-                        dropMap.put(descriptor.getUUID(), descriptor);
-                        dropBuckets.get(dropBuckets.size() - 1).add(descriptor.getUUID());
-                    }
-                });
 
         Map<UUID, DDLConstantOperation> dropOperations = new HashMap<>();
         for (TupleDescriptor tupleDescriptor: dropMap.values()) {
@@ -148,28 +143,47 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
                 dropOperations.put(tupleDescriptor.getUUID(), (DDLConstantOperation)action);
         }
 
-        // Send metadata changes by waves of independent tuple descriptors
-        for (List<UUID> dropBucket : dropBuckets) {
-            // Construct grouped DDL notification for remote RS cache invalidation
-            long txnId = ((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId();
-            List<DDLMessage.DDLChange> ddlChanges = new ArrayList<>();
-            for (UUID uuid: dropBucket) {
-                ddlChanges.addAll(dropOperations.get(uuid).generateDDLChanges(txnId, activation));
-            }
-            notifyMetadataChanges(tc, ddlChanges);
-
-            // Drop everything
-            for (UUID uuid: dropBucket) {
-                dropOperations.get(uuid).executeConstantAction(activation, false);
-            }
+        // Drop independent tuple descriptors one wave at a time
+        for (List<UUID> dropBucket : dependencyBucketing.getBuckets()) {
+            dropBucket(tc, activation, dropOperations, dropBucket);
         }
 
+        // Drop remaining triggers, sequences and aliases
+        List<UUID> lastBucket = new ArrayList<>();
+        for (TupleDescriptor descriptor: Iterables.concat(
+                dd.getSequencesInSchema(schemaId),
+                dd.getAliasesInSchema(schemaId))) {
+            if (!dropMap.containsKey(descriptor.getUUID())) {
+                dropMap.put(descriptor.getUUID(), descriptor);
+                lastBucket.add(descriptor.getUUID());
+                ConstantAction action = getDropConstantAction(descriptor, sd, lcc, tc, activation);
+                if (action != null)
+                    dropOperations.put(descriptor.getUUID(), (DDLConstantOperation) action);
+            }
+        }
+        dropBucket(tc, activation, dropOperations, lastBucket);
+
         // drop files
-        ArrayList<FileInfoDescriptor> fileList = dd.getFilesInSchema(sd.getUUID().toString());
+        ArrayList<FileInfoDescriptor> fileList = dd.getFilesInSchema(schemaId);
         for (FileInfoDescriptor fileDescriptor: fileList) {
             executeUpdate(lcc, String.format("CALL SQLJ.REMOVE_JAR('\"%s\".\"%s\"', 0)", sd.getSchemaName(), fileDescriptor.getDescriptorName()));
         }
 
+    }
+
+    private void dropBucket(TransactionController tc, Activation activation, Map<UUID, DDLConstantOperation> dropOperations, List<UUID> dropBucket) throws StandardException {
+        // Construct grouped DDL notification for remote RS cache invalidation
+        long txnId = ((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId();
+        List<DDLMessage.DDLChange> ddlChanges = new ArrayList<>();
+        for (UUID uuid: dropBucket) {
+            ddlChanges.addAll(dropOperations.get(uuid).generateDDLChanges(txnId, activation));
+        }
+        notifyMetadataChanges(tc, ddlChanges);
+
+        // Drop everything
+        for (UUID uuid: dropBucket) {
+            dropOperations.get(uuid).executeConstantAction(activation, false);
+        }
     }
 
     private ConstantAction getDropConstantAction(TupleDescriptor tupleDescriptor, SchemaDescriptor sd, LanguageConnectionContext lcc, TransactionController tc, Activation activation) throws StandardException {
@@ -234,7 +248,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
         String providerID = null;
         if (tupleDescriptor instanceof TableDescriptor) {
             // TableDescriptor could be for a view or alias
-            if (((TableDescriptor) tupleDescriptor).getTableType() == TableDescriptor.SYNONYM_TYPE) {
+            if (((TableDescriptor) tupleDescriptor).isSynonymDescriptor()) {
                 // we need to get the alias UUID for dependency check
                 AliasDescriptor aliasDescriptor = dd.getAliasDescriptor(sd.getUUID().toString(), ((TableDescriptor) tupleDescriptor).getName(), AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR);
                 if (aliasDescriptor != null)
