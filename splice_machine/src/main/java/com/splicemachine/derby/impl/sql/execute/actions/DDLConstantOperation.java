@@ -327,10 +327,9 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
      * @param tc
      */
     public void notifyMetadataChanges(TransactionController tc, List<DDLMessage.DDLChange> changes) throws StandardException {
-        assert changes.size() >= 1;
         if (changes.size() == 1) {
             notifyMetadataChanges(tc, changes.get(0));
-        } else {
+        } else if (changes.size() > 1) {
             notifyMetadataChanges(tc, ProtoUtil.createMultiChange(changes.get(0).getTxnId(), changes));
         }
     }
