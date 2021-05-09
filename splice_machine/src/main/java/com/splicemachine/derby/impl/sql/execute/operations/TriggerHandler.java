@@ -176,22 +176,17 @@ public class TriggerHandler {
 
     @SuppressFBWarnings(value = {"EI_EXPOSE_REP2","URF_UNREAD_FIELD"}, justification = "DB-9844")
     public void initTriggerRowHolders(boolean isSpark, TxnView txn, byte[] token, long ConglomID) throws StandardException {
-        this.isSpark = isSpark;
+        this.isSpark = this.getTriggerExecutionContext().isFromSparkExecution(); // msirek-temp
         this.txn = txn;
         this.token = token;
         Properties properties = new Properties();
         if (hasStatementTriggerWithReferencingClause) {
-            // Use the smaller of ControlExecutionRowLimit or 1000000 to determine when to switch to spark execution.
-            // Hard cap at 1 million despite the setting of controlExecutionRowLimit since we don't want to exhaust
-            // memory if the sysadmin cranked this setting really high.
+            // Honor the controlExecutionRowLimit.
             int switchToSparkThreshold = EngineDriver.driver().getConfiguration().getControlExecutionRowLimit() <= Integer.MAX_VALUE ?
             (int) EngineDriver.driver().getConfiguration().getControlExecutionRowLimit() : Integer.MAX_VALUE;
 
             if (switchToSparkThreshold < 0)
                 switchToSparkThreshold = 0;
-            else if (switchToSparkThreshold > 1000000)
-                switchToSparkThreshold = 1000000;
-
 
             long doubleDetermineSparkRowThreshold = 2 * getLcc().getOptimizerFactory().getDetermineSparkRowThreshold();
             int inMemoryLimit = switchToSparkThreshold;
@@ -204,12 +199,12 @@ public class TriggerHandler {
             // executing in control.
             int overflowToConglomThreshold =
                  doubleDetermineSparkRowThreshold > inMemoryLimit ? (int)doubleDetermineSparkRowThreshold :
-                 doubleDetermineSparkRowThreshold < 0 ? 0 :
+                 inMemoryLimit < 0 ? 0 :
                  inMemoryLimit;
 
             // Spark doesn't support use of an in-memory TriggerRowHolderImpl, so we
             // set overflowToConglomThreshold to zero and always use a conglomerate.
-            if (isSpark) {
+            if (this.isSpark) {
                 switchToSparkThreshold = 0;
                 overflowToConglomThreshold = 0;
             }
@@ -217,7 +212,7 @@ public class TriggerHandler {
             triggerRowHolder =
                 new TriggerRowHolderImpl(activation, properties, writeInfo.getResultDescription(),
                                          overflowToConglomThreshold, switchToSparkThreshold,
-                                         templateRow, tableVersion, isSpark, txn, token, ConglomID,
+                                         templateRow, tableVersion, this.isSpark, txn, token, ConglomID,
                                           this.getTriggerExecutionContext());
         }
 

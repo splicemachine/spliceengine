@@ -470,4 +470,6 @@ public interface Optimizable {
      * the first index column.
      */
     default boolean indexPrefixIteratorAllowed(AccessPath accessPath) { return false; }
+
+    default boolean isTriggerVTI(){ return false; }
 }

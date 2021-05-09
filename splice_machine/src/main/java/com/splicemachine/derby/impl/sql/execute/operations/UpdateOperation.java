@@ -120,7 +120,7 @@ public class UpdateOperation extends DMLWriteOperation{
                     getTableVersion(),
                     fromTableDmlSpsDescriptor
             );
-            this.triggerHandler.setIsSpark(isSpark);
+            // this.triggerHandler.setIsSpark(isSpark);  // msirek-temp
             if (hasGeneratedColumn)
                 this.triggerHandler.setHasGeneratedColumn();
         }
