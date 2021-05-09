@@ -559,4 +559,11 @@ public abstract class SingleChildResultSetNode extends FromTable{
         tree.add(this);
         childResult.buildTree(tree,depth+1);
     }
+
+    @Override
+    public boolean isTriggerVTI() {
+        if (childResult instanceof FromTable)
+            return ((FromTable)childResult).isTriggerVTI();
+        return false;
+    }
 }

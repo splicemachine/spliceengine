@@ -788,13 +788,17 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         return hasGeneratedColumn;
     }
 
-    public boolean needsTemporaryConglomerate() {
+    public boolean needsTemporaryConglomerate(boolean nestedTrigger) {
         // TODO:  Can we detect when a DML statement and associated
         //        triggers needs no temporary conglomerate?
         //        The persisted Dataset may not always be accessible,
         //        for example in a nested loop join iterator,
         //        so currently we still need it.
-        return true;
-        //return hasGeneratedColumn || !fromSparkExecution;
+        //return true;
+        return nestedTrigger || hasGeneratedColumn || !fromSparkExecution;  // msirek-temp
+    }
+
+    public boolean isFromSparkExecution() {
+        return fromSparkExecution;
     }
 }
