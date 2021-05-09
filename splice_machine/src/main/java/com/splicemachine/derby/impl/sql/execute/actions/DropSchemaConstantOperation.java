@@ -41,7 +41,6 @@ import org.apache.log4j.Logger;
 import splice.com.google.common.collect.Iterables;
 
 import java.util.*;
-import java.util.stream.Stream;
 
 /**
  *    This class  describes actions that are ALWAYS performed for a
@@ -133,9 +132,8 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
         // views could be defined on other views/tables/aliases, and aliases could be on tables/views
         // get all the table/view/alias and their dependents in the dependencyBucketing
         for (TupleDescriptor td: dd.getTablesInSchema(sd)) {
-            getDependenciesForTable(td, sd, dependencyBucketing, dropMap, dd);
+            getDependencies(td, sd, dependencyBucketing, dropMap, dd);
         }
-
         Map<UUID, DDLConstantOperation> dropOperations = new HashMap<>();
         for (TupleDescriptor tupleDescriptor: dropMap.values()) {
             ConstantAction action = getDropConstantAction(tupleDescriptor, sd, lcc, tc, activation);
@@ -148,11 +146,28 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
             dropBucket(tc, activation, dropOperations, dropBucket);
         }
 
-        // Drop remaining triggers, sequences and aliases
+        // Drop the remaining aliases
+        dependencyBucketing = new DependencyBucketing<>();
+        for (TupleDescriptor ad: dd.getAliasesInSchema(schemaId)) {
+            if (!dropMap.containsKey(ad.getUUID())) {
+                getDependencies(ad, sd, dependencyBucketing, dropMap, dd);
+            }
+        }
+        for (TupleDescriptor tupleDescriptor: dropMap.values()) {
+            if (!dropOperations.containsKey(tupleDescriptor.getUUID())) {
+                ConstantAction action = getDropConstantAction(tupleDescriptor, sd, lcc, tc, activation);
+                if (action != null)
+                    dropOperations.putIfAbsent(tupleDescriptor.getUUID(), (DDLConstantOperation) action);
+            }
+        }
+        // Drop independent tuple descriptors one wave at a time
+        for (List<UUID> dropBucket : dependencyBucketing.getBuckets()) {
+            dropBucket(tc, activation, dropOperations, dropBucket);
+        }
+
+        // Drop remaining sequences
         List<UUID> lastBucket = new ArrayList<>();
-        for (TupleDescriptor descriptor: Iterables.concat(
-                dd.getSequencesInSchema(schemaId),
-                dd.getAliasesInSchema(schemaId))) {
+        for (TupleDescriptor descriptor: dd.getSequencesInSchema(schemaId)) {
             if (!dropMap.containsKey(descriptor.getUUID())) {
                 dropMap.put(descriptor.getUUID(), descriptor);
                 lastBucket.add(descriptor.getUUID());
@@ -251,8 +266,9 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
             if (((TableDescriptor) tupleDescriptor).isSynonymDescriptor()) {
                 // we need to get the alias UUID for dependency check
                 AliasDescriptor aliasDescriptor = dd.getAliasDescriptor(sd.getUUID().toString(), ((TableDescriptor) tupleDescriptor).getName(), AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR);
-                if (aliasDescriptor != null)
+                if (aliasDescriptor != null) {
                     providerID = aliasDescriptor.getUUID().toString();
+                }
             } else {
                 providerID = tupleDescriptor.getUUID().toString();
             }
@@ -332,7 +348,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
         }
     }
 
-    private void getDependenciesForTable(TupleDescriptor td, SchemaDescriptor sd, DependencyBucketing<UUID> dependencyBucketing, Map<UUID, TupleDescriptor> dropMap, DataDictionary dd) throws StandardException {
+    private void getDependencies(TupleDescriptor td, SchemaDescriptor sd, DependencyBucketing<UUID> dependencyBucketing, Map<UUID, TupleDescriptor> dropMap, DataDictionary dd) throws StandardException {
         // the dependency among the objects is supposed to be a DAG, we will walk through it using pre-order tree traversal from the root
         // keep a hashset of the path to the root, if during the traversal, we get a child which also appears as an ancestor on the path
         // to the root, then there is a cyclic dependency
