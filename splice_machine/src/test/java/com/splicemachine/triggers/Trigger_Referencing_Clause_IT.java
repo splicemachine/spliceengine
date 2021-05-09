@@ -69,6 +69,7 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
     private static int numTables = 0;
     private static boolean isMemPlatform = false;
     private static int runningOperations;
+    private boolean isSpark;
 
     @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
@@ -95,6 +96,7 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
 
     public Trigger_Referencing_Clause_IT(String connectionString ) {
         this.connectionString = connectionString;
+        isSpark = connectionString.contains("useSpark");
     }
 
     public static boolean
@@ -933,6 +935,12 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
         if (isMemPlatform)
             return;
 
+        // We're only really interested in testing the switch from
+        // control to Spark.  Let's avoid this long-running test
+        // if already on Spark.
+        if (isSpark)
+            return;
+
         try(Statement s = conn.createStatement()) {
             s.execute("create table t1 (a int, b int)");
             s.execute("create table t2 (a int, b int)");
@@ -965,7 +973,10 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
             s.execute("insert into t1 select * from t1 --splice-properties useSpark=true\n");
             s.execute("insert into t1 select * from t1 --splice-properties useSpark=true\n");
             s.execute("insert into t1 select * from t1 --splice-properties useSpark=true\n");
+            s.execute("insert into t1 select * from t1 --splice-properties useSpark=true\n");  // 327680 rows
             s.execute("insert into t1 select * from t1 --splice-properties useSpark=true\n");
+            s.execute("insert into t1 select * from t1 --splice-properties useSpark=true\n");
+            s.execute("insert into t1 select * from t1 --splice-properties useSpark=true\n");  // 2621440 rows
 
 
             s.execute("CREATE TRIGGER mytrig\n" +
@@ -999,9 +1010,9 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
             s.execute("insert into t2 select * from t1");
 
             String query = "select count(*) from t2";
-            String expected = "1   |\n" +
-            "--------\n" +
-            "327680 |";
+            String expected = "1    |\n" +
+                              "---------\n" +
+                              "2621440 |";
             testQuery(query, expected, s);
 
             query = "select count(*) from t3";
@@ -1009,8 +1020,8 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
 
             query = "select count(*) from t4";
             expected = "1    |\n" +
-            "---------\n" +
-            "1966080 |";
+                       "----------\n" +
+                       "15728640 |";
             testQuery(query, expected, s);
 
             query = "select count(*) from t5";

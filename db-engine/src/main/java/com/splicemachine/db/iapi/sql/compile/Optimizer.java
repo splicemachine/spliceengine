@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.sql.compile.AggregateNode;
 import com.splicemachine.db.impl.sql.compile.GroupByList;
 import com.splicemachine.db.impl.sql.compile.OrderByList;
+import com.splicemachine.db.impl.sql.compile.ResultSetNode;
 
 import java.util.List;
 
@@ -426,4 +427,9 @@ public interface Optimizer{
     default boolean isMemPlatform() { return false; };
 
     JoinCostEstimationModel getJoinCostEstimationModel();
+
+    void setOuterTableOfJoin(ResultSetNode outerTableOfJoin);
+
+    Optimizable getOuterTable();
+
 }

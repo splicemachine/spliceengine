@@ -61,6 +61,14 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         if (outerCost != null && outerCost.getJoinType() == JoinNode.FULLOUTERJOIN)
             return false;
 
+        if (!isSingleTableScan(optimizer)) {
+            if (innerTable.isTriggerVTI())
+                return false;
+            Optimizable outerTable = optimizer.getOuterTable();
+            if (outerTable != null && outerTable.isTriggerVTI())
+                return false;
+        }
+
         return innerTable.isMaterializable() || innerTable.supportsMultipleInstantiations();
     }
 

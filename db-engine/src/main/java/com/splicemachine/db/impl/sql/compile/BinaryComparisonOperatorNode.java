@@ -232,6 +232,20 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
             rightPadBitDataConstantNode((BitConstantNode) getLeftOperand(), (ColumnReference) getRightOperand());
         }
 
+        // Last but not least, cast any reals to doubles.
+        // REAL/FLOAT does not play nice on Spark, so doing this allows native spark execution.
+        // TODO: Open a Spark Jira for FloatType incorrect results in joins.
+        if (getLeftOperand().getTypeId().isRealTypeId()) {
+            getLeftOperand().getTypeServices().isNullable();
+            castLeftOperandAndBindCast(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE,
+                                       getLeftOperand().getTypeServices().isNullable()));
+        }
+        if (getRightOperand().getTypeId().isRealTypeId()) {
+            getRightOperand().getTypeServices().isNullable();
+            castRightOperandAndBindCast(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE,
+                                       getRightOperand().getTypeServices().isNullable()));
+        }
+
         /* Test type compatibility and set type info for this node */
         bindComparisonOperator();
 

@@ -60,6 +60,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
 import org.apache.log4j.Logger;
+import org.apache.spark.sql.Row;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
@@ -273,8 +274,11 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         return sourceSet;
     }
 
-    public void setSourceSet(DataSet<ExecRow> sourceSet) {
-        this.sourceSet = sourceSet;
+    public void setSourceSet(DataSet<ExecRow> sourceSet) throws StandardException {
+        if (sourceSet.isNativeSpark())
+            this.sourceSet = sourceSet.convertNativeSparkToSparkDataSet();
+        else
+            this.sourceSet = sourceSet;
     }
 
     public String getTableVersion() { return tableVersion; }
@@ -304,7 +308,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
                     getTableVersion(),
                     fromTableDmlSpsDescriptor
             );
-            this.triggerHandler.setIsSpark(isSpark);
+            //this.triggerHandler.setIsSpark(isSpark); // msirek-temp
             if (hasGeneratedColumn)
                 this.triggerHandler.setHasGeneratedColumn();
         }
@@ -562,9 +566,11 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
                 set=set.shufflePartitions();
             dsp.decrementOpDepth();
         }
-        setSourceSet(set);
-        if (needsPersistedDataset())
+        if (needsPersistedDataset()) {
+            set = set.convertNativeSparkToSparkDataSet();
             set.persist();
+        }
+        setSourceSet(set);
         return Pair.newPair(set, expectedUpdatecounts);
     }
 
