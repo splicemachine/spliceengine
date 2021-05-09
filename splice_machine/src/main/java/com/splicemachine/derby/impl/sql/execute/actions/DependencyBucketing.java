@@ -22,16 +22,35 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Helper class to sort objects to drop during drop schema cascade into buckets.
+ * We do not want to drop objects one by one, as we would need to inform other region servers
+ * every time we drop an object, so we want to drop them wave by wave. Each wave should contain
+ * objects that do not depend on each other.
+ * Objects that do not depend on anything can be part of the first wave.
+ */
 public class DependencyBucketing<T> extends DDLConstantOperation {
-    private static final Logger LOG = Logger.getLogger(DependencyBucketing.class);
     private Multimap<T, T> dependencies = ArrayListMultimap.create();
     private Map<T, Integer> nodeLevels = new HashMap<>();
     private int maxLevel = 1;
 
+    /**
+     * Add object to the dependency graph. If the object is not yet in the graph, it should
+     * be part of the first wave
+     * @param node
+     */
     void addSingleNode(T node) {
         nodeLevels.putIfAbsent(node, 0);
     }
 
+    /**
+     * Add parent and child to the dependency graph. IF neither are in the graph when this function
+     * is called, they will respectively be part of the first and the second wave.
+     * If parent was already part of a certain bucket, child must go in the following one, and propagate
+     * that to its children.
+     * @param parent
+     * @param child
+     */
     void addDependency(T parent, T child) {
         dependencies.put(parent, child);
         nodeLevels.putIfAbsent(parent, 0);

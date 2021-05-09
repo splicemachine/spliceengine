@@ -114,69 +114,26 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
 
     private void dropAllSchemaObjects(SchemaDescriptor sd, LanguageConnectionContext lcc, TransactionController tc, Activation activation) throws StandardException {
         DataDictionary dd = lcc.getDataDictionary();
-        DependencyBucketing<UUID> dependencyBucketing = new DependencyBucketing<>();
-        Map<UUID, TupleDescriptor> dropMap = new HashMap<>();
         String schemaId = sd.getUUID().toString();
 
-        // Add trigger descriptors to our dependency bucketing
-        for (TriggerDescriptor td: dd.getTriggersInSchema(schemaId)) {
-            if (td.getTableDescriptor().getSchemaDescriptor().getUUID().equals(sd.getUUID())) {
-                dependencyBucketing.addDependency(td.getUUID(), td.getTableDescriptor().getUUID());
-            } else {
-                dependencyBucketing.addSingleNode(td.getUUID());
-            }
-            dropMap.put(td.getUUID(), td);
-        }
-
+        // We drop all schema objects in waves. First, we look at triggers, tables, and descriptors that depend on tables
+        // and store each descriptor in a bucket so that each bucket contains descriptors that depend on the previous bucket
         // drop views, aliases and tables need to be considered together due to the dependencies among them
         // views could be defined on other views/tables/aliases, and aliases could be on tables/views
         // get all the table/view/alias and their dependents in the dependencyBucketing
-        for (TupleDescriptor td: dd.getTablesInSchema(sd)) {
-            getDependencies(td, sd, dependencyBucketing, dropMap, dd);
-        }
-        Map<UUID, DDLConstantOperation> dropOperations = new HashMap<>();
-        for (TupleDescriptor tupleDescriptor: dropMap.values()) {
-            ConstantAction action = getDropConstantAction(tupleDescriptor, sd, lcc, tc, activation);
-            if (action != null)
-                dropOperations.put(tupleDescriptor.getUUID(), (DDLConstantOperation)action);
-        }
-
-        // Drop independent tuple descriptors one wave at a time
-        for (List<UUID> dropBucket : dependencyBucketing.getBuckets()) {
-            dropBucket(tc, activation, dropOperations, dropBucket);
-        }
+        dropObjectsAndDependencies(
+                Iterables.concat(dd.getTriggersInSchema(schemaId), dd.getTablesInSchema(sd)),
+                sd, lcc, tc, activation);
 
         // Drop the remaining aliases
-        dependencyBucketing = new DependencyBucketing<>();
-        for (TupleDescriptor ad: dd.getAliasesInSchema(schemaId)) {
-            if (!dropMap.containsKey(ad.getUUID())) {
-                getDependencies(ad, sd, dependencyBucketing, dropMap, dd);
-            }
-        }
-        for (TupleDescriptor tupleDescriptor: dropMap.values()) {
-            if (!dropOperations.containsKey(tupleDescriptor.getUUID())) {
-                ConstantAction action = getDropConstantAction(tupleDescriptor, sd, lcc, tc, activation);
-                if (action != null)
-                    dropOperations.putIfAbsent(tupleDescriptor.getUUID(), (DDLConstantOperation) action);
-            }
-        }
-        // Drop independent tuple descriptors one wave at a time
-        for (List<UUID> dropBucket : dependencyBucketing.getBuckets()) {
-            dropBucket(tc, activation, dropOperations, dropBucket);
-        }
+        dropObjectsAndDependencies(
+                dd.getAliasesInSchema(schemaId),
+                sd, lcc, tc, activation);
 
         // Drop remaining sequences
-        List<UUID> lastBucket = new ArrayList<>();
-        for (TupleDescriptor descriptor: dd.getSequencesInSchema(schemaId)) {
-            if (!dropMap.containsKey(descriptor.getUUID())) {
-                dropMap.put(descriptor.getUUID(), descriptor);
-                lastBucket.add(descriptor.getUUID());
-                ConstantAction action = getDropConstantAction(descriptor, sd, lcc, tc, activation);
-                if (action != null)
-                    dropOperations.put(descriptor.getUUID(), (DDLConstantOperation) action);
-            }
-        }
-        dropBucket(tc, activation, dropOperations, lastBucket);
+        dropObjectsAndDependencies(
+                dd.getSequencesInSchema(schemaId),
+                sd, lcc, tc, activation);
 
         // drop files
         ArrayList<FileInfoDescriptor> fileList = dd.getFilesInSchema(schemaId);
@@ -198,6 +155,36 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
         // Drop everything
         for (UUID uuid: dropBucket) {
             dropOperations.get(uuid).executeConstantAction(activation, false);
+        }
+    }
+
+    private void dropObjectsAndDependencies(
+            Iterable<? extends TupleDescriptor> descriptors,
+            SchemaDescriptor sd,
+            LanguageConnectionContext lcc,
+            TransactionController tc,
+            Activation activation) throws StandardException {
+        DataDictionary dd = lcc.getDataDictionary();
+        DependencyBucketing<UUID> dependencyBucketing = new DependencyBucketing<>();
+        Map<UUID, TupleDescriptor> dropMap = new HashMap<>();
+        Map<UUID, DDLConstantOperation> dropOperations = new HashMap<>();
+        for (TupleDescriptor td: descriptors) {
+            if (!dropMap.containsKey(td.getUUID())) {
+                getDependencies(td, sd, dependencyBucketing, dropMap, dd);
+            }
+        }
+        for (TupleDescriptor tupleDescriptor: dropMap.values()) {
+            if (!dropOperations.containsKey(tupleDescriptor.getUUID())) {
+                ConstantAction action = getDropConstantAction(tupleDescriptor, sd, lcc, tc, activation);
+                if (action != null) {
+                    dropOperations.put(tupleDescriptor.getUUID(), (DDLConstantOperation) action);
+                }
+            }
+        }
+
+        // Drop independent tuple descriptors one wave at a time
+        for (List<UUID> dropBucket : dependencyBucketing.getBuckets()) {
+            dropBucket(tc, activation, dropOperations, dropBucket);
         }
     }
 
@@ -272,9 +259,9 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
             } else {
                 providerID = tupleDescriptor.getUUID().toString();
             }
-        } else if (tupleDescriptor instanceof ViewDescriptor) {
-            providerID = tupleDescriptor.getUUID().toString();
-        } else if (tupleDescriptor instanceof AliasDescriptor) {
+        } else if (tupleDescriptor instanceof ViewDescriptor ||
+                tupleDescriptor instanceof AliasDescriptor ||
+                tupleDescriptor instanceof TriggerDescriptor) {
             providerID = tupleDescriptor.getUUID().toString();
         } else {
             return;
@@ -291,7 +278,8 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
             // at the time the primary objects(table/view/alias) are dropped
             if (dependentTupleDescriptor instanceof TableDescriptor ||
                     dependentTupleDescriptor instanceof ViewDescriptor ||
-                    dependentTupleDescriptor instanceof AliasDescriptor) {
+                    dependentTupleDescriptor instanceof AliasDescriptor ||
+                    dependentTupleDescriptor instanceof TriggerDescriptor) {
                 // ignore self-dependency
                 if (dependentTupleDescriptor.getUUID().equals(tupleDescriptor.getUUID()))
                     continue;
