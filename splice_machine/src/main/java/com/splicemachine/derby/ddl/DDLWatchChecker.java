@@ -40,4 +40,6 @@ public interface DDLWatchChecker{
     default long initDemarcationPoint() throws IOException {
         return 0;
     }
+
+    default boolean isDirectWatcher() { return false; }
 }

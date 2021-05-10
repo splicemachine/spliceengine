@@ -55,6 +55,7 @@ public class DDLWatchRefresher{
     private final AtomicInteger currChangeCount= new AtomicInteger(0);
     private final SqlExceptionFactory exceptionFactory;
     private final TxnSupplier txnSupplier;
+    private final boolean isSynchronousDDLWatcher;
 
     public DDLWatchRefresher(DDLWatchChecker watchChecker,
                              TransactionReadController txnController,
@@ -69,6 +70,7 @@ public class DDLWatchRefresher{
         this.exceptionFactory = exceptionFactory;
         this.txnSupplier = txnSupplier;
         ddlDemarcationPoint = new AtomicReference<>();
+        isSynchronousDDLWatcher = watchChecker.isDirectWatcher();
     }
 
     public void initDemarcationPoint() {
@@ -232,8 +234,8 @@ public class DDLWatchRefresher{
         if (LOG.isTraceEnabled())
             LOG.trace("processPreCommitChanges -> " + ddlChange);
         currChangeCount.incrementAndGet();
-        // TODO: Keep currentDDLChanges up-to-date.
-        //currentDDLChanges.put(ddlChange.getChangeId(),ddlChange);
+        if (isSynchronousDDLWatcher)
+            currentDDLChanges.put(ddlChange.getChangeId(),ddlChange);
         tentativeDDLS.put(ddlChange.getChangeId(),ddlChange);
         for(DDLWatcher.DDLListener listener:ddlListeners){
             listener.startChange(ddlChange);
@@ -249,9 +251,7 @@ public class DDLWatchRefresher{
          */
         for(Iterator<String> iterator=seenDDLChanges.iterator();iterator.hasNext();){
             String entry=iterator.next();
-            // TODO: check for the key..
-            // if(currentDDLChanges.containsKey(entry) && !children.contains(entry)){
-            if(!children.contains(entry)){
+            if((!isSynchronousDDLWatcher || currentDDLChanges.containsKey(entry)) && !children.contains(entry)){
                 LOG.info("Removing change with id " + entry);
                 changeTimeouts.remove(entry);
                 currentDDLChanges.remove(entry);

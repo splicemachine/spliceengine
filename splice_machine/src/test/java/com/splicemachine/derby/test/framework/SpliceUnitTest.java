@@ -407,6 +407,13 @@ public class SpliceUnitTest {
         }
     }
 
+    protected String getQueryResultsAsString(String sqlText, SpliceWatcher methodWatcher) throws Exception {
+        String output = null;
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            output = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        }
+        return output;
+    }
     protected void testQuery(String sqlText, String expected, SpliceWatcher methodWatcher) throws Exception {
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));

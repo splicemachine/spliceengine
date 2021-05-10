@@ -15,6 +15,7 @@
 package com.splicemachine.derby.ddl;
 
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.catalog.UUID;
@@ -90,14 +91,22 @@ public class DDLUtils {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.trace(LOG,"finishMetadataChange changeId=%s",changeId);
         DDLDriver.driver().ddlController().finishMetadataChange(changeId);
-        /** TODO-msirek: Try to enable this code for the mem platform.
-         *               It would allow more TableDescriptors
-         *               to get cached because it would clear out the DDL change
-         *               as soon as it's committed, which is needed because the cacheIsValid()
-         *               check requires that currChangeCount be zero.
-         *               Currently, enabling this code causes a performance regression.
+        /**
+         *  In order for a dictionary item to get cached the cacheIsValid()
+         *  check requires that currChangeCount be zero.
+         *
+         *  Immediately clear the finished change on the mem platform to
+         *  drop currChangeCount to zero.
+         *  Otherwise we end up waiting for the next DDL operation to
+         *  clear out the previous one and miss opportunities to cache
+         *  TableDescriptors and other items.
+         *
+         *  This is not an issue on HBase because there we wake up
+         *  every so often and asynchronously clear out any
+         *  pending DDL changes.
          */
-        /* DDLDriver.driver().ddlWatcher().clearFinishedChange(changeId);   */
+        if (DDLDriver.driver().ddlWatcher() instanceof SynchronousDDLWatcher)
+            DDLDriver.driver().ddlWatcher().clearFinishedChange(changeId);
     }
 
 

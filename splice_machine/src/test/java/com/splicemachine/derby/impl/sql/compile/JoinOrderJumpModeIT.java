@@ -3,11 +3,13 @@ package com.splicemachine.derby.impl.sql.compile;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -16,6 +18,7 @@ import java.sql.Connection;
 /**
  * Created by zli on 01/20/21.
  */
+@Category(SerialTest.class)
 public class JoinOrderJumpModeIT extends SpliceUnitTest {
     public static final String CLASS_NAME = JoinOrderJumpModeIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
@@ -238,6 +241,8 @@ public class JoinOrderJumpModeIT extends SpliceUnitTest {
            The plan above is obtained with real data. Since this test only mock statistics, it could be
            different on join strategies or access paths. However, the join order must be the same.
         */
+
+        String explainOutput = getQueryResultsAsString(sqlText, methodWatcher);
 
         rowContainsQuery(new int[]{6,9,12,13,14,16,17,18,19,20,21,23,24,25,27,28,29}, sqlText, methodWatcher,
                 new String[] {"NestedLoopJoin"},                                              // 6

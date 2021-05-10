@@ -499,10 +499,8 @@ public class ExplainPlanIT extends SpliceUnitTest  {
             Assert.assertTrue("With stats, expect explain plan to pick control path", rs.getString(1).contains("engine=OLTP"));
             //skip the next step(s) to get to the IndexScan or IndexPrefixIteratorMode step
             Assert.assertTrue(rs.next());
-            if (isMemPlatform)
-                Assert.assertTrue(rs.next());
 
-            String indexString = isMemPlatform ? "IndexScan" : "IndexPrefixIteratorMode";
+            String indexString = "IndexPrefixIteratorMode";
 
             Assert.assertTrue(rs.next());
             Assert.assertTrue("Expected " + indexString, rs.getString(1).contains(indexString));
@@ -562,10 +560,8 @@ public class ExplainPlanIT extends SpliceUnitTest  {
             //skip the next step(s) to get to the IndexScan or IndexPrefixIteratorMode step
             Assert.assertTrue(rs.next());
             Assert.assertTrue(rs.next());
-            if (isMemPlatform)
-                Assert.assertTrue(rs.next());
 
-            String indexString = isMemPlatform ? "IndexScan" : "IndexPrefixIteratorMode";
+            String indexString = "IndexPrefixIteratorMode";
 
             Assert.assertTrue("Expected " + indexString, rs.getString(1).contains(indexString));
             Assert.assertTrue("With stats, outputRows is expected to be 1", rs.getString(1).contains("scannedRows=1"));

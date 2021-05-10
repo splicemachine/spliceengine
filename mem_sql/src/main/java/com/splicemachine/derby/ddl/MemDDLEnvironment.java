@@ -140,6 +140,9 @@ public class MemDDLEnvironment implements DDLEnvironment{
         }
 
         @Override
+        public boolean isDirectWatcher() { return true; }
+
+        @Override
         public boolean initialize(CommunicationListener listener) throws IOException{
             changeStore.watchListener = listener;
             return true;
