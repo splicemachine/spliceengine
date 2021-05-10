@@ -125,7 +125,22 @@ public class V2ScanCostEstimator extends AbstractScanCostEstimator {
         // Rows Returned is always the totalSelectivity (Conglomerate Independent)
         double outputRowCount = totalRowCount * totalSelectivity;
         scanCost.setEstimatedRowCount(Math.round(outputRowCount));
+        // Set raw row count for join output row count estimation later.
+        // For issues like DB-11979, we need to bump row count to 1 if estimated row count is 0. Otherwise we may
+        // select an index that potentially needs index lookup on top because equivalent PK access goes to
+        // generateOneRowCost(). There we simply use one row everywhere without even looking at selectivities.
+        // As a result, PK access path (1 row) may have higher cost than index + lookup (0 row).
+        // However, we cannot simply bump output row count to 1. Consider the following example:
+        //     T1 (1000 rows) join T2 (1 row) on T1.a = T2.a using NLJ.
+        // Join predicate is pushed down to T2. Suppose join selectivity is estimated to be 0.01. Since T2 has 1
+        // row only, estimated row count is then 0.01. If we bump the row count to 1 at this point, NLJ output
+        // row count estimation later would simply be 1000 x 1 = 1000 rows. The join predicate effectively has
+        // no impact! Moreover, on a different join order T2 join T1, since predicate is pushed to T1 now, we
+        // would have 1 x 1000 x 0.01 = 10 rows! In the end, different join orders give different estimates.
+        // Raw row count is used to fix this issue. By recording 0.01 for T2 (T1 join T2) or 10 for T1 (T2 join
+        // T1), NLJ output row count is always 10.
         scanCost.setRawRowCount(outputRowCount);
+        outputRowCount = scanCost.rowCount();  // >= 1
 
         int numCols = getTotalNumberOfBaseColumnsInvolved();
         if (isIndexOnExpression && numCols == 0) {
@@ -150,7 +165,7 @@ public class V2ScanCostEstimator extends AbstractScanCostEstimator {
 
         double remoteCost = (openLatency + closeLatency) +
                 (numFirstIndexColumnProbes*2)*remoteLatency*(1+colSizeFactor/1024d) +
-                totalRowCount*totalSelectivity*remoteLatency*(1+colSizeFactor/1024d); // Per Kb
+                outputRowCount*remoteLatency*(1+colSizeFactor/1024d); // Per Kb
 
         assert remoteLatency >= 0 : "remoteLatency cannot be negative -> " + remoteLatency;
         assert remoteCost >= 0 : "remoteCost cannot be negative -> " + remoteCost;
@@ -174,19 +189,21 @@ public class V2ScanCostEstimator extends AbstractScanCostEstimator {
         assert congAverageWidth >= 0 : "congAverageWidth cannot be negative -> " + congAverageWidth;
         assert numFirstIndexColumnProbes >= 0;
 
+        double scannedRowCount = totalRowCount * baseTableSelectivity;
         double baseCost = openLatency + closeLatency;
         baseCost += (numFirstIndexColumnProbes * 2) * localLatency * (1 + congAverageWidth / 100d);
-        baseCost += (totalRowCount * baseTableSelectivity * localLatency * (1 + congAverageWidth / 100d));
+        baseCost += (Math.max(scannedRowCount, 1) * localLatency * (1 + congAverageWidth / 100d));
         if (isOlap) {
             double olapReductionFactor = Math.max(2, Math.min(Math.log(numPartitions), Math.log(parallelism)));
             baseCost = baseCost / olapReductionFactor + OLAP_START_OVERHEAD;
         }
-
         assert baseCost >= 0 : "baseCost cannot be negative -> " + baseCost;
-        scanCost.setFromBaseTableRows(Math.round(filterBaseTableSelectivity * totalRowCount));
+
+        double fromBaseTableRowCount = totalRowCount * filterBaseTableSelectivity;
+        scanCost.setFromBaseTableRows(Math.round(fromBaseTableRowCount));
         scanCost.setFromBaseTableCost(baseCost);
         // set how many base table rows to scan
-        scanCost.setScannedBaseTableRows(Math.round(baseTableSelectivity * totalRowCount));
+        scanCost.setScannedBaseTableRows(Math.round(scannedRowCount));
 
         // lookup cost
         double lookupCost;
@@ -199,9 +216,9 @@ public class V2ScanCostEstimator extends AbstractScanCostEstimator {
             scanCost.setIndexLookupRows(-1.0d);
             scanCost.setIndexLookupCost(-1.0d);
         } else {
-            double lookupRowsCount = totalRowCount * filterBaseTableSelectivity;
-            lookupCost = estimateIndexLookupCost(lookupRowsCount, openLatency, closeLatency);
-            scanCost.setIndexLookupRows(Math.round(lookupRowsCount));
+            double lookupRowCount = Math.max(fromBaseTableRowCount, 1);
+            lookupCost = estimateIndexLookupCost(lookupRowCount, openLatency, closeLatency);
+            scanCost.setIndexLookupRows(Math.round(lookupRowCount));
             scanCost.setIndexLookupCost(lookupCost + baseCost);
         }
         assert lookupCost >= 0 : "lookupCost cannot be negative -> " + lookupCost;
@@ -217,7 +234,8 @@ public class V2ScanCostEstimator extends AbstractScanCostEstimator {
             scanCost.setProjectionRows(-1.0d);
             scanCost.setProjectionCost(-1.0d);
         } else {
-            projectionCost = totalRowCount * filterBaseTableSelectivity * (localLatency * colSizeFactor*1d/1000d + exprEvalCostPerRow);
+            double projectionRowCount = Math.max(fromBaseTableRowCount, 1);
+            projectionCost = projectionRowCount * (localLatency * colSizeFactor*1d/1000d + exprEvalCostPerRow);
             scanCost.setProjectionRows((double) scanCost.getEstimatedRowCount());
             scanCost.setProjectionCost(lookupCost+baseCost+projectionCost);
         }
