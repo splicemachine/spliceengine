@@ -240,7 +240,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
                 }
             }else{
                 JoinStrategy js = optimizer.getJoinStrategy(userSpecifiedJoinStrategy);
-                if (js.getJoinStrategyType() == JoinStrategy.JoinStrategyType.NESTED_LOOP) {
+                if (js != null && js.getJoinStrategyType() == JoinStrategy.JoinStrategyType.NESTED_LOOP) {
                     ap.setJoinStrategy(optimizer.getJoinStrategy("CardinalityEstimator"));
                 } else {
                     ap.setJoinStrategy(js);
