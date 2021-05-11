@@ -24,10 +24,7 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLController;
-import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.protobuf.ProtoUtil;
 import org.apache.log4j.Logger;
 
@@ -124,7 +121,7 @@ public class CreateSchemaConstantOperation extends DDLConstantOperation {
                  */
         dd.startWriting(lcc);
 
-        notifyMetadataChanges(tc, ProtoUtil.createSchema(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId()));
+        notifyMetadataChange(tc, ProtoUtil.createSchema(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId()));
 
         sd = ddg.newSchemaDescriptor(schemaName,thisAid,tmpSchemaId);
 
@@ -160,7 +157,7 @@ public class CreateSchemaConstantOperation extends DDLConstantOperation {
          *  mechanism can be written for this and CREATE_SCHEMA
          */
         long txnId = ((SpliceTransactionManager)tc).getRawTransaction().getActiveStateTxn().getTxnId();
-        notifyMetadataChanges(tc, DDLMessage.DDLChange.newBuilder().setDdlChangeType(DDLMessage.DDLChangeType.CREATE_SCHEMA).setTxnId(txnId).build());
+        notifyMetadataChange(tc, DDLMessage.DDLChange.newBuilder().setDdlChangeType(DDLMessage.DDLChangeType.CREATE_SCHEMA).setTxnId(txnId).build());
     }
 
     public String getScopeName() {

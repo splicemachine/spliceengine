@@ -21,8 +21,6 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.sql.execute.actions.IndexConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.pipeline.ErrorState;
@@ -135,7 +133,7 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
          * Broadcast a message to invalidate the related plans.
          */
         List<TableDescriptor> tds = Collections.singletonList(td);
-        notifyMetadataChanges(userTxnManager, ProtoUtil.alterStats(userTxnManager.getActiveStateTxn().getTxnId(), tds));
+        notifyMetadataChange(userTxnManager, ProtoUtil.alterStats(userTxnManager.getActiveStateTxn().getTxnId(), tds));
     }
 
     public String getScopeName() {

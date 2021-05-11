@@ -23,8 +23,6 @@ import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.RoleClosureIterator;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 
@@ -99,7 +97,7 @@ public class DropRoleConstantOperation extends DDLConstantOperation {
 
         rdDef.drop(lcc);
 
-        notifyMetadataChanges(tc, ProtoUtil.createDropRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), roleName));
+        notifyMetadataChange(tc, ProtoUtil.createDropRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), roleName));
 
         /*
          * We dropped a role, now drop all dependents:

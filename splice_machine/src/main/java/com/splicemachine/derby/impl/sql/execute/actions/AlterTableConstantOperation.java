@@ -219,7 +219,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
         TransactionController tc = lcc.getTransactionExecute();
 
-        notifyMetadataChanges(tc, ProtoUtil.createAlterTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) this.tableId));
+        notifyMetadataChange(tc, ProtoUtil.createAlterTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) this.tableId));
     }
 
     protected void executeConstraintActions(Activation activation) throws StandardException {

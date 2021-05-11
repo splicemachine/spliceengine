@@ -328,9 +328,9 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
      */
     public void notifyMetadataChanges(TransactionController tc, List<DDLMessage.DDLChange> changes) throws StandardException {
         if (changes.size() == 1) {
-            notifyMetadataChanges(tc, changes.get(0));
+            notifyMetadataChange(tc, changes.get(0));
         } else if (changes.size() > 1) {
-            notifyMetadataChanges(tc, ProtoUtil.createMultiChange(changes.get(0).getTxnId(), changes));
+            notifyMetadataChange(tc, ProtoUtil.createMultiChange(changes.get(0).getTxnId(), changes));
         }
     }
 
@@ -338,7 +338,7 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
      * Notify other region servers of potential metadata changes
      * @param tc
      */
-    public void notifyMetadataChanges(TransactionController tc, DDLMessage.DDLChange change) throws StandardException {
+    public void notifyMetadataChange(TransactionController tc, DDLMessage.DDLChange change) throws StandardException {
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(change));
     }
 

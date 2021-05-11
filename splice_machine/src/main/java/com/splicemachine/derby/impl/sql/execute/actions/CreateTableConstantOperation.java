@@ -24,7 +24,6 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.stream.function.csv.FileFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -420,7 +419,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
          *  mechanism can be written for this and CREATE_SCHEMA
          */
         long txnId = ((SpliceTransactionManager)tc).getRawTransaction().getActiveStateTxn().getTxnId();
-        notifyMetadataChanges(tc, DDLMessage.DDLChange.newBuilder().setDdlChangeType(DDLMessage.DDLChangeType.CREATE_TABLE).setTxnId(txnId).build());
+        notifyMetadataChange(tc, DDLMessage.DDLChange.newBuilder().setDdlChangeType(DDLMessage.DDLChangeType.CREATE_TABLE).setTxnId(txnId).build());
 
         // is this an external file ?
         if(storedAs != null) {

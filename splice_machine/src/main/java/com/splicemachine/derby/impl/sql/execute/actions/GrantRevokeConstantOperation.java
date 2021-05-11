@@ -24,7 +24,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.GenericPrivilegeInfo;
 import com.splicemachine.db.impl.sql.execute.PrivilegeInfo;
 import com.splicemachine.db.impl.sql.execute.TablePrivilegeInfo;
-import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.management.Manager;
 import com.splicemachine.protobuf.ProtoUtil;
@@ -80,11 +79,11 @@ public class GrantRevokeConstantOperation extends DDLConstantOperation {
         long txnId = tc.getActiveStateTxn().getTxnId();
         if (permissionsDescriptor instanceof SchemaPermsDescriptor) {
             SchemaPermsDescriptor schemaPermsDescriptor = (SchemaPermsDescriptor) permissionsDescriptor;
-            notifyMetadataChanges(tc, ProtoUtil.createRevokeSchemaPrivilege(txnId, schemaPermsDescriptor, grant));
+            notifyMetadataChange(tc, ProtoUtil.createRevokeSchemaPrivilege(txnId, schemaPermsDescriptor, grant));
         }
         else if (permissionsDescriptor instanceof TablePermsDescriptor) {
             TablePermsDescriptor tablePermsDescriptor = (TablePermsDescriptor) permissionsDescriptor;
-            notifyMetadataChanges(tc, ProtoUtil.createRevokeTablePrivilege(txnId, tablePermsDescriptor, grant));
+            notifyMetadataChange(tc, ProtoUtil.createRevokeTablePrivilege(txnId, tablePermsDescriptor, grant));
         }
         else if (permissionsDescriptor instanceof ColPermsDescriptor) {
             Manager manager = EngineDriver.driver().manager();
@@ -92,16 +91,16 @@ public class GrantRevokeConstantOperation extends DDLConstantOperation {
                 throw StandardException.newException(SQLState.MANAGER_DISABLED);
             }
             ColPermsDescriptor colPermsDescriptor = (ColPermsDescriptor) permissionsDescriptor;
-            notifyMetadataChanges(tc, ProtoUtil.createRevokeColumnPrivilege(txnId, colPermsDescriptor, grant));
+            notifyMetadataChange(tc, ProtoUtil.createRevokeColumnPrivilege(txnId, colPermsDescriptor, grant));
         }
         else if (permissionsDescriptor instanceof RoutinePermsDescriptor) {
             RoutinePermsDescriptor routinePermsDescriptor = (RoutinePermsDescriptor)permissionsDescriptor;
-            notifyMetadataChanges(tc, ProtoUtil.createRevokeRoutinePrivilege(txnId, routinePermsDescriptor, grant));
+            notifyMetadataChange(tc, ProtoUtil.createRevokeRoutinePrivilege(txnId, routinePermsDescriptor, grant));
         }
         else if (permissionsDescriptor instanceof PermDescriptor) {
             PermDescriptor permDescriptor = (PermDescriptor)permissionsDescriptor;
             boolean restrict = ((GenericPrivilegeInfo)privileges).isRestrict();
-            notifyMetadataChanges(tc, ProtoUtil.createRevokeGenericPrivilege(txnId, permDescriptor, restrict, grant));
+            notifyMetadataChange(tc, ProtoUtil.createRevokeGenericPrivilege(txnId, permDescriptor, restrict, grant));
         } else {
             throw new RuntimeException("Unsupported permission descriptor type");
         }

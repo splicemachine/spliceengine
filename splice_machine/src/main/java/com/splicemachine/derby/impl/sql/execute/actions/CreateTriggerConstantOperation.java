@@ -30,8 +30,6 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -261,7 +259,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         */
         dm.invalidateFor(triggerTable, DependencyManager.CREATE_TRIGGER, lcc);
 
-        notifyMetadataChanges(tc, ProtoUtil.createTrigger(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) this.tableId));
+        notifyMetadataChange(tc, ProtoUtil.createTrigger(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) this.tableId));
 
         /*
         ** Lets get our trigger id up front, we'll use it when

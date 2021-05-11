@@ -35,8 +35,6 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 
@@ -274,7 +272,7 @@ public class RenameConstantOperation extends DDLSingleTableConstantOperation {
                 dm.invalidateFor(constraintDescriptor, DependencyManager.RENAME, lcc);
         }
         // Invalidate Remotely
-        notifyMetadataChanges(tc, ProtoUtil.createRenameTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),(BasicUUID) this.tableId));
+        notifyMetadataChange(tc, ProtoUtil.createRenameTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),(BasicUUID) this.tableId));
 
         // Drop the table
         dd.dropTableDescriptor(td, sd, tc);
@@ -333,7 +331,7 @@ public class RenameConstantOperation extends DDLSingleTableConstantOperation {
         }
 
         /* Invalidate dependencies remotely. */
-        notifyMetadataChanges(tc, ProtoUtil.createRenameColumn(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),(BasicUUID) this.tableId,oldObjectName));
+        notifyMetadataChange(tc, ProtoUtil.createRenameColumn(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),(BasicUUID) this.tableId,oldObjectName));
 
         // Drop the column
         dd.dropColumnDescriptor(td.getUUID(), oldObjectName, tc);
@@ -356,7 +354,7 @@ public class RenameConstantOperation extends DDLSingleTableConstantOperation {
         dm.invalidateFor(td, DependencyManager.RENAME_INDEX, lcc);
 
         /* Invalidate dependencies remotely. */
-        notifyMetadataChanges(tc, ProtoUtil.createRenameIndex(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),(BasicUUID) this.tableId));
+        notifyMetadataChange(tc, ProtoUtil.createRenameIndex(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),(BasicUUID) this.tableId));
 
         ConglomerateDescriptor conglomerateDescriptor =
             dd.getConglomerateDescriptor(oldObjectName, sd, true);
