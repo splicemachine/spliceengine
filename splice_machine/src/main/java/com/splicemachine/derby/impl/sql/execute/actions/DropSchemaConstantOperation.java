@@ -146,11 +146,15 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
     private void dropBucket(TransactionController tc, Activation activation, Map<UUID, DDLConstantOperation> dropOperations, List<UUID> dropBucket) throws StandardException {
         // Construct grouped DDL notification for remote RS cache invalidation
         long txnId = ((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId();
-        List<DDLMessage.DDLChange> ddlChanges = new ArrayList<>();
-        for (UUID uuid: dropBucket) {
-            ddlChanges.addAll(dropOperations.get(uuid).generateDDLChanges(txnId, activation));
+        // Send invalidation messages 1000 by 1000 to avoid exceeding the zookeeper limit
+        for (int i = 0; i < dropBucket.size(); i += 1000) {
+            List<DDLMessage.DDLChange> ddlChanges = new ArrayList<>();
+            List<UUID> subBucket = dropBucket.subList(i, Math.min(dropBucket.size(), i + 1000));
+            for (UUID uuid : subBucket) {
+                ddlChanges.addAll(dropOperations.get(uuid).generateDDLChanges(txnId, activation));
+            }
+            notifyMetadataChanges(tc, ddlChanges);
         }
-        notifyMetadataChanges(tc, ddlChanges);
 
         // Drop everything
         for (UUID uuid: dropBucket) {
