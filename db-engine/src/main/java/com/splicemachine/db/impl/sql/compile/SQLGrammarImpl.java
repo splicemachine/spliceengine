@@ -597,6 +597,10 @@ class SQLGrammarImpl {
         // even more hacky code.
         // The derived table flattening logic in preprocess will be triggered to
         // flatten the subquery.
+        if (!(subQuery instanceof SubqueryNode)) {
+            throw StandardException.newException(SQLState.LANG_INVALID_UPDATE_STATEMENT,
+                                                 "Expecting RHS to be a subquery when LHS of set clause is a tuple");
+        }
         SubqueryNode subq = (SubqueryNode) subQuery;
         FromTable fromSubq = (FromTable) nodeFactory.getNode(
                 C_NodeTypes.FROM_SUBQUERY,
