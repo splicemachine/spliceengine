@@ -17703,7 +17703,7 @@ QueryTreeNodeVector<MatchingClauseNode>
 matchingClauseList() throws StandardException :
 {
     QueryTreeNodeVector<MatchingClauseNode> matchingClauses =
-            new QueryTreeNodeVector<MatchingClauseNode>(MatchingClauseNode.class, getContextManager());
+            new QueryTreeNodeVector<MatchingClauseNode>(getContextManager());
 }
 {
   matchingClause( matchingClauses ) ( matchingClause( matchingClauses ) ) *

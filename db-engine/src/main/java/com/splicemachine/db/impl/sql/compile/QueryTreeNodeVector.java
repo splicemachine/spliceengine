@@ -34,7 +34,6 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 
@@ -50,18 +49,10 @@ import java.util.List;
 
 class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNode implements Iterable<T>{
 
-    final Class<T> eltClass; // needed for cast in #acceptChildren
-
-    QueryTreeNodeVector(Class<T> eltClass, ContextManager cm) {
-        super(cm);
-        this.eltClass = eltClass;
-    }
     QueryTreeNodeVector(ContextManager cm) {
         super(cm);
-        eltClass = null;
     }
     QueryTreeNodeVector() {
-        eltClass = null;
     }
 
     private List<T> v=new ArrayList<>();
@@ -169,10 +160,8 @@ class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNode impleme
         int size=size();
         for(int index=0; index < size; index++) {
             Visitable vbl = elementAt(index).accept(v, this);
-            if(eltClass != null)
-                setElementAt(eltClass.cast(vbl), index);
-            else
-                setElementAt((T)vbl, index);
+            //noinspection unchecked
+            setElementAt((T)vbl, index);
         }
     }
 
