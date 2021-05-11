@@ -267,8 +267,7 @@ public class GenericStatement implements Statement{
                                          boolean internalSQL) throws StandardException{
         return prepMinion(lcc, cacheMe, paramDefaults, spsSchema, internalSQL, null);
     }
-    @SuppressFBWarnings(value = "ML_SYNC_ON_FIELD_TO_GUARD_CHANGING_THAT_FIELD",
-            justification = "the new object created at line 370 will not be put into cache and it cannot be referenced by other threads")
+
     private PreparedStatement prepMinion(LanguageConnectionContext lcc,
                                          boolean cacheMe,
                                          Object[] paramDefaults,
