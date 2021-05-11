@@ -28,6 +28,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -504,4 +505,20 @@ public class PredicateSimplificationIT  extends SpliceUnitTest {
         testQuery(query, expected);
     }
 
+    @Test
+    public void testConstantInList() throws Exception {
+        testExplainContains(
+                "select * from contacts where 'abc' in ('abc', 'def')",
+                Collections.singletonList("TableScan"),
+                Arrays.asList("Values", "totalCost=0"));
+        testExplainContains(
+                "select * from contacts where 'abc' in ('abcd', 'def')",
+                Arrays.asList("Values", "totalCost=0"),
+                Collections.singletonList("TableScan"));
+        testQuery("select name from contacts where 'abc' in ('abc', 'def')",
+                "NAME  |\n" +
+                "-------\n" +
+                "Harry |", methodWatcher);
+        testQuery("select name from contacts where 'abc' in ('abcd', 'def')", "", methodWatcher);
+    }
 }
