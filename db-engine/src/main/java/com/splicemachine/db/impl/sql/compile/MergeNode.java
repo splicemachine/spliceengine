@@ -246,7 +246,7 @@ public class MergeNode extends DMLModStatementNode
 //        getCompilerContext().addPrivilegeFilter( ignorePermissions );
 
         FromList      dfl = new FromList( getContextManager() );
-        FromTable     dflSource = cloneFromTable( _sourceTable );
+        FromTable     dflSource = cloneFromTable( _sourceTable ); /// = _sourceTable
         FromBaseTable dflTarget = (FromBaseTable) cloneFromTable( _targetTable );
 
         dfl.addFromTable( dflSource );
@@ -266,7 +266,7 @@ public class MergeNode extends DMLModStatementNode
             FromList    dummyFromList = cloneFromList( dd, dflTarget );
             FromBaseTable   dummyTargetTable = (FromBaseTable) dummyFromList.elementAt( TARGET_TABLE_INDEX );
             // todo
-            //mcn.bind( dd, this, dummyFromList, dummyTargetTable );
+            mcn.bind( dd, this, dummyFromList, dummyTargetTable );
 
             // window function not allowed
             SelectNode.checkNoWindowFunctions(mcn, "matching clause");
@@ -276,7 +276,7 @@ public class MergeNode extends DMLModStatementNode
         }
 
         // todo
-        //bindLeftJoin( dd );
+        bindLeftJoin( dd );
     }
 
 
@@ -409,7 +409,7 @@ public class MergeNode extends DMLModStatementNode
      * Bind the driving left join select.
      * Stuffs the left join SelectNode into the resultSet variable.
      */
-    private void    bindLeftJoin( DataDictionary dd )   throws StandardException
+    private void bindLeftJoin( DataDictionary dd )   throws StandardException
     {
         CompilerContext cc = getCompilerContext();
         final int previousReliability = cc.getReliability();
@@ -424,7 +424,8 @@ public class MergeNode extends DMLModStatementNode
 //            IgnoreFilter    ignorePermissions = new IgnoreFilter();
 //            getCompilerContext().addPrivilegeFilter( ignorePermissions );
 
-            _hojn = new HalfOuterJoinNode(_sourceTable, _targetTable, _searchCondition, null, false, null, getContextManager());
+            _hojn = new HalfOuterJoinNode(_sourceTable, _targetTable, _searchCondition,
+                    null, false, null, getContextManager());
 
             _leftJoinFromList = _hojn.makeFromList( true, true );
             // todo
