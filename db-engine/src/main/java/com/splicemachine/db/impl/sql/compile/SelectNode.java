@@ -590,10 +590,10 @@ public class SelectNode extends ResultSetNode {
                 havingClause = (ValueNode) havingClause.accept(predSimplVisitor);
         }
 
-        if (whereClause instanceof UntypedNullConstantNode) {
+        if (whereClause instanceof ConstantNode && ((ConstantNode)whereClause).isNull()) {
             whereClause = (ValueNode) getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE, false, getContextManager());
         }
-        if (havingClause instanceof UntypedNullConstantNode) {
+        if (havingClause instanceof ConstantNode && ((ConstantNode)havingClause).isNull()) {
             havingClause = (ValueNode) getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE, false, getContextManager());
         }
 

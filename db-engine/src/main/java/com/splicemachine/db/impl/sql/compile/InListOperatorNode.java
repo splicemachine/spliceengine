@@ -980,14 +980,11 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 
         DataValueDescriptor lhs = ((ConstantNode) getLeftOperand()).getValue();
         if (lhs == null || lhs.isNull()) {
-            return (ValueNode) getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE, null, getContextManager());
+            return this;
         }
         boolean constantResult = false;
         for (int i = 0; i < getRightOperandList().size(); ++i) {
             DataValueDescriptor rhs = ((ConstantNode) getRightOperandList().elementAt(i)).getValue();
-            if (lhs == null) {
-                continue;
-            }
             BooleanDataValue eq = lhs.equals(lhs, rhs);
             if (eq.getBoolean()) {
                 constantResult = true;
