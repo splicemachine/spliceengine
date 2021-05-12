@@ -18,7 +18,6 @@ import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.catalog.TableKey;
 import com.splicemachine.ddl.DDLMessage.*;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -32,6 +31,9 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.TxnView;
+
+import java.util.Collections;
+import java.util.List;
 
 
 /**
@@ -69,7 +71,7 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
      * This is the guts of the Execution-time logic for DROP TABLE.
      */
     @Override
-    public void executeConstantAction(Activation activation) throws StandardException {
+    public void executeConstantAction(Activation activation, boolean notify) throws StandardException {
 
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
@@ -150,11 +152,11 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
 
             /* Invalidate dependencies remotely. */
             TxnView activeTransaction = ((SpliceTransactionManager) tc).getActiveStateTxn();
-            DDLChange ddlChange = ProtoUtil.createDropTable(activeTransaction.getTxnId(), (BasicUUID) this.tableId);
             // Run locally first to capture any errors.
             dm.invalidateFor(td, DependencyManager.DROP_TABLE, lcc);
-            // Run Remotely
-            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+            if (notify) {
+                notifyMetadataChanges(tc, generateDDLChanges(activeTransaction.getTxnId(), activation));
+            }
 
             // The table itself can depend on the user defined types of its columns. Drop all of those dependencies now.
             adjustUDTDependencies(activation, null, true);
@@ -267,6 +269,11 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
 
     public String getScopeName() {
         return String.format("Drop Table %s", fullTableName);
+    }
+
+    @Override
+    public List<DDLChange> generateDDLChanges(long txnId, Activation activation) {
+        return Collections.singletonList(ProtoUtil.createDropTable(txnId, (BasicUUID) this.tableId));
     }
 
 }

@@ -788,9 +788,6 @@ public class TabInfoImpl
             rc.finish();
         }
 
-        // Create a savepoint so that any subsequent writes to the rows we just deleted don't end up
-        // with the same timestamp, see DB-9553
-        tc.setSavePoint("DD_SAVEPOINT-" + UUID.randomUUID().toString(), null);
         tc.elevate("dictionary");
 
         return rowsDeleted;
