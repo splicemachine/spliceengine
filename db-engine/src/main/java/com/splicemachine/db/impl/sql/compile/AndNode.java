@@ -305,7 +305,7 @@ public class AndNode extends BinaryLogicalOperatorNode{
      *
      * @throws StandardException Thrown on error
      */
-    void postBindFixup() throws StandardException{
+    public void postBindFixup() throws StandardException{
         setType(resolveLogicalBinaryOperator(getLeftOperand().getTypeServices(),getRightOperand().getTypeServices()));
     }
 

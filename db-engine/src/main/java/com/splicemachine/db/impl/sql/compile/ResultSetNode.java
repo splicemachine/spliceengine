@@ -1123,7 +1123,13 @@ public abstract class ResultSetNode extends QueryTreeNode{
             LanguageConnectionContext lcc=getLanguageConnectionContext();
             OptimizerFactory optimizerFactory=lcc.getOptimizerFactory();
 
-            optimizer=optimizerFactory.getOptimizer(optList,predList,dataDictionary,requiredRowOrdering,getCompilerContext().getMaximalPossibleTableCount(),lcc);
+            optimizer=optimizerFactory.getOptimizer(optList,
+                                                    predList,
+                                                    dataDictionary,
+                                                    requiredRowOrdering,
+                                                    getCompilerContext().getMaximalPossibleTableCount(),
+                                                    lcc,
+                                                    lcc.getCostModel());
         }
 
         optimizer.prepForNextRound();

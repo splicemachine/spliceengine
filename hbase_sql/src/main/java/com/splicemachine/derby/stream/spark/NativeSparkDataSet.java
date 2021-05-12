@@ -1076,7 +1076,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp, int[] partitionBy, String location,
+    public DataSet<ExecRow> writeParquetFile(int[] partitionBy, String location,
                                              String compression, OperationContext context) throws StandardException {
         compression = SparkExternalTableUtil.getParquetCompression( compression );
         try( CountingListener counter = new CountingListener(context) ) {
@@ -1128,8 +1128,8 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         return getRowsWritten(context);
     }
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
-                                                    OperationContext context) throws StandardException {
+    public DataSet<ExecRow> writeORCFile(int[] partitionBy, String location, String compression,
+                                         OperationContext context) throws StandardException {
         try( CountingListener counter = new CountingListener(context) ) {
             getDataFrameWriter(dataset, generateTableSchema(context), partitionBy, context)
                     .option(SPARK_COMPRESSION_OPTION, compression)

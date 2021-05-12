@@ -132,6 +132,9 @@ public class SessionPropertiesImpl implements SessionProperties {
                 boolean favorIndexPrefixIteration = Boolean.parseBoolean(valString);
                 properties[FAVORINDEXPREFIXITERATION.getId()] = favorIndexPrefixIteration;
                 break;
+            case COSTMODEL:
+                properties[COSTMODEL.getId()] = valString;
+                break;
             default:
                 assert false;
         }

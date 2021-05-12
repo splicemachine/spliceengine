@@ -16,6 +16,12 @@ package com.splicemachine.storage;
 
 import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.si.api.filter.TxnFilter;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnStore;
+import com.splicemachine.si.api.txn.TxnSupplier;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.server.ConflictRollForward;
 import splice.com.google.common.base.Predicate;
 import splice.com.google.common.collect.BiMap;
 import splice.com.google.common.collect.HashBiMap;
@@ -49,7 +55,6 @@ public class MPartition implements Partition{
     private final String partitionName;
     private final String tableName;
     private final PartitionServer owner;
-
     private final ConcurrentSkipListSet<DataCell> memstore=new ConcurrentSkipListSet<>();
     private final BiMap<ByteBuffer, Lock> lockMap=HashBiMap.create();
     private AtomicLong writes=new AtomicLong(0l);
@@ -286,7 +291,8 @@ public class MPartition implements Partition{
     }
 
     @Override
-    public DataResult getLatest(byte[] key,DataResult previous) throws IOException{
+    public DataResult getLatest(byte[] key,DataResult previous, Object obj) throws IOException{
+
         DataCell s=new MCell(key,new byte[]{},new byte[]{},Long.MAX_VALUE,new byte[]{},CellType.USER_DATA);
         DataCell e=new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.FK_COUNTER_COLUMN_BYTES,0l,new byte[]{},CellType.USER_DATA);
 
@@ -294,6 +300,15 @@ public class MPartition implements Partition{
         List<DataCell> results=new ArrayList<>(dataCells.size());
         DataCell lastResult=null;
         for(DataCell dc : dataCells){
+            long version = dc.version();
+            if (obj != null) {
+                assert obj instanceof ConflictRollForward;
+                TxnSupplier txnSupplier = ((ConflictRollForward)obj).getTxnSupplier();
+                TxnView txn = txnSupplier.getTransaction(version);
+                if (txn != null && txn.getEffectiveState() == Txn.State.ROLLEDBACK) {
+                    continue;
+                }
+            }
             if(lastResult==null){
                 results.add(dc);
                 lastResult=dc;

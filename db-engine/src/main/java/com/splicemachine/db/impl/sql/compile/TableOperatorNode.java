@@ -762,11 +762,12 @@ public abstract class TableOperatorNode extends FromTable{
             LanguageConnectionContext lcc=getLanguageConnectionContext();
             OptimizerFactory optimizerFactory=lcc.getOptimizerFactory();
             optimizer=optimizerFactory.getOptimizer(optList,
-                    predList,
-                    getDataDictionary(),
-                    null,
-                    getCompilerContext().getMaximalPossibleTableCount(),
-                    lcc);
+                                                    predList,
+                                                    getDataDictionary(),
+                                                    null,
+                                                    getCompilerContext().getMaximalPossibleTableCount(),
+                                                    lcc,
+                                                    lcc.getCostModel());
             optimizer.prepForNextRound();
             optimizer.setAssignedTableMap(otherChildReferenceMap);
 

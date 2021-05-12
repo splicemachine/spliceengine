@@ -7,8 +7,11 @@
 
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.db.impl.sql.execute.CurrentDatetime;
 import com.splicemachine.derby.procedures.SpliceDateFunctions;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.Assert;
@@ -33,6 +36,7 @@ import java.util.TimeZone;
 
 import static com.splicemachine.derby.procedures.SpliceDateFunctions.TRUNC_DATE;
 import static org.junit.Assert.*;
+import static org.hamcrest.Matchers.*;
 
 @Category(ArchitectureIndependent.class)
 public class SpliceDateFunctionsTest {
@@ -256,7 +260,7 @@ public class SpliceDateFunctionsTest {
     }
 
     @Test
-    public void toChar() throws ParseException {
+    public void toChar() throws ParseException, StandardException {
         DateFormat formatter = new SimpleDateFormat("yyyy/MM/dd");
         Date date = new Date(formatter.parse("2014/06/24").getTime());
         Calendar calendar = Calendar.getInstance();
@@ -266,6 +270,31 @@ public class SpliceDateFunctionsTest {
         String compare = "06/24/2014";
         assertEquals(compare, SpliceDateFunctions.TO_CHAR(date, format));
         assertEquals(compare, SpliceDateFunctions.TIMESTAMP_TO_CHAR(timestamp, format));
+    }
+
+    @Test
+    public void toCharInvalidFormat() throws ParseException {
+        DateFormat formatter = new SimpleDateFormat("yyyy/MM/dd");
+        Date date = new Date(formatter.parse("2014/06/24").getTime());
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        Timestamp timestamp = new Timestamp(calendar.getTimeInMillis());
+        String format = "invalid_format";
+        String compare = "06.24.2014";
+
+        try {
+            SpliceDateFunctions.TO_CHAR(date, format);
+            Assert.fail("expected exception");
+        } catch(StandardException e) {
+            Assert.assertThat(e.toString(), containsString("ERROR 22018: Invalid character string format for type datetime."));
+        }
+
+        try {
+            SpliceDateFunctions.TIMESTAMP_TO_CHAR(timestamp, format);
+            Assert.fail("expected exception");
+        } catch(StandardException e) {
+            Assert.assertThat(e.toString(), containsString("ERROR 22018: Invalid character string format for type timestamp."));
+        }
     }
 
     @Test

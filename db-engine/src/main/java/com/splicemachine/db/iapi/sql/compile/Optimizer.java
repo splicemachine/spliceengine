@@ -32,7 +32,7 @@
 package com.splicemachine.db.iapi.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.AggregateCostController;
@@ -423,4 +423,6 @@ public interface Optimizer{
     int getJoinPosition();
 
     default boolean isMemPlatform() { return false; };
+
+    CostModel getCostModel();
 }

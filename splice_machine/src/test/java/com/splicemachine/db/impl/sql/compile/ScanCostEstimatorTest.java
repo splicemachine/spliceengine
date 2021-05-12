@@ -25,7 +25,7 @@ import java.util.List;
  * Created by jleach on 8/8/15.
  */
 @Category(ArchitectureIndependent.class)
-public class ScanCostFunctionTest {
+public class ScanCostEstimatorTest {
     private static List<SelectivityHolder>[] baseOnly = new List[10];
     private static List<SelectivityHolder>[] baseAndBaseFilter = new List[10];
     private static List<SelectivityHolder>[] allThree = new List[10];
@@ -56,33 +56,33 @@ public class ScanCostFunctionTest {
     public void testEmptyPredicatesEqualSelectivityOne() throws Exception {
         List<SelectivityHolder>[] selectivityHolder = new List[6];
         Assert.assertTrue("empty predicates do not have selectivity 1.0",
-                ScanCostFunction.computeTotalSelectivity(selectivityHolder, new List[]{ new LinkedList<>() }) == 1.0d);
+                          AbstractScanCostEstimator.computeTotalSelectivity(selectivityHolder, new List[]{ new LinkedList<>() }) == 1.0d);
     }
 
     @Test
     public void testComputeAllSelectivity() throws Exception {
         Assert.assertEquals("TotalSelectivity For All Base Qualifiers incorrect",
-                0.125d*Math.sqrt(0.25d)*Math.sqrt(Math.sqrt(0.5d))*Math.sqrt(Math.sqrt(Math.sqrt(.75d))),
-                        ScanCostFunction.computeTotalSelectivity(baseOnly, new List[]{ new LinkedList<>() }),
-                        0.0d
+                            0.125d*Math.sqrt(0.25d)*Math.sqrt(Math.sqrt(0.5d))*Math.sqrt(Math.sqrt(Math.sqrt(.75d))),
+                            AbstractScanCostEstimator.computeTotalSelectivity(baseOnly, new List[]{ new LinkedList<>() }),
+                            0.0d
                 );
     }
 
     @Test
     public void testComputeBaseSelectivity() throws Exception {
         Assert.assertEquals("TotalSelectivity For All Base Qualifiers incorrect",
-                0.125d*Math.sqrt(0.25d)*Math.sqrt(Math.sqrt(0.5d))*Math.sqrt(Math.sqrt(Math.sqrt(.75d))),
-                ScanCostFunction.computePhaseSelectivity(baseOnly, new List[]{ new LinkedList<>() }, QualifierPhase.BASE),
-                0.0d
+                            0.125d*Math.sqrt(0.25d)*Math.sqrt(Math.sqrt(0.5d))*Math.sqrt(Math.sqrt(Math.sqrt(.75d))),
+                            AbstractScanCostEstimator.computePhaseSelectivity(baseOnly, new List[]{ new LinkedList<>() }, QualifierPhase.BASE),
+                            0.0d
         );
     }
 
     @Test
     public void testComputeBaseOnlySelectivity() throws Exception {
         Assert.assertEquals("TotalSelectivity For All Base Qualifiers incorrect",
-                0.125d*Math.sqrt(0.25d),
-                ScanCostFunction.computePhaseSelectivity(new List[]{ new LinkedList<>() }, baseAndBaseFilter, QualifierPhase.BASE),
-                0.0d
+                            0.125d*Math.sqrt(0.25d),
+                            AbstractScanCostEstimator.computePhaseSelectivity(new List[]{ new LinkedList<>() }, baseAndBaseFilter, QualifierPhase.BASE),
+                            0.0d
         );
     }
 

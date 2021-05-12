@@ -105,6 +105,7 @@ public class AsynchronousDDLController implements DDLController, CommunicationLi
             try {
                 notificationSignal.await(refreshInterval,TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
+                LOG.error(String.format("notifyMetadataChange, finishedServers is interrupted for change with id %s", changeId), e);
                 throw Exceptions.parseException(e);
             }finally{
                 notificationLock.unlock();
@@ -114,15 +115,17 @@ public class AsynchronousDDLController implements DDLController, CommunicationLi
             elapsedTime+=(stopTimestamp-startTimestamp);
         }
 
-        logMissingServers(activeServers,finishedServers);
+        logMissingServers(changeId, activeServers, finishedServers);
         communicator.deleteChangeNode(changeId);
-        throw ErrorState.DDL_TIMEOUT.newException(elapsedTime,maximumWaitTime);
+        throw ErrorState.DDL_TIMEOUT.newException(elapsedTime, maximumWaitTime);
     }
 
 
     @Override
     public void finishMetadataChange(String changeId) throws StandardException {
-        LOG.debug("Finishing metadata change with id " + changeId);
+        if(LOG.isDebugEnabled()) {
+            LOG.debug(String.format("Finishing metadata change with id %s", changeId));
+        }
         communicator.deleteChangeNode(changeId);
     }
 
@@ -138,7 +141,7 @@ public class AsynchronousDDLController implements DDLController, CommunicationLi
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private void logMissingServers(Collection<String> activeServers,Collection<String> finishedServers){
+    private void logMissingServers(String changeId, Collection<String> activeServers,Collection<String> finishedServers){
         Collection<String> missingServers = new LinkedList<>();
         for(String activeServer:activeServers){
             boolean found = false;
@@ -151,10 +154,9 @@ public class AsynchronousDDLController implements DDLController, CommunicationLi
             if(!found)
                 missingServers.add(activeServer);
         }
-        LOG.error("Maximum wait for all servers exceeded. Missing response from "+missingServers);
+        LOG.error(String.format("Maximum wait for change with id %s for all servers exceeded. Missing response from %s", changeId, missingServers.toString()));
         if(LOG.isDebugEnabled()){
-            LOG.info("Full Server List:"+activeServers+", Responded Servers: "+ finishedServers);
-
+            LOG.debug("Full Server List: " + activeServers + ", Responded Servers: " + finishedServers);
         }
     }
 
