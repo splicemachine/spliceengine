@@ -58,6 +58,13 @@ import java.util.HashSet;
 import java.util.List;
 
 public class MatchingClauseNode extends QueryTreeNode {
+    /** clauseType for WHEN NOT MATCHED ... THEN INSERT */
+    public  static  final   int WHEN_NOT_MATCHED_THEN_INSERT = 0;
+    /** clauseType for WHEN MATCHED ... THEN UPDATE */
+    public  static  final   int WHEN_MATCHED_THEN_UPDATE = 1;
+    /** clauseType for WHEN MATCHED ... THEN DELETE */
+    public  static  final   int WHEN_MATCHED_THEN_DELETE = 2;
+
     ///////////////////////////////////////////////////////////////////////////////////
     //
     // CONSTANTS
@@ -745,9 +752,9 @@ public class MatchingClauseNode extends QueryTreeNode {
     }
     private int getClauseType()
     {
-        if ( isUpdateClause() ) { return ConstantAction.WHEN_MATCHED_THEN_UPDATE; }
-        else if ( isInsertClause() ) { return ConstantAction.WHEN_NOT_MATCHED_THEN_INSERT; }
-        else { return ConstantAction.WHEN_MATCHED_THEN_DELETE; }
+        if ( isUpdateClause() ) { return WHEN_MATCHED_THEN_UPDATE; }
+        else if ( isInsertClause() ) { return WHEN_NOT_MATCHED_THEN_INSERT; }
+        else { return WHEN_MATCHED_THEN_DELETE; }
     }
 
     /**
