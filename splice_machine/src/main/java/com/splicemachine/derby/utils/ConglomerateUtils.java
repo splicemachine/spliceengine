@@ -79,10 +79,14 @@ public class ConglomerateUtils{
         try {
             PartitionAdmin partitionAdmin = SIDriver.driver().getTableFactory().getAdmin();
             if (partitionAdmin.tableExists(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME)) {
-                return readConglomerate(conglomId, instanceClass, txn, HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME);
+                try {
+                    return readConglomerate(conglomId, instanceClass, txn, HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME);
+                } catch (Exception e) {
+                    return readConglomerate(conglomId, instanceClass, txn, HBaseConfiguration.CONGLOMERATE_TABLE_NAME);
+                }
             }
             else {
-                return readConglomerate(conglomId, instanceClass, txn, SIConfigurations.CONGLOMERATE_TABLE_NAME);
+                return readConglomerate(conglomId, instanceClass, txn, HBaseConfiguration.CONGLOMERATE_TABLE_NAME);
             }
         }
         catch (IOException e) {
@@ -232,7 +236,7 @@ public class ConglomerateUtils{
      * @param conglomerate the conglomerate to store
      * @throws com.splicemachine.db.iapi.error.StandardException if something goes wrong and the data can't be stored.
      */
-    public static void createConglomerate(boolean isExternal,long conglomId,Conglomerate conglomerate,Txn txn) throws StandardException{
+    public static void createConglomerate(boolean isExternal,long conglomId,Conglomerate conglomerate,TxnView txn) throws StandardException{
         createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,
                 null,null,null,null,
                 -1,null, Conglomerate.Priority.NORMAL);
@@ -322,7 +326,7 @@ public class ConglomerateUtils{
             }
         }
 
-        writeConglomerateTable(SIConfigurations.CONGLOMERATE_TABLE_NAME, txn, conglomId, conglomData);
+        writeConglomerateTable(HBaseConfiguration.CONGLOMERATE_TABLE_NAME, txn, conglomId, conglomData);
         try {
             PartitionAdmin partitionAdmin = SIDriver.driver().getTableFactory().getAdmin();
             if (partitionAdmin.tableExists(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME)) {
@@ -365,7 +369,7 @@ public class ConglomerateUtils{
         long conglomId = conglomerate.getContainerid();
         byte[] conglomData = DerbyBytesUtil.toBytes(conglomerate);
         SpliceLogUtils.debug(LOG,"updating table {%d} in hbase with serialized data {%s}",conglomId,conglomerate);
-        writeConglomerateTable(SIConfigurations.CONGLOMERATE_TABLE_NAME, txn, conglomId, conglomData);
+        writeConglomerateTable(HBaseConfiguration.CONGLOMERATE_TABLE_NAME, txn, conglomId, conglomData);
         try {
             PartitionAdmin partitionAdmin = SIDriver.driver().getTableFactory().getAdmin();
             if (partitionAdmin.tableExists(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME)) {

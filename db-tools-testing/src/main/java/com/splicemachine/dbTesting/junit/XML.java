@@ -34,12 +34,14 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 import java.lang.reflect.Method;
+import java.nio.charset.Charset;
 import java.security.PrivilegedActionException;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.Assert;
 
 /**
@@ -144,6 +146,7 @@ public class XML {
      * @param numRows Number of times we should insert the received
      *  file's content.
      */
+    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "testing only, doesn't matter")
     public static void insertFile(Connection conn, String tableName,
         String colName, String fName, int numRows)
         throws IOException, SQLException, PrivilegedActionException
@@ -157,7 +160,7 @@ public class XML {
         int charCount = 0;
         char [] cA = new char[1024];
         InputStreamReader reader =
-            new InputStreamReader(BaseTestCase.openTestResource(xFile));
+            new InputStreamReader(BaseTestCase.openTestResource(xFile), Charset.defaultCharset().name());
 
         for (int len = reader.read(cA, 0, cA.length); len != -1;
             charCount += len, len = reader.read(cA, 0, cA.length));
@@ -167,21 +170,19 @@ public class XML {
         // Now that we know the number of characters, we can insert
         // using a stream.
 
-        PreparedStatement pSt = conn.prepareStatement(
+        try (PreparedStatement pSt = conn.prepareStatement(
             "insert into " + tableName + "(" + colName + ") values " +
-            "(xmlparse(document cast (? as clob) preserve whitespace))");
+            "(xmlparse(document cast (? as clob) preserve whitespace))")) {
 
-        for (int i = 0; i < numRows; i++)
-        {
-            reader = new InputStreamReader(
-                BaseTestCase.openTestResource(xFile));
+            for (int i = 0; i < numRows; i++) {
+                reader = new InputStreamReader(
+                        BaseTestCase.openTestResource(xFile), Charset.defaultCharset().name());
 
-            pSt.setCharacterStream(1, reader, charCount);
-            pSt.execute();
-            reader.close();
+                pSt.setCharacterStream(1, reader, charCount);
+                pSt.execute();
+                reader.close();
+            }
         }
-
-        pSt.close();
     }
 
     /**
@@ -205,6 +206,7 @@ public class XML {
      * @param numRows Number of times we should insert the received
      *  file's content.
      */
+    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "testing only, doesn't matter")
     public static void insertDocWithDTD(Connection conn, String tableName,
         String colName, String fName, String dtdName, int numRows)
         throws IOException, SQLException, PrivilegedActionException
@@ -218,7 +220,7 @@ public class XML {
         char [] cA = new char[1024];
         StringBuilder sBuf = new StringBuilder();
         InputStreamReader reader =
-            new InputStreamReader(BaseTestCase.openTestResource(xFile));
+            new InputStreamReader(BaseTestCase.openTestResource(xFile), Charset.defaultCharset().name());
 
         for (int len = reader.read(cA, 0, cA.length); len != -1;
             charCount += len, len = reader.read(cA, 0, cA.length))
@@ -241,17 +243,15 @@ public class XML {
         // Now (finally) do the insert using the in-memory document with
         // the correct DTD location.
         docAsString = sBuf.toString();
-        PreparedStatement pSt = conn.prepareStatement(
+        try (PreparedStatement pSt = conn.prepareStatement(
             "insert into " + tableName + "(" + colName + ") values " +
-            "(xmlparse(document cast (? as clob) preserve whitespace))");
+            "(xmlparse(document cast (? as clob) preserve whitespace))")) {
 
-        for (int i = 0; i < numRows; i++)
-        {
-            pSt.setString(1, docAsString);
-            pSt.execute();
+            for (int i = 0; i < numRows; i++) {
+                pSt.setString(1, docAsString);
+                pSt.execute();
+            }
         }
-
-        pSt.close();
     }
 
     /**

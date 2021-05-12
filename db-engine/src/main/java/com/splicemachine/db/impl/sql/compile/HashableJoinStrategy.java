@@ -78,15 +78,6 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         }
         */
 
-		/* Don't consider hash join on the target table of an update/delete.
-		 * RESOLVE - this is a temporary restriction.  Problem is that we
-		 * do not put RIDs into the row in the hash table when scanning
-		 * the heap and we need them for a target table.
-		 */
-        if (innerTable.isTargetTable()) {
-            return false;
-        }
-
 		/* If the predicate given by the user _directly_ references
 		 * any of the base tables _beneath_ this node, then we
 		 * cannot safely use the predicate for a hash because the
@@ -145,7 +136,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         }
 
         /* Look for equijoins in the predicate list */
-        hashKeyColumns = findHashKeyColumns(innerTable, cd, predList);
+        hashKeyColumns = findHashKeyColumns(innerTable, cd, predList, optimizer.getAssignedTableMap());
 
         if (SanityManager.DEBUG) {
             if (hashKeyColumns == null) {
@@ -200,7 +191,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
                 // no join predicates.
                 for (int i = 0; i < predList.size(); i++) {
                     pred = (Predicate)predList.getOptPredicate(i);
-                    if (pred.isJoinPredicate()) {
+                    if (pred.isHashableJoinPredicate()) {
                         ap.setMissingHashKeyOK(true);
 
                         AndNode andNode = pred.getAndNode();
@@ -247,7 +238,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 
         if (predList != null) {
             predList.transferAllPredicates(basePredicates);
-            basePredicates.classify(innerTable, innerTable.getCurrentAccessPath().getConglomerateDescriptor(), false);
+            basePredicates.classify(innerTable, innerTable.getCurrentAccessPath(), false);
         }
 
         /*
@@ -292,16 +283,6 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             predList.addOptPredicate(pred);
             basePredicates.removeOptPredicate(i);
         }
-    }
-
-    /** @see com.splicemachine.db.iapi.sql.compile.JoinStrategy#estimateCost */
-    public void estimateCost(Optimizable innerTable,
-                             OptimizablePredicateList predList,
-                             ConglomerateDescriptor cd,
-                             CostEstimate outerCost,
-                             Optimizer optimizer,
-                             CostEstimate costEstimate) throws StandardException{
-        throw new UnsupportedOperationException("Cost estimate not implemented for class " +this.getClass());
     }
 
     /** @see JoinStrategy#maxCapacity */
@@ -486,7 +467,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             if (prn.getChildResult() instanceof Optimizable)
                 hashTableFor = (Optimizable) (prn.getChildResult());
         }
-        int[] hashKeyColumns = findHashKeyColumns(hashTableFor, cd, nonStoreRestrictionList);
+        int[] hashKeyColumns = findHashKeyColumns(hashTableFor, cd, nonStoreRestrictionList, joinedTableSet);
 
         if (hashKeyColumns == null) {
             if (!innerTable.getTrulyTheBestAccessPath().isMissingHashKeyOK()) {
@@ -571,15 +552,19 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
     /**
      * Find the hash key columns, if any, to use with this join.
      *
-     * @param innerTable	The inner table of the join
-     * @param cd			The conglomerate descriptor to use on inner table
-     * @param predList		The predicate list to look for the equijoin in
-     *
+     * @param innerTable    The inner table of the join
+     * @param cd            The conglomerate descriptor to use on inner table
+     * @param predList      The predicate list to look for the equijoin in
+     * @param joinedTableSet  The set of table numbers of the optimizables that
+     *                        have been joined up to the current join position
      * @return	the numbers of the hash key columns, or null if no hash key column
      *
      * @exception StandardException		Thrown on error
      */
-    public int[] findHashKeyColumns(Optimizable innerTable, ConglomerateDescriptor cd, OptimizablePredicateList predList) throws StandardException {
+    public int[] findHashKeyColumns(Optimizable innerTable,
+                                    ConglomerateDescriptor cd,
+                                    OptimizablePredicateList predList,
+                                    JBitSet joinedTableSet) throws StandardException {
         if (predList == null)
             return (int[]) null;
 
@@ -619,14 +604,14 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 
             ValueNode[] exprAsts = irg.getParsedIndexExpressions(inner.getLanguageConnectionContext(), innerTable);
             for (int colIdx = 0; colIdx < exprAsts.length; colIdx++) {
-                if (predList.hasOptimizableEquijoin(innerTable, exprAsts[colIdx])) {
+                if (predList.hasOptimizableEquijoin(innerTable, exprAsts[colIdx], joinedTableSet)) {
                     hashKeyVector.add(colIdx);
                 }
             }
         } else {
             for (int colCtr = 0; colCtr < columns.length; colCtr++) {
                 // Is there an equijoin condition on this column?
-                if (predList.hasOptimizableEquijoin(innerTable, columns[colCtr])) {
+                if (predList.hasOptimizableEquijoin(innerTable, columns[colCtr], joinedTableSet)) {
                     hashKeyVector.add(colCtr);
                 }
             }
@@ -644,9 +629,6 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             return (int[]) null;
     }
 
-    public String toString() {
-        return getName();
-    }
     /**
      * Can this join strategy be used on the
      * outermost table of a join.
@@ -657,9 +639,6 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
     protected boolean validForOutermostTable() {
         return true;
     }
-
-     /** @see JoinStrategy#getName */
-    public abstract String getName();
 
     /** @see JoinStrategy#joinResultSetMethodName */
     public abstract String joinResultSetMethodName();

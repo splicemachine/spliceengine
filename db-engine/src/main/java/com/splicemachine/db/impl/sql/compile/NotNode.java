@@ -51,85 +51,85 @@ import java.lang.reflect.Modifier;
 
 public final class NotNode extends UnaryLogicalOperatorNode
 {
-	/**
-	 * Initializer for a NotNode
-	 *
-	 * @param operand	The operand of the NOT
-	 */
+    /**
+     * Initializer for a NotNode
+     *
+     * @param operand    The operand of the NOT
+     */
 
-	public void init(Object operand)
-	{
-		super.init(operand, "not");
-	}
+    public void init(Object operand)
+    {
+        super.init(operand, "not");
+    }
 
-	/**
-	 * Eliminate NotNodes in the current query block.  We traverse the tree, 
-	 * inverting ANDs and ORs and eliminating NOTs as we go.  We stop at 
-	 * ComparisonOperators and boolean expressions.  We invert 
-	 * ComparisonOperators and replace boolean expressions with 
-	 * boolean expression = false.
-	 *
-	 * @param	underNotNode		Whether or not we are under a NotNode.
-	 *							
-	 *
-	 * @return		The modified expression
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	ValueNode eliminateNots(boolean underNotNode) 
-					throws StandardException
-	{
-		return operand.eliminateNots(! underNotNode);
-	}
+    /**
+     * Eliminate NotNodes in the current query block.  We traverse the tree,
+     * inverting ANDs and ORs and eliminating NOTs as we go.  We stop at
+     * ComparisonOperators and boolean expressions.  We invert
+     * ComparisonOperators and replace boolean expressions with
+     * boolean expression = false.
+     *
+     * @param    underNotNode        Whether or not we are under a NotNode.
+     *
+     *
+     * @return        The modified expression
+     *
+     * @exception StandardException        Thrown on error
+     */
+    ValueNode eliminateNots(boolean underNotNode)
+                    throws StandardException
+    {
+        return getOperand().eliminateNots(! underNotNode);
+    }
 
-	/**
-	 * Do code generation for the NOT operator.
-	 *
-	 * @param acb	The ExpressionClassBuilder for the class we're generating
-	 * @param mb	The method the expression will go into
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Do code generation for the NOT operator.
+     *
+     * @param acb    The ExpressionClassBuilder for the class we're generating
+     * @param mb    The method the expression will go into
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	/** @see ValueNode#evaluateConstantExpressions */
-	@Override
-	ValueNode evaluateConstantExpressions() throws StandardException {
-		return (operand instanceof UntypedNullConstantNode) ? operand : this;
-	}
+    /** @see ValueNode#evaluateConstantExpressions */
+    @Override
+    ValueNode evaluateConstantExpressions() throws StandardException {
+        return (getOperand() instanceof UntypedNullConstantNode) ? getOperand() : this;
+    }
 
-	public void generateExpression(ExpressionClassBuilder acb,
-											MethodBuilder mb)
-									throws StandardException
-	{
-		/*
-		** This generates the following code:
-		**
-		** <boolean field> = <operand>.equals(<operand>,
-		**					 					<false truth value>);
-		*/
+    public void generateExpression(ExpressionClassBuilder acb,
+                                            MethodBuilder mb)
+                                    throws StandardException
+    {
+        /*
+        ** This generates the following code:
+        **
+        ** <boolean field> = <operand>.equals(<operand>,
+        **                                         <false truth value>);
+        */
 
-		/*
-		** Generate the code for a Boolean false constant value.
-		*/
-		String interfaceName = getTypeCompiler().interfaceName();
-		LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, interfaceName);
-		/*
-		** Generate the call to the equals method.
-		** equals is only on Orderable, not any subinterfaces.
-		*/
+        /*
+        ** Generate the code for a Boolean false constant value.
+        */
+        String interfaceName = getTypeCompiler().interfaceName();
+        LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, interfaceName);
+        /*
+        ** Generate the call to the equals method.
+        ** equals is only on Orderable, not any subinterfaces.
+        */
 
-		/* Generate the code for operand */
-		operand.generateExpression(acb, mb);
-		mb.upCast(ClassName.DataValueDescriptor);
+        /* Generate the code for operand */
+        getOperand().generateExpression(acb, mb);
+        mb.upCast(ClassName.DataValueDescriptor);
 
-		mb.dup(); // arg 1 is instance
+        mb.dup(); // arg 1 is instance
 
-		// arg 2
-		mb.push(false);
-		acb.generateDataValue(mb, getTypeCompiler(), 
-				getTypeServices().getCollationType(), field);
-		mb.upCast(ClassName.DataValueDescriptor);
+        // arg 2
+        mb.push(false);
+        acb.generateDataValue(mb, getTypeCompiler(),
+                getTypeServices().getCollationType(), field);
+        mb.upCast(ClassName.DataValueDescriptor);
 
-		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "equals", interfaceName, 2);
-	}
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "equals", interfaceName, 2);
+    }
 }

@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.test.framework;
 
+import com.splicemachine.homeless.TestUtils;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.rules.TestWatcher;
@@ -350,7 +351,7 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
             return s.executeUpdate(sql);
         }
     }
-    
+
     public boolean execute(String sql) throws Exception {
         try(Statement s = getOrCreateConnection().createStatement()) {
             return s.execute(sql);
@@ -450,5 +451,17 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
             Assert.assertTrue(rs.next());
             return rs.getString(index);
         }
+    }
+
+    public String executeToString(String sql, Boolean sort) throws Exception {
+        try(ResultSet rs = executeQuery(sql)) {
+            return sort ? TestUtils.FormattedResult.ResultFactory.toString(rs) :
+                    TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        }
+    }
+
+    public void assertStrResult(String res, String query, Boolean sort) throws Exception {
+        Assert.assertEquals( "failed asserting the results of sql\n" + query,
+                res, executeToString(query, sort));
     }
 }

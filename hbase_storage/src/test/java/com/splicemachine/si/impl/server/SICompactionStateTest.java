@@ -47,7 +47,12 @@ public class SICompactionStateTest {
         when(delegate.getTransaction(0x200L, false)).thenReturn(new CommittedTxn(0x200L, 0x300L));
         when(delegate.getTransaction(0x400L, false)).thenReturn(new CommittedTxn(0x400L, 0x500L));
 
-        IgnoreTxnSupplier ignoreTxnSupplier = txn -> txn > 0x400L && txn < 0x600L;
+        IgnoreTxnSupplier ignoreTxnSupplier = new IgnoreTxnSupplier() {
+            @Override
+            public boolean shouldIgnore(Long txnId) throws IOException { return txnId > 0x400L && txnId < 0x600L; }
+            @Override
+            public void refresh() {}
+        };
         CompletedTxnCacheSupplier txnCacheSupplier = new CompletedTxnCacheSupplier(delegate, 100, 10, ignoreTxnSupplier);
         SICompactionState state = new SICompactionState(txnCacheSupplier, 100,
                 new SimpleCompactionContext(), SameThreadExecutorService.instance(), ignoreTxnSupplier);
@@ -76,7 +81,12 @@ public class SICompactionStateTest {
         when(delegate.getTransaction(0x200L, false)).thenReturn(new CommittedTxn(0x200L, 0x300L));
         when(delegate.getTransaction(0x400L, false)).thenReturn(new CommittedTxn(0x400L, 0x500L));
 
-        IgnoreTxnSupplier ignoreTxnSupplier = txn -> txn > 0x400L && txn < 0x600L;
+        IgnoreTxnSupplier ignoreTxnSupplier = new IgnoreTxnSupplier() {
+            @Override
+            public boolean shouldIgnore(Long txnId) throws IOException { return txnId > 0x400L && txnId < 0x600L; }
+            @Override
+            public void refresh() {}
+        };
         CompletedTxnCacheSupplier txnCacheSupplier = new CompletedTxnCacheSupplier(delegate, 100, 10, ignoreTxnSupplier);
         SICompactionState state = new SICompactionState(txnCacheSupplier, 100,
                 new SimpleCompactionContext(), SameThreadExecutorService.instance(), ignoreTxnSupplier);

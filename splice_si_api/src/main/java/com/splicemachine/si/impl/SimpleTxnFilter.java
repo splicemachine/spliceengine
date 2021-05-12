@@ -86,8 +86,7 @@ public class SimpleTxnFilter implements TxnFilter{
      */
     private final boolean ignoreNewerTransactions;
 
-    public SimpleTxnFilter(String tableName,
-                           TxnView myTxn,
+    public SimpleTxnFilter(TxnView myTxn,
                            ReadResolver readResolver,
                            TxnSupplier baseSupplier,
                            boolean ignoreNewerTransactions) {
@@ -109,11 +108,10 @@ public class SimpleTxnFilter implements TxnFilter{
     }
 
     @SuppressWarnings("unchecked")
-    public SimpleTxnFilter(String tableName,
-                           TxnView myTxn,
+    public SimpleTxnFilter(TxnView myTxn,
                            ReadResolver readResolver,
                            TxnSupplier baseSupplier){
-        this(tableName, myTxn, readResolver, baseSupplier, false);
+        this(myTxn, readResolver, baseSupplier, false);
     }
 
     @Override
@@ -258,6 +256,9 @@ public class SimpleTxnFilter implements TxnFilter{
 
     private boolean isVisible(long txnId) throws IOException{
         if (ignoreNewerTransactions && myTxn.getBeginTimestamp() < txnId)
+            return false;
+
+        if (ignoreTxnSupplier != null && ignoreTxnSupplier.shouldIgnore(txnId))
             return false;
 
         TxnView toCompare=fetchTransaction(txnId);

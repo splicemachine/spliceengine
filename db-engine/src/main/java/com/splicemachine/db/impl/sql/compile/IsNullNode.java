@@ -57,214 +57,214 @@ import java.util.Set;
 @SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public final class IsNullNode extends UnaryComparisonOperatorNode  {
 
-	private DataValueDescriptor nullValue;
+    private DataValueDescriptor nullValue;
 
-	@Override
-	public void setNodeType(int nodeType) {
-		String operator;
-		String methodName;
+    @Override
+    public void setNodeType(int nodeType) {
+        String operator;
+        String methodName;
 
-		if (nodeType == C_NodeTypes.IS_NULL_NODE) {
-			/* By convention, the method name for the is null operator is "isNull" */
-			operator = "is null";
-			methodName = "isNullOp";
-		} else {
-			if (SanityManager.DEBUG) {
-				if (nodeType != C_NodeTypes.IS_NOT_NULL_NODE) {
-					SanityManager.THROWASSERT( "Unexpected nodeType = " + nodeType);
-				}
-			}
-			/* By convention, the method name for the is not null operator is 
-			 * "isNotNull" 
-			 */
-			operator = "is not null";
-			methodName = "isNotNull";
-		}
-		setOperator(operator);
-		setMethodName(methodName);
-		super.setNodeType(nodeType);
-	}
+        if (nodeType == C_NodeTypes.IS_NULL_NODE) {
+            /* By convention, the method name for the is null operator is "isNull" */
+            operator = "is null";
+            methodName = "isNullOp";
+        } else {
+            if (SanityManager.DEBUG) {
+                if (nodeType != C_NodeTypes.IS_NOT_NULL_NODE) {
+                    SanityManager.THROWASSERT( "Unexpected nodeType = " + nodeType);
+                }
+            }
+            /* By convention, the method name for the is not null operator is
+             * "isNotNull"
+             */
+            operator = "is not null";
+            methodName = "isNotNull";
+        }
+        setOperator(operator);
+        setMethodName(methodName);
+        super.setNodeType(nodeType);
+    }
 
-	/**
-	 * Negate the comparison.
-	 *
-	 * @param operand	The operand of the operator
-	 *
-	 * @return UnaryOperatorNode	The negated expression
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	@Override
-	UnaryOperatorNode getNegation(ValueNode operand) throws StandardException {
+    /**
+     * Negate the comparison.
+     *
+     * @param operand    The operand of the operator
+     *
+     * @return UnaryOperatorNode    The negated expression
+     *
+     * @exception StandardException        Thrown on error
+     */
+    @Override
+    UnaryOperatorNode getNegation(ValueNode operand) throws StandardException {
 
-		if (SanityManager.DEBUG) {
-			SanityManager.ASSERT(getTypeServices() != null, "dataTypeServices is expected to be non-null");
-		}
+        if (SanityManager.DEBUG) {
+            SanityManager.ASSERT(getTypeServices() != null, "dataTypeServices is expected to be non-null");
+        }
 
-		if (isNullNode()) {
-			setNodeType(C_NodeTypes.IS_NOT_NULL_NODE);
-		} else {
-			if (SanityManager.DEBUG) {
-				if (! isNotNullNode()) {
-					SanityManager.THROWASSERT( "Unexpected nodeType = " + getNodeType());
-				}
-			}
-			setNodeType(C_NodeTypes.IS_NULL_NODE);
-		}
-		return this;
-	}
+        if (isNullNode()) {
+            setNodeType(C_NodeTypes.IS_NOT_NULL_NODE);
+        } else {
+            if (SanityManager.DEBUG) {
+                if (! isNotNullNode()) {
+                    SanityManager.THROWASSERT( "Unexpected nodeType = " + getNodeType());
+                }
+            }
+            setNodeType(C_NodeTypes.IS_NULL_NODE);
+        }
+        return this;
+    }
 
-	@Override
-	void bindParameter() throws StandardException {
-		/*
-		** If IS [NOT] NULL has a ? operand, we assume
-		** its type is varchar with the implementation-defined maximum length
-		** for a varchar.
-		** Also, for IS [NOT] NULL, it doesn't matter what is VARCHAR's 
-		** collation (since for NULL check, no collation sensitive processing
-		** is required) and hence we will not worry about the collation setting
-		*/
+    @Override
+    void bindParameter() throws StandardException {
+        /*
+        ** If IS [NOT] NULL has a ? operand, we assume
+        ** its type is varchar with the implementation-defined maximum length
+        ** for a varchar.
+        ** Also, for IS [NOT] NULL, it doesn't matter what is VARCHAR's
+        ** collation (since for NULL check, no collation sensitive processing
+        ** is required) and hence we will not worry about the collation setting
+        */
 
-		operand.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARCHAR), true));
-	}
+        getOperand().setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARCHAR), true));
+    }
 
-	/* RelationalOperator interface */
+    /* RelationalOperator interface */
 
-	@Override
-	public boolean usefulStartKey(Optimizable optTable, IndexDescriptor cd) {
-		// IS NULL is start/stop key, IS NOT NULL is not
-		return (isNullNode());
-	}
+    @Override
+    public boolean usefulStartKey(Optimizable optTable, IndexDescriptor cd) {
+        // IS NULL is start/stop key, IS NOT NULL is not
+        return (isNullNode());
+    }
 
-	@Override
-	public boolean usefulStopKey(Optimizable optTable, IndexDescriptor cd) {
-		// IS NULL is start/stop key, IS NOT NULL is not
-		return (isNullNode());
-	}
+    @Override
+    public boolean usefulStopKey(Optimizable optTable, IndexDescriptor cd) {
+        // IS NULL is start/stop key, IS NOT NULL is not
+        return (isNullNode());
+    }
 
-	@Override
-	public int getStartOperator(Optimizable optTable) {
-		assert isNullNode(): "getNodeType() not expected to return "+ getNodeType();
-		return ScanController.GE;
-	}
+    @Override
+    public int getStartOperator(Optimizable optTable) {
+        assert isNullNode(): "getNodeType() not expected to return "+ getNodeType();
+        return ScanController.GE;
+    }
 
-	@Override
-	public int getStopOperator(Optimizable optTable) {
-		assert isNullNode(): "getNodeType() not expected to return "+ getNodeType();
-		return ScanController.GT;
-	}
+    @Override
+    public int getStopOperator(Optimizable optTable) {
+        assert isNullNode(): "getNodeType() not expected to return "+ getNodeType();
+        return ScanController.GT;
+    }
 
-	@Override
-	public void generateOperator(MethodBuilder mb, Optimizable optTable) {
-		mb.push(Orderable.ORDER_OP_EQUALS);
-	}
+    @Override
+    public void generateOperator(MethodBuilder mb, Optimizable optTable) {
+        mb.push(Orderable.ORDER_OP_EQUALS);
+    }
 
-	@Override
-	public void generateNegate(MethodBuilder mb, Optimizable optTable, boolean forIndexExpression) {
-		mb.push(isNotNullNode());
-	}
+    @Override
+    public void generateNegate(MethodBuilder mb, Optimizable optTable, boolean forIndexExpression) {
+        mb.push(isNotNullNode());
+    }
 
-	@Override
-	public int getOperator() {
-		int operator;
-		if (isNullNode()) {
-			operator = IS_NULL_RELOP;
-		} else {
-			assert isNotNullNode():"Unexpected nodeType = "+ getNodeType();
-			operator = IS_NOT_NULL_RELOP;
-		}
+    @Override
+    public int getOperator() {
+        int operator;
+        if (isNullNode()) {
+            operator = IS_NULL_RELOP;
+        } else {
+            assert isNotNullNode():"Unexpected nodeType = "+ getNodeType();
+            operator = IS_NOT_NULL_RELOP;
+        }
 
-		return operator;
-	}
+        return operator;
+    }
 
-	@Override
-	public boolean compareWithKnownConstant(Optimizable optTable, boolean considerParameters) { return true; }
+    @Override
+    public boolean compareWithKnownConstant(Optimizable optTable, boolean considerParameters) { return true; }
 
-	@Override
-	public DataValueDescriptor getCompareValue(Optimizable optTable) throws StandardException {
-		if (nullValue == null) {
-			nullValue = operand.getTypeServices().getNull();
-		}
+    @Override
+    public DataValueDescriptor getCompareValue(Optimizable optTable) throws StandardException {
+        if (nullValue == null) {
+            nullValue = getOperand().getTypeServices().getNull();
+        }
 
-		return nullValue;
-	}
+        return nullValue;
+    }
 
-	@Override
-	public boolean equalsComparisonWithConstantExpression(Optimizable optTable) {
-		boolean retval = false;
+    @Override
+    public boolean equalsComparisonWithConstantExpression(Optimizable optTable) {
+        boolean retval = false;
 
-		// Always return false for NOT NULL
-		if (isNotNullNode()) {
-			return false;
-		}
+        // Always return false for NOT NULL
+        if (isNotNullNode()) {
+            return false;
+        }
 
-		/*
-		** Is the operand a column in the given table?
-		*/
-		if (operand instanceof ColumnReference) {
-			int tabNum = ((ColumnReference) operand).getTableNumber();
-			if (optTable.hasTableNumber() && (optTable.getTableNumber() == tabNum)) {
-				retval = true;
-			}
-		}
+        /*
+        ** Is the operand a column in the given table?
+        */
+        if (getOperand() instanceof ColumnReference) {
+            int tabNum = ((ColumnReference) getOperand()).getTableNumber();
+            if (optTable.hasTableNumber() && (optTable.getTableNumber() == tabNum)) {
+                retval = true;
+            }
+        }
 
-		return retval;
-	}
+        return retval;
+    }
 
-	@Override
-	public RelationalOperator getTransitiveSearchClause(ColumnReference otherCR) throws StandardException {
-		return (RelationalOperator) getNodeFactory().getNode( getNodeType(), otherCR, getContextManager());
-	}
+    @Override
+    public RelationalOperator getTransitiveSearchClause(ColumnReference otherCR) throws StandardException {
+        return (RelationalOperator) getNodeFactory().getNode( getNodeType(), otherCR, getContextManager());
+    }
 
-	/**
-	 * null operators are defined on DataValueDescriptor.
-	 * Overrides method in UnaryOperatorNode for code generation purposes.
-	 */
-	@Override
-	public String getReceiverInterfaceName() { return ClassName.DataValueDescriptor; }
+    /**
+     * null operators are defined on DataValueDescriptor.
+     * Overrides method in UnaryOperatorNode for code generation purposes.
+     */
+    @Override
+    public String getReceiverInterfaceName() { return ClassName.DataValueDescriptor; }
 
-	/** IS NULL is like =, so should have the same selectivity */
-	@Override
-	public double selectivity(Optimizable optTable)  {
-		if (isNullNode()) {
-			return 0.1d;
-		} else {
-			assert isNotNullNode(): "Unexpected nodeType = "+ getNodeType();
-			/* IS NOT NULL is like <>, so should have same selectivity */
-			return 0.9d;
-		}
-	}
+    /** IS NULL is like =, so should have the same selectivity */
+    @Override
+    public double selectivity(Optimizable optTable)  {
+        if (isNullNode()) {
+            return 0.1d;
+        } else {
+            assert isNotNullNode(): "Unexpected nodeType = "+ getNodeType();
+            /* IS NOT NULL is like <>, so should have same selectivity */
+            return 0.9d;
+        }
+    }
 
-	private boolean isNullNode() { return getNodeType() == C_NodeTypes.IS_NULL_NODE; }
+    private boolean isNullNode() { return getNodeType() == C_NodeTypes.IS_NULL_NODE; }
 
-	private boolean isNotNullNode() { return getNodeType() == C_NodeTypes.IS_NOT_NULL_NODE; }
+    private boolean isNotNullNode() { return getNodeType() == C_NodeTypes.IS_NOT_NULL_NODE; }
 
-	@Override
-	public boolean isRelationalOperator()
-	{
-		return true;
-	}
+    @Override
+    public boolean isRelationalOperator()
+    {
+        return true;
+    }
 
-	@Override
-	public boolean optimizableEqualityNode(Optimizable optTable,
-										   int columnNumber, 
-										   boolean isNullOkay) {
-		if (!isNullNode() || !isNullOkay)
-			return false;
-		
-		ColumnReference cr = getColumnOperand(optTable, columnNumber);
-		return cr!=null;
-	}
+    @Override
+    public boolean optimizableEqualityNode(Optimizable optTable,
+                                           int columnNumber,
+                                           boolean isNullOkay) {
+        if (!isNullNode() || !isNullOkay)
+            return false;
 
-	@Override
-	public boolean optimizableEqualityNode(Optimizable optTable,
-										   ValueNode indexExpr,
-										   boolean isNullOkay) {
-		if (!isNullNode() || !isNullOkay)
-			return false;
+        ColumnReference cr = getColumnOperand(optTable, columnNumber);
+        return cr!=null;
+    }
 
-		return indexExpr.semanticallyEquals(operand);
-	}
+    @Override
+    public boolean optimizableEqualityNode(Optimizable optTable,
+                                           ValueNode indexExpr,
+                                           boolean isNullOkay) {
+        if (!isNullNode() || !isNullOkay)
+            return false;
+
+        return indexExpr.semanticallyEquals(getOperand());
+    }
 
     /**
      *
@@ -273,23 +273,23 @@ public final class IsNullNode extends UnaryComparisonOperatorNode  {
      * @return
      */
     @Override
-    public long nonZeroCardinality(long numberOfRows) {
+    public long nonZeroCardinality(long numberOfRows) throws StandardException {
         return Math.min(2L, numberOfRows);
     }
 
     @Override
-	public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
-		if (operand != null) {
-			operand = operand.replaceIndexExpression(childRCL);
-		}
-		return this;
-	}
+    public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+        if (getOperand() != null) {
+            setOperand(getOperand().replaceIndexExpression(childRCL));
+        }
+        return this;
+    }
 
-	@Override
-	public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
-		if (operand != null) {
-			return operand.collectExpressions(exprMap);
-		}
-		return true;
-	}
+    @Override
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        if (getOperand() != null) {
+            return getOperand().collectExpressions(exprMap);
+        }
+        return true;
+    }
 }

@@ -132,6 +132,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  String sparkIoCompressionCodec;
     private final int sparkResultStreamingBatches;
     private final int sparkResultStreamingBatchSize;
+    private final int sparkResultStreamingThrottleMaxWait;
     private final int sparkSlowResultStreamingBatches;
     private final int sparkSlowResultStreamingBatchSize;
     private final int olapCompactionMaximumWait;
@@ -578,7 +579,12 @@ public final class SConfigurationImpl implements SConfiguration {
     public int getSparkResultStreamingBatchSize() {
         return sparkResultStreamingBatchSize;
     }
-    
+
+    @Override
+    public int getSparkResultStreamingThrottleMaxWait() {
+        return sparkResultStreamingThrottleMaxWait;
+    }
+
     @Override
     public int getSparkSlowResultStreamingBatches() {
         return sparkSlowResultStreamingBatches;
@@ -1123,6 +1129,7 @@ public final class SConfigurationImpl implements SConfiguration {
         sparkAccumulatorsEnabled = builder.sparkAccumulatorsEnabled;
         sparkResultStreamingBatches = builder.sparkResultStreamingBatches;
         sparkResultStreamingBatchSize = builder.sparkResultStreamingBatchSize;
+        sparkResultStreamingThrottleMaxWait = builder.sparkResultStreamingThrottleMaxWait;
         sparkSlowResultStreamingBatches = builder.sparkSlowResultStreamingBatches;
         sparkSlowResultStreamingBatchSize = builder.sparkSlowResultStreamingBatchSize;
         olapCompactionMaximumWait = builder.olapCompactionMaximumWait;
@@ -1185,9 +1192,14 @@ public final class SConfigurationImpl implements SConfiguration {
             }
             config.put(field.getName(), (value == null ? "null" : value));
         }
-        for (Map.Entry<String,String> hadoopEntry : getConfigSource().prefixMatch(null).entrySet()) {
-            String value = hadoopEntry.getValue();
-            config.put(hadoopEntry.getKey(), (value == null ? "null" : value));
+        try {
+            for (Map.Entry<String, String> hadoopEntry : getConfigSource().prefixMatch(null).entrySet()) {
+                String value = hadoopEntry.getValue();
+                config.put(hadoopEntry.getKey(), (value == null ? "null" : value));
+            }
+        } catch(sun.reflect.generics.reflectiveObjects.NotImplementedException e) {
+            // on mem platform we can't access this
+            LOG.info("can't access SConfigurationImpl.getConfigSource. Is this Mem Platform?");
         }
         return config;
     }

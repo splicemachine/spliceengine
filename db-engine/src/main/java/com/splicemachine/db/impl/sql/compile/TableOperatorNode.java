@@ -360,12 +360,8 @@ public abstract class TableOperatorNode extends FromTable{
     }
 
     public void bindExpressions(FromList fromListParam, boolean bindRightOnly) throws StandardException{
-        /*
-        ** Parameters not allowed in select list of either side of union,
-        ** except when the union is for a table constructor.
-        */
         if (!bindRightOnly) {
-            if (!(this instanceof UnionNode) || !((UnionNode) this).tableConstructor()) {
+            if (!(this instanceof UnionNode)) {
                 leftResultSet.rejectParameters();
                 rightResultSet.rejectParameters();
             }
@@ -746,6 +742,7 @@ public abstract class TableOperatorNode extends FromTable{
     protected ResultSetNode optimizeSource(Optimizer optimizer,
                                            ResultSetNode sourceResultSet,
                                            PredicateList predList,
+                                           JBitSet otherChildReferenceMap,
                                            CostEstimate outerCost) throws StandardException{
         ResultSetNode retval;
 
@@ -765,12 +762,14 @@ public abstract class TableOperatorNode extends FromTable{
             LanguageConnectionContext lcc=getLanguageConnectionContext();
             OptimizerFactory optimizerFactory=lcc.getOptimizerFactory();
             optimizer=optimizerFactory.getOptimizer(optList,
-                    predList,
-                    getDataDictionary(),
-                    null,
-                    getCompilerContext().getMaximalPossibleTableCount(),
-                    lcc);
+                                                    predList,
+                                                    getDataDictionary(),
+                                                    null,
+                                                    getCompilerContext().getMaximalPossibleTableCount(),
+                                                    lcc,
+                                                    lcc.getCostModel());
             optimizer.prepForNextRound();
+            optimizer.setAssignedTableMap(otherChildReferenceMap);
 
             if(sourceResultSet==leftResultSet){
                 leftOptimizer=optimizer;

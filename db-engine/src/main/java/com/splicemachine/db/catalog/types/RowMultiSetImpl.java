@@ -32,11 +32,17 @@
 package com.splicemachine.db.catalog.types;
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.types.ProtobufUtils;
+import com.splicemachine.db.impl.sql.CatalogMessage;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import splice.com.google.common.collect.Lists;
+
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
 import java.sql.Types;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * <p>
@@ -44,6 +50,7 @@ import java.util.Arrays;
  * in part 2, section 4.8.
  * </p>
  */
+@SuppressFBWarnings(value = "EQ_DOESNT_OVERRIDE_EQUALS",justification = "Intentional")
 public class RowMultiSetImpl extends BaseTypeIdImpl
 {
     /********************************************************
@@ -72,8 +79,8 @@ public class RowMultiSetImpl extends BaseTypeIdImpl
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-    private String[]                            _columnNames;
-    private TypeDescriptor[]    _types;
+    protected String[]                            _columnNames;
+    protected TypeDescriptor[]    _types;
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -109,7 +116,9 @@ public class RowMultiSetImpl extends BaseTypeIdImpl
         }
     }
 
-        
+    public RowMultiSetImpl(CatalogMessage.BaseTypeIdImpl baseTypeId) {
+        init(baseTypeId);
+    }
     ///////////////////////////////////////////////////////////////////////////////////
     //
     // ACCESSORS
@@ -182,15 +191,24 @@ public class RowMultiSetImpl extends BaseTypeIdImpl
     {
         return StoredFormatIds.ROW_MULTISET_TYPE_ID_IMPL;
     }
-    
-    /**
-     * <p>
-     * Read ourself from a formatable stream.
-     * </p>
-     */
-    public  void readExternal( ObjectInput in )
-        throws IOException, ClassNotFoundException
-    {
+
+
+    @Override
+    protected void init(CatalogMessage.BaseTypeIdImpl baseTypeId) {
+        super.init(baseTypeId);
+        CatalogMessage.RowMultiSetImpl rowMultiSet
+                = baseTypeId.getExtension(CatalogMessage.RowMultiSetImpl.rowMultiSetImpl);
+        int count = rowMultiSet.getTypesCount();
+        _columnNames = new String[ count ];
+        _types = new TypeDescriptor[ count ];
+        for (int i = 0; i < count; ++i) {
+            _columnNames[i] = rowMultiSet.getColumnNames(i);
+            _types[i] = ProtobufUtils.fromProtobuf(rowMultiSet.getTypes(i));
+        }
+    }
+
+    @Override
+    protected  void readExternalOld( ObjectInput in ) throws IOException, ClassNotFoundException {
         int     count = in.readInt();
 
         _columnNames = new String[ count ];
@@ -205,9 +223,8 @@ public class RowMultiSetImpl extends BaseTypeIdImpl
      * Write ourself to a formatable stream.
      * </p>
      */
-    public  void writeExternal( ObjectOutput out )
-        throws IOException
-    {
+    @Override
+    protected  void writeExternalOld( ObjectOutput out ) throws IOException {
         int     count = _columnNames.length;
 
         out.writeInt( count );
@@ -218,12 +235,22 @@ public class RowMultiSetImpl extends BaseTypeIdImpl
         for ( int i = 0; i < count; i++ ) { out.writeObject( _types[ i ] ); }
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////
-    //
-    // MINIONS
-    //
-    ///////////////////////////////////////////////////////////////////////////////////
+    @Override
+    public CatalogMessage.BaseTypeIdImpl toProtobuf() {
 
+        List<CatalogMessage.TypeDescriptorImpl> types = Lists.newArrayList();
+        for (int i = 0; i < _types.length; ++i) {
+            types.add(((TypeDescriptorImpl)_types[i]).toProtobuf());
+        }
+        CatalogMessage.RowMultiSetImpl rowMultiSet = CatalogMessage.RowMultiSetImpl.newBuilder()
+                .addAllColumnNames(Arrays.asList(_columnNames))
+                .addAllTypes(types)
+                .build();
 
-
+        CatalogMessage.BaseTypeIdImpl baseTypeId = super.toProtobuf();
+        CatalogMessage.BaseTypeIdImpl.Builder builder = CatalogMessage.BaseTypeIdImpl.newBuilder().mergeFrom(baseTypeId);
+        builder.setType(CatalogMessage.BaseTypeIdImpl.Type.RowMultiSetImpl)
+                .setExtension(CatalogMessage.RowMultiSetImpl.rowMultiSetImpl, rowMultiSet);
+        return builder.build();
+    }
 }

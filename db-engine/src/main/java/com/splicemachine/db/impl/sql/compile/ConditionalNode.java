@@ -725,8 +725,7 @@ public class ConditionalNode extends ValueNode
     /**
      * {@inheritDoc}
      */
-    protected boolean isEquivalent(ValueNode o) throws StandardException
-    {
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
         if (isSameNodeType(o))
         {
             ConditionalNode other = (ConditionalNode)o;

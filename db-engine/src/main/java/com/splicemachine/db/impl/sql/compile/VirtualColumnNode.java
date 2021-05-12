@@ -275,8 +275,7 @@ public class VirtualColumnNode extends ValueNode
      * @return    The variant type for the underlying expression.
      * @exception StandardException    thrown on error
      */
-    protected int getOrderableVariantType() throws StandardException
-    {
+    protected int getOrderableVariantType() throws StandardException {
         /*
         ** Delegate to the source column
         */
@@ -300,8 +299,7 @@ public class VirtualColumnNode extends ValueNode
     }
 
     @Override
-    protected boolean isEquivalent(ValueNode o) throws StandardException
-    {
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
         if (isSameNodeType(o)) {
             VirtualColumnNode other = (VirtualColumnNode)o;
             return sourceColumn.isEquivalent(other.sourceColumn);

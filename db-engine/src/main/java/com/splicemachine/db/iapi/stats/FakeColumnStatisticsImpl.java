@@ -14,7 +14,11 @@
 
 package com.splicemachine.db.iapi.stats;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.TypeMessage;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.ProtobufUtils;
 import org.apache.log4j.Logger;
 
 import java.io.Externalizable;
@@ -130,11 +134,23 @@ public class FakeColumnStatisticsImpl extends ColumnStatisticsImpl implements Ex
 
     @Override
     public long selectivityExcludingValueIfSkewed(DataValueDescriptor value) {
-        return totalCount;
+        return rpv;
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
+    protected void writeExternalNew(ObjectOutput out) throws IOException {
+        TypeMessage.FakeColumnStatisticsImpl columnStatistics = TypeMessage.FakeColumnStatisticsImpl.newBuilder()
+                .setDvd(dvd.toProtobuf())
+                .setTotalCount(totalCount)
+                .setNullCount(nullCount)
+                .setCardinality(cardinality)
+                .setRpv(rpv)
+                .build();
+        ArrayUtil.writeByteArray(out, columnStatistics.toByteArray());
+    }
+
+    @Override
+    protected void writeExternalOld(ObjectOutput out) throws IOException {
         out.writeObject(dvd);
         out.writeLong(totalCount);
         out.writeLong(nullCount);
@@ -143,7 +159,20 @@ public class FakeColumnStatisticsImpl extends ColumnStatisticsImpl implements Ex
     }
 
     @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+    protected void readExternalNew (ObjectInput in) throws IOException, ClassNotFoundException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ProtobufUtils.getExtensionRegistry();
+        TypeMessage.FakeColumnStatisticsImpl columnStatistics =
+                TypeMessage.FakeColumnStatisticsImpl.parseFrom(bs, extensionRegistry);
+        dvd = ProtobufUtils.fromProtobuf(columnStatistics.getDvd());
+        totalCount = columnStatistics.getTotalCount();
+        nullCount = columnStatistics.getNullCount();
+        cardinality = columnStatistics.getCardinality();
+        rpv = columnStatistics.getRpv();
+    }
+
+    @Override
+    protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
         dvd = (DataValueDescriptor)in.readObject();
         totalCount = in.readLong();
         nullCount = in.readLong();

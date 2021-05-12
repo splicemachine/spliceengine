@@ -67,7 +67,7 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
 
     @Override
     public TxnFilter unpackedFilter(TxnView txn, boolean ignoreRecentTransactions) throws IOException{
-        return new SimpleTxnFilter(tableName,txn,readResolver,txnSupplier,ignoreRecentTransactions);
+        return new SimpleTxnFilter(txn,readResolver,txnSupplier,ignoreRecentTransactions);
     }
 
     @Override

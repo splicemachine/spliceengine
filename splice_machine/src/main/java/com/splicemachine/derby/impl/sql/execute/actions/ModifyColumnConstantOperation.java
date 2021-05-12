@@ -64,7 +64,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
      * @param tableName              Name of table.
      * @param tableId                UUID of table
      * @param columnInfo             Information on all the columns in the table.
-     * @param constraintActions      ConstraintConstantAction[] for constraints
+     * @param constraintActions      ConstantAction[] for constraints
      * @param lockGranularity        The lock granularity.
      * @param behavior               drop behavior for dropping column
      * @param indexNameForStatistics Will name the index whose statistics
@@ -84,6 +84,11 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
     protected void executeConstantActionBody(Activation activation) throws StandardException {
 
         // Do all the DDL data dictionary prep work for ALTER_TABLE. This will suffice since we're doing in-place DDL changes.
+        for (ConstantAction ca : constraintActions) {
+            if (ca instanceof CreateConstraintConstantOperation) {
+                ((CreateConstraintConstantOperation) ca).prePrepareDataDictionaryActions(activation);
+            }
+        }
         prepareDataDictionary(activation);
 
         executeColumnModificationAction(activation);
@@ -1187,8 +1192,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             //    FOR EACH ROW
             //    SELECT oldt.c11 from DERBY4998_SOFT_UPGRADE_RESTRICT
 
-            SPSDescriptor sps = isWhenClause ? trd.getWhenClauseSPS(lcc, null)
-                                             : trd.getActionSPS(lcc, index, null);
+            SPSDescriptor sps = isWhenClause ? trd.getWhenClauseSPS(lcc, activation)
+                                             : trd.getActionSPS(lcc, activation, index);
             int[] referencedColsInTriggerAction = new int[td.getNumberOfColumns()];
             java.util.Arrays.fill(referencedColsInTriggerAction, -1);
             String newText = dd.getTriggerActionString(node,
@@ -1230,7 +1235,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             pa = newCC.getParser();
             StatementNode stmtnode = (StatementNode) pa.parseStatement(newText);
             // need a current dependent for bind
-            newCC.setCurrentDependent(sps.getPreparedStatement());
+            newCC.setCurrentDependent(sps.getPreparedStatement(true, lcc));
             stmtnode.bindStatement();
 
         } catch (StandardException se) {

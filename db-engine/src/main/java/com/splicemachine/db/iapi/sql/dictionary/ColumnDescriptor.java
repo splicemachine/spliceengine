@@ -179,7 +179,7 @@ public final class ColumnDescriptor extends TupleDescriptor
         this.autoincStart = autoincStart;
         this.autoincValue = autoincStart;
         this.autoincInc = autoincInc;
-        this.collectStatistics = allowsStatistics(columnType);
+        this.collectStatistics =  allowsStatistics(columnType);
         this.partitionPosition = partitionPosition;
         this.useExtrapolation = useExtrapolation;
     }
@@ -640,7 +640,7 @@ public final class ColumnDescriptor extends TupleDescriptor
 
     public static boolean allowsStatistics(DataTypeDescriptor columnType) {
         try {
-            return allowsStatistics(columnType.getNull().getTypeFormatId());
+            return columnType != null && allowsStatistics(columnType.getNull().getTypeFormatId());
         } catch (StandardException se) {
             throw new RuntimeException(se);
         }

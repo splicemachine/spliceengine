@@ -356,7 +356,7 @@ public class DataDescriptorGenerator
      * @param isEnabled    is this trigger enabled or disabled
      * @param td        the table upon which this trigger is defined
      * @param whenSPSId    the sps id for the when clause (may be null)
-     * @param actionSPSId    the spsid for the trigger action (may be null)
+     * @param actionSPSIdList    the spsids for the trigger actions (may be null)
      * @param creationTimestamp    when was this trigger created?
      * @param referencedCols    what columns does this trigger reference (may be null)
      * @param referencedColsInTriggerAction    what columns does the trigger

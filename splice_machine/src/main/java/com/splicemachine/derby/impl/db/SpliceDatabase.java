@@ -17,10 +17,12 @@ package com.splicemachine.derby.impl.db;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.AuthenticationConfiguration;
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.ast.ISpliceVisitor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.AuthenticationService;
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextManager;
@@ -32,10 +34,12 @@ import com.splicemachine.db.iapi.services.property.PropertySetCallback;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModelRegistry;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.FileInfoDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
@@ -43,12 +47,15 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.ast.*;
 import com.splicemachine.db.impl.db.BasicDatabase;
+import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
+import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.ddl.DDLMessage.DDLChange;
 import com.splicemachine.derby.ddl.*;
+import com.splicemachine.derby.impl.sql.compile.costing.V1CostModel;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -74,6 +81,7 @@ public class SpliceDatabase extends BasicDatabase{
     private static Logger LOG=Logger.getLogger(SpliceDatabase.class);
     private AtomicBoolean registered = new AtomicBoolean(false);
 
+    @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification = "intentional")
     @Override
     public void boot(boolean create,Properties startParams) throws StandardException{
         Configuration.setConfiguration(null);
@@ -104,10 +112,27 @@ public class SpliceDatabase extends BasicDatabase{
 
         configureAuthentication();
 
-        // setup authorization
-
-
         create=Boolean.TRUE.equals(EngineLifecycleService.isCreate.get()); //written like this to avoid autoboxing
+
+        if (!create) {
+            String catalogVersion = startParams.getProperty("catalogVersion");
+            if (catalogVersion == null) {
+                BaseDataDictionary.WRITE_NEW_FORMAT = false;
+                BaseDataDictionary.READ_NEW_FORMAT = false;
+            }
+            else {
+                String s[] = catalogVersion.split("\\.");
+                if (s.length > 3) {
+                    int sprintNumber = Integer.parseInt(s[3]);
+                    if (sprintNumber < BaseDataDictionary.SERDE_UPGRADE_SPRINT) {
+                        BaseDataDictionary.WRITE_NEW_FORMAT = false;
+                        BaseDataDictionary.READ_NEW_FORMAT = false;
+                    }
+                }
+            }
+        }
+
+        CostModelRegistry.registerCostModel("v1", new V1CostModel());
 
         if(create){
             SpliceLogUtils.info(LOG,"Creating the Splice Machine database");
@@ -131,8 +156,9 @@ public class SpliceDatabase extends BasicDatabase{
         afterOptVisitors.add(LimitOffsetVisitor.class);
         afterOptVisitors.add(PlanPrinter.class);
 
-        List<Class<? extends ISpliceVisitor>> afterBindVisitors=new ArrayList<>(1);
+        List<Class<? extends ISpliceVisitor>> afterBindVisitors=new ArrayList<>(2);
         afterBindVisitors.add(RepeatedPredicateVisitor.class);
+        afterBindVisitors.add(QueryRewriteVisitor.class);
 
         List<Class<? extends ISpliceVisitor>> afterParseClasses=Collections.emptyList();
         lctx.setASTVisitor(new SpliceASTWalker(afterParseClasses, afterBindVisitors, afterOptVisitors));
@@ -169,13 +195,18 @@ public class SpliceDatabase extends BasicDatabase{
                                                                        SparkExecutionType sparkExecutionType, boolean skipStats,
                                                                        double defaultSelectivityFactor,
                                                                        String ipAddress,
+                                                                       ManagedCache<UUID, SPSDescriptor> spsCache,
+                                                                       List<String> defaultRoles,
+                                                                       SchemaDescriptor initialDefaultSchemaDescriptor,
+                                                                       long driverTxnId,
                                                                        TransactionController reuseTC) throws StandardException{
         TransactionController tc = reuseTC == null ? ((SpliceAccessManager)af).marshallTransaction(cm,txn) : reuseTC;
         cm.setLocaleFinder(this);
         pushDbContext(cm);
         LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,
                 groupuserlist,drdaID,dbname,rdbIntTkn,type, sparkExecutionType, skipStats, defaultSelectivityFactor,
-                ipAddress, null, null);
+                ipAddress, null,
+                spsCache, defaultRoles, initialDefaultSchemaDescriptor, driverTxnId, null);
 
         pushClassFactoryContext(cm,lcf.getClassFactory());
         ExecutionFactory ef=lcf.getExecutionFactory();
@@ -203,7 +234,7 @@ public class SpliceDatabase extends BasicDatabase{
     protected void configureAuthentication(){
         SConfiguration configuration =SIDriver.driver().getConfiguration();
         if(configuration.authenticationNativeCreateCredentialsDatabase()) {
-            System.setProperty(Property.AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE,Boolean.toString(true));
+            System.setProperty(PropertyHelper.AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE,Boolean.toString(true));
         }
 
         String authTypeString=configuration.getAuthentication();
@@ -226,6 +257,9 @@ public class SpliceDatabase extends BasicDatabase{
             case CUSTOM:
                 configureCustomAuth(configuration);
                 break;
+            case TOKEN:
+                configureTokenAuth(configuration);
+                break;
             default:// Default is Native with warning:
                 configureNative(configuration,true);
         }
@@ -246,7 +280,14 @@ public class SpliceDatabase extends BasicDatabase{
         System.setProperty("derby.connection.requireAuthentication","true");
         System.setProperty("derby.database.sqlAuthorization","true");
         SpliceLogUtils.info(LOG,"using Kerberos to authorize Splice Machine");
-        System.setProperty("derby.authentication.provider", Property.AUTHENTICATION_PROVIDER_KERBEROS);
+        System.setProperty("derby.authentication.provider", PropertyHelper.AUTHENTICATION_PROVIDER_KERBEROS);
+    }
+
+    private void configureTokenAuth(SConfiguration config){
+        System.setProperty("derby.connection.requireAuthentication","true");
+        System.setProperty("derby.database.sqlAuthorization","true");
+        SpliceLogUtils.info(LOG,"using Token to authorize Splice Machine");
+        System.setProperty("derby.authentication.provider", Property.AUTHENTICATION_PROVIDER_JWT_TOKEN);
     }
 
     private void configureLDAPAuth(SConfiguration config){
@@ -263,7 +304,7 @@ public class SpliceDatabase extends BasicDatabase{
                 authenticationLDAPSearchAuthDN,
                 authenticationLDAPSearchBase,
                 authenticationLDAPSearchFilter);
-        System.setProperty("derby.authentication.provider", Property.AUTHENTICATION_PROVIDER_LDAP);
+        System.setProperty("derby.authentication.provider", PropertyHelper.AUTHENTICATION_PROVIDER_LDAP);
         System.setProperty("derby.authentication.ldap.searchAuthDN",authenticationLDAPSearchAuthDN);
         System.setProperty("derby.authentication.ldap.searchAuthPW",authenticationLDAPSearchAuthPW);
         System.setProperty("derby.authentication.ldap.searchBase",authenticationLDAPSearchBase);
@@ -433,6 +474,9 @@ public class SpliceDatabase extends BasicDatabase{
                         break;
                     case CREATE_ALIAS:
                     case CREATE_VIEW:
+                        break;
+                    case LEAVE_RESTORE_MODE:
+                        DDLUtils.preLeaveRestore(change, dataDictionary);
                         break;
                     case ADD_FOREIGN_KEY: // fallthrough, this is necessary since the parent of the foreign key now has one extra child!
                     case DROP_FOREIGN_KEY:

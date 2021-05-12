@@ -15,6 +15,13 @@
 package com.splicemachine.storage;
 
 import com.splicemachine.access.util.ByteComparisons;
+import com.splicemachine.si.api.filter.TxnFilter;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnStore;
+import com.splicemachine.si.api.txn.TxnSupplier;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.server.ConflictRollForward;
 import splice.com.google.common.base.Predicate;
 import splice.com.google.common.collect.BiMap;
 import splice.com.google.common.collect.HashBiMap;
@@ -48,7 +55,6 @@ public class MPartition implements Partition{
     private final String partitionName;
     private final String tableName;
     private final PartitionServer owner;
-
     private final ConcurrentSkipListSet<DataCell> memstore=new ConcurrentSkipListSet<>();
     private final BiMap<ByteBuffer, Lock> lockMap=HashBiMap.create();
     private AtomicLong writes=new AtomicLong(0l);
@@ -100,7 +106,13 @@ public class MPartition implements Partition{
             }
         });
         long curSeq = sequenceGen.get();
-        try(SetScanner ss=new SetScanner(curSeq,data.iterator(),get.lowTimestamp(),get.highTimestamp(),get.filter(),this,Metrics.noOpMetricFactory())){
+        DataFilter dataFilter = get.filter();
+        TxnFilter txnFilter = null;
+        if (dataFilter instanceof TxnFilter) {
+            txnFilter = (TxnFilter) dataFilter;
+            dataFilter = null;
+        }
+        try(SetScanner ss=new SetScanner(curSeq,data.iterator(),get.lowTimestamp(),get.highTimestamp(),dataFilter,this,Metrics.noOpMetricFactory())){
             List<DataCell> toReturn=ss.next(-1);
             if(toReturn.size()<=0) return null;
 
@@ -109,6 +121,14 @@ public class MPartition implements Partition{
             if(previous==null)
                 previous=new MResult();
             assert previous instanceof MResult:"Incorrect result type!";
+            if (txnFilter != null) {
+                for (DataCell cell : toReturn) {
+                    txnFilter.filterCell(cell);
+                }
+                DataCell result = txnFilter.produceAccumulatedResult();
+                if (result == null) return null;
+                toReturn = Arrays.asList(result);
+            }
             ((MResult)previous).set(toReturn);
 
             return previous;
@@ -271,7 +291,8 @@ public class MPartition implements Partition{
     }
 
     @Override
-    public DataResult getLatest(byte[] key,DataResult previous) throws IOException{
+    public DataResult getLatest(byte[] key,DataResult previous, Object obj) throws IOException{
+
         DataCell s=new MCell(key,new byte[]{},new byte[]{},Long.MAX_VALUE,new byte[]{},CellType.USER_DATA);
         DataCell e=new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.FK_COUNTER_COLUMN_BYTES,0l,new byte[]{},CellType.USER_DATA);
 
@@ -279,6 +300,15 @@ public class MPartition implements Partition{
         List<DataCell> results=new ArrayList<>(dataCells.size());
         DataCell lastResult=null;
         for(DataCell dc : dataCells){
+            long version = dc.version();
+            if (obj != null) {
+                assert obj instanceof ConflictRollForward;
+                TxnSupplier txnSupplier = ((ConflictRollForward)obj).getTxnSupplier();
+                TxnView txn = txnSupplier.getTransaction(version);
+                if (txn != null && txn.getEffectiveState() == Txn.State.ROLLEDBACK) {
+                    continue;
+                }
+            }
             if(lastResult==null){
                 results.add(dc);
                 lastResult=dc;

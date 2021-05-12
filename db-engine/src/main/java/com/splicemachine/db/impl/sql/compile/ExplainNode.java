@@ -38,8 +38,10 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -64,6 +66,9 @@ public class ExplainNode extends DMLStatementNode {
 
     private final List<SQLVarchar> noStatsTables  = new ArrayList<>();
     private final List<SQLVarchar> noStatsColumns = new ArrayList<>();
+    private boolean rootOptimized = false;
+    private int explainedStatementStart = -1;
+    private int explainedStatementEnd = -1;
 
     public enum SparkExplainKind {
         NONE("none"),
@@ -88,6 +93,10 @@ public class ExplainNode extends DMLStatementNode {
         }
     }
 
+    public boolean isSparkExplain() {
+        return sparkExplainKind != SparkExplainKind.NONE;
+    }
+
     int activationKind() { return StatementNode.NEED_NOTHING_ACTIVATION; }
 
     public String statementToString() { return "Explain"; }
@@ -95,9 +104,23 @@ public class ExplainNode extends DMLStatementNode {
     public void init(Object statementNode,
                      Object sparkExplainKind,
                      Object showNoStatsObjects) {
+        init(statementNode, sparkExplainKind, showNoStatsObjects, null, null);
+    }
+
+    public void init(Object statementNode,
+                     Object sparkExplainKind,
+                     Object showNoStatsObjects,
+                     Object start,
+                     Object end) {
         node = (StatementNode)statementNode;
         this.sparkExplainKind = (SparkExplainKind)sparkExplainKind;
         this.showNoStatsObjects = (Boolean)showNoStatsObjects;
+        if(start != null) {
+            explainedStatementStart = (int)start;
+        }
+        if(end != null) {
+            explainedStatementEnd = (int)end;
+        }
     }
 
     /**
@@ -109,12 +132,20 @@ public class ExplainNode extends DMLStatementNode {
         return node;
     }
 
+    public void setOptimizedPlanRoot(StatementNode node) {
+        this.node = node;
+        rootOptimized = true;
+    }
+
     @Override
     public void optimizeStatement() throws StandardException {
         if (sparkExplainKind != SparkExplainKind.NONE) {
             getCompilerContext().setDataSetProcessorType(DataSetProcessorType.FORCED_OLAP);
         }
-        node.optimizeStatement();
+
+        if(!rootOptimized) {
+            node.optimizeStatement();
+        }
 
         // collect tables and columns that are missing statistics only for splice explain
         // showNoStatsObjects == false for all kinds of spark explain
@@ -125,7 +156,17 @@ public class ExplainNode extends DMLStatementNode {
 
     @Override
     public void bindStatement() throws StandardException {
-        node.bindStatement();
+        if(!rootOptimized) {
+            node.bindStatement();
+        } else {
+            CompilerContext cc = getCompilerContext();
+            CollectNodesVisitor cnv = new CollectNodesVisitor(FromBaseTable.class);
+            node.accept(cnv);
+            for (Object elem : cnv.getList()) {
+                FromBaseTable fbt = (FromBaseTable) elem;
+                cc.createDependency(fbt.getTableDescriptor());
+            }
+        }
     }
 
     @Override
@@ -234,5 +275,13 @@ public class ExplainNode extends DMLStatementNode {
         for (String columnName : noStatsColumnSet) {
             noStatsColumns.add(new SQLVarchar(columnName));
         }
+    }
+
+    public int getExplainedStatementStart() {
+        return explainedStatementStart;
+    }
+
+    public int getExplainedStatementEnd() {
+        return explainedStatementEnd;
     }
 }

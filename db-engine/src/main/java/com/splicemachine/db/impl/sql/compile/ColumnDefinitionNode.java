@@ -50,6 +50,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
+import com.splicemachine.db.impl.sql.execute.SPSProperty;
 
 import java.sql.Types;
 import java.util.Vector;
@@ -556,6 +557,12 @@ public class ColumnDefinitionNode extends TableElementNode
     void validateDefault(DataDictionary dd, TableDescriptor td)
         throws StandardException
     {
+        if(defaultValue != null && defaultValue.isNull() && type != null && !type.isNullable()) {
+            throw StandardException.newException(
+                    SQLState.LANG_DB2_INVALID_DEFAULT_VALUE,
+                    this.name);
+        }
+
         if (defaultNode == null) {
             if (defaultValue != null) {
                 // Empty default case
@@ -656,7 +663,7 @@ public class ColumnDefinitionNode extends TableElementNode
             if (SanityManager.DEBUG)
             {
                 /* Save the APL off in the constraint node */
-                if (!apl.isEmpty())
+                if (!apl.isEmpty() && apl.values().stream().anyMatch(p -> !(p instanceof SPSProperty)))
                 {
 
                     SanityManager.THROWASSERT("DEFAULT clause has unexpected dependencies");

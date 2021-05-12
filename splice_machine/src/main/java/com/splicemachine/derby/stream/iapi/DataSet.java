@@ -139,7 +139,15 @@ public interface DataSet<V> extends //Iterable<V>,
      *
      * @return
      */
-    DataSet<V> distinct(OperationContext context);
+    DataSet<V> distinct(OperationContext context) throws StandardException;
+
+    /**
+     *
+     * Return at most numRows elements of the dataset.
+     *
+     * @return
+     */
+    DataSet<V> limit(int numRows, OperationContext context);
 
     /**
      *
@@ -153,7 +161,7 @@ public interface DataSet<V> extends //Iterable<V>,
      * @param scopeDetail
      * @return
      */
-    DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail);
+    DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) throws StandardException;
 
     /**
      *
@@ -296,20 +304,18 @@ public interface DataSet<V> extends //Iterable<V>,
      *
      * Write Parquet File to the Hadoop Filesystem compliant location.
      *
-     * @param dsp
      * @param partitionBy
      * @param location
      * @param context
      * @return
      */
-    DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp, int[] partitionBy, String location, String compression,
-                                         OperationContext context) throws StandardException;
+    DataSet<ExecRow> writeParquetFile(int[] partitionBy, String location, String compression,
+                                      OperationContext context) throws StandardException;
 
     /**
      *
      * Write Avro File to the Hadoop Filesystem compliant location.
      *
-     * @param dsp
      * @param partitionBy
      * @param location
      * @param context
@@ -323,14 +329,13 @@ public interface DataSet<V> extends //Iterable<V>,
      *
      * Write ORC file to the Hadoop compliant location.
      *
-     * @param baseColumnMap
      * @param partitionBy
      * @param location
      * @param context
      * @return
      */
-    DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location, String compression,
-                                     OperationContext context) throws StandardException;
+    DataSet<ExecRow> writeORCFile(int[] partitionBy, String location, String compression,
+                                  OperationContext context) throws StandardException;
 
     /**
      *

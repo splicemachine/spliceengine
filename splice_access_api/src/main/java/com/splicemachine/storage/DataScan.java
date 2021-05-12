@@ -65,4 +65,5 @@ public interface DataScan extends Attributable{
     // Currently not supported on the mem platform, where attempting to add this
     // filter will throw an IOException.
     void addRowkeyRangesFilter(List<Pair<byte[],byte[]>> rowkeyPairs) throws IOException;
+
 }

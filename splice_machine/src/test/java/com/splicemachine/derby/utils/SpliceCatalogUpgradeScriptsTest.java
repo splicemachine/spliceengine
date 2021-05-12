@@ -14,24 +14,16 @@ public class SpliceCatalogUpgradeScriptsTest {
     String s1 =
             "VERSION2.1938: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForTriggerWhenClause\n" +
             "VERSION2.1940: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForReplicationSystemTables\n" +
-            "VERSION2.1941: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForTableColumnViewInSYSIBM\n" +
-            "VERSION2.1948: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForAddDefaultToColumnViewInSYSIBM\n" +
             "VERSION2.1953: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForRemoveUnusedIndexInSYSFILESTable\n" +
             "VERSION2.1959: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForTriggerMultipleStatements\n" +
-            "VERSION2.1962: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForAddDefaultToColumnViewInSYSVW\n" +
-            "VERSION2.1964: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForAliasToTableView\n" +
-            "VERSION2.1970: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForAddTablesAndViewsInSYSIBMADM\n" +
             "VERSION2.1971: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddCatalogVersion\n" +
             "VERSION2.1974: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddMinRetentionPeriodColumnToSYSTABLES\n" +
-            "VERSION2.1977: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddSysKeyColUseViewInSYSIBM\n" +
             "VERSION3.1979: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToSetJavaClassNameColumnInSYSALIASES\n" +
-            "VERSION4.1983: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddBaseTableSchemaColumnsToSysTablesInSYSIBM\n" +
             "VERSION4.1985: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddSysNaturalNumbersTable\n";
 
     String s2 = "VERSION4.1989: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddIndexColUseViewInSYSCAT\n" +
             "VERSION4.1992: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForTablePriorities\n" +
-            "VERSION4.1993: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddSysIndexesViewInSYSIBMAndUpdateIndexColUseViewInSYSCAT\n" +
-            "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddReferencesViewInSYSCAT\n";
+            "VERSION4.2003: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeStoredObjects\n";
 
     // see DB-11296, UpgradeConglomerateTable must run before other upgrade scripts
     String s3 = "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeConglomerateTable\n";
@@ -108,7 +100,7 @@ public class SpliceCatalogUpgradeScriptsTest {
         Assert.assertEquals( 0, SpliceCatalogUpgradeScripts.getScriptsToUpgrade(list,
                 new Splice_DD_Version(null, 4,0,0, 0)).size() );
 
-        SpliceCatalogUpgradeScripts.runAllScripts(list);
+        SpliceCatalogUpgradeScripts.runAllScripts(list, null, null);
         Assert.assertEquals(4, counter[0]);
     }
 

@@ -304,7 +304,8 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
         // push a database shutdown context
         // we also need to push a language connection context.
         LanguageConnectionContext lctx = lcf.newLanguageConnectionContext(cm, tc, lf, this, user, groupuserlist, drdaID, dbname,
-                rdbIntTkn, type, sparkExecutionType, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
+                rdbIntTkn, type, sparkExecutionType, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema,
+                null, null, null, -1, sessionProperties);
 
         // push the context that defines our class factory
         pushClassFactoryContext(cm, lcf.getClassFactory());
@@ -509,6 +510,10 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 
         TransactionController tc = af.getTransaction(
                 ContextService.getFactory().getCurrentContextManager());
+
+        // If a pre-2003 build failed to upgraded to a post-2003 build, property conglomerate may be in an
+        // inconsistent state. Restore it before trying to retrieve database properties.
+        tc.recoverPropertyConglomerateIfNecessary();
 
         String  upgradeID = null;
         UUID    databaseID;

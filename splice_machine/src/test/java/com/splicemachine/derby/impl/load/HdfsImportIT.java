@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.derby.impl.sql.execute.operations.export.ExportBuilder;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
@@ -178,9 +179,9 @@ public class HdfsImportIT extends SpliceUnitTest {
             "c3 long varchar for bit data not null default, c4 char for bit data not null default, primary key(c1))");
 
 
-    private static SpliceTableWatcher  multiLine = new SpliceTableWatcher("mytable",spliceSchemaWatcher.schemaName,
+    private static SpliceTableWatcher multiLine = new SpliceTableWatcher("mytable", spliceSchemaWatcher.schemaName,
             "(a int, b char(10),c timestamp, d varchar(100),e bigint)");
-    private static SpliceTableWatcher  multiPK = new SpliceTableWatcher("withpk",spliceSchemaWatcher.schemaName,
+    private static SpliceTableWatcher multiPK = new SpliceTableWatcher("withpk", spliceSchemaWatcher.schemaName,
             "(a int primary key)");
 
     protected static SpliceTableWatcher cacheNPEtest = new SpliceTableWatcher("cacheNPEtest", spliceSchemaWatcher
@@ -294,7 +295,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                 .withIndex("CREATE INDEX cust_idx ON hdfsimportit.customers(email)")
                 .create();
 
-        setPreserveLineEndings(conn,false);
+        setPreserveLineEndings(conn, false);
     }
 
     private static File BADDIR;
@@ -324,7 +325,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 
     @Test
     public void testImportMultiLineFilesInDirectory() throws Exception {
-        try(PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+        try (PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
                         "'%s'," +  // schema name
                         "'%s'," +  // table name
                         "null," +  // insert column list
@@ -338,21 +339,21 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "'%s'," +  // bad record dir
                         "'false'," +  // has one line records
                         "null)",   // char set
-                spliceSchemaWatcher.schemaName,multiLine.tableName, getResourceDirectory()+"/multiLineDirectory",
-                BADDIR.getCanonicalPath()))){
+                spliceSchemaWatcher.schemaName, multiLine.tableName, getResourceDirectory() + "/multiLineDirectory",
+                BADDIR.getCanonicalPath()))) {
             ps.execute();
         }
-        try(ResultSet rs = methodWatcher.executeQuery("select count(*) from "+multiLine)){
-            Assert.assertTrue("Did not return a row!",rs.next());
+        try (ResultSet rs = methodWatcher.executeQuery("select count(*) from " + multiLine)) {
+            Assert.assertTrue("Did not return a row!", rs.next());
             long c = rs.getLong(1);
-            Assert.assertEquals("Incorrect row count!",16,c);
-            Assert.assertFalse("Returned too many rows!",rs.next());
+            Assert.assertEquals("Incorrect row count!", 16, c);
+            Assert.assertFalse("Returned too many rows!", rs.next());
         }
     }
 
     @Test
     public void testImportMultiFilesPKViolations() throws Exception {
-        try(PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+        try (PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
                         "'%s'," +  // schema name
                         "'%s'," +  // table name
                         "null," +  // insert column list
@@ -366,8 +367,8 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "'%s'," +  // bad record dir
                         "'true'," +  // has one line records
                         "null)",   // char set
-                spliceSchemaWatcher.schemaName,multiPK.tableName, getResourceDirectory()+"/multiFilePKViolation",
-                BADDIR.getCanonicalPath()))){
+                spliceSchemaWatcher.schemaName, multiPK.tableName, getResourceDirectory() + "/multiFilePKViolation",
+                BADDIR.getCanonicalPath()))) {
             try (ResultSet rs = ps.executeQuery()) {
                 assertTrue(rs.next());
 
@@ -376,19 +377,19 @@ public class HdfsImportIT extends SpliceUnitTest {
 
                 boolean exists = existsBadFile(BADDIR, "multiFilePKViolation.bad");
                 List<String> badFiles = getAllBadFiles(BADDIR, "multiFilePKViolation.bad");
-                assertTrue("Bad file " +badFiles+" does not exist.",exists);
+                assertTrue("Bad file " + badFiles + " does not exist.", exists);
                 List<String> badLines = new ArrayList<>();
-                for(String badFile : badFiles) {
+                for (String badFile : badFiles) {
                     badLines.addAll(Files.readAllLines((new File(BADDIR, badFile)).toPath(), Charset.defaultCharset()));
                 }
-                assertEquals("Expected some lines in bad files "+badFiles, 4, badLines.size());
+                assertEquals("Expected some lines in bad files " + badFiles, 4, badLines.size());
             }
         }
-        try(ResultSet rs = methodWatcher.executeQuery("select count(*) from "+multiPK)){
-            Assert.assertTrue("Did not return a row!",rs.next());
+        try (ResultSet rs = methodWatcher.executeQuery("select count(*) from " + multiPK)) {
+            Assert.assertTrue("Did not return a row!", rs.next());
             long c = rs.getLong(1);
-            Assert.assertEquals("Incorrect row count!",9,c);
-            Assert.assertFalse("Returned too many rows!",rs.next());
+            Assert.assertEquals("Incorrect row count!", 9, c);
+            Assert.assertFalse("Returned too many rows!", rs.next());
         }
     }
 
@@ -411,8 +412,8 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "'%s'," +  // bad record dir
                         "null," +  // has one line records
                         "null)",   // char set
-                schemaName,            tableName, colList,
-                location,              badRecordsAllowed,
+                schemaName, tableName, colList,
+                location, badRecordsAllowed,
                 BADDIR.getCanonicalPath()));
 
 
@@ -437,18 +438,18 @@ public class HdfsImportIT extends SpliceUnitTest {
     // checks count at the end
     private void testNewImport(String schemaName, String tableName, String location, String colList, String badDir,
                                int failErrorCount, int importCount) throws Exception {
-       testNewImport(schemaName, tableName, location, colList, badDir, "null",failErrorCount, importCount);
+        testNewImport(schemaName, tableName, location, colList, badDir, "null", failErrorCount, importCount);
     }
 
     private void testNewImport(String schemaName, String tableName, String location, String colList, String badDir,
-                               String multiLineRecords,int failErrorCount, int importCount) throws Exception {
+                               String multiLineRecords, int failErrorCount, int importCount) throws Exception {
         methodWatcher.executeUpdate("delete from " + schemaName + "." + tableName);
-        String  sqlFormat="call SYSCS_UTIL.IMPORT_DATA('%s','%s',%s,'%s',',',null,null,null,null,%d,'%s','%s',null)";
+        String sqlFormat = "call SYSCS_UTIL.IMPORT_DATA('%s','%s',%s,'%s',',',null,null,null,null,%d,'%s','%s',null)";
         String sql;
-        if(colList!=null){
-            sql = String.format(sqlFormat,schemaName, tableName, "'"+colList+"'", location, failErrorCount, badDir,multiLineRecords);
-        }else{
-            sql = String.format(sqlFormat,schemaName, tableName,"null", location, failErrorCount, badDir,multiLineRecords);
+        if (colList != null) {
+            sql = String.format(sqlFormat, schemaName, tableName, "'" + colList + "'", location, failErrorCount, badDir, multiLineRecords);
+        } else {
+            sql = String.format(sqlFormat, schemaName, tableName, "null", location, failErrorCount, badDir, multiLineRecords);
         }
 
         PreparedStatement ps = methodWatcher.prepareStatement(sql);
@@ -561,7 +562,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "null," +  // has one line records
                         "null)",   // char set
                 spliceSchemaWatcher.schemaName, TABLE_5,
-                csvLocation,                    0,
+                csvLocation, 0,
                 BADDIR.getCanonicalPath()));
         ps.execute();
         ResultSet rs = methodWatcher.executeQuery(format("select i, j from %s.%s order by i", spliceSchemaWatcher
@@ -598,7 +599,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "null," +  // has one line records
                         "null)",   // char set
                 spliceSchemaWatcher.schemaName, TABLE_24,
-                csvLocation,                    2,
+                csvLocation, 2,
                 BADDIR.getCanonicalPath());
         PreparedStatement ps = methodWatcher.prepareStatement(importStmt);
         ResultSet rs = ps.executeQuery();
@@ -619,7 +620,7 @@ public class HdfsImportIT extends SpliceUnitTest {
         String sql = format("select '-' || c1 || '-', '- '|| c2 || '-' from %s.%s order by c1", spliceSchemaWatcher
                 .schemaName, TABLE_24);
         rs = methodWatcher.executeQuery(sql);
-        assertEquals("\n"+sql+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
@@ -642,7 +643,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "false," +  // has one line records
                         "null)",   // char set
                 spliceSchemaWatcher.schemaName, TABLE_25,
-                csvLocation,                    2,
+                csvLocation, 2,
                 BADDIR.getCanonicalPath());
         PreparedStatement ps = methodWatcher.prepareStatement(importStmt);
         ResultSet rs = ps.executeQuery();
@@ -667,7 +668,7 @@ public class HdfsImportIT extends SpliceUnitTest {
         String sql = format("select '-' || c1 || '-', '- '|| c2 || '-' from %s.%s order by c1", spliceSchemaWatcher
                 .schemaName, TABLE_25);
         rs = methodWatcher.executeQuery(sql);
-        assertEquals("\n"+sql+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
@@ -690,7 +691,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "false," +  // has one line records
                         "null)",   // char set
                 spliceSchemaWatcher.schemaName, TABLE_26,
-                csvLocation,                    2,
+                csvLocation, 2,
                 BADDIR.getCanonicalPath());
         PreparedStatement ps = methodWatcher.prepareStatement(importStmt);
         ResultSet rs = ps.executeQuery();
@@ -711,7 +712,7 @@ public class HdfsImportIT extends SpliceUnitTest {
         String sql = format("select  c1 , '-'|| substr(c2,830,20) || '-' from %s.%s order by c1", spliceSchemaWatcher
                 .schemaName, TABLE_26);
         rs = methodWatcher.executeQuery(sql);
-        assertEquals("\n"+sql+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
@@ -725,8 +726,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 
         Connection conn = methodWatcher.getOrCreateConnection();
         conn.createStatement().executeUpdate(
-            format("create table %s ",spliceSchemaWatcher.schemaName+"."+tableName)+
-                "(firstc int primary key, secondc char(30), thirdc int, fourthc double)");
+                format("create table %s ", spliceSchemaWatcher.schemaName + "." + tableName) +
+                        "(firstc int primary key, secondc char(30), thirdc int, fourthc double)");
         String csvLocation = getResourceDirectory() + "pipeSeparator.csv";
 
         PreparedStatement ps = conn.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
@@ -744,17 +745,17 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "false," +  // has one line records
                         "null)",   // char set
                 spliceSchemaWatcher.schemaName, tableName,
-                csvLocation,0, BADDIR.getCanonicalPath()));
+                csvLocation, 0, BADDIR.getCanonicalPath()));
         try {
             ps.execute();
             fail("Expected exception, column and char delims are same.");
         } catch (SQLException e) {
-            assertEquals("Expected different SQLState for column delim matching char delim", "XIE0F",e.getSQLState());
+            assertEquals("Expected different SQLState for column delim matching char delim", "XIE0F", e.getSQLState());
         }
         // assert we can still use connection
         // if we can query w/o exception, we're good
         conn.createStatement().executeQuery(String.format("select * from %s.%s",
-                                                          spliceSchemaWatcher.schemaName, tableName));
+                spliceSchemaWatcher.schemaName, tableName));
     }
 
 
@@ -764,15 +765,15 @@ public class HdfsImportIT extends SpliceUnitTest {
     @Test
     public void testFailedImportNullBadDir() throws Exception {
         // DB-5017: When bad record dir is null or empty, the input file dir becomes the bad record dir
-        String inputFileName =  "constraintViolation.csv";
-        String inputFileOrigin = getResourceDirectory() +inputFileName;
+        String inputFileName = "constraintViolation.csv";
+        String inputFileOrigin = getResourceDirectory() + inputFileName;
         // copy the given input file under a temp folder so that it will get cleaned up
         // this used to go under the "target/test-classes" folder but doesn't work when we execute test from
         // a different location.
         File newImportFile = tempFolder.newFile(inputFileName);
         FileUtils.copyFile(new File(inputFileOrigin), newImportFile);
-        assertTrue("Import file copy failed: "+newImportFile.getCanonicalPath(), newImportFile.exists());
-        String badFileName = newImportFile.getParent()+"/" +inputFileName+".bad";
+        assertTrue("Import file copy failed: " + newImportFile.getCanonicalPath(), newImportFile.exists());
+        String badFileName = newImportFile.getParent() + "/" + inputFileName + ".bad";
 
         PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
                         "'%s'," +  // schema name
@@ -794,10 +795,10 @@ public class HdfsImportIT extends SpliceUnitTest {
             ps.execute();
             fail("Too many bad records.");
         } catch (SQLException e) {
-            assertEquals("Expected too many bad records, but got: "+e.getLocalizedMessage(), "SE009", e.getSQLState());
+            assertEquals("Expected too many bad records, but got: " + e.getLocalizedMessage(), "SE009", e.getSQLState());
         }
-        boolean exists = existsBadFile(new File(newImportFile.getParent()), inputFileName+".bad");
-        assertTrue("Bad file " +badFileName+" does not exist.", exists);
+        boolean exists = existsBadFile(new File(newImportFile.getParent()), inputFileName + ".bad");
+        assertTrue("Bad file " + badFileName + " does not exist.", exists);
     }
 
     @Test
@@ -884,7 +885,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "null)",                    // char set
                 spliceSchemaWatcher.schemaName, TABLE_9,
                 getResourceDirectory() + "iso_order_date.csv",
-                "\"",                           0,
+                "\"", 0,
                 BADDIR.getCanonicalPath()));
         ps.execute();
 
@@ -919,7 +920,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "null)",                    // char set
                 spliceSchemaWatcher.schemaName, TABLE_9,
                 getResourceDirectory() + "no_separator_datetimes.csv",
-                "\"",                           0,
+                "\"", 0,
                 BADDIR.getCanonicalPath()));
         ps.execute();
 
@@ -954,7 +955,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "null)",                    // char set
                 spliceSchemaWatcher.schemaName, TABLE_9,
                 getResourceDirectory() + "no_separator_datetimes_dst.csv",
-                "\"",                           0,
+                "\"", 0,
                 BADDIR.getCanonicalPath()));
         ps.execute();
 
@@ -966,8 +967,8 @@ public class HdfsImportIT extends SpliceUnitTest {
             assertNotNull("order_date incorrect", order_date);
             // The system may or may not be in a time zone that observes daylight savings.
             Assert.assertTrue(String.format("Unexpected timestamp value: %s", order_date.toString()),
-                                order_date.toString().equals("2012-03-11 03:05:12.123456") ||
-                                order_date.toString().equals("2012-03-11 02:05:12.123456"));
+                    order_date.toString().equals("2012-03-11 03:05:12.123456") ||
+                            order_date.toString().equals("2012-03-11 02:05:12.123456"));
             results.add(String.format("order_date:%s", order_date));
         }
         Assert.assertTrue("import failed!", results.size() == 1);
@@ -993,7 +994,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "null)",   // char set
                 spliceSchemaWatcher.schemaName, TABLE_9,
                 getResourceDirectory() + "tz_ms_order_date.csv",
-                "\"",                           0,
+                "\"", 0,
                 BADDIR.getCanonicalPath()));
 
         ps.execute();
@@ -1034,7 +1035,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "null)",   // char set
                 spliceSchemaWatcher.schemaName, TABLE_19,
                 getResourceDirectory() + "tz_micro_order_date.csv",
-                "\"",                           0,
+                "\"", 0,
                 BADDIR.getCanonicalPath()));
 
         ps.execute();
@@ -1072,7 +1073,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "null)",                    // char set
                 spliceSchemaWatcher.schemaName, TABLE_9,
                 getResourceDirectory() + "tz_order_date.cs",
-                "\"",                           0,
+                "\"", 0,
                 BADDIR.getCanonicalPath()));
 
         ps.execute();
@@ -1111,7 +1112,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "null)",                    // char set
                 spliceSchemaWatcher.schemaName, TABLE_10,
                 getResourceDirectory() + "null_field.csv",
-                "\"",                           0,
+                "\"", 0,
                 BADDIR.getCanonicalPath()));
         ps.execute();
 
@@ -1169,13 +1170,13 @@ public class HdfsImportIT extends SpliceUnitTest {
 
             results.add(String.format("%d\t%s\t%d", id, name, stateId));
         }
-        assertEquals("Wrong row count. Actual: "+results,3, results.size());
+        assertEquals("Wrong row count. Actual: " + results, 3, results.size());
     }
 
     @Test
     public void testImportTabDelimited() throws Exception {
         methodWatcher.executeUpdate(format("delete from %s.%s", spliceSchemaWatcher.schemaName, TABLE_8));
-        PreparedStatement ps = methodWatcher.prepareStatement(format( "call SYSCS_UTIL.IMPORT_DATA(" +
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
                         "'%s'," +  // schema name
                         "'%s'," +  // table name
                         "null," +  // insert column list
@@ -1191,7 +1192,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "null)",                    // char set
                 spliceSchemaWatcher.schemaName, TABLE_8,
                 getResourceDirectory() + "lu_cust_city_tab.txt",
-                "\t",                           0,
+                "\t", 0,
                 BADDIR.getCanonicalPath()));
         ps.execute();
 
@@ -1204,13 +1205,13 @@ public class HdfsImportIT extends SpliceUnitTest {
             int stateId = rs.getInt(3);
             results.add(String.format("%d\t%s\t%d", id, name, stateId));
         }
-        assertEquals("Wrong row count. Actual: "+results,3, results.size());
+        assertEquals("Wrong row count. Actual: " + results, 3, results.size());
     }
 
     @Test
     public void testImportCtrlADelimited() throws Exception {
         methodWatcher.executeUpdate(format("delete from %s.%s", spliceSchemaWatcher.schemaName, TABLE_8));
-        PreparedStatement ps = methodWatcher.prepareStatement(format( "call SYSCS_UTIL.IMPORT_DATA(" +
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
                         "'%s'," +  // schema name
                         "'%s'," +  // table name
                         "null," +  // insert column list
@@ -1226,7 +1227,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "null)",                    // char set
                 spliceSchemaWatcher.schemaName, TABLE_8,
                 getResourceDirectory() + "lu_cust_city_ctrl_A.txt",
-                "^A",                           0,
+                "^A", 0,
                 BADDIR.getCanonicalPath()));
         ps.execute();
 
@@ -1239,13 +1240,13 @@ public class HdfsImportIT extends SpliceUnitTest {
             int stateId = rs.getInt(3);
             results.add(String.format("%d\t%s\t%d", id, name, stateId));
         }
-        assertEquals("Wrong row count. Actual: "+results,3, results.size());
+        assertEquals("Wrong row count. Actual: " + results, 3, results.size());
     }
 
     @Test
     public void testImportBackspaceDelimited() throws Exception {
         methodWatcher.executeUpdate(format("delete from %s.%s", spliceSchemaWatcher.schemaName, TABLE_8));
-        PreparedStatement ps = methodWatcher.prepareStatement(format( "call SYSCS_UTIL.IMPORT_DATA(" +
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
                         "'%s'," +  // schema name
                         "'%s'," +  // table name
                         "null," +  // insert column list
@@ -1261,7 +1262,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "null)",                    // char set
                 spliceSchemaWatcher.schemaName, TABLE_8,
                 getResourceDirectory() + "lu_cust_city_backspace.txt",
-                "\b",                           0,
+                "\b", 0,
                 BADDIR.getCanonicalPath()));
         ps.execute();
 
@@ -1274,13 +1275,13 @@ public class HdfsImportIT extends SpliceUnitTest {
             int stateId = rs.getInt(3);
             results.add(String.format("%d\t%s\t%d", id, name, stateId));
         }
-        assertEquals("Wrong row count. Actual: "+results,3, results.size());
+        assertEquals("Wrong row count. Actual: " + results, 3, results.size());
     }
 
     @Test
     public void testImportFormFeedDelimited() throws Exception {
         methodWatcher.executeUpdate(format("delete from %s.%s", spliceSchemaWatcher.schemaName, TABLE_8));
-        PreparedStatement ps = methodWatcher.prepareStatement(format( "call SYSCS_UTIL.IMPORT_DATA(" +
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
                         "'%s'," +  // schema name
                         "'%s'," +  // table name
                         "null," +  // insert column list
@@ -1296,7 +1297,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "null)",                    // char set
                 spliceSchemaWatcher.schemaName, TABLE_8,
                 getResourceDirectory() + "lu_cust_city_form_feed.txt",
-                "\f",                           0,
+                "\f", 0,
                 BADDIR.getCanonicalPath()));
         ps.execute();
 
@@ -1309,7 +1310,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             int stateId = rs.getInt(3);
             results.add(String.format("%d\t%s\t%d", id, name, stateId));
         }
-        assertEquals("Wrong row count. Actual: "+results,3, results.size());
+        assertEquals("Wrong row count. Actual: " + results, 3, results.size());
     }
 
     @Test
@@ -1331,7 +1332,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "null)",                    // char set
                 spliceSchemaWatcher.schemaName, TABLE_8,
                 getResourceDirectory() + "lu_cust_city_tab.txt",
-                "\t",                           "\0",
+                "\t", "\0",
                 0,
                 BADDIR.getCanonicalPath()));
         ps.execute();
@@ -1345,7 +1346,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             int stateId = rs.getInt(3);
             results.add(String.format("%d\t%s\t%d", id, name, stateId));
         }
-        assertEquals("Wrong row count. Actual: "+results,3, results.size());
+        assertEquals("Wrong row count. Actual: " + results, 3, results.size());
     }
 
     @Test
@@ -1489,7 +1490,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             i++;
             Assert.assertNotNull("Timestamp is null", rs.getTimestamp(1));
             String ts = rs.getTimestamp(1).toString();
-            Assert.assertEquals("Microsecond error.", "287469", ts.substring(ts.lastIndexOf('.')+1));
+            Assert.assertEquals("Microsecond error.", "287469", ts.substring(ts.lastIndexOf('.') + 1));
         }
         Assert.assertEquals("10 Records not imported", 10, i);
     }
@@ -1595,7 +1596,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     public void testImportWithEmbeddedWindowsNewlinesInsideSingleQuotes() throws Exception {
         testNewlineImport(spliceSchemaWatcher.schemaName, TABLE_16, getResourceDirectory() +
                 "embedded-newlines/windows/newlines-with-single-quotes.tsv", "''", 0, BADDIR.getCanonicalPath
-                        (), "false", 3);
+                (), "false", 3);
     }
 
     /**
@@ -1689,9 +1690,9 @@ public class HdfsImportIT extends SpliceUnitTest {
                     badDirPath, 0, 1, "false");
             fail("Expected to many bad records.");
         } catch (SQLException e) {
-            assertEquals("Expected too many bad records but got: "+e.getLocalizedMessage(), "SE009", e.getSQLState());
+            assertEquals("Expected too many bad records but got: " + e.getLocalizedMessage(), "SE009", e.getSQLState());
             SpliceUnitTest.assertBadFileContainsError(new File(badDirPath), "employees.csv",
-                                                      null, "unexpected end of file while reading quoted column beginning on line 2 and ending on line 6");
+                    null, "unexpected end of file while reading quoted column beginning on line 2 and ending on line 6");
         }
     }
 
@@ -1710,14 +1711,15 @@ public class HdfsImportIT extends SpliceUnitTest {
                     badDirPath, 0, 199999, "false");
             fail("Expected to many bad records.");
         } catch (SQLException e) {
-            assertEquals("Expected too many bad records but got: "+e.getLocalizedMessage(), "SE009", e.getSQLState());
+            assertEquals("Expected too many bad records but got: " + e.getLocalizedMessage(), "SE009", e.getSQLState());
             SpliceUnitTest.assertBadFileContainsError(new File(badDirPath), "employeesMaxQuotedColumnLines.csv",
-                                                      null, "Quoted column beginning on line 3 has exceed the maximum allowed lines");
+                    null, "Quoted column beginning on line 3 has exceed the maximum allowed lines");
         }
     }
 
     //DB-3685
-    @Test @Ignore("Getting a PK violation on 2nd import. Also, no status log file: DB-3957")
+    @Test
+    @Ignore("Getting a PK violation on 2nd import. Also, no status log file: DB-3957")
     public void testImportTableWithPKAndIndex() throws Exception {
 
         methodWatcher.executeUpdate(format("delete from %s.num_dt1", spliceSchemaWatcher.schemaName));
@@ -1743,14 +1745,14 @@ public class HdfsImportIT extends SpliceUnitTest {
     // Regression test for DB-1686
     @Test
     public void testImportPaddedStringPKColumn() throws Exception {
-        String csvFile = getResourceDirectory()+"padded_string_pk.csv";
+        String csvFile = getResourceDirectory() + "padded_string_pk.csv";
         String badDirPath = BADDIR.getCanonicalPath();
         PreparedStatement ps = methodWatcher.prepareStatement(
-            format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s',',',null,null,null,null,1,'%s','true',null)",
-                spliceSchemaWatcher.schemaName, TABLE_17, csvFile, badDirPath));
+                format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s',',',null,null,null,null,1,'%s','true',null)",
+                        spliceSchemaWatcher.schemaName, TABLE_17, csvFile, badDirPath));
         ps.execute();
         List<Object[]> expected = Arrays.asList(o("fred", 100), o(" fred", 101), o("fred ", 102));
-        ResultSet rs = methodWatcher.executeQuery(format("select name, age from %s.%s order by age",spliceSchemaWatcher.schemaName,TABLE_17));
+        ResultSet rs = methodWatcher.executeQuery(format("select name, age from %s.%s order by age", spliceSchemaWatcher.schemaName, TABLE_17));
         List results = TestUtils.resultSetToArrays(rs);
         Assert.assertArrayEquals(expected.toArray(), results.toArray());
     }
@@ -1861,7 +1863,7 @@ public class HdfsImportIT extends SpliceUnitTest {
         importCharForBit(TABLE_21);
         importCharForBit(TABLE_22);
     }
-    
+
     private void importCharForBit(String table) throws Exception {
         PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
                         "'%s'," +  // schema name
@@ -1885,7 +1887,7 @@ public class HdfsImportIT extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s order by 1", table));
         String[] result = {"ab", "cd", "ef"};
         int i = 0;
-        while(rs.next()) {
+        while (rs.next()) {
             String s = rs.getString(1);
             Assert.assertEquals(result[i], rs.getString(1));
             i++;
@@ -1898,7 +1900,7 @@ public class HdfsImportIT extends SpliceUnitTest {
         td.drop(spliceSchemaWatcher.schemaName, tableName);
 
         methodWatcher.getOrCreateConnection().createStatement().executeUpdate(
-                format("create table %s ",spliceSchemaWatcher.schemaName+"."+tableName)+
+                format("create table %s ", spliceSchemaWatcher.schemaName + "." + tableName) +
                         "(EMPNO CHAR(6) NOT NULL CONSTRAINT EMP_PK PRIMARY KEY, " +
                         "SALARY DECIMAL(9,2) CONSTRAINT SAL_CK CHECK (SALARY >= 10000), " +
                         "BONUS DECIMAL(9,2),TAX DECIMAL(9,2),CONSTRAINT BONUS_CK CHECK (BONUS > TAX))");
@@ -1925,7 +1927,7 @@ public class HdfsImportIT extends SpliceUnitTest {
         try {
             ps.execute();
         } catch (SQLException e) {
-            if (! expectException) {
+            if (!expectException) {
                 throw e;
             }
         }
@@ -1946,11 +1948,11 @@ public class HdfsImportIT extends SpliceUnitTest {
 
         boolean exists = existsBadFile(BADDIR, "salary_check_constraint.csv.bad");
         String badFile = getBadFile(BADDIR, "salary_check_constraint.csv.bad");
-        assertTrue("Bad file " +badFile+" does not exist.",exists);
+        assertTrue("Bad file " + badFile + " does not exist.", exists);
         List<String> badLines = Files.readAllLines((new File(BADDIR, badFile)).toPath(), Charset.defaultCharset());
-        assertEquals("Expected 2 lines in bad file "+badFile, 2, badLines.size());
+        assertEquals("Expected 2 lines in bad file " + badFile, 2, badLines.size());
         assertContains(badLines, containsString("BONUS_CK"));
-        assertContains(badLines, containsString(spliceSchemaWatcher.schemaName+"."+tableName));
+        assertContains(badLines, containsString(spliceSchemaWatcher.schemaName + "." + tableName));
         assertContains(badLines, containsString("SAL_CK"));
     }
 
@@ -1961,7 +1963,7 @@ public class HdfsImportIT extends SpliceUnitTest {
         td.drop(spliceSchemaWatcher.schemaName, tableName);
 
         methodWatcher.getOrCreateConnection().createStatement().executeUpdate(
-                format("create table %s ",spliceSchemaWatcher.schemaName+"."+tableName)+
+                format("create table %s ", spliceSchemaWatcher.schemaName + "." + tableName) +
                         "(field1 CHAR(2) NOT NULL, field2 char(10), field3 char(10), CONSTRAINT TEST_PAI PRIMARY KEY(field1))");
 
         PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
@@ -1990,7 +1992,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 
         boolean exists = existsBadFile(BADDIR, "partial_record.csv.bad");
         String badFile = getBadFile(BADDIR, "partial_record.csv.bad");
-        assertTrue("Bad file " +badFile+" does not exist.",exists);
+        assertTrue("Bad file " + badFile + " does not exist.", exists);
 
         List<String> badLines = Files.readAllLines((new File(BADDIR, badFile)).toPath(), Charset.defaultCharset());
         assertContains(badLines, containsString("partial record found [bbb"));
@@ -2000,7 +2002,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     public void testCircumflexColumnDelimiter() throws Exception {
 
         methodWatcher.getOrCreateConnection().createStatement().executeUpdate(
-                format("create table %s ",spliceSchemaWatcher.schemaName+".TIRN_ASSIGNMENT")+
+                format("create table %s ", spliceSchemaWatcher.schemaName + ".TIRN_ASSIGNMENT") +
                         "(BATCH_DATE date default '2018-07-07', IRN decimal(9,0),\n" +
                         "GROUP_NUM decimal(9,0),\n" +
                         "GROUP_BEG_DT decimal(9, 0),\n" +
@@ -2012,7 +2014,7 @@ public class HdfsImportIT extends SpliceUnitTest {
         PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
                         "'%s'," +  // schema name
                         "'%s'," +  // table name
-                        "'IRN,GROUP_NUM,GROUP_BEG_DT,\"SYS_POSTING_DT\",GROUP_END_DT,\"GROUP_TYPE_CD\",PROCESSOR_ID',"  +  // insert column list
+                        "'IRN,GROUP_NUM,GROUP_BEG_DT,\"SYS_POSTING_DT\",GROUP_END_DT,\"GROUP_TYPE_CD\",PROCESSOR_ID'," +  // insert column list
                         "'%s'," +  // file path
                         "'^'," +   // column delimiter
                         "null," +  // character delimiter
@@ -2030,7 +2032,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 
         ps.execute();
 
-        ResultSet rs = methodWatcher.executeQuery(format("select * from %s", spliceSchemaWatcher.schemaName+".TIRN_ASSIGNMENT"));
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s", spliceSchemaWatcher.schemaName + ".TIRN_ASSIGNMENT"));
         String expected = "BATCH_DATE | IRN | GROUP_NUM |GROUP_BEG_DT |SYS_POSTING_DT |GROUP_END_DT | GROUP_TYPE_CD |PROCESSOR_ID |\n" +
                 "--------------------------------------------------------------------------------------------------------\n" +
                 "2018-07-07 |  0  | 130075934 |  20050305   |   20050325    |  99999999   |     'SE'      | 'L7M080  '  |";
@@ -2111,7 +2113,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 
         StringBuffer sb = new StringBuffer();
         try (ResultSet rs = methodWatcher.executeQuery(format("select * from %s order by 1", spliceTableWatcher27.tableName))) {
-            while(rs.next()) {
+            while (rs.next()) {
                 int c1 = rs.getInt(1);
                 String c2 = rs.getString(2);
                 String c3 = rs.getString(3);
@@ -2126,8 +2128,8 @@ public class HdfsImportIT extends SpliceUnitTest {
     }
 
     public static void setPreserveLineEndings(Connection conn, Boolean preserve) throws Exception {
-        try( Statement s = conn.createStatement()) {
-            s.executeUpdate("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( " +
+        try (Statement s = conn.createStatement()) {
+            s.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( " +
                     "'" + Property.PRESERVE_LINE_ENDINGS + "', '" + preserve + "' )");
         }
     }
@@ -2142,18 +2144,18 @@ public class HdfsImportIT extends SpliceUnitTest {
             // (otherwise needs special editor, git converting line endings etc.)
             String data =
                     "\"Hello\r\nWindows\"|1|Win\r\n" + // 0D0A = Windows
-                    "\"Hello\nUnix\"|2|unix\n" +       // 0A   = Unix
-                    "\"Hello\rMac\"|3|mac\r" +         // 0D   = Mac
-                    "\"ciao\"|4|ciao";                 // ends with EOF
+                            "\"Hello\nUnix\"|2|unix\n" +       // 0A   = Unix
+                            "\"Hello\rMac\"|3|mac\r" +         // 0D   = Mac
+                            "\"ciao\"|4|ciao";                 // ends with EOF
             Files.write(Paths.get(path), data.getBytes());
 
             List<String> configs = new ArrayList<>();
             configs.add("call SYSCS_UTIL.IMPORT_DATA('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null)");
             configs.add("call SYSCS_UTIL.LOAD_REPLACE('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null)");
-            if( !isMemPlatform(spliceClassWatcher) ) // bulk import hfile not available on MEM platform
+            if (!isMemPlatform(spliceClassWatcher)) // bulk import hfile not available on MEM platform
                 configs.add("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s', '%s', null, '%s', '|', null, null, null, null, 0, '/tmp', false, null, '/tmp', false)");
 
-            String preserveStr ="V1       |C1 | V2  |\n" +
+            String preserveStr = "V1       |C1 | V2  |\n" +
                     "--------------------------\n" +
                     "Hello\r\n" +
                     "Windows | 1 | Win |\n" +
@@ -2163,7 +2165,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                     "Mac   | 3 | mac |\n" +
                     "     ciao      | 4 |ciao |";
 
-            String noPreserveStr ="V1       |C1 | V2  |\n" +
+            String noPreserveStr = "V1       |C1 | V2  |\n" +
                     "-------------------------\n" +
                     "Hello\n" +
                     "Windows | 1 | Win |\n" +
@@ -2175,8 +2177,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 
             methodWatcher.executeUpdate("CREATE TABLE LINE_ENDINGS (v1 varchar(24), c1 INTEGER, v2 varchar(24))");
 
-            for(String config : configs) {
-                for( Boolean preserve : new Boolean[]{false, true}) {
+            for (String config : configs) {
+                for (Boolean preserve : new Boolean[]{false, true}) {
                     methodWatcher.executeUpdate("TRUNCATE TABLE LINE_ENDINGS");
                     setPreserveLineEndings(methodWatcher.getOrCreateConnection(), preserve);
                     String sql = String.format(config, spliceSchemaWatcher.schemaName, "LINE_ENDINGS", path);
@@ -2186,8 +2188,7 @@ public class HdfsImportIT extends SpliceUnitTest {
                             preserve ? preserveStr : noPreserveStr, false);
                 }
             }
-        }
-        finally {
+        } finally {
             setPreserveLineEndings(methodWatcher.getOrCreateConnection(), CompilerContext.DEFAULT_PRESERVE_LINE_ENDINGS);
             File f = new File(path);
             if (f.exists()) f.delete();
@@ -2214,4 +2215,29 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "WHERE A=c1", expected, false);
     }
 
+    @Test
+    public void testImportParquet() throws Exception {
+        if (isMemPlatform(spliceClassWatcher))
+            return; // parquet requires OLAP
+        ExportBuilder builder = new ExportBuilder()
+                .path(getResourceDirectory() + "parquet_sample_one/partition1=BBB/part-r-00001-da882b05-9234-4b0b-832f-005d0f177e18.parquet");
+        SpliceUnitTest.sqlExpectToString(methodWatcher,
+                builder.selectSpliceFileVTI("*", "a varchar(32), b varchar(32)"),
+                        "A  | B  |\n" +
+                        "----------\n" +
+                        "BBB |BBB |", true);
+    }
+
+    @Test
+    public void testImportOrc() throws Exception {
+        if (isMemPlatform(spliceClassWatcher))
+            return; // ORC requires OLAP
+        ExportBuilder builder = new ExportBuilder()
+                .path(getResourceDirectory() + "orc_partition_existing/c3=333/c1=CCC/part-00002-511e1530-b64d-4f6e-b726-1d11ff530a42.orc");
+        SpliceUnitTest.sqlExpectToString(methodWatcher,
+                builder.selectSpliceFileVTI("*", "c0 INT"),
+                "C0  |\n" +
+                        "-----\n" +
+                        "333 |", true);
+    }
 }

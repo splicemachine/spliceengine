@@ -5,12 +5,14 @@ import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test.SerialTest;
+import com.splicemachine.triggers.Trigger_Referencing_Clause_IT;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.ResultSet;
+import java.sql.SQLException;
 
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.assertFailed;
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.resultSetSize;

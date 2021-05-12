@@ -25,7 +25,9 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 import java.sql.Statement;
+import java.util.concurrent.CancellationException;
 
 import static org.junit.Assert.assertTrue;
 
@@ -43,24 +45,40 @@ import static org.junit.Assert.assertTrue;
 public class QueryTimeoutIT extends SpliceUnitTest {
     private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(QueryTimeoutIT.class.getSimpleName());
 
-    public static final SpliceTableWatcher table = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(a int, b int)");
+    public static final SpliceTableWatcher tableA = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(a int, b int)");
+
+    public static final SpliceTableWatcher tableB = new SpliceTableWatcher("B",schemaWatcher.schemaName,"(a int)");
 
     public static final SpliceWatcher classWatcher = new SpliceWatcher();
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
             .around(schemaWatcher)
-            .around(table).around(new SpliceDataWatcher() {
+            .around(tableA).around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
                     try {
                         Statement statement = classWatcher.getStatement();
-                        statement.execute("insert into "+table+" (a,b) values (1,1)");
+                        statement.execute("insert into "+tableA+" (a,b) values (1,1)");
                     }catch(Exception e){
                         throw new RuntimeException(e);
                     }
                 }
-            });
+            })
+            .around(tableB).around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    try {
+                        Statement statement = classWatcher.getStatement();
+                        statement.execute("insert into " + tableB +"  values 1,2,3,4");
+                        for (int i = 0; i < 20; ++i) {
+                            statement.execute("insert into "+ tableB +"  select * from " + tableB);
+                        }
+                    }catch(Exception e){
+                        throw new RuntimeException(e);
+                    }
+                }
+    });
 
     private static final String DERBY_JAR_NAME = schemaWatcher.schemaName + ".TESTS_PROCS_JAR";
     private static final String CALL_INSTALL_JAR_STRING = "CALL SQLJ.INSTALL_JAR('%s', '%s', 0)";
@@ -295,4 +313,34 @@ public class QueryTimeoutIT extends SpliceUnitTest {
             }
         }
     }
+
+    @Test
+    public void testSelectQueryTimeout() throws Exception {
+        testSelectQueryTimeout(false);
+        testSelectQueryTimeout(true);
+    }
+
+    private void testSelectQueryTimeout(boolean useSpark) throws Exception {
+        try (TestConnection conn = classWatcher.createConnection();
+             Statement s = conn.createStatement()) {
+            s.setQueryTimeout(1);
+
+            long start=System.currentTimeMillis();
+            ResultSet rs =
+                    s.executeQuery(String.format("select * from %s --splice-properties useSpark=%s", tableB, useSpark));
+            int count = 0;
+            while (rs.next()) {
+                count++;
+            }
+            long end = System.currentTimeMillis();
+            long time = end-start;
+            System.out.println("count = " + count);
+            Assert.fail("The query finished in " + time + " ms");
+        } catch (Exception e) {
+            String error = e.getMessage();
+            Assert.assertTrue(error.contains("CancellationException") || e instanceof SQLTimeoutException);
+        }
+    }
+
+
 }

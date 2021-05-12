@@ -1018,12 +1018,13 @@ public class SpliceTransactionManager implements XATransactionController,
      *
      * @param cd  The descriptor of the conglomerate to open.
      *
+     * @param useDb2CompatibleVarchars
      * @exception StandardException Standard exception policy.
      *
      * @see StoreCostController
      **/
     @Override
-    public StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor cd, boolean skipDictionaryStats, long defaultRowCount, int requestedSplits) throws StandardException {
+    public StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor cd, boolean skipDictionaryStats, long defaultRowCount, int requestedSplits, boolean useDb2CompatibleVarchars) throws StandardException {
         List<PartitionStatisticsDescriptor> tablePartitionStatistics = new ArrayList<>();
         List<PartitionStatisticsDescriptor> exprIndexPartitionStatistics = new ArrayList<>();
         if (!skipDictionaryStats) {
@@ -1035,7 +1036,7 @@ public class SpliceTransactionManager implements XATransactionController,
                 exprIndexPartitionStatistics = dd.getPartitionStatistics(cd.getConglomerateNumber(), this);
             }
         }
-        return new StoreCostControllerImpl(td, cd, tablePartitionStatistics, exprIndexPartitionStatistics, skipDictionaryStats?defaultRowCount:0, requestedSplits);
+        return new StoreCostControllerImpl(td, cd, tablePartitionStatistics, exprIndexPartitionStatistics, skipDictionaryStats?defaultRowCount:0, requestedSplits, useDb2CompatibleVarchars);
     }
      /**
      * @see TransactionController#getProperty
@@ -1308,11 +1309,11 @@ public class SpliceTransactionManager implements XATransactionController,
     }
 
     @Override
-    public String getCatalogVersion(long conglomerateNumber) throws StandardException {
+    public String getCatalogVersion(String conglomerate) throws StandardException {
         SIDriver driver=SIDriver.driver();
         PartitionFactory tableFactory=driver.getTableFactory();
         try (PartitionAdmin admin = tableFactory.getAdmin()) {
-            return admin.getCatalogVersion(conglomerateNumber);
+            return admin.getCatalogVersion(conglomerate);
         }
         catch (IOException e) {
             throw StandardException.plainWrapException(e);
@@ -1320,11 +1321,74 @@ public class SpliceTransactionManager implements XATransactionController,
     }
 
     @Override
-    public void setCatalogVersion(long conglomerateNumber, String version) throws StandardException {
+    public void setCatalogVersion(String conglomerate, String version) throws StandardException {
         SIDriver driver=SIDriver.driver();
         PartitionFactory tableFactory=driver.getTableFactory();
         try (PartitionAdmin admin = tableFactory.getAdmin()) {
-            admin.setCatalogVersion(conglomerateNumber, version);
+            admin.setCatalogVersion(conglomerate, version);
+        }
+        catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    @Override
+    public void truncate(String conglomerateNumber) throws StandardException {
+        SIDriver driver=SIDriver.driver();
+        PartitionFactory tableFactory=driver.getTableFactory();
+        try (PartitionAdmin admin = tableFactory.getAdmin()) {
+            admin.truncate(conglomerateNumber);
+        }
+        catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    @Override
+    public void snapshot(String snapshotName, String tableName) throws StandardException {
+        SIDriver driver=SIDriver.driver();
+        PartitionFactory tableFactory=driver.getTableFactory();
+        try (PartitionAdmin admin = tableFactory.getAdmin()) {
+            admin.snapshot(snapshotName, tableName);
+        }
+        catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    @Override
+    public Set<String> listSnapshots() throws StandardException {
+        SIDriver driver=SIDriver.driver();
+        PartitionFactory tableFactory=driver.getTableFactory();
+        try (PartitionAdmin admin = tableFactory.getAdmin()) {
+            return admin.listSnapshots();
+        }
+        catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    @Override
+    public void cloneSnapshot(String snapshotName, String tableName) throws StandardException {
+        SIDriver driver=SIDriver.driver();
+        PartitionFactory tableFactory=driver.getTableFactory();
+        try (PartitionAdmin admin = tableFactory.getAdmin()) {
+            if (admin.tableExists(tableName)) {
+                admin.deleteTable(tableName);
+            }
+            admin.cloneSnapshot(snapshotName, tableName);
+        }
+        catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    @Override
+    public void deleteSnapshot(String snapshotName) throws StandardException {
+        SIDriver driver=SIDriver.driver();
+        PartitionFactory tableFactory=driver.getTableFactory();
+        try (PartitionAdmin admin = tableFactory.getAdmin()) {
+            admin.deleteSnapshot(snapshotName);
         }
         catch (IOException e) {
             throw StandardException.plainWrapException(e);
@@ -1965,5 +2029,15 @@ public class SpliceTransactionManager implements XATransactionController,
         if(rawtran!=null)
             return getRawTransaction().getActiveStateTxn().getTxnId();
         return -1;
+    }
+
+    @Override
+    public void rewritePropertyConglomerate() throws StandardException {
+        accessmanager.getTransactionalProperties().rewritePropertyConglomerate(this);
+    }
+
+    @Override
+    public void recoverPropertyConglomerateIfNecessary() throws StandardException {
+        accessmanager.getTransactionalProperties().recoverPropertyConglomerateIfNecessary(this);
     }
 }

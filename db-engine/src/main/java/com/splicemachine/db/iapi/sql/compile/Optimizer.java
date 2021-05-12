@@ -32,7 +32,7 @@
 package com.splicemachine.db.iapi.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.AggregateCostController;
@@ -177,9 +177,8 @@ public interface Optimizer{
      *
      * @param optimizable The Optimizable
      * @param td          TableDescriptor of the Optimizable
-     * @param cd          The ConglomerateDescriptor for the conglom to cost
-     *                    (This should change to an object to represent
-     *                    access paths, but for now this is OK).
+     * @param accessPath  The AccessPath for the conglomerate to cost,
+     *                    which includes a ConglomerateDescriptor.
      * @param predList    The OptimizablePredicateList to apply
      * @param outerCost   The cost of the tables outer to the one being
      *                    optimizer - tells how many outer rows there are.
@@ -187,7 +186,7 @@ public interface Optimizer{
      */
     void costOptimizable(Optimizable optimizable,
                          TableDescriptor td,
-                         ConglomerateDescriptor cd,
+                         AccessPath accessPath,
                          OptimizablePredicateList predList,
                          CostEstimate outerCost) throws StandardException;
 
@@ -383,6 +382,10 @@ public interface Optimizer{
 
     OptimizableList getOptimizableList();
 
+    JBitSet getAssignedTableMap();
+
+    void setAssignedTableMap(JBitSet refMap);
+
     void updateBestPlanMaps(short action,Object planKey) throws StandardException;
 
     void addScopedPredicatesToList(OptimizablePredicateList predList) throws StandardException;
@@ -418,4 +421,8 @@ public interface Optimizer{
     public boolean isForSpark();
 
     int getJoinPosition();
+
+    default boolean isMemPlatform() { return false; };
+
+    CostModel getCostModel();
 }

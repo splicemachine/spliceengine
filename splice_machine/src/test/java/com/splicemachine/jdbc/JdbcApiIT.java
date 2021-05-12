@@ -37,6 +37,8 @@ public class JdbcApiIT {
     private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     protected static final SpliceTableWatcher A_TABLE = new SpliceTableWatcher("A",schemaWatcher.schemaName,
             "(a1 int)");
+    protected static final SpliceTableWatcher DEC_TABLE = new SpliceTableWatcher("\"DEC\"",schemaWatcher.schemaName,
+            "(dc1 decimal(4,2), dc2 decimal(2,0), dc3 decimal(2,2))");
 
     private static final String SCHEMA_A = CLASS_NAME + "_tom";
     private static final String SCHEMA_B = "\"" + CLASS_NAME + "_jerry\"";
@@ -55,6 +57,19 @@ public class JdbcApiIT {
                                 ps.execute();
                             }
                         }
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    } finally {
+                        spliceClassWatcher.closeAll();
+                    }
+                }
+            })
+            .around(DEC_TABLE)
+            .around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    try {
+                        spliceClassWatcher.execute("insert into \"DEC\" values (11.11, -12, -0.13)");
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -202,6 +217,54 @@ public class JdbcApiIT {
             conn.setClientInfo("ClientID", "1234");
         } catch (SQLException e) {
             assertEquals("XCY02", e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testJdbcDb2CompatibleMode() throws Exception {
+        try (Connection connection = SpliceNetConnection.newBuilder().schema(CLASS_NAME).db2CompatibleMode(true).build()) {
+            try (Statement statement = connection.createStatement()) {
+                try (ResultSet rs = statement.executeQuery("select * from \"DEC\"")) {
+                    ResultSetMetaData rsmd = rs.getMetaData();
+                    int[] expectedDisplaySize = {6, 4, 4};
+                    String[] expected = {"11.11", "-12.", "-.13"};
+                    rs.next();
+                    for (int i = 0; i < rsmd.getColumnCount(); i++) {
+                        assertEquals(expectedDisplaySize[i], rsmd.getColumnDisplaySize(i + 1));
+                        assertEquals(expected[i], rs.getString(i + 1));  // note: getString(), not getBigDecimal()
+                    }
+                }
+            }
+        }
+
+        try (Connection connection = SpliceNetConnection.newBuilder().schema(CLASS_NAME).db2CompatibleMode(false).build()) {
+            try (Statement statement = connection.createStatement()) {
+                try (ResultSet rs = statement.executeQuery("select * from \"DEC\"")) {
+                    ResultSetMetaData rsmd = rs.getMetaData();
+                    int[] expectedDisplaySize = new int[]{6, 3, 5};
+                    String[] expected = new String[]{"11.11", "-12", "-0.13"};
+                    rs.next();
+                    for (int i = 0; i < rsmd.getColumnCount(); i++) {
+                        assertEquals(expectedDisplaySize[i], rsmd.getColumnDisplaySize(i + 1));
+                        assertEquals(expected[i], rs.getString(i + 1));  // note: getString(), not getBigDecimal()
+                    }
+                }
+            }
+        }
+
+        try (Connection connection = SpliceNetConnection.newBuilder().schema(CLASS_NAME).build()) {
+            try (Statement statement = connection.createStatement()) {
+                try (ResultSet rs = statement.executeQuery("select * from \"DEC\"")) {
+                    ResultSetMetaData rsmd = rs.getMetaData();
+                    int[] expectedDisplaySize = new int[]{6, 3, 5};
+                    String[] expected = new String[]{"11.11", "-12", "-0.13"};
+                    rs.next();
+                    for (int i = 0; i < rsmd.getColumnCount(); i++) {
+                        assertEquals(expectedDisplaySize[i], rsmd.getColumnDisplaySize(i + 1));
+                        assertEquals(expected[i], rs.getString(i + 1));  // note: getString(), not getBigDecimal()
+                    }
+                }
+            }
         }
     }
 }

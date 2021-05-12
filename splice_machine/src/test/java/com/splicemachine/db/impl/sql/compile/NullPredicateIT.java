@@ -273,4 +273,13 @@ public class NullPredicateIT extends SpliceUnitTest {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
+
+    @Test // DB-11605
+    public void testNullInCaseWhen() throws Exception {
+        String res = "A | B  |\n" +
+                "---------\n" +
+                " 1 |aaa |";
+        methodWatcher.assertStrResult(res, "select * from t where case when a < 0 then null else 2 end > 0", false);
+        methodWatcher.assertStrResult(res, "select * from t where case when a > 0 then 2 else null end > 0", false);
+    }
 }

@@ -18,10 +18,14 @@ import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.Context;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
@@ -30,6 +34,8 @@ import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
+import com.splicemachine.db.impl.sql.execute.SPSProperty;
+import com.splicemachine.db.impl.sql.execute.SPSPropertyRegistry;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.DerbyMessage;
 import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
@@ -54,7 +60,9 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.io.*;
+import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -82,6 +90,14 @@ public class DDLUtils {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.trace(LOG,"finishMetadataChange changeId=%s",changeId);
         DDLDriver.driver().ddlController().finishMetadataChange(changeId);
+        /** TODO-msirek: Try to enable this code for the mem platform.
+         *               It would allow more TableDescriptors
+         *               to get cached because it would clear out the DDL change
+         *               as soon as it's committed, which is needed because the cacheIsValid()
+         *               check requires that currChangeCount be zero.
+         *               Currently, enabling this code causes a performance regression.
+         */
+        /* DDLDriver.driver().ddlWatcher().clearFinishedChange(changeId);   */
     }
 
 
@@ -1018,14 +1034,35 @@ public class DDLUtils {
         TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
         try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
             transactionResource.marshallTransaction(txn);
-            //remove corresponding defaultRole entry
+            //remove corresponding property from the data dictionary cache.
             dd.getDataDictionaryCache().propertyCacheRemove(change.getSetDatabaseProperty().getPropertyName());
-
+            // invalidate dependents if it is an SPS property
+            invalidateSpsProperty(change.getSetDatabaseProperty().getPropertyName());
         } catch (Exception e) {
             e.printStackTrace();
             throw StandardException.plainWrapException(e);
         }
+    }
 
+    /**
+     * If they key corresponds to an SPS property, it will invalidate all dependent objects on it using the dependency
+     * manager.
+     * @param key the property key
+     */
+    public static void invalidateSpsProperty(final String key) throws SQLException {
+        try {
+            SPSProperty p = SPSPropertyRegistry.forName(key);
+            if(p == null) {
+                return; // property is not an SPSProperty.
+            }
+            LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+            lcc.getDataDictionary().getDependencyManager().invalidateFor(p, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
+            // check invalidating remote as well.
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        } catch (Exception e) {
+            throw new SQLException(e);
+        }
     }
 
     public static void preUpdateSystemProcedures(DDLMessage.DDLChange change, DataDictionary dd) throws StandardException {
@@ -1041,6 +1078,28 @@ public class DDLUtils {
             dc.clearPermissionCache();
             dc.clearSpsNameCache();
             dc.clearStoredPreparedStatementCache();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    public static void preLeaveRestore(DDLMessage.DDLChange change, DataDictionary dd) throws StandardException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preRestore with change=%s",change);
+        TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+        try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
+            transactionResource.marshallTransaction(txn);
+            SIDriver.driver().getTxnSupplier().invalidate();
+            SIDriver.driver().getIgnoreTxnSupplier().refresh();
+            dd.getDataDictionaryCache().clearAll();
+            SIDriver.driver().lifecycleManager().leaveRestoreMode();
+            Collection<Context> allContexts = ContextService.getService().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
+            allContexts = ContextService.getService().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
+            for (Context context : allContexts) {
+                ((LanguageConnectionContext) context).leaveRestoreMode();
+            }
 
         } catch (Exception e) {
             e.printStackTrace();

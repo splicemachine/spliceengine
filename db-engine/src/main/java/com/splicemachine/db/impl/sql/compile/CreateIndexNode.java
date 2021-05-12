@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
@@ -254,6 +255,18 @@ public class CreateIndexNode extends DDLStatementNode
                 throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION,
                         columnDescriptor.getType().getTypeId().getSQLTypeName());
             }
+
+            // unset exclude flags that has no effect
+            // consider only the first index column
+            if (i == 0) {
+                if (excludeNulls && !columnDescriptor.getType().isNullable()) {
+                    excludeNulls = false;
+                }
+
+                if (excludeDefaults && columnDescriptor.getDefaultValue() == null) {
+                    excludeDefaults = false;
+                }
+            }
         }
 
         /* Check for number of key columns to be less than 16 to match DB2 */
@@ -450,7 +463,7 @@ public class CreateIndexNode extends DDLStatementNode
 
                 properties.put(
                     Property.PAGE_SIZE_PARAMETER,
-                    Property.PAGE_SIZE_DEFAULT_LONG);
+                    PropertyHelper.PAGE_SIZE_DEFAULT_LONG);
 
             }
         }

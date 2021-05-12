@@ -155,7 +155,7 @@ public class OlapConfigurations implements ConfigurationDefault {
 
     // Whether we should purge old updates during flush & compaction
     public static final String OLAP_COMPACTION_AUTOMATICALLY_PURGE_OLD_UPDATES = "splice.olap.compaction.automaticallyPurgeOldUpdates";
-    public static final boolean DEFAULT_OLAP_COMPACTION_AUTOMATICALLY_PURGE_OLD_UPDATES = false;
+    public static final boolean DEFAULT_OLAP_COMPACTION_AUTOMATICALLY_PURGE_OLD_UPDATES = true;
 
     // Olap Server keepalive timeout in seconds until it kills itself. It has to be larger than an HMaster failover
     // when deployed on premise if we want it to survive the HMaster failover.
@@ -189,6 +189,9 @@ public class OlapConfigurations implements ConfigurationDefault {
 
     public static final String SPARK_SLOW_RESULT_STREAMING_BATCH_SIZE = "spark.slow.result.streaming.batch.size";
     public static final int DEFAULT_SPARK_SLOW_RESULT_STREAMING_BATCH_SIZE = 20;
+
+    public static final String SPARK_RESULT_STREAMING_THROTTLE_MAX_WAIT = "spark.result.streaming.throttle.max.wait";
+    public static final int DEFAULT_SPARK_RESULT_STREAMING_THROTTLE_MAX_WAIT = 120;
 
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
@@ -236,6 +239,7 @@ public class OlapConfigurations implements ConfigurationDefault {
         builder.sparkIoCompressionCodec = configurationSource.getString(SPARK_IO_COMPRESSION_CODEC, DEFAULT_SPARK_IO_COMPRESSION_CODEC);
         builder.sparkResultStreamingBatches = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCHES, DEFAULT_SPARK_RESULT_STREAMING_BATCHES);
         builder.sparkResultStreamingBatchSize = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCH_SIZE, DEFAULT_SPARK_RESULT_STREAMING_BATCH_SIZE);
+        builder.sparkResultStreamingThrottleMaxWait = configurationSource.getInt(SPARK_RESULT_STREAMING_THROTTLE_MAX_WAIT, DEFAULT_SPARK_RESULT_STREAMING_THROTTLE_MAX_WAIT);
         builder.sparkSlowResultStreamingBatches = configurationSource.getInt(SPARK_SLOW_RESULT_STREAMING_BATCHES, DEFAULT_SPARK_SLOW_RESULT_STREAMING_BATCHES);
         builder.sparkSlowResultStreamingBatchSize = configurationSource.getInt(SPARK_SLOW_RESULT_STREAMING_BATCH_SIZE, DEFAULT_SPARK_SLOW_RESULT_STREAMING_BATCH_SIZE);
 

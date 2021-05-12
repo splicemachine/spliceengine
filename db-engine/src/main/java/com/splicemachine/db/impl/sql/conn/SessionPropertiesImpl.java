@@ -30,8 +30,6 @@
  */
 package com.splicemachine.db.impl.sql.conn;
 
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.util.StringUtil;
 
@@ -117,6 +115,25 @@ public class SessionPropertiesImpl implements SessionProperties {
             case MINPLANTIMEOUT:
                 long minPlanTimeout = Long.parseLong(valString);
                 properties[MINPLANTIMEOUT.getId()] = minPlanTimeout;
+                break;
+            case OLAPALWAYSPENALIZENLJ:
+                boolean olapAlwaysPenalizeNLJ = Boolean.parseBoolean(valString);
+                properties[OLAPALWAYSPENALIZENLJ.getId()] = olapAlwaysPenalizeNLJ;
+                break;
+            case DISABLEPREDSFORINDEXORPKACCESSPATH:
+                boolean disablePredsForIndexOrPrimaryKeyAccessPath = Boolean.parseBoolean(valString);
+                properties[DISABLEPREDSFORINDEXORPKACCESSPATH.getId()] = disablePredsForIndexOrPrimaryKeyAccessPath;
+                break;
+            case ALWAYSALLOWINDEXPREFIXITERATION:
+                boolean alwaysAllowIndexPrefixIteration = Boolean.parseBoolean(valString);
+                properties[ALWAYSALLOWINDEXPREFIXITERATION.getId()] = alwaysAllowIndexPrefixIteration;
+                break;
+            case FAVORINDEXPREFIXITERATION:
+                boolean favorIndexPrefixIteration = Boolean.parseBoolean(valString);
+                properties[FAVORINDEXPREFIXITERATION.getId()] = favorIndexPrefixIteration;
+                break;
+            case COSTMODEL:
+                properties[COSTMODEL.getId()] = valString;
                 break;
             default:
                 assert false;

@@ -17,14 +17,24 @@ package com.splicemachine.pipeline;
 import java.io.IOException;
 
 import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.BitSetIterator;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.RoutingWriteHandler;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.storage.index.BitIndexing;
+import com.splicemachine.utils.ByteSlice;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
+
+import static com.splicemachine.pipeline.writehandler.UpdateUtils.deleteFromUpdate;
+import static com.splicemachine.pipeline.writehandler.UpdateUtils.getBaseUpdateMutation;
+import static com.splicemachine.pipeline.writehandler.UpdateUtils.halveSet;
 
 /**
  * Intercepts UPDATE/UPSERT/INSERT/DELETE mutations to a base table and sends corresponding mutations to the index table.
@@ -93,8 +103,9 @@ public class IndexWriteHandler extends RoutingWriteHandler{
             case INSERT:
                 return createIndexRecord(mutation, ctx,null);
             case UPDATE:
-                if (transformer.areIndexKeysModified(mutation, indexedColumns)) { // Do I need to update?
-                    delete = deleteIndexRecord(mutation, ctx, false);
+                if (transformer.areIndexKeysModified(mutation)) { // Do I need to update?
+                    delete = deleteIndexRecordFromUpdate(mutation, ctx);
+                    mutation = getBaseUpdateMutation(mutation);
                     return createIndexRecord(mutation, ctx, delete);
                 }
                 return true; // No index columns modifies ignore...
@@ -111,6 +122,27 @@ public class IndexWriteHandler extends RoutingWriteHandler{
             case EMPTY_COLUMN:
             default:
                 throw new RuntimeException("Not Valid Execution Path");
+        }
+    }
+
+    private KVPair deleteIndexRecordFromUpdate(KVPair mutation, WriteContext ctx) {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "index delete with %s", mutation);
+
+        try {
+            KVPair toTransform = deleteFromUpdate(mutation);
+
+            KVPair indexDelete = transformer.translate(toTransform);
+
+            if(keepState)
+                this.routedToBaseMutationMap.put(indexDelete,mutation);
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG, "performing index delete on row %s", Bytes.toHex(indexDelete.getRowKey()));
+
+            return indexDelete;
+        } catch (Exception e) {
+            fail(mutation,ctx,e);
+            return null;
         }
     }
 
@@ -134,23 +166,26 @@ public class IndexWriteHandler extends RoutingWriteHandler{
                  * The SI module treats this as a delete (because there is no anti-tombstone record at that location),
                  * and thus the row goes missing from the index; the end result is a corrupted index.
                  *
+                 * DB-10765: The same thing happens for overlapping indices. Table A(I,J,K) with index AIJ on (I,J) and
+                 * AIJK on (I,J,K). For an update to K we need to update index AIJK, for that we populate the write with
+                 * values I,J,K (we need to reconstruct the full index row). Since the write contains values for (I,J)
+                 * in IndexTransformer we think we want to update index AIJ too, but in the end we write delete and insert
+                 * the same value.
+                 *
                  * To avoid this scenario, we check for whether the insert and the delete have the same row key. If
-                 * they do, then we hijack the previous KVPair(the deleteMutation), and change it into an update mutation
-                 * instead. That way, we still get the WWConflict detection, but we don't have an insert and a delete
-                 * competing for the row results.
+                 * they do, we skip the write/delete altogether. Any WW conflict should also happen for the base row.
                  */
-                deleteMutation.setValue(newIndex.getValue());
-                deleteMutation.setType(KVPair.Type.UPDATE);
+                deleteMutation = null;
                 add=false;
-            }
-            if(keepState) {
-                this.routedToBaseMutationMap.put(newIndex, mutation);
             }
             if (deleteMutation != null) {
                 indexBuffer.add(deleteMutation);
             }
             if(add) {
                 indexBuffer.add(newIndex);
+                if(keepState) {
+                    this.routedToBaseMutationMap.put(newIndex, mutation);
+                }
             }
         } catch (Exception e) {
             fail(mutation,ctx,e);

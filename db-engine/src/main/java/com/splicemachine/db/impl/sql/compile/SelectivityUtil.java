@@ -40,7 +40,7 @@ import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 
 import java.util.*;
 
-import static com.splicemachine.db.impl.sql.compile.ScanCostFunction.computeSqrtLevel;
+import static com.splicemachine.db.impl.sql.compile.AbstractScanCostEstimator.computeSqrtLevel;
 
 /**
  *
@@ -84,7 +84,10 @@ public class SelectivityUtil {
 
 
     private static boolean isTheRightJoinPredicate(Predicate p, JoinPredicateType predicateType) {
-        if (p == null || !p.isJoinPredicate())
+        if (p == null || predicateType != JoinPredicateType.ALL && !p.isHashableJoinPredicate())
+            return false;
+
+        if (p.referencedSet.cardinality() < 2)
             return false;
 
         // only equality join conditions can be used for hashable joins to search for matching rows
@@ -298,7 +301,7 @@ public class SelectivityUtil {
     // Look for equality predicate that is not a join predicate
     private static boolean existsNonJoinPredicate(List<Predicate> predList) {
         for (Predicate predicate : predList) {
-            if (!predicate.isJoinPredicate() && !predicate.isFullJoinPredicate()) {
+            if (!predicate.isHashableJoinPredicate() && !predicate.isFullJoinPredicate()) {
                 return true;
             }
         }

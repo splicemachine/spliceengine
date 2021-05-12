@@ -261,4 +261,13 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
         return true;
     }
 
+    @Override
+    public String toString(){
+        return getJoinStrategyType().niceName() + "Join";
+    }
+
+    @Override
+    public String getName() {
+        return getJoinStrategyType().getName();
+    }
 }

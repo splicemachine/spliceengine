@@ -59,6 +59,14 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 	protected static final int		    SYSCOLUMNS_CORE_NUM = 2;
 	protected static final int		    SYSSCHEMAS_CORE_NUM = 3;
 	protected static final int          NUM_CORE = 4;
+
+	@SuppressFBWarnings(value = "MS_CANNOT_BE_FINAL", justification = "intentional")
+	public static boolean READ_NEW_FORMAT = true;
+
+	@SuppressFBWarnings(value = "MS_CANNOT_BE_FINAL", justification = "intentional")
+	public static boolean WRITE_NEW_FORMAT = true;
+
+	public static int SERDE_UPGRADE_SPRINT = 2003;
 	/**
 	* SYSFUN functions. Table of functions that automatically appear
 	* in the SYSFUN schema. These functions are resolved to directly
@@ -164,7 +172,7 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 			"SYSTOKENS",
 			"SYSDUMMY1",
 			"SYSREPLICATION",
-			"MON_GET_CONNECTION",
+			"", // invalid entry for the removed system table MON_GET_CONNECTION which is now a table-valued function.
 			"SYSNATURALNUMBERS"
 	};
 

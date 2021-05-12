@@ -21,17 +21,16 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.services.metadata.MetadataFactoryService;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.catalog.DefaultSystemProcedureGenerator;
 import com.splicemachine.db.impl.sql.catalog.Procedure;
-import com.splicemachine.db.impl.sql.catalog.SystemColumnImpl;
 import com.splicemachine.derby.impl.load.HdfsImport;
 import com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeSystemProcedures;
 import com.splicemachine.derby.impl.storage.SpliceRegionAdmin;
 import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.utils.*;
+import com.splicemachine.derby.procedures.*;
 import com.splicemachine.procedures.external.ExternalTableSystemProcedures;
 import com.splicemachine.replication.ReplicationSystemProcedure;
 
@@ -149,62 +148,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
          *
          * We do this here because this way we know we're in the SYSCS procedure set
          */
-        Procedure splitProc = Procedure.newBuilder().name("SYSCS_SPLIT_TABLE")
-                .numOutputParams(0).numResultSets(0).ownerClass(TableSplit.class.getCanonicalName())
-                .catalog("schemaName")
-                .catalog("tableName")
-                .build();
-        procedures.add(splitProc);
-
-        Procedure splitProc1 = Procedure.newBuilder().name("SYSCS_SPLIT_TABLE_AT_POINTS")
-                .numOutputParams(0).numResultSets(0).ownerClass(TableSplit.class.getCanonicalName())
-                .catalog("schemaName")
-                .catalog("tableName")
-                .varchar("splitPoints", 32672)
-                .build();
-        procedures.add(splitProc1);
-
-        Procedure splitProc2 = Procedure.newBuilder().name("SYSCS_SPLIT_TABLE_EVENLY")
-                .numOutputParams(0).numResultSets(0).ownerClass(TableSplit.class.getCanonicalName())
-                .catalog("schemaName")
-                .catalog("tableName")
-                .integer("numSplits")
-                .build();
-        procedures.add(splitProc2);
-
-        procedures.add(Procedure.newBuilder().name("SYSCS_SPLIT_REGION_AT_POINTS")
-                               .numOutputParams(0).numResultSets(0).ownerClass(TableSplit.class.getCanonicalName())
-                               .catalog("regionName")
-                               .varchar("splitPoints", 32672)
-                               .build());
-
-        Procedure splitProc3 = Procedure.newBuilder().name("SYSCS_SPLIT_TABLE_OR_INDEX_AT_POINTS")
-                .numOutputParams(0).numResultSets(0).ownerClass(TableSplit.class.getCanonicalName())
-                .catalog("schemaName")
-                .catalog("tableName")
-                .catalog("indexName")
-                .varchar("splitPoints", 32672)
-                .build();
-        procedures.add(splitProc3);
-
-        Procedure splitProc4 = Procedure.newBuilder().name("SYSCS_SPLIT_TABLE_OR_INDEX")
-                .numOutputParams(0).numResultSets(1).ownerClass(TableSplit.class.getCanonicalName())
-                .catalog("schemaName")
-                .catalog("tableName")
-                .catalog("indexName")
-                .varchar("columnList",32672)
-                .varchar("fileName",32672)
-                .varchar("columnDelimiter",5)
-                .varchar("characterDelimiter", 5)
-                .varchar("timestampFormat",32672)
-                .varchar("dateFormat",32672)
-                .varchar("timeFormat",32672)
-                .bigint("maxBadRecords")
-                .varchar("badRecordDirectory",32672)
-                .varchar("oneLineRecords",5)
-                .varchar("charset",32672)
-                .build();
-        procedures.add(splitProc4);
+        TableSplit.addProcedures( procedures );
 
         /*
         * Procedure get all active services
@@ -273,12 +217,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         /*
          * Procedure get write pipeline intake info
          */
-        Procedure getWriteIntakeInfo = Procedure.newBuilder().name("SYSCS_GET_WRITE_INTAKE_INFO")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(getWriteIntakeInfo);
+        PipelineAdmin.addProcedures( procedures );
 
         /*
          * Procedure get exec service info
@@ -350,312 +289,14 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .build();
         procedures.add(activeTxn);
 
-        /*
-         * Statistics procedures
-         */
-        Procedure collectStatsForTable = Procedure.newBuilder().name("COLLECT_TABLE_STATISTICS")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .varchar("schema",128)
-                .varchar("table",1024)
-                .arg("staleOnly", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
-                .ownerClass(StatisticsAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(collectStatsForTable);
-
         Collection<Procedure> procs = MetadataFactoryService.newMetadataFactory().getProcedures();
-
         if (procs != null)
             procedures.addAll(procs);
 
-        Procedure collectSampleStatsForTable = Procedure.newBuilder().name("COLLECT_TABLE_SAMPLE_STATISTICS")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .varchar("schema",128)
-                .varchar("table",1024)
-                .arg("samplePercentage", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE).getCatalogType())
-                .arg("staleOnly", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
-                .ownerClass(StatisticsAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(collectSampleStatsForTable);
+        // Statistics Procedures
+        StatisticsProcedures.addProcedures( procedures );
 
-        Procedure collectNonMergedStatsForTable = Procedure.newBuilder().name("COLLECT_NONMERGED_TABLE_STATISTICS")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .varchar("schema",128)
-                .varchar("table",1024)
-                .arg("staleOnly", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
-                .ownerClass(StatisticsAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(collectNonMergedStatsForTable);
-
-        Procedure collectNonMergedSampleStatsForTable = Procedure.newBuilder().name("COLLECT_NONMERGED_TABLE_SAMPLE_STATISTICS")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .varchar("schema",1024)
-                .varchar("table",1024)
-                .arg("samplePercentage", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE).getCatalogType())
-                .arg("staleOnly", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
-                .ownerClass(StatisticsAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(collectNonMergedSampleStatsForTable);
-
-        Procedure fakeStatsForTable = Procedure.newBuilder().name("FAKE_TABLE_STATISTICS")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .modifiesSql()
-                .catalog("schema")
-                .catalog("table")
-                .arg("rowCount", DataTypeDescriptor.getCatalogType(Types.BIGINT))
-                .arg("meanRowsize", DataTypeDescriptor.getCatalogType(Types.INTEGER))
-                .arg("numPartitions", DataTypeDescriptor.getCatalogType(Types.BIGINT))
-                .ownerClass(StatisticsAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(fakeStatsForTable);
-
-        Procedure fakeStatsForColumn = Procedure.newBuilder().name("FAKE_COLUMN_STATISTICS")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .modifiesSql()
-                .catalog("schema")
-                .catalog("table")
-                .varchar("column",1024)
-                .arg("nullCountRatio", DataTypeDescriptor.getCatalogType(Types.DOUBLE))
-                .arg("rowsPerValue", DataTypeDescriptor.getCatalogType(Types.BIGINT))
-                .ownerClass(StatisticsAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(fakeStatsForColumn);
-
-        Procedure importWithBadRecords = Procedure.newBuilder().name("IMPORT_DATA")
-                .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
-                .catalog("schemaName")
-                .catalog("tableName")
-                .varchar("insertColumnList",32672)
-                .varchar("fileName",32672)
-                .varchar("columnDelimiter",5)
-                .varchar("characterDelimiter", 5)
-                .varchar("timestampFormat",32672)
-                .varchar("dateFormat",32672)
-                .varchar("timeFormat",32672)
-                .bigint("maxBadRecords")
-                .varchar("badRecordDirectory",32672)
-                .varchar("oneLineRecords",5)
-                .varchar("charset",32672)
-                .build();
-        procedures.add(importWithBadRecords);
-
-
-        Procedure loadReplaceProc = Procedure.newBuilder().name("LOAD_REPLACE")
-                .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
-                .catalog("schemaName")
-                .catalog("tableName")
-                .varchar("insertColumnList",32672)
-                .varchar("fileName",32672)
-                .varchar("columnDelimiter",5)
-                .varchar("characterDelimiter", 5)
-                .varchar("timestampFormat",32672)
-                .varchar("dateFormat",32672)
-                .varchar("timeFormat",32672)
-                .bigint("maxBadRecords")
-                .varchar("badRecordDirectory",32672)
-                .varchar("oneLineRecords",5)
-                .varchar("charset",32672)
-                .build();
-        procedures.add(loadReplaceProc);
-
-        Procedure importUnsafe = Procedure.newBuilder().name("IMPORT_DATA_UNSAFE")
-                .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
-                .catalog("schemaName")
-                .catalog("tableName")
-                .varchar("insertColumnList",32672)
-                .varchar("fileName",32672)
-                .varchar("columnDelimiter",5)
-                .varchar("characterDelimiter", 5)
-                .varchar("timestampFormat",32672)
-                .varchar("dateFormat",32672)
-                .varchar("timeFormat",32672)
-                .bigint("maxBadRecords")
-                .varchar("badRecordDirectory",32672)
-                .varchar("oneLineRecords",5)
-                .varchar("charset",32672)
-                .build();
-        procedures.add(importUnsafe);
-
-        Procedure bulkImportHFile = Procedure.newBuilder().name("BULK_IMPORT_HFILE")
-                 .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
-                 .catalog("schemaName")
-                 .catalog("tableName")
-                 .varchar("insertColumnList",32672)
-                 .varchar("fileName",32672)
-                 .varchar("columnDelimiter",5)
-                 .varchar("characterDelimiter", 5)
-                 .varchar("timestampFormat",32672)
-                 .varchar("dateFormat",32672)
-                 .varchar("timeFormat",32672)
-                 .bigint("maxBadRecords")
-                 .varchar("badRecordDirectory",32672)
-                 .varchar("oneLineRecords",5)
-                 .varchar("charset",32672)
-                 .varchar("bulkImportDirectory", 32672)
-                 .varchar("skipSampling", 5)
-                 .build();
-        procedures.add(bulkImportHFile);
-
-
-        Procedure sampleData = Procedure.newBuilder().name("SAMPLE_DATA")
-                .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
-                .catalog("schemaName")
-                .catalog("tableName")
-                .varchar("insertColumnList",32672)
-                .varchar("fileName",32672)
-                .varchar("columnDelimiter",5)
-                .varchar("characterDelimiter", 5)
-                .varchar("timestampFormat",32672)
-                .varchar("dateFormat",32672)
-                .varchar("timeFormat",32672)
-                .bigint("maxBadRecords")
-                .varchar("badRecordDirectory",32672)
-                .varchar("oneLineRecords",5)
-                .varchar("charset",32672)
-                .varchar("bulkImportDirectory", 32672)
-                .build();
-        procedures.add(sampleData);
-
-        Procedure computeSplitKey= Procedure.newBuilder().name("COMPUTE_SPLIT_KEY")
-                .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
-                .catalog("schemaName")
-                .catalog("tableName")
-                .catalog("indexName")
-                .varchar("columnList",32672)
-                .varchar("fileName",32672)
-                .varchar("columnDelimiter",5)
-                .varchar("characterDelimiter", 5)
-                .varchar("timestampFormat",32672)
-                .varchar("dateFormat",32672)
-                .varchar("timeFormat",32672)
-                .bigint("maxBadRecords")
-                .varchar("badRecordDirectory",32672)
-                .varchar("oneLineRecords",5)
-                .varchar("charset",32672)
-                .varchar("outputDirectory", 32672)
-                .build();
-        procedures.add(computeSplitKey);
-
-        Procedure upport = Procedure.newBuilder().name("UPSERT_DATA_FROM_FILE")
-                .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
-                .catalog("schemaName")
-                .catalog("tableName")
-                .varchar("insertColumnList",32672)
-                .varchar("fileName",32672)
-                .varchar("columnDelimiter",5)
-                .varchar("characterDelimiter", 5)
-                .varchar("timestampFormat",32672)
-                .varchar("dateFormat",32672)
-                .varchar("timeFormat",32672)
-                .bigint("maxBadRecords")
-                .varchar("badRecordDirectory",32672)
-                .varchar("oneLineRecords",5)
-                .varchar("charset",32672)
-                .build();
-        procedures.add(upport);
-
-        Procedure merge = Procedure.newBuilder().name("MERGE_DATA_FROM_FILE")
-                .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
-                .catalog("schemaName")
-                .catalog("tableName")
-                .varchar("insertColumnList",32672)
-                .varchar("fileName",32672)
-                .varchar("columnDelimiter",5)
-                .varchar("characterDelimiter", 5)
-                .varchar("timestampFormat",32672)
-                .varchar("dateFormat",32672)
-                .varchar("timeFormat",32672)
-                .bigint("maxBadRecords")
-                .varchar("badRecordDirectory",32672)
-                .varchar("oneLineRecords",5)
-                .varchar("charset",32672)
-                .build();
-        procedures.add(merge);
-
-        Procedure dropStatsForSchema = Procedure.newBuilder().name("DROP_SCHEMA_STATISTICS")
-                .numOutputParams(0)
-                .numResultSets(0)
-                .varchar("schema",128)
-                .ownerClass(StatisticsAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(dropStatsForSchema);
-
-        Procedure dropStatsForTable = Procedure.newBuilder().name("DROP_TABLE_STATISTICS")
-                .numOutputParams(0)
-                .numResultSets(0)
-                .varchar("schema",128)
-                .varchar("table",1024)
-                .ownerClass(StatisticsAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(dropStatsForTable);
-
-        Procedure collectStatsForSchema = Procedure.newBuilder().name("COLLECT_SCHEMA_STATISTICS")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .varchar("schema",128)
-                .arg("staleOnly", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
-                .ownerClass(StatisticsAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(collectStatsForSchema);
-
-        Procedure enableStatsForColumn = Procedure.newBuilder().name("ENABLE_COLUMN_STATISTICS")
-                .numOutputParams(0)
-                .numResultSets(0)
-                .modifiesSql()
-                .varchar("schema",1024)
-                .varchar("table",1024)
-                .varchar("column",1024)
-                .ownerClass(StatisticsAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(enableStatsForColumn);
-
-        Procedure disableStatsForColumn = Procedure.newBuilder().name("DISABLE_COLUMN_STATISTICS")
-                .numOutputParams(0)
-                .numResultSets(0)
-                .modifiesSql()
-                .varchar("schema",1024)
-                .varchar("table",1024)
-                .varchar("column",1024)
-                .ownerClass(StatisticsAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(disableStatsForColumn);
-
-        Procedure enableStatsForAllColumns = Procedure.newBuilder().name("ENABLE_ALL_COLUMN_STATISTICS")
-                .numOutputParams(0)
-                .numResultSets(0)
-                .modifiesSql()
-                .catalog("schema")
-                .catalog("table")
-                .ownerClass(StatisticsAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(enableStatsForAllColumns);
-
-        Procedure disableStatsForAllColumns = Procedure.newBuilder().name("DISABLE_ALL_COLUMN_STATISTICS")
-                .numOutputParams(0)
-                .numResultSets(0)
-                .modifiesSql()
-                .catalog("schema")
-                .catalog("table")
-                .ownerClass(StatisticsAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(disableStatsForAllColumns);
-
-        Procedure setStatsExtrapolationForColumn = Procedure.newBuilder().name("SET_STATS_EXTRAPOLATION_FOR_COLUMN")
-                .numOutputParams(0)
-                .numResultSets(0)
-                .modifiesSql()
-                .varchar("schema",1024)
-                .varchar("table",1024)
-                .varchar("column",1024)
-                .smallint("useExtrapolation")
-                .ownerClass(StatisticsAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(setStatsExtrapolationForColumn);
+        HdfsImport.addProcedures( procedures );
 
         /*
          * Procedure to get the session details
@@ -843,66 +484,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .build();
         procedures.add(commitTxnProc);
 
-        /*
-         * Procedure to get the log level for the given logger
-         */
-        Procedure getLoggerLevel = Procedure.newBuilder().name("SYSCS_GET_LOGGER_LEVEL")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .varchar("loggerName", 128)
-                .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(getLoggerLevel);
-
-        Procedure getLoggerLevelLocal = Procedure.newBuilder().name("SYSCS_GET_LOGGER_LEVEL_LOCAL")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .varchar("loggerName", 128)
-                .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(getLoggerLevelLocal);
-
-        /*
-         * Procedure to set the log level for the given logger
-         */
-        Procedure setLoggerLevel = Procedure.newBuilder().name("SYSCS_SET_LOGGER_LEVEL")
-                .numOutputParams(0)
-                .numResultSets(0)
-                .varchar("loggerName", 128)
-                .varchar("loggerLevel", 128)
-                .sqlControl(RoutineAliasInfo.NO_SQL)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(setLoggerLevel);
-
-        Procedure setLoggerLevelLocal = Procedure.newBuilder().name("SYSCS_SET_LOGGER_LEVEL_LOCAL")
-                .numOutputParams(0)
-                .numResultSets(0)
-                .varchar("loggerName", 128)
-                .varchar("loggerLevel", 128)
-                .sqlControl(RoutineAliasInfo.NO_SQL)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(setLoggerLevelLocal);
-
-        /*
-         * Procedure to get all the splice logger names in the system
-         */
-        Procedure getLoggers = Procedure.newBuilder().name("SYSCS_GET_LOGGERS")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(getLoggers);
-
-        Procedure getLoggersLocal = Procedure.newBuilder().name("SYSCS_GET_LOGGERS_LOCAL")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(getLoggersLocal);
+        // Logging-related procedures
+        LoggingProcedures.addProcedures(procedures);
 
         /*
          * Procedure get table info in all schema
@@ -988,78 +571,12 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .build();
         procedures.add(vacuum);
 
+        // SYSCS_GET_TIMESTAMP_GENERATOR_INFO and SYSCS_GET_TIMESTAMP_REQUEST_INFO
+        TimestampProcedures.addProcedures(procedures);
 
-        /*
-         * Procedure to return timestamp generator info
-         */
-        procedures.add(Procedure.newBuilder().name("SYSCS_GET_TIMESTAMP_GENERATOR_INFO")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(TimestampAdmin.class.getCanonicalName())
-                .build());
+        // Backup related Procedures
+        BackupSystemProcedures.addProcedures(procedures);
 
-        /*
-         * Procedure to return timestamp request info
-         */
-        procedures.add(Procedure.newBuilder().name("SYSCS_GET_TIMESTAMP_REQUEST_INFO")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(TimestampAdmin.class.getCanonicalName())
-                .build());
-
-        /*
-         * Procedure to delete a backup
-         */
-        procedures.add(Procedure.newBuilder().name("SYSCS_DELETE_BACKUP")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
-                .bigint("backupId")
-                .build());
-
-        /*
-         * Procedure to delete backups in a time window
-         */
-        procedures.add(Procedure.newBuilder().name("SYSCS_DELETE_OLD_BACKUPS")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
-                .integer("backupWindow")
-                .build());
-
-        procedures.add(Procedure.newBuilder().name("SYSCS_BACKUP_DATABASE_ASYNC")
-                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
-                .varchar("directory", 32672)
-                .varchar("type", 32672)
-                .build());
-
-        procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_DATABASE_ASYNC")
-                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
-                .varchar("directory", 32672)
-                .bigint("backupId")
-                .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
-                .build());
-
-        procedures.add(Procedure.newBuilder().name("VALIDATE_BACKUP")
-                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
-                .varchar("directory", 32672)
-                .bigint("backupId")
-                .build());
-
-        procedures.add(Procedure.newBuilder().name("VALIDATE_TABLE_BACKUP")
-                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
-                .catalog("schemaName")
-                .catalog("tableName")
-                .varchar("directory", 32672)
-                .bigint("backupId")
-                .build());
-
-        procedures.add(Procedure.newBuilder().name("VALIDATE_SCHEMA_BACKUP")
-                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
-                .catalog("schemaName")
-                .varchar("directory", 32672)
-                .bigint("backupId")
-                .build());
         /*
          * Procedure to get a database property on all region servers in the cluster.
          */
@@ -1067,7 +584,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numOutputParams(0)
                 .numResultSets(1)
                 .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .sqlControl(RoutineAliasInfo.READS_SQL_DATA).returnType(null).isDeterministic(false)
+                .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
+                .returnType(null).isDeterministic(false)
                 .catalog("KEY")
                 .build());
 
@@ -1076,11 +594,25 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
          */
         procedures.add(Procedure.newBuilder().name("SYSCS_SET_GLOBAL_DATABASE_PROPERTY")
                 .numOutputParams(0)
-                .numResultSets(0)
+                .numResultSets(1)
                 .ownerClass(SpliceAdmin.class.getCanonicalName())
                 .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
+                .returnType(null).isDeterministic(false)
                 .catalog("KEY")
                 .varchar("VALUE", Limits.DB2_VARCHAR_MAXWIDTH)
+                .build());
+
+        /*
+         * Procedure to get all database properties
+         */
+        procedures.add(Procedure.newBuilder().name("SYSCS_GET_GLOBAL_DATABASE_PROPERTIES")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
+                .returnType(null).isDeterministic(false)
+                .varchar("FILTER", Limits.DB2_VARCHAR_MAXWIDTH)
+                .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
                 .build());
 
         /*
@@ -1098,6 +630,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
          * Procedure to empty the statement caches on all region servers in the cluster.
          * Essentially a wrapper around the Derby version of SYSCS_EMPTY_STATEMENT_CACHE
          * which only operates on a single node.
+         *
+         * Also, a procedure to show a list of all cached statements across region servers
+         * in the cluster.
          */
         procedures.add(Procedure.newBuilder().name("SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE")
                 .numOutputParams(0)
@@ -1128,6 +663,26 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .varchar("statement", Limits.DB2_VARCHAR_MAXWIDTH)
                 .build());
 
+        procedures.add(Procedure.newBuilder().name("SYSCS_GET_CACHED_STATEMENTS")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
+                .returnType(null)
+                .isDeterministic(false)
+                .build()
+        );
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_GET_CACHED_STATEMENTS_LOCAL")
+               .numOutputParams(0)
+               .numResultSets(1)
+               .ownerClass(SpliceAdmin.class.getCanonicalName())
+               .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
+               .returnType(null)
+               .isDeterministic(false)
+               .build()
+        );
+
         // Stored procedure that updates the owner (authorization id) of an existing schema.
         procedures.add(Procedure.newBuilder().name("SYSCS_UPDATE_SCHEMA_OWNER")
             .numOutputParams(0)
@@ -1139,13 +694,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
             .varchar("schemaName", 128)
             .varchar("ownerName", 128)
             .build());
-
-        procedures.add(Procedure.newBuilder().name("SYSCS_GET_RUNNING_BACKUPS")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
-                .returnType(null).isDeterministic(false)
-                .build());
 
         procedures.add(Procedure.newBuilder().name("SYSCS_GET_TABLE_COUNT")
                 .numOutputParams(0)
@@ -1161,82 +709,12 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .returnType(null).isDeterministic(false)
                 .build());
 
-        procedures.add(Procedure.newBuilder().name("SYSCS_CANCEL_BACKUP")
-                .numOutputParams(0)
-                .bigint("backupId")
-                .numResultSets(0)
-                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
-                .returnType(null).isDeterministic(false)
-                .build());
-
         procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_DATABASE_OWNER")
                 .numOutputParams(0)
                 .numResultSets(0)
                 .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .sqlControl(RoutineAliasInfo.NO_SQL).returnType(null).isDeterministic(false)
-                .build());
-
-        procedures.add(Procedure.newBuilder().name("SYSCS_BACKUP_TABLE")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
-                .catalog("schemaName")
-                .catalog("tableName")
-                .varchar("directory", 32672)
-                .varchar("type", 30)
+                .sqlControl(RoutineAliasInfo.NO_SQL)
                 .returnType(null).isDeterministic(false)
-                .build());
-
-        procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_TABLE")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
-                .catalog("destSchema")
-                .catalog("destTable")
-                .catalog("sourceSchema")
-                .catalog("sourceTable")
-                .varchar("directory", 32672)
-                .bigint("backupId")
-                .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
-                .returnType(null).isDeterministic(false)
-                .build());
-
-        procedures.add(Procedure.newBuilder().name("SYSCS_BACKUP_SCHEMA")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
-                .catalog("schemaName")
-                .varchar("directory", 32672)
-                .varchar("type", 30)
-                .returnType(null).isDeterministic(false)
-                .build());
-
-        procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_SCHEMA")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(BackupSystemProcedures.class.getCanonicalName())
-                .catalog("destSchema")
-                .catalog("sourceSchema")
-                .varchar("directory", 32672)
-                .bigint("backupId")
-                .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
-                .returnType(null).isDeterministic(false)
-                .build());
-
-        procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_DATABASE_TO_TIMESTAMP")
-                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
-                .varchar("directory", 32672)
-                .bigint("backupId")
-                .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
-                .varchar("pointInTime", 100)
-                .build());
-
-        procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_DATABASE_TO_TRANSACTION")
-                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
-                .varchar("directory", 32672)
-                .bigint("backupId")
-                .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
-                .bigint("transactionId")
                 .build());
 
         procedures.add(Procedure.newBuilder().name("SYSCS_SAVE_SOURCECODE")
@@ -1396,6 +874,42 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .build();
         procedures.add(deleteRegion);
 
+        Procedure getRegionLocations = Procedure.newBuilder().name("GET_REGION_LOCATIONS")
+                .catalog("schemaName")
+                .catalog("objectName")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
+                .build();
+        procedures.add(getRegionLocations);
+
+        Procedure assignRegionToServer = Procedure.newBuilder().name("ASSIGN_TO_SERVER")
+                .catalog("schemaName")
+                .catalog("objectName")
+                .varchar("server", 32672)
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
+                .build();
+        procedures.add(assignRegionToServer);
+
+        Procedure  localizeIndexesForTable = Procedure.newBuilder().name("LOCALIZE_INDEXES_FOR_TABLE")
+                .catalog("schemaName")
+                .catalog("tableName")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
+                .build();
+        procedures.add(localizeIndexesForTable);
+
+        Procedure  localizeIndexesForSchema = Procedure.newBuilder().name("LOCALIZE_INDEXES_FOR_SCHEMA")
+                .catalog("schemaName")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
+                .build();
+        procedures.add(localizeIndexesForSchema);
+
         Procedure invalidateLocalCache = Procedure.newBuilder().name("INVALIDATE_DICTIONARY_CACHE")
                 .numOutputParams(0)
                 .numResultSets(0)
@@ -1433,81 +947,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .build();
         procedures.add(fixTable);
 
-        Procedure showCreateTable = Procedure.newBuilder().name("SHOW_CREATE_TABLE")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .varchar("schemaName", 128)
-                .varchar("tableName", 128)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(showCreateTable);
+        procedures.add( ShowCreateTableProcedure.getProcedure() );
 
-        Procedure addPeer = Procedure.newBuilder().name("ADD_PEER")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .smallint("peerId")
-                .varchar("clusterKey", 32672)
-                .arg("enabled", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
-                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                .build();
-        procedures.add(addPeer);
-
-        Procedure removePeer = Procedure.newBuilder().name("REMOVE_PEER")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .smallint("peerId")
-                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                .build();
-        procedures.add(removePeer);
-
-        Procedure enablePeer = Procedure.newBuilder().name("ENABLE_PEER")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .smallint("peerId")
-                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                .build();
-        procedures.add(enablePeer);
-
-        Procedure disablePeer = Procedure.newBuilder().name("DISABLE_PEER")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .smallint("peerId")
-                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                .build();
-        procedures.add(disablePeer);
-
-        Procedure enableTableReplication = Procedure.newBuilder().name("ENABLE_TABLE_REPLICATION")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                .catalog("schemaName")
-                .catalog("tableName")
-                .build();
-        procedures.add(enableTableReplication);
-
-        Procedure disableTableReplication = Procedure.newBuilder().name("DISABLE_TABLE_REPLICATION")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                .catalog("schemaName")
-                .catalog("tableName")
-                .build();
-        procedures.add(disableTableReplication);
-
-        Procedure setReplicationRole = Procedure.newBuilder().name("SET_REPLICATION_ROLE")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                .varchar("role", 10)
-                .build();
-        procedures.add(setReplicationRole);
-
-        Procedure getReplicationRole = Procedure.newBuilder().name("GET_REPLICATION_ROLE")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                .build();
-        procedures.add(getReplicationRole);
+        ReplicationSystemProcedure.addProcedures( procedures );
 
         Procedure updateAllSystemProcedures = Procedure.newBuilder()
                 .name("SYSCS_UPDATE_ALL_SYSTEM_PROCEDURES")
@@ -1526,119 +968,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .build();
         procedures.add(updateSystemProcedure);
 
-        Procedure enableSchemaReplication = Procedure.newBuilder().name("ENABLE_SCHEMA_REPLICATION")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                .catalog("schemaName")
-                .build();
-        procedures.add(enableSchemaReplication);
-
-
-        Procedure disableSchemaReplication = Procedure.newBuilder().name("DISABLE_SCHEMA_REPLICATION")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                .catalog("schemaName")
-                .build();
-        procedures.add(disableSchemaReplication);
-
-        Procedure enableDatabaseReplication = Procedure.newBuilder().name("ENABLE_DATABASE_REPLICATION")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                .build();
-        procedures.add(enableDatabaseReplication);
-
-        Procedure disableDatabaseReplication = Procedure.newBuilder().name("DISABLE_DATABASE_REPLICATION")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                .build();
-        procedures.add(disableDatabaseReplication);
-
-        Procedure getClusterKey = Procedure.newBuilder().name("GET_CLUSTER_KEY")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                .build();
-        procedures.add(getClusterKey);
-
-        Procedure getPeers = Procedure.newBuilder().name("LIST_PEERS")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                .build();
-        procedures.add(getPeers);
-
-        Procedure getWalPositions = Procedure.newBuilder().name("GET_REPLICATED_WAL_POSITIONS")
-                .numOutputParams(0)
-                .smallint("peerId")
-                .numResultSets(1)
-                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                .build();
-        procedures.add(getWalPositions);
-
-        Procedure getWalPosition = Procedure.newBuilder().name("GET_REPLICATED_WAL_POSITION")
-                .numOutputParams(0)
-                .varchar("wal",32672)
-                .numResultSets(1)
-                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                .build();
-        procedures.add(getWalPosition);
-
-        Procedure getReplicationProgress = Procedure.newBuilder().name("GET_REPLICATION_PROGRESS")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                .build();
-        procedures.add(getReplicationProgress);
-
-        Procedure dumpUnreplicatedWals = Procedure.newBuilder().name("DUMP_UNREPLICATED_WALS")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                .build();
-        procedures.add(dumpUnreplicatedWals);
-
-        Procedure replicationEnabled = Procedure.newBuilder().name("REPLICATION_ENABLED")
-                .numOutputParams(0)
-                .catalog("schemaName")
-                .catalog("tableName")
-                .numResultSets(1)
-                .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                .build();
-        procedures.add(replicationEnabled);
-
-        Procedure beginRollingUpgrade = Procedure.newBuilder().name("BEGIN_ROLLING_UPGRADE")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(UpgradeSystemProcedures.class.getCanonicalName())
-                .build();
-        procedures.add(beginRollingUpgrade);
-
-        Procedure endRollingUpgrade = Procedure.newBuilder().name("END_ROLLING_UPGRADE")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(UpgradeSystemProcedures.class.getCanonicalName())
-                .build();
-        procedures.add(endRollingUpgrade);
-
-        Procedure unloadRegions = Procedure.newBuilder().name("UNLOAD_REGIONS")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .varchar("hostAndPort", 32672)
-                .ownerClass(UpgradeSystemProcedures.class.getCanonicalName())
-                .build();
-        procedures.add(unloadRegions);
-
-        Procedure loadRegions = Procedure.newBuilder().name("LOAD_REGIONS")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .varchar("hostAndPort", 32672)
-                .ownerClass(UpgradeSystemProcedures.class.getCanonicalName())
-                .build();
-        procedures.add(loadRegions);
+        UpgradeSystemProcedures.addProcedures(procedures);
     }
 
     static public void getSYSFUN_PROCEDURES(List<Procedure> procedures)
@@ -1665,306 +995,15 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
     static{
         try {
             SYSFUN_PROCEDURES = new ArrayList<>();
-            SYSFUN_PROCEDURES.addAll(Arrays.asList(
-                    Procedure.newBuilder().name("INSTR")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.INTEGER))
-                            .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
-                            .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
-                            .varchar("SUBSTR", Limits.DB2_VARCHAR_MAXWIDTH)
-                            .build(),
-                    Procedure.newBuilder().name("INITCAP")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR, Limits.DB2_VARCHAR_MAXWIDTH))
-                            .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
-                            .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
-                            .build(),
-                    Procedure.newBuilder().name("CONCAT")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR, Limits.DB2_VARCHAR_MAXWIDTH))
-                            .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
-                            .varchar("ARG1", Limits.DB2_VARCHAR_MAXWIDTH)
-                            .varchar("ARG2", Limits.DB2_VARCHAR_MAXWIDTH)
-                            .build(),
-                    Procedure.newBuilder().name("REGEXP_LIKE")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.BOOLEAN))
-                            .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
-                            .varchar("S", Limits.DB2_VARCHAR_MAXWIDTH)
-                            .varchar("REGEXP", Limits.DB2_VARCHAR_MAXWIDTH)
-                            .build(),
-                    Procedure.newBuilder().name("CHR")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.CHAR,1))
-                            .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
-                            .integer("I")
-                            .build(),
-                    Procedure.newBuilder().name("HEX")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR,Limits.DB2_VARCHAR_MAXWIDTH))
-                            .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
-                            .varchar("S",Limits.DB2_VARCHAR_MAXWIDTH / 2)
-                            .build()
-            		)
-            );
-            SYSFUN_PROCEDURES.addAll(Arrays.asList(
-                    //
-                    // Date functions
-                    //
-                    Procedure.newBuilder().name("ADD_YEARS")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
-                            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                            .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
-                            .integer("NUMOFYEARS")
-                            .build(),
-                    Procedure.newBuilder().name("ADD_MONTHS")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
-                            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                            .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
-                            .integer("NUMOFMONTHS")
-                            .build(),
-                    Procedure.newBuilder().name("ADD_DAYS")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
-                            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                            .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
-                            .integer("NUMOFDAYS")
-                            .build(),
-                    Procedure.newBuilder().name("LAST_DAY")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
-                            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                            .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
-                            .build(),
-                    Procedure.newBuilder().name("TO_DATE")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
-                            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                            .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
-                            .varchar("FORMAT", Limits.DB2_VARCHAR_MAXWIDTH)
-                            .build(),
-                    Procedure.newBuilder().name("TO_TIMESTAMP")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.TIMESTAMP))
-                            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                            .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
-                            .varchar("FORMAT", Limits.DB2_VARCHAR_MAXWIDTH)
-                            .build(),
-                    Procedure.newBuilder().name("TO_TIME")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.TIME))
-                            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                            .varchar("SOURCE", Limits.DB2_VARCHAR_MAXWIDTH)
-                            .varchar("FORMAT", Limits.DB2_VARCHAR_MAXWIDTH)
-                            .build(),
-                    Procedure.newBuilder().name("NEXT_DAY")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.DATE))
-                            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                            .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
-                            .varchar("WEEKDAY", Limits.DB2_VARCHAR_MAXWIDTH)
-                            .build(),
-                    Procedure.newBuilder().name("MONTH_BETWEEN")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.DOUBLE))
-                            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                            .arg("SOURCE1", DataTypeDescriptor.getCatalogType(Types.DATE))
-                            .arg("SOURCE2", DataTypeDescriptor.getCatalogType(Types.DATE))
-                            .build(),
-                    Procedure.newBuilder().name("TO_CHAR")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR))
-                            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                            .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.DATE))
-                            .varchar("FORMAT", Limits.DB2_VARCHAR_MAXWIDTH)
-                            .build(),
-                    Procedure.newBuilder().name("TIMESTAMP_TO_CHAR")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR))
-                            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                            .arg("STAMP", DataTypeDescriptor.getCatalogType(Types.TIMESTAMP))
-                            .varchar("OUTPUT", Limits.DB2_VARCHAR_MAXWIDTH)
-                            .build(),
-                    Procedure.newBuilder().name("TRUNC_DATE")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.TIMESTAMP))
-                            .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
-                            .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.TIMESTAMP))
-                            .varchar("FIELD", Limits.DB2_VARCHAR_MAXWIDTH)
-                            .build(),
+            SYSFUN_PROCEDURES.addAll(SpliceStringFunctions.getProcedures());
+            SYSFUN_PROCEDURES.addAll(SpliceDateFunctions.getProcedures());
+            SYSFUN_PROCEDURES.addAll(StatisticsFunctions.getProcedures());
+            SYSFUN_PROCEDURES.addAll(GenericSpliceFunctions.getProcedures());
 
-                    //numeric functions
-                    Procedure.newBuilder().name("SCALAR_POW")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
-                            .isDeterministic(true).ownerClass(NumericFunctions.class.getCanonicalName())
-                            .arg("BASE",DataTypeDescriptor.getCatalogType(Types.BIGINT))
-                            .arg("SCALE",DataTypeDescriptor.getCatalogType(Types.INTEGER))
-                            .build(),
-                    Procedure.newBuilder().name("POW")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.DOUBLE))
-                            .isDeterministic(true).ownerClass(NumericFunctions.class.getCanonicalName())
-                            .arg("BASE",DataTypeDescriptor.getCatalogType(Types.DOUBLE))
-                            .arg("SCALE",DataTypeDescriptor.getCatalogType(Types.DOUBLE))
-                            .build()
-
-            ));
-
-            SYSFUN_PROCEDURES.addAll(Arrays.asList(
-            /*
-             * Statistics functions
-             */
-                    Procedure.newBuilder().name("STATS_CARDINALITY")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
-                            .isDeterministic(true).ownerClass(StatisticsFunctions.class.getCanonicalName())
-                            .arg("SOURCE", SystemColumnImpl
-                                    .getJavaColumn("DATA", ColumnStatisticsImpl.class.getCanonicalName(), false)
-                                    .getType().getCatalogType())
-                            .build(),
-                    Procedure.newBuilder().name("STATS_NULL_COUNT")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
-                            .isDeterministic(true).ownerClass(StatisticsFunctions.class.getCanonicalName())
-                            .arg("SOURCE", SystemColumnImpl
-                                    .getJavaColumn("DATA", ColumnStatisticsImpl.class.getCanonicalName(), false)
-                                    .getType().getCatalogType())
-                            .build(),
-                    Procedure.newBuilder().name("STATS_NULL_FRACTION")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.REAL))
-                            .isDeterministic(true).ownerClass(StatisticsFunctions.class.getCanonicalName())
-                            .arg("SOURCE", SystemColumnImpl
-                                    .getJavaColumn("DATA", ColumnStatisticsImpl.class.getCanonicalName(), false)
-                                    .getType().getCatalogType())
-                            .build(),
-                    Procedure.newBuilder().name("STATS_QUANTILES")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR))
-                            .isDeterministic(true).ownerClass(StatisticsFunctions.class.getCanonicalName())
-                            .arg("SOURCE", SystemColumnImpl
-                                    .getJavaColumn("DATA", ColumnStatisticsImpl.class.getCanonicalName(), false)
-                                    .getType().getCatalogType())
-                            .build(),
-                    Procedure.newBuilder().name("STATS_FREQUENCIES")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR))
-                            .isDeterministic(true).ownerClass(StatisticsFunctions.class.getCanonicalName())
-                            .arg("SOURCE", SystemColumnImpl
-                                    .getJavaColumn("DATA", ColumnStatisticsImpl.class.getCanonicalName(), false)
-                                    .getType().getCatalogType())
-                            .build(),
-                    Procedure.newBuilder().name("STATS_THETA")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR))
-                            .isDeterministic(true).ownerClass(StatisticsFunctions.class.getCanonicalName())
-                            .arg("SOURCE", SystemColumnImpl
-                                    .getJavaColumn("DATA", ColumnStatisticsImpl.class.getCanonicalName(), false)
-                                    .getType().getCatalogType())
-                            .build(),
-
-                    Procedure.newBuilder().name("STATS_MIN")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR))
-                            .isDeterministic(true).ownerClass(StatisticsFunctions.class.getCanonicalName())
-                            .arg("SOURCE", SystemColumnImpl
-                                    .getJavaColumn("DATA", ColumnStatisticsImpl.class.getCanonicalName(), false)
-                                    .getType().getCatalogType())
-                            .build(),
-                    Procedure.newBuilder().name("STATS_MAX")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR))
-                            .isDeterministic(true).ownerClass(StatisticsFunctions.class.getCanonicalName())
-                            .arg("SOURCE", SystemColumnImpl
-                                    .getJavaColumn("DATA", ColumnStatisticsImpl.class.getCanonicalName(), false)
-                                    .getType().getCatalogType())
-                            .build(),
-                    Procedure.newBuilder().name("STATS_COL_WIDTH")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.INTEGER))
-                            .isDeterministic(true).ownerClass(StatisticsFunctions.class.getCanonicalName())
-                            .arg("SOURCE", SystemColumnImpl
-                                    .getJavaColumn("DATA", ColumnStatisticsImpl.class.getCanonicalName(), false)
-                                    .getType().getCatalogType())
-                            .build()
-            ));
-
-            SYSFUN_PROCEDURES.addAll(Arrays.asList(
-                    //
-                    // General functions
-                    //
-                    Procedure.newBuilder().name("LONG_UUID")
-                            .numOutputParams(1)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
-                            .isDeterministic(false).ownerClass(GenericSpliceFunctions.class.getCanonicalName())
-                            .build()
-            ));
         }catch(StandardException se){
             throw new RuntimeException(se);
         }
     }
+
 
 }

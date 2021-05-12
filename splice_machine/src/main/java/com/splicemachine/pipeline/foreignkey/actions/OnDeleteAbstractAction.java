@@ -110,12 +110,12 @@ public abstract class OnDeleteAbstractAction extends Action {
     private static Pair<SimpleTxnFilter, SimpleTxnFilter> prepareScanFilters(TxnView txnView, long indexConglomerateId) throws IOException {
         SimpleTxnFilter readUncommittedFilter, readCommittedFilter;
         if (txnView instanceof ActiveWriteTxn) {
-            readCommittedFilter = new SimpleTxnFilter(Long.toString(indexConglomerateId), ((ActiveWriteTxn) txnView).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
-            readUncommittedFilter = new SimpleTxnFilter(Long.toString(indexConglomerateId), ((ActiveWriteTxn) txnView).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
+            readCommittedFilter = new SimpleTxnFilter(((ActiveWriteTxn) txnView).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
+            readUncommittedFilter = new SimpleTxnFilter(((ActiveWriteTxn) txnView).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
 
         } else if (txnView instanceof WritableTxn) {
-            readCommittedFilter = new SimpleTxnFilter(Long.toString(indexConglomerateId), ((WritableTxn) txnView).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
-            readUncommittedFilter = new SimpleTxnFilter(Long.toString(indexConglomerateId), ((WritableTxn) txnView).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
+            readCommittedFilter = new SimpleTxnFilter(((WritableTxn) txnView).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
+            readUncommittedFilter = new SimpleTxnFilter(((WritableTxn) txnView).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
         } else {
             throw new IOException("invalidTxn,");
         }

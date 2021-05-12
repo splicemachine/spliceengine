@@ -1263,7 +1263,6 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
              * Really need yet another node type that does its own code generation.
              */
             if(rc.getExpression() instanceof CurrentRowLocationNode){
-                ConglomerateController cc;
                 int savedItem;
                 RowLocation rl;
 
@@ -1272,14 +1271,9 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
                 int isolationLevel=TransactionController.ISOLATION_NOLOCK;
 
-                cc=lcc.getTransactionCompile().openConglomerate(conglomerateId,false,0,TransactionController.MODE_RECORD,isolationLevel);
-
-                try{
+                try (ConglomerateController cc = lcc.getTransactionCompile().openConglomerate(
+                        conglomerateId,false,0,TransactionController.MODE_RECORD,isolationLevel)) {
                     rl=cc.newRowLocationTemplate();
-                }finally{
-                    if(cc!=null){
-                        cc.close();
-                    }
                 }
 
                 savedItem=acb.addItem(rl);
@@ -1852,6 +1846,12 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         for(int index=0;index<size;index++){
             ResultColumn rc=elementAt(index);
             rc.rejectParameter();
+        }
+    }
+
+    void setUnknownParameterType(DataTypeDescriptor type) throws StandardException{
+        for (ResultColumn rc: this) {
+            rc.setUnknownParameterType(type);
         }
     }
 
@@ -3993,6 +3993,16 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
     public void setFromExprIndex(boolean fromExprIndex) {
         this.fromExprIndex = fromExprIndex;
+    }
+
+    // Does this list of columns have any referenced columns?
+    public boolean hasReferencedColumn() {
+        for(int index=0;index<size();index++){
+            ResultColumn rc=elementAt(index);
+            if (rc.isReferenced())
+                return true;
+        }
+        return false;
     }
 
 }

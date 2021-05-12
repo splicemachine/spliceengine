@@ -15,7 +15,6 @@
 package com.splicemachine.derby.stream.output;
 
 import com.splicemachine.EngineDriver;
-import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -26,7 +25,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
-import com.splicemachine.derby.stream.output.update.NonPkRowHash;
+import com.splicemachine.derby.stream.output.update.RowHash;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -238,7 +237,7 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
             for (int i = 0; i < numColumns; i++)
                 colMap[i + 1] = i;
 
-            dataHash = new NonPkRowHash(colMap, null, serializers, bitSet);
+            dataHash = new RowHash(colMap, null, serializers, bitSet);
         }
         return dataHash;
     }

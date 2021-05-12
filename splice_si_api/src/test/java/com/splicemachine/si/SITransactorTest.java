@@ -1465,15 +1465,15 @@ public class SITransactorTest {
     @Test
     public void rollbackUpdate() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
-        testUtility.insertAge(t1, "joe43", 20);
+        testUtility.insertAge(t1, "joe48", 20);
         t1.commit();
 
         Txn t2 = control.beginTransaction(DESTINATION_TABLE);
-        testUtility.insertAge(t2, "joe43", 21);
+        testUtility.insertAge(t2, "joe48", 21);
         t2.rollback();
 
         Txn t3 = control.beginTransaction();
-        Assert.assertEquals("joe43 age=20 job=null", testUtility.read(t3, "joe43"));
+        Assert.assertEquals("joe48 age=20 job=null", testUtility.read(t3, "joe48"));
     }
 
     @Test

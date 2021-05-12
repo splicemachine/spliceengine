@@ -49,6 +49,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
+import com.splicemachine.db.impl.sql.execute.TriggerInfo2;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.ArrayUtils;
 
@@ -860,7 +861,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
     {
         if ((triggerList != null) && (!triggerList.isEmpty()))
         {
-            triggerInfo = new TriggerInfo(td, changedCols, triggerList);
+            triggerInfo = new TriggerInfo2(td, changedCols, triggerList);
         }
     }
 
@@ -1522,14 +1523,11 @@ abstract class DMLModStatementNode extends DMLStatementNode
             // We must include all indexes in the update for now,
             // because the logic to determine which indexes need to
             // be updated is broken and needs a lot of rework.
-            // TODO: Re-enable this code once UpdateOperation is
-            //       properly trained to detect which indexes
-            //       can skip the update.
-//            if ((updatedColumns != null) &&
-//                    (!updatedColumns.updateOverlaps(
-//                            cd.getIndexDescriptor().baseColumnPositions()))) {
-//                continue;
-//            }
+            if ((updatedColumns != null) &&
+                    (!updatedColumns.updateOverlaps(
+                            cd.getIndexDescriptor().baseColumnPositions()))) {
+                continue;
+            }
 
             if (conglomVector != null) {
                 int i;

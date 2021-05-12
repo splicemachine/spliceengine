@@ -45,12 +45,16 @@ public class ijCommands {
     boolean hasServerLikeFix() {
         if(serverLikeFix == null) {
             try {
-                int[] v = parseVersion(getVersion());
-                if(v != null && v[0] >= 3 && v[3] >= 1988 ){
-                    serverLikeFix = Boolean.TRUE;
+                String strVersion = getVersion();
+                if(strVersion.equals("UNKNOWN"))
+                    serverLikeFix = Boolean.TRUE; // mem platform
+                else {
+                    int[] v = parseVersion(strVersion);
+                    if (v != null && v[0] >= 3 && v[3] >= 1988) {
+                        serverLikeFix = Boolean.TRUE;
+                    } else
+                        serverLikeFix = Boolean.FALSE;
                 }
-                else
-                    serverLikeFix = Boolean.FALSE;
             } catch (Exception e) {
                 serverLikeFix = Boolean.FALSE;
             }
@@ -152,7 +156,7 @@ public class ijCommands {
                     new ColumnParameters( rs, "ORDINAL_POSITION", 8).maxWidth(16),
                     new ColumnParameters( rs, "NON_UNIQUE", 10).maxWidth(10),
                     new ColumnParameters( rs, "TYPE", 5).maxWidth(15),
-                    new ColumnParameters( rs, "ASC_OR_DESC", 4).maxWidth( 11),
+                    new ColumnParameters( rs, "ASC_OR_DESC", 4).maxWidth(11),
                     new ColumnParameters( rs, "CONGLOM_NO", 10).maxWidth(10)
             };
             if(schema!=null) {
@@ -486,8 +490,8 @@ public class ijCommands {
      * Verify that a table exists within a schema. Throws an exception
      * if table does not exist.
      *
-     * @param schema Schema for the table
-     * @param table  Name of table to check for existence of
+     * @param schema Schema name pattern for the table (properly escaped)
+     * @param table  Table name pattern to check for existence of (properly escaped)
      */
     public void verifyTableExists(String schema, String table)
             throws SQLException {
@@ -522,8 +526,9 @@ public class ijCommands {
         ResultSet rs = null;
         try {
             haveConnection();
-            verifyTableExists(schema,table);
-
+            String escapedSchema = Utils.escape(schema);
+            String escapedTable = Utils.escape(table);
+            verifyTableExists(escapedSchema, escapedTable);
             DatabaseMetaData dbmd = theConnection.getMetaData();
 
             //Check if it's a synonym table
@@ -532,8 +537,10 @@ public class ijCommands {
                     Utils.defaultEscapeCharacter, Utils.defaultEscapeCharacter);
 
             PreparedStatement s = theConnection.prepareStatement(getSynonymAliasInfo);
-            s.setString(1, Utils.escape(schema));
-            s.setString(2, Utils.escape(table));
+
+            s.setString(1, escapedSchema);
+
+            s.setString(2, escapedTable);
             rs = s.executeQuery();
 
             if (rs.next()){
@@ -545,7 +552,7 @@ public class ijCommands {
             }
 
             if(hasServerLikeFix())
-                rs = dbmd.getColumns(null,Utils.escape(schema),Utils.escape(table),null);
+                rs = dbmd.getColumns(null, escapedSchema, escapedTable, null);
             else
                 rs = dbmd.getColumns(null,schema,table,null);
 

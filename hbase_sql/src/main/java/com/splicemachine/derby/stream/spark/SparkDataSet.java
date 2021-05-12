@@ -210,6 +210,11 @@ public class SparkDataSet<V> implements DataSet<V> {
         return distinct("Remove Duplicates", false, context, false, null);
     }
 
+    @Override
+    public DataSet<V> limit(int numRows, OperationContext context){
+        return zipWithIndex(context).mapPartitions(new OffsetFunction<SpliceOperation, V>(context, 0, numRows));
+    }
+
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
@@ -797,22 +802,21 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp,
-                                             int[] partitionBy,
+    public DataSet<ExecRow> writeParquetFile(int[] partitionBy,
                                              String location,
                                              String compression,
                                              OperationContext context) throws StandardException {
 
         return getNativeSparkDataSet( context )
-                .writeParquetFile(dsp, partitionBy, location, compression, context);
+                .writeParquetFile(partitionBy, location, compression, context);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
+    public DataSet<ExecRow> writeORCFile(int[] partitionBy, String location, String compression,
                                          OperationContext context) throws StandardException
     {
         return getNativeSparkDataSet( context )
-                .writeORCFile(baseColumnMap, partitionBy, location, compression, context);
+                .writeORCFile(partitionBy, location, compression, context);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })

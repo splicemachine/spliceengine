@@ -32,6 +32,7 @@ package com.splicemachine.db.iapi.sql.conn;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModelRegistry;
 import com.splicemachine.utils.Pair;
 
 import java.sql.SQLException;
@@ -56,7 +57,12 @@ public interface SessionProperties {
         DISABLE_NLJ_PREDICATE_PUSH_DOWN(12),
         USE_NATIVE_SPARK(13),
         MINPLANTIMEOUT(14),
-        CURRENTFUNCTIONPATH(15);
+        CURRENTFUNCTIONPATH(15),
+        DISABLEPREDSFORINDEXORPKACCESSPATH(16),
+        ALWAYSALLOWINDEXPREFIXITERATION(17),
+        OLAPALWAYSPENALIZENLJ(18),
+        FAVORINDEXPREFIXITERATION(19),
+        COSTMODEL(20);
 
         public static final int COUNT = PROPERTYNAME.values().length;
 
@@ -90,7 +96,7 @@ public interface SessionProperties {
             property = SessionProperties.PROPERTYNAME.valueOf(propertyNameString);
         } catch (IllegalArgumentException e) {
             throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY,propertyNameString,
-                    "useOLAP, useSpark (deprecated), defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit, tableLimitForExhaustiveSearch, minPlanTimeout");
+                "useOLAP, useSpark (deprecated), defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit, tableLimitForExhaustiveSearch, minPlanTimeout, currentFunctionPath, disablePredsForIndexOrPkAccessPath, alwaysAllowIndexPrefixIteration, olapAlwaysPenalizeNLJ, favorIndexPrefixIteration, costModel");
         }
 
         String valString = pair.getSecond();
@@ -103,6 +109,10 @@ public interface SessionProperties {
             case DISABLE_TC_PUSHED_DOWN_INTO_VIEWS:
             case DISABLE_NLJ_PREDICATE_PUSH_DOWN:
             case USE_NATIVE_SPARK:
+            case OLAPALWAYSPENALIZENLJ:
+            case DISABLEPREDSFORINDEXORPKACCESSPATH:
+            case ALWAYSALLOWINDEXPREFIXITERATION:
+            case FAVORINDEXPREFIXITERATION:
                 try {
                     Boolean.parseBoolean(valString);
                 } catch (Exception e) {
@@ -146,6 +156,10 @@ public interface SessionProperties {
                     throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value should be a positive long");
                 }
                 break;
+            case COSTMODEL:
+                if(!CostModelRegistry.exists(valString)) {
+                    throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, String.format("value should be one of %s", CostModelRegistry.modelNames()));
+                }
             default:
                 break;
         }

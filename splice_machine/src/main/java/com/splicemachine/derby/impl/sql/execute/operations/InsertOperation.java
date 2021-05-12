@@ -51,7 +51,6 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.system.CsvOptions;
-import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
@@ -176,6 +175,8 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                     heapConglom);
             spliceSequences=new SpliceSequence[autoIncrementRowLocationArray.length];
             int length=autoIncrementRowLocationArray.length;
+            if (length != 0 && triggerHandler != null)
+                triggerHandler.setHasGeneratedColumn();
             for(int i=0;i<length;i++){
                 HBaseRowLocation rl=(HBaseRowLocation)autoIncrementRowLocationArray[i];
                 if(rl==null){
@@ -326,11 +327,11 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                 ImportUtils.validateWritable(location,false);
 
                 if (storedAs.toLowerCase().equals("p"))
-                    return set.writeParquetFile(dsp, partitionBy, location, compression, operationContext);
+                    return set.writeParquetFile(partitionBy, location, compression, operationContext);
                 else if (storedAs.toLowerCase().equals("a"))
                     return set.writeAvroFile(dsp, partitionBy, location, compression, operationContext);
                 else if (storedAs.toLowerCase().equals("o"))
-                    return set.writeORCFile(IntArrays.count(execRowTypeFormatIds.length),partitionBy,location, compression, operationContext);
+                    return set.writeORCFile(partitionBy,location, compression, operationContext);
                 else if (storedAs.toLowerCase().equals("t"))
                     return set.writeTextFile(partitionBy, location, new CsvOptions(delimited, escaped, lines), operationContext);
                 else
