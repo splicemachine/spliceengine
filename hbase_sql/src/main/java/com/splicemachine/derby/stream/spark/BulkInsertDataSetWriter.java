@@ -54,6 +54,7 @@ import scala.Tuple2;
 import java.io.*;
 import java.util.*;
 
+@SuppressFBWarnings({"EI_EXPOSE_REP2"})
 public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSetWriter {
 
     private static final Logger LOG=Logger.getLogger(BulkInsertDataSetWriter.class);
@@ -73,7 +74,6 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
     public BulkInsertDataSetWriter(){
     }
 
-    @SuppressFBWarnings("EI_EXPOSE_REP2")
     public BulkInsertDataSetWriter(DataSet dataSet,
                                    String tableVersion,
                                    int[] pkCols,
@@ -141,7 +141,6 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
         ConglomerateDescriptorList conglomerateDescriptorList = td.getConglomerateDescriptorList();
         List<Long> allCongloms = Lists.newArrayList();
         allCongloms.add(td.getHeapConglomerateId());
-
         ArrayList<DDLMessage.TentativeIndex> tentativeIndexList = new ArrayList();
         DDLDriver ddlDriver=DDLDriver.driver();
         for(DDLMessage.DDLChange ddlChange : ddlDriver.ddlWatcher().getTentativeDDLs()){
@@ -182,28 +181,43 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
         return getResultSet();
     }
 
-
     /**
      * This option is for calculating split row keys in HBase format, provided that split row keys are
      * stored in a csv file
      */
     private void doOutputKeysOnly(Activation activation, TableDescriptor td,
                                   ConglomerateDescriptorList conglomerateDescriptorList, List<Long> allCongloms,
-                                  ArrayList<DDLMessage.TentativeIndex> tentativeIndexList) throws StandardException
+                                  ArrayList<DDLMessage.TentativeIndex> tentativeIndexList)
+            throws StandardException
     {
+        long indexConglom = -1;
+        boolean isUnique = false;
         for (ConglomerateDescriptor searchCD : conglomerateDescriptorList) {
             if (searchCD.isIndex() && !searchCD.isPrimaryKey() && indexName != null &&
                     searchCD.getObjectName().compareToIgnoreCase(indexName) == 0) {
+                indexConglom = searchCD.getConglomerateNumber();
+                DataValueDescriptor dvd =
+                        td.getColumnDescriptor(
+                                searchCD.getIndexDescriptor().baseColumnPositions()[0]).getDefaultValue();
                 DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txn.getTxnId(),
                         activation.getLanguageConnectionContext(),
                         td.getHeapConglomerateId(), searchCD.getConglomerateNumber(),
-                        td, searchCD.getIndexDescriptor(), td.getDefaultValue(searchCD.getIndexDescriptor().baseColumnPositions()[0]));
+                        td, searchCD.getIndexDescriptor(),
+                        td.getDefaultValue(searchCD.getIndexDescriptor().baseColumnPositions()[0]));
+                isUnique = searchCD.getIndexDescriptor().isUnique();
                 tentativeIndexList.add(ddlChange.getTentativeIndex());
                 allCongloms.add(searchCD.getConglomerateNumber());
                 break;
             }
         }
+        RowAndIndexGenerator rowAndIndexGenerator = getRowAndIndexGenerator(tentativeIndexList);
+        DataSet rowAndIndexes = dataSet.flatMap(rowAndIndexGenerator);
+        DataSet keys = rowAndIndexes.mapPartitions(
+                new RowKeyGenerator(bulkImportDirectory, heapConglom,
+                        indexConglom, isUnique));
+        keys.collect();
     }
+
 
     private List<Tuple2<Long, byte[][]>> doSampling(Activation activation, TableDescriptor td,
                                                     ArrayList<DDLMessage.TentativeIndex> tentativeIndexList)
@@ -217,9 +231,7 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
         DataSet sampledDataSet = dataSet.sampleWithoutReplacement(sampleFraction);
 
         // encode key/vale pairs for table and indexes
-        RowAndIndexGenerator rowAndIndexGenerator =
-                new BulkInsertRowIndexGenerationFunction(pkCols, tableVersion, execRow, autoIncrementRowLocationArray,
-                        spliceSequences, heapConglom, txn, operationContext, tentativeIndexList);
+        RowAndIndexGenerator rowAndIndexGenerator = getRowAndIndexGenerator(tentativeIndexList);
         DataSet sampleRowAndIndexes = sampledDataSet.flatMap(rowAndIndexGenerator);
 
         // collect statistics for encoded key/value, include size and histgram
@@ -237,7 +249,6 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
         operationContext.reset();
         return cutPoints;
     }
-
 
     /**
      * result structure is
@@ -266,6 +277,13 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
         return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
     }
 
+    private BulkInsertRowIndexGenerationFunction getRowAndIndexGenerator(ArrayList<DDLMessage.TentativeIndex> tentativeIndexList)
+    {
+        return new BulkInsertRowIndexGenerationFunction(pkCols, tableVersion, execRow,
+                autoIncrementRowLocationArray, spliceSequences,
+                heapConglom, txn, operationContext, tentativeIndexList);
+    }
+
     private void doNormalWrite(List<Long> allCongloms, ArrayList<DDLMessage.TentativeIndex> tentativeIndexList,
                                List<Tuple2<Long, byte[][]>> cutPoints) throws StandardException {
         // split table and indexes using the calculated cutpoints
@@ -277,10 +295,7 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
         final List<BulkImportPartition> bulkImportPartitions =
                 getBulkImportPartitions(allCongloms, bulkImportDirectory);
 
-        RowAndIndexGenerator rowAndIndexGenerator = new BulkInsertRowIndexGenerationFunction(pkCols, tableVersion, execRow,
-                autoIncrementRowLocationArray, spliceSequences, heapConglom, txn,
-                operationContext, tentativeIndexList);
-
+        RowAndIndexGenerator rowAndIndexGenerator = getRowAndIndexGenerator(tentativeIndexList);
         String compressionAlgorithm = HConfiguration.getConfiguration().getCompressionAlgorithm();
 
         // Write to HFile
