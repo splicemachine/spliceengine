@@ -46,6 +46,13 @@ public class IndexLookupCostEstimationIT extends SpliceUnitTest {
                 .withCreate("create table test_table (c1 int, c2 int, c3 int, c4 int, c5 int, c6 int, c7 int, c8 int, c9 int, c10 int)")
                 .withIndex("create index test_table_idx on test_table(c1, c2)")
                 .create();
+
+        new TableCreator(conn)
+                .withCreate("create table test_empty (c1 int primary key, c2 int, c3 int)")
+                .withIndex("create index test_empty_idx on test_empty(c1, c2)")
+                .create();
+
+        spliceClassWatcher.execute("analyze table test_empty");
     }
 
     private double extractCostFromPlanRow(ResultSet planResult, int level) throws SQLException, NumberFormatException {
@@ -120,5 +127,14 @@ public class IndexLookupCostEstimationIT extends SpliceUnitTest {
         testIndexLookupCost(rowCounts, expectedCosts, epsilon, true);
 
         methodWatcher.execute("set session_property costModel='v1'");
+    }
+
+    @Test
+    public void testZeroRow() throws Exception {
+        String sqlText = "explain select * from test_empty where c1 = 10";
+
+        // no need to use test_empty_idx here, should use PK
+        rowContainsQuery(3, sqlText, "TableScan[TEST_EMPTY", CM_V1, methodWatcher);
+        rowContainsQuery(3, sqlText, "TableScan[TEST_EMPTY", CM_V2, methodWatcher);
     }
 }
