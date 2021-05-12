@@ -47,12 +47,14 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import scala.Tuple2;
 
 import java.io.*;
 import java.util.*;
 
+@SuppressFBWarnings({"EI_EXPOSE_REP2"})
 public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSetWriter {
 
     private static final Logger LOG=Logger.getLogger(BulkInsertDataSetWriter.class);
@@ -213,7 +215,7 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
         DataSet keys = rowAndIndexes.mapPartitions(
                 new RowKeyGenerator(bulkImportDirectory, heapConglom,
                         indexConglom, isUnique));
-        List<String> files = keys.collect();
+        keys.collect();
     }
 
 
@@ -341,9 +343,9 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
     private void revokeCreatePrivilege(Map<Long, Boolean> granted) throws StandardException{
         try {
             PartitionFactory tableFactory = SIDriver.driver().getTableFactory();
-            for (Long conglomId : granted.keySet()) {
-                if (granted.get(conglomId)) {
-                    Partition partition = tableFactory.getTable(Long.toString(conglomId));
+            for (Map.Entry<Long, Boolean> entry : granted.entrySet()) {
+                if (entry.getValue()) {
+                    Partition partition = tableFactory.getTable(Long.toString(entry.getKey()));
                     partition.revokeCreatePrivilege();
                 }
             }
