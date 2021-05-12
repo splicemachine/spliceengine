@@ -166,9 +166,9 @@ abstract class DDLStatementNode extends StatementNode
         }
     }
 
-    int activationKind()
+    ActivationKind getActivationKind()
     {
-           return StatementNode.NEED_DDL_ACTIVATION;
+           return ActivationKind.NEED_DDL;
     }
 
     /**

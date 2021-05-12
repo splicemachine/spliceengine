@@ -49,9 +49,9 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 abstract class MiscellaneousStatementNode extends StatementNode
 {
 
-	int activationKind()
+	ActivationKind getActivationKind()
 	{
-		   return StatementNode.NEED_NOTHING_ACTIVATION;
+		   return ActivationKind.NEED_NOTHING;
 	}
 
 	/**

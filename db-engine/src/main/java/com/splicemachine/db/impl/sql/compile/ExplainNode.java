@@ -88,7 +88,7 @@ public class ExplainNode extends DMLStatementNode {
         }
     }
 
-    int activationKind() { return StatementNode.NEED_NOTHING_ACTIVATION; }
+    ActivationKind getActivationKind() { return ActivationKind.NEED_NOTHING; }
 
     public String statementToString() { return "Explain"; }
 

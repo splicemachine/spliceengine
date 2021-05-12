@@ -31,16 +31,13 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 
@@ -166,7 +163,7 @@ public class SetSchemaNode extends MiscellaneousStatementNode
 	 *			NEED_NOTHING_ACTIVATION depending on params
 	 *
 	 */
-	int activationKind()
+	ActivationKind getActivationKind()
 	{
 		/*
 		** We need parameters 
@@ -174,11 +171,11 @@ public class SetSchemaNode extends MiscellaneousStatementNode
 		*/
 		if (type == StatementType.SET_SCHEMA_DYNAMIC)
 		{
-			return StatementNode.NEED_PARAM_ACTIVATION;
+			return ActivationKind.NEED_PARAM;
 		}
 		else
 		{
-			return StatementNode.NEED_NOTHING_ACTIVATION;
+			return ActivationKind.NEED_NOTHING;
 		}
 	}
 

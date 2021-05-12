@@ -62,11 +62,13 @@ public abstract class StatementNode extends QueryTreeNode{
      * be generating, generate the expression to stuff in it,
      * and turn it into a class.
      */
-    static final int NEED_DDL_ACTIVATION=5;
-    static final int NEED_CURSOR_ACTIVATION=4;
-    static final int NEED_PARAM_ACTIVATION=2;
-    static final int NEED_ROW_ACTIVATION=1;
-    static final int NEED_NOTHING_ACTIVATION=0;
+    public enum ActivationKind {
+        NEED_DDL,
+        NEED_CURSOR,
+        NEED_PARAM,
+        NEED_ROW,
+        NEED_NOTHING
+    }
 
     StatementNode(){ }
 
@@ -195,7 +197,7 @@ public abstract class StatementNode extends QueryTreeNode{
         // and the appropriate superclass (based on
         // statement type, from inspecting the queryTree).
 
-        int nodeChoice=activationKind();
+        ActivationKind nodeChoice = getActivationKind();
 
 		/* RESOLVE: Activation hierarchy was way too complicated
 		 * and added no value.  Simple thing to do was to simply
@@ -204,17 +206,17 @@ public abstract class StatementNode extends QueryTreeNode{
 		 */
         String superClass;
         switch(nodeChoice){
-            case NEED_CURSOR_ACTIVATION:
-                superClass=ClassName.CursorActivation;
+            case NEED_CURSOR:
+                superClass = ClassName.CursorActivation;
                 break;
-            case NEED_DDL_ACTIVATION:
+            case NEED_DDL:
                 return getClassFactory().loadGeneratedClass(
                         "com.splicemachine.db.impl.sql.execute.ConstantActionActivation",null);
 
-            case NEED_NOTHING_ACTIVATION:
-            case NEED_ROW_ACTIVATION:
-            case NEED_PARAM_ACTIVATION:
-                superClass=ClassName.BaseActivation;
+            case NEED_NOTHING:
+            case NEED_ROW:
+            case NEED_PARAM:
+                superClass = ClassName.BaseActivation;
                 break;
             default:
                 throw StandardException.newException(SQLState.LANG_UNAVAILABLE_ACTIVATION_NEED,
@@ -347,7 +349,8 @@ public abstract class StatementNode extends QueryTreeNode{
         return EMPTY_TD_LIST;
     }
 
-    abstract int activationKind();
+    // this should be documented
+    abstract ActivationKind getActivationKind();
 
     protected Vector withParameterList;
 

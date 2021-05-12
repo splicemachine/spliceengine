@@ -159,16 +159,16 @@ public class SetRoleNode extends MiscellaneousStatementNode
      *          NEED_NOTHING_ACTIVATION depending on params
      *
      */
-    int activationKind()
+    ActivationKind getActivationKind()
     {
         Vector parameterList = getCompilerContext().getParameterList();
         /*
         ** We need parameters only for those that have parameters.
         */
         if (type == StatementType.SET_ROLE_DYNAMIC) {
-            return StatementNode.NEED_PARAM_ACTIVATION;
+            return ActivationKind.NEED_PARAM;
         } else {
-            return StatementNode.NEED_NOTHING_ACTIVATION;
+            return ActivationKind.NEED_NOTHING;
         }
     }
 

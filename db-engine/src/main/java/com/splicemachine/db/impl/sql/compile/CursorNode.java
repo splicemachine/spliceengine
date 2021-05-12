@@ -576,8 +576,8 @@ public class CursorNode extends DMLStatementNode{
      * @return either (NEED_CURSOR_ACTIVATION
      */
     @Override
-    int activationKind(){
-        return NEED_CURSOR_ACTIVATION;
+    ActivationKind getActivationKind(){
+        return ActivationKind.NEED_CURSOR;
     }
 
     /**

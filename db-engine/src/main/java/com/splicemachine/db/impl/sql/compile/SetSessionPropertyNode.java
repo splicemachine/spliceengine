@@ -130,8 +130,8 @@ public class SetSessionPropertyNode extends MiscellaneousStatementNode {
      *			NEED_NOTHING_ACTIVATION depending on params
      *
      */
-    int activationKind()
+    ActivationKind getActivationKind()
     {
-        return StatementNode.NEED_NOTHING_ACTIVATION;
+        return ActivationKind.NEED_NOTHING;
     }
 }

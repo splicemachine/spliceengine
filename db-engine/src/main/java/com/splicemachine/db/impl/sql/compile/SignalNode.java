@@ -16,28 +16,16 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
-import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
-import com.splicemachine.db.iapi.sql.conn.SessionProperties;
-import com.splicemachine.db.iapi.sql.execute.ConstantAction;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.TypeId;
-import com.splicemachine.utils.Pair;
 
-import java.lang.reflect.Modifier;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
-import java.util.Vector;
 
-import static com.splicemachine.db.iapi.types.TypeId.VARCHAR_NAME;
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_UNSUPPORTED_TRIGGER_STMT;
 
 /**
@@ -168,11 +156,11 @@ public class SignalNode extends MiscellaneousStatementNode {
      * Returns the type of activation this class
      * generates.
      *
-     * @return  NEED_NOTHING_ACTIVATION
+     * @return  ActivationKind.NEED_NOTHING
      *
      */
-    int activationKind()
+    ActivationKind getActivationKind()
     {
-        return StatementNode.NEED_NOTHING_ACTIVATION;
+        return ActivationKind.NEED_NOTHING;
     }
 }

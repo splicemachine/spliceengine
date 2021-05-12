@@ -66,8 +66,8 @@ public class NOPStatementNode extends StatementNode
 		throw StandardException.newException(SQLState.LANG_PARSE_ONLY);
 	}
 
-	int activationKind()
+	ActivationKind getActivationKind()
 	{
-		   return StatementNode.NEED_NOTHING_ACTIVATION;
+		   return ActivationKind.NEED_NOTHING;
 	}
 }

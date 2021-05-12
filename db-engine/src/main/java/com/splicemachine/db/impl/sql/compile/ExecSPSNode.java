@@ -317,14 +317,14 @@ public class ExecSPSNode extends StatementNode
 	/*
 	 * Shouldn't be called
 	 */
-	int activationKind()
+	ActivationKind getActivationKind()
 	{
 		if (SanityManager.DEBUG)
 		{
 			SanityManager.THROWASSERT("activationKind not expected "+
 				"to be called for a stored prepared statement");
 		}
-	   return StatementNode.NEED_PARAM_ACTIVATION;
+	   return ActivationKind.NEED_PARAM;
 	}
 	/////////////////////////////////////////////////////////////////////
 	//

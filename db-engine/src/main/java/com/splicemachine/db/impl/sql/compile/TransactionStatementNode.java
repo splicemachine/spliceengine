@@ -40,9 +40,9 @@ package com.splicemachine.db.impl.sql.compile;
 
 abstract class TransactionStatementNode extends StatementNode
 {
-	int activationKind()
+	ActivationKind getActivationKind()
 	{
-		   return StatementNode.NEED_NOTHING_ACTIVATION;
+		   return ActivationKind.NEED_NOTHING;
 	}
 	/**
 	 * COMMIT and ROLLBACK are allowed to commit

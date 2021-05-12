@@ -474,16 +474,16 @@ public abstract class DMLStatementNode extends StatementNode {
      *
      * @return either (NEED_ROW_ACTIVATION | NEED_PARAM_ACTIVATION) or (NEED_ROW_ACTIVATION) depending on params
      */
-    int activationKind() {
+    ActivationKind getActivationKind() {
         Vector parameterList = getCompilerContext().getParameterList();
         /*
         ** We need rows for all types of DML activations.  We need parameters
         ** only for those that have parameters.
         */
         if (parameterList != null && !parameterList.isEmpty()) {
-            return StatementNode.NEED_PARAM_ACTIVATION;
+            return ActivationKind.NEED_PARAM;
         } else {
-            return StatementNode.NEED_ROW_ACTIVATION;
+            return ActivationKind.NEED_ROW;
         }
     }
 

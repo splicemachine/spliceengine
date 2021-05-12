@@ -6,7 +6,6 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 
 public class StatementListNode extends StatementNode implements Iterable<StatementNode> {
     private ArrayList<StatementNode> list = new ArrayList<>();
@@ -21,9 +20,9 @@ public class StatementListNode extends StatementNode implements Iterable<Stateme
     }
 
     @Override
-    int activationKind() {
+    ActivationKind getActivationKind() {
         assert false: "activationKind should not be called for StatementList";
-        return 0;
+        return ActivationKind.NEED_NOTHING;
     }
 
     void addStatement(StatementNode statementNode) {

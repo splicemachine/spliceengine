@@ -45,8 +45,8 @@ public class KafkaExportNode extends DMLStatementNode {
     private String topicName;
 
     @Override
-    int activationKind() {
-        return StatementNode.NEED_NOTHING_ACTIVATION;
+    ActivationKind getActivationKind() {
+        return ActivationKind.NEED_NOTHING;
     }
 
     @Override
