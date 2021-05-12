@@ -51,6 +51,35 @@ public class MergeNodeIT
 
     @Test
     public void testGrammar() throws Exception {
+        /**
+         DROP TABLE A_new;
+         DROP TABLE A_dest;
+
+         create table A_new ( i integer, j integer);
+         insert into A_new values (1, 10), (2, 20), (3, 30);
+         create table A_dest ( i integer, j integer, k integer);
+         insert into A_dest values (1, 11, 101), (2, 12, 102), (3, 13, 103);
+         MERGE INTO A_dest dest USING A_new src ON (dest.i = src.i) when matched then update set dest.j = src.j;
+
+         SELECT * FROM A_dest;
+         -- A_dest = (1, 10, 101), (2, 20, 102), (3, 30, 103)
+
+
+         ///MERGE INTO A_dest dest using (SELECT i, j from A_new) src ON (dest.i = src.i) when matched then update set dest.j = src.j;
+
+         DROP TABLE A_new;
+         DROP TABLE A_dest;
+
+         create table A_new ( i integer, j integer);
+         insert into A_new values (1, 10), (2, 20), (3, 30), (5, 50);
+         create table A_dest ( i integer, j integer, k integer);
+         insert into A_dest values (1, 11, 101), (2, 12, 102), (3, 13, 103);
+         MERGE INTO A_dest dest USING A_new src ON (dest.i = src.i) when matched then update set dest.j = src.j WHEN NOT MATCHED THEN INSERT (i, j, k) VALUES (src.i, src.j, 100+src.j);
+
+         SELECT * FROM A_dest;
+         -- A_dest = (1, 10, 101), (2, 20, 102), (3, 30, 103), (5, 50, 150);
+
+         */
         // when matched UPDATE
         methodWatcher.execute("merge into A_dest dest using A_new src on (src.i = src.j) when matched then update set dest.i = src.j");
 
