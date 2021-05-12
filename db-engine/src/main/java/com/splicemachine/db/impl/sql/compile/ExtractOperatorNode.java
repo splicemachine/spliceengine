@@ -228,4 +228,29 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
 		double callCost = SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
 		return lowerCost + localCost + callCost;
 	}
+
+    @Override
+    public String opToString2(OperatorToString vars) throws StandardException {
+        if (vars.sparkExpression) {
+            String functionName = sparkFunctionName();
+
+            // Splice extracts fractional seconds, but spark only extracts whole seconds.
+            // Spark by default counts weeks starting on Sunday.
+            if (functionName.equals("SECOND") || functionName.equals("WEEK")) {
+                throw StandardException.newException(SQLState.LANG_DOES_NOT_IMPLEMENT);
+            } else if (functionName.equals("WEEKDAY") || functionName.equals("DAYOFWEEK_ISO")) {
+                if (OperatorToString.getSparkVersion().getMajorVersionNumber() >= 3)
+                    return String.format("(weekday(%s)+1)", operandToString(vars));
+                else
+                    return String.format("cast(date_format(%s, \"u\") as int) ", operandToString(vars));
+            } else if (functionName.equals("WEEKDAYNAME")) {
+                return String.format("date_format(%s, \"EEEE\") ", operandToString(vars));
+            } else {
+                return String.format("%s(%s) ", functionName, operandToString(vars));
+            }
+        }
+        else {
+            return String.format("%s(%s)", getOperatorString(), operandToString(vars));
+        }
+    }
 }

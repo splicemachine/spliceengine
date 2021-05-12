@@ -92,7 +92,7 @@ public class OperatorToString {
     }
 
     // Helper method for initializing the spark major version.
-    private static SparkVersion getSparkVersion() {
+    public static SparkVersion getSparkVersion() {
 
         // If splice.spark.version is manually set, use it...
         String spliceSparkVersionString = System.getProperty(SPLICE_SPARK_VERSION);
@@ -213,7 +213,7 @@ public class OperatorToString {
         return retval;
     }
 
-    private static void throwNotImplementedError() throws StandardException {
+    public static void throwNotImplementedError() throws StandardException {
         throw StandardException.newException(SQLState.LANG_DOES_NOT_IMPLEMENT);
     }
 
@@ -290,8 +290,8 @@ public class OperatorToString {
      *         behave in an ANSI SQL compliant manner (e.g. would hide numeric
      *         overflows), then a zero length String is returned.
      */
-    private static String opToString2(ValueNode        operand,
-                                      OperatorToString vars) throws StandardException {
+    public static String opToString2(ValueNode operand,
+                                     OperatorToString vars) throws StandardException {
         if(operand==null){
             return "";
         } else if (operand instanceof UntypedNullConstantNode) {
@@ -303,73 +303,7 @@ public class OperatorToString {
             if (vars.buildExpressionTree)
                 throwNotImplementedError();
             UnaryOperatorNode uop=(UnaryOperatorNode)operand;
-            String operatorString = uop.getOperatorString();
-            if (vars.sparkExpression) {
-                if (operand instanceof IsNullNode) {
-                    vars.relationalOpDepth.increment();
-                    String isNullString = format("%s %s", opToString2(uop.getOperand(), vars), operatorString);
-                    vars.relationalOpDepth.decrement();
-                    return isNullString;
-                }
-                else if (operand instanceof GroupingFunctionNode) {
-                    GroupingFunctionNode gfn = (GroupingFunctionNode) operand;
-                    ValueNode groupingIdRefForSpark = gfn.getGroupingIdRefForSpark();
-                    if (groupingIdRefForSpark == null)
-                        throwNotImplementedError();
-                    else
-                        return opToString2(groupingIdRefForSpark, vars);
-                }
-                else if (operand instanceof ExtractOperatorNode) {
-                    ExtractOperatorNode eon = (ExtractOperatorNode) operand;
-                    String functionName = eon.sparkFunctionName();
-
-                    // Splice extracts fractional seconds, but spark only extracts whole seconds.
-                    // Spark by default counts weeks starting on Sunday.
-                    if (functionName.equals("SECOND") || functionName.equals("WEEK")) {
-                        throwNotImplementedError();
-                    } else if (functionName.equals("WEEKDAY") || functionName.equals("DAYOFWEEK_ISO")) {
-                        if( getSparkVersion().getMajorVersionNumber() >= 3 )
-                            return format("(weekday(%s)+1)", opToString2(uop.getOperand(), vars));
-                        else
-                            return format("cast(date_format(%s, \"u\") as int) ", opToString2(uop.getOperand(), vars));
-                    } else if (functionName.equals("WEEKDAYNAME")) {
-                        return format("date_format(%s, \"EEEE\") ", opToString2(uop.getOperand(), vars));
-                    } else {
-                        return format("%s(%s) ", functionName, opToString2(uop.getOperand(), vars));
-                    }
-                }
-                else if (operand instanceof DB2LengthOperatorNode) {
-                    DB2LengthOperatorNode lengthOp = (DB2LengthOperatorNode)operand;
-                    String functionName = lengthOp.getOperatorString();
-                    ValueNode vn = lengthOp.getOperand();
-                    int type = vn.getTypeId().getTypeFormatId();
-                    boolean stringType =
-                             (type == CHAR_TYPE_ID ||
-                              type == VARCHAR_TYPE_ID ||
-                              type == LONGVARCHAR_TYPE_ID ||
-                              type == CLOB_TYPE_ID);
-                    // The length function has the same behavior on splice and
-                    // spark only for string types.
-                    if (!stringType)
-                        throwNotImplementedError();
-
-                    return format("%s(%s) ", functionName, opToString2(lengthOp.getOperand(), vars));
-                }
-                else if (operand instanceof UnaryArithmeticOperatorNode) {
-                    UnaryArithmeticOperatorNode uao = (UnaryArithmeticOperatorNode) operand;
-                    if (operatorString.equals("+") || operatorString.equals("-"))
-                        return format("%s%s ", operatorString, opToString2(uao.getOperand(), vars));
-                    else if (operatorString.equals("ABS/ABSVAL"))
-                        operatorString = "abs";
-                }
-                else if (operand instanceof SimpleStringOperatorNode ||
-                         operand instanceof NotNode) {
-                    return format("%s(%s) ", operatorString, opToString2(uop.getOperand(), vars));
-                }
-                else
-                    throwNotImplementedError();
-            }
-            return format("%s(%s)", operatorString, opToString2(uop.getOperand(), vars));
+            uop.opToString2(vars);
         }else if(operand instanceof BinaryRelationalOperatorNode){
             vars.relationalOpDepth.increment();
             BinaryRelationalOperatorNode bron=(BinaryRelationalOperatorNode)operand;

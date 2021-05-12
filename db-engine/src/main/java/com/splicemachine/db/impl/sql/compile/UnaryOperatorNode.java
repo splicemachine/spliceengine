@@ -971,4 +971,22 @@ public class UnaryOperatorNode extends OperatorNode
     protected double getOperandCost() throws StandardException {
         return operand == null ? 0.0 : operand.getBaseOperationCost();
     }
+
+    public String opToString2(OperatorToString vars) throws StandardException {
+        UnaryOperatorNode uop = this;
+        String operatorString = getOperatorString();
+        if (vars.sparkExpression) {
+            if (uop instanceof SimpleStringOperatorNode ||
+                    uop instanceof NotNode) {
+                return String.format("%s(%s) ", operatorString, operandToString(vars));
+            }
+            else
+                throw StandardException.newException(SQLState.LANG_DOES_NOT_IMPLEMENT);
+        }
+        return String.format("%s(%s) ", operatorString, operandToString(vars));
+    }
+
+    String operandToString(OperatorToString vars) throws StandardException {
+        return OperatorToString.opToString2(getOperand(), vars);
+    }
 }

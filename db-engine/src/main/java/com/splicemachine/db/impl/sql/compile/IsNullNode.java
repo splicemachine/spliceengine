@@ -49,6 +49,8 @@ import java.sql.Types;
 import java.util.Map;
 import java.util.Set;
 
+import static java.lang.String.format;
+
 /**
  * This node represents either a unary 
  * IS NULL or IS NOT NULL comparison operator
@@ -292,4 +294,17 @@ public final class IsNullNode extends UnaryComparisonOperatorNode  {
 		}
 		return true;
 	}
+
+    @Override
+    public String opToString2(OperatorToString vars) throws StandardException {
+        if (vars.sparkExpression) {
+            vars.relationalOpDepth.increment();
+            String isNullString = String.format("%s %s", getOperatorString(), operandToString(vars));
+            vars.relationalOpDepth.decrement();
+            return isNullString;
+        }
+        else {
+            return String.format("%s(%s)", getOperatorString(), operandToString(vars));
+        }
+    }
 }

@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.shared.common.reference.SQLState;
 
 import java.sql.Types;
 import java.util.List;
@@ -171,4 +172,18 @@ public final class GroupingFunctionNode extends UnaryOperatorNode {
         }
     }
 
+    @Override
+    public String opToString2(OperatorToString vars) throws StandardException {
+        if (vars.sparkExpression) {
+            GroupingFunctionNode gfn = (GroupingFunctionNode) operand;
+            ValueNode groupingIdRefForSpark = gfn.getGroupingIdRefForSpark();
+            if (groupingIdRefForSpark == null)
+                throw StandardException.newException(SQLState.LANG_DOES_NOT_IMPLEMENT);
+            else
+                return OperatorToString.opToString2(groupingIdRefForSpark, vars);
+        }
+        else {
+            return String.format("%s(%s)", getOperatorString(), operandToString(vars));
+        }
+    }
 }

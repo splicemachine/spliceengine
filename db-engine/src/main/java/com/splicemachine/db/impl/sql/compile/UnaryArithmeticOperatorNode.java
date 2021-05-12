@@ -281,4 +281,17 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
     public double getBaseOperationCost() throws StandardException {
         return getOperandCost() + SIMPLE_OP_COST;
     }
+
+    @Override
+    public String opToString2(OperatorToString vars) throws StandardException {
+        String operatorString = getOperatorString();
+        if (vars.sparkExpression) {
+            if (operatorString.equals("+") || operatorString.equals("-"))
+                return String.format("%s%s ", operatorString, operandToString(vars));
+            else if (operatorString.equals("ABS/ABSVAL"))
+                operatorString = "abs";
+        }
+
+        return String.format("%s(%s) ", operatorString, operandToString(vars));
+    }
 }

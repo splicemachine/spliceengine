@@ -49,6 +49,8 @@ import java.sql.Types;
 
 import java.util.List;
 
+import static com.splicemachine.db.iapi.services.io.StoredFormatIds.*;
+
 /**
  * This node represents a unary DB2 compatible length operator
  *
@@ -208,5 +210,28 @@ public final class DB2LengthOperatorNode extends UnaryOperatorNode
             cost += SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
         }
         return cost;
+    }
+
+    @Override
+    public String opToString2(OperatorToString vars) throws StandardException {
+        if (vars.sparkExpression) {
+            String functionName = getOperatorString();
+            ValueNode vn = getOperand();
+            int type = vn.getTypeId().getTypeFormatId();
+            boolean stringType =
+                    (type == CHAR_TYPE_ID ||
+                            type == VARCHAR_TYPE_ID ||
+                            type == LONGVARCHAR_TYPE_ID ||
+                            type == CLOB_TYPE_ID);
+            // The length function has the same behavior on splice and
+            // spark only for string types.
+            if (!stringType)
+                throw StandardException.newException(SQLState.LANG_DOES_NOT_IMPLEMENT);
+
+            return String.format("%s(%s)", functionName, operandToString(vars));
+        }
+        else {
+            return String.format("%s(%s)", getOperatorString(), operandToString(vars));
+        }
     }
 }

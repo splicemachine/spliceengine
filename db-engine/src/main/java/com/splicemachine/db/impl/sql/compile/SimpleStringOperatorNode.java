@@ -46,6 +46,9 @@ import java.sql.Types;
 
 import java.util.List;
 
+import static com.splicemachine.db.impl.sql.compile.OperatorToString.throwNotImplementedError;
+import static java.lang.String.format;
+
 /**
  * This node represents a unary upper or lower operator
  *
