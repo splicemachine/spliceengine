@@ -167,26 +167,28 @@ public interface OptimizablePredicateList {
 	/**
 	 * Is there an optimizable equijoin on the specified column?
 	 *
-	 * @param optTable		The optimizable the column comes from.
-	 * @param columnNumber	The column number within the base table.
-	 *
+	 * @param optTable        The optimizable the column comes from.
+	 * @param columnNumber    The column number within the base table.
+	 * @param joinedTableSet  The set of table numbers of the optimizables that
+	 *                        have been joined up to the current join position.
 	 * @return Whether or not there is an optimizable equijoin on the specified column.
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	boolean hasOptimizableEquijoin(Optimizable optTable, int columnNumber) throws StandardException;
+	boolean hasOptimizableEquijoin(Optimizable optTable, int columnNumber, JBitSet joinedTableSet) throws StandardException;
 
 	/**
 	 * Is there an optimizable equijoin on the specified expression?
 	 *
-	 * @param optTable		The optimizable the expression refers to.
-	 * @param expr			The expression itself.
-	 *
+	 * @param optTable        The optimizable the expression refers to.
+	 * @param expr            The expression itself.
+	 * @param joinedTableSet  The set of table numbers of the optimizables that
+	 *                        have been joined up to the current join position.
 	 * @return Whether or not there is an optimizable equijoin on the specified expression.
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	boolean hasOptimizableEquijoin(Optimizable optTable, ValueNode expr) throws StandardException;
+	boolean hasOptimizableEquijoin(Optimizable optTable, ValueNode expr, JBitSet joinedTableSet) throws StandardException;
 									
 
 	/**
