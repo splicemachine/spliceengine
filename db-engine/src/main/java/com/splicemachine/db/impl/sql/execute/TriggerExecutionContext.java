@@ -795,7 +795,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         //        for example in a nested loop join iterator,
         //        so currently we still need it.
         //return true;
-        return nestedTrigger || hasGeneratedColumn || !fromSparkExecution;  // msirek-temp
+        return nestedTrigger || hasSpecialFromTableTrigger() || hasGeneratedColumn || !fromSparkExecution;
     }
 
     public boolean isFromSparkExecution() {
