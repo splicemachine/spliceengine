@@ -65,7 +65,7 @@ class PredicateSimplificationVisitor implements Visitor {
         return false;
     }
     public static boolean isConstantNull(Visitable node) {
-        return node instanceof UntypedNullConstantNode;
+        return node instanceof ConstantNode && ((ConstantNode)node).isNull();
     }
 
     // Eliminating expressions with ParameterNodes before binding can cause
