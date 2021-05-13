@@ -182,7 +182,7 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
         }
         else if (overflowToConglomThreshold == 0) {
             try {
-                if (tec.needsTemporaryConglomerate(activation.isSubStatement()))
+                if (tec.needsTemporaryConglomerate(activation.isNestedTrigger()))
                     createConglomerate(execRowDefinition);
                 tec.setExecRowDefinition(execRowDefinition);
                 tec.setTableVersion(tableVersion);
@@ -409,7 +409,7 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
         }
 
         numRowsIn++;
-        if (!tec.needsTemporaryConglomerate(activation.isSubStatement()))
+        if (!tec.needsTemporaryConglomerate(activation.isNestedTrigger()))
             return;
         if (!conglomCreated) {
             createConglomerate(inputRow);

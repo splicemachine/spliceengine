@@ -657,4 +657,11 @@ public interface Activation extends Dependent, AutoCloseable
     boolean isRowTrigger();
 
     void setIsRowTrigger(boolean newValue);
+
+    default boolean isNestedTrigger() {
+        Activation parentActivation = getParentActivation();
+        if (parentActivation == null)
+            return false;
+        return parentActivation.isSubStatement();
+    }
 }
