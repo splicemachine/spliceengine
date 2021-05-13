@@ -381,6 +381,10 @@ public interface Optimizer{
 
     OptimizableList getOptimizableList();
 
+    JBitSet getAssignedTableMap();
+
+    void setAssignedTableMap(JBitSet refMap);
+
     void updateBestPlanMaps(short action,Object planKey) throws StandardException;
 
     void addScopedPredicatesToList(OptimizablePredicateList predList) throws StandardException;

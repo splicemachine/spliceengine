@@ -51,6 +51,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.utils.Pair;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
@@ -406,18 +407,18 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
     }
 
     @Override
-    public boolean hasOptimizableEquijoin(Optimizable optTable,int columnNumber) throws StandardException{
-        return hasOptimizableEquijoinHelper(optTable, columnNumber, null, false);
+    public boolean hasOptimizableEquijoin(Optimizable optTable, int columnNumber, JBitSet joinedTableSet) throws StandardException{
+        return hasOptimizableEquijoinHelper(optTable, columnNumber, null, false, joinedTableSet);
     }
 
     @Override
-    public boolean hasOptimizableEquijoin(Optimizable optTable, ValueNode expr) throws StandardException {
-        return hasOptimizableEquijoinHelper(optTable, -1, expr, true);
+    public boolean hasOptimizableEquijoin(Optimizable optTable, ValueNode expr, JBitSet joinedTableSet) throws StandardException {
+        return hasOptimizableEquijoinHelper(optTable, -1, expr, true, joinedTableSet);
     }
 
     private boolean hasOptimizableEquijoinHelper(Optimizable optTable,
                                                  int columnNumber, ValueNode expr,
-                                                 boolean isExpr) throws StandardException {
+                                                 boolean isExpr, JBitSet joinedTableSet) throws StandardException {
         int size=size();
         for (int i = 0; i < size; i++){
             AndNode andNode;
@@ -436,8 +437,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 continue;
             }
 
-            // skip non-join comparisons
-            if (predicate.getReferencedMap().hasSingleBitSet()) {
+            // Exclude single-table predicates and join predicates that
+            // are not relevant to joins within current query block.
+            if (isNotJoinPredicateForCurrentQueryBlock(predicate, joinedTableSet, optTable.getReferencedTableMap()).getFirst()) {
                 continue;
             }
 
@@ -468,6 +470,30 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             return true;
         }
         return false;
+    }
+
+    /**
+     * Check if a predicate is not a join predicate referencing tables only in current query block.
+     * @param predicate           The predicate to be checked.
+     * @param joinedTableSet      The set of table numbers of the optimizables that have been
+     *                            joined up to the current join position. This set is always
+     *                            limited to the current query block.
+     * @param referencedTableSet  The set of table numbers the right child of the join references.
+     * @return The first boolean flag: True if the predicate is not a join predicate referencing tables
+     *                                 only in current query block. This means the predicate could be
+     *                                 a single table predicate or a join predicate that is correlated
+     *                                 to a table in an outer query block. False otherwise.
+     *         The second boolean flag: True if the predicate references a table from an outer query
+     *                                  block. False otherwise.
+     */
+    private Pair<Boolean, Boolean> isNotJoinPredicateForCurrentQueryBlock(Predicate predicate, JBitSet joinedTableSet,
+                                                                          JBitSet referencedTableSet) {
+        JBitSet maskedReferencedSet = (JBitSet)predicate.getReferencedSet().clone();
+        int numBitsSet = maskedReferencedSet.cardinality();
+        maskedReferencedSet.and(joinedTableSet);
+        int maskedNumBitsSet = maskedReferencedSet.cardinality();
+
+        return new Pair<>(referencedTableSet.contains(maskedReferencedSet), maskedNumBitsSet < numBitsSet);
     }
 
     @Override
@@ -3149,14 +3175,11 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             // there could be nestedloop join condition pushed from outer block that should be treated as
             // single table conditions, however, they would contain table number from tables from the outer block,
             // so use joinedTableSet to mask out those table numbers
-            JBitSet maskedReferencedSet = (JBitSet)predicate.getReferencedSet().clone();
-            int numBitsSet = maskedReferencedSet.cardinality();
-            maskedReferencedSet.and(joinedTableSet);
-            int maskedNumBitsSet = maskedReferencedSet.cardinality();
+            Pair<Boolean, Boolean> result = isNotJoinPredicateForCurrentQueryBlock(predicate, joinedTableSet, referencedTableMap);
 
             // may not be fully covered by the current joined table set, however,
-            if(referencedTableMap.contains(maskedReferencedSet)){
-                if (maskedNumBitsSet < numBitsSet) {
+            if(result.getFirst()){
+                if (result.getSecond()) {
                     hasNestedLoopJoinPredicatePushedFromOuter = true;
                 }
                 
