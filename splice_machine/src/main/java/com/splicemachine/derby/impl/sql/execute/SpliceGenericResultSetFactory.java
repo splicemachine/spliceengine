@@ -210,7 +210,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                       double optimizerEstimatedRowCount,
                                                       double optimizerEstimatedCost,
                                                       String explainPlan,
-                                                      String filterPred,
+                                                      String[] filterPred,
                                                       String[] expressions) throws StandardException  {
         return getProjectRestrictResultSet(source,
                                            restriction,
@@ -246,7 +246,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                       double optimizerEstimatedRowCount,
                                                       double optimizerEstimatedCost,
                                                       String explainPlan,
-                                                      String filterPred,
+                                                      String[] filterPred,
                                                       String[] expressions,
                                                       boolean hasGroupingFunction) throws StandardException {
         return getProjectRestrictResultSet(source,
@@ -283,7 +283,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                       double optimizerEstimatedRowCount,
                                                       double optimizerEstimatedCost,
                                                       String explainPlan,
-                                                      String filterPred,
+                                                      String[] filterPred,
                                                       String[] expressions,
                                                       boolean hasGroupingFunction,
                                                       String subqueryText) throws StandardException {

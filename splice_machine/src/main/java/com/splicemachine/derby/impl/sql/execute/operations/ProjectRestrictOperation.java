@@ -71,7 +71,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		public SpliceMethod<ExecRow> projection;
 		private ExecRow execRowDefinition;
 		private ExecRow projRow;
-		private String filterPred = null;
+	private        String[]                          filterPred                    = null;
 		private String[] expressions = null;
 		private boolean hasGroupingFunction;
 		private String subqueryText;
@@ -88,14 +88,14 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         }
 
         public boolean hasFilterPred() {
-		    return (filterPred != null && !filterPred.isEmpty());
+		return (filterPred != null && filterPred.length > 0);
         }
 
         public boolean hasGroupingFunction() { return hasGroupingFunction; }
 
         public String getFilterPred() {
 		    if (hasFilterPred())
-		        return filterPred;
+			return String.join("", filterPred);
 		    else
 		        return "true";
         }
@@ -123,7 +123,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
                                         boolean doesProjection,
                                         double optimizerEstimatedRowCount,
                                         double optimizerEstimatedCost,
-                                        String filterPred,
+									String[] filterPred,
                                         String[] expressions,
 				        boolean hasGroupingFunction,
                                         String subqueryText) throws StandardException {
