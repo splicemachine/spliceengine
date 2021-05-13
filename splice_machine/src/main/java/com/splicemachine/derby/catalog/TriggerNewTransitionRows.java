@@ -192,7 +192,7 @@ public class TriggerNewTransitionRows
                     triggerRows = sourceSet;
                     if (!sourceSet.isNativeSpark()) {
                         triggerRows = applyTriggerRowsMapFunction(sourceSet, op, tec);
-                        triggerRows = triggerRows.upgradeToSparkNativeDataSet(op.getOperationContext());
+                        triggerRows = triggerRows.upgradeToSparkNativeDataSet(op.getOperationContext());  // msirek-temp
                         if (isOldRows)
                             oldRowsSourceSet = triggerRows;
                         else
