@@ -33,7 +33,7 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
 
     private static final Logger LOG = Logger.getLogger(FeatureStoreTriggerBenchmark.class);
     private static final int DEFAULT_CONNECTIONS = 10;
-    private static final int DEFAULT_ENTITIES = 1 << 17;
+    private static final int DEFAULT_ENTITIES = 1 << 10;
     private static final int DEFAULT_OPS = 16;
 
     @ClassRule
@@ -55,28 +55,59 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
     public static void setUp() throws Exception {
         LOG.info("Parameter: schema      = " + schema);
         LOG.info("Parameter: connections = " + connections);
-        createTables();
+
+        RegionServerInfo[] info = getRegionServerInfo();
+        for (RegionServerInfo rs : info) {
+            LOG.info(String.format("HOST: %s  SPLICE: %s (%s)", rs.hostName, rs.release, rs.buildHash));
+        }
+
+        createTables(info.length);
     }
 
-    private static void createTables() throws Exception {
+    private static void createTables(int numHosts) throws Exception {
         try (Connection conn = makeConnection()) {
             try (Statement statement = conn.createStatement()) {
+
+                // Pre-split FeatureTable
+                String fileName = "/tmp/split_FeatureTable";
+                statement.execute("DROP TABLE IF EXISTS SPLITKEYS");
+                statement.execute("CREATE TABLE SPLITKEYS (pk int)");
+                for (int split = 1; split < numHosts; ++split) {
+                    int pk = split * (entities / numHosts);
+                    statement.execute("INSERT INTO SPLITKEYS VALUES (" + pk + ")");
+                }
+                statement.execute(String.format("EXPORT('%s', false, null, null, null, null) SELECT * FROM SPLITKEYS", fileName));
                 statement.execute(
-                    "CREATE TABLE FeatureTable (" +
+                    String.format("CREATE TABLE FeatureTable (" +
                         "entity_key INTEGER PRIMARY KEY," +
                         "last_update_ts TIMESTAMP," +
                         "feature1 DOUBLE," +
-                        "feature2 DOUBLE)"
+                        "feature2 DOUBLE)" +
+                        "LOGICAL SPLITKEYS LOCATION '%s'", fileName)
                 );
+
+                // Pre-split FeatureTableHistory
+                fileName = "/tmp/split_FeatureTableHistory";
+                statement.execute("DROP TABLE IF EXISTS SPLITKEYS");
+                statement.execute("CREATE TABLE SPLITKEYS (pk1 int, pk2 timestamp)");
+                String t0 = new Timestamp(0).toString();
+                for (int split = 1; split < numHosts; ++split) {
+                    int pk = split * (entities / numHosts);
+                    statement.execute("INSERT INTO SPLITKEYS VALUES (" + pk + ",'" + t0 + "')");
+                }
+                statement.execute(String.format("EXPORT('%s', false, null, null, null, null) SELECT * FROM SPLITKEYS", fileName));
                 statement.execute(
-                    "CREATE TABLE FeatureTableHistory (" +
+                    String.format("CREATE TABLE FeatureTableHistory (" +
                         "entity_key INTEGER," +
                         "asof_ts TIMESTAMP," +
                         "ingest_ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
                         "feature1 DOUBLE," +
                         "feature2 DOUBLE," +
-                        "PRIMARY KEY ( entity_key, asof_ts))"
+                        "PRIMARY KEY (entity_key, asof_ts))" +
+                        "LOGICAL SPLITKEYS LOCATION '%s'", fileName)
                 );
+
+                // Triggers
                 statement.execute(
                     "CREATE TRIGGER FeatureTable_INSERTS " +
                         "AFTER INSERT ON FeatureTable " +
@@ -118,7 +149,6 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
 
     static final String STAT_ERROR = "ERROR";
     static final String STAT_CREATE = "CREATE";
-    static final String STAT_INSERT = "INSERT";
     static final String STAT_UPDATE = "UPDATE";
     static final long DAYMS = 86400000L;
 
@@ -208,7 +238,7 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
 
     public void insertAndUpdateConcurrently(long ts0, long ts1) {
         int idx = lastIdx.getAndIncrement();
-        PriorityQueue<Row> pq = new PriorityQueue<Row>((r1, r2) -> Long.signum(r1.delivery - r2.delivery));
+        PriorityQueue<Row> pq = new PriorityQueue<>((r1, r2) -> Long.signum(r1.delivery - r2.delivery));
         Random rnd = ThreadLocalRandom.current();
         int minEntity = idx * entities / connections;
         int maxEntity = (idx + 1) * entities / connections;
