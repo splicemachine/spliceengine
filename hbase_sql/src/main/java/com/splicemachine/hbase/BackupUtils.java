@@ -254,7 +254,7 @@ public class BackupUtils {
      * @return
      */
     public static boolean isSpliceTable(String namespace) {
-        return namespace.equals("splice");
+        return namespace!= null && namespace.equals("splice");
     }
 
     public static boolean backupCanceled(long backupId) throws KeeperException, InterruptedException {
