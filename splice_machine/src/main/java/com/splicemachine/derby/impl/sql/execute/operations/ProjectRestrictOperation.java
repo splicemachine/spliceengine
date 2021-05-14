@@ -104,7 +104,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		public String[] getExpressions() {
 		    return expressions;
         }
-		
+
 		@SuppressWarnings("UnusedDeclaration")
 		public ProjectRestrictOperation() { super(); }
 
@@ -312,9 +312,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 			SpliceMethod<DataValueDescriptor> constantRestriction = new SpliceMethod<>(constantRestrictionMethodName, activation);
 			DataValueDescriptor restrictBoolean = constantRestriction.invoke();
 			shortCircuitOpen = (restrictBoolean == null) || ((!restrictBoolean.isNull()) && restrictBoolean.getBoolean());
-			alwaysFalse = restrictBoolean != null && !restrictBoolean.isNull() && !restrictBoolean.getBoolean();
-		}
-	}
+            alwaysFalse = restrictBoolean != null && (restrictBoolean.isNull() || !restrictBoolean.getBoolean());
+        }
+    }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
@@ -364,20 +364,20 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         }
     }
 
-	@Override
-	public ExecIndexRow getStartPosition() throws StandardException {
-		return source.getStartPosition();
-	}
+    @Override
+    public ExecIndexRow getStartPosition() throws StandardException {
+        return source.getStartPosition();
+    }
 
-	@Override
-	public ExecIndexRow getStopPosition() throws StandardException {
-		return source.getStopPosition();
-	}
+    @Override
+    public ExecIndexRow getStopPosition() throws StandardException {
+        return source.getStopPosition();
+    }
 
-	@Override
-	public boolean getSameStartStopPosition() {
-		return source.getSameStartStopPosition();
-	}
+    @Override
+    public boolean getSameStartStopPosition() {
+        return source.getSameStartStopPosition();
+    }
 
     @Override
     public String getVTIFileName() {
@@ -389,10 +389,10 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		return source.getAccessedColumns();
 	}
 
-	@Override
-	public ScanInformation<ExecRow> getScanInformation() {
-		return source.getScanInformation();
-	}
+    @Override
+    public ScanInformation<ExecRow> getScanInformation() {
+        return source.getScanInformation();
+    }
 
     @Override
     public TxnView getCurrentTransaction() throws StandardException{
