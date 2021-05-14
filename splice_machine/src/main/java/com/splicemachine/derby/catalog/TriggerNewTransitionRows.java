@@ -181,8 +181,7 @@ public class TriggerNewTransitionRows
                                           sourceSet != null    &&
                                           !(sourceSet instanceof ControlDataSet) &&
                                           !sourceSet.isNativeSpark()             &&
-                                          !tec.hasGeneratedColumn()              &&
-                                          !tec.hasSpecialFromTableTrigger();
+                                          !tec.needsTemporaryConglomerate(activation.isNestedTrigger());
             boolean isSpark = triggerRowsHolder == null || triggerRowsHolder.isSpark();
             boolean isOldRows = this instanceof TriggerOldTransitionRows;
             DataSet<ExecRow> commonSourceSet = isOldRows ? oldRowsSourceSet : newRowsSourceSet;
