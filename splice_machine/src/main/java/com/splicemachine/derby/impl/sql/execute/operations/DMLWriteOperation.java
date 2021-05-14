@@ -569,7 +569,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
             dsp.decrementOpDepth();
         }
         if (needsPersistedDataset()) {
-            set = set.convertNativeSparkToSparkDataSet();
+            // Updates include both OLD and NEW rows, so need to be in a form
+            // where the proper columns can be extracted via TriggerRowsMapFunction.
+            if (this instanceof UpdateOperation)
+                set = set.convertNativeSparkToSparkDataSet();
             set.persist();
         }
         setSourceSet(set);
