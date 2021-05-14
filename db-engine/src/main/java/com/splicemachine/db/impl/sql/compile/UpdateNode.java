@@ -194,7 +194,6 @@ public final class UpdateNode extends DMLModStatementNode
                                     C_NodeTypes.FROM_LIST,
                                     getNodeFactory().doJoinOrderOptimization(),
                                     getContextManager());
-        ResultColumn                rowLocationColumn = null;
         ValueNode                    rowLocationNode = null;
         TableName                    cursorTargetTableName = null;
         CurrentOfNode               currentOfNode = null;
@@ -457,8 +456,7 @@ public final class UpdateNode extends DMLModStatementNode
         boolean allColumns = false;
         if (targetTable instanceof FromBaseTable)
         {
-            ((FromBaseTable) targetTable).markUpdated(
-                                                resultSet.getResultColumns());
+            ((FromBaseTable) targetTable).markUpdated(resultSet.getResultColumns());
         }
         else if (targetTable instanceof FromVTI)
         {
@@ -531,9 +529,8 @@ public final class UpdateNode extends DMLModStatementNode
                 FromBaseTable fbt = getResultColumnList(resultSet.getResultColumns());
                 afterColumns = resultSet.getResultColumns().copyListAndObjects();
 
-                readColsBitSet = getReadMap(dataDictionary,
-                                        targetTableDescriptor,
-                                        afterColumns, affectedGeneratedColumns );
+                readColsBitSet = getReadMap(dataDictionary, targetTableDescriptor,
+                        afterColumns, affectedGeneratedColumns );
 
                 afterColumns = fbt.addColsToList(afterColumns, readColsBitSet);
                 resultColumnList = fbt.addColsToList(resultColumnList, readColsBitSet);
@@ -609,6 +606,47 @@ public final class UpdateNode extends DMLModStatementNode
         super.bindExpressions();
         getCompilerContext().popCurrentPrivType();
 
+        ResultColumn rowIdColumn = getRowIdColumn(rowLocationNode);
+        ResultColumn rowLocationColumn = getRowLocationColumn(rowIdColumn);
+
+        /* Append to the ResultColumnList */
+        resultColumnList.addResultColumn(rowLocationColumn);
+
+        /* Bind untyped nulls directly under the result columns */
+        resultSet.getResultColumns().bindUntypedNullsToResultColumns(resultColumnList);
+
+        if (null != rowLocationColumn)
+        {
+            /* Bind the new ResultColumn */
+            rowLocationColumn.bindResultColumnToExpression();
+        }
+
+        resultColumnList.checkStorableExpressions();
+
+        /* Insert a NormalizeResultSetNode above the source if the source
+         * and target column types and lengths do not match.
+         */
+        if (! resultColumnList.columnTypesAndLengthsMatch()) {
+            afterColumns = insertNormalizeResultSetNode(afterColumns, dataDictionary);
+        }
+
+        if( targetVTI != null )
+        {
+            deferred = VTIDeferModPolicy.deferIt( DeferModification.UPDATE_STATEMENT,
+                                                  targetVTI,
+                                                  resultColumnList.getColumnNames(),
+                                                  sel.getWhereClause());
+        }
+        else // not VTI
+        {
+            bindNonVTI(afterColumns, dataDictionary);
+        }
+
+        getCompilerContext().popCurrentPrivType();
+
+    } // end of bind()
+
+    private ResultColumn getRowIdColumn(ValueNode rowLocationNode) throws StandardException {
         ResultColumn rowIdColumn = targetTable.getRowIdColumn();
         if (rowIdColumn == null) {
             rowIdColumn =
@@ -626,7 +664,11 @@ public final class UpdateNode extends DMLModStatementNode
         } else {
             rowIdColumn.setName(COLUMNNAME);
         }
+        return rowIdColumn;
+    }
 
+    private ResultColumn getRowLocationColumn(ResultColumn rowIdColumn) throws StandardException {
+        ResultColumn rowLocationColumn;
         if(!cursorUpdate) {
             ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
                     C_NodeTypes.COLUMN_REFERENCE,
@@ -650,103 +692,79 @@ public final class UpdateNode extends DMLModStatementNode
                             rowIdColumn,
                             getContextManager());
         }
+        return rowLocationColumn;
+    }
 
-        /* Append to the ResultColumnList */
-        resultColumnList.addResultColumn(rowLocationColumn);
+    /**
+     * Insert a NormalizeResultSetNode above the source if the source
+     * and target column types and lengths do not match.
+     */
+    private ResultColumnList insertNormalizeResultSetNode(ResultColumnList afterColumns, DataDictionary dataDictionary) throws StandardException
+    {
+        resultSet = (ResultSetNode) getNodeFactory().getNode(
+            C_NodeTypes.NORMALIZE_RESULT_SET_NODE,
+            resultSet, resultColumnList, null, Boolean.TRUE,
+            getContextManager());
 
-        /* Bind untyped nulls directly under the result columns */
-        resultSet.
-            getResultColumns().
-                bindUntypedNullsToResultColumns(resultColumnList);
 
-        if (null != rowLocationColumn)
+        if (hasCheckConstraints(dataDictionary, targetTableDescriptor) || hasGenerationClauses( targetTableDescriptor ) )
         {
-            /* Bind the new ResultColumn */
-            rowLocationColumn.bindResultColumnToExpression();
-        }
-
-        resultColumnList.checkStorableExpressions();
-
-        /* Insert a NormalizeResultSetNode above the source if the source
-         * and target column types and lengths do not match.
-         */
-        if (! resultColumnList.columnTypesAndLengthsMatch())
-         {
-            resultSet = (ResultSetNode) getNodeFactory().getNode(
-                C_NodeTypes.NORMALIZE_RESULT_SET_NODE,
-                resultSet, resultColumnList, null, Boolean.TRUE,
-                getContextManager());
-
-
-             if (hasCheckConstraints(dataDictionary, targetTableDescriptor) || hasGenerationClauses( targetTableDescriptor ) )
-             {
-                 /* Get and bind all check constraints and generated columns on the columns
-                  * being updated.  We want to bind the check constraints and
-                  * generated columns against
-                  * the after columns.  We need to bind against the portion of the
-                  * resultColumns in the new NormalizeResultSet that point to
-                  * afterColumns.  Create an RCL composed of just those RCs in
-                  * order to bind the check constraints.
-                  */
-                 int afterColumnsSize = afterColumns.size();
-                 afterColumns = (ResultColumnList) getNodeFactory().getNode(
-                                                C_NodeTypes.RESULT_COLUMN_LIST,
-                                                getContextManager());
-                 ResultColumnList normalizedRCs = resultSet.getResultColumns();
-                 for (int index = 0; index < afterColumnsSize; index++)
-                 {
-                     afterColumns.addElement(normalizedRCs.elementAt(index + afterColumnsSize));
-                 }
-            }
-        }
-
-        if( null != targetVTI)
-        {
-            deferred = VTIDeferModPolicy.deferIt( DeferModification.UPDATE_STATEMENT,
-                                                  targetVTI,
-                                                  resultColumnList.getColumnNames(),
-                                                  sel.getWhereClause());
-        }
-        else // not VTI
-        {
-            /* we always include triggers in core language */
-            boolean hasTriggers = (getAllRelevantTriggers(dataDictionary, targetTableDescriptor, 
-                                                          changedColumnIds, true).size() > 0);
-
-            ResultColumnList sourceRCL = hasTriggers ? resultColumnList : afterColumns;
-
-            /* bind all generation clauses for generated columns */
-            parseAndBindGenerationClauses
-                ( dataDictionary, targetTableDescriptor, afterColumns, resultColumnList, true, resultSet );
-
-            /* Get and bind all constraints on the columns being updated */
-            checkConstraints = bindConstraints( dataDictionary,
-                                                getNodeFactory(),
-                                                targetTableDescriptor,
-                                                null,
-                                                sourceRCL,
-                                                changedColumnIds,
-                                                readColsBitSet,
-                                                false,
-                                                true); /* we always include triggers in core language */
-
-            /* If the target table is also a source table, then
-             * the update will have to be in deferred mode
-             * For updates, this means that the target table appears in a
-             * subquery.  Also, self referencing foreign keys are
-             * deferred.  And triggers cause an update to be deferred.
+            /* Get and bind all check constraints and generated columns on the columns
+             * being updated.  We want to bind the check constraints and
+             * generated columns against
+             * the after columns.  We need to bind against the portion of the
+             * resultColumns in the new NormalizeResultSet that point to
+             * afterColumns.  Create an RCL composed of just those RCs in
+             * order to bind the check constraints.
              */
-            if (resultSet.subqueryReferencesTarget(
-                targetTableDescriptor.getName(), true) ||
-                requiresDeferredProcessing())
+            int afterColumnsSize = afterColumns.size();
+            afterColumns = (ResultColumnList) getNodeFactory().getNode(
+                                           C_NodeTypes.RESULT_COLUMN_LIST,
+                                           getContextManager());
+            ResultColumnList normalizedRCs = resultSet.getResultColumns();
+            for (int index = 0; index < afterColumnsSize; index++)
             {
-                deferred = true;
+                afterColumns.addElement(normalizedRCs.elementAt(index + afterColumnsSize));
             }
+       }
+        return afterColumns;
+    }
+
+    private void bindNonVTI(ResultColumnList afterColumns, DataDictionary dataDictionary) throws StandardException {
+        /* we always include triggers in core language */
+        boolean hasTriggers = (getAllRelevantTriggers(dataDictionary, targetTableDescriptor,
+                                                      changedColumnIds, true).size() > 0);
+
+        ResultColumnList sourceRCL = hasTriggers ? resultColumnList : afterColumns;
+
+        /* bind all generation clauses for generated columns */
+        parseAndBindGenerationClauses
+            ( dataDictionary, targetTableDescriptor, afterColumns, resultColumnList, true, resultSet );
+
+        /* Get and bind all constraints on the columns being updated */
+        checkConstraints = bindConstraints( dataDictionary,
+                                            getNodeFactory(),
+                                            targetTableDescriptor,
+                                            null,
+                                            sourceRCL,
+                                            changedColumnIds,
+                                            readColsBitSet,
+                                            false,
+                                            true); /* we always include triggers in core language */
+
+        /* If the target table is also a source table, then
+         * the update will have to be in deferred mode
+         * For updates, this means that the target table appears in a
+         * subquery.  Also, self referencing foreign keys are
+         * deferred.  And triggers cause an update to be deferred.
+         */
+        if (resultSet.subqueryReferencesTarget(
+            targetTableDescriptor.getName(), true) ||
+            requiresDeferredProcessing())
+        {
+            deferred = true;
         }
-
-        getCompilerContext().popCurrentPrivType();
-
-    } // end of bind()
+    }
 
     int getPrivType()
     {
