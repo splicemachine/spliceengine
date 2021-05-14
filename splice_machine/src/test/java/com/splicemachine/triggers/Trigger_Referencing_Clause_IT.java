@@ -765,6 +765,47 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
         }
     }
 
+    @Test // DB-11580
+    public void testSparkInMemoryTriggerRows() throws Exception {
+        if (!isSpark)
+            return;
+        try(Statement s = conn.createStatement()) {
+            s.execute("create table t1 (a int, b int)");
+            s.execute("create table t2 (a int, b int)");
+            s.execute("insert into t1 values(1,1)");
+            s.execute("insert into t1 values(1,1)");
+
+            s.execute("CREATE TRIGGER mytrig\n" +
+                        "   AFTER UPDATE OF a,b\n" +
+                        "   ON t1\n" +
+                        "   REFERENCING OLD TABLE AS OLD NEW TABLE AS NEW\n" +
+                        "   FOR EACH STATEMENT\n" +
+                        "   INSERT INTO T2 SELECT NEW.A, NEW.B from NEW, OLD\n");
+
+            s.execute("UPDATE t1 SET a=4");
+            String query = "select * from t2";
+            String expected = "A | B |\n" +
+                              "--------\n" +
+                              " 4 | 1 |\n" +
+                              " 4 | 1 |\n" +
+                              " 4 | 1 |\n" +
+                              " 4 | 1 |";
+            testQuery(query, expected, s);
+            s.execute("drop trigger mytrig");
+
+            // Nested loop join should be illegal on spark
+            // when the NEW TABLE or OLD TABLE is involved.
+            testFail("42Y69",
+                     "CREATE TRIGGER mytrig\n" +
+                        "   AFTER UPDATE OF a,b\n" +
+                        "   ON t1\n" +
+                        "   REFERENCING OLD TABLE AS OLD NEW TABLE AS NEW\n" +
+                        "   FOR EACH STATEMENT\n" +
+                        "   INSERT INTO T2 SELECT NEW.A, NEW.B from NEW --splice-properties joinStrategy=nestedloop \n" +
+                        "   , T1 --splice-properties joinStrategy=nestedloop \n", s);
+        }
+    }
+
     @Test
     public void testSignal() throws Exception {
         try (Statement s = conn.createStatement()) {
