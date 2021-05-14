@@ -164,7 +164,8 @@ public abstract class DMLStatementNode extends StatementNode {
         // SelectNodes have already been visited in SelectNode.java,
         // so handle all other nodes here we might have missed,
         // skipping over SelectNodes in the tree traversal.
-        accept(new ConstantExpressionVisitor(SelectNode.class));
+        if (!getCompilerContext().getDisableConstantFolding())
+            accept(new ConstantExpressionVisitor(SelectNode.class));
 
         // prune tree based on unsat condition
         accept(new TreePruningVisitor());
