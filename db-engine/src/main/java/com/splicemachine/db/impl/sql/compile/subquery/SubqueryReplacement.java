@@ -122,9 +122,7 @@ public class SubqueryReplacement {
     }
 
     private static BooleanConstantNode newBooleanTrue(QueryTreeNode anyNode) throws StandardException {
-        return (BooleanConstantNode) anyNode.getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                Boolean.TRUE,
-                anyNode.getContextManager());
+        return new BooleanConstantNode(Boolean.TRUE,anyNode.getContextManager());
     }
 
 }

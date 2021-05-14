@@ -2168,10 +2168,7 @@ public class SubqueryNode extends ValueNode{
          * the new join condition.
          */
         if(leftOperand==null){
-            return (ValueNode)getNodeFactory().getNode(
-                    C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                    Boolean.TRUE,
-                    getContextManager());
+            return new BooleanConstantNode(Boolean.TRUE,getContextManager());
         }else{
             ValueNode rightOperand=getRightOperand();
             /* If the right operand is a CR, then we need to decrement
@@ -2483,10 +2480,7 @@ public class SubqueryNode extends ValueNode{
 
         if (leftNullable || rightNullable) {
             /* Create a normalized structure */
-            BooleanConstantNode falseNode = (BooleanConstantNode) getNodeFactory().getNode(
-                    C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                    Boolean.FALSE,
-                    getContextManager());
+            BooleanConstantNode falseNode = new BooleanConstantNode(Boolean.FALSE,getContextManager());
             OrNode newOr = (OrNode) getNodeFactory().getNode(
                     C_NodeTypes.OR_NODE,
                     newTop,
@@ -2711,11 +2705,8 @@ public class SubqueryNode extends ValueNode{
 
     /* Private methods on private variables */
     private BooleanConstantNode getTrueNode() throws StandardException{
-        if(trueNode==null){
-            trueNode=(BooleanConstantNode)getNodeFactory().getNode(
-                    C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                    Boolean.TRUE,
-                    getContextManager());
+        if(trueNode==null) {
+            trueNode = new BooleanConstantNode(Boolean.TRUE, getContextManager());
         }
         return trueNode;
     }

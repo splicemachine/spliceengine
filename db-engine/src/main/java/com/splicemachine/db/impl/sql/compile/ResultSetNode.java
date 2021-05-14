@@ -406,10 +406,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
             }
         }
 
-        booleanNode=(BooleanConstantNode)getNodeFactory().getNode(
-                C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                Boolean.TRUE,
-                getContextManager());
+        booleanNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
 
         resultColumn.setExpression(booleanNode);
         resultColumn.setType(booleanNode.getTypeServices());

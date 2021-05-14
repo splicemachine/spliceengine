@@ -2626,9 +2626,7 @@ analyzeTableStatement() throws StandardException :
     }
 
     // add parameter staleOnly
-    b =(BooleanConstantNode)getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                    Boolean.FALSE,
-                    getContextManager());
+    b = new BooleanConstantNode(Boolean.FALSE, getContextManager());
     parameterList.addElement(b);
 
     methodNode = new StaticMethodCallNode(routineName, null, getContextManager());
@@ -2676,9 +2674,7 @@ analyzeSchemaStatement() throws StandardException :
     parameterList.addElement(schema);
 
     //add parameter staleOnly
-    b =(BooleanConstantNode)getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                Boolean.FALSE,
-                getContextManager());
+    b = new BooleanConstantNode(Boolean.FALSE, getContextManager());
     parameterList.addElement(b);
 
     methodNode = new StaticMethodCallNode(routineName, null, getContextManager());
@@ -13824,11 +13820,8 @@ literal() throws StandardException :
 |
     tok = booleanLiteral()
     {
-        return (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                                    StringUtil.SQLEqualsIgnoreCase(tok.image, "true") ?
-                                        Boolean.TRUE : Boolean.FALSE,
-                                     getContextManager());
+        Boolean val = StringUtil.SQLEqualsIgnoreCase(tok.image, "true") ? Boolean.TRUE : Boolean.FALSE;
+        return new BooleanConstantNode(val, getContextManager());
     }
 /*
     JDBC and ODBC do not support the interval type, so let's not do it

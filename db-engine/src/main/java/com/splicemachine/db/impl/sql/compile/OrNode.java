@@ -509,10 +509,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
         {
             BooleanConstantNode    falseNode;
 
-            falseNode = (BooleanConstantNode) getNodeFactory().getNode(
-                                            C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                                            Boolean.FALSE,
-                                            getContextManager());
+            falseNode = new BooleanConstantNode(Boolean.FALSE,getContextManager());
             setRightOperand((ValueNode) getNodeFactory().getNode(
                                                 C_NodeTypes.OR_NODE,
                                                 getRightOperand(),
@@ -534,10 +531,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
         {
             BooleanConstantNode    falseNode;
 
-            falseNode = (BooleanConstantNode) getNodeFactory().getNode(
-                                            C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                                            Boolean.FALSE,
-                                            getContextManager());
+            falseNode = new BooleanConstantNode(Boolean.FALSE,getContextManager());
             curOr.setRightOperand(
                     (ValueNode) getNodeFactory().getNode(
                                                 C_NodeTypes.OR_NODE,

@@ -68,7 +68,6 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
      * @param methodName    The name of the method to call in the generated
      *                        class
      */
-
     public void init(
                 Object    leftOperand,
                 Object    rightOperand,

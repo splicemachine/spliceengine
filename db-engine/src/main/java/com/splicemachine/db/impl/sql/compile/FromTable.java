@@ -975,7 +975,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             exposedName=makeTableName(null,correlationName);
         }
 
-        rcList=(ResultColumnList)getNodeFactory().getNode( C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
+        rcList =  new ResultColumnList(getContextManager());
 
         /* Build a new result column list based off of resultColumns.
          * NOTE: This method will capture any column renaming due to
@@ -985,16 +985,8 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         for(int index=0;index<inputSize;index++){
             // Build a ResultColumn/ColumnReference pair for the column //
             columnName=inputRcl.elementAt(index).getName();
-            valueNode=(ValueNode)getNodeFactory().getNode(
-                    C_NodeTypes.COLUMN_REFERENCE,
-                    columnName,
-                    exposedName,
-                    getContextManager());
-            resultColumn=(ResultColumn)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    columnName,
-                    valueNode,
-                    getContextManager());
+            valueNode = new ColumnReference(columnName, exposedName, getContextManager());
+            resultColumn = new ResultColumn(columnName, valueNode, getContextManager());
 
             // Build the ResultColumnList to return //
             rcList.addResultColumn(resultColumn);
@@ -1429,9 +1421,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             return 2;
         }
 
-        ResultColumnList defaultRow = (ResultColumnList)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        ResultColumnList defaultRow = new ResultColumnList(getContextManager());
         FormatableBitSet defaultValueMap = buildDefaultRow(defaultRow);
         defaultRow.generate(acb, mb);
         int defaultValueItem=acb.addItem(defaultValueMap);

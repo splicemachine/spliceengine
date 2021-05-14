@@ -33,6 +33,8 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -46,6 +48,15 @@ public final class BooleanConstantNode extends ConstantNode
      */
     boolean booleanValue;
     boolean unknownValue;
+
+    public BooleanConstantNode() {}
+
+    public BooleanConstantNode(Boolean val, ContextManager contextManager) throws StandardException {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.BOOLEAN_CONSTANT_NODE);
+        initFromBoolean(val);
+    }
+
 
     /**
      * Initializer for a BooleanConstantNode.
@@ -74,13 +85,7 @@ public final class BooleanConstantNode extends ConstantNode
         }
         else if ( arg1 instanceof Boolean )
         {
-            /* Fill in the type information in the parent ValueNode */
-            super.init(TypeId.BOOLEAN_ID,
-             Boolean.FALSE,
-             ReuseFactory.getInteger(1));
-
-            booleanValue = (Boolean) arg1;
-            super.setValue(new SQLBoolean(booleanValue));
+            initFromBoolean((Boolean) arg1);
         }
         else
         {
@@ -90,6 +95,16 @@ public final class BooleanConstantNode extends ConstantNode
                 ReuseFactory.getInteger(0));
             unknownValue = true;
         }
+    }
+
+    private void initFromBoolean(Boolean val) throws StandardException {
+        /* Fill in the type information in the parent ValueNode */
+        super.init(TypeId.BOOLEAN_ID,
+         Boolean.FALSE,
+         ReuseFactory.getInteger(1));
+
+        booleanValue = val;
+        super.setValue(new SQLBoolean(booleanValue));
     }
 
     /**

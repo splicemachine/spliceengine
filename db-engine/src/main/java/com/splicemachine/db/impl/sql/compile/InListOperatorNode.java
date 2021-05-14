@@ -415,10 +415,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                 // of the columns in a multicolumn IN list.
                 if (!isSingleLeftOperand()) {
                     NodeFactory nodeFactory = getNodeFactory();
-                    QueryTreeNode trueNode = (QueryTreeNode) nodeFactory.getNode(
-                        C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                        Boolean.TRUE,
-                        getContextManager());
+                    QueryTreeNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
                     ValueNode temp;
                     temp = (AndNode) nodeFactory.getNode(
                         C_NodeTypes.AND_NODE,
