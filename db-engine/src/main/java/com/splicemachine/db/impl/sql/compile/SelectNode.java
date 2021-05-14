@@ -591,10 +591,10 @@ public class SelectNode extends ResultSetNode {
         }
 
         if (whereClause instanceof UntypedNullConstantNode) {
-            whereClause = (ValueNode) getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE, false, getContextManager());
+            whereClause = new BooleanConstantNode(Boolean.FALSE,getContextManager());
         }
         if (havingClause instanceof UntypedNullConstantNode) {
-            havingClause = (ValueNode) getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE, false, getContextManager());
+            havingClause = new BooleanConstantNode(Boolean.FALSE,getContextManager());
         }
 
         whereAggregates = new LinkedList<>();

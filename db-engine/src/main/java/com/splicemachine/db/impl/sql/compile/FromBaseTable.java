@@ -4004,10 +4004,7 @@ public class FromBaseTable extends FromTable {
                 }
                 newList.addOptPredicate(le);
 
-                BooleanConstantNode trueNode = (BooleanConstantNode)getNodeFactory().getNode(
-                        C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                        Boolean.TRUE,
-                        getContextManager());
+                BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
                 newAnd.setRightOperand(trueNode);
 
                 Predicate ge = (Predicate)getNodeFactory().getNode(

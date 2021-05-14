@@ -441,12 +441,7 @@ public class ColumnReference extends ValueNode {
     public ValueNode getClone()
             throws StandardException
     {
-        ColumnReference newCR = (ColumnReference) getNodeFactory().getNode(
-                C_NodeTypes.COLUMN_REFERENCE,
-                columnName,
-                tableName,
-                getContextManager());
-
+        ColumnReference newCR = new ColumnReference(columnName, tableName,getContextManager());
         newCR.copyFields(this);
         return newCR;
     }
@@ -701,10 +696,7 @@ public class ColumnReference extends ValueNode {
         NodeFactory        nodeFactory = getNodeFactory();
         ValueNode        andNode;
 
-        trueNode = (BooleanConstantNode) nodeFactory.getNode(
-                C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                Boolean.TRUE,
-                getContextManager());
+        trueNode = new BooleanConstantNode(Boolean.TRUE, getContextManager());
         equalsNode = (BinaryComparisonOperatorNode)
                 nodeFactory.getNode(
                         C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
@@ -1606,10 +1598,7 @@ public class ColumnReference extends ValueNode {
     }
 
     public ResultColumn generateResultColumn() throws StandardException {
-        return (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                this.getColumnName(),
-                this.getClone(),
+        return new ResultColumn(this.getColumnName(), this.getClone(),
                 getContextManager());
     }
 }

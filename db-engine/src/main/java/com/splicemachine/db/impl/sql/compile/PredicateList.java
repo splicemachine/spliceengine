@@ -2015,8 +2015,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         if(searchClause!=null){
             topAnd=(AndNode)searchClause;
             ContextManager contextManager = getContextManager();
-            BooleanConstantNode trueNode=(BooleanConstantNode)getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                    Boolean.TRUE,contextManager);
+            BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE,contextManager);
 
             AndNode firstAndInProbeSet = null;
             while(topAnd.getRightOperand() instanceof AndNode){
@@ -2257,11 +2256,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                         newRelop.bindComparisonOperator();
                         leftOperand = newRelop;
                     } else {
-                        BooleanConstantNode falseNode=(BooleanConstantNode)getNodeFactory().
-                                getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                                        Boolean.FALSE,
-                                        contextManager);
-                        leftOperand = falseNode;
+                        leftOperand = new BooleanConstantNode(Boolean.FALSE, contextManager);
                     }
                 }else{
                     // pushable inlist condition should have been represented as BinaryRelationalOperatorNode
@@ -2270,10 +2265,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 }
 
                 // Convert the predicate into CNF form
-                ValueNode trueNode=(ValueNode)getNodeFactory().getNode(
-                        C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                        Boolean.TRUE,
-                        contextManager);
+                ValueNode trueNode = new BooleanConstantNode(Boolean.TRUE,contextManager);
                 AndNode newAnd=(AndNode)getNodeFactory().getNode(
                         C_NodeTypes.AND_NODE,
                         leftOperand,
@@ -2762,10 +2754,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                                     getContextManager());
                     newEquals.bindComparisonOperator();
                                /* Create the AND */
-                    ValueNode trueNode=(ValueNode)getNodeFactory().getNode(
-                            C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                            Boolean.TRUE,
-                            getContextManager());
+                    ValueNode trueNode= new BooleanConstantNode(Boolean.TRUE,getContextManager());
                     AndNode newAnd=(AndNode)getNodeFactory().getNode(
                             C_NodeTypes.AND_NODE,
                             newEquals,
@@ -3002,10 +2991,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     }
 
                                /* Create the AND */
-                    ValueNode trueNode=(ValueNode)getNodeFactory().getNode(
-                            C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                            Boolean.TRUE,
-                            getContextManager());
+                    ValueNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
                     AndNode newAnd=(AndNode)getNodeFactory().getNode(
                             C_NodeTypes.AND_NODE,
                             roClone,
