@@ -31,6 +31,7 @@
 
 package com.splicemachine.derby.catalog;
 
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.db.Factory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
@@ -176,7 +177,8 @@ public class TriggerNewTransitionRows
             }
 
             // Can the Dataset be reused?
-            boolean useCommonDataSet = op.isOlapServer() && sourceSet != null    &&
+            boolean useCommonDataSet = (op.isOlapServer() || SpliceClient.isClient()) &&
+                                          sourceSet != null    &&
                                           !(sourceSet instanceof ControlDataSet) &&
                                           !sourceSet.isNativeSpark()             &&
                                           !tec.hasGeneratedColumn()              &&
