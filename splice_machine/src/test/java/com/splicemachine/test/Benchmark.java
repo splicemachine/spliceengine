@@ -102,11 +102,13 @@ public class Benchmark {
             long min   = cumulative ? statsMin.get(idx) : statsMin.getAndSet(idx, Long.MAX_VALUE);
             long max   = cumulative ? statsMax.get(idx) : statsMax.getAndSet(idx, 0);
             if (count != 0) {
-                long avg = (time + count / 2) / count;
                 sb.append("\n\t").append(entry.getKey());
                 sb.append("\tops: ").append(count);
-                sb.append("\ttime(s): ").append(time / 1000);
-                sb.append("\tmin/avg/max(ms): [").append(min).append(" .. ").append(avg).append(" .. ").append(max).append("]");
+                if (time != 0) {
+                    long avg = (time + count / 2) / count;
+                    sb.append("\ttime(s): ").append(time / 1000);
+                    sb.append("\tmin/avg/max(ms): [").append(min).append(" .. ").append(avg).append(" .. ").append(max).append("]");
+                }
             }
         }
         LOG.info(sb.toString());
