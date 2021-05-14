@@ -3777,7 +3777,10 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
          * by (column #, selectivity) once the store does just in time
          * instantiation.
          */
+        PredicateList cloneMe = null;
         if(numberOfQualifiers>0){
+            cloneMe = (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+            this.copyPredicatesToOtherList(cloneMe);
             orderQualifiers();
         }
 
@@ -3972,6 +3975,11 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 qualNum++;
             }
 
+        }
+
+        if (cloneMe != null) {
+            this.removeAllPredicates();
+            cloneMe.copyPredicatesToOtherList(this);
         }
 
         //assert qualNum==numberOfQualifiers: qualNum+" Qualifiers found, "+ numberOfQualifiers+" expected.";
