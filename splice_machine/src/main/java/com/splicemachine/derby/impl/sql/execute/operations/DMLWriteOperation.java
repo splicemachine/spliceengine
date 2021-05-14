@@ -311,7 +311,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
                     getTableVersion(),
                     fromTableDmlSpsDescriptor
             );
-            //this.triggerHandler.setIsSpark(isSpark); // msirek-temp
             if (hasGeneratedColumn)
                 this.triggerHandler.setHasGeneratedColumn();
         }

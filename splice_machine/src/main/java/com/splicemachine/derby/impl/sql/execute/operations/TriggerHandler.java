@@ -176,8 +176,10 @@ public class TriggerHandler {
 
     @SuppressFBWarnings(value = {"EI_EXPOSE_REP2","URF_UNREAD_FIELD"}, justification = "DB-9844")
     public void initTriggerRowHolders(boolean isSpark, TxnView txn, byte[] token, long ConglomID) throws StandardException {
-         this.isSpark = isSpark;
-        //this.getTriggerExecutionContext().isFromSparkExecution(); // msirek-temp
+        this.isSpark = isSpark;
+        // TODO: Investigate the impact of different combinations of
+        //       flag values of isSpark and
+        //       this.getTriggerExecutionContext().isFromSparkExecution().
         this.txn = txn;
         this.token = token;
         Properties properties = new Properties();
