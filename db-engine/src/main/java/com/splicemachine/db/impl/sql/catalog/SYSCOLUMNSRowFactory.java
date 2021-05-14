@@ -184,7 +184,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
                 throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
 
             ColumnDescriptor  column = (ColumnDescriptor)td;
-		
+
 			      /* Lots of info in the column's type descriptor */
             typeDesc = column.getType().getCatalogType();
 
@@ -208,12 +208,15 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             collectStats = column.collectStatistics();
             partitionPosition = column.getPartitionPosition();
             useExtrapolation = column.getUseExtrapolation();
+            sketchSize = Property.DEFAULT_FREQUENCY_SKETCH_SIZE;
             try{
                 LanguageConnectionContext lcc= ConnectionUtil.getCurrentLCC();
                 String sketchSizeStr =
                         PropertyUtil.getDatabaseProperty(lcc.getTransactionExecute(), Property.FREQUENCY_SKETCH_SIZE);
-                if (sketchSizeStr == null) sketchSize = Property.DEFAULT_FREQUENCY_SKETCH_SIZE;
-                else sketchSize = Integer.parseInt(sketchSizeStr);
+
+                sketchSize = Integer.parseInt(sketchSizeStr);
+            }catch(NumberFormatException e) {
+                sketchSize = Property.DEFAULT_FREQUENCY_SKETCH_SIZE;
             }catch(SQLException t){
                 t.printStackTrace();
             }
