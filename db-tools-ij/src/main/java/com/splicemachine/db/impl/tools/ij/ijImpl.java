@@ -1,7 +1,9 @@
 package com.splicemachine.db.impl.tools.ij;
 
+import com.splicemachine.db.iapi.tools.i18n.LocalizedOutput;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 import com.splicemachine.db.tools.JDBCDisplayUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -11,6 +13,7 @@ import java.util.Hashtable;
 import java.util.Locale;
 import java.util.Properties;
 
+@SuppressFBWarnings({"URF_UNREAD_FIELD", "NM_CLASS_NAMING_CONVENTION"})
 public class ijImpl extends ijCommands {
     static final String PROTOCOL_PROPERTY = "ij.protocol";
     static final String URLCHECK_PROPERTY = "ij.URLCheck";
@@ -31,6 +34,31 @@ public class ijImpl extends ijCommands {
     String protocol = null; // the (single) unnamed protocol
     Hashtable namedProtocols;
 
+    // used in utilMain to cancel currently running statements with Ctrl+C
+    // currentStatement can be accessed by the processing thread and the signal handler thread.
+    // this is not a high concurrency situation, still we make most accesses synchronized.
+    Statement currentStatement = null;
+    Object currentStatementLock = new Object();
+
+    public boolean
+    cancelCurrentStatement(LocalizedOutput out) {
+        synchronized (currentStatementLock) {
+            try {
+                if(currentStatement != null)
+                {
+                    out.println("\nCTRL+C -> Canceling Statement...\n");
+                    currentStatement.cancel();
+                    return true;
+                }
+                else {
+                    return false;
+                }
+            } catch (Exception e) {
+                out.println("Error Canceling Statement: " + e.toString());
+                return false;
+            }
+        }
+    }
 
     ijImpl() {}
 
@@ -245,56 +273,65 @@ public class ijImpl extends ijCommands {
 
      **/
     ijResult executeImmediate(String stmt) throws SQLException {
-        Statement aStatement = null;
         try {
-            long beginTime = 0;
-            long endTime = 0;
-            boolean cleanUpStmt = false;
-
             haveConnection();
-            aStatement = theConnection.createStatement();
-
-            // for JCC - remove comments at the beginning of the statement
-            // and trim; do the same for Derby Clients that have versions
-            // earlier than 10.2.
-            if (currentConnEnv != null) {
-                boolean trimForDNC = currentConnEnv.getSession().getIsDNC();
-                if (trimForDNC) {
-                    // we're using the Derby Client, but we only want to trim
-                    // if the version is earlier than 10.2.
-                    DatabaseMetaData dbmd = theConnection.getMetaData();
-                    int majorVersion = dbmd.getDriverMajorVersion();
-                    if ((majorVersion > 10) || ((majorVersion == 10) &&
-                            (dbmd.getDriverMinorVersion() > 1)))
-                    { // 10.2 or later, so don't trim/remove comments.
-                        trimForDNC = false;
-                    }
-                }
-                if (currentConnEnv.getSession().getIsJCC() || trimForDNC) {
-                    // remove comments and trim.
-                    int nextline;
-                    while(stmt.startsWith("--"))
-                    {
-                        nextline = stmt.indexOf('\n')+1;
-                        stmt = stmt.substring(nextline);
-                    }
-                    stmt = stmt.trim();
-                }
-            }
-
-            aStatement.execute(stmt);
+            currentStatement = theConnection.createStatement();
+            stmt = trimCommentsJCCorDNC(stmt);
+            currentStatement.execute(stmt);
 
             // FIXME: display results. return start time.
-            return new ijStatementResult(aStatement,true);
+            return new ijStatementResult(currentStatement, true);
 
         } catch (SQLException e) {
-            try {
-                if (aStatement!=null)  // free the resource
-                    aStatement.close();
-            } catch (SQLException se) {
+            synchronized (currentStatementLock) {
+                try {
+                    if (currentStatement != null)  // free the resource
+                    {
+                        currentStatement.close();
+                        currentStatement = null;
+                    }
+                } catch (SQLException se) {
+                }
             }
             throw e;
         }
+        finally {
+            synchronized (currentStatementLock) {
+                // important: make sure we're freeing up currentStatement
+                currentStatement = null;
+            }
+        }
+    }
+
+    // for JCC - remove comments at the beginning of the statement
+    // and trim; do the same for Derby Clients that have versions
+    // earlier than 10.2.
+    private String trimCommentsJCCorDNC(String stmt) throws SQLException {
+        if (currentConnEnv != null) {
+            boolean trimForDNC = currentConnEnv.getSession().getIsDNC();
+            if (trimForDNC) {
+                // we're using the Derby Client, but we only want to trim
+                // if the version is earlier than 10.2.
+                DatabaseMetaData dbmd = theConnection.getMetaData();
+                int majorVersion = dbmd.getDriverMajorVersion();
+                if ((majorVersion > 10) || ((majorVersion == 10) &&
+                        (dbmd.getDriverMinorVersion() > 1)))
+                { // 10.2 or later, so don't trim/remove comments.
+                    trimForDNC = false;
+                }
+            }
+            if (currentConnEnv.getSession().getIsJCC() || trimForDNC) {
+                // remove comments and trim.
+                int nextline;
+                while(stmt.startsWith("--"))
+                {
+                    nextline = stmt.indexOf('\n')+1;
+                    stmt = stmt.substring(nextline);
+                }
+                stmt = stmt.trim();
+            }
+        }
+        return stmt;
     }
 
     ijResult quit() throws SQLException {
@@ -396,22 +433,6 @@ public class ijImpl extends ijCommands {
     private Object makeXid(int xid)
     {
         return null;
-    }
-
-    void set_xplain_trace(boolean enable) throws SQLException{
-
-        haveConnection();
-        Statement aStatement = theConnection.createStatement();
-
-        if (enable) {
-            aStatement.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1)");
-            aStatement.execute("call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
-        }
-        else {
-            aStatement.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(0)");
-            aStatement.execute("call SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(0)");
-        }
-
     }
 
     /*

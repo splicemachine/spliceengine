@@ -21,6 +21,7 @@ import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.primitives.ByteComparator;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.data.HExceptionFactory;
 import com.splicemachine.si.impl.HNotServingRegion;
 import com.splicemachine.si.impl.HRegionTooBusy;
@@ -36,6 +37,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.nio.charset.Charset;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.Iterator;
@@ -110,7 +112,7 @@ public class RangedClientPartition implements Partition, Comparable<RangedClient
     public void compact(boolean isMajor) throws IOException {
         Connection connection = HBaseConnectionFactory.getInstance(HConfiguration.getConfiguration()).getConnection();
         HExceptionFactory exceptionFactory = HExceptionFactory.INSTANCE;
-        byte[] encodedRegionName = regionInfo.getEncodedName().getBytes();
+        byte[] encodedRegionName = regionInfo.getEncodedName().getBytes(Charset.defaultCharset().name());
 
         try(Admin admin = connection.getAdmin()){
             if (isMajor)
@@ -150,7 +152,7 @@ public class RangedClientPartition implements Partition, Comparable<RangedClient
     @Override
     public void flush() throws IOException {
         Connection connection = HBaseConnectionFactory.getInstance(HConfiguration.getConfiguration()).getConnection();
-        byte[] encodedRegionName = regionInfo.getEncodedName().getBytes();
+        byte[] encodedRegionName = regionInfo.getEncodedName().getBytes(Charset.defaultCharset().name());
         try(Admin admin = connection.getAdmin()) {
             admin.flushRegion(encodedRegionName);
         }
@@ -297,8 +299,8 @@ public class RangedClientPartition implements Partition, Comparable<RangedClient
     }
 
     @Override
-    public DataResult getLatest(byte[] key, DataResult previous) throws IOException {
-        return delegate.getLatest(key, previous);
+    public DataResult getLatest(byte[] key, DataResult previous, Object obj) throws IOException {
+        return delegate.getLatest(key, previous, obj);
     }
 
     @Override

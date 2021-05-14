@@ -14,9 +14,10 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.server.ConflictRollForward;
 import org.apache.hadoop.hbase.exceptions.ConnectionClosingException;
 import splice.com.google.common.base.Function;
-import com.splicemachine.si.impl.HRegionTooBusy;
 
 import org.apache.hadoop.hbase.DroppedSnapshotException;
 import splice.com.google.common.collect.Iterators;
@@ -24,8 +25,6 @@ import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.HNotServingRegion;
-import com.splicemachine.si.impl.HWrongRegion;
 import com.splicemachine.storage.util.MeasuredListScanner;
 import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.NotServingRegionException;
@@ -44,7 +43,7 @@ import java.util.concurrent.locks.Lock;
  * A lot of these methods shouldn't (and generally won't) be called directly, because they will
  * result in an excessive number of objects being created. For example, instead of relying on
  * {@link #get(DataGet,DataResult)} to get the latest version of all the columns, instead call
- * {@link #getLatest(byte[],DataResult)}, which will save on the creation of a DataGet object, while still
+ * {@link #getLatest(byte[],DataResult, Object)}, which will save on the creation of a DataGet object, while still
  * allowing re-use of the DataResult object.
  * <p/>
  * Nonetheless, all methods are properly implemented in a Thread-safe manner (they must, in order to pass SI
@@ -176,9 +175,14 @@ public class RegionPartition implements Partition{
     }
 
     @Override
-    public DataResult getLatest(byte[] key,DataResult previous) throws IOException{
+    public DataResult getLatest(byte[] key,DataResult previous, Object obj) throws IOException{
         Get g=new Get(key);
-        g.setMaxVersions(1);
+        g.readVersions(1);
+
+        assert obj instanceof ConflictRollForward;
+        ConflictRollForward conflictRollForward = (ConflictRollForward)obj;
+        RollbackTxnFilter filter = new RollbackTxnFilter(conflictRollForward.getTxnSupplier(), conflictRollForward.getMutations());
+        g.setFilter(filter);
 
         try{
             Result result=region.get(g);

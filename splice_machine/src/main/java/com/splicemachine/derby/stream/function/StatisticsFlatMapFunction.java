@@ -22,7 +22,7 @@ import com.splicemachine.db.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
 import com.splicemachine.db.impl.sql.execute.StatisticsRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.utils.StatisticsAdmin;
+import com.splicemachine.derby.procedures.StatisticsProcedures;
 import com.splicemachine.derby.utils.StatisticsOperation;
 
 import java.io.IOException;
@@ -98,9 +98,9 @@ public class StatisticsFlatMapFunction
             for(int i=0;i<itemStatistics.length;i++){
                 if(itemStatistics[i]==null)
                     continue;
-                rows.add(StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),columnPositionMap[i],itemStatistics[i]));
+                rows.add(StatisticsProcedures.generateRowFromStats(conglomId,SITableScanner.regionId.get(),columnPositionMap[i],itemStatistics[i]));
             }
-            rows.add(StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),rowCount,rowCount*((long)meanRowWidth),meanRowWidth,1l,
+            rows.add(StatisticsProcedures.generateRowFromStats(conglomId,SITableScanner.regionId.get(),rowCount,rowCount*((long)meanRowWidth),meanRowWidth,1l,
                     useSample? SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS:SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS, useSample?sampleFraction:0.0d));
             return rows.iterator();
         } else {
@@ -109,10 +109,10 @@ public class StatisticsFlatMapFunction
                 if (columnPositionMap[i] == -1)
                     break;
                 if (template.getColumn(i+1) !=null)
-                    rows.add(StatisticsAdmin.generateRowFromStats(conglomId, SITableScanner.regionId.get(), columnPositionMap[i], new ColumnStatisticsImpl(template.getColumn(i+1)) ));
+                    rows.add(StatisticsProcedures.generateRowFromStats(conglomId, SITableScanner.regionId.get(), columnPositionMap[i], new ColumnStatisticsImpl(template.getColumn(i+1)) ));
             }
             rows.add(
-                    StatisticsAdmin.generateRowFromStats(conglomId,SITableScanner.regionId.get(),0,0,0,1L,
+                    StatisticsProcedures.generateRowFromStats(conglomId,SITableScanner.regionId.get(),0,0,0,1L,
                             useSample?SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS:SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS, useSample?sampleFraction:0.0d));
             return rows.iterator();
         }

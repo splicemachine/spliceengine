@@ -38,8 +38,11 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.stream.iapi.ScopeNamed;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -84,17 +87,18 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
      *
      * @param dd the data dictionary
      * @param activation activation
+     * @param dbId
      * @param schemaName name of the schema
      *
      * @return the schema descriptor
      *
      * @exception StandardException if the schema does not exist
      */
-    public static SchemaDescriptor getSchemaDescriptorForCreate(DataDictionary dd,
-                        Activation activation, String schemaName) throws StandardException {
+    public static SchemaDescriptor getSchemaDescriptorForCreate(
+            DataDictionary dd, Activation activation, UUID dbId, String schemaName) throws StandardException {
         SpliceLogUtils.trace(LOG, "getSchemaDescriptorForCreate %s",schemaName);
         TransactionController tc = activation.getLanguageConnectionContext().getTransactionExecute();
-        SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, tc, false);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(dbId, schemaName, tc, false);
         if (sd == null || sd.getUUID() == null) {
             CreateSchemaConstantOperation csca = new CreateSchemaConstantOperation(schemaName, null);
             try {
@@ -319,6 +323,25 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
 
     }
 
+    /**
+     * Notify other region servers of potential metadata changes
+     * @param tc
+     */
+    public void notifyMetadataChanges(TransactionController tc, List<DDLMessage.DDLChange> changes) throws StandardException {
+        if (changes.size() == 1) {
+            notifyMetadataChange(tc, changes.get(0));
+        } else if (changes.size() > 1) {
+            notifyMetadataChange(tc, ProtoUtil.createMultiChange(changes.get(0).getTxnId(), changes));
+        }
+    }
+
+    /**
+     * Notify other region servers of potential metadata changes
+     * @param tc
+     */
+    public void notifyMetadataChange(TransactionController tc, DDLMessage.DDLChange change) throws StandardException {
+        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(change));
+    }
 
     /**
      * We have determined that the statement permission described by statPerm
@@ -997,5 +1020,30 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
         }
     }
 
+    @Override
+    public boolean isDdlAction() {
+        return true;
+    }
+
+    public List<DDLMessage.DDLChange> generateDDLChanges(long txnId, Activation activation) throws StandardException {
+        throw StandardException.newException(SQLState.NOT_IMPLEMENTED,
+                "generateDDLChanges not implemented for " + this.getClass().toString());
+    };
+
+    /**
+     * execute the constant operation of this DDLConstantOperation
+     * @param notify if true, notify other region servers that the operation was conducted, else don't
+     *               This is useful if one wants to group all notication in a DDLChange.MultipleChange.
+     *               (See DropSchemaConstantOperation.dropAllSchemaObjects)
+     */
+    public void executeConstantAction(Activation activation, boolean notify) throws StandardException {
+        throw StandardException.newException(SQLState.NOT_IMPLEMENTED,
+                "executeConstantAction(activation, notify) not implemented for " + this.getClass().toString());
+    }
+
+    @Override
+    public void executeConstantAction(Activation activation) throws StandardException {
+        executeConstantAction(activation, true);
+    }
 }
 

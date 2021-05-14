@@ -21,7 +21,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.2.0.2006-SNAPSHOT</version>
+        <version>3.2.0.2015-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -129,7 +129,10 @@
             orc-protobuf,
             spark-avro_2.11,
             jython-standalone,
-            picocli
+            picocli,
+            jjwt-api,
+            jjwt-impl,
+            jjwt-jackson
         </commonArtifacts>
     </properties>
     <build>

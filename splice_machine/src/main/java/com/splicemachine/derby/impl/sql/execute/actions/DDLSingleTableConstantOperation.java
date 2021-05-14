@@ -24,13 +24,10 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
-import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLChangeType;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.job.fk.FkJobSubmitter;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
-import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -272,7 +269,7 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
                         true,           // create as unique when not null index
                         cd.getIndexDescriptor().indexType(),
                         td.getSchemaDescriptor().getDatabaseId(),
-                        td.getSchemaName(), 
+                        td.getSchemaName(),
                         cd.getConglomerateName(), td.getName(), td.getUUID(),
                         cols,
                         cd.getIndexDescriptor().getIndexColumnTypes(),
@@ -394,8 +391,7 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
         TxnView uTxn = userTxnManager.getRawTransaction().getActiveStateTxn();
         TransactionController tc = lcc.getTransactionExecute();
         final TxnView userTxn = uTxn;
-        DDLMessage.DDLChange ddlChange = ProtoUtil.createDropIndex(indexConglomId, tableConglomId, userTxn.getTxnId(), (BasicUUID) tableId,schemaName,indexName, (BasicUUID) dbId);
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+        notifyMetadataChange(tc, ProtoUtil.createDropIndex(indexConglomId, tableConglomId, userTxn.getTxnId(), (BasicUUID) tableId,schemaName,indexName, (BasicUUID) dbId));
     }
 }
 

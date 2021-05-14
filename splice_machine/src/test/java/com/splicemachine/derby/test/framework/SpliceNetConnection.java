@@ -34,6 +34,7 @@ public class SpliceNetConnection {
     public static final String PROPERTY_JDBC_CREATE = "splice.jdbc.create";
     public static final String PROPERTY_JDBC_SCHEMA = "splice.jdbc.schema";
     public static final String PROPERTY_JDBC_USEOLAP = "splice.jdbc.useolap";
+    public static final String PROPERTY_JDBC_DB2_COMPATIBLE = "splice.jdbc.db2compatible";
 
     public static final String URL_PREFIX = "jdbc:splice://";
     public static final String DEFAULT_HOST = "localhost";
@@ -52,6 +53,7 @@ public class SpliceNetConnection {
     private static String jdbcCreate = null;
     private static String jdbcSchema = null;
     private static String jdbcUseOLAP = null;
+    private static String jdbcJdbcDb2CompatibleMode = null;
 
     private static void separateUrlAndDatabase(String url) {
         int idx = url.lastIndexOf("/");
@@ -73,6 +75,7 @@ public class SpliceNetConnection {
                 final String PARAM_CREATE = "create=";
                 final String PARAM_USEOLAP = "useOLAP=";
                 final String PARAM_USESPARK = "useSpark=";
+                final String PARAM_JDBCDB2COMPATIBLE = "jdbcDb2CompatibleMode=";
 
                 separateUrlAndDatabase(url.substring(0, idx));
                 String args = url.substring(idx + 1);
@@ -106,6 +109,9 @@ public class SpliceNetConnection {
                     else if (arg.startsWith(PARAM_USESPARK)) {
                         jdbcUseOLAP = arg.substring(PARAM_USESPARK.length());
                     }
+                    else if (arg.startsWith(PARAM_JDBCDB2COMPATIBLE)) {
+                        jdbcJdbcDb2CompatibleMode = arg.substring(PARAM_JDBCDB2COMPATIBLE.length());
+                    }
                 }
             }
         }
@@ -121,6 +127,7 @@ public class SpliceNetConnection {
         jdbcCreate = System.getProperty(PROPERTY_JDBC_CREATE, jdbcCreate);
         jdbcSchema = System.getProperty(PROPERTY_JDBC_SCHEMA, jdbcSchema);
         jdbcUseOLAP = System.getProperty(PROPERTY_JDBC_USEOLAP, jdbcUseOLAP);
+        jdbcJdbcDb2CompatibleMode = System.getProperty(PROPERTY_JDBC_DB2_COMPATIBLE, jdbcJdbcDb2CompatibleMode);
     }
 
     public static class ConnectionBuilder implements Cloneable {
@@ -137,6 +144,7 @@ public class SpliceNetConnection {
         private String useNativeSpark;
         private String minPlanTimeout;
         private String currentFunctionPath;
+        private String jdbcDb2Compatible;
         private String snapshot;
 
         @Override
@@ -196,6 +204,10 @@ public class SpliceNetConnection {
             this.currentFunctionPath = currentFunctionPath;
             return this;
         }
+        public ConnectionBuilder db2CompatibleMode(boolean db2Compatible) {
+            this.jdbcDb2Compatible = Boolean.toString(db2Compatible);
+            return this;
+        }
 
         public ConnectionBuilder snapshot(long snapshot) {
             this.snapshot = Long.toString(snapshot);
@@ -222,6 +234,8 @@ public class SpliceNetConnection {
                 info.put("minPlanTimeout", minPlanTimeout);
             if (currentFunctionPath != null)
                 info.put("CurrentFunctionPath", currentFunctionPath);
+            if (jdbcDb2Compatible != null || jdbcJdbcDb2CompatibleMode != null)
+                info.put("jdbcDb2CompatibleMode", jdbcDb2Compatible != null ? jdbcDb2Compatible : jdbcJdbcDb2CompatibleMode);
             if (snapshot != null)
                 info.put("snapshot", snapshot);
             StringBuilder url = new StringBuilder();

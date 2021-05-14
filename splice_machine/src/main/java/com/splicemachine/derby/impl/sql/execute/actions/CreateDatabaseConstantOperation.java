@@ -20,12 +20,11 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.UserDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.impl.sql.execute.DDLConstantAction;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
-public class CreateDatabaseConstantOperation extends DDLConstantAction {
+public class CreateDatabaseConstantOperation extends DDLConstantOperation {
     private static final Logger LOG = Logger.getLogger(CreateDatabaseConstantOperation.class);
     private final String dbName;
     /**

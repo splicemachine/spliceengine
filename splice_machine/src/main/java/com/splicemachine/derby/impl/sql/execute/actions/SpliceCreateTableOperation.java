@@ -26,7 +26,6 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
-import com.splicemachine.db.impl.sql.execute.DDLConstantAction;
 import com.splicemachine.db.shared.common.reference.SQLState;
 
 import java.sql.Connection;
@@ -144,7 +143,7 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 		if(isTempTable())
 			sd = dd.getSchemaDescriptor(null, schemaName, tc, true);
         else
-            sd = DDLConstantAction.getSchemaDescriptorForCreate(dd, activation, lcc.getDatabaseId(), schemaName);
+			sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, lcc.getDatabaseId(), schemaName);
 
         TableDescriptor tableDescriptor = dd.getTableDescriptor(tableName, sd,tc);
 		TableDescriptor tempTableDescriptor = dd.getTableDescriptor(tempTableName, sd, tc);

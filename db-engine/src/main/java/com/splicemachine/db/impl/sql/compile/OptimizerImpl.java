@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -196,6 +197,8 @@ public class OptimizerImpl implements Optimizer{
     private long maxPlanTimeout = -1;
     boolean foundCompleteJoinPlan = false;
 
+    private CostModel costModel;
+
     protected OptimizerImpl(OptimizableList optimizableList,
                             OptimizablePredicateList predicateList,
                             DataDictionary dDictionary,
@@ -206,7 +209,8 @@ public class OptimizerImpl implements Optimizer{
                             JoinStrategy[] joinStrategies,
                             int tableLockThreshold,
                             RequiredRowOrdering requiredRowOrdering,
-                            int numTablesInQuery) throws StandardException{
+                            int numTablesInQuery,
+                            CostModel costModel) throws StandardException{
         assert optimizableList!=null: "optimizableList is not expected to be null";
 
         outermostCostEstimate=getNewCostEstimate(0.0d,1.0d,1.0d);
@@ -274,6 +278,8 @@ public class OptimizerImpl implements Optimizer{
         bestJoinOrderUsedPredsFromAbove=false;
         this.currentRowOrdering=newRowOrdering();
         this.bestRowOrdering=newRowOrdering();
+
+        this.costModel = costModel;
     }
 
     @Override
@@ -1632,6 +1638,18 @@ public class OptimizerImpl implements Optimizer{
         return optimizableList;
     }
 
+    @Override
+    public JBitSet getAssignedTableMap() {
+        return assignedTableMap;
+    }
+
+    @Override
+    public void setAssignedTableMap(JBitSet refMap) {
+        if (refMap != null) {
+            assignedTableMap.setTo(refMap);
+        }
+    }
+
     private void addCost(CostEstimate addend,CostEstimate destCost){
         destCost.setRemoteCost(addend.remoteCost());
         destCost.setLocalCost(destCost.localCost()+addend.localCost());
@@ -2766,5 +2784,10 @@ public class OptimizerImpl implements Optimizer{
 
     public int getJoinPosition() {
         return joinPosition;
+    }
+
+    @Override
+    public CostModel getCostModel() {
+        return costModel;
     }
 }

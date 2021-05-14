@@ -50,6 +50,8 @@ import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.*;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModelRegistry;
 import com.splicemachine.db.iapi.sql.conn.*;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Provider;
@@ -522,6 +524,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             if (favorIndexPrefixIteration != null &&
                     favorIndexPrefixIteration.equalsIgnoreCase("true")) {
                 this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.FAVORINDEXPREFIXITERATION, "TRUE".toString());
+            }
+            String costModel = connectionProperties.getProperty(Property.COST_MODEL);
+            if(costModel != null && CostModelRegistry.exists(costModel)) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.COSTMODEL, costModel);
             }
         }
         if (type.isSessionHinted()) {
@@ -1507,11 +1513,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      */
     @Override
     public PreparedStatement lookupStatement(GenericStatement statement) throws StandardException {
-        GenericStorablePreparedStatement ps = getDataDictionary().getDataDictionaryCache().statementCacheFind(statement);
-        if (ps == null) {
-            ps = new GenericStorablePreparedStatement(statement);
-            getDataDictionary().getDataDictionaryCache().statementCacheAdd(statement, ps);
-        }
+        GenericStorablePreparedStatement ps = getDataDictionary().getDataDictionaryCache().cacheIfAbsent(statement);
         synchronized (ps) {
             if (ps.upToDate()) {
                 GeneratedClass ac = ps.getActivationClass();
@@ -4193,6 +4195,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         }
 
         return false;
+    }
+
+    @Override
+    public CostModel getCostModel() {
+        String costModelName = getSessionProperties().getPropertyString(SessionProperties.PROPERTYNAME.COSTMODEL);
+        if(CostModelRegistry.exists(costModelName)) {
+            return CostModelRegistry.getCostModel(costModelName);
+        } else {
+            return CostModelRegistry.getCostModel("v1");
+        }
     }
 
     @Override

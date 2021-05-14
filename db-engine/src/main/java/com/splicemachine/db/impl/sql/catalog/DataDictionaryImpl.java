@@ -515,7 +515,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             }else{
                 // Get the ids for non-core tables
                 loadDictionaryTables(bootingTC,startParams);
-
+                BaseDataDictionary.READ_NEW_FORMAT = true;
+                BaseDataDictionary.WRITE_NEW_FORMAT= true;
                 String sqlAuth=PropertyUtil.getDatabaseProperty(bootingTC,
                         Property.SQL_AUTHORIZATION_PROPERTY);
 
@@ -1451,7 +1452,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     @Override
-    public void addDescriptorArray(TupleDescriptor[] td,
+    public RowLocation[] addDescriptorArray(TupleDescriptor[] td,
                                    TupleDescriptor parent,
                                    int catalogNumber,
                                    boolean allowDuplicates,
@@ -1466,10 +1467,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             rl[index]=row;
         }
 
-        int insertRetCode=ti.insertRowList(rl,tc);
+        RowLocation[] rowLocations = new RowLocation[td.length];
+        int insertRetCode=ti.insertRowList(rl,tc, rowLocations);
         if(!allowDuplicates && insertRetCode!=TabInfoImpl.ROWNOTDUPLICATE){
             throw duplicateDescriptorException(td[insertRetCode],parent);
         }
+        return rowLocations;
     }
 
     @Override
@@ -7431,7 +7434,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      *
      *    @exception StandardException Standard Derby error policy
       */
-        public void upgrade_addColumns(CatalogRowFactory rowFactory,
+        public void upgradeAddColumns(CatalogRowFactory rowFactory,
                                        int[] newColumnIDs,
                                        ExecRow templateRow, TransactionController tc)
                     throws StandardException
@@ -8766,16 +8769,22 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     private RowLocation computeRowLocation(TransactionController tc,
                                            TableDescriptor td,
                                            String columnName) throws StandardException{
+
+        UUID tableUUID=td.getUUID();
+        return computeRowLocation(tc, tableUUID, columnName);
+    }
+
+    protected RowLocation computeRowLocation(TransactionController tc,
+                                             UUID tableUUID,
+                                             String columnName) throws StandardException{
         TabInfoImpl ti=coreInfo[SYSCOLUMNS_CORE_NUM];
         ExecIndexRow keyRow;
-        UUID tableUUID=td.getUUID();
 
         keyRow=exFactory.getIndexableRow(2);
         keyRow.setColumn(1,getIDValueAsCHAR(tableUUID));
         keyRow.setColumn(2,new SQLChar(columnName));
         return ti.getRowLocation(tc,keyRow,SYSCOLUMNSRowFactory.SYSCOLUMNS_INDEX1_ID);
     }
-
     /**
      * Computes the RowLocation in SYSSEQUENCES for a particular sequence. Also
      * constructs the sequence descriptor.
@@ -11314,7 +11323,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             rows[i] = ti.getCatalogRowFactory().makeRow(descriptor[i], null);
         }
 
-        int insertRetCode = ti.insertRowList(rows,tc);
+        int insertRetCode = ti.insertRowList(rows,tc, null);
         if (insertRetCode != TabInfoImpl.ROWNOTDUPLICATE)
             throw StandardException.newException(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT,
                     "SYSBACKUPITEMS_INDEX2", SYSBACKUPITEMSRowFactory.TABLENAME_STRING);

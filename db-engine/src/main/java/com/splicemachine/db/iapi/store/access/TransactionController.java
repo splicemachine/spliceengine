@@ -1305,11 +1305,12 @@ public interface TransactionController
      *
      * @param requestedSplits The number of input splits requested via the splits query hint, or 0 for no hint.
      *
-     * @exception  StandardException  Standard exception policy.
+     * @param useDb2CompatibleVarchars
+	 * @exception  StandardException  Standard exception policy.
      *
      * @see StoreCostController
      **/
-    StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, boolean skipDictionaryStats, long defaultRowcount, int requestedSplits) throws StandardException;
+    StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, boolean skipDictionaryStats, long defaultRowcount, int requestedSplits, boolean useDb2CompatibleVarchars) throws StandardException;
 
     /**
      * Return a string with debug information about opened congloms/scans/sorts.
@@ -1730,4 +1731,6 @@ public interface TransactionController
 	void closeMe(ScanController scan);
 
 	void rewritePropertyConglomerate() throws StandardException;
+
+	void recoverPropertyConglomerateIfNecessary() throws StandardException;
 }

@@ -15,23 +15,11 @@
 
 package com.splicemachine.derby.stream.function;
 
-import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
-import com.splicemachine.db.iapi.stats.ItemStatistics;
-import com.splicemachine.db.impl.sql.execute.StatisticsRow;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
-import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.utils.StatisticsAdmin;
 import com.splicemachine.derby.utils.StatisticsOperation;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.List;
 
 public class MergeStatisticsFlatMapFunction
     extends SpliceFlatMapFunction<StatisticsOperation, Iterator<ExecRow>, MergeStatisticsHolder> {

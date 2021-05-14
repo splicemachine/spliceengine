@@ -647,6 +647,16 @@ public class ProtoUtil {
                 .setDdlChangeType(DDLChangeType.ROLLING_UPGRADE)
                 .build();
     }
+
+    public static DDLChange createMultiChange(long txnId, List<DDLChange> changes) {
+        DDLChange.Builder builder = DDLChange.newBuilder()
+                .setTxnId(txnId)
+                .setDdlChangeType(DDLChangeType.MULTIPLE_CHANGES);
+        for (DDLChange change : changes) {
+            builder.addChange(change);
+        }
+        return builder.build();
+    }
 }
 
 

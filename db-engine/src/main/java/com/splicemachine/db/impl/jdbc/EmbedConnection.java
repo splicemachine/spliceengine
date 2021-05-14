@@ -805,6 +805,9 @@ public abstract class EmbedConnection implements EngineConnection
                 if (!internal) {
                     authUser = authenticationService.authenticate(dbname, userInfo);
                     authenticationSucceeded = (authUser != null) ? true : false;
+					if (authenticationSucceeded && userInfo.getProperty(Attribute.USER_TOKEN_AUTHENTICATOR) != null) {
+						tr.username = authUser;
+					}
                 }
 //            authenticationSucceeded = true; // internal connections are allowed without authentication
         }

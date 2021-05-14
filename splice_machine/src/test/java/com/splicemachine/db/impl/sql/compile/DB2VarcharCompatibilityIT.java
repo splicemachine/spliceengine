@@ -36,6 +36,7 @@ import java.util.Collection;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -46,12 +47,14 @@ import static org.junit.Assert.assertEquals;
 public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
     
     private Boolean useSpark;
+    private Boolean useNativeSpark;
     
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
-        Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
-        params.add(new Object[]{true});
-        params.add(new Object[]{false});
+        Collection<Object[]> params = Lists.newArrayListWithCapacity(3);
+        params.add(new Object[]{true, true});
+        params.add(new Object[]{true, false});
+        params.add(new Object[]{false, false});
         return params;
     }
     public static final String CLASS_NAME = DB2VarcharCompatibilityIT.class.getSimpleName().toUpperCase();
@@ -64,8 +67,9 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
     
-    public DB2VarcharCompatibilityIT(Boolean useSpark) {
+    public DB2VarcharCompatibilityIT(Boolean useSpark, Boolean useNativeSpark) {
         this.useSpark = useSpark;
+        this.useNativeSpark = useNativeSpark;
     }
     
     public static void createData(Connection conn, String schemaName) throws Exception {
@@ -136,10 +140,37 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
                         row(2, 1, 2, 3),
                         row(3, 1, 2, 3)))
                 .create();
+
+        new TableCreator(conn)
+                .withCreate("create table VarbitTest(a varchar(32000) for bit data not null default X'')")
+                .withInsert("insert into VarbitTest values(?)")
+                .withRows(rows(row("abc".getBytes())))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table SelectivityTest(a varchar(5) primary key, b varchar(5), c varchar(5), d int)")
+                .withIndex("create index ST1 on SelectivityTest(b)")
+                .withIndex("create index ST2 on SelectivityTest(c, d)")
+                .withInsert("insert into SelectivityTest values(?,?,?,?)")
+                .withRows(rows(
+                        row("a", "b", "0", 0),
+                        row("a ", "b ", "0", 1),
+                        row("a  ", "b  ", "1", 2),
+                        row("a   ", "b   ", "1", 3),
+                        row("a    ", "b    ", "2", 4),
+                        row("a1", "b1", "3", 5),
+                        row("a2", "b2","3", 6),
+                        row("a3", "b3", "4", 7),
+                        row("a4", "b4", "5", 8),
+                        row("a5", "b5", "5", 9)))
+                .create();
+
+
         spliceClassWatcher.execute("insert into AG select a, b+1, c+1, d+1 from AG");
         spliceClassWatcher.execute("insert into AG select a, b+1, c+1, d+1 from AG");
         spliceClassWatcher.execute("insert into AG select a, b+1, c+1, d+1 from AG");
         spliceClassWatcher.execute("insert into AG select a, b+1, c+1, d+1 from AG");
+        spliceClassWatcher.execute("analyse table SelectivityTest");
     }
 
     @BeforeClass
@@ -153,6 +184,10 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
     public static void exitDB2CompatibilityMode() throws Exception {
         spliceClassWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', null)");
         spliceClassWatcher.executeUpdate("call syscs_util.INVALIDATE_GLOBAL_DICTIONARY_CACHE()");
+    }
+
+    private String sparkProperties() {
+        return format(" useSpark = %s, useNativeSpark = %s ", useSpark, useNativeSpark);
     }
 
     @Test
@@ -170,9 +205,9 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
 
     @Test
     public void testInnerJoin() throws Exception {
-        String sqlTemplate = "select * from t1 a --splice-properties useSpark=" + useSpark.toString() +
+        String sqlTemplate = "select * from t1 a --splice-properties " + sparkProperties() +
                              ", joinStrategy=%s\n, t1 b where a.b = b.b";
-        String sqlTemplate2 = "select * from t11 a --splice-properties useSpark=" + useSpark.toString() +
+        String sqlTemplate2 = "select * from t11 a --splice-properties " + sparkProperties() +
                              ", joinStrategy=%s\n, t11 b --splice-properties joinStrategy=%s\n where a.b = b.b";
         String sqlText = format(sqlTemplate, "BROADCAST");
 
@@ -213,9 +248,9 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
 
     @Test
     public void testInequalityJoin() throws Exception {
-        String sqlTemplate = "select * from t1 a --splice-properties useSpark=" + useSpark.toString() +
+        String sqlTemplate = "select * from t1 a --splice-properties " + sparkProperties() +
                              ", joinStrategy=%s\n, t1 b where a.b > b.b";
-        String sqlTemplate2 = "select * from t11 a --splice-properties useSpark=" + useSpark.toString() +
+        String sqlTemplate2 = "select * from t11 a --splice-properties " + sparkProperties() +
                              ", joinStrategy=%s\n, t11 b --splice-properties joinStrategy=%s\n where a.b > b.b";
         String sqlText = format(sqlTemplate, "BROADCAST");
 
@@ -254,9 +289,9 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
 
     @Test
     public void testOuterJoin() throws Exception {
-        String sqlTemplate = "select * from t1 a --splice-properties useSpark=" + useSpark.toString() +
+        String sqlTemplate = "select * from t1 a --splice-properties " + sparkProperties() +
                              "\n left outer join t1 b --splice-properties joinStrategy=%s\n on a.b = b.b";
-        String sqlTemplate2 = "select * from t11 a --splice-properties useSpark=" + useSpark.toString() +
+        String sqlTemplate2 = "select * from t11 a --splice-properties " + sparkProperties() +
                              ", joinStrategy=%s\n left outer join t1 b --splice-properties joinStrategy=%s\n on a.b = b.b";
         String sqlText = format(sqlTemplate, "BROADCAST");
 
@@ -295,15 +330,15 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
 
     @Test
     public void testAggregationAndPK() throws Exception {
-        String sql = "select * from t1 --splice-properties useSpark=" + useSpark.toString() +
+        String sql = "select * from t1 --splice-properties " + sparkProperties() +
                              "\n where b = 'a '";
-        String sql2 = "select * from t1 --splice-properties useSpark=" + useSpark.toString() +
+        String sql2 = "select * from t1 --splice-properties " + sparkProperties() +
                              "\n where b in ('a', 'a ', 'a  ')";
-        String sql3 = "select b, count(*) from t1 --splice-properties useSpark=" + useSpark.toString() +
+        String sql3 = "select b, count(*) from t1 --splice-properties " + sparkProperties() +
                              "\n group by b";
-        String sql4 = "select b from t1 --splice-properties useSpark=" + useSpark.toString() +
+        String sql4 = "select b from t1 --splice-properties " + sparkProperties() +
                              "\n order by b";
-        String sql5 = "select b from t11 --splice-properties useSpark=" + useSpark.toString() +
+        String sql5 = "select b from t11 --splice-properties " + sparkProperties() +
                              "\n order by b";
         String expected =
             "A | B |\n" +
@@ -400,7 +435,7 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
 
     @Test
     public void testMultiProbeScan() throws Exception {
-        String sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
+        String sqlTemplate = "select * from t a --splice-properties " + sparkProperties() +
                             ", index=%s\n" +
                             "where v in ('SBVGCCC    ', 'G')\n" +
                             "and c in ( ' ', CAST('A' AS CHAR(2)))";
@@ -416,7 +451,7 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
         sqlText = format(sqlTemplate, "ti2");
         testQuery(sqlText, expected, methodWatcher);
 
-        sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
+        sqlTemplate = "select * from t a --splice-properties " + sparkProperties() +
                         ", index=%s\n" +
                         "where v = 'SBVGCCC    ' \n" +
                         "and c in ( ' ', CAST('A' AS CHAR(2)))";
@@ -426,7 +461,7 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
         sqlText = format(sqlTemplate, "ti2");
         testQuery(sqlText, expected, methodWatcher);
 
-        sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
+        sqlTemplate = "select * from t a --splice-properties " + sparkProperties() +
                         ", index=%s\n" +
                         "where v in ('SBVGCCC    ', 'G')\n" +
                         "and c = CAST('A' AS CHAR(3))";
@@ -441,7 +476,7 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
         sqlText = format(sqlTemplate, "ti2");
         testQuery(sqlText, expected, methodWatcher);
 
-        sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
+        sqlTemplate = "select * from t a --splice-properties " + sparkProperties() +
                         ", index=%s\n" +
                         "where c in ( ' ', CAST('A' AS CHAR(3)))";
 
@@ -521,7 +556,7 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
 
     @Test
     public void testParameterizedIndexLookup() throws Exception {
-        String sqlTemplate = "select v1 from a --splice-properties useSpark=" + useSpark.toString() +
+        String sqlTemplate = "select v1 from a --splice-properties " + sparkProperties() +
                              ", index=%s\n" +
                              "where v2=?";
         String expected =
@@ -534,7 +569,7 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
 
     @Test
     public void testParameterizedMultiProbeScan() throws Exception {
-        String sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
+        String sqlTemplate = "select * from t a --splice-properties " + sparkProperties() +
                                 ", index=%s\n" +
                                 "where v in (?, ?)\n" +
                                 "and c in (?, CAST(? AS CHAR(2)))";
@@ -547,21 +582,21 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
 
         testPreparedQuery1(sqlTemplate, expected, false, false);
 
-        sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
+        sqlTemplate = "select * from t a --splice-properties " + sparkProperties() +
                         ", index=%s\n" +
                         "where v in (?, ?)\n" +
                         "and c in (?, CAST(? AS CHAR(3)))";
 
         testPreparedQuery1(sqlTemplate, expected, false, false);
 
-        sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
+        sqlTemplate = "select * from t a --splice-properties " + sparkProperties() +
                         ", index=%s\n" +
                         "where v = ? \n" +
                         "and c in (?, CAST(? AS CHAR(2)))";
 
         testPreparedQuery1(sqlTemplate, expected, true, false);
 
-        sqlTemplate = "select * from t a --splice-properties useSpark=" + useSpark.toString() +
+        sqlTemplate = "select * from t a --splice-properties " + sparkProperties() +
                         ", index=%s\n" +
                         "where v in (?, ?)\n" +
                         "and c = CAST(? AS CHAR(3))";
@@ -577,7 +612,7 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
 
     @Test
     public void testSparkDistinct() throws Exception {
-        String query = format("select distinct v1, v2 from z --splice-properties useSpark=%s", useSpark);
+        String query = format("select distinct v1, v2 from z --splice-properties " + sparkProperties());
         try (ResultSet rs = methodWatcher.executeQuery(query)) {
             // only one row because trailing spaces are removed in comparing varchar under DB2 compatible mode
             String expected = "V1 |V2 |\n" +
@@ -586,7 +621,7 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
 
-        query = format("select distinct v1 from z --splice-properties useSpark=%s", useSpark);
+        query = format("select distinct v1 from z --splice-properties " + sparkProperties());
         try (ResultSet rs = methodWatcher.executeQuery(query)) {
             // test distinct fix on non-StringType column, should work
             String expected = "V1 |\n" +
@@ -596,10 +631,10 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
         }
 
         query = format("select v1,v2,v3,v4\n" +
-                "from z --splice-properties useSpark=%s\n" +
+                "from z --splice-properties %s\n" +
                 ",y where v1=v3\n" +
                 "union\n" +
-                "select v1,v2,v3,v4 from z,y where v1=v3", useSpark);
+                "select v1,v2,v3,v4 from z,y where v1=v3", sparkProperties());
 
         try(ResultSet rs = methodWatcher.executeQuery(query)) {
             // only one row because trailing spaces are removed in comparing varchar under DB2 compatible mode
@@ -610,10 +645,10 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
         }
 
         query = format("select v1,v2,v3,v4\n" +
-                "from z --splice-properties useSpark=%s\n" +
+                "from z --splice-properties %s\n" +
                 ",y where v2=v4\n" +
                 "union\n" +
-                "select v1,v2,v3,v4 from z,y where v2=v4", useSpark);
+                "select v1,v2,v3,v4 from z,y where v2=v4", sparkProperties());
 
         try(ResultSet rs = methodWatcher.executeQuery(query)) {
             // only one row because trailing spaces are removed in comparing varchar under DB2 compatible mode
@@ -629,5 +664,46 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
         try (TestConnection conn = methodWatcher.getOrCreateConnection()){
             checkBooleanExpression("'abcdefgh            '=strip(replace(TRANSLATE('abcdefgh            ',' ',X'00'),' ',''))", true, conn);
         }
+    }
+
+    @Test
+    public void testVarbit() throws Exception {
+        try (TestConnection conn = methodWatcher.getOrCreateConnection()) {
+            checkVarbitExpression("SUBSTR(a,37,2) from VarbitTest", new byte[]{32 /*space*/, 32}, conn);
+            checkVarbitExpression("SUBSTR(a,75,5) from VarbitTest", new byte[]{32, 32, 32, 32, 32}, conn);
+            checkVarbitExpression("a from VarbitTest", new byte[]{97 /*a*/, 98 /*b*/, 99 /*c*/}, conn);
+        }
+    }
+
+    @Test
+    public void testVarbitPreparedStatement() throws Exception {
+        try (TestConnection conn = methodWatcher.getOrCreateConnection()) {
+            try(PreparedStatement ps = conn.prepareStatement("select SUBSTR(a,1,3) from VarbitTest where 1 = ?")) {
+                ps.setInt(1, 1);
+                try(ResultSet rs = ps.executeQuery()) {
+                    Assert.assertTrue(rs.next());
+                    Assert.assertArrayEquals(new byte[]{97 /*a*/, 98 /*b*/, 99 /*c*/}, rs.getBytes(1));
+                    Assert.assertFalse(rs.next());
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testSelectivityIndex() throws Exception {
+        testQueryContains(
+                "explain select * from SelectivityTest --splice-properties index=ST1\n where b = 'b'",
+                "scannedRows=5", methodWatcher);
+    }
+
+    @Test
+    public void testSelectivityCannotUseFullIndexStartStopKey() throws Exception {
+        // Without db2 compatibility mode, both c and d would have a start key and a stop key, so we would only read one
+        // row with the following query. With db2 compatibility mode however, d's start/stop keys cannot be used, so d = 2
+        // is only applied in the FILTER_BASE phase and not the BASE phase. We end up scanning two rows.
+        testQueryContains(
+                "explain select * from SelectivityTest --splice-properties index=ST2\n where c = '1' and d = 2",
+                "scannedRows=2,outputRows=1",
+                methodWatcher);
     }
 }

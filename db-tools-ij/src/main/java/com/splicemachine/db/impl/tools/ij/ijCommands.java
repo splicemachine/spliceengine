@@ -45,12 +45,16 @@ public class ijCommands {
     boolean hasServerLikeFix() {
         if(serverLikeFix == null) {
             try {
-                int[] v = parseVersion(getVersion());
-                if(v != null && v[0] >= 3 && v[3] >= 1988 ){
-                    serverLikeFix = Boolean.TRUE;
+                String strVersion = getVersion();
+                if(strVersion.equals("UNKNOWN"))
+                    serverLikeFix = Boolean.TRUE; // mem platform
+                else {
+                    int[] v = parseVersion(strVersion);
+                    if (v != null && v[0] >= 3 && v[3] >= 1988) {
+                        serverLikeFix = Boolean.TRUE;
+                    } else
+                        serverLikeFix = Boolean.FALSE;
                 }
-                else
-                    serverLikeFix = Boolean.FALSE;
             } catch (Exception e) {
                 serverLikeFix = Boolean.FALSE;
             }

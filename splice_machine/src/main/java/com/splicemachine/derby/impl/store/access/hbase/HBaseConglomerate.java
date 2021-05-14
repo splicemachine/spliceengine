@@ -364,39 +364,6 @@ public class HBaseConglomerate extends SpliceConglomerate{
                 .build();
         return dvd;
     }
-    /**
-     * Restore the in-memory representation from the stream.
-     * <p/>
-     *
-     * @throws ClassNotFoundException Thrown if the stored representation
-     *                                is serialized and a class named in
-     *                                the stream could not be found.
-     * @see java.io.Externalizable#readExternal
-     **/
-    @Override
-    public void readExternal(ObjectInput in) throws IOException {
-
-        try {
-            String version = null;
-            SIDriver driver = SIDriver.driver();
-            if (driver != null) {
-                partitionFactory = driver.getTableFactory();
-                opFactory = driver.getOperationFactory();
-                PartitionAdmin admin = partitionFactory.getAdmin();
-                version = admin.getCatalogVersion(SQLConfiguration.CONGLOMERATE_TABLE_NAME);
-            }
-
-            if (version == null ||  version.equals("1")) {
-                readExternalOld(in);
-            }
-            else {
-                readExternalNew(in);
-            }
-        } catch (StandardException e) {
-            throw new IOException(e);
-        }
-    }
-
 
     @Override
     protected void readExternalOld(ObjectInput in) throws IOException {

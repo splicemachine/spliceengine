@@ -164,6 +164,10 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
                 probeValue,execRow, useSample, sampleFraction);
     }
 
+    public <V> DataSet<V> readFileX(String location, String extension, SpliceOperation op) throws StandardException {
+        return delegate.readFileX(location, extension, op);
+    }
+
     @Override
     public <V> DataSet<V> readAvroFile(StructType schema, int[] baseColumnMap,int[] partitionColumnMap,
                                        String location, OperationContext context, Qualifier[][] qualifiers,

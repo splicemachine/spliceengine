@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.iapi.store.access.*;
+import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.types.*;
@@ -55,21 +56,24 @@ import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.*;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseController;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
-import com.splicemachine.derby.utils.StatisticsAdmin;
 import com.splicemachine.management.Manager;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.*;
 import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.log4j.Logger;
 
+import java.io.IOException;
 import java.sql.Types;
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * @author Scott Fines
@@ -1450,13 +1454,81 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
     }
 
+    public void rewriteColumnDescriptors(int catalogNum, long cloned_conglomerate) throws StandardException {
+        TabInfoImpl ti = getTableInfo(catalogNum);
 
-    private void addDescriptors(List<TupleDescriptor> descriptors,
+        CatalogRowFactory rf=ti.getCatalogRowFactory();
+        ExecRow outRow;
+        TransactionController tc;
+        TupleDescriptor td=null;
+
+        // Get the current transaction controller
+        tc=getTransactionCompile();
+        String snapshotName = HBaseConfiguration.SEQUENCE_TABLE_NAME + "_upgrade";
+        tc.snapshot(snapshotName, HBaseConfiguration.SEQUENCE_TABLE_NAME);
+        tc.cloneSnapshot(snapshotName, HBaseConfiguration.SEQUENCE_TABLE_NAME);
+        outRow=rf.makeEmptyRow();
+        Map<RowLocation, ColumnDescriptor> locationColumnDescriptorMap = new HashMap<>();
+        /*
+         ** Table scan
+         */
+        try (ScanController scanController=tc.openScan(
+                cloned_conglomerate,    // conglomerate to open
+                false,                        // don't hold open across commit
+                0,                            // for read
+                TransactionController.MODE_TABLE,
+                TransactionController.ISOLATION_REPEATABLE_READ,
+                null,
+                null,        // start position - first rowSpliceDataDictionary
+                0,                    // startSearchOperation - none
+                null,        // scanQualifier,
+                null,        // stop position - through last row
+                0)) {                  // stopSearchOperation - none
+
+            final int batchSize = 100;
+            List<TupleDescriptor> descriptors = Lists.newArrayList();
+            int count = 0;
+            while (scanController.fetchNext(outRow.getRowArray())) {
+                td = rf.buildDescriptor(outRow, null, this, tc);
+                count++;
+                descriptors.add(td);
+                ColumnDescriptor cd = (ColumnDescriptor)td;
+                    long autoinc = cd.getAutoincInc();
+                    if (autoinc != 0) {
+                        RowLocation location = (RowLocation) scanController.getCurrentRowLocation().cloneValue(true);
+                        locationColumnDescriptorMap.put(location, cd);
+                    }
+
+                if (count % batchSize == 0) {
+                    RowLocation[] newLocations = addDescriptors(descriptors, catalogNum, tc);
+                    if (locationColumnDescriptorMap.size() > 0) {
+                        // The row location of a sequence is the row location of the auto increment column.
+                        // Since all column descriptors are rewritten, their row location has been changed,
+                        // SPLICE_SEQUENCE table needs to be updated accordingly
+                        upgradeSequenceTable(descriptors, newLocations, locationColumnDescriptorMap);
+                    }
+                    descriptors.clear();
+                    locationColumnDescriptorMap.clear();
+                }
+            }
+
+            if (descriptors.size() > 0) {
+                RowLocation[] newLocations = addDescriptors(descriptors, catalogNum, tc);
+                if (locationColumnDescriptorMap.size() > 0) {
+                    upgradeSequenceTable(descriptors, newLocations, locationColumnDescriptorMap);
+                }
+                descriptors.clear();
+                locationColumnDescriptorMap.clear();
+            }
+        }
+    }
+
+    private RowLocation[] addDescriptors(List<TupleDescriptor> descriptors,
                                 int catalogNum,
                                 TransactionController tc) throws StandardException{
         TupleDescriptor[] descriptorsArray = new TupleDescriptor[descriptors.size()];
         descriptorsArray = descriptors.toArray(descriptorsArray);
-        addDescriptorArray(descriptorsArray, null, catalogNum, true, tc);
+        return addDescriptorArray(descriptorsArray, null, catalogNum, true, tc);
     }
 
     public static final List<Integer> serdeUpgradedTables = Collections.unmodifiableList(Arrays.asList(
@@ -1481,7 +1553,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             TabInfoImpl ti = getTableInfo(catalogNum);
             long conglomerate = ti.getHeapConglomerate();
             // clone the base table
-            String snapshotName = conglomerate + "_snapshot";
+            String snapshotName = conglomerate + "_upgrade";
             long cloned_conglomerate = conglomerate + 1;
             tc.cloneSnapshot(snapshotName, Long.toString(cloned_conglomerate));
             SpliceLogUtils.info(LOG,"Cloning snapshot %s to conglomerate %d",
@@ -1489,45 +1561,75 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             // truncate the table and rewrite using cloned base table
             truncateTable(tc, catalogNum);
             SpliceLogUtils.info(LOG,"Truncated conglomerate %d", conglomerate);
-            rewriteDescriptors(serdeUpgradedTables.get(i), cloned_conglomerate);
+            if (catalogNum == SYSCOLUMNS_CATALOG_NUM) {
+                rewriteColumnDescriptors(serdeUpgradedTables.get(i), cloned_conglomerate);
+            }
+            else {
+                rewriteDescriptors(serdeUpgradedTables.get(i), cloned_conglomerate);
+            }
             SpliceLogUtils.info(LOG,"Finished upgrading catalogNum %d, conglomerate %d",
                     catalogNum, conglomerate);
         }
     }
 
-    public void rollbackDataDictionarySerializationToV2(TransactionController tc) throws StandardException {
-        Set<String> snapshots = tc.listSnapshots();
+    private void upgradeSequenceTable(List<TupleDescriptor> descriptors, RowLocation[] newLocations,
+                                      Map<RowLocation, ColumnDescriptor> locationColumnDescriptorMap) throws StandardException {
 
-        for (int i = 0; i < serdeUpgradedTables.size(); ++i) {
-            int catalogNum = serdeUpgradedTables.get(i);
-            TabInfoImpl ti = getTableInfo(catalogNum);
-            long conglomerate = ti.getHeapConglomerate();
-            String snapshotName = conglomerate + "_snapshot";
-
-            if (snapshots.contains(snapshotName)) {
-                tc.cloneSnapshot(snapshotName, Long.toString(conglomerate));
-                int n = ti.getNumberOfIndexes();
-                for (int j = 0; j < n; ++j) {
-                    conglomerate = ti.getIndexConglomerate(j);
-                    snapshotName = conglomerate + "_snapshot";
-                    if (snapshots.contains(snapshotName)) {
-                        tc.cloneSnapshot(snapshotName, Long.toString(conglomerate));
-                    }
-                }
-                SpliceLogUtils.info(LOG, "Roll back serialization changes to %d", serdeUpgradedTables.get(i));
-            }
+        // locationMap stores old row location and new row location for an auto increment column descriptor
+        Map<String, byte[]> locationMap = new HashMap<>();
+        for (Map.Entry<RowLocation, ColumnDescriptor> entry : locationColumnDescriptorMap.entrySet()) {
+            byte[] oldLocation = entry.getKey().getBytes();
+            ColumnDescriptor cd = entry.getValue();
+            int index = descriptors.indexOf(cd);
+            byte[] newLocation = newLocations[index].getBytes();
+            locationMap.put(Bytes.toHex(oldLocation), newLocation);
         }
+
+        try(Partition table = SIDriver.driver().getTableFactory().getTable(HBaseConfiguration.SEQUENCE_TABLE_NAME)) {
+            batchUpdateSequenceTable(table, locationMap);
+        }
+        catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    /**
+     * Delete the row that matches old row location and rewrite it to new row location
+     * @param table SPLICE_SEQUENCES table
+     * @param locations old/new row locations
+     * @throws IOException
+     */
+    private void batchUpdateSequenceTable(Partition table,
+                                          Map<String, byte[]> locations) throws IOException{
+
+        List<byte[]> oldLocations = (new ArrayList<>(locations.keySet())).stream().map(e->Bytes.fromHex(e)).collect(Collectors.toList());
+        Iterator<DataResult>  result = table.batchGet(null, oldLocations);
+        List<DataDelete> deletes = Lists.newArrayList();
+        DataPut[] puts = new DataPut[locations.size()];
+        SIDriver driver = SIDriver.driver();
+        int i = 0;
+        while (result.hasNext()) {
+            DataResult dataResult = result.next();
+            DataCell dataCell=dataResult.latestCell(SIConstants.DEFAULT_FAMILY_BYTES,SpliceSequence.autoIncrementValueQualifier);
+            DataDelete delete=driver.baseOperationFactory().newDelete(dataCell.key());
+            deletes.add(delete);
+            DataPut put = driver.baseOperationFactory().newPut(locations.get(Bytes.toHex(dataResult.key())));
+            put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SpliceSequence.autoIncrementValueQualifier, dataCell.value());
+            puts[i++] = put;
+        }
+        table.delete(deletes);
+        table.writeBatch(puts);
     }
 
     private void snapshotTable(TransactionController tc, int catalogNum) throws StandardException {
         TabInfoImpl ti = getTableInfo(catalogNum);
         long conglomerate = ti.getHeapConglomerate();
-        String snapshotName = conglomerate + "_snapshot";
+        String snapshotName = conglomerate + "_upgrade";
         tc.snapshot(snapshotName, Long.toString(conglomerate));
         int n = ti.getNumberOfIndexes();
         for (int i = 0; i < n; ++i) {
             conglomerate = ti.getIndexConglomerate(i);
-            snapshotName = conglomerate + "_snapshot";
+            snapshotName = conglomerate + "_upgrade";
             tc.snapshot(snapshotName, Long.toString(conglomerate));
         }
     }
@@ -1567,13 +1669,19 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
     }
 
+    public TabInfoImpl getTableInfo(int catalogNum) throws StandardException{
+        TabInfoImpl ti = (catalogNum < NUM_CORE) ? coreInfo[catalogNum] : getNonCoreTI(catalogNum);
+        return ti;
+    }
+
+
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Intentional")
     public void upgradeAddColumnToSystemTable(TransactionController tc, int catalogNumber, int[] colIds, ExecRow templateRow) throws StandardException {
         int lastCol = colIds[colIds.length - 1];
         TabInfoImpl tabInfo = getTabInfoByNumber(catalogNumber);
         try {
             TableDescriptor td = getTableDescriptor(tabInfo.getCatalogRowFactory().getCatalogName(),
-                            getSystemSchemaDescriptor(), tc );
+                    getSystemSchemaDescriptor(), tc );
             long conglomID = td.getHeapConglomerateId();
             try (ConglomerateController heapCC = tc.openConglomerate(conglomID,
                     false,0,
@@ -1588,11 +1696,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                     }
                 }
             }
-            upgrade_addColumns(tabInfo.getCatalogRowFactory(), colIds, templateRow, tc);
+            upgradeAddColumns(tabInfo.getCatalogRowFactory(), colIds, templateRow, tc);
             SpliceLogUtils.info(LOG, "Catalog upgraded: updated system table %s", tabInfo.getTableName());
         } catch (Exception e) {
             SpliceLogUtils.error(LOG, "Attempt to upgrade %s failed. " +
-                    "Please check if it has already been upgraded and contains the correct number of columns: %s.",
+                            "Please check if it has already been upgraded and contains the correct number of columns: %s.",
                     tabInfo.getTableName(), lastCol);
         }
     }
@@ -1721,8 +1829,4 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
     }
 
-    public TabInfoImpl getTableInfo(int catalogNum) throws StandardException{
-        TabInfoImpl ti = (catalogNum < NUM_CORE) ? coreInfo[catalogNum] : getNonCoreTI(catalogNum);
-        return ti;
-    }
 }

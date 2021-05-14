@@ -410,5 +410,8 @@ public class SpliceScan implements ScanManager, LazyScan{
         }
     }
 
-
+    @Override
+    public RowLocation getCurrentRowLocation() {
+        return currentRowLocation;
+    }
 }

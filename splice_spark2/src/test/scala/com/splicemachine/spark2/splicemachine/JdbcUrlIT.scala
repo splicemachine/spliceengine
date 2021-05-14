@@ -112,7 +112,7 @@ class JdbcUrlIT extends FunSuite with Matchers with BeforeAndAfterAll {
   test("JDBC Url Bad Driver Name") {
     verify(
       defaultJDBCURL.replace( "jdbc:splice" , "abc" ) ,
-      "java.sql.SQLException: No suitable driver"
+      ThisVersionSpecificItems.jdbcBadDriverNameException
     )
   }
 }

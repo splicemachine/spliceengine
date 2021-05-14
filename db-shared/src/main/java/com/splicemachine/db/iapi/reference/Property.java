@@ -818,6 +818,10 @@ public interface Property {
     // These are the different built-in providers Derby supports
 
 
+    String AUTHENTICATION_PROVIDER_JWT_TOKEN =
+            "TOKEN";
+
+
     /*
      ** Log
      */
@@ -1166,6 +1170,8 @@ public interface Property {
     String FLOATING_POINT_NOTATION = "splice.function.floatingPointNotation";
     String PRESERVE_LINE_ENDINGS = "splice.function.preserveLineEndings";
 
+    String COUNT_RETURN_TYPE = "splice.bind.countReturnType";
+
     String CURSOR_UNTYPED_EXPRESSION_TYPE = "splice.bind.cursorUntypedExpressionType";
 
     String OUTERJOIN_FLATTENING_DISABLED = "derby.database.outerJoinFlatteningDisabled";
@@ -1246,6 +1252,8 @@ public interface Property {
 
     String SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE = "splice.db2.import.empty_string_compatible";
 
+    // if set to true, will treat "" as empty string in IMPORT_DATA
+    // if set to false or NULL, will treat "" as NULL in IMPORT_DATA
     String SPLICE_DB2_VARCHAR_COMPATIBLE = "splice.db2.varchar.compatible";
 
     String SPLICE_NEW_MERGE_JOIN =
@@ -1290,5 +1298,9 @@ public interface Property {
     String ENTERPRISE_KEY = "splicemachine.enterprise.key";
 
     String ENTERPRISE_ENABLE = "splicemachine.enterprise.enable";
+
+    String SPLICE_OLAP_PARALLEL_PARTITIONS = "splice.olapParallelPartitions";
+
+    String COST_MODEL = "costModel";
 }
 

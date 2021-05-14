@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.JoinTable;
 import com.splicemachine.stream.Stream;
+import org.apache.spark.TaskContext;
 
 import java.util.concurrent.Callable;
 
@@ -30,14 +31,14 @@ public class BroadcastJoinNoCacheLoader implements Callable<JoinTable.Factory> {
     private final ExecRow outerTemplateRow;
     private final Callable<Stream<ExecRow>> streamLoader;
 
-    private final Long operationId;
+    private final TaskContext taskContext;
 
-    public BroadcastJoinNoCacheLoader(Long operationId,
+    public BroadcastJoinNoCacheLoader(TaskContext taskContext,
                   int[] innerHashKeys,
                   int[] outerHashKeys,
                   ExecRow outerTemplateRow,
                   Callable<Stream<ExecRow>> streamLoader){
-        this.operationId=operationId;
+        this.taskContext = taskContext;
         this.innerHashKeys=innerHashKeys;
         this.outerHashKeys=outerHashKeys;
         this.outerTemplateRow=outerTemplateRow;
@@ -46,6 +47,6 @@ public class BroadcastJoinNoCacheLoader implements Callable<JoinTable.Factory> {
 
     @Override
     public JoinTable.Factory call() throws Exception {
-        return tableLoader.load(streamLoader,innerHashKeys,outerHashKeys,outerTemplateRow);
+        return tableLoader.load(streamLoader,innerHashKeys,outerHashKeys,outerTemplateRow, taskContext);
     }
 }

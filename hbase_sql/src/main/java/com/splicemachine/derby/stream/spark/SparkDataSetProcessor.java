@@ -38,7 +38,6 @@ import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.spark.WholeTextInputFormat;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.function.Partitioner;
-import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
@@ -69,6 +68,7 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 
+import javax.management.RuntimeErrorException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -328,6 +328,18 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public Partitioner getPartitioner(DataSet<ExecRow> dataSet, ExecRow template, int[] keyDecodingMap, boolean[] keyOrder, int[] rightHashKeys) {
         return new HBasePartitioner(dataSet, template, keyDecodingMap, keyOrder, rightHashKeys);
+    }
+
+    public <V> DataSet<V> readFileX(String location, String extension, SpliceOperation op) throws StandardException {
+        DataFrameReader dfr = SpliceSpark.getSession().read();
+        Dataset<Row> table;
+        if(extension.equalsIgnoreCase("parquet"))
+            table = dfr.parquet(location);
+        else if(extension.equalsIgnoreCase("orc"))
+            table = dfr.orc(location);
+        else
+            throw new RuntimeException("Unsupported format " + extension);
+        return new NativeSparkDataSet(table, op.getOperationContext());
     }
 
     @Override

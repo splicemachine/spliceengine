@@ -270,7 +270,7 @@ public class TernaryOperatorNode extends OperatorNode
         switch (operatorType) {
             case TRIM:
             case DB2RTRIM:
-                generateSetIgnoreTrailingWhitespacesInVarcharComparison(0, mb);
+                generateSetIgnoreTrailingWhitespacesInVarcharComparison(mb);
                 mb.push(trimType);
                 getLeftOperand().generateExpression(acb, mb);
                 mb.cast(getLeftInterfaceType());
@@ -289,7 +289,7 @@ public class TernaryOperatorNode extends OperatorNode
                 receiverType = getReceiverInterfaceType();
                 break;
             case SUBSTRING:
-                generateSetIgnoreTrailingWhitespacesInVarcharComparison(0, mb);
+                generateSetIgnoreTrailingWhitespacesInVarcharComparison(mb);
                 getLeftOperand().generateExpression(acb, mb);
                 mb.upCast(getLeftInterfaceType());
                 if (getRightOperand() != null)
@@ -311,7 +311,7 @@ public class TernaryOperatorNode extends OperatorNode
                 break;
             case LEFT:
             case RIGHT:
-                generateSetIgnoreTrailingWhitespacesInVarcharComparison(0, mb);
+                generateSetIgnoreTrailingWhitespacesInVarcharComparison(mb);
                 getLeftOperand().generateExpression(acb, mb);
                 mb.upCast(getLeftInterfaceType());
                 mb.getField(field);
@@ -335,7 +335,7 @@ public class TernaryOperatorNode extends OperatorNode
                 break;
             case REPLACE:
             case SPLIT_PART:
-                generateSetIgnoreTrailingWhitespacesInVarcharComparison(0, mb);
+                generateSetIgnoreTrailingWhitespacesInVarcharComparison(mb);
                 getLeftOperand().generateExpression(acb, mb);
                 mb.upCast(getLeftInterfaceType());
                 if (getRightOperand() != null)

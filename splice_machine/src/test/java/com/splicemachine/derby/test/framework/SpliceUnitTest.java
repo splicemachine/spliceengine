@@ -439,6 +439,11 @@ public class SpliceUnitTest {
     }
 
     protected void testQueryContains(String sqlText, String containedString,
+                                     SpliceWatcher methodWatcher) throws Exception {
+        testQueryContains(sqlText, containedString, methodWatcher, true);
+    }
+
+    protected void testQueryContains(String sqlText, String containedString,
                                      SpliceWatcher methodWatcher,
                                      boolean caseInsensitive) throws Exception {
         ResultSet rs = null;
@@ -1278,6 +1283,14 @@ public class SpliceUnitTest {
         try(ResultSet rs = conn.query(sql)) {
             rs.next();
             Assert.assertEquals(output, rs.getBoolean(1));
+        }
+    }
+
+    protected void checkVarbitExpression(String input, byte[] output, TestConnection conn) throws SQLException {
+        String sql = format("select %s", input);
+        try(ResultSet rs = conn.query(sql)) {
+            rs.next();
+            Assert.assertArrayEquals(output, rs.getBytes(1));
         }
     }
 

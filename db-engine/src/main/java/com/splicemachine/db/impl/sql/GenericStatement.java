@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.depend.Dependency;
+import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
@@ -72,6 +73,7 @@ import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_COMPILE_VERSION;
@@ -265,8 +267,7 @@ public class GenericStatement implements Statement{
                                          boolean internalSQL) throws StandardException{
         return prepMinion(lcc, cacheMe, paramDefaults, spsSchema, internalSQL, null);
     }
-    @SuppressFBWarnings(value = "ML_SYNC_ON_FIELD_TO_GUARD_CHANGING_THAT_FIELD",
-            justification = "the new object created at line 370 will not be put into cache and it cannot be referenced by other threads")
+
     private PreparedStatement prepMinion(LanguageConnectionContext lcc,
                                          boolean cacheMe,
                                          Object[] paramDefaults,
@@ -328,14 +329,15 @@ public class GenericStatement implements Statement{
             lcc.setOrigStmtTxt(statementText);
         }
 
-//        boolean isExplain=isExplainStatement();
         if(preparedStmt==null){
             if(cacheMe)
                 preparedStmt=(GenericStorablePreparedStatement)((GenericLanguageConnectionContext)lcc).lookupStatement(this);
 
-            if(preparedStmt==null){
-                preparedStmt=new GenericStorablePreparedStatement(this);
-            }else{
+            if (preparedStmt==null || preparedStmt.referencesSessionSchema()) {
+                // cannot use this state since it is private to a connection.
+                // switch to a new statement.
+                preparedStmt = new GenericStorablePreparedStatement(this);
+            } else {
                 foundInCache=true;
             }
         }
@@ -348,19 +350,7 @@ public class GenericStatement implements Statement{
         // cache of prepared statement objects...
         synchronized(preparedStmt){
             for(;;){
-                if(foundInCache){
-                    if(preparedStmt.referencesSessionSchema()){
-                        // cannot use this state since it is private to a connection.
-                        // switch to a new statement.
-                        foundInCache=false;
-                        // reassigning preparedStmt causes a FindBugs bug ML_SYNC_ON_FIELD_TO_GUARD_CHANGING_THAT_FIELD
-                        preparedStmt=new GenericStorablePreparedStatement(this);
-                        break;
-                    }
-                }
-
                 // did it get updated while we waited for the lock on it?
-
                 if(preparedStmt.upToDate()){
                     /*
                      * -sf- DB-1082 regression note:
@@ -379,8 +369,9 @@ public class GenericStatement implements Statement{
                     Collection<Dependency> selfDep = lcc.getDataDictionary().getDependencyManager().find(preparedStmt.getObjectID());
                     if(selfDep!=null){
                         for(Dependency dep:selfDep){
-                            if(dep.getDependent().equals(preparedStmt))
+                            if (dep.getDependent().equals(preparedStmt)) {
                                 return preparedStmt;
+                            }
                         }
                     }
                     //we actually aren't valid, because the dependency is missing.
@@ -398,11 +389,8 @@ public class GenericStatement implements Statement{
                 }
             }
 
-            // if we reach here from the break at line 371, preparedStmt object is different
-            synchronized (preparedStmt) {
-                preparedStmt.compilingStatement = true;
-                preparedStmt.setActivationClass(null);
-            }
+            preparedStmt.compilingStatement = true;
+            preparedStmt.setActivationClass(null);
         }
         CompilerContext cc = null;
         try{
@@ -431,12 +419,14 @@ public class GenericStatement implements Statement{
             } else {
                 cc = pushCompilerContext(lcc, internalSQL, spsSchema);
             }
-            if (internalSQL)
+            if (internalSQL) {
                 cc.setCompilingTrigger(true);
+            }
             fourPhasePrepare(lcc,paramDefaults,timestamps,foundInCache,cc,boundAndOptimizedStatement, cacheMe, false);
         } catch (Throwable e) {
-            if(foundInCache)
-                ((GenericLanguageConnectionContext)lcc).removeStatement(this);
+            if (foundInCache) {
+                ((GenericLanguageConnectionContext) lcc).removeStatement(this);
+            }
             throw StandardException.getOrWrap(e);
         }
         finally{
@@ -458,8 +448,9 @@ public class GenericStatement implements Statement{
 
         lcc.commitNestedTransaction();
 
-        if(statementContext!=null)
-            lcc.popStatementContext(statementContext,null);
+        if (statementContext != null) {
+            lcc.popStatementContext(statementContext, null);
+        }
 
         return preparedStmt;
     }
@@ -495,6 +486,7 @@ public class GenericStatement implements Statement{
         setTimestampFormat(lcc, cc);
         setSecondFunctionCompatibilityMode(lcc, cc);
         setFloatingPointNotation(lcc, cc);
+        setCountReturnType(lcc, cc);
         setOuterJoinFlatteningDisabled(lcc, cc);
         setCursorUntypedExpressionType(lcc, cc);
 
@@ -836,6 +828,19 @@ public class GenericStatement implements Statement{
         }
     }
 
+    private void setCountReturnType(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String countReturnTypeString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.COUNT_RETURN_TYPE);
+        if(countReturnTypeString == null) {
+            cc.setCountReturnType(CompilerContext.DEFAULT_COUNT_RETURN_TYPE);
+        } else {
+            if (countReturnTypeString.toLowerCase().startsWith("int")) {
+                cc.setCountReturnType(Types.INTEGER);
+            } else {
+                cc.setCountReturnType(Types.BIGINT);
+            }
+        }
+    }
+
     /*
      * Performs the 4-phase preparation of the statement. The four
      * phases are:
@@ -939,6 +944,7 @@ public class GenericStatement implements Statement{
         // proceed to optimize and generate code for it
         StatementNode optimizedPlan = queryNode.fourPhasePrepare(lcc, null, new long[5], false, cc, null, cacheMe, true);
         // mark the CC as in use so we use a new CC for the explain plan code generation.
+        cc.setCurrentDependent(preparedStmt);
         if(!cc.getInUse()) {
             cc.setInUse(true);
         }

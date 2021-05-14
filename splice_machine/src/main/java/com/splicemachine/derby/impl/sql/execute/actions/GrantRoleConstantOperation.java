@@ -26,8 +26,6 @@ import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.shared.common.reference.SQLState;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 
@@ -151,10 +149,8 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
                     /* we need to invalidate the defaultRole cache as the grantee's defaultRole list has changed;
                        also we need to invalidate the roleGrant cache
                      */
-                    DDLMessage.DDLChange ddlChange =
-                            ProtoUtil.createGrantRevokeRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
-                                    role, grantee, grantor, true);
-                    tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+                    notifyMetadataChange(tc, ProtoUtil.createGrantRevokeRole(
+                            ((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), role, grantee, grantor, true));
                 } else if (rgd == null) {
                     // Check if the grantee is a role (if not, it is a user)
                     RoleGrantDescriptor granteeDef =
@@ -183,10 +179,8 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
                     /* we need to invalidate the defaultRole cache as the grantee's defaultRole list has changed;
                        also we need to invalidate the roleGrant cache
                      */
-                    DDLMessage.DDLChange ddlChange =
-                            ProtoUtil.createGrantRevokeRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
-                                    role, grantee, grantor, true);
-                    tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+                    notifyMetadataChange(tc, ProtoUtil.createGrantRevokeRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
+                                    role, grantee, grantor, true));
 
                 } // else exists already, no need to add
             }

@@ -54,29 +54,29 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
         return params;
     }
 
-    private String useSparkString;
+    private final String useSparkString;
 
     public AddColumnWithDefaultIT(String useSparkString) {
         this.useSparkString = useSparkString;
     }
 
     @ClassRule
-    public  static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(schemaWatcher.schemaName);
 
     @BeforeClass
     public static void createSharedTables() throws Exception {
-        TestConnection connection=spliceClassWatcher.getOrCreateConnection();
+        TestConnection connection = spliceClassWatcher.getOrCreateConnection();
         new TableCreator(connection)
                 .withCreate("create table t1 (a1 int, b1 int, c1 int, primary key(a1))")
                 .withIndex("create index idx_t1 on t1 (b1,c1)")
                 .withInsert("insert into t1 values(?,?,?)")
                 .withRows(rows(row(1, 1, 1),
-                        row(2, 2, 2),
-                        row(3, 3, 3),
-                        row(4, 4, 4))).create();
+                               row(2, 2, 2),
+                               row(3, 3, 3),
+                               row(4, 4, 4))).create();
 
         // add not null column to t1 with default value
         connection.createStatement().executeUpdate("alter table t1 add column d1 int not null default 999");
@@ -85,12 +85,12 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 .withCreate("create table t2 (a2 int, b2 int, c2 int)")
                 .withInsert("insert into t2 values(?,?,?)")
                 .withRows(rows(row(1, 1, 1),
-                        row(2, 2, 2),
-                        row(2, 2, 2),
-                        row(4, 4, 4),
-                        row(5, 5, 5),
-                        row(5, 5, 5),
-                        row(5, 5, 5))).create();
+                               row(2, 2, 2),
+                               row(2, 2, 2),
+                               row(4, 4, 4),
+                               row(5, 5, 5),
+                               row(5, 5, 5),
+                               row(5, 5, 5))).create();
 
         // add not null column to t2 with default value
         connection.createStatement().executeUpdate("alter table t2 add column d2 int not null default 999");
@@ -99,31 +99,48 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 .withCreate("create table t3 (a3 int, b3 int, c3 int)")
                 .withInsert("insert into t3 values(?,?,?)")
                 .withRows(rows(row(1, 1, 1),
-                        row(2, 2, 2),
-                        row(4, 4, 4),
-                        row(5, 5, 5))).create();
+                               row(2, 2, 2),
+                               row(4, 4, 4),
+                               row(5, 5, 5))).create();
 
         new TableCreator(connection)
                 .withCreate("create table t4 (a4 int)")
                 .withInsert("insert into t4 values(?)")
                 .withRows(rows(row(1),
-                        row(2),
-                        row(3))).create();
+                               row(2),
+                               row(3))).create();
+
+        new TableCreator(connection)
+                .withCreate("create table p (pc1 int primary key)")
+                .withInsert("insert into p values(?)")
+                .withRows(rows(row(42),
+                               row(43),
+                               row(44))).create();
+
+        new TableCreator(connection)
+                .withCreate("create table c (cc1 int)")
+                .withInsert("insert into c values(?)")
+                .withRows(rows(row(1),
+                               row(2),
+                               row(3))).create();
+
+
     }
 
     private Connection conn;
 
     @Before
-    public void setUpTest() throws Exception{
-        conn=methodWatcher.getOrCreateConnection();
+    public void setUpTest() throws Exception {
+        conn = methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
     }
 
     @After
-    public void tearDownTest() throws Exception{
+    public void tearDownTest() throws Exception {
         try {
             conn.rollback();
-        } catch (Exception e) {} // Swallow for HFile Bit Running in Control
+        } catch (Exception e) {
+        } // Swallow for HFile Bit Running in Control
     }
 
     @Test
@@ -144,9 +161,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 " 2 | 2 | 2 |999 |\n" +
                 " 3 | 3 | 3 |999 |\n" +
                 " 4 | 4 | 4 |999 |";
-        ResultSet rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* Q2: select columns in different order and with predicate */
         sql = format("select d1, a1, b1 from t1 --splice-properties useSpark=%s\n where b1>3", useSparkString);
@@ -154,9 +171,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 "-------------\n" +
                 "999 |14 | 4 |\n" +
                 "999 | 4 | 4 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* Update some rows with non-default values */
         methodWatcher.executeUpdate(format("update t1 --splice-properties useSpark=%s\n set d1=c1 where a1 between 3 and 12", useSparkString));
@@ -173,9 +190,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 " 2 | 2 | 2 |999 |\n" +
                 " 3 | 3 | 3 | 3  |\n" +
                 " 4 | 4 | 4 | 4  |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* Q4-1: select with predicate on the column with default value */
         sql = format("select d1, a1, b1 from t1 --splice-properties useSpark=%s\n where d1=999", useSparkString);
@@ -185,9 +202,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 "999 |13 | 3 |\n" +
                 "999 |14 | 4 |\n" +
                 "999 | 2 | 2 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* Q4-2: select with predicate on the column with default value */
         sql = format("select d1, a1, b1 from t1 --splice-properties useSpark=%s\n where d1 between 3 and 12", useSparkString);
@@ -195,9 +212,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 "------------\n" +
                 " 3 | 3 | 3 |\n" +
                 " 4 | 4 | 4 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* Q5: test distinct scan */
         sql = format("select distinct a2, b2, c2, d2 from t2 --splice-properties useSpark=%s\n where a2<>1", useSparkString);
@@ -206,9 +223,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 " 2 | 2 | 2 |999 |\n" +
                 " 4 | 4 | 4 |999 |\n" +
                 " 5 | 5 | 5 |999 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* Q6-1: test query with index lookup */
         sql = format("select a1, b1, d1 from t1 --splice-properties index=idx_t1, useSpark=%s\n where b1=3", useSparkString);
@@ -216,9 +233,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 "-------------\n" +
                 "13 | 3 |999 |\n" +
                 " 3 | 3 | 3  |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* Q6-2: test query with index lookup */
         sql = format("select a1, b1, d1 from t1 --splice-properties index=idx_t1, useSpark=%s\n where d1=999", useSparkString);
@@ -228,18 +245,18 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 "13 | 3 |999 |\n" +
                 "14 | 4 |999 |\n" +
                 " 2 | 2 |999 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* join */
         sql = format("select a1, b1, d1 from t1, t2 --splice-properties useSpark=%s\n where a1=a2 and d1 in (1,2,3,4)", useSparkString);
         expected = "A1 |B1 |D1 |\n" +
                 "------------\n" +
                 " 4 | 4 | 4 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* aggregation */
         sql = format("select d1, count(*) from t1 --splice-properties useSpark=%s\n where b1<=3 group by 1", useSparkString);
@@ -249,9 +266,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 " 2  | 1 |\n" +
                 " 3  | 1 |\n" +
                 "999 | 3 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* order by */
         sql = format("select d1, a1, b1 from t1 --splice-properties useSpark=%s\n where b1<=3 order by 1 desc, 2, 3", useSparkString);
@@ -263,9 +280,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 " 3  | 3 | 3 |\n" +
                 " 2  |12 | 2 |\n" +
                 " 1  |11 | 1 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
     }
 
 
@@ -284,9 +301,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 " 2 | 2 |1001 |999 |\n" +
                 " 3 | 3 |  3  | 3  |\n" +
                 " 4 | 4 |  4  | 4  |";
-        ResultSet rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 
     @Test
@@ -302,9 +319,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 "----------------\n" +
                 " 3 | 3 | 3 | 3 |\n" +
                 " 4 | 4 | 4 | 4 |";
-        ResultSet rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 
     @Test
@@ -328,9 +345,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 "999 | 2 | 2 | 2 |\n" +
                 "999 | 3 | 3 | 3 |\n" +
                 "999 | 4 | 4 | 4 |";
-        ResultSet rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* Q2: select through covering index */
         sql = format("select d1, b1 from t1 --splice-properties index=idx2_t1, useSpark=%s\n where d1 < 555", useSparkString);
@@ -341,9 +358,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 " 2 | 2 |\n" +
                 " 3 | 3 |\n" +
                 " 4 | 4 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* Q2-1: select through covering index */
         sql = format("select d1, b1 from t1 --splice-properties index=idx2_t1, useSpark=%s\n where d1 >= 555", useSparkString);
@@ -354,9 +371,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 "999 | 2 |\n" +
                 "999 | 3 |\n" +
                 "999 | 4 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         //create an index on (d1, c1) excluding default
         methodWatcher.executeUpdate("create index idx3_t1 on t1(d1, c1) exclude default keys");
@@ -370,9 +387,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 " 2 |12 | 2 |\n" +
                 " 3 |13 | 3 |\n" +
                 " 4 |14 | 4 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 
     @Test
@@ -380,7 +397,7 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
         // add not null column with default to current user
         methodWatcher.executeUpdate("alter table t1 add column e1 varchar(30) not null default USER");
 
-         /* insert more rows to t1 */
+        /* insert more rows to t1 */
         methodWatcher.executeUpdate(format("insert into t1 select a1+10, b1, c1, d1, 'Alice' from t1 --splice-properties useSpark=%s", useSparkString));
 
         /* Q1 -- select */
@@ -392,9 +409,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 "12 | 2 | 2 |999 |Alice |\n" +
                 "13 | 3 | 3 |999 |Alice |\n" +
                 "14 | 4 | 4 |999 |Alice |";
-        ResultSet rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* Q2 */
         sql = format("select * from t1 --splice-properties useSpark=%s\n where e1=USER", useSparkString);
@@ -405,9 +422,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 " 2 | 2 | 2 |999 |SPLICE |\n" +
                 " 3 | 3 | 3 |999 |SPLICE |\n" +
                 " 4 | 4 | 4 |999 |SPLICE |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 
     @Test
@@ -415,7 +432,7 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
         // add not null column with default to current user
         methodWatcher.executeUpdate("alter table t1 add column e1 date not null default DATE('2017-11-06')");
 
-         /* insert more rows to t1 */
+        /* insert more rows to t1 */
         methodWatcher.executeUpdate(format("insert into t1 select a1+10, b1, c1, d1, e1-1 from t1 --splice-properties useSpark=%s", useSparkString));
 
         /* Q1 -- select */
@@ -427,9 +444,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 "12 | 2 | 2 |999 |2017-11-05 |\n" +
                 "13 | 3 | 3 |999 |2017-11-05 |\n" +
                 "14 | 4 | 4 |999 |2017-11-05 |";
-        ResultSet rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* Q2 */
         sql = format("select * from t1 --splice-properties useSpark=%s\n where e1<>DATE ('2017-11-05')", useSparkString);
@@ -440,9 +457,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 " 2 | 2 | 2 |999 |2017-11-06 |\n" +
                 " 3 | 3 | 3 |999 |2017-11-06 |\n" +
                 " 4 | 4 | 4 |999 |2017-11-06 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 
     @Test
@@ -459,11 +476,11 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 " 2 | 2 | 2 |999 |\n" +
                 " 3 | 3 | 3 |999 |\n" +
                 " 4 | 4 | 4 |999 |";
-        ResultSet rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
-         /* insert more rows to t1, d1 now should take the default value 888 */
+        /* insert more rows to t1, d1 now should take the default value 888 */
         methodWatcher.executeUpdate(format("insert into t1(a1,b1,c1) select a1+10, b1, c1 from t1 --splice-properties useSpark=%s", useSparkString));
 
         /* check the content  */
@@ -479,9 +496,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 " 2 | 2 | 2 |999 |\n" +
                 " 3 | 3 | 3 |999 |\n" +
                 " 4 | 4 | 4 |999 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* check content with predicate */
         sql = format("select * from t1 --splice-properties useSpark=%s\n where d1<>888", useSparkString);
@@ -492,9 +509,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 " 2 | 2 | 2 |999 |\n" +
                 " 3 | 3 | 3 |999 |\n" +
                 " 4 | 4 | 4 |999 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 
     @Test
@@ -511,11 +528,11 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 " 2 | 2 | 2 |999 |\n" +
                 " 3 | 3 | 3 |999 |\n" +
                 " 4 | 4 | 4 |999 |";
-        ResultSet rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
-         /* insert more rows to t1, we need to explicitly provide value for d1 as no default is specified now */
+        /* insert more rows to t1, we need to explicitly provide value for d1 as no default is specified now */
         methodWatcher.executeUpdate(format("insert into t1(a1,b1,c1,d1) select a1+10, b1, c1, c1 from t1 --splice-properties useSpark=%s", useSparkString));
 
         /* check the content  */
@@ -531,9 +548,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 " 2 | 2 | 2 |999 |\n" +
                 " 3 | 3 | 3 |999 |\n" +
                 " 4 | 4 | 4 |999 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* check content with predicate */
         sql = format("select * from t1 --splice-properties useSpark=%s\n where d1>500", useSparkString);
@@ -544,9 +561,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 " 2 | 2 | 2 |999 |\n" +
                 " 3 | 3 | 3 |999 |\n" +
                 " 4 | 4 | 4 |999 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 
     @Test
@@ -563,11 +580,11 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 " 2 | 2 | 2 |999 |\n" +
                 " 3 | 3 | 3 |999 |\n" +
                 " 4 | 4 | 4 |999 |";
-        ResultSet rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
-         /* insert more rows to t1 */
+        /* insert more rows to t1 */
         methodWatcher.executeUpdate(format("insert into t1(a1,b1,c1) select a1+10, b1, c1 from t1 --splice-properties useSpark=%s", useSparkString));
 
         /* check the content  */
@@ -583,9 +600,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 " 2 | 2 | 2 |999 |\n" +
                 " 3 | 3 | 3 |999 |\n" +
                 " 4 | 4 | 4 |999 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* check content with predicate */
         sql = format("select * from t1 --splice-properties useSpark=%s\n where d1>500", useSparkString);
@@ -600,9 +617,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 " 2 | 2 | 2 |999 |\n" +
                 " 3 | 3 | 3 |999 |\n" +
                 " 4 | 4 | 4 |999 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 
     @Test
@@ -620,17 +637,17 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
         String expected = "A3 |    D3     |  3  |   E3    |         F3           |          6           |\n" +
                 "------------------------------------------------------------------------------\n" +
                 "10 |2017-12-05 |2017 |17:11:24 |2017-12-05 17:11:24.0 |2017-12-04 17:11:24.0 |";
-        ResultSet rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         sql = format("select a3, d3, YEAR(d3), e3, f3, f3-1 from t3 --splice-properties index=idx1_t3, useSpark=%s\n where b3=5", useSparkString);
         expected = "A3 |    D3     |  3  |   E3    |         F3           |          6           |\n" +
                 "------------------------------------------------------------------------------\n" +
                 " 5 |2017-01-01 |2017 |00:00:00 |2017-01-01 00:00:00.0 |2016-12-31 00:00:00.0 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* case 2: check covering index */
         sql = format("select b3, d3, YEAR(d3) from t3 --splice-properties index=idx1_t3, useSpark=%s", useSparkString);
@@ -641,9 +658,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 " 2 |2017-01-01 |2017 |\n" +
                 " 4 |2017-01-01 |2017 |\n" +
                 " 5 |2017-01-01 |2017 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* case 3: check direct access of the base table */
         sql = format("select a3, d3, YEAR(d3), e3, f3, f3-1 from t3 --splice-properties index=null, useSpark=%s", useSparkString);
@@ -654,9 +671,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 " 2 |2017-01-01 |2017 |00:00:00 |2017-01-01 00:00:00.0 |2016-12-31 00:00:00.0 |\n" +
                 " 4 |2017-01-01 |2017 |00:00:00 |2017-01-01 00:00:00.0 |2016-12-31 00:00:00.0 |\n" +
                 " 5 |2017-01-01 |2017 |00:00:00 |2017-01-01 00:00:00.0 |2016-12-31 00:00:00.0 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 
     @Test
@@ -674,17 +691,17 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
         String expected = "A4 |      2       |\n" +
                 "-------------------\n" +
                 "10 |AA-AAAA-LAAAA |";
-        ResultSet rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         sql = format("select a4, b4 || '-' || c4 || '-' || D4 from t4 --splice-properties index=idx1_t4, useSpark=%s\n where a4=3", useSparkString);
         expected = "A4 |      2      |\n" +
                 "------------------\n" +
                 " 3 |Z-ZZZZ-LZZZZ |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* case 2: check direct access of the base table */
         sql = format("select a4, b4 || '-' || c4 || '-' || D4 from t4 --splice-properties index=null, useSpark=%s", useSparkString);
@@ -694,9 +711,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 "10 |AA-AAAA-LAAAA |\n" +
                 " 2 |Z-ZZZZ-LZZZZ  |\n" +
                 " 3 |Z-ZZZZ-LZZZZ  |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 
     @Test
@@ -712,17 +729,17 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
         String expected = "A4 |    2    |\n" +
                 "--------------\n" +
                 "10 |-AAAA  - |";
-        ResultSet rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         sql = format("select a4, '-' || b4 || '-'  from t4 --splice-properties index=idx1_t4, useSpark=%s\n where a4=3", useSparkString);
         expected = "A4 |    2    |\n" +
                 "--------------\n" +
                 " 3 |-ZZZZ  - |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* case 2: check direct access of the base table */
         sql = format("select a4, '-' || b4 || '-' from t4 --splice-properties index=null, useSpark=%s", useSparkString);
@@ -732,9 +749,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 "10 |-AAAA  - |\n" +
                 " 2 |-ZZZZ  - |\n" +
                 " 3 |-ZZZZ  - |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 
     @Test
@@ -744,7 +761,7 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
             methodWatcher.executeUpdate("alter table t4 add column b4 CHAR(4) not null default 'ZZZZZ'");
             Assert.fail("the update statement should fail");
         } catch (SQLException e) {
-            Assert.assertEquals("Upexpected failure: "+ e.getMessage(), e.getSQLState(), SQLState.LANG_STRING_TRUNCATION);
+            Assert.assertEquals("Upexpected failure: " + e.getMessage(), e.getSQLState(), SQLState.LANG_STRING_TRUNCATION);
         }
 
         // case 2: add not null column to t4 with default value of bigger size, but after trimming the trailing space,
@@ -759,9 +776,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 "10 |-AAAA- |\n" +
                 " 2 |-ZZZZ- |\n" +
                 " 3 |-ZZZZ- |";
-        ResultSet rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 
 
@@ -787,16 +804,16 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 "12 |-XXXX  - |\n" +
                 " 2 |-ZZZZ  - |\n" +
                 " 3 |-ZZZZ  - |";
-        ResultSet rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         // change to a default value which is of larger size with no trailing spaces, it should error out
         try {
             methodWatcher.executeUpdate("alter table t4 alter column b4 default 'XXXXXXX'");
             Assert.fail("the update statement should fail");
         } catch (SQLException e) {
-            Assert.assertEquals("Upexpected failure: "+ e.getMessage(), e.getSQLState(), SQLState.LANG_STRING_TRUNCATION);
+            Assert.assertEquals("Upexpected failure: " + e.getMessage(), e.getSQLState(), SQLState.LANG_STRING_TRUNCATION);
         }
 
     }
@@ -818,17 +835,17 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
         String expected = "A4 | 2 |   3    |  4   |  5   |  6   |\n" +
                 "--------------------------------------\n" +
                 "10 |11 |1000001 |11.11 |11.22 |11.33 |";
-        ResultSet rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         sql = format("select a4, b4+1, c4+1, d4+1, e4+1, f4+1 from t4 --splice-properties index=idx1_t4, useSpark=%s\n where a4=3", useSparkString);
         expected = "A4 |   2   |          3          | 4  |  5  |  6   |\n" +
                 "----------------------------------------------------\n" +
                 " 3 |-32767 |-9223372036854775807 |0.0 |-1.0 |-2.33 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* case 2: check direct access of the base table */
         sql = format("select a4, b4+1, c4+1, d4+1, e4+1, f4+1 from t4 --splice-properties index=null, useSpark=%s", useSparkString);
@@ -838,9 +855,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 "10 |  11   |       1000001       |11.11 |11.22 |11.33 |\n" +
                 " 2 |-32767 |-9223372036854775807 | 0.0  |-1.0  |-2.33 |\n" +
                 " 3 |-32767 |-9223372036854775807 | 0.0  |-1.0  |-2.33 |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 
     @Test
@@ -856,17 +873,17 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
         String expected = "A4 | B4  |\n" +
                 "----------\n" +
                 "10 |true |";
-        ResultSet rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         sql = format("select a4, b4 from t4 --splice-properties index=idx1_t4, useSpark=%s\n where a4=3", useSparkString);
         expected = "A4 | B4   |\n" +
                 "-----------\n" +
                 " 3 |false |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
         /* case 2: check direct access of the base table */
         sql = format("select a4, b4 from t4 --splice-properties index=null, useSpark=%s", useSparkString);
@@ -876,9 +893,9 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
                 "10 |true  |\n" +
                 " 2 |false |\n" +
                 " 3 |false |";
-        rs = methodWatcher.executeQuery(sql);
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 
     @Test
@@ -886,20 +903,53 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
         // add not null column to t4 with default value
         methodWatcher.executeUpdate("alter table t4 add column b4 blob(10) not null default cast(X'AB' as blob(10))");
         String sql = format("select b4 from t4 --splice-properties useSpark=%s", useSparkString);
-        ResultSet rs = methodWatcher.executeQuery(sql);
-        while (rs.next()) {
-            Blob blob = rs.getBlob(1);
-            byte[] expected = new byte[] {(byte)0xAB};
-            Assert.assertArrayEquals(expected, blob.getBytes(1, 10));
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            while (rs.next()) {
+                Blob blob = rs.getBlob(1);
+                byte[] expected = new byte[]{(byte) 0xAB};
+                Assert.assertArrayEquals(expected, blob.getBytes(1, 10));
+            }
+            assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
-        assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
 
         try {
             methodWatcher.executeUpdate("alter table t4 add column c4 blob(1) not null default cast(X'ABCD' as blob(2))");
             Assert.fail("the update statement should fail");
         } catch (SQLException e) {
-            Assert.assertEquals("Upexpected failure: "+ e.getMessage(), e.getSQLState(), SQLState.LANG_STRING_TRUNCATION);
+            Assert.assertEquals("Unexpected failure: " + e.getMessage(), e.getSQLState(), SQLState.LANG_STRING_TRUNCATION);
+        }
+    }
+
+    @Test
+    public void testAddColumnWithForeignKeyConstraint() throws Exception {
+        methodWatcher.executeUpdate("alter table c add column cc2 int references p(pc1)");
+        try (ResultSet rs = methodWatcher.executeQuery("select * from c order by cc1 asc")) {
+            int cnt = 1;
+            while (rs.next()) {
+                Assert.assertEquals(cnt++, rs.getInt(1));
+                rs.getInt(2);
+                Assert.assertTrue(rs.wasNull());
+            }
+        }
+    }
+
+    @Test
+    public void testAddColumnWithForeignKeyConstraintViolationsAreChecked() throws Exception {
+        try {
+            methodWatcher.executeUpdate(format("alter table c add column cc3 int with default 3141 references %s.p(pc1)", CLASS_NAME));
+            Assert.fail("the update statement should have failed");
+        } catch (SQLException e) {
+            Assert.assertEquals("Unexpected failure: " + e.getMessage(), SQLState.LANG_ADD_FK_CONSTRAINT_VIOLATION, e.getSQLState() + ".S" );
+        }
+    }
+
+    @Test
+    public void testAddColumnNonNullableTypeWithNullDefaultValueThrows() throws Exception {
+        try {
+            methodWatcher.executeUpdate("alter table c add column invalid_column int not null with default null");
+            Assert.fail("the update statement should have failed");
+        } catch (SQLException e) {
+            Assert.assertEquals("Unexpected failure: " + e.getMessage(), SQLState.LANG_DB2_INVALID_DEFAULT_VALUE, e.getSQLState());
         }
     }
 }

@@ -14,6 +14,8 @@
 
 package com.splicemachine.stream;
 
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import splice.com.google.common.net.HostAndPort;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
@@ -97,6 +99,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
                     hasLOBs ? config.getSparkSlowResultStreamingBatches() : config.getSparkResultStreamingBatches());
             int streamingBatchSize = getPropertyOrDefault(activation, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCH_SIZE,
                     hasLOBs ? config.getSparkSlowResultStreamingBatchSize() : config.getSparkResultStreamingBatchSize());
+            int throttleMaxWait = config.getSparkResultStreamingThrottleMaxWait();
             streamListener = new StreamListener(limit, offset, streamingBatches, streamingBatchSize);
             StreamListenerServer server = getServer();
             server.register(streamListener);
@@ -111,16 +114,16 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             String userId = lcc.getCurrentUserId(activation);
             int localPort = config.getNetworkBindPort();
             int sessionId = lcc.getInstanceNumber();
-            Integer parallelPartitionsProperty = (Integer) lcc.getSessionProperties()
-                    .getProperty(SessionProperties.PROPERTYNAME.OLAPPARALLELPARTITIONS);
-            int parallelPartitions = parallelPartitionsProperty == null ? StreamableRDD.DEFAULT_PARALLEL_PARTITIONS : parallelPartitionsProperty;
+
+
             Integer shufflePartitionsProperty = (Integer) lcc.getSessionProperties()
                     .getProperty(SessionProperties.PROPERTYNAME.OLAPSHUFFLEPARTITIONS);
             String opUuid = root.getUuid() != null ? "," + root.getUuid().toString() : "";
             String session = hostname + ":" + localPort + "," + sessionId + opUuid;
+            int parallelPartitions = getParallelPartitions(lcc);
 
             RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), uuid, host, port, session, userId, sql,
-                    streamingBatches, streamingBatchSize, parallelPartitions, shufflePartitionsProperty);
+                    streamingBatches, streamingBatchSize, parallelPartitions, shufflePartitionsProperty, throttleMaxWait);
 
             String requestedQueue = (String) lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE);
             String queue = chooseQueue(activation, requestedQueue, config.getOlapServerIsolatedRoles());
@@ -150,6 +153,36 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
         } catch (IOException e) {
             throw StandardException.newException(SQLState.OLAP_SERVER_CONNECTION, e);
         }
+    }
+
+     /**
+     * olap parallel partitions settings.
+     *  priority:
+     *  - session setting (highest prio): olapParallelPartitions session parameter
+     *  - global setting                : SYSCS_SET_GLOBAL_DATABASE_PROPERTY('splice.parallelPartitions', '20');
+     *  - default setting (lowest prio) : DEFAULT_PARALLEL_PARTITIONS = 4;
+     * @param lcc
+     * @return
+     */
+    private int getParallelPartitions(LanguageConnectionContext lcc) {
+        int parallelPartitions = StreamableRDD.DEFAULT_PARALLEL_PARTITIONS;
+        Integer sessionPartitionsProperty = (Integer) lcc.getSessionProperties()
+                .getProperty(SessionProperties.PROPERTYNAME.OLAPPARALLELPARTITIONS);
+        if(sessionPartitionsProperty != null) {
+            parallelPartitions = sessionPartitionsProperty;
+        }
+        else {
+            try {
+                String globalPartitionsProperty = PropertyUtil.
+                        getCachedDatabaseProperty(lcc, Property.SPLICE_OLAP_PARALLEL_PARTITIONS);
+                if (globalPartitionsProperty != null) {
+                    parallelPartitions = Integer.parseInt(globalPartitionsProperty);
+                }
+            } catch(Exception e) {
+                // ignore parse errors
+            }
+        }
+        return parallelPartitions;
     }
 
     private boolean hasLOBs(SpliceBaseOperation root) throws StandardException {

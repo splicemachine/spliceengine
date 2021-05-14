@@ -88,6 +88,7 @@ class Database
                                                        // for execute imm
     private DRDAStatement currentStatement; // current statement we are working on
     private Hashtable stmtTable;        // Hash table for storing statements
+	protected String pluginName; //Security plugin name
 
     // constructor
     /**

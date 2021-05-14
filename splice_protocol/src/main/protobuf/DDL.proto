@@ -403,8 +403,9 @@ enum DDLChangeType {
     UPDATE_SYSTEM_PROCEDURES = 42;
     ROLLING_UPGRADE = 43;
     LEAVE_RESTORE_MODE = 44;
-    DROP_DATABASE = 45;
-    CREATE_DATABASE = 46;
+    MULTIPLE_CHANGES = 45;
+    DROP_DATABASE = 46;
+    CREATE_DATABASE = 47;
 }
 
 message DDLChange {
@@ -448,6 +449,7 @@ message DDLChange {
     optional SetReplicationRole setReplicationRole = 38;
     optional UpdateSystemProcedures updateSystemProcedures = 39;
     optional RollingUpgrade rollingUpgrade = 40;
-    optional DropDatabase dropDatabase = 41;
-    optional CreateDatabase createDatabase = 42;
+    repeated DDLChange change = 41;
+    optional DropDatabase dropDatabase = 42;
+    optional CreateDatabase createDatabase = 43;
 }
