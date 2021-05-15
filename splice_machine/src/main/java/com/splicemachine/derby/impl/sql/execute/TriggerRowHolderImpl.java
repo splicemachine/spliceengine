@@ -110,6 +110,13 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
     private byte[] token;
     private TriggerExecutionContext tec;
 
+    // Does Spark execution need to use a temporary trigger conglomerate?
+    private boolean needsTemporaryConglomerate;
+
+    // Have we already determined whether a temporary conglomerate is needed?
+    // If so we can use the old result.
+    private boolean needsTemporaryConglomerateSet;
+
     public TriggerRowHolderImpl() {
 
     }
@@ -182,7 +189,7 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
         }
         else if (overflowToConglomThreshold == 0) {
             try {
-                if (tec.needsTemporaryConglomerate(activation.isNestedTrigger()))
+                if (needsTemporaryConglomerate())
                     createConglomerate(execRowDefinition);
                 tec.setExecRowDefinition(execRowDefinition);
                 tec.setTableVersion(tableVersion);
@@ -239,6 +246,8 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
         out.writeLong(CID);
         out.writeBoolean(conglomCreated);
         out.writeObject(resultDescription);
+        out.writeBoolean(needsTemporaryConglomerate);
+        out.writeBoolean(needsTemporaryConglomerateSet);
     }
 
     @Override
@@ -265,6 +274,8 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
         CID = in.readLong();
         conglomCreated = in.readBoolean();
         resultDescription = (ResultDescription) in.readObject();
+        needsTemporaryConglomerate = in.readBoolean();
+        needsTemporaryConglomerateSet = in.readBoolean();
     }
 
     public void setTxn(TxnView txn) {
@@ -409,7 +420,7 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
         }
 
         numRowsIn++;
-        if (!tec.needsTemporaryConglomerate(activation.isNestedTrigger()))
+        if (!needsTemporaryConglomerate())
             return;
         if (!conglomCreated) {
             createConglomerate(inputRow);
@@ -537,6 +548,14 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
 
     public TriggerExecutionContext getTriggerExecutionContext() {
         return tec;
+    }
+
+    public boolean needsTemporaryConglomerate() {
+        if (needsTemporaryConglomerateSet)
+            return needsTemporaryConglomerate;
+        needsTemporaryConglomerate = tec.needsTemporaryConglomerate(activation.isNestedTrigger());
+        needsTemporaryConglomerateSet = true;
+        return needsTemporaryConglomerate;
     }
 }
 

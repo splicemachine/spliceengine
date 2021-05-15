@@ -177,13 +177,14 @@ public class TriggerHandler {
     @SuppressFBWarnings(value = {"EI_EXPOSE_REP2","URF_UNREAD_FIELD"}, justification = "DB-9844")
     public void initTriggerRowHolders(boolean isSpark, TxnView txn, byte[] token, long ConglomID) throws StandardException {
         this.isSpark = isSpark;
-        // TODO: Investigate the impact of different combinations of
-        //       flag values of isSpark and
-        //       this.getTriggerExecutionContext().isFromSparkExecution().
         this.txn = txn;
         this.token = token;
         Properties properties = new Properties();
         if (hasStatementTriggerWithReferencingClause) {
+            // Triggers with temporary rows in a DataSet must stay in spark
+            // if they started from spark.
+            if (this.getTriggerExecutionContext().isFromSparkExecution())
+                this.isSpark = true;
             // Honor the controlExecutionRowLimit.
             int switchToSparkThreshold = EngineDriver.driver().getConfiguration().getControlExecutionRowLimit() <= Integer.MAX_VALUE ?
             (int) EngineDriver.driver().getConfiguration().getControlExecutionRowLimit() : Integer.MAX_VALUE;
