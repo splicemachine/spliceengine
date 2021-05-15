@@ -368,10 +368,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         JoinStrategy joinStrategy=currentAccessPath.getJoinStrategy();
         ap.setJoinStrategy(joinStrategy);
         ap.setHintedJoinStrategy(currentAccessPath.isHintedJoinStrategy());
-        ap.setUisPredicate(currentAccessPath.getUisPredicate());
-        ap.setUisRowIdPredicate(currentAccessPath.getUisRowIdPredicate());
-        ap.setUnionOfIndexes(currentAccessPath.getUnionOfIndexes());
-        ap.setUisRowIdJoinBackToBaseTableResultSet(currentAccessPath.getUisRowIdJoinBackToBaseTableResultSet());
+        ap.setUisFields(currentAccessPath);
         if (joinStrategy.getJoinStrategyType() == JoinStrategy.JoinStrategyType.BROADCAST)
             ap.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
         else
