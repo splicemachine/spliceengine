@@ -189,4 +189,6 @@ public interface OptimizablePredicate
 	void markFullJoinPredicate(boolean isForFullJoin);
 
 	boolean isFullJoinPredicate();
+
+	boolean hasCorrelatedSubquery() throws StandardException;
 }

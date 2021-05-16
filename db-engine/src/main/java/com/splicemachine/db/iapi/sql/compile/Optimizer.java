@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.sql.compile.AggregateNode;
 import com.splicemachine.db.impl.sql.compile.GroupByList;
 import com.splicemachine.db.impl.sql.compile.OrderByList;
+import com.splicemachine.db.impl.sql.compile.PredicateList;
 
 import java.util.List;
 
@@ -425,4 +426,12 @@ public interface Optimizer{
     default boolean isMemPlatform() { return false; };
 
     CostModel getCostModel();
+
+    void setNonPushablePredicates(PredicateList predicateList);
+
+    /**
+     * Postcondition @return != null.
+     * @return the non-pushable predicate list
+     */
+    PredicateList getNonPushablePredicates();
 }

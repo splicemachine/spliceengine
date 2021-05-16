@@ -1628,4 +1628,17 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         return bron.getLeftOperand().getTypeServices().
                                      getTypeName().equals(TypeId.VARCHAR_NAME);
     }
+
+    @Override
+    public boolean hasCorrelatedSubquery() throws StandardException {
+        CollectNodesVisitor visitor= new CollectNodesVisitor(SubqueryNode.class);
+        this.accept(visitor);
+        @SuppressWarnings("unchecked") List<SubqueryNode> subqueryNodes=visitor.getList();
+        for(SubqueryNode subqueryNode : subqueryNodes) {
+            if(subqueryNode.hasCorrelatedCRs()) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

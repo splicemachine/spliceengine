@@ -14,14 +14,9 @@
 
 package com.splicemachine.derby.impl.sql.compile;
 
-import com.splicemachine.EngineDriver;
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.impl.sql.compile.HashableJoinStrategy;
-import com.splicemachine.db.impl.sql.compile.PredicateList;
-import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
 
 public class MergeSortJoinStrategy extends HashableJoinStrategy {
 
@@ -34,17 +29,24 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
                             Optimizer optimizer,
                             CostEstimate outerCost,boolean wasHinted,
                             boolean skipKeyCheck) throws StandardException {
+        if (optimizer.isForSpark() && (
+                containsCorrelatedSubquery(optimizer.getNonPushablePredicates())
+                        || containsCorrelatedSubquery(predList))) {
+            return false;
+        }
 		return super.feasible(innerTable, predList, optimizer,outerCost,wasHinted,skipKeyCheck);
 	}
 
     /** @see JoinStrategy#multiplyBaseCostByOuterRows */
-	public boolean multiplyBaseCostByOuterRows() {
+    @Override
+    public boolean multiplyBaseCostByOuterRows() {
 		return true;
 	}
 
     /**
      * @see JoinStrategy#joinResultSetMethodName
      */
+    @Override
     public String joinResultSetMethodName() {
         return "getMergeSortJoinResultSet";
     }
@@ -52,10 +54,12 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
     /**
      * @see JoinStrategy#halfOuterJoinResultSetMethodName
      */
+    @Override
     public String halfOuterJoinResultSetMethodName() {
         return "getMergeSortLeftOuterJoinResultSet";
     }
 
+    @Override
     public String fullOuterJoinResultSetMethodName() {
         return "getMergeSortFullOuterJoinResultSet";
     }
@@ -71,5 +75,14 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
     @Override
     public int maxCapacity(int userSpecifiedCapacity,int maxMemoryPerTable,double perRowUsage){
         return Integer.MAX_VALUE;
+    }
+
+    private boolean containsCorrelatedSubquery(OptimizablePredicateList predList) throws StandardException {
+        for (int i = 0; i < predList.size(); i++) {
+            if(predList.getOptPredicate(i).hasCorrelatedSubquery()) {
+                return true;
+            }
+        }
+        return false;
     }
 }
