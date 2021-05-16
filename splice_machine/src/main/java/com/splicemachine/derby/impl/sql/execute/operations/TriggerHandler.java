@@ -264,8 +264,9 @@ public class TriggerHandler {
                 }
             };
             final boolean sparkExecution =
-                !SpliceClient.isRegionServer ||
-                activation.datasetProcessorType().isOlap();
+                !EngineDriver.isMemPlatform() &&
+                (!SpliceClient.isRegionServer ||
+                 activation.datasetProcessorType().isOlap());
             this.triggerActivator = new TriggerEventActivator(constantAction.getTargetUUID(),
                     constantAction.getTriggerInfo(),
                     activation,
