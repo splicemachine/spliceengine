@@ -2595,8 +2595,7 @@ analyzeTableStatement() throws StandardException :
   <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
   [<ESTIMATE> <STATISTICS> <SAMPLE> samplePercent = literal() <PERCENTWORD>]
   {
-    routineName = (TableName)nodeFactory.getNode(
-             C_NodeTypes.TABLE_NAME,
+    routineName = new TableName(
              "SYSCS_UTIL",
              (samplePercent==null)?"COLLECT_TABLE_STATISTICS" : "COLLECT_TABLE_SAMPLE_STATISTICS",
              getContextManager());
@@ -2660,11 +2659,8 @@ analyzeSchemaStatement() throws StandardException :
 {
   <SCHEMA> schemaName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
   {
-    routineName = (TableName)nodeFactory.getNode(
-               C_NodeTypes.TABLE_NAME,
-               "SYSCS_UTIL",
-               "COLLECT_SCHEMA_STATISTICS",
-               getContextManager());
+    routineName = new TableName("SYSCS_UTIL", "COLLECT_SCHEMA_STATISTICS",
+                                  getContextManager());
 
     Vector  parameterList = new Vector();
     CharConstantNode schema = (CharConstantNode) nodeFactory.getNode(
@@ -6572,13 +6568,8 @@ escapedSYSFUNFunction() throws StandardException :
     {
         String sysFunName = getEscapedSYSFUN(tok.image);
 
-        TableName functionName = (TableName) nodeFactory.getNode(
-                                C_NodeTypes.TABLE_NAME,
-                                SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME,
-                                sysFunName,
-                                new Integer(0),
-                                new Integer(0),
-                                getContextManager());
+        TableName functionName = new TableName(SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME,
+                                sysFunName, 0, 0, getContextManager());
 
         MethodCallNode methodNode = new StaticMethodCallNode(functionName, null, getContextManager());
 
@@ -8977,13 +8968,9 @@ columnNameForInvocation() throws StandardException :
         if (tableName != null)
         {
             // There is a table name, so get a TableName node
-            tabName =
-                (TableName) nodeFactory.getNode(
-                            C_NodeTypes.TABLE_NAME,
-                            schemaName,
-                            tableName,
-                            new Integer(nextToLastIdentifierToken.beginOffset),
-                            new Integer(nextToLastIdentifierToken.endOffset),
+            tabName = new TableName(schemaName, tableName,
+                            nextToLastIdentifierToken.beginOffset,
+                            nextToLastIdentifierToken.endOffset,
                             getContextManager());
         }
 
@@ -9066,12 +9053,9 @@ columnReference() throws StandardException :
 
         if (tableName != null)
         {
-            tabName = (TableName) nodeFactory.getNode(
-                            C_NodeTypes.TABLE_NAME,
-                            schemaName,
-                            tableName,
-                            new Integer(nextToLastIdentifierToken.beginOffset),
-                            new Integer(nextToLastIdentifierToken.endOffset),
+            tabName = new TableName(schemaName, tableName,
+                            nextToLastIdentifierToken.beginOffset,
+                            nextToLastIdentifierToken.endOffset,
                             getContextManager());
         }
 
@@ -10401,11 +10385,7 @@ FromTable tableFactor() throws StandardException :
         String uniqueId = java.util.UUID.randomUUID().toString().replaceAll("-", "_").toUpperCase();
         String tempTriggerName = "TRIG_" + uniqueId;
         String schemaName = lcc.getDefaultSchema().getSchemaName();
-        triggerName = (TableName) nodeFactory.getNode(
-                                C_NodeTypes.TABLE_NAME,
-                                schemaName,
-                                tempTriggerName,
-                                getContextManager());
+        triggerName = new TableName(schemaName, tempTriggerName, getContextManager());
         triggerColumns = (ResultColumnList) nodeFactory.getNode(
                                         C_NodeTypes.RESULT_COLUMN_LIST,
                                         getContextManager());

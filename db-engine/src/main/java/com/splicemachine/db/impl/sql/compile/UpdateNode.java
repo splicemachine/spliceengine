@@ -307,8 +307,8 @@ public final class UpdateNode extends DMLModStatementNode
                         if (targetTable.getMatchingColumn(cr) == null) {
                             toAppend.addResultColumn(cr.generateResultColumn());
                             TableName crTblName = cr.getTableNameNode();
-                            cr.setTableNameNode(QueryTreeNode.makeTableName(getNodeFactory(), getContextManager(),
-                                    crTblName == null ? null : crTblName.getSchemaName(), fromSubq.getExposedName()));
+                            cr.setTableNameNode(new TableName(crTblName == null ? null : crTblName.getSchemaName(),
+                                    fromSubq.getExposedName(), getContextManager()));
                         }
                     }
                     ResultColumn selRC = selRCL.elementAt(i);
@@ -342,8 +342,8 @@ public final class UpdateNode extends DMLModStatementNode
                             innerRCL.addResultColumn(rc);
                         }
                         TableName crTblName = cr.getTableNameNode();
-                        cr.setTableNameNode(QueryTreeNode.makeTableName(getNodeFactory(), getContextManager(),
-                                crTblName == null ? null : crTblName.getSchemaName(), fromSubq.getExposedName()));
+                        cr.setTableNameNode(new TableName(crTblName == null ? null : crTblName.getSchemaName(),
+                                fromSubq.getExposedName(), getContextManager()));
                     }
                 }
             }

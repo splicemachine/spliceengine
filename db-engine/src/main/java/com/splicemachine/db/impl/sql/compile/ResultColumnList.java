@@ -2008,11 +2008,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         }
 
         /* Make a dummy TableName to be shared by all new CRs */
-        dummyTN=(TableName)getNodeFactory().getNode(
-                C_NodeTypes.TABLE_NAME,
-                null,
-                null,
-                getContextManager());
+        dummyTN = new TableName(null, null, getContextManager());
 
         int size=visibleSize();
         for(int index=0;index<size;index++){
