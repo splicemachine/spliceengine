@@ -184,7 +184,7 @@ public class RowResultSetNode extends FromTable {
     public void bindExpressions(FromList fromListParam) throws StandardException {
         int nestingLevel;
 
-        subqueries = (SubqueryList) getNodeFactory().getNode(C_NodeTypes.SUBQUERY_LIST, getContextManager());
+        subqueries = new SubqueryList(getContextManager());
 
         aggregateVector = new LinkedList<>();
 
@@ -372,8 +372,7 @@ public class RowResultSetNode extends FromTable {
 
     public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException {
 
-        SubqueryList subqueryList =
-          (SubqueryList) getNodeFactory().getNode( C_NodeTypes.SUBQUERY_LIST, getContextManager());
+        SubqueryList subqueryList = new SubqueryList(getContextManager());
         PredicateList predicateList = new PredicateList(getContextManager());
                 FromList localFromList = fromList == null ?
             (FromList) getNodeFactory().getNode( C_NodeTypes.FROM_LIST,

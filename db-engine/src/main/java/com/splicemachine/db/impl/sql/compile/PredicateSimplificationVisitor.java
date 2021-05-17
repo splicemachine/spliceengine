@@ -79,9 +79,7 @@ public class PredicateSimplificationVisitor implements Visitor {
             return;
         if (node instanceof ValueNode) {
             ValueNode vn = (ValueNode) node;
-            SubqueryList dummySubqueries =
-                (SubqueryList) vn.getNodeFactory().
-                    getNode(C_NodeTypes.SUBQUERY_LIST, vn.getContextManager());
+            SubqueryList dummySubqueries = new SubqueryList(vn.getContextManager());
             List<AggregateNode> dummyAggregates = new LinkedList<>();
             vn.bindExpression(fromListParam, dummySubqueries, dummyAggregates);
         }
