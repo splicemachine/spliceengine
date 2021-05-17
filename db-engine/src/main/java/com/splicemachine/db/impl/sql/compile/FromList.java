@@ -748,7 +748,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
         // When left outer join is flattend, its ON clause condition could be released to the WHERE clause but
         // with an outerJoinLevel > 0. These predicates cannot be pushed to tables whose outerJoinLevel does not match.
         // As a simplification, we don't push predicates down whoe OuterJoinLevel is greater than 0.
-        PredicateList levelZeroPredicateList = (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
+        PredicateList levelZeroPredicateList = new PredicateList(getContextManager());
         for (int i = predicateList.size()-1; i >= 0 ; i--) {
             Predicate pred = predicateList.elementAt(i);
             if (pred.getOuterJoinLevel() == 0) {
@@ -1053,7 +1053,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
         ColumnReference additionalCR=null;
 
         PredicateList predicatesTemp;
-        predicatesTemp=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
+        predicatesTemp = new PredicateList(getContextManager());
         int wherePredicatesSize=wherePredicates.size();
         for(int index=0;index<wherePredicatesSize;index++)
             predicatesTemp.addPredicate(wherePredicates.elementAt(index));

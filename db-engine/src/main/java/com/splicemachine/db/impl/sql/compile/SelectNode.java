@@ -455,7 +455,7 @@ public class SelectNode extends ResultSetNode {
                                           FromList fromListParam) throws StandardException {
         int fromListSize = fromList.size();
 
-        wherePredicates = (PredicateList) getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+        wherePredicates = new PredicateList(getContextManager());
         preJoinFL = (FromList) getNodeFactory().getNode(
         C_NodeTypes.FROM_LIST,
         getNodeFactory().doJoinOrderOptimization(),
@@ -1015,7 +1015,7 @@ public class SelectNode extends ResultSetNode {
 
                 // When left outer join is flattened, its ON clause condition could be released to the WHERE clause but
                 // with an outerJoinLevel > 0. These predicates cannot be used to eliminate order by columns
-                PredicateList levelZeroPredicateList = (PredicateList) getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+                PredicateList levelZeroPredicateList = new PredicateList(getContextManager());
                 for (int i = wherePredicates.size() - 1; i >= 0; i--) {
                     Predicate pred = wherePredicates.elementAt(i);
                     if (pred.getOuterJoinLevel() == 0) {
@@ -1747,7 +1747,7 @@ public class SelectNode extends ResultSetNode {
          */
         if (predicateList != null) {
             if (wherePredicates == null) {
-                wherePredicates = (PredicateList) getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+                wherePredicates = new PredicateList(getContextManager());
             }
 
             Predicate pred;
@@ -2835,7 +2835,7 @@ public class SelectNode extends ResultSetNode {
 
         //generate UNSAT condition
         Predicate unsatPredicate = Predicate.generateUnsatPredicate(numTables, nf, cm);
-        PredicateList predList = (PredicateList) nf.getNode(C_NodeTypes.PREDICATE_LIST, cm);
+        PredicateList predList = new PredicateList(cm);
         predList.addPredicate(unsatPredicate);
 
         // Add ProjectRestrictNode ontop with unsat condition

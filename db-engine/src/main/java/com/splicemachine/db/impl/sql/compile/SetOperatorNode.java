@@ -1106,10 +1106,7 @@ public abstract class SetOperatorNode extends TableOperatorNode
         throws StandardException
     {
         if (leftOptPredicates == null) {
-            leftOptPredicates =
-                (PredicateList) getNodeFactory().getNode(
-                    C_NodeTypes.PREDICATE_LIST,
-                    getContextManager());
+            leftOptPredicates = new PredicateList(getContextManager());
         }
 
         return leftOptPredicates;
@@ -1124,10 +1121,7 @@ public abstract class SetOperatorNode extends TableOperatorNode
         throws StandardException
     {
         if (rightOptPredicates == null) {
-            rightOptPredicates =
-                (PredicateList) getNodeFactory().getNode(
-                    C_NodeTypes.PREDICATE_LIST,
-                    getContextManager());
+            rightOptPredicates = new PredicateList(getContextManager());
         }
 
         return rightOptPredicates;

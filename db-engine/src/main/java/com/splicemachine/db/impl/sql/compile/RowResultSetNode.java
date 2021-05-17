@@ -374,7 +374,7 @@ public class RowResultSetNode extends FromTable {
 
         SubqueryList subqueryList =
           (SubqueryList) getNodeFactory().getNode( C_NodeTypes.SUBQUERY_LIST, getContextManager());
-        PredicateList predicateList = (PredicateList) getNodeFactory().getNode( C_NodeTypes.PREDICATE_LIST, getContextManager());
+        PredicateList predicateList = new PredicateList(getContextManager());
                 FromList localFromList = fromList == null ?
             (FromList) getNodeFactory().getNode( C_NodeTypes.FROM_LIST,
                              getNodeFactory().doJoinOrderOptimization(),
@@ -440,9 +440,7 @@ public class RowResultSetNode extends FromTable {
         prRCList.genVirtualColumnNodes(this, resultColumns);
 
         /* Put the new predicate in a list */
-        predList = (PredicateList) getNodeFactory().getNode(
-                                        C_NodeTypes.PREDICATE_LIST,
-                                        getContextManager());
+        predList = new PredicateList(getContextManager());
         predList.addPredicate(predicate);
 
         /* Finally, we create the new ProjectRestrictNode */
