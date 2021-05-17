@@ -467,10 +467,7 @@ public class SubqueryNode extends ValueNode{
                                             null,  // derivedRCL,
                                             null,  // optionalTableClauses
                                             getContextManager());
-        FromList newFromList = (FromList) getNodeFactory().getNode(
-                C_NodeTypes.FROM_LIST,
-                getNodeFactory().doJoinOrderOptimization(),
-                getContextManager());
+        FromList newFromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
         newFromList.addFromTable(fromTable);
 
         ResultColumnList selectList = setOperatorNode.getResultColumns().copyListAndObjects();

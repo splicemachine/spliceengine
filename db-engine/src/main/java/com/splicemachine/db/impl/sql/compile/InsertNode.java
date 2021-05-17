@@ -264,10 +264,7 @@ public final class InsertNode extends DMLModStatementNode {
     public void bindStatement() throws StandardException {
         // We just need select privilege on the expressions
         getCompilerContext().pushCurrentPrivType( Authorizer.SELECT_PRIV);
-        FromList    fromList = (FromList) getNodeFactory().getNode(
-                                    C_NodeTypes.FROM_LIST,
-                                    getNodeFactory().doJoinOrderOptimization(),
-                                    getContextManager());
+        FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
 
         // Bind and Optimize Real Time Views (OK, That is a made up name).
         bindAndOptimizeRealTimeViews();

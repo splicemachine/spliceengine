@@ -416,11 +416,7 @@ public final class CurrentOfNode extends FromTable {
                         throws StandardException {
         /* Get an optimizer so we can get a cost */
         Optimizer optimizer = getOptimizer(
-                                (FromList) getNodeFactory().getNode(
-                                    C_NodeTypes.FROM_LIST,
-                                    getNodeFactory().doJoinOrderOptimization(),
-                                    this,
-                                    getContextManager()),
+                                new FromList(getNodeFactory().doJoinOrderOptimization(), this, getContextManager()),
                                 predicateList,
                                 dataDictionary,
                                 (RequiredRowOrdering) null);

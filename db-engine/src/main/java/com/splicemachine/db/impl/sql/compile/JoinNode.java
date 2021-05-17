@@ -744,10 +744,7 @@ public class JoinNode extends TableOperatorNode{
         // till after the flattening of JoinNode.
         // this way, we have the opportunity to flatten ON clause subquery for inner joins
         if (!delayPreprocessingJoinClause()) {
-            preprocessJoinClause(numTables, (FromList) getNodeFactory().getNode(
-                    C_NodeTypes.FROM_LIST,
-                    getNodeFactory().doJoinOrderOptimization(),
-                    getContextManager()),
+            preprocessJoinClause(numTables, new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager()),
                     new SubqueryList(getContextManager()),
                     new PredicateList(getContextManager()));
         }
@@ -950,10 +947,7 @@ public class JoinNode extends TableOperatorNode{
          * since there is no exposed name. (And even if there was,
          * we could care less about unique exposed name checking here.)
          */
-        FromList fromList=(FromList)getNodeFactory().getNode(
-                C_NodeTypes.FROM_LIST,
-                getNodeFactory().doJoinOrderOptimization(),
-                getContextManager());
+        FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
         fromList.addElement(leftResultSet);
         fromList.addElement(rightResultSet);
 
@@ -1659,10 +1653,7 @@ public class JoinNode extends TableOperatorNode{
              * are limited to columns from the 2 tables being joined. This
              * algorithm enforces that.
              */
-            FromList fromList=(FromList)getNodeFactory().getNode(
-                    C_NodeTypes.FROM_LIST,
-                    getNodeFactory().doJoinOrderOptimization(),
-                    getContextManager());
+            FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
             fromList.addElement(leftResultSet);
             fromList.addElement(rightResultSet);
 

@@ -207,10 +207,7 @@ public class CursorNode extends DMLStatementNode{
 
         getCompilerContext().pushCurrentPrivType(getPrivType());
         try{
-            FromList fromList=(FromList)getNodeFactory().getNode(
-                    C_NodeTypes.FROM_LIST,
-                    getNodeFactory().doJoinOrderOptimization(),
-                    getContextManager());
+            FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
 
             /* Check for ? parameters directly under the ResultColums */
             DataTypeDescriptor untypedExpressionType = getCompilerContext().getCursorUntypedExpressionType();

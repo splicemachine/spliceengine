@@ -190,16 +190,12 @@ public final class UpdateNode extends DMLModStatementNode
         // We just need select privilege on the expressions
         getCompilerContext().pushCurrentPrivType( Authorizer.SELECT_PRIV);
 
-        FromList    fromList = (FromList) getNodeFactory().getNode(
-                                    C_NodeTypes.FROM_LIST,
-                                    getNodeFactory().doJoinOrderOptimization(),
-                                    getContextManager());
-        ResultColumn                rowLocationColumn = null;
-        ValueNode                    rowLocationNode = null;
-        TableName                    cursorTargetTableName = null;
-        CurrentOfNode               currentOfNode = null;
-        FromList                    resultFromList;
-        ResultColumnList            afterColumns = null;
+        FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
+        ValueNode         rowLocationNode;
+        TableName         cursorTargetTableName = null;
+        CurrentOfNode     currentOfNode = null;
+        FromList          resultFromList;
+        ResultColumnList  afterColumns = null;
 
         DataDictionary dataDictionary = getDataDictionary();
 
