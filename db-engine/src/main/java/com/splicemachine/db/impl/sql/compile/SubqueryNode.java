@@ -426,11 +426,8 @@ public class SubqueryNode extends ValueNode{
         }
         rc = setOperatorNode.getResultColumns().elementAt(columnPosition);
         rc.setName(columnName);
-        ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
-            C_NodeTypes.COLUMN_REFERENCE,
-            columnName,
-            null,
-            getContextManager());
+        ColumnReference columnReference =
+                new ColumnReference(columnName, null, getContextManager());
         rc.setExpression(columnReference);
     }
 
@@ -487,10 +484,7 @@ public class SubqueryNode extends ValueNode{
             String exposedColName = dummyColName + index;
             rc.setName(exposedColName);
             updateColumnNamesInSetQuery(setOperatorNode, exposedColName, index);
-            ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
-                C_NodeTypes.COLUMN_REFERENCE,
-                exposedColName,
-                null,
+            ColumnReference columnReference = new ColumnReference(exposedColName, null,
                 getContextManager());
             rc.setExpression(columnReference);
         }
@@ -2985,10 +2979,7 @@ public class SubqueryNode extends ValueNode{
     }
 
     private ColumnReference toColRef(ResultColumn rc, int tableNumber) throws StandardException {
-        ColumnReference result = (ColumnReference) getNodeFactory().getNode(
-                C_NodeTypes.COLUMN_REFERENCE,
-                rc.getName(),
-                null,
+        ColumnReference result = new ColumnReference(rc.getName(), null,
                 ContextService.getService().getCurrentContextManager());
         result.setSource(rc);
         result.setTableNumber(tableNumber);

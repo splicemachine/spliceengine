@@ -8988,13 +8988,8 @@ columnNameForInvocation() throws StandardException :
         }
 
         // Get the column reference
-        retval = (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.COLUMN_REFERENCE,
-                                    columnName,
-                                    tabName,
-                                    new Integer(lastIdentifierToken.beginOffset),
-                                    new Integer(lastIdentifierToken.endOffset),
-                                    getContextManager());
+        retval = new ColumnReference(columnName, tabName, lastIdentifierToken.beginOffset,
+                            lastIdentifierToken.endOffset, getContextManager());
 
         return retval;
     }
@@ -9080,12 +9075,8 @@ columnReference() throws StandardException :
                             getContextManager());
         }
 
-        ColumnReference columnReference = (ColumnReference) nodeFactory.getNode(
-                                C_NodeTypes.COLUMN_REFERENCE,
-                                columnName,
-                                tabName,
-                                new Integer(lastIdentifierToken.beginOffset),
-                                new Integer(lastIdentifierToken.endOffset),
+        ColumnReference columnReference = new ColumnReference(columnName, tabName,
+                                lastIdentifierToken.beginOffset, lastIdentifierToken.endOffset,
                                 getContextManager());
         if (arrayElement == null)
             return columnReference;

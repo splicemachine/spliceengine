@@ -1714,10 +1714,7 @@ public class JoinNode extends TableOperatorNode{
 
                 /* Create and bind the left CR */
                 fromListParam.insertElementAt(leftResultSet,0);
-                leftCR=(ColumnReference)getNodeFactory().getNode(
-                        C_NodeTypes.COLUMN_REFERENCE,
-                        rc.getName(),
-                        ((FromTable)leftResultSet).getTableName(),
+                leftCR = new ColumnReference(rc.getName(), ((FromTable)leftResultSet).getTableName(),
                         getContextManager());
                 leftCR=(ColumnReference)leftCR.bindExpression(
                         fromListParam,subqueryList,
@@ -1726,10 +1723,7 @@ public class JoinNode extends TableOperatorNode{
 
                 /* Create and bind the right CR */
                 fromListParam.insertElementAt(rightResultSet,0);
-                rightCR=(ColumnReference)getNodeFactory().getNode(
-                        C_NodeTypes.COLUMN_REFERENCE,
-                        rc.getName(),
-                        ((FromTable)rightResultSet).getTableName(),
+                rightCR = new ColumnReference(rc.getName(), ((FromTable)rightResultSet).getTableName(),
                         getContextManager());
                 rightCR=(ColumnReference)rightCR.bindExpression(
                         fromListParam,subqueryList,

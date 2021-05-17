@@ -35,6 +35,7 @@ import com.splicemachine.db.catalog.types.DefaultInfoImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
@@ -149,6 +150,21 @@ public class ColumnReference extends ValueNode {
      */
     private java.util.ArrayList remaps;
 
+    public ColumnReference() {}
+
+    public ColumnReference(String columnName, TableName tableName, ContextManager contextManager) {
+        setContextManager(contextManager);
+        init2(columnName, tableName);
+    }
+
+    public ColumnReference(String columnName, TableName tableName, Integer tokBeginOffset, Integer tokEndOffset,
+                           ContextManager contextManager)
+    {
+        setContextManager(contextManager);
+        init2(columnName, tableName, tokBeginOffset, tokEndOffset);
+    }
+
+
     /**
      * Initializer.
      * This one is called by the parser where we could
@@ -168,10 +184,16 @@ public class ColumnReference extends ValueNode {
                      Object    tokEndOffset
     )
     {
-        this.columnName = (String) columnName;
-        this.tableName = (TableName) tableName;
-        this.setBeginOffset((Integer) tokBeginOffset);
-        this.setEndOffset((Integer) tokEndOffset);
+        init2( (String)columnName, (TableName) tableName,
+                (Integer)tokBeginOffset, (Integer)tokEndOffset);
+    }
+
+    public void init2(String columnName, TableName tableName, Integer tokBeginOffset, Integer tokEndOffset)
+    {
+        this.columnName = columnName;
+        this.tableName = tableName;
+        this.setBeginOffset(tokBeginOffset);
+        this.setEndOffset(tokEndOffset);
         tableNumber = -1;
         remaps = null;
     }
@@ -185,6 +207,10 @@ public class ColumnReference extends ValueNode {
 
     public void init(Object columnName, Object tableName)
     {
+        init2((String) columnName, (TableName) tableName);
+    }
+
+    private void init2(String columnName, TableName tableName) {
         this.columnName = (String) columnName;
         this.tableName = (TableName) tableName;
         tableNumber = -1;
@@ -441,7 +467,7 @@ public class ColumnReference extends ValueNode {
     public ValueNode getClone()
             throws StandardException
     {
-        ColumnReference newCR = new ColumnReference(columnName, tableName,getContextManager());
+        ColumnReference newCR = new ColumnReference(columnName, tableName, getContextManager());
         newCR.copyFields(this);
         return newCR;
     }

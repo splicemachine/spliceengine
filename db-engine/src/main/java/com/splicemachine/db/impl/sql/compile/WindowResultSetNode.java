@@ -1383,10 +1383,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         } else {
             // just create a CR to replace the expression. This needs to be a CR because the setters don't exist
             // on ValueNode
-            ColumnReference newCR = (ColumnReference) getNodeFactory().getNode(C_NodeTypes.COLUMN_REFERENCE,
-                                                                               expressionToReplace.getColumnName(),
-                                                                               null,
-                                                                               getContextManager());
+            ColumnReference newCR = new ColumnReference(expressionToReplace.getColumnName(),
+                                 null, getContextManager());
             newCR.setSource(sourceRC);
             newCR.setNestingLevel(this.getLevel());
             newCR.setSourceLevel(this.getLevel());
@@ -1465,10 +1463,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                                                  int sourceLevel, int nestingLevel) throws StandardException {
 
         // create the CR using sourceRC as the source and source name
-        ColumnReference columnRef = (ColumnReference) nodeFactory.getNode(C_NodeTypes.COLUMN_REFERENCE,
-                                                                          name,
-                                                                          null,
-                                                                          contextManager);
+        ColumnReference columnRef = new ColumnReference(name,null, contextManager);
         columnRef.setSource(sourceRC);
         columnRef.setNestingLevel(nestingLevel);
         columnRef.setSourceLevel(sourceLevel);

@@ -1676,11 +1676,8 @@ public abstract class ResultSetNode extends QueryTreeNode{
                 oldResultColumn=
                         resultColumns.getResultColumn(colMap[index]+1);
 
-                newColumnReference=(ColumnReference)getNodeFactory().getNode(
-                        C_NodeTypes.COLUMN_REFERENCE,
-                        oldResultColumn.getName(),
-                        null,
-                        getContextManager());
+                newColumnReference= new ColumnReference(oldResultColumn.getName(),
+                        null, getContextManager());
                 /* The ColumnReference points to the source of the value */
                 newColumnReference.setSource(oldResultColumn);
                 // colMap entry is 0-based, columnId is 1-based.

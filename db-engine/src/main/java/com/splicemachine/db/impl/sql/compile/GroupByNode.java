@@ -1186,11 +1186,7 @@ public class GroupByNode extends SingleChildResultSetNode{
             ** was created when we called
             ** ReplaceAggregatesWithCRVisitor()
             */
-            newColumnRef=(ColumnReference)getNodeFactory().getNode(
-                    C_NodeTypes.COLUMN_REFERENCE,
-                    newRC.getName(),
-                    null,
-                    getContextManager());
+            newColumnRef= new ColumnReference(newRC.getName(), null, getContextManager());
             newColumnRef.setSource(newRC);
             newColumnRef.setNestingLevel(this.getLevel());
             newColumnRef.setSourceLevel(this.getLevel());
@@ -1379,11 +1375,7 @@ public class GroupByNode extends SingleChildResultSetNode{
         ColumnReference tmpColumnRef;
         ResultColumn newRC;
 
-        tmpColumnRef=(ColumnReference)getNodeFactory().getNode(
-                C_NodeTypes.COLUMN_REFERENCE,
-                targetRC.getName(),
-                null,
-                getContextManager());
+        tmpColumnRef = new ColumnReference(targetRC.getName(), null, getContextManager());
         tmpColumnRef.setSource(targetRC);
         tmpColumnRef.setNestingLevel(this.getLevel());
         tmpColumnRef.setSourceLevel(this.getLevel());
