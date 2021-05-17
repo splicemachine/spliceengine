@@ -723,9 +723,7 @@ public class FromSubquery extends FromTable
          */
         exposedName = makeTableName(null, correlationName);
 
-        rcList = (ResultColumnList) getNodeFactory().getNode(
-                                        C_NodeTypes.RESULT_COLUMN_LIST,
-                                        getContextManager());
+        rcList = new ResultColumnList(getContextManager());
 
         /* Build a new result column list based off of resultColumns.
          * NOTE: This method will capture any column renaming due to

@@ -1693,10 +1693,7 @@ public class FromBaseTable extends FromTable {
                 }
             }else if(columnReference.columnName.compareTo("ROWID")==0){
                 if(rowIdColumn==null){
-                    ValueNode rowLocationNode=(ValueNode)getNodeFactory().getNode(
-                            C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
-                            getContextManager());
-
+                    ValueNode rowLocationNode = new CurrentRowLocationNode(getContextManager());
                     rowLocationNode.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
                                     false        /* Not nullable */
                             )
@@ -2225,10 +2222,7 @@ public class FromBaseTable extends FromTable {
             boolean cloneRCs)
             throws StandardException{
         IndexRowGenerator irg=idxCD.getIndexDescriptor();
-        ResultColumnList newCols =
-                (ResultColumnList) getNodeFactory().getNode(
-                        C_NodeTypes.RESULT_COLUMN_LIST,
-                        getContextManager());
+        ResultColumnList newCols = new ResultColumnList(getContextManager());
 
         if (irg.isOnExpression()) {
             assert !oldColumns.isEmpty();
@@ -2853,9 +2847,7 @@ public class FromBaseTable extends FromTable {
         exposedName=getExposedTableName();
 
         /* Add all of the columns in the table */
-        rcList=(ResultColumnList)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        rcList = new ResultColumnList(getContextManager());
         ColumnDescriptorList cdl=tableDescriptor.getColumnDescriptorList();
         int cdlSize=cdl.size();
 
@@ -2917,9 +2909,7 @@ public class FromBaseTable extends FromTable {
         exposedName=getExposedTableName();
 
         /* Add all of the columns in the table */
-        ResultColumnList newRcl=(ResultColumnList)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        ResultColumnList newRcl = new ResultColumnList(getContextManager());
         ColumnDescriptorList cdl=tableDescriptor.getColumnDescriptorList();
         int cdlSize=cdl.size();
 

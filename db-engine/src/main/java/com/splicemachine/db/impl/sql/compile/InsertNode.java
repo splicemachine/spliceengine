@@ -590,8 +590,8 @@ public final class InsertNode extends DMLModStatementNode {
             storagePosMap[storagePosition-1] = index;
         }
 
-        ResultColumnList expandedRS = (ResultColumnList)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
-        ResultColumnList expandedRCL = (ResultColumnList)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
+        ResultColumnList expandedRS = new ResultColumnList(getContextManager());
+        ResultColumnList expandedRCL = new ResultColumnList(getContextManager());
         for (int index = 0; index < maxStorageID; index++) {
             int pos = storagePosMap[index]; // index is 0-based, pos is 1-based
             ResultColumn newSourceRC = null;

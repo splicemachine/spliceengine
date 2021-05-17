@@ -323,9 +323,7 @@ public class DeleteNode extends DMLModStatementNode
                 /* Generate the RowLocation column */
                 ResultColumn rowIdColumn = targetTable.getRowIdColumn();
                 if (rowIdColumn == null) {
-                    rowLocationNode = (CurrentRowLocationNode) getNodeFactory().getNode(
-                            C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
-                            getContextManager());
+                    rowLocationNode = new CurrentRowLocationNode(getContextManager());
                     rowIdColumn =
                             (ResultColumn) getNodeFactory().getNode(
                                     C_NodeTypes.RESULT_COLUMN,
@@ -984,10 +982,7 @@ public class DeleteNode extends DMLModStatementNode
         ValueNode     valueNode;
 
         NodeFactory nodeFactory = getNodeFactory();
-        ResultColumnList    columnList = (ResultColumnList) nodeFactory.getNode(
-                                                C_NodeTypes.RESULT_COLUMN_LIST,
-                                                getContextManager());
-
+        ResultColumnList columnList = new ResultColumnList(getContextManager());
         valueNode =  (ValueNode) nodeFactory.getNode(C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
                                                              getContextManager());
         for(int index =0 ; index < cdl.size() ; index++)

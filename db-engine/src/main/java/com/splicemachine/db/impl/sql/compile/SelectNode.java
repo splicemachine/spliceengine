@@ -2794,9 +2794,7 @@ public class SelectNode extends ResultSetNode {
             if (rc.getTypeId() == null)
                 throw StandardException.newException("Type in Result Column is not specified");
             if (rc.getTypeId().getJDBCTypeId() == Types.REF) {
-                ValueNode rowLocationNode = (ValueNode) getNodeFactory().getNode(
-                C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
-                getContextManager());
+                ValueNode rowLocationNode = new CurrentRowLocationNode(getContextManager());
                 rc.setExpression(rowLocationNode);
 
             } else {

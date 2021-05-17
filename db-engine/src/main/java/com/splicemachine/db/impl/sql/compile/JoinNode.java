@@ -414,8 +414,7 @@ public class JoinNode extends TableOperatorNode{
          * but only replace their expressions.
          */
         if (leftResultSet.getResultColumns().isFromExprIndex() || rightResultSet.getResultColumns().isFromExprIndex()) {
-            ResultColumnList newResultColumns = (ResultColumnList) getNodeFactory()
-                    .getNode(C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
+            ResultColumnList newResultColumns = new ResultColumnList(getContextManager());
             newResultColumns.copyOrderBySelect(resultColumns);
 
             getNewResultColumns(resultColumns, newResultColumns, leftResultSet);
@@ -1557,9 +1556,7 @@ public class JoinNode extends TableOperatorNode{
             assert allTableName==null:"alltableName ("+allTableName+") expected to be null";
 
             // Return a spliced copy of the 2 lists
-            ResultColumnList tempList=(ResultColumnList)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN_LIST,
-                    getContextManager());
+            ResultColumnList tempList = new ResultColumnList(getContextManager());
             tempList.nondestructiveAppend(leftRCL);
             tempList.nondestructiveAppend(rightRCL);
             return tempList;
@@ -1798,9 +1795,7 @@ public class JoinNode extends TableOperatorNode{
         List<String> columnNames=extractColumnNames(leftRCL);
         columnNames.retainAll(extractColumnNames(rightRCL));
 
-        ResultColumnList commonColumns=(ResultColumnList)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        ResultColumnList commonColumns = new ResultColumnList(getContextManager());
 
         for(String name : columnNames){
             ResultColumn rc=(ResultColumn)getNodeFactory().getNode(

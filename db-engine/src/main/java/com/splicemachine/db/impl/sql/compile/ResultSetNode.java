@@ -1301,10 +1301,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
     ResultColumnList getRCLForInsert(InsertNode target,int[] colMap)
             throws StandardException{
         // our newResultCols are put into the bound form straight away.
-        ResultColumnList newResultCols=
-                (ResultColumnList)getNodeFactory().getNode(
-                        C_NodeTypes.RESULT_COLUMN_LIST,
-                        getContextManager());
+        ResultColumnList newResultCols = new ResultColumnList(getContextManager());
 
         /* Create a massaged version of the source RCL.
          * (Much simpler to build new list and then assign to source,
@@ -1654,10 +1651,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
             InsertNode target,int[] colMap)
             throws StandardException{
         // our newResultCols are put into the bound form straight away.
-        ResultColumnList newResultCols=
-                (ResultColumnList)getNodeFactory().getNode(
-                        C_NodeTypes.RESULT_COLUMN_LIST,
-                        getContextManager());
+        ResultColumnList newResultCols = new ResultColumnList(getContextManager());
 
         int numTargetColumns=target.resultColumnList.size();
 

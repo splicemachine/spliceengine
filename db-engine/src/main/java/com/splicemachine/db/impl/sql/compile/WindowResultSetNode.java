@@ -328,8 +328,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         /*
         ** Get the new PR, put above this window result.
         */
-        ResultColumnList rclNew = (ResultColumnList) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,
-                                                                              getContextManager());
+        ResultColumnList rclNew = new ResultColumnList(getContextManager());
         int sz = resultColumns.size();
         for (int i = 0; i < sz; i++) {
             ResultColumn rc = resultColumns.elementAt(i);
@@ -358,14 +357,12 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         /*
         ** Reset the bottom RCL to be empty. We'll rebuild them when adding function columns.
         */
-        childResult.setResultColumns((ResultColumnList) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,
-                                                                                 getContextManager()));
+        childResult.setResultColumns(new ResultColumnList(getContextManager()));
 
         /*
          * Set the Windowing RCL to be empty. We'll rebuild them when adding function columns.
          */
-        resultColumns = (ResultColumnList) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,
-                                                                    getContextManager());
+        resultColumns = new ResultColumnList(getContextManager());
     }
 
     /**
@@ -837,8 +834,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             ** to generate a proper result description for input
             ** to this function if it is a user function.
             */
-            ResultColumnList udfRCL = (ResultColumnList) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,
-                                                                                    getContextManager());
+            ResultColumnList udfRCL = new ResultColumnList(getContextManager());
             udfRCL.addElement(fnResultRC);
 
             LanguageFactory lf = getLanguageConnectionContext().getLanguageFactory();

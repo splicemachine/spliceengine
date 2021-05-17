@@ -766,9 +766,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                 estimatedRowCount = 5d;
                 supportsMultipleInstantiations = true;
             } else {
-                resultColumns = (ResultColumnList) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+                resultColumns = new ResultColumnList(getContextManager());
 
                 // if this is a Derby-style Table Function, then build the result
                 // column list from the RowMultiSetImpl return datatype
@@ -1006,9 +1004,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
             return null;
         }
 
-        rcList = (ResultColumnList) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        rcList = new ResultColumnList(getContextManager());
 
         /* Build a new result column list based off of resultColumns.
          * NOTE: This method will capture any column renaming due to
@@ -1805,9 +1801,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         makeTableName(td.getSchemaName(), td.getName());
 
         /* Add all of the columns in the table */
-        rcList = (ResultColumnList) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        rcList = new ResultColumnList(getContextManager());
         ColumnDescriptorList cdl = td.getColumnDescriptorList();
         int                     cdlSize = cdl.size();
 
