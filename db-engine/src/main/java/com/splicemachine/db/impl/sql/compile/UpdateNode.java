@@ -191,6 +191,7 @@ public final class UpdateNode extends DMLModStatementNode
         getCompilerContext().pushCurrentPrivType( Authorizer.SELECT_PRIV);
 
         FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
+        ResultColumn      rowLocationColumn;
         ValueNode         rowLocationNode;
         TableName         cursorTargetTableName = null;
         CurrentOfNode     currentOfNode = null;

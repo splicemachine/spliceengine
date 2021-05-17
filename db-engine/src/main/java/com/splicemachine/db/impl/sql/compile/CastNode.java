@@ -431,7 +431,7 @@ public class CastNode extends ValueNode
                     return new BooleanConstantNode(Boolean.FALSE,getContextManager());
                 }
                 else if (cleanCharValue.equals("UNKNOWN")) {
-                    return new BooleanConstantNode(null,getContextManager());
+                    return new BooleanConstantNode(null, getContextManager());
                 }
                 else {
                     throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, "boolean");
