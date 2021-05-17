@@ -979,17 +979,10 @@ public final class UpdateNode extends DMLModStatementNode
         acb.pushGetResultSetFactoryExpression(mb);
 
         // arg 1
-        if ( inMatchingClause() )
-        {
-            matchingClause.generateResultSetField( acb, mb );
-        }
-        else
-        {
-            resultSet.generate( acb, mb );
-        }
+        resultSet.generate( acb, mb );
 
 
-        if( null != targetVTI && !inMatchingClause() )
+        if( null != targetVTI)
         {
             targetVTI.assignCostEstimate(resultSet.getNewCostEstimate());
             mb.push((double)this.resultSet.getFinalCostEstimate(false).getEstimatedRowCount());
@@ -1507,7 +1500,7 @@ public final class UpdateNode extends DMLModStatementNode
             boolean foundMatchingTable = false;
             String columnTableName = column.getTableName();
 
-            if ( (columnTableName != null) && (!inMatchingClause()) ) {
+            if (columnTableName != null) {
                 for (QueryTreeNode rsn : ((SelectNode)resultSet).fromList) {
                     FromTable fromTable = (FromTable)rsn;
                     final String tableName;
