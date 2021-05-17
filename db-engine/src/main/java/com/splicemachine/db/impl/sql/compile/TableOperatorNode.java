@@ -755,9 +755,7 @@ public abstract class TableOperatorNode extends FromTable{
 
             /* If there is no predicate list, create an empty one */
             if(predList==null)
-                predList=(PredicateList)getNodeFactory().getNode(
-                        C_NodeTypes.PREDICATE_LIST,
-                        getContextManager());
+                predList = new PredicateList(getContextManager());
 
             LanguageConnectionContext lcc=getLanguageConnectionContext();
             OptimizerFactory optimizerFactory=lcc.getOptimizerFactory();

@@ -1231,8 +1231,8 @@ public class FromBaseTable extends FromTable {
         ResultColumnList derivedRCL=resultColumns;
 
         // make sure there's a restriction list
-        restrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
-        baseTableRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+        restrictionList = new PredicateList(getContextManager());
+        baseTableRestrictionList = new PredicateList(getContextManager());
 
         CompilerContext compilerContext=getCompilerContext();
 
@@ -1882,9 +1882,9 @@ public class FromBaseTable extends FromTable {
         ** best join strategy.
         */
         ContextManager ctxMgr=getContextManager();
-        storeRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
-        nonStoreRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
-        requalificationRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
+        storeRestrictionList = new PredicateList(ctxMgr);
+        nonStoreRestrictionList = new PredicateList(ctxMgr);
+        requalificationRestrictionList = new PredicateList(ctxMgr);
         trulyTheBestJoinStrategy.divideUpPredicateLists(
                 this,
                 joinedTableSet,
@@ -3076,9 +3076,7 @@ public class FromBaseTable extends FromTable {
             return false;
 
         if(trulyTheBestJoinStrategy.isHashJoin()){
-            pl=(PredicateList)getNodeFactory().getNode(
-                    C_NodeTypes.PREDICATE_LIST,
-                    getContextManager());
+            pl = new PredicateList(getContextManager());
             if(storeRestrictionList!=null){
                 pl.nondestructiveAppend(storeRestrictionList);
             }
@@ -3975,9 +3973,7 @@ public class FromBaseTable extends FromTable {
     }
 
     private PredicateList translateBetweenHelper(PredicateList predList) throws StandardException {
-        PredicateList newList = (PredicateList)getNodeFactory().getNode(
-                C_NodeTypes.PREDICATE_LIST,
-                getContextManager());
+        PredicateList newList = new PredicateList(getContextManager());
         boolean translated = false;
 
         for (int i = 0; i < predList.size(); i++) {
