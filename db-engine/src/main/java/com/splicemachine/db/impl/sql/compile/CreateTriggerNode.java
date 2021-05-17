@@ -336,7 +336,7 @@ public class CreateTriggerNode extends DDLStatementNode {
                                                         C_NodeTypes.FROM_LIST,
                                                         whenClause.getNodeFactory().doJoinOrderOptimization(),
                                                         whenClause.getContextManager()),
-                                                (SubqueryList) whenClause.getNodeFactory().getNode(C_NodeTypes.SUBQUERY_LIST, whenClause.getContextManager()),
+                                                new SubqueryList(whenClause.getContextManager()),
                                                 new ArrayList<AggregateNode>(0));
                 // The WHEN clause must be a BOOLEAN expression.
                 whenClause.checkIsBoolean();

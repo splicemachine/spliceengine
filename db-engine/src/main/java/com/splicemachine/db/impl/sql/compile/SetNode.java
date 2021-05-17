@@ -97,10 +97,7 @@ public class SetNode extends MiscellaneousStatementNode {
         getNodeFactory().doJoinOrderOptimization(),
         getContextManager());
 
-        SubqueryList dummySubqueryList=
-                (SubqueryList)getNodeFactory().getNode(
-                        C_NodeTypes.SUBQUERY_LIST,
-                        getContextManager());
+        SubqueryList dummySubqueryList= new SubqueryList(getContextManager());
         List<AggregateNode> tmp = new ArrayList<>();
 
         assignedColumnsList.bindExpression(fromList, dummySubqueryList, tmp);

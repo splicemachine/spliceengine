@@ -515,9 +515,7 @@ public class SelectNode extends ResultSetNode {
             fromList.bindExpressions(fromListParam);
         }
 
-        selectSubquerys = (SubqueryList) getNodeFactory().getNode(
-        C_NodeTypes.SUBQUERY_LIST,
-        getContextManager());
+        selectSubquerys = new SubqueryList(getContextManager());
         selectAggregates = new ArrayList<>();
 
         /* Splice our FromList on to the beginning of fromListParam, before binding
@@ -598,7 +596,8 @@ public class SelectNode extends ResultSetNode {
         }
 
         whereAggregates = new LinkedList<>();
-        whereSubquerys = (SubqueryList) getNodeFactory().getNode(C_NodeTypes.SUBQUERY_LIST, getContextManager());
+        whereSubquerys = new SubqueryList(getContextManager());
+
 
         CompilerContext cc = getCompilerContext();
 
@@ -638,7 +637,7 @@ public class SelectNode extends ResultSetNode {
             int previousReliability = orReliability(CompilerContext.HAVING_CLAUSE_RESTRICTION);
 
             havingAggregates = new LinkedList<>();
-            havingSubquerys = (SubqueryList) getNodeFactory().getNode(C_NodeTypes.SUBQUERY_LIST, getContextManager());
+            havingSubquerys = new SubqueryList(getContextManager());
             havingClause.bindExpression(fromListParam, havingSubquerys, havingAggregates);
             havingClause = havingClause.checkIsBoolean();
             checkNoWindowFunctions(havingClause, "HAVING");

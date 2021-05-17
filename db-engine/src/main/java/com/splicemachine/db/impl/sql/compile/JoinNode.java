@@ -749,11 +749,8 @@ public class JoinNode extends TableOperatorNode{
                     C_NodeTypes.FROM_LIST,
                     getNodeFactory().doJoinOrderOptimization(),
                     getContextManager()),
-                    (SubqueryList) getNodeFactory().getNode(
-                            C_NodeTypes.SUBQUERY_LIST,
-                            getContextManager()),
-                    new PredicateList(getContextManager());
-                );
+                    new SubqueryList(getContextManager()),
+                    new PredicateList(getContextManager()));
         }
 
         return newTreeTop;
@@ -1630,7 +1627,7 @@ public class JoinNode extends TableOperatorNode{
 
     private void deferredBindExpressions(FromList fromListParam) throws StandardException{
         /* Bind the expressions in the join clause */
-        subqueryList=(SubqueryList)getNodeFactory().getNode(C_NodeTypes.SUBQUERY_LIST,getContextManager());
+        subqueryList = new SubqueryList(getContextManager());
         //noinspection Convert2Diamond
         aggregateVector=new ArrayList<AggregateNode>();
 

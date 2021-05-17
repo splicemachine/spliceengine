@@ -251,9 +251,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         this.methodCall = (MethodCallNode) invocation;
 
         resultColumns = (ResultColumnList) derivedRCL;
-        subqueryList = (SubqueryList) getNodeFactory().getNode(
-                C_NodeTypes.SUBQUERY_LIST,
-                getContextManager());
+        subqueryList = new SubqueryList(getContextManager());
 
         /* Cache exposed name for this table.
          * The exposed name becomes the qualifier for each column
@@ -1128,9 +1126,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                         C_NodeTypes.FROM_LIST,
                         getNodeFactory().doJoinOrderOptimization(),
                         getContextManager()),
-                (SubqueryList) getNodeFactory().getNode(
-                        C_NodeTypes.SUBQUERY_LIST,
-                        getContextManager()),
+                        new SubqueryList(getContextManager()),
                         new PredicateList(getContextManager())
             );
         /* Generate the referenced table map */
