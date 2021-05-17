@@ -1278,14 +1278,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
          */
         childResult=childResult.optimize(dataDictionary, restrictionList, outerRows, forSpark);
 
-        Optimizer optimizer=getOptimizer(
-                (FromList)getNodeFactory().getNode(C_NodeTypes.FROM_LIST,
-                        getNodeFactory().doJoinOrderOptimization(),
-                        this,
-                        getContextManager()),
-                predicates,
-                dataDictionary,
-                null);
+        Optimizer optimizer = getOptimizer( new FromList(getNodeFactory().doJoinOrderOptimization(), this, getContextManager()),
+                predicates, dataDictionary, null);
         optimizer.setForSpark(forSpark);
 
         // RESOLVE: SHOULD FACTOR IN THE NON-OPTIMIZABLE PREDICATES THAT

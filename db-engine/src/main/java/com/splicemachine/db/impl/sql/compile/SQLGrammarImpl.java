@@ -524,9 +524,7 @@ class SQLGrammarImpl {
                                        Properties targetProperties, Vector parameterList)
             throws StandardException
     {
-        FromList   fromList = (FromList) nodeFactory.getNode(
-                C_NodeTypes.FROM_LIST,
-                getContextManager());
+        FromList fromList = new FromList(getContextManager());
 
         fromList.addFromTable(fromTable);
         SelectNode resultSet = new SelectNode(
@@ -556,9 +554,7 @@ class SQLGrammarImpl {
                                         ValueNode whereClause)
             throws StandardException
     {
-        FromList   fromList = (FromList) nodeFactory.getNode(
-                C_NodeTypes.FROM_LIST,
-                getContextManager());
+        FromList fromList = new FromList(getContextManager());
 
         fromList.addFromTable(fromTable);
 
@@ -589,9 +585,7 @@ class SQLGrammarImpl {
                                        ValueNode subQuery) /* inner source subquery for multi column syntax */
             throws StandardException
     {
-        FromList fromList = (FromList) nodeFactory.getNode(
-                C_NodeTypes.FROM_LIST,
-                getContextManager());
+        FromList fromList = new FromList(getContextManager());
         fromList.addFromTable(fromTable);
 
         // Don't flatten the subquery here but build it as a derived table. If we

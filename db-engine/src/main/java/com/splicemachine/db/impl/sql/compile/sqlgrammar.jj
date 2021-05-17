@@ -10122,13 +10122,10 @@ tableExpression(ResultColumnList selectList) throws StandardException :
 FromList
 fromClause() throws StandardException :
 {
-    FromList fromList = (FromList) nodeFactory.getNode(
-                                    C_NodeTypes.FROM_LIST,
-                                    getNodeFactory().doJoinOrderOptimization(),
-                                    getContextManager());
-    int    tokKind;
-        Token   beginToken;
-        Token   endToken;
+    FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
+    int tokKind;
+    Token beginToken;
+    Token endToken;
 }
 {
     <FROM> {beginToken = getToken(1);}

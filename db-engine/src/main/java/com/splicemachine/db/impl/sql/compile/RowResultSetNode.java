@@ -374,12 +374,10 @@ public class RowResultSetNode extends FromTable {
 
         SubqueryList subqueryList = new SubqueryList(getContextManager());
         PredicateList predicateList = new PredicateList(getContextManager());
-                FromList localFromList = fromList == null ?
-            (FromList) getNodeFactory().getNode( C_NodeTypes.FROM_LIST,
-                             getNodeFactory().doJoinOrderOptimization(),
-                             getContextManager()) : fromList;
+        FromList localFromList = fromList == null ?
+                new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager()) : fromList;
 
-                assignResultSetNumber();
+        assignResultSetNumber();
         resultColumns.preprocess(numTables, localFromList, subqueryList, predicateList);
 
         if (!subqueries.isEmpty()) {
@@ -571,13 +569,9 @@ public class RowResultSetNode extends FromTable {
         ** CostEstimate object, so we can represent the cost of this node.
         ** This seems like overkill, but it's just an object allocation...
         */
-        Optimizer optimizer = getOptimizer(
-                (FromList) getNodeFactory().getNode(C_NodeTypes.FROM_LIST,
-                        getNodeFactory().doJoinOrderOptimization(),
+        Optimizer optimizer = getOptimizer( new FromList(getNodeFactory().doJoinOrderOptimization(),
                         getContextManager()),
-                predicateList,
-                dataDictionary,
-                null);
+                predicateList, dataDictionary, null);
         optimizer.setForSpark(forSpark);
         // TODO JL: RESOLVE: THE COST SHOULD TAKE SUBQUERIES INTO ACCOUNT
         generateCostWhenNull(outerRows);

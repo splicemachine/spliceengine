@@ -766,11 +766,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
         List<JavaToSQLValueNode> jtsvList = cnv.getList();
         if (!jtsvList.isEmpty() && optTable instanceof FromTable) {
             NodeFactory nf = lcc.getLanguageConnectionFactory().getNodeFactory();
-            FromList fromList = (FromList) nf.getNode(
-                    C_NodeTypes.FROM_LIST,
-                    nf.doJoinOrderOptimization(),
-                    optTable,
-                    lcc.getContextManager());
+            FromList fromList = new FromList(nf.doJoinOrderOptimization(), (FromTable) optTable, lcc.getContextManager());
             for (JavaToSQLValueNode jtsvNode : jtsvList) {
                 jtsvNode.bindExpression(fromList, new SubqueryList(), new ArrayList<AggregateNode>() {});
             }

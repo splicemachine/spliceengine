@@ -428,10 +428,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
      */
     public FromList getFromList()
             throws StandardException{
-        return (FromList)getNodeFactory().getNode(
-                C_NodeTypes.FROM_LIST,
-                getNodeFactory().doJoinOrderOptimization(),
-                getContextManager());
+        return new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
     }
 
     /**
