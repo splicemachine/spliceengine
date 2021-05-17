@@ -256,11 +256,7 @@ public class FromSubquery extends FromTable
     public void bindExpressions(FromList fromListParam)
                     throws StandardException
     {
-        FromList            emptyFromList =
-                                (FromList) getNodeFactory().getNode(
-                                    C_NodeTypes.FROM_LIST,
-                                    getNodeFactory().doJoinOrderOptimization(),
-                                    getContextManager());
+        FromList            emptyFromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
         ResultColumnList    derivedRCL = resultColumns;
         ResultColumnList    subqueryRCL;
         FromList            nestedFromList;

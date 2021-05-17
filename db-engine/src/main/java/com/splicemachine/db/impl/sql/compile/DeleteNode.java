@@ -187,10 +187,7 @@ public class DeleteNode extends DMLModStatementNode
         getCompilerContext().pushCurrentPrivType( Authorizer.SELECT_PRIV);
         try
         {
-            FromList    fromList = (FromList) getNodeFactory().getNode(
-                                    C_NodeTypes.FROM_LIST,
-                                    getNodeFactory().doJoinOrderOptimization(),
-                                    getContextManager());
+            FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
             ResultColumn                rowLocationColumn = null;
             CurrentRowLocationNode        rowLocationNode;
             TableName                    cursorTargetTableName = null;
@@ -895,7 +892,7 @@ public class DeleteNode extends DMLModStatementNode
         tableName.init(schemaName , targetTableName);
 
         NodeFactory nodeFactory = getNodeFactory();
-        FromList   fromList = (FromList) nodeFactory.getNode(C_NodeTypes.FROM_LIST, getContextManager());
+        FromList   fromList = new FromList(getContextManager());
         FromTable fromTable = (FromTable) nodeFactory.getNode(
                                                     C_NodeTypes.FROM_BASE_TABLE,
                                                     tableName,
@@ -942,7 +939,7 @@ public class DeleteNode extends DMLModStatementNode
         tableName.init(schemaName , targetTableName);
 
         NodeFactory nodeFactory = getNodeFactory();
-        FromList   fromList = (FromList) nodeFactory.getNode(C_NodeTypes.FROM_LIST, getContextManager());
+        FromList  fromList = new FromList(getContextManager());
         FromTable fromTable = (FromTable) nodeFactory.getNode(
                                                     C_NodeTypes.FROM_BASE_TABLE,
                                                     tableName,

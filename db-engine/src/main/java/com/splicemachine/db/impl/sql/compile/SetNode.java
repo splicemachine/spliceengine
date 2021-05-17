@@ -92,10 +92,7 @@ public class SetNode extends MiscellaneousStatementNode {
         // We just need select privilege on the expressions
         getCompilerContext().pushCurrentPrivType(Authorizer.SELECT_PRIV);
 
-        FromList fromList = (FromList) getNodeFactory().getNode(
-        C_NodeTypes.FROM_LIST,
-        getNodeFactory().doJoinOrderOptimization(),
-        getContextManager());
+        FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
 
         SubqueryList dummySubqueryList= new SubqueryList(getContextManager());
         List<AggregateNode> tmp = new ArrayList<>();

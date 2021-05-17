@@ -33,6 +33,8 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.Context;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
@@ -83,14 +85,39 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
     /// @sa useAliases
     private boolean aliasesUsable = false;
 
+    public FromList() {}
+    public FromList(ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.FROM_LIST);
+    }
+
+    public FromList(Boolean optimizeJoinOrder, ContextManager contextManager) {
+        this(contextManager);
+        init2(optimizeJoinOrder);
+    }
+
+    public FromList(Boolean optimizeJoinOrder, FromTable fromTable, ContextManager contextManager) throws StandardException {
+        this(contextManager);
+        init2(optimizeJoinOrder, fromTable);
+    }
+
+    private void init2(Boolean optimizeJoinOrder) {
+        fixedJoinOrder=!((Boolean)optimizeJoinOrder);
+        isTransparent=false;
+        tableLimitForExhaustiveSearch = getLanguageConnectionContext().getTableLimitForExhaustiveSearch();
+    }
+
+    private void init2(Boolean optimizeJoinOrder, FromTable fromTable) throws StandardException {
+        init(optimizeJoinOrder);
+        addFromTable(fromTable);
+    }
+
     /**
      * Initializer for a FromList
      */
     @Override
     public void init(Object optimizeJoinOrder){
-        fixedJoinOrder=!((Boolean)optimizeJoinOrder);
-        isTransparent=false;
-        tableLimitForExhaustiveSearch = getLanguageConnectionContext().getTableLimitForExhaustiveSearch();
+        init2((Boolean) optimizeJoinOrder);
     }
 
     /**
@@ -100,9 +127,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
      */
     @Override
     public void init(Object optimizeJoinOrder,Object fromTable) throws StandardException{
-        init(optimizeJoinOrder);
-
-        addFromTable((FromTable)fromTable);
+        init2((Boolean) optimizeJoinOrder, (FromTable) fromTable);
     }
 
     /*

@@ -1116,14 +1116,10 @@ public class FromVTI extends FromTable implements VTIEnvironment {
             numTables = getCompilerContext().getMaximalPossibleTableCount();
         }
 
-        methodCall.preprocess(
-                numTables,
-                (FromList) getNodeFactory().getNode(
-                        C_NodeTypes.FROM_LIST,
-                        getNodeFactory().doJoinOrderOptimization(),
-                        getContextManager()),
-                        new SubqueryList(getContextManager()),
-                        new PredicateList(getContextManager())
+        methodCall.preprocess(numTables,
+                new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager()),
+                new SubqueryList(getContextManager()),
+                new PredicateList(getContextManager())
             );
         /* Generate the referenced table map */
         referencedTableMap = new JBitSet(numTables);

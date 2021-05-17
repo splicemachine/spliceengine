@@ -339,12 +339,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
                                         getContextManager())
                 );
 
-        fbt.bindNonVTITables(
-            getDataDictionary(),
-            (FromList) getNodeFactory().getNode(
-                                C_NodeTypes.FROM_LIST,
-                                getNodeFactory().doJoinOrderOptimization(),
-                                getContextManager()));
+        fbt.bindNonVTITables(getDataDictionary(), new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager()));
 
         getResultColumnList(
                             fbt,
@@ -704,11 +699,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
          * In this case, the caller of bindConstraints (UpdateNode)
          * has chosen to pass in the correct RCL to bind against.
          */
-        FromList fakeFromList =
-            (FromList) nodeFactory.getNode(
-                            C_NodeTypes.FROM_LIST,
-                            nodeFactory.doJoinOrderOptimization(),
-                            contextManager);
+        FromList fakeFromList = new FromList(nodeFactory.doJoinOrderOptimization(), contextManager);
         FromBaseTable table = (FromBaseTable)
             nodeFactory.getNode(
                 C_NodeTypes.FROM_BASE_TABLE,

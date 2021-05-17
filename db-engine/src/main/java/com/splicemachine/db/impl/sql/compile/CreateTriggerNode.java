@@ -332,9 +332,7 @@ public class CreateTriggerNode extends DDLStatementNode {
     }
 
     public static void bindWhenClause(ValueNode whenClause) throws StandardException {
-                whenClause.bindExpression((FromList) whenClause.getNodeFactory().getNode(
-                                                        C_NodeTypes.FROM_LIST,
-                                                        whenClause.getNodeFactory().doJoinOrderOptimization(),
+                whenClause.bindExpression(new FromList(whenClause.getNodeFactory().doJoinOrderOptimization(),
                                                         whenClause.getContextManager()),
                                                 new SubqueryList(whenClause.getContextManager()),
                                                 new ArrayList<AggregateNode>(0));

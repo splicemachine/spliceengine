@@ -991,10 +991,7 @@ public abstract class SetOperatorNode extends TableOperatorNode
     {
         // First create a FromList to hold this node (and only this node).
 
-        FromList fromList =
-            (FromList) getNodeFactory().getNode(
-                C_NodeTypes.FROM_LIST,
-                getContextManager());
+        FromList fromList = new FromList(getContextManager());
 
         fromList.addFromTable(this);
 

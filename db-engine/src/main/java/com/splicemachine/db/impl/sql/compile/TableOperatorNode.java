@@ -605,14 +605,8 @@ public abstract class TableOperatorNode extends FromTable{
                                   boolean forSpark) throws StandardException{
         /* Get an optimizer, so we can get a cost structure */
         Optimizer optimizer = getOptimizer(
-                (FromList)getNodeFactory().getNode(
-                        C_NodeTypes.FROM_LIST,
-                        getNodeFactory().doJoinOrderOptimization(),
-                        this,
-                        getContextManager()),
-                predicateList,
-                dataDictionary,
-                null);
+                new FromList(getNodeFactory().doJoinOrderOptimization(), this, getContextManager()),
+                predicateList, dataDictionary, null);
         optimizer.setForSpark(forSpark);
 
         costEstimate=optimizer.newCostEstimate();
@@ -747,11 +741,8 @@ public abstract class TableOperatorNode extends FromTable{
         ResultSetNode retval;
 
         if(sourceResultSet instanceof FromTable){
-            FromList optList=(FromList)getNodeFactory().getNode(
-                    C_NodeTypes.FROM_LIST,
-                    getNodeFactory().doJoinOrderOptimization(),
-                    sourceResultSet,
-                    getContextManager());
+            FromList optList = new FromList(getNodeFactory().doJoinOrderOptimization(),
+                    (FromTable) sourceResultSet, getContextManager());
 
             /* If there is no predicate list, create an empty one */
             if(predList==null)

@@ -1012,14 +1012,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 predicates,
                 outerRows,
                 forSpark);
-        Optimizer optimizer = getOptimizer(
-                (FromList) getNodeFactory().getNode(
-                        C_NodeTypes.FROM_LIST,
-                        getNodeFactory().doJoinOrderOptimization(),
-                        getContextManager()),
-                predicates,
-                dataDictionary,
-                null);
+        Optimizer optimizer = getOptimizer( new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager()),
+                predicates, dataDictionary, null);
         optimizer.setForSpark(forSpark);
 
         // RESOLVE: NEED TO FACTOR IN COST OF SORTING AND FIGURE OUT HOW
