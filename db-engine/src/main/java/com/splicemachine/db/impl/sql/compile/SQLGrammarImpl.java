@@ -695,9 +695,7 @@ class SQLGrammarImpl {
     }
 
     SubqueryNode assembleUpdateSubquery(ResultColumnList setClause, FromList fromList) throws StandardException {
-        ResultColumnList innerRCL = (ResultColumnList) nodeFactory.getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        ResultColumnList innerRCL = new ResultColumnList(getContextManager());
 
         boolean generateName;
         for (int index = 0; index < setClause.size(); index++) {
