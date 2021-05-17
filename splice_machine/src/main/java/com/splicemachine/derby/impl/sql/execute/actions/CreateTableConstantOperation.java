@@ -25,7 +25,6 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.stream.function.csv.FileFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -74,17 +73,17 @@ import java.util.*;
 public class CreateTableConstantOperation extends DDLConstantOperation {
     private static final Logger LOG = Logger.getLogger(CreateTableConstantOperation.class);
 
-    private char					lockGranularity;
-    private boolean					onCommitDeleteRows; //If true, on commit delete rows else on commit preserve rows of temporary table.
-    private boolean					onRollbackDeleteRows; //If true, on rollback delete rows from temp table if it was logically modified in that UOW. true is the only supported value
-    private String					tableName;
-    private String					schemaName;
-    private int						tableType;
-    private ColumnInfo[]			columnInfo;
+    private char                    lockGranularity;
+    private boolean                    onCommitDeleteRows; //If true, on commit delete rows else on commit preserve rows of temporary table.
+    private boolean                    onRollbackDeleteRows; //If true, on rollback delete rows from temp table if it was logically modified in that UOW. true is the only supported value
+    private String                    tableName;
+    private String                    schemaName;
+    private int                        tableType;
+    private ColumnInfo[]            columnInfo;
     // Contains CreateConstraintConstantOperation elements, but array ref is ConstraintConstantOperation[]
-    protected ConstraintConstantOperation[]	constraintActions;
+    protected ConstraintConstantOperation[]    constraintActions;
     private boolean isExternal;
-    private Properties				properties;
+    private Properties                properties;
     private String delimited;
     private String escaped;
     private String lines;
@@ -103,30 +102,30 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
 
     /**
-     *	Make the ConstantAction for a CREATE TABLE statement.
+     *    Make the ConstantAction for a CREATE TABLE statement.
      *
-     *  @param schemaName	name for the schema that table lives in.
-     *  @param tableName	Name of table.
-     *  @param tableType	Type of table (e.g., BASE, global temporary table).
-     *  @param columnInfo	Information on all the columns in the table.
-     *		 (REMIND tableDescriptor ignored)
-     *  @param constraintActions	ConstraintConstantOperation[] for constraints
-     *  @param properties	Optional table properties
-     * @param lockGranularity	The lock granularity.
-     * @param onCommitDeleteRows	If true, on commit delete rows else on commit preserve rows of temporary table.
-     * @param onRollbackDeleteRows	If true, on rollback, delete rows from temp tables which were logically modified. true is the only supported value
+     *  @param schemaName    name for the schema that table lives in.
+     *  @param tableName    Name of table.
+     *  @param tableType    Type of table (e.g., BASE, global temporary table).
+     *  @param columnInfo    Information on all the columns in the table.
+     *         (REMIND tableDescriptor ignored)
+     *  @param constraintActions    ConstraintConstantOperation[] for constraints
+     *  @param properties    Optional table properties
+     * @param lockGranularity    The lock granularity.
+     * @param onCommitDeleteRows    If true, on commit delete rows else on commit preserve rows of temporary table.
+     * @param onRollbackDeleteRows    If true, on rollback, delete rows from temp tables which were logically modified. true is the only supported value
      */
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public CreateTableConstantOperation(
-            String			schemaName,
-            String			tableName,
-            int				tableType,
-            ColumnInfo[]	columnInfo,
+            String            schemaName,
+            String            tableName,
+            int                tableType,
+            ColumnInfo[]    columnInfo,
             ConstantAction[] constraintActions,
-            Properties		properties,
-            char			lockGranularity,
-            boolean			onCommitDeleteRows,
-            boolean			onRollbackDeleteRows,
+            Properties        properties,
+            char            lockGranularity,
+            boolean            onCommitDeleteRows,
+            boolean            onRollbackDeleteRows,
             boolean isExternal,
             String delimited,
             String escaped,
@@ -191,17 +190,17 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
 
     /**
-     *	This is the guts of the Execution-time logic for CREATE TABLE.
+     *    This is the guts of the Execution-time logic for CREATE TABLE.
      *
-     *	@see ConstantAction#executeConstantAction
+     *    @see ConstantAction#executeConstantAction
      *
-     * @exception StandardException		Thrown on failure
+     * @exception StandardException        Thrown on failure
      */
     @Override
     public void executeConstantAction( Activation activation ) throws StandardException {
         SpliceLogUtils.trace(LOG, "executeConstantAction");
 
-		    /* Mark the activation as being for create table */
+            /* Mark the activation as being for create table */
         activation.setForCreateTable();
 
         createTable(activation);
@@ -421,9 +420,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
          *  mechanism can be written for this and CREATE_SCHEMA
          */
         long txnId = ((SpliceTransactionManager)tc).getRawTransaction().getActiveStateTxn().getTxnId();
-        DDLMessage.DDLChange change =DDLMessage.DDLChange.newBuilder().setDdlChangeType(DDLMessage.DDLChangeType.CREATE_TABLE).setTxnId(txnId).build();
-
-        tc.prepareDataDictionaryChange(DDLDriver.driver().ddlController().notifyMetadataChange(change));
+        notifyMetadataChange(tc, DDLMessage.DDLChange.newBuilder().setDdlChangeType(DDLMessage.DDLChangeType.CREATE_TABLE).setTxnId(txnId).build());
 
         // is this an external file ?
         if(storedAs != null) {
