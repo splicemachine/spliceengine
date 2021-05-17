@@ -117,6 +117,11 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
     public ResultColumnList(){
     }
 
+    public ResultColumnList(ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.RESULT_COLUMN_LIST);
+    }
+
     /**
      * Add a ResultColumn (at this point, ResultColumn or
      * AllResultColumn) to the list
@@ -2060,10 +2065,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                         cf);
             }
 
-            newCR=(ColumnReference)getNodeFactory().getNode(
-                    C_NodeTypes.COLUMN_REFERENCE,
-                    thisRC.getName(),
-                    dummyTN,
+            newCR = new ColumnReference(thisRC.getName(), dummyTN,
                     getContextManager());
             newCR.setType(resultType);
             /* Set the tableNumber and nesting levels in newCR.

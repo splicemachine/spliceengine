@@ -663,11 +663,8 @@ class SQLGrammarImpl {
                 innerResultColumn.setName(innerColumnName);
                 innerResultColumn.setNameGenerated(true);
             }
-            ValueNode colRef = (ValueNode) getNodeFactory().getNode(
-                    C_NodeTypes.COLUMN_REFERENCE,
-                    innerColumnName,
-                    ((FromTable)fromList.getNodes().get(1)).getTableName(),
-                    getContextManager());
+            ValueNode colRef = new ColumnReference(innerColumnName,
+                    ((FromTable)fromList.getNodes().get(1)).getTableName(), getContextManager());
             rc.setExpression(colRef);
         }
 

@@ -72,9 +72,7 @@ public class FromSubqueryColRefFactory {
 
         ResultColumn resultColumn = newFromSubquery.getResultColumns().elementAt(fromSubqueryColumnToRef);
 
-        ColumnReference colRef = (ColumnReference) nodeFactory.getNode(C_NodeTypes.COLUMN_REFERENCE,
-                resultColumn.getName(),
-                newFromSubquery.getTableName(),
+        ColumnReference colRef = new ColumnReference(resultColumn.getName(), newFromSubquery.getTableName(),
                 contextManager);
 
         colRef.setSource(resultColumn);

@@ -758,10 +758,7 @@ public class FromSubquery extends FromTable
 
             tableName = exposedName;
 
-            valueNode = (ValueNode) getNodeFactory().getNode(
-                                            C_NodeTypes.COLUMN_REFERENCE,
-                                            columnName,
-                                            tableName,
+            valueNode = new ColumnReference(columnName,tableName,
                                             getContextManager());
             resultColumn = (ResultColumn) getNodeFactory().getNode(
                                             C_NodeTypes.RESULT_COLUMN,

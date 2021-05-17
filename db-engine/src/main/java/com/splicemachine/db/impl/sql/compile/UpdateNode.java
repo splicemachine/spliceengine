@@ -213,6 +213,8 @@ public final class UpdateNode extends DMLModStatementNode
             }
         }
 
+        // need to adjust UpdateNode
+        //
         bindTables(dataDictionary);
 
         // wait to bind named target table until the cursor
@@ -670,11 +672,8 @@ public final class UpdateNode extends DMLModStatementNode
     private ResultColumn getRowLocationColumn(ResultColumn rowIdColumn) throws StandardException {
         ResultColumn rowLocationColumn;
         if(!cursorUpdate) {
-            ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
-                    C_NodeTypes.COLUMN_REFERENCE,
-                    rowIdColumn.getName(),
-                    null,
-                    getContextManager());
+            ColumnReference columnReference = new ColumnReference(rowIdColumn.getName(),
+                    null, getContextManager());
             columnReference.setSource(rowIdColumn);
             columnReference.setNestingLevel(targetTable.getLevel());
             columnReference.setSourceLevel(targetTable.getLevel());
@@ -978,9 +977,19 @@ public final class UpdateNode extends DMLModStatementNode
         */
 
         acb.pushGetResultSetFactoryExpression(mb);
-        resultSet.generate(acb, mb); // arg 1
 
-        if( null != targetVTI)
+        // arg 1
+        if ( inMatchingClause() )
+        {
+            matchingClause.generateResultSetField( acb, mb );
+        }
+        else
+        {
+            resultSet.generate( acb, mb );
+        }
+
+
+        if( null != targetVTI && !inMatchingClause() )
         {
             targetVTI.assignCostEstimate(resultSet.getNewCostEstimate());
             mb.push((double)this.resultSet.getFinalCostEstimate(false).getEstimatedRowCount());
@@ -1493,19 +1502,14 @@ public final class UpdateNode extends DMLModStatementNode
     private void checkTableNameAndScrubResultColumns(ResultColumnList rcl, boolean isUpdateWithSubquery)
             throws StandardException
     {
-        int columnCount = rcl.size();
-        int tableCount = ((SelectNode)resultSet).fromList.size();
-
-        for ( int i = 0; i < columnCount; i++ )
+        for (ResultColumn column : rcl)
         {
             boolean foundMatchingTable = false;
-            ResultColumn column = rcl.elementAt(i);
             String columnTableName = column.getTableName();
 
-            if (columnTableName != null) {
-                for (int j = 0; j < tableCount; j++) {
-                    FromTable fromTable = (FromTable) ((SelectNode)resultSet).
-                            fromList.elementAt(j);
+            if ( (columnTableName != null) && (!inMatchingClause()) ) {
+                for (QueryTreeNode rsn : ((SelectNode)resultSet).fromList) {
+                    FromTable fromTable = (FromTable)rsn;
                     final String tableName;
                     final String exposedTableName;
                     final String tempTableName;
