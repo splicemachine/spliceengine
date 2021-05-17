@@ -29,7 +29,7 @@ public class SpliceCatalogUpgradeScriptsTest {
     // Those must run before other upgrade scripts
     // see DB-11296, UpgradeConglomerateTable; see DB-10193, UpgradeScriptToAddMultiDatabase
     String s3 = "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeConglomerateTable\n" +
-                "VERSION4.2005: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddMultiDatabaseSupport\n";
+                "VERSION4.2016: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddMultiDatabaseSupport\n";
 
     // add more scripts here
 

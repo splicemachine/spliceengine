@@ -87,7 +87,7 @@ public class SpliceCatalogUpgradeScripts{
         addUpgradeScript(baseVersion4, 1996, new UpgradeConglomerateTable(sdd, tc));
 
         // DB-10193: Multidatabase support has to be executed first, because it adds a new core table SYS.SYSDATABASES
-        addUpgradeScript(baseVersion4, 2005, new UpgradeScriptToAddMultiDatabaseSupport(sdd, tc, startParams)); // XXX(arnaud, multidb) change version here
+        addUpgradeScript(baseVersion4, 2016, new UpgradeScriptToAddMultiDatabaseSupport(sdd, tc, startParams));
 
         addUpgradeScript(baseVersion1, 1901, new UpgradeScriptToRemoveUnusedBackupTables(sdd,tc));
         addUpgradeScript(baseVersion1, 1909, new UpgradeScriptForReplication(sdd, tc));
