@@ -221,9 +221,7 @@ public final class CurrentOfNode extends FromTable {
         ** the result columns from preparedStatement and
         ** turn them into an RCL that we can run with.
         */
-        resultColumns = (ResultColumnList) getNodeFactory().getNode(
-                                            C_NodeTypes.RESULT_COLUMN_LIST,
-                                            getContextManager());
+        resultColumns = new ResultColumnList(getContextManager());
         ColumnDescriptorList cdl = td.getColumnDescriptorList();
         int                     cdlSize = cdl.size();
 

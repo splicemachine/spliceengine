@@ -482,7 +482,7 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
      * @throws StandardException Thrown on error
      */
     ResultColumnList reorderRCL(ResultColumnList resultColumns) throws StandardException{
-        ResultColumnList newRCL=(ResultColumnList)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,getContextManager());
+        ResultColumnList newRCL = new ResultColumnList(getContextManager());
 
         /* The new RCL starts with the ordering columns */
         int size=size();

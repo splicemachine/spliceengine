@@ -737,9 +737,7 @@ public class CursorNode extends DMLStatementNode{
 
         if(targetColumnDescriptors!=null) return targetColumnDescriptors;
 
-        newList=(ResultColumnList)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        newList = new ResultColumnList(getContextManager());
         ResultColumnList rcl=updateTable.getResultColumns();
         int rclSize=rcl.size();
         for(int index=0;index<rclSize;index++){

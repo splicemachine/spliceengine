@@ -1016,10 +1016,7 @@ public abstract class SetOperatorNode extends TableOperatorNode
 
         // Now create a ResultColumnList that simply holds the "*".
 
-        ResultColumnList rcl =
-            (ResultColumnList) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        ResultColumnList rcl = new ResultColumnList(getContextManager());
 
         ResultColumn allResultColumn =
             (ResultColumn) getNodeFactory().getNode(

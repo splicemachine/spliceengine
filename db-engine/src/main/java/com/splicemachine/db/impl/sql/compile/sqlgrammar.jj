@@ -5362,9 +5362,7 @@ ResultColumnList
 selectList() throws StandardException :
 {
     ResultColumn    allResultColumn;
-    ResultColumnList    resultColumns = (ResultColumnList) nodeFactory.getNode(
-                                    C_NodeTypes.RESULT_COLUMN_LIST,
-                                    getContextManager());
+    ResultColumnList resultColumns = new ResultColumnList(getContextManager());
 }
 {
     <ASTERISK>
@@ -9423,9 +9421,7 @@ forUpdateColumn(Vector columnList) throws StandardException :
 ResultColumnList
 setClauseList() throws StandardException :
 {
-    ResultColumnList    columnList = (ResultColumnList) nodeFactory.getNode(
-                                                C_NodeTypes.RESULT_COLUMN_LIST,
-                                                getContextManager());
+    ResultColumnList columnList = new ResultColumnList(getContextManager());
 }
 {
     setClause(columnList) ( <COMMA> setClause(columnList) ) *
@@ -9437,9 +9433,7 @@ setClauseList() throws StandardException :
 ResultColumnList
 setClauseListSpecial() throws StandardException :
 {
-    ResultColumnList    columnList = (ResultColumnList) nodeFactory.getNode(
-                                                C_NodeTypes.RESULT_COLUMN_LIST,
-                                                getContextManager());
+    ResultColumnList columnList = new ResultColumnList(getContextManager());
 }
 {
     setClauseSpecial(columnList) ( <COMMA> setClauseSpecial(columnList) ) *
@@ -9628,9 +9622,7 @@ insertColumnsAndSource(QueryTreeNode targetTable)
 ResultColumnList
 insertColumnList() throws StandardException :
 {
-    ResultColumnList    columnList = (ResultColumnList) nodeFactory.getNode(
-                                                C_NodeTypes.RESULT_COLUMN_LIST,
-                                                getContextManager());
+    ResultColumnList columnList = new ResultColumnList(getContextManager());
 }
 {
     columnQualifiedNameList(columnList)
@@ -9687,9 +9679,7 @@ columnQualifiedNameItem(ResultColumnList columnList) throws StandardException :
 ResultSetNode
 rowValueConstructor(ResultSetNode leftRSN) throws StandardException :
 {
-    ResultColumnList    resultColumns = (ResultColumnList) nodeFactory.getNode(
-                                                C_NodeTypes.RESULT_COLUMN_LIST,
-                                                getContextManager());
+    ResultColumnList resultColumns = new ResultColumnList(getContextManager());
     ResultSetNode        newRSN;
 }
 {
@@ -10386,9 +10376,7 @@ FromTable tableFactor() throws StandardException :
         String tempTriggerName = "TRIG_" + uniqueId;
         String schemaName = lcc.getDefaultSchema().getSchemaName();
         triggerName = new TableName(schemaName, tempTriggerName, getContextManager());
-        triggerColumns = (ResultColumnList) nodeFactory.getNode(
-                                        C_NodeTypes.RESULT_COLUMN_LIST,
-                                        getContextManager());
+        triggerColumns = new ResultColumnList(getContextManager());
         correlationName = "NT_" + uniqueId;
         refClause = new Vector();
         refClause.addElement(new TriggerReferencingStruct(false, !isOld, correlationName));
@@ -10585,10 +10573,7 @@ VTITableDefinition() throws StandardException :
 ResultColumnList
 derivedColumnList() throws StandardException :
 {
-    ResultColumnList    resultColumns =
-                                    (ResultColumnList) nodeFactory.getNode(
-                                            C_NodeTypes.RESULT_COLUMN_LIST,
-                                            getContextManager());
+    ResultColumnList resultColumns = new ResultColumnList(getContextManager());
 }
 {
     columnNameList(resultColumns)
@@ -10866,8 +10851,7 @@ joinCondition() throws StandardException :
 ResultColumnList
 namedColumnsJoin() throws StandardException :
 {
-    ResultColumnList usingClause = (ResultColumnList) nodeFactory.getNode(
-            C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
+    ResultColumnList usingClause = new ResultColumnList(getContextManager());
 }
 {
     <USING> <LEFT_PAREN> columnNameList(usingClause) <RIGHT_PAREN>
@@ -12265,9 +12249,7 @@ tableDefinition() throws StandardException :
 ResultColumnList
 tableColumnList() throws StandardException :
 {
-    ResultColumnList resultColumns = (ResultColumnList) nodeFactory.getNode(
-                                            C_NodeTypes.RESULT_COLUMN_LIST,
-                                            getContextManager());
+    ResultColumnList resultColumns = new ResultColumnList(getContextManager());
 }
 {
     columnNameList(resultColumns)
@@ -13133,9 +13115,7 @@ viewDefinition(Token beginToken) throws StandardException :
 ResultColumnList
 viewColumnList() throws StandardException :
 {
-    ResultColumnList    resultColumns = (ResultColumnList) nodeFactory.getNode(
-                                            C_NodeTypes.RESULT_COLUMN_LIST,
-                                            getContextManager());
+    ResultColumnList resultColumns = new ResultColumnList(getContextManager());
 }
 {
     /* RESOLVE: Passing null parameter for now just to keep Java happy */
@@ -13236,9 +13216,7 @@ triggerDefinition() throws StandardException :
     ValueNode           whenClause = null;
     Token               whenOpen = null;
     Token               whenClose = null;
-    ResultColumnList    triggerColumns = (ResultColumnList) nodeFactory.getNode(
-                                            C_NodeTypes.RESULT_COLUMN_LIST,
-                                            getContextManager());
+    ResultColumnList    triggerColumns = new ResultColumnList(getContextManager());
     Vector              refClause = null;
     HashSet<String>     hs = new HashSet<String>();
 }
@@ -14132,9 +14110,7 @@ checkConstraintDefinition(TableName constraintName, String columnName)
         if (columnName != null)
         {
             /* Column check constraint */
-            rclList = (ResultColumnList) nodeFactory.getNode(
-                                    C_NodeTypes.RESULT_COLUMN_LIST,
-                                    getContextManager());
+            rclList = new ResultColumnList(getContextManager());
             rclList.addElement((ResultColumn) nodeFactory.getNode(
                                     C_NodeTypes.RESULT_COLUMN,
                                     columnName,
@@ -15193,9 +15169,7 @@ uniqueSpecification(String columnName) throws StandardException :
 ResultColumnList
 uniqueColumnList() throws StandardException :
 {
-    ResultColumnList    resultColumns = (ResultColumnList) nodeFactory.getNode(
-                                            C_NodeTypes.RESULT_COLUMN_LIST,
-                                            getContextManager());
+    ResultColumnList resultColumns = new ResultColumnList(getContextManager());
 }
 {
     columnNameList(resultColumns)
@@ -15207,12 +15181,8 @@ uniqueColumnList() throws StandardException :
 ConstraintDefinitionNode
 referentialConstraintDefinition(TableName constraintName) throws StandardException :
 {
-    ResultColumnList fkRcl = (ResultColumnList) nodeFactory.getNode(
-                                        C_NodeTypes.RESULT_COLUMN_LIST,
-                                        getContextManager());
-    ResultColumnList refRcl = (ResultColumnList) nodeFactory.getNode(
-                                        C_NodeTypes.RESULT_COLUMN_LIST,
-                                        getContextManager());
+    ResultColumnList fkRcl = new ResultColumnList(getContextManager());
+    ResultColumnList refRcl = new ResultColumnList(getContextManager());
     TableName referencedTable;
     int[] refActions = {StatementType.RA_NOACTION,
                 StatementType.RA_NOACTION}; //default values
@@ -15357,9 +15327,7 @@ columnConstraint(TableName constraintName,
     int constraintType;
     Properties properties = null;
     ConstraintDefinitionNode tcdn;
-    ResultColumnList refRcl = (ResultColumnList) nodeFactory.getNode(
-                                        C_NodeTypes.RESULT_COLUMN_LIST,
-                                        getContextManager());
+    ResultColumnList refRcl = new ResultColumnList(getContextManager());
     TableName referencedTable;
     int[] refActions = {StatementType.RA_NOACTION,
                             StatementType.RA_NOACTION} ; //default: NO ACTION
@@ -15387,10 +15355,7 @@ columnConstraint(TableName constraintName,
     constraintType = uniqueSpecification(columnName)
         [ properties = propertyList(false) <CHECK_PROPERTIES>]
     {
-        ResultColumnList uniqueColumnList =
-                                        (ResultColumnList) nodeFactory.getNode(
-                                                C_NodeTypes.RESULT_COLUMN_LIST,
-                                                getContextManager());
+        ResultColumnList uniqueColumnList = new ResultColumnList(getContextManager());
         uniqueColumnList.addElement(
             (ResultColumn) nodeFactory.getNode(
                             C_NodeTypes.RESULT_COLUMN,
@@ -15413,9 +15378,7 @@ columnConstraint(TableName constraintName,
     referencedTable = referencesSpecification(refRcl, refActions)
         [ properties = propertyList(false)<CHECK_PROPERTIES>]
     {
-        ResultColumnList fkRcl = (ResultColumnList) nodeFactory.getNode(
-                                            C_NodeTypes.RESULT_COLUMN_LIST,
-                                            getContextManager());
+        ResultColumnList fkRcl = new ResultColumnList(getContextManager());
         fkRcl.addElement(
                     (ResultColumn) nodeFactory.getNode(
                                     C_NodeTypes.RESULT_COLUMN,
@@ -16577,8 +16540,7 @@ void basicAction( BasicPrivilegesNode basicPrivilegesNode)  throws StandardExcep
  */
 ResultColumnList privilegeColumnList() throws StandardException :
 {
-    ResultColumnList cl = (ResultColumnList) nodeFactory.getNode( C_NodeTypes.RESULT_COLUMN_LIST,
-                                                                  getContextManager());
+    ResultColumnList cl = new ResultColumnList(getContextManager());
 }
 {
     <LEFT_PAREN> columnNameListOrAsterisk( cl) <RIGHT_PAREN>

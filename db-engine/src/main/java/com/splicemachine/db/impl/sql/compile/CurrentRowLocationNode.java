@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
@@ -53,6 +54,11 @@ import java.util.List;
 
 public class CurrentRowLocationNode extends ValueNode
 {
+    CurrentRowLocationNode() {}
+    CurrentRowLocationNode(ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.CURRENT_ROW_LOCATION_NODE);
+    }
     /**
      * Binding this expression means setting the result DataTypeServices.
      * In this case, the result type is always the same.
@@ -187,9 +193,7 @@ public class CurrentRowLocationNode extends ValueNode
 
     @Override
     public CurrentRowLocationNode getClone() throws StandardException {
-        CurrentRowLocationNode currentRowLocationNode = (CurrentRowLocationNode) getNodeFactory().getNode(
-                C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
-                getContextManager());
+        CurrentRowLocationNode currentRowLocationNode = new CurrentRowLocationNode(getContextManager());
         currentRowLocationNode.bindExpression(null, null, null);
         return currentRowLocationNode;
     }

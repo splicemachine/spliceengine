@@ -2894,7 +2894,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         CurrentRowLocationNode rowLocationNode;
 
         /* Generate the RowLocation column */
-        rowLocationNode=(CurrentRowLocationNode)getNodeFactory().getNode(C_NodeTypes.CURRENT_ROW_LOCATION_NODE,getContextManager());
+        rowLocationNode = new CurrentRowLocationNode(getContextManager());
         rowLocationColumn=
                 (ResultColumn)getNodeFactory().getNode(
                         C_NodeTypes.RESULT_COLUMN,

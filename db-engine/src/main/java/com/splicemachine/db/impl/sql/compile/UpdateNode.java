@@ -578,9 +578,7 @@ public final class UpdateNode extends DMLModStatementNode
             resultColumnList.appendResultColumns(afterColumns, false);
 
             /* Generate the RowLocation column */
-            rowLocationNode = (ValueNode) getNodeFactory().getNode(
-                                        C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
-                                        getContextManager());
+            rowLocationNode = new CurrentRowLocationNode(getContextManager());
         }
         else
         {
@@ -686,9 +684,7 @@ public final class UpdateNode extends DMLModStatementNode
                   * order to bind the check constraints.
                   */
                  int afterColumnsSize = afterColumns.size();
-                 afterColumns = (ResultColumnList) getNodeFactory().getNode(
-                                                C_NodeTypes.RESULT_COLUMN_LIST,
-                                                getContextManager());
+                 afterColumns = new ResultColumnList(getContextManager());
                  ResultColumnList normalizedRCs = resultSet.getResultColumns();
                  for (int index = 0; index < afterColumnsSize; index++)
                  {
