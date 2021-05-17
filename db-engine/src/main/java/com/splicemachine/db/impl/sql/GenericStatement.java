@@ -267,8 +267,7 @@ public class GenericStatement implements Statement{
                                          boolean internalSQL) throws StandardException{
         return prepMinion(lcc, cacheMe, paramDefaults, spsSchema, internalSQL, null);
     }
-    @SuppressFBWarnings(value = "ML_SYNC_ON_FIELD_TO_GUARD_CHANGING_THAT_FIELD",
-            justification = "the new object created at line 370 will not be put into cache and it cannot be referenced by other threads")
+
     private PreparedStatement prepMinion(LanguageConnectionContext lcc,
                                          boolean cacheMe,
                                          Object[] paramDefaults,
@@ -330,14 +329,15 @@ public class GenericStatement implements Statement{
             lcc.setOrigStmtTxt(statementText);
         }
 
-//        boolean isExplain=isExplainStatement();
         if(preparedStmt==null){
             if(cacheMe)
                 preparedStmt=(GenericStorablePreparedStatement)((GenericLanguageConnectionContext)lcc).lookupStatement(this);
 
-            if(preparedStmt==null){
-                preparedStmt=new GenericStorablePreparedStatement(this);
-            }else{
+            if (preparedStmt==null || preparedStmt.referencesSessionSchema()) {
+                // cannot use this state since it is private to a connection.
+                // switch to a new statement.
+                preparedStmt = new GenericStorablePreparedStatement(this);
+            } else {
                 foundInCache=true;
             }
         }
@@ -350,19 +350,7 @@ public class GenericStatement implements Statement{
         // cache of prepared statement objects...
         synchronized(preparedStmt){
             for(;;){
-                if(foundInCache){
-                    if(preparedStmt.referencesSessionSchema()){
-                        // cannot use this state since it is private to a connection.
-                        // switch to a new statement.
-                        foundInCache=false;
-                        // reassigning preparedStmt causes a FindBugs bug ML_SYNC_ON_FIELD_TO_GUARD_CHANGING_THAT_FIELD
-                        preparedStmt=new GenericStorablePreparedStatement(this);
-                        break;
-                    }
-                }
-
                 // did it get updated while we waited for the lock on it?
-
                 if(preparedStmt.upToDate()){
                     /*
                      * -sf- DB-1082 regression note:
@@ -381,8 +369,9 @@ public class GenericStatement implements Statement{
                     Collection<Dependency> selfDep = lcc.getDataDictionary().getDependencyManager().find(preparedStmt.getObjectID());
                     if(selfDep!=null){
                         for(Dependency dep:selfDep){
-                            if(dep.getDependent().equals(preparedStmt))
+                            if (dep.getDependent().equals(preparedStmt)) {
                                 return preparedStmt;
+                            }
                         }
                     }
                     //we actually aren't valid, because the dependency is missing.
@@ -400,11 +389,8 @@ public class GenericStatement implements Statement{
                 }
             }
 
-            // if we reach here from the break at line 371, preparedStmt object is different
-            synchronized (preparedStmt) {
-                preparedStmt.compilingStatement = true;
-                preparedStmt.setActivationClass(null);
-            }
+            preparedStmt.compilingStatement = true;
+            preparedStmt.setActivationClass(null);
         }
         CompilerContext cc = null;
         try{
@@ -433,12 +419,14 @@ public class GenericStatement implements Statement{
             } else {
                 cc = pushCompilerContext(lcc, internalSQL, spsSchema);
             }
-            if (internalSQL)
+            if (internalSQL) {
                 cc.setCompilingTrigger(true);
+            }
             fourPhasePrepare(lcc,paramDefaults,timestamps,foundInCache,cc,boundAndOptimizedStatement, cacheMe, false);
         } catch (Throwable e) {
-            if(foundInCache)
-                ((GenericLanguageConnectionContext)lcc).removeStatement(this);
+            if (foundInCache) {
+                ((GenericLanguageConnectionContext) lcc).removeStatement(this);
+            }
             throw StandardException.getOrWrap(e);
         }
         finally{
@@ -460,8 +448,9 @@ public class GenericStatement implements Statement{
 
         lcc.commitNestedTransaction();
 
-        if(statementContext!=null)
-            lcc.popStatementContext(statementContext,null);
+        if (statementContext != null) {
+            lcc.popStatementContext(statementContext, null);
+        }
 
         return preparedStmt;
     }

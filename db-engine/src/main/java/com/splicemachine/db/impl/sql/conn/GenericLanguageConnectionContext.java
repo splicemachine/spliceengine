@@ -1498,11 +1498,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      */
     @Override
     public PreparedStatement lookupStatement(GenericStatement statement) throws StandardException {
-        GenericStorablePreparedStatement ps = getDataDictionary().getDataDictionaryCache().statementCacheFind(statement);
-        if (ps == null) {
-            ps = new GenericStorablePreparedStatement(statement);
-            getDataDictionary().getDataDictionaryCache().statementCacheAdd(statement, ps);
-        }
+        GenericStorablePreparedStatement ps = getDataDictionary().getDataDictionaryCache().cacheIfAbsent(statement);
         synchronized (ps) {
             if (ps.upToDate()) {
                 GeneratedClass ac = ps.getActivationClass();

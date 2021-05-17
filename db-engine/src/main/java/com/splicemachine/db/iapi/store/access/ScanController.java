@@ -325,4 +325,5 @@ public interface ScanController extends GenericScanController{
     boolean replace(DataValueDescriptor[] row,FormatableBitSet validColumns)
             throws StandardException;
 
+    RowLocation getCurrentRowLocation();
 }

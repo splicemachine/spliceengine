@@ -289,7 +289,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         // statements in a trigger's action statement is disallowed by the
         // parser. However, this runtime check is needed to prevent execution
         // of DDL statements by procedures within a trigger context.
-        if (constantAction instanceof DDLConstantAction) {
+        if (constantAction.isDdlAction()) {
             throw StandardException.newException(SQLState.LANG_NO_DDL_IN_TRIGGER, triggerd.getName(), constantAction.toString());
         }
 
