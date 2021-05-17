@@ -75,6 +75,11 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
     public PredicateList(){
     }
 
+    public PredicateList(ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.PREDICATE_LIST);
+    }
+
     /*
      * OptimizableList interface
      */

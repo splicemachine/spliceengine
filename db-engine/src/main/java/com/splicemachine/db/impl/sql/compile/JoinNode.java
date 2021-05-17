@@ -181,7 +181,7 @@ public class JoinNode extends TableOperatorNode{
                 referencedTableMap.or(rightResultSet.getReferencedTableMap());
             }
         }
-        joinPredicates=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+        joinPredicates = new PredicateList(getContextManager());
 
     }
 
@@ -752,9 +752,8 @@ public class JoinNode extends TableOperatorNode{
                     (SubqueryList) getNodeFactory().getNode(
                             C_NodeTypes.SUBQUERY_LIST,
                             getContextManager()),
-                    (PredicateList) getNodeFactory().getNode(
-                            C_NodeTypes.PREDICATE_LIST,
-                            getContextManager()));
+                    new PredicateList(getContextManager());
+                );
         }
 
         return newTreeTop;
@@ -1424,14 +1423,14 @@ public class JoinNode extends TableOperatorNode{
 
     protected PredicateList getLeftPredicateList() throws StandardException{
         if(leftPredicateList==null)
-            leftPredicateList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
+            leftPredicateList = new PredicateList(getContextManager());
 
         return leftPredicateList;
     }
 
     protected PredicateList getRightPredicateList() throws StandardException{
         if(rightPredicateList==null)
-            rightPredicateList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
+            rightPredicateList = new PredicateList(getContextManager());
 
         return rightPredicateList;
     }

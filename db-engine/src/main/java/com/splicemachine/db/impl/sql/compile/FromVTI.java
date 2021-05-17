@@ -406,9 +406,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
             return false;
 
         if (restrictionList == null) {
-            restrictionList = (PredicateList) getNodeFactory().getNode(
-                    C_NodeTypes.PREDICATE_LIST,
-                    getContextManager());
+            restrictionList = new PredicateList(getContextManager());
         }
 
         restrictionList.addPredicate((Predicate) optimizablePredicate);
@@ -1133,9 +1131,8 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                 (SubqueryList) getNodeFactory().getNode(
                         C_NodeTypes.SUBQUERY_LIST,
                         getContextManager()),
-                (PredicateList) getNodeFactory().getNode(
-                        C_NodeTypes.PREDICATE_LIST,
-                        getContextManager()));
+                        new PredicateList(getContextManager())
+            );
         /* Generate the referenced table map */
         referencedTableMap = new JBitSet(numTables);
         referencedTableMap.set(tableNumber);

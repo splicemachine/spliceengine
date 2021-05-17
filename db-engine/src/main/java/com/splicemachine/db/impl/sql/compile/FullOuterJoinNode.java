@@ -157,7 +157,7 @@ public class FullOuterJoinNode extends JoinNode {
         }
 
 		/* Recurse down both sides of tree */
-        PredicateList noPredicates= (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
+        PredicateList noPredicates= new PredicateList(getContextManager());
         leftFromTable.pushExpressions(noPredicates);
         rightFromTable.pushExpressions(noPredicates);
     }
