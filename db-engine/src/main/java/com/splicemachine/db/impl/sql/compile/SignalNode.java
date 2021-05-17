@@ -98,10 +98,7 @@ public class SignalNode extends MiscellaneousStatementNode {
 
 
         if (errorText != null) {
-            SubqueryList dummySubqueryList=
-                (SubqueryList)getNodeFactory().getNode(
-                        C_NodeTypes.SUBQUERY_LIST,
-                        getContextManager());
+            SubqueryList dummySubqueryList = new SubqueryList(getContextManager());
             List<AggregateNode> tmp = new ArrayList<>();
             errorText = errorText.bindExpression(fromList, dummySubqueryList, tmp);
             if (!dummySubqueryList.isEmpty())
