@@ -54,7 +54,10 @@ public final class BooleanConstantNode extends ConstantNode
     public BooleanConstantNode(Boolean val, ContextManager contextManager) throws StandardException {
         setContextManager(contextManager);
         setNodeType(C_NodeTypes.BOOLEAN_CONSTANT_NODE);
-        initFromBoolean(val);
+        if(val == null)
+            initFromNull();
+        else
+            initFromBoolean(val);
     }
 
 
@@ -76,12 +79,7 @@ public final class BooleanConstantNode extends ConstantNode
 
         if ( arg1 == null )
         {
-            /* Fill in the type information in the parent ValueNode */
-            super.init(TypeId.BOOLEAN_ID,
-             Boolean.TRUE,
-             ReuseFactory.getInteger(1));
-
-            setValue( null );
+            initFromNull();
         }
         else if ( arg1 instanceof Boolean )
         {
@@ -89,12 +87,18 @@ public final class BooleanConstantNode extends ConstantNode
         }
         else
         {
-            super.init(
-                arg1,
-                Boolean.TRUE,
-                ReuseFactory.getInteger(0));
+            super.init(arg1, Boolean.TRUE, ReuseFactory.getInteger(0));
             unknownValue = true;
         }
+    }
+
+    private void initFromNull() throws StandardException {
+        /* Fill in the type information in the parent ValueNode */
+        super.init(TypeId.BOOLEAN_ID,
+                Boolean.TRUE,
+                ReuseFactory.getInteger(1));
+
+        setValue( null );
     }
 
     private void initFromBoolean(Boolean val) throws StandardException {
