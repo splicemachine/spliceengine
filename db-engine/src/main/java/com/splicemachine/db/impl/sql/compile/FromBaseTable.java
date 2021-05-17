@@ -1666,9 +1666,7 @@ public class FromBaseTable extends FromTable {
         if(exposedTableName.getSchemaName()==null && correlationName==null)
             exposedTableName.bind(this.getDataDictionary());
 
-        TableName temporaryTableName = (TableName) getNodeFactory().getNode(
-                                           C_NodeTypes.TABLE_NAME,
-                                           exposedTableName.getSchemaName(),
+        TableName temporaryTableName = new TableName(exposedTableName.getSchemaName(),
                                            getLanguageConnectionContext().mangleTableName(exposedTableName.getTableName()),
                                            exposedTableName.getContextManager());
         /*

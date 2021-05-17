@@ -683,8 +683,8 @@ abstract class DMLModStatementNode extends DMLStatementNode
         throws StandardException
     {
 
-        TableName    targetTableName = makeTableName
-            (nodeFactory, contextManager, targetTableDescriptor.getSchemaName(), targetTableDescriptor.getName());
+        TableName targetTableName = new TableName(
+                targetTableDescriptor.getSchemaName(), targetTableDescriptor.getName(), contextManager);
 
         /* We now have the expression as a query tree.  Now, we prepare
          * to bind that query tree to the source's RCL.  That way, the
