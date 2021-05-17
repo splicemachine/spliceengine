@@ -18,6 +18,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.HashableJoinStrategy;
 
+import static com.splicemachine.db.impl.sql.compile.JoinNode.*;
+
 public class MergeSortJoinStrategy extends HashableJoinStrategy {
 
     public MergeSortJoinStrategy() {
@@ -29,12 +31,8 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
                             Optimizer optimizer,
                             CostEstimate outerCost,boolean wasHinted,
                             boolean skipKeyCheck) throws StandardException {
-        if (optimizer.isForSpark() && (
-                containsCorrelatedSubquery(optimizer.getNonPushablePredicates())
-                        || containsCorrelatedSubquery(predList))) {
-            return false;
-        }
-		return super.feasible(innerTable, predList, optimizer,outerCost,wasHinted,skipKeyCheck);
+		return correlatedSubqueryRestriction(optimizer, predList, outerCost.getJoinType())
+                && super.feasible(innerTable, predList, optimizer,outerCost,wasHinted,skipKeyCheck);
 	}
 
     /** @see JoinStrategy#multiplyBaseCostByOuterRows */
@@ -75,6 +73,17 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
     @Override
     public int maxCapacity(int userSpecifiedCapacity,int maxMemoryPerTable,double perRowUsage){
         return Integer.MAX_VALUE;
+    }
+
+    private boolean correlatedSubqueryRestriction(Optimizer optimizer,
+                                                  OptimizablePredicateList predList,
+                                                  int joinType) throws StandardException {
+        if (optimizer.isForSpark()
+            && (joinType == LEFTOUTERJOIN || joinType == FULLOUTERJOIN)
+            && (containsCorrelatedSubquery(optimizer.getNonPushablePredicates()) || containsCorrelatedSubquery(predList))) {
+            return false;
+        }
+        return true;
     }
 
     private boolean containsCorrelatedSubquery(OptimizablePredicateList predList) throws StandardException {
