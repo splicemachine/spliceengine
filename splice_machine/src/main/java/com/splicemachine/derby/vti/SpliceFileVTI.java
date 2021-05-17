@@ -135,9 +135,8 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         boolean defaultValue = CompilerContext.DEFAULT_PRESERVE_LINE_ENDINGS;
         if( op == null || op.getActivation() == null || op.getActivation().getLanguageConnectionContext() == null )
             return defaultValue;
-        String preserveLineEndingsString =
-                PropertyUtil.getCachedDatabaseProperty(op.getActivation().getLanguageConnectionContext(),
-                        GlobalDBProperties.PRESERVE_LINE_ENDINGS.getName());
+        String preserveLineEndingsString = PropertyUtil.getCached(op.getActivation().getLanguageConnectionContext(),
+                                                GlobalDBProperties.PRESERVE_LINE_ENDINGS);
         try {
             if (preserveLineEndingsString != null)
                 return Boolean.parseBoolean(preserveLineEndingsString);

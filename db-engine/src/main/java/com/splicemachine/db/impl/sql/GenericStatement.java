@@ -773,8 +773,7 @@ public class GenericStatement implements Statement{
     }
 
     private void setTimestampFormat(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
-        String timestampFormatString =
-                PropertyUtil.getCachedDatabaseProperty(lcc, GlobalDBProperties.SPLICE_TIMESTAMP_FORMAT.getName() );
+        String timestampFormatString = PropertyUtil.getCached(lcc, GlobalDBProperties.SPLICE_TIMESTAMP_FORMAT );
         if(timestampFormatString == null)
             cc.setTimestampFormat(CompilerContext.DEFAULT_TIMESTAMP_FORMAT);
         else {

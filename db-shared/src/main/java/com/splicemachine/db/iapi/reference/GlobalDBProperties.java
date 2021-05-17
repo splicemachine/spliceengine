@@ -21,7 +21,9 @@ import java.util.stream.Stream;
 
 /**
  * collecting class for properties that are setable with SYSCS_SET_GLOBAL_DATABASE_PROPERTY.
- * Note: Some of the properties are still in com.splicemachine.db.iapi.reference.Property
+ * Note: Some of the properties are still in com.splicemachine.db.iapi.reference.Property,
+ * but the idea is to have all global database properties here.
+ *
  * PropertyType consist of
  * - name (e.g. splice.optimizer.disablePerParallelTaskJoinCosting)
  * - information (e.g. "if true, disable calculation of join costs as cost per parallel task")

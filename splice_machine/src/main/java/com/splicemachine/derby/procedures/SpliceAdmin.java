@@ -1187,7 +1187,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
             resultHelper.newRow();
             colProperty.set(property.getName());
             colValue.set(value);
-            colInfo.set(property.getInformation()); // reserved to add information about properties later
+            colInfo.set(property.getInformation());
         }
         resultSet[0] = resultHelper.getResultSet();
     }

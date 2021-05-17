@@ -32,23 +32,21 @@
 package com.splicemachine.db.iapi.reference;
 
 /**
- List of all properties understood by the system. It also has some other static fields.
-
-
- <P>
- This class exists for two reasons
- <Ol>
- <LI> To act as the internal documentation for the properties.
- <LI> To remove the need to declare a java static field for the property
- name in the protocol/implementation class. This reduces the footprint as
- the string is final and thus can be included simply as a String constant pool entry.
- </OL>
- <P>
- This class should not be shipped with the product.
-
- <P>
- This class has no methods, all it contains are String's which by
- are public, static and final since they are declared in an interface.
+ * (DEPRECATED, please add new options / migrate old to com.splicemachine.db.iapi.reference.GlobalDBProperties)
+ *
+ * List of all properties understood by the system (setable with SYSCS_SET_GLOBAL_DATABASE_PROPERTY).
+ * Other static fields should go to PropertyHelper.
+ *
+ * This class exists for two reasons
+ * - To act as the internal documentation for the properties.
+ * - To remove the need to declare a java static field for the property
+ *   name in the protocol/implementation class. This reduces the footprint as
+ *   the string is final and thus can be included simply as a String constant pool entry.
+ *
+ * This class should not be shipped with the product.
+ *
+ * This class has no methods, all it contains are String's which by
+ * are public, static and final since they are declared in an interface.
  */
 
 public interface Property {
@@ -1209,7 +1207,7 @@ public interface Property {
      * How many partitions to fetch in parallel from Spark. It can increase memory consumption on RegionServer if fetching
      * too much data
      */
-    String OLAP_PARALLEL_PARTITIONS = "olapParallelPartitions"; // todo: what is the difference to splice.olapParallelPartitions?
+    String OLAP_PARALLEL_PARTITIONS = "olapParallelPartitions";
 
     /**
      * Shuffle size to use for Spark shuffles. When dealing with big intermediate result sets it has to be larger, when
