@@ -698,11 +698,7 @@ class SQLGrammarImpl {
                 columnName = "UPD_SUBQ_COL_" + index;
                 generateName = true;
             }
-            ResultColumn innerRC = (ResultColumn) nodeFactory.getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    columnName,
-                    rc.getExpression(),
-                    getContextManager());
+            ResultColumn innerRC = new ResultColumn(columnName, rc.getExpression(), getContextManager());
             if (generateName) {
                 innerRC.setNameGenerated(true);
             }

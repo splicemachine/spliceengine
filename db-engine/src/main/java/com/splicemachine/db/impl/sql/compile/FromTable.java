@@ -990,11 +990,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
                     columnName,
                     exposedName,
                     getContextManager());
-            resultColumn=(ResultColumn)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    columnName,
-                    valueNode,
-                    getContextManager());
+            resultColumn = new ResultColumn(columnName, valueNode, getContextManager());
 
             // Build the ResultColumnList to return //
             rcList.addResultColumn(resultColumn);
