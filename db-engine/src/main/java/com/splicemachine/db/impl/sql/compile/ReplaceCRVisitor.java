@@ -29,48 +29,74 @@
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package com.splicemachine.db.impl.sql.compile.subquery;
+package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.impl.ast.CorrelatedColRefCollectingVisitor;
-import com.splicemachine.db.impl.sql.compile.BinaryRelationalOperatorNode;
-import com.splicemachine.db.impl.sql.compile.ColumnReference;
-import splice.com.google.common.base.Predicate;
+import com.splicemachine.db.iapi.sql.compile.Visitable;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
+
+import java.util.Vector;
 
 /**
- * A predicate that evaluates to true if a given BinaryRelationalOperatorNode has a single occurrence
- * of a correlated column at sourceLevel.
- *
- * This can be used to find correlated inequality predicates in a subquery that are referencing one level up.
+ * Replace the ColumnReference in the tree having the specified sourceLevel
+ * with the replacementCR.
  */
-public class CorrelatedInequalityBronPredicate implements Predicate<BinaryRelationalOperatorNode> {
+public class ReplaceCRVisitor implements Visitor {
 
-    private CorrelatedColRefCollectingVisitor correlatedColRefCollectingVisitor;
+    private int sourceLevel;
+    private ColumnReference replacementCR;
+    private boolean done = false;
 
-    public CorrelatedInequalityBronPredicate(int sourceLevel) {
-        correlatedColRefCollectingVisitor =
-            new CorrelatedColRefCollectingVisitor<>(1, sourceLevel);
+    public ReplaceCRVisitor(ColumnReference replacementCR, int sourceLevel) {
+        this.replacementCR = replacementCR;
+        this.sourceLevel = sourceLevel;
     }
 
     @Override
-    public boolean apply(BinaryRelationalOperatorNode bron) {
-        try {
-            correlatedColRefCollectingVisitor.initialize();
-            bron.accept(correlatedColRefCollectingVisitor);
-        }
-        catch (StandardException e) {
-            return false;
-        }
-
-        return !correlatedColRefCollectingVisitor.getCollected().isEmpty();
+    public boolean visitChildrenFirst(Visitable node) {
+        return false;
     }
 
-    public ColumnReference popSubqueryColumn() {
-        return (ColumnReference)correlatedColRefCollectingVisitor.popSubqueryColumn();
+    @Override
+    public boolean stopTraversal() {
+        return done;
+    }
+    ////////////////////////////////////////////////
+    //
+    // VISITOR INTERFACE
+    //
+    ////////////////////////////////////////////////
+
+    /**
+     * If we have found the target node, we are done.
+     *
+     * @param node the node to process
+     * @return me
+     */
+    @Override
+    public Visitable visit(Visitable node, QueryTreeNode parent) {
+        if (node instanceof ColumnReference) {
+            ColumnReference CR = (ColumnReference)node;
+            if (CR.getSourceLevel() == sourceLevel) {
+                done = true;
+                return replacementCR;
+            }
+        }
+        return node;
     }
 
-    public ColumnReference popCorrelatedColumn() {
-        return (ColumnReference)correlatedColRefCollectingVisitor.popCorrelatedColumn();
+    /**
+     * Don't visit childen under the ColumnReference node.
+     *
+     * @return true/false
+     */
+    @Override
+    public boolean skipChildren(Visitable node) {
+
+        return node instanceof ColumnReference;
+    }
+
+    public boolean columnFound() {
+        return done;
     }
 
 }

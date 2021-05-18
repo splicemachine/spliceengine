@@ -284,8 +284,11 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
             ColumnReference colRef = FromSubqueryColRefFactory.build(outerNestingLevel, fromSubquery,
                     i, outerSelectNode.getNodeFactory(), contextManager);
 
-            FromSubqueryColRefFactory.replace(pred, colRef, subqueryNestingLevel);
-
+            ReplaceCRVisitor replaceCRVisitor = new ReplaceCRVisitor(colRef, subqueryNestingLevel);
+            pred.accept(replaceCRVisitor);
+            if (!replaceCRVisitor.columnFound())
+                throw StandardException.newException(LANG_INTERNAL_ERROR,
+                     "Could not find predicate column to replace while flattening subquery.");
 
             /*
              * Finally add the predicate to the outer query.
@@ -363,7 +366,11 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
                      */
                     BinaryRelationalOperatorNode pred = correlatedSubqueryPredsD.get(i);
                     ColumnReference joinColRef = FromSubqueryColRefFactory.build(outerNestingLevel, fromSubquery, i, nodeFactory, contextManager);
-                    FromSubqueryColRefFactory.replace(pred, joinColRef, subqueryNestingLevel);
+                    ReplaceCRVisitor replaceCRVisitor = new ReplaceCRVisitor(joinColRef, subqueryNestingLevel);
+                    pred.accept(replaceCRVisitor);
+                    if (!replaceCRVisitor.columnFound())
+                        throw StandardException.newException(LANG_INTERNAL_ERROR,
+                             "Could not find predicate column to replace while flattening subquery.");
                     FlatteningUtils.addPredToTree(joinClause, pred);
                     /*
                      * Add right-side IS NULL predicate to outer query.

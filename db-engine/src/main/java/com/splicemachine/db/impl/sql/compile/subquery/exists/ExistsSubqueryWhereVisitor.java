@@ -135,6 +135,7 @@ class ExistsSubqueryWhereVisitor implements Visitor {
 
             if (typeEPredicate.apply(bron)) {
                 ColumnReference correlatedColumnReference = typeEPredicate.popCorrelatedColumn();
+                ColumnReference subqueryColumn = typeEPredicate.popSubqueryColumn();
                 if (canLocateColumnInOuterSelect(correlatedColumnReference, outerSelectNode)) {
                     // Columns from Type E predicates are processed in the same manner as those from Type D predicates
                     correlatedColumnReferences.add(correlatedColumnReference);

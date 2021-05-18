@@ -2,9 +2,7 @@ package com.splicemachine.db.impl.ast;
 
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.ColumnReference;
-import com.splicemachine.db.impl.sql.compile.OrderedColumn;
 import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
-import com.splicemachine.db.impl.sql.compile.VirtualColumnNode;
 import splice.com.google.common.base.Predicate;
 import splice.com.google.common.base.Predicates;
 
@@ -16,7 +14,8 @@ import java.util.List;
  */
 public class CorrelatedColRefCollectingVisitor<T> extends ColumnCollectingVisitor {
     boolean done = false;
-    private final List<T> correlatedColumns;
+    private final List<T> subqueryColumns;
+    private final List<T> correlatedOuterTableColumns;
     private final int maxAllowableHits;
     private final int sourceLevel;
 
@@ -25,14 +24,21 @@ public class CorrelatedColRefCollectingVisitor<T> extends ColumnCollectingVisito
     // and end the search.  All other column references found must have a nesting level
     // one greater than sourceLevel in order to guarantee that the searched predicate
     // can be fully evaluated at the level of the subquery.  Finding ColumnReferences
-    // at any other level ends the search and clears out the list of found correlatedColumns.
+    // at any other level ends the search and clears out the list of found subqueryColumns.
     public CorrelatedColRefCollectingVisitor(int maxAllowableHits, int sourceLevel) {
         super(Predicates.instanceOf(ColumnReference.class));
         if (maxAllowableHits < 1)
             done = true;
         this.maxAllowableHits = maxAllowableHits;
         this.sourceLevel = sourceLevel;
-        correlatedColumns = new ArrayList<>();
+        subqueryColumns = new ArrayList<>();
+        correlatedOuterTableColumns = new ArrayList<>();
+    }
+
+    private void reset() {
+        subqueryColumns.clear();
+        correlatedOuterTableColumns.clear();
+        done = true;
     }
 
     @Override
@@ -42,24 +48,27 @@ public class CorrelatedColRefCollectingVisitor<T> extends ColumnCollectingVisito
         if (!foundColumns.isEmpty()) {
             for (Object qtNode:foundColumns) {
                 ColumnReference colRef = (ColumnReference)qtNode;
-                if (!colRef.getCorrelated())
-                    continue;
-                if (colRef.getSourceLevel() != sourceLevel) {
-                    // Allow any number of column references at the subquery
-                    // level, but no other level.
-                    if (colRef.getSourceLevel() == sourceLevel+1)
+                if (colRef.getSourceLevel() != sourceLevel+1) {
+                    // Allow at most one column reference from the outer table
+                    // or inner table, but no other level.
+                    if (colRef.getSourceLevel() == sourceLevel) {
+                        if (correlatedOuterTableColumns.size() == maxAllowableHits) {
+                            reset();
+                            break;
+                        }
+                        else
+                            correlatedOuterTableColumns.add((T)colRef);
                         continue;
-                    correlatedColumns.clear();
-                    done = true;
+                    }
+                    reset();
                     break;
                 }
-                if (correlatedColumns.size() == maxAllowableHits) {
-                    correlatedColumns.clear();
-                    done = true;
+                if (subqueryColumns.size() == maxAllowableHits) {
+                    reset();
                     break;
                 }
                 else
-                    correlatedColumns.add((T)colRef);
+                    subqueryColumns.add((T)colRef);
             }
             foundColumns.clear();
         }
@@ -75,17 +84,49 @@ public class CorrelatedColRefCollectingVisitor<T> extends ColumnCollectingVisito
 
     @Override
     public List<T> getCollected() {
-        return correlatedColumns;
+        // Must have the same number of outer table and inner table column references.
+        if (subqueryColumns.size() != correlatedOuterTableColumns.size()) {
+            subqueryColumns.clear();
+            correlatedOuterTableColumns.clear();
+        }
+        return subqueryColumns;
     }
 
-    public T popColumn() {
-        T colRef = correlatedColumns.isEmpty() ? null :
-                   correlatedColumns.remove(0);
+    public T popSubqueryColumn() {
+        T colRef = subqueryColumns.isEmpty() ? null :
+                   subqueryColumns.remove(0);
+        return colRef;
+    }
+
+    public T popCorrelatedColumn() {
+        T colRef = correlatedOuterTableColumns.isEmpty() ? null :
+                   correlatedOuterTableColumns.remove(0);
         return colRef;
     }
 
     public void initialize() {
-        correlatedColumns.clear();
+        subqueryColumns.clear();
+        correlatedOuterTableColumns.clear();
         done = false;
+    }
+
+    public List<T> getCorrelatedOuterTableColumns() {
+        // Must have the same number of outer table and inner table column references.
+        if (subqueryColumns.size() != correlatedOuterTableColumns.size()) {
+            subqueryColumns.clear();
+            correlatedOuterTableColumns.clear();
+        }
+        return correlatedOuterTableColumns;
+    }
+
+    public T getOuterTableColumn() {
+        // Must have the same number of outer table and inner table column references.
+        if (subqueryColumns.size() != correlatedOuterTableColumns.size()) {
+            subqueryColumns.clear();
+            correlatedOuterTableColumns.clear();
+        }
+        if (correlatedOuterTableColumns.size() != 1)
+            return null;
+        return correlatedOuterTableColumns.get(0);
     }
 }

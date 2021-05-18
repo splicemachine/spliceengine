@@ -41,9 +41,7 @@ import com.splicemachine.db.impl.sql.compile.*;
 
 import java.util.List;
 
-import static com.splicemachine.db.iapi.sql.compile.C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE;
 import static com.splicemachine.db.impl.sql.compile.AndNode.newAndNode;
-import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
 public class GroupByUtil {
 
@@ -99,62 +97,15 @@ public class GroupByUtil {
                 if (correlatedColRefCollectingVisitor.getCollected().isEmpty())
                     throw new IllegalArgumentException("Did not find correlated column ref on either side of BRON");
                 else {
-                        ColumnReference leftColRef, rightColRef, correlatedColumnReference;
-                        correlatedColumnReference =
-                            (ColumnReference)correlatedColRefCollectingVisitor.getCollected().get(0);
+                    List<ColumnReference> outerTableColumns = correlatedColRefCollectingVisitor.getCorrelatedOuterTableColumns();
+                    if (outerTableColumns.size() != 1)
+                        throw new IllegalArgumentException("Too many outer table columns to do flattening");
+                    outerColumnReference = outerTableColumns.get(0);
+                    ColumnReference innerColumnReference =
+                        (ColumnReference)correlatedColRefCollectingVisitor.getCollected().get(0);
 
-                        FromTable fromTable;
-                        String tableName = correlatedColumnReference.getTableName();
-                        String schemaName = correlatedColumnReference.getSchemaName();
-                        if (tableName == null || schemaName == null) {
-                            fromTable = outerSelectNode.getFromList().getFromTableByTableNumber(correlatedColumnReference.getTableNumber());
-                            correlatedColumnReference.setTableNameNode(fromTable.getTableName());
-                        }
-                        else
-                            fromTable = outerSelectNode.getFromList().
-                                             getFromTableByName(correlatedColumnReference.getTableName(),
-                                                                correlatedColumnReference.getSchemaName(), true);
-                        leftColRef = (ColumnReference)correlatedColumnReference.getClone();
-                        rightColRef = (ColumnReference)correlatedColumnReference.getClone();
-
-                        if (fromTable instanceof FromBaseTable) {
-                            FromBaseTable fromBaseTable = (FromBaseTable)fromTable;
-                            FromBaseTable pushedFromBaseTable = fromBaseTable.shallowClone();
-                            pushedFromBaseTable = (FromBaseTable)subquerySelectNode.getFromList().bindExtraTableAndAddToFromClause(pushedFromBaseTable);
-                            pushedFromBaseTable.setLevel(subquerySelectNode.getNestingLevel());
-                            leftColRef = (ColumnReference) subquerySelectNode.bindExtraExpressions(leftColRef);
-
-                            outerColumnReference = rightColRef;
-                            BinaryRelationalOperatorNode bron =
-                                (BinaryRelationalOperatorNode)
-                                leftColRef.getNodeFactory().getNode(
-                                    BINARY_EQUALS_OPERATOR_NODE,
-                                    leftColRef,
-                                    rightColRef,
-                                    leftColRef.getContextManager());
-
-                            bron.bindExpression(subquerySelectNode.getFromList(), null, null);
-                            // rebind one of the columns to refer to the outer table.
-                            outerSelectNode.bindExtraExpressions(rightColRef);
-
-                            // Append new predicate to correlatedSubqueryPredsD as we need
-                            // to process the generated equality condition in the same manner
-                            // as in subqueries with correlated equality join conditions.
-                            correlatedSubqueryPreds.add(bron);
-
-                            // Re-bind the correlated column reference in bro, so it points
-                            // to the column in copy of the table that was pushed into
-                            // the subquery.
-                            subquerySelectNode.bindExtraExpressions(correlatedColumnReference);
-                            AndNode andNode = newAndNode(bro, true);
-                            appendAndConditionToWhereClause(subquerySelectNode, andNode);
-
-                            addGroupByNodes(subquerySelectNode, leftColRef);
-                        }
-                        else {
-                            throw StandardException.newException(LANG_INTERNAL_ERROR,
-                                "Unable to build new predicate during subquery flattening.");
-                        }
+                    addGroupByNodes(subquerySelectNode, innerColumnReference);
+                    correlatedSubqueryPreds.add(bro);
                 }
             }
         }
