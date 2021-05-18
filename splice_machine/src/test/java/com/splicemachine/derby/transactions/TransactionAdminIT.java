@@ -147,15 +147,14 @@ public class TransactionAdminIT {
 
     @Test
     public void testConnection() throws Exception {
-        Properties info = new Properties();
-        String url = "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin;autoCommit=%s";
-        Connection connection = DriverManager.getConnection(String.format(url, "false", info));
+
+        Connection connection = classWatcher.connectionBuilder().autoCommit(false).build();
         boolean autoCommit = connection.getAutoCommit();
         Assert.assertTrue(autoCommit==false);
 
-        Connection connectionAutoCommit = DriverManager.getConnection(String.format(url, "true", info));
-        autoCommit = connection.getAutoCommit();
-        Assert.assertTrue(autoCommit==false);
+        Connection connectionAutoCommit = classWatcher.connectionBuilder().autoCommit(true).build();
+        autoCommit = connectionAutoCommit.getAutoCommit();
+        Assert.assertTrue(autoCommit==true);
 
         try(Statement statement = connection.createStatement()) {
             statement.execute("create table a(i int)");
