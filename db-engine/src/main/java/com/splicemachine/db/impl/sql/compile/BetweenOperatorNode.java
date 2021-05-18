@@ -144,11 +144,7 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		rightBCO.bindComparisonOperator();
 
 		/* Create and return the OR */
-		newOr = (OrNode) nodeFactory.getNode(
-												C_NodeTypes.OR_NODE,
-												leftBCO,
-												rightBCO,
-												cm);
+		newOr = new OrNode(leftBCO, rightBCO, cm);
 		newOr.postBindFixup();
 
 		/* Tell optimizer to use the between selectivity instead of >= * <= selectivities */

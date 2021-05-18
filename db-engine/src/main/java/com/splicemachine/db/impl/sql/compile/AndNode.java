@@ -150,7 +150,7 @@ public class AndNode extends BinaryLogicalOperatorNode{
         /* Convert the AndNode to an OrNode */
         ValueNode orNode;
 
-        orNode=(ValueNode)getNodeFactory().getNode(C_NodeTypes.OR_NODE,getLeftOperand(),getRightOperand(),getContextManager());
+        orNode = new OrNode(getLeftOperand(),getRightOperand(),getContextManager());
         orNode.setType(getTypeServices());
         return orNode;
     }
