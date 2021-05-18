@@ -153,10 +153,11 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
                 correlatedSubqueryPreds,
                 new CorrelatedEqualityBronPredicate(topSelectNode.getNestingLevel()));
         // TODO: Support aggregate subquery flattening with inequality conditions.
-//        subqueryWhereClause = FlatteningUtils.findCorrelatedSubqueryPredicates(
-//                subqueryWhereClause,
-//                correlatedSubqueryInequalityPreds,
-//                new CorrelatedInequalityBronPredicate(topSelectNode.getNestingLevel()));
+        //       DB-12090 is opened to handle this case.
+        // subqueryWhereClause = FlatteningUtils.findCorrelatedSubqueryPredicates(
+        //                subqueryWhereClause,
+        //                correlatedSubqueryInequalityPreds,
+        //                new CorrelatedInequalityBronPredicate(topSelectNode.getNestingLevel()));
         subquerySelectNode.setWhereClause(subqueryWhereClause);
         subquerySelectNode.setOriginalWhereClause(subqueryWhereClause);
 
