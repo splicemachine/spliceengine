@@ -20,8 +20,10 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
@@ -54,15 +56,11 @@ public class KafkaExportNode extends DMLStatementNode {
         return "KafkaExport";
     }
 
-    @Override
-    public void init(Object statementNode, Object argumentsVector) throws StandardException {
-        if (!(argumentsVector instanceof List) || ((List) argumentsVector).size() != EXPECTED_ARGUMENT_COUNT) {
-            throw StandardException.newException(SQLState.LANG_DB2_NUMBER_OF_ARGS_INVALID, "EXPORT_KAFKA");
-        }
-        List argsList = (List) argumentsVector;
-        this.node = (StatementNode) statementNode;
-
-        this.topicName = ExportNode.stringValue(argsList.get(0));
+    public KafkaExportNode(StatementNode statementNode, List argumentsVector, ContextManager cm) throws StandardException {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.KAFKA_EXPORT_NODE);
+        this.node = statementNode;
+        this.topicName = ExportNode.stringValue(argumentsVector.get(0));
     }
 
     @Override
