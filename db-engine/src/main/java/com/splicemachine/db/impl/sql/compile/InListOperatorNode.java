@@ -415,13 +415,9 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                 // of the columns in a multicolumn IN list.
                 if (!isSingleLeftOperand()) {
                     NodeFactory nodeFactory = getNodeFactory();
-                    QueryTreeNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
+                    BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
                     ValueNode temp;
-                    temp = (AndNode) nodeFactory.getNode(
-                        C_NodeTypes.AND_NODE,
-                        equal,
-                        trueNode,
-                        getContextManager());
+                    temp = new AndNode(equal, trueNode, getContextManager());
                     ((AndNode) temp).postBindFixup();
                     if (lastAnd != null)
                         ((AndNode) lastAnd).setRightOperand(temp);
@@ -520,11 +516,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 			rightBCO.bindComparisonOperator();
 
 			/* Create the AND */
-			newAnd = (AndNode) getNodeFactory().getNode(
-												C_NodeTypes.AND_NODE,
-												leftSide,
-												rightBCO,
-												getContextManager());
+			newAnd = new AndNode(leftSide, rightBCO, getContextManager());
 			newAnd.postBindFixup();
 
 			leftSide = newAnd;

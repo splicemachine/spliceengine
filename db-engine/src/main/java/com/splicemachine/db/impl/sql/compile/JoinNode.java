@@ -1725,15 +1725,9 @@ public class JoinNode extends TableOperatorNode{
 
                 // Create a new join clause by ANDing the new = condition and
                 // the old join clause.
-                AndNode newJoinClause=(AndNode)getNodeFactory().getNode(
-                        C_NodeTypes.AND_NODE,
-                        equalsNode,
-                        joinClause,
-                        getContextManager());
-
+                AndNode newJoinClause = new AndNode(equalsNode, joinClause, getContextManager());
                 newJoinClause.postBindFixup();
-
-                joinClause=newJoinClause;
+                joinClause = newJoinClause;
             }
         }
 

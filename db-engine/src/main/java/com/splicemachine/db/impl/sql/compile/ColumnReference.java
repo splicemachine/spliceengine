@@ -709,13 +709,10 @@ public class ColumnReference extends ValueNode {
     public ValueNode putAndsOnTop()
             throws StandardException
     {
-        BinaryComparisonOperatorNode        equalsNode;
-        BooleanConstantNode    trueNode;
         NodeFactory        nodeFactory = getNodeFactory();
-        ValueNode        andNode;
 
-        trueNode = new BooleanConstantNode(Boolean.TRUE, getContextManager());
-        equalsNode = (BinaryComparisonOperatorNode)
+        BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE, getContextManager());
+        BinaryComparisonOperatorNode equalsNode = (BinaryComparisonOperatorNode)
                 nodeFactory.getNode(
                         C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
                         this,
@@ -723,12 +720,8 @@ public class ColumnReference extends ValueNode {
                         getContextManager());
         /* Set type info for the operator node */
         equalsNode.bindComparisonOperator();
-        andNode = (ValueNode) nodeFactory.getNode(
-                C_NodeTypes.AND_NODE,
-                equalsNode,
-                trueNode,
-                getContextManager());
-        ((AndNode) andNode).postBindFixup();
+        AndNode andNode = new AndNode(equalsNode, trueNode, getContextManager());
+        andNode.postBindFixup();
         return andNode;
     }
 
