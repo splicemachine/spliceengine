@@ -101,6 +101,17 @@ public class ColumnDescriptorList extends ArrayList<ColumnDescriptor>
         return (returnValue !=null && tableID.equals(returnValue.getReferencingUUID()))?returnValue:null;
     }
 
+    public ColumnDescriptor getColumnDescriptorByStoragePosition(UUID tableID, int columnID) {
+        ColumnDescriptor returnValue = null;
+        for (int i = 0;i < size(); ++i) {
+            ColumnDescriptor cd = elementAt(i);
+            if (cd.getStoragePosition() == columnID) {
+                returnValue = cd;
+                break;
+            }
+        }
+        return (returnValue !=null && tableID.equals(returnValue.getReferencingUUID()))?returnValue:null;
+    }
     /**
      * Return the nth (0-based) element in the list.
      *
@@ -164,4 +175,28 @@ public class ColumnDescriptorList extends ArrayList<ColumnDescriptor>
         return result;
     }
 
+    public ColumnDescriptor getColumnDescriptorByStoragePosition(int n) {
+        int size = size();
+        for (int index = 0; index < size; index++)
+        {
+            ColumnDescriptor columnDescriptor = elementAt(index);
+            int storagePosition = columnDescriptor.getStoragePosition();
+            if (storagePosition == n) {
+                return columnDescriptor;
+            }
+        }
+        return null;
+    }
+
+    public int maxStoragePosition() {
+        int max = 0;
+        for (int i = 0; i < size(); ++i) {
+            ColumnDescriptor cd = elementAt(i);
+            int position = cd.getStoragePosition();
+            if (max < position) {
+                max = position;
+            }
+        }
+        return max;
+    }
 }
