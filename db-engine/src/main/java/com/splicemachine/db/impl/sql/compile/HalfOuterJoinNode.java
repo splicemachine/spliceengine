@@ -660,10 +660,7 @@ public class HalfOuterJoinNode extends JoinNode{
                 for(int bit=0;bit<numTables;bit++){
                     if(refMap.get(bit) && innerMap.get(bit)){
                         // OJ -> IJ
-                        JoinNode ij=(JoinNode)
-                                getNodeFactory().getNode(
-                                        C_NodeTypes.JOIN_NODE,
-                                        leftResultSet,
+                        JoinNode ij= new JoinNode(leftResultSet,
                                         rightResultSet,
                                         joinClause,
                                         null,
