@@ -701,10 +701,7 @@ public class ColumnReference extends ValueNode {
         NodeFactory        nodeFactory = getNodeFactory();
         ValueNode        andNode;
 
-        trueNode = (BooleanConstantNode) nodeFactory.getNode(
-                C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                Boolean.TRUE,
-                getContextManager());
+        trueNode = new BooleanConstantNode(Boolean.TRUE, getContextManager());
         equalsNode = (BinaryComparisonOperatorNode)
                 nodeFactory.getNode(
                         C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,

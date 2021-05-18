@@ -1657,8 +1657,7 @@ public class JoinNode extends TableOperatorNode{
                 }
 
                 if (joinClause instanceof UntypedNullConstantNode) {
-                    joinClause = (ValueNode) getNodeFactory().getNode(
-                            C_NodeTypes.BOOLEAN_CONSTANT_NODE, false, getContextManager());
+                    joinClause = new BooleanConstantNode(Boolean.FALSE,getContextManager());
                 }
             }
 
@@ -1704,10 +1703,7 @@ public class JoinNode extends TableOperatorNode{
              * We need to bind the CRs a side at a time to ensure that
              * we don't find an bogus ambiguous column reference. (Bug 377)
              */
-            joinClause=(ValueNode)getNodeFactory().getNode(
-                    C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                    Boolean.TRUE,
-                    getContextManager());
+            joinClause = new BooleanConstantNode(Boolean.TRUE,getContextManager());
 
             int usingSize=usingClause.size();
             for(int index=0;index<usingSize;index++){
