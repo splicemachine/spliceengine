@@ -131,7 +131,7 @@ public class GroupByUtil {
 
         // Create GroupByList if there isn't already one in the subquery.
         if (subquerySelectNode.getGroupByList() == null) {
-            GroupByList groupByList = newGroupByList(subquerySelectNode.getNodeFactory(), subquerySelectNode.getContextManager());
+            GroupByList groupByList = new GroupByList(subquerySelectNode.getContextManager());
             subquerySelectNode.setGroupByList(groupByList);
         }
 
@@ -154,10 +154,6 @@ public class GroupByUtil {
                 contextManager);
         rc.setColumnDescriptor(null);
         return rc;
-    }
-
-    private static GroupByList newGroupByList(NodeFactory nodeFactory, ContextManager contextManager) throws StandardException {
-        return (GroupByList) nodeFactory.getNode(C_NodeTypes.GROUP_BY_LIST, contextManager);
     }
 
     private static GroupByColumn newGroupByColumn(NodeFactory nodeFactory, ValueNode groupByCol, ResultColumn rc) throws StandardException {

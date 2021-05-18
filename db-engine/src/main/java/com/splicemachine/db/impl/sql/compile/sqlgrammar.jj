@@ -11645,9 +11645,7 @@ groupByClause() throws StandardException :
 GroupByList
 groupingColumnReferenceList(boolean fromPartitionBy) throws StandardException :
 {
-    GroupByList groupingCols = (GroupByList) nodeFactory.getNode(
-                                    C_NodeTypes.GROUP_BY_LIST,
-                                    getContextManager());
+    GroupByList groupingCols = new GroupByList(getContextManager());
 }
 {
     groupingColumnReference(groupingCols, fromPartitionBy) ( <COMMA> groupingColumnReference(groupingCols, fromPartitionBy) ) *
