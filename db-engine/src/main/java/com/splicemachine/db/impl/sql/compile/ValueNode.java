@@ -624,12 +624,8 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     {
         NodeFactory        nodeFactory = getNodeFactory();
 
-        QueryTreeNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
-        AndNode andNode = (AndNode) nodeFactory.getNode(
-                                        C_NodeTypes.AND_NODE,
-                                        this,
-                                        trueNode,
-                                        getContextManager());
+        BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
+        AndNode andNode = new AndNode(this, trueNode, getContextManager());
         andNode.postBindFixup();
         return andNode;
     }

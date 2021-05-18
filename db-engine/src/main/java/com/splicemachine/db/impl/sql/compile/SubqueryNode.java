@@ -2395,11 +2395,7 @@ public class SubqueryNode extends ValueNode{
         }
 
         /* Place an AndNode above the <BinaryComparisonOperator> */
-        andNode=(AndNode)getNodeFactory().getNode(
-                C_NodeTypes.AND_NODE,
-                andLeft,
-                getTrueNode(),
-                getContextManager());
+        andNode = new AndNode(andLeft, getTrueNode(), getContextManager());
 
         /* Build the referenced table map for the new predicate */
         tableMap=new JBitSet(numTables);
@@ -2613,11 +2609,7 @@ public class SubqueryNode extends ValueNode{
             ValueNode tree = bcoNode;
             for (int i = 1; i < leftItems.size(); i++) {
                 bcoNode = getSingleComparisonJoinCondition(nodeType, leftItems.get(i), rightItems.get(i));
-                tree = (AndNode) getNodeFactory().getNode(
-                        C_NodeTypes.AND_NODE,
-                        tree,
-                        bcoNode,
-                        getContextManager());
+                tree = new AndNode(tree, bcoNode, getContextManager());
                 ((AndNode) tree).postBindFixup();
             }
             return tree;
