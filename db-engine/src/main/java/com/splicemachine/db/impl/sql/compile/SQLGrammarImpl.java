@@ -630,9 +630,7 @@ class SQLGrammarImpl {
         ValueNode alteredWhereClause;
 
         if (whereClause != null && innerWhere != null) {
-            alteredWhereClause = (ValueNode) getNodeFactory().getNode(
-                    C_NodeTypes.AND_NODE,
-                    whereClause, /* the one passed into this method */
+            alteredWhereClause = new AndNode(whereClause, /* the one passed into this method */
                     innerWhere,  /* the one pulled from subquery */
                     getContextManager());
         } else {

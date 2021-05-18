@@ -1675,11 +1675,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                  */
                 Predicate predToPush;
                 if((isIn && !thisPred.isInListProbePredicate()) || isBetween){
-                    AndNode andCopy=(AndNode)getNodeFactory().getNode(
-                            C_NodeTypes.AND_NODE,
-                            thisPred.getAndNode().getLeftOperand(),
-                            thisPred.getAndNode().getRightOperand(),
-                            getContextManager());
+                    AndNode andCopy= new AndNode(thisPred.getAndNode().getLeftOperand(),
+                            thisPred.getAndNode().getRightOperand(), getContextManager());
                     andCopy.copyFields(thisPred.getAndNode());
                     Predicate predCopy=(Predicate)getNodeFactory().getNode(
                             C_NodeTypes.PREDICATE,
@@ -2314,11 +2311,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
                 // Convert the predicate into CNF form
                 ValueNode trueNode = new BooleanConstantNode(Boolean.TRUE,contextManager);
-                AndNode newAnd=(AndNode)getNodeFactory().getNode(
-                        C_NodeTypes.AND_NODE,
-                        leftOperand,
-                        trueNode,
-                        contextManager);
+                AndNode newAnd = new AndNode(leftOperand, trueNode, contextManager);
                 newAnd.postBindFixup();
                 JBitSet tableMap=new JBitSet(select.referencedTableMap.size());
 
@@ -2803,11 +2796,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     newEquals.bindComparisonOperator();
                                /* Create the AND */
                     ValueNode trueNode= new BooleanConstantNode(Boolean.TRUE,getContextManager());
-                    AndNode newAnd=(AndNode)getNodeFactory().getNode(
-                            C_NodeTypes.AND_NODE,
-                            newEquals,
-                            trueNode,
-                            getContextManager());
+                    AndNode newAnd = new AndNode(newEquals, trueNode, getContextManager());
                     newAnd.postBindFixup();
                     // Add a new predicate to both the equijoin clauses and this list
                     JBitSet tableMap=new JBitSet(numTables);
@@ -3040,7 +3029,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
                                /* Create the AND */
                     ValueNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
-                    AndNode newAnd=(AndNode)getNodeFactory().getNode(
+                    AndNode newAnd = (AndNode)getNodeFactory().getNode(
                             C_NodeTypes.AND_NODE,
                             roClone,
                             trueNode,

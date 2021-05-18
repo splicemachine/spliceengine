@@ -5482,11 +5482,7 @@ andExpression(ValueNode farLeftOperand) throws StandardException :
 
         if (farLeftOperand != null)
         {
-            test = (ValueNode) nodeFactory.getNode(
-                                        C_NodeTypes.AND_NODE,
-                                        farLeftOperand,
-                                        test,
-                                        getContextManager());
+            test = new AndNode(farLeftOperand, test, getContextManager());
         }
         return test;
     }
@@ -5863,9 +5859,7 @@ additiveExpressionTuple(
                         rightTuple.get(0),
                         getContextManager());
         for (int i = 1; i < leftTuple.size(); ++i) {
-            value = (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.AND_NODE,
-                            value,
+            value = new AndNode(value,
                             (ValueNode) nodeFactory.getNode(
                                 nodeType,
                                 leftTuple.get(i),

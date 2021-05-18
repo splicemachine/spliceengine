@@ -195,12 +195,7 @@ public class QueryRewriteVisitor extends AbstractSpliceVisitor {
 
     public static AndNode newAndNode(ValueNode left, boolean doPostBindFixup) throws StandardException {
         ValueNode trueNode = new BooleanConstantNode(Boolean.TRUE,left.getContextManager());
-        AndNode    andNode;
-        andNode = (AndNode) left.getNodeFactory().getNode(
-                                                    C_NodeTypes.AND_NODE,
-                                                    left,
-                                                    trueNode,
-                                                    left.getContextManager());
+        AndNode   andNode = new AndNode(left, trueNode, left.getContextManager());
         if (doPostBindFixup)
             andNode.postBindFixup();
         return andNode;

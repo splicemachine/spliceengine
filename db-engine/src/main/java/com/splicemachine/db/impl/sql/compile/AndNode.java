@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Node;
@@ -39,6 +40,13 @@ import com.splicemachine.db.iapi.sql.compile.Node;
 import java.util.List;
 
 public class AndNode extends BinaryLogicalOperatorNode{
+
+    public AndNode() {}
+    public AndNode(ValueNode left, ValueNode right, ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.AND_NODE);
+        init(left, right);
+    }
 
     /**
      * Initializer for an AndNode

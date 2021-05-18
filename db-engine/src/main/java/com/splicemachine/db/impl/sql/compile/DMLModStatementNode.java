@@ -807,11 +807,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
             }
             else
             {
-                checkTree = (ValueNode) getNodeFactory().getNode(
-                    C_NodeTypes.AND_NODE,
-                    tcn,
-                    checkTree,
-                    getContextManager());
+                checkTree = new AndNode(tcn, checkTree, getContextManager());
             }
         }
 
