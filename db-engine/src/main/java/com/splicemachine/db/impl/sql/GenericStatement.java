@@ -43,14 +43,12 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.depend.Dependency;
-import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.FloatingPointDataType;
 import com.splicemachine.db.iapi.types.SQLTimestamp;
-import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
@@ -59,7 +57,6 @@ import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.compile.TriggerReferencingStruct;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
-import com.splicemachine.db.impl.sql.execute.SPSPropertyRegistry;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
@@ -73,7 +70,6 @@ import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_COMPILE_VERSION;
@@ -497,7 +493,7 @@ public class GenericStatement implements Statement{
         setDisableParallelTaskJoinCosting(lcc, cc);
         setDisablePrefixIteratorMode(lcc, cc);
         setDisableUnionedIndexScans(lcc, cc);
-        setfavorUnionedIndexScans(lcc, cc);
+        setFavorUnionedIndexScans(lcc, cc);
         setCurrentTimestampPrecision(lcc, cc);
         setTimestampFormat(lcc, cc);
         setSecondFunctionCompatibilityMode(lcc, cc);
@@ -769,7 +765,7 @@ public class GenericStatement implements Statement{
         cc.setDisableUnionedIndexScans(disableUnionedIndexScans);
     }
 
-    private void setfavorUnionedIndexScans(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+    private void setFavorUnionedIndexScans(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
         String favorUnionedIndexScansString =
             PropertyUtil.getCachedDatabaseProperty(lcc, Property.FAVOR_UNIONED_INDEX_SCANS);
         boolean favorUnionedIndexScans = CompilerContext.DEFAULT_FAVOR_UNIONED_INDEX_SCANS;
