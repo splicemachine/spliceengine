@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.util.ReuseFactory;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.List;
 
@@ -96,6 +97,7 @@ public final class CharConstantNode extends ConstantNode
 	 *
 	 * @exception StandardException
 	 */
+	@SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
 	public void init(Object newValue, Object newLength) throws StandardException
 	{
 		StringBuilder val = new StringBuilder((String) newValue);

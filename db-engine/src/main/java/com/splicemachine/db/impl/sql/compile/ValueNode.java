@@ -626,8 +626,6 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     public ValueNode putAndsOnTop()
                     throws StandardException
     {
-        NodeFactory        nodeFactory = getNodeFactory();
-
         BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
         AndNode andNode = new AndNode(this, trueNode, getContextManager());
         andNode.postBindFixup();

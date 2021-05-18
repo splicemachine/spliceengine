@@ -209,7 +209,7 @@ public class BasicPrivilegesNode extends QueryTreeNode
 		ProviderInfo[] pis = dm.getPersistentProviderInfos(vd);
 		this.descriptorList = new ArrayList();
 					
-		int siz = pis.length;
+
         for (ProviderInfo pi : pis) {
             Provider provider = (Provider) pi.getDependableFinder().getDependable(dd, pi.getObjectId());
 
