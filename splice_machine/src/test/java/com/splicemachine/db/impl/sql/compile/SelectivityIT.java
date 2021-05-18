@@ -357,6 +357,22 @@ public class SelectivityIT extends SpliceUnitTest {
                 "call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T6', false)",
                 spliceSchemaWatcher.schemaName));
 
+        new TableCreator(conn)
+                .withCreate("create table t7 (a7 char(4))")
+                .withInsert("insert into t7 values(?)")
+                .withRows(rows(
+                        row("abc"),
+                        row("abc"),
+                        row("abc"),
+                        row("abc"),
+                        row("abc"),
+                        row("def"),
+                        row("def"),
+                        row("ghi"),
+                        row("jkl"),
+                        row("mno")))
+                .create();
+
         conn.commit();
     }
 
@@ -415,6 +431,26 @@ public class SelectivityIT extends SpliceUnitTest {
         secondRowContainsQuery("explain select * from tns_singlepk where c1 in (1,2,3)", "outputRows=3", methodWatcher);
         secondRowContainsQuery("explain select * from tns_multiplepk where c1 in (1,2,3)", "outputRows=3", methodWatcher);
 
+    }
+
+    @Test
+    public void testInSelectivityWithCastNode() throws Exception {
+        // select 4 rows
+        String query = "explain select * from t7 --splice-properties index=T7_IDX\n" +
+                " where a7 in (cast('def' as char(4)),cast('ghi' as char(4)),cast('mno' as char(4)))";
+
+        // without stats
+        // If cast nodes are not evaluated, output rows = default single point selectivity * default row count = 0.1 * 20 = 2.
+        // If case nodes are evaluated, output rows = default in-list selectivity * default row count = 0.9 * 20 = 18.
+        methodWatcher.executeUpdate("create index T7_IDX on T7 (a7)");
+        secondRowContainsQuery(query, "outputRows=18", methodWatcher);
+
+        // with stats
+        // If cast nodes are not evaluated, output rows rpv * num in-list elements = 2 * 3 = 6. Note that this estimate is the same for any three values.
+        // If cast nodes are evaluated, output rows = (sel('def') + sel('ghi') + sel('mno')) * row count = (0.2 + 0.1 + 0.1) * 10 = 4.
+        try (ResultSet rs0 = methodWatcher.executeQuery("analyze table T7")) {
+            secondRowContainsQuery(query, "outputRows=4", methodWatcher);
+        }
     }
 
     @Test
