@@ -2276,8 +2276,7 @@ public class SubqueryNode extends ValueNode{
             ResultColumn firstRC = resultSet.getResultColumns().elementAt(0);
             return firstRC.getExpression();
         } else {
-            ValueTupleNode items = (ValueTupleNode) getNodeFactory()
-                    .getNode(C_NodeTypes.VALUE_TUPLE_NODE, getContextManager());
+            ValueTupleNode items = new ValueTupleNode(getContextManager());
             for (ResultColumn rc : resultSet.getResultColumns()) {
                 if (!rc.isGenerated() && !rc.pulledupOrderingColumn()) {
                     items.addValueNode(rc.getExpression());
@@ -2957,7 +2956,7 @@ public class SubqueryNode extends ValueNode{
             ResultColumn rc = resultColumns.elementAt(0);
             rightOperand = toColRef(rc, tableNumber);
         } else {
-            ValueTupleNode items = (ValueTupleNode) getNodeFactory().getNode(C_NodeTypes.VALUE_TUPLE_NODE, getContextManager());
+            ValueTupleNode items = new ValueTupleNode(getContextManager());
             for (ResultColumn rc : resultColumns) {
                 if (!rc.isGenerated() && !rc.pulledupOrderingColumn()) {
                     items.addValueNode(toColRef(rc, tableNumber));
