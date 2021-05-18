@@ -258,7 +258,6 @@ public class ResultColumn extends ValueNode
             the reference has the right table name.
          */
         this.reference = columnReference;
-        this.tableName = columnReference.tableName.tableName;
         setExpression(valueNode);
     }
 
