@@ -1623,11 +1623,7 @@ public class ColumnReference extends ValueNode {
     }
 
     public ResultColumn generateResultColumn() throws StandardException {
-        return (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                this.getColumnName(),
-                this.getClone(),
-                getContextManager());
+        return new ResultColumn(getColumnName(), getClone(), getContextManager());
     }
 
     public static boolean isBaseRowIdOrRowId(String columnName) {
