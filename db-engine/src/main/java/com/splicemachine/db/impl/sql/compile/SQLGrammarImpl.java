@@ -1304,7 +1304,7 @@ class SQLGrammarImpl {
 
     ValueNode getNullForCase() throws StandardException {
 
-        ValueNode untypedNullConstantNode = (ValueNode) nodeFactory.getNode(C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE, cm);
+        UntypedNullConstantNode untypedNullConstantNode = new UntypedNullConstantNode(cm);
         DataTypeDescriptor type = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1);
         ValueNode value = new CastNode(untypedNullConstantNode, type, cm);
         ((CastNode) value).setForExternallyGeneratedCASTnode();

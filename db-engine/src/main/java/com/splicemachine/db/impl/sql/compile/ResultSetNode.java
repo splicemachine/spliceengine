@@ -1741,8 +1741,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
             ColumnDescriptor colDesc
     )
             throws StandardException{
-        ValueNode dummy=(ValueNode)getNodeFactory().getNode
-                (C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,getContextManager());
+        ValueNode dummy = new UntypedNullConstantNode(getContextManager());
         ResultColumn newResultColumn = new ResultColumn(colDesc.getType(),dummy,getContextManager());
         newResultColumn.setColumnDescriptor(targetTD,colDesc);
 

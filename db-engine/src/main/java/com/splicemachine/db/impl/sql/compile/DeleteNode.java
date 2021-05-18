@@ -965,8 +965,7 @@ public class DeleteNode extends DMLModStatementNode
 
         NodeFactory nodeFactory = getNodeFactory();
         ResultColumnList columnList = new ResultColumnList(getContextManager());
-        valueNode =  (ValueNode) nodeFactory.getNode(C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
-                                                             getContextManager());
+        valueNode = new UntypedNullConstantNode(getContextManager());
         for(int index =0 ; index < cdl.size() ; index++)
         {
             ColumnDescriptor cd = (ColumnDescriptor) cdl.elementAt(index);

@@ -2605,9 +2605,7 @@ analyzeTableStatement() throws StandardException :
       schema = new CharConstantNode(tableName.getSchemaName(), getContextManager());
     }
     else {
-      schema = (UntypedNullConstantNode) getNodeFactory().getNode(
-             C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
-             getContextManager());
+      schema = new UntypedNullConstantNode(getContextManager());
     }
     parameterList.addElement(schema);
 
@@ -9434,9 +9432,7 @@ nullSpecification() throws StandardException :
 {
     <NULL>
     {
-        return (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
-                                    getContextManager());
+        return new UntypedNullConstantNode(getContextManager());
     }
 }
 
@@ -11409,9 +11405,7 @@ castOperand() throws StandardException :
 |
     <NULL>
     {
-        return (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
-                                    getContextManager());
+        return new UntypedNullConstantNode(getContextManager());
     }
 }
 
@@ -13274,9 +13268,7 @@ defaultNullOnlyClause() throws StandardException :
 {
      <_DEFAULT> <NULL>
      {
-        return (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
-                                    getContextManager());
+        return new UntypedNullConstantNode(getContextManager());
      }
 }
 
@@ -13455,9 +13447,7 @@ defaultOption(Token beginToken, long[] autoIncrementInfo,
             getToken(2).kind == DOUBLE_COLON)})
     <NULL>
     {
-        return (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
-                                    getContextManager());
+        return new UntypedNullConstantNode(getContextManager());
     }
 |
     value = DB2DefaultOption(columnName)
@@ -14702,9 +14692,7 @@ valueSpecification() throws StandardException :
         ValueNodeList thenElseList = (ValueNodeList) nodeFactory.getNode(C_NodeTypes.VALUE_NODE_LIST, cm);
 
         //Use untyped null for then clause at this point. At the bind time, we will cast it to the datatype of L
-        thenElseList.addElement((ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
-                                    cm));
+        thenElseList.addElement(new UntypedNullConstantNode(cm));
         thenElseList.addElement(leftExpression);
 
         return (ValueNode) nodeFactory.getNode(
@@ -15737,8 +15725,7 @@ columnAlterClause(String columnName) throws StandardException :
     <DROP> <_DEFAULT>
     {
 
-        defaultNode = (ValueNode) nodeFactory.getNode(
-            C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE, getContextManager());
+        defaultNode = new UntypedNullConstantNode(getContextManager());
 
         return wrapAlterColumnDefaultValue(defaultNode,
                                            columnName,

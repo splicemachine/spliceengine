@@ -3364,10 +3364,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                                     getLanguageConnectionContext(),
                                     getCompilerContext()));
                 }else{
-                    rc.setExpression(
-                            (ValueNode)getNodeFactory().getNode(
-                                    C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
-                                    getContextManager()));
+                    rc.setExpression(new UntypedNullConstantNode(getContextManager()));
                     rc.setWasDefaultColumn(true);
                 }
                 rc.setDefaultColumn(false);
