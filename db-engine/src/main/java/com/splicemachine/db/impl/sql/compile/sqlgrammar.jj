@@ -6412,21 +6412,13 @@ escapedValueFunction() throws StandardException :
     /* CURDATE() is an escaped function supported by JCC 2.2 or higher */
     <CURDATE> <LEFT_PAREN> <RIGHT_PAREN>
     {
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
-                                ReuseFactory.getInteger(
-                                    CurrentDatetimeOperatorNode.CURRENT_DATE),
-                                getContextManager());
+        return new CurrentDatetimeOperatorNode(CurrentDatetimeOperatorNode.CURRENT_DATE, getContextManager());
     }
 |
     /* CURTIME() is an escaped function supported by JCC 2.2 or higher */
     <CURTIME> <LEFT_PAREN> <RIGHT_PAREN>
     {
-        return (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
-                            ReuseFactory.getInteger(
-                                CurrentDatetimeOperatorNode.CURRENT_TIME),
-                            getContextManager());
+        return new CurrentDatetimeOperatorNode(CurrentDatetimeOperatorNode.CURRENT_TIME, getContextManager());
     }
 |
     /* Method versions of USER special registers
@@ -10801,78 +10793,42 @@ datetimeValueFunction() throws StandardException :
 {
     LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == DATE)}) <CURRENT> <DATE>
     {
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
-                                ReuseFactory.getInteger(
-                                    CurrentDatetimeOperatorNode.CURRENT_DATE),
-                                getContextManager());
+        return new CurrentDatetimeOperatorNode(CurrentDatetimeOperatorNode.CURRENT_DATE, getContextManager());
     }
     | <CURRENT_DATE>
     {
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
-                                ReuseFactory.getInteger(
-                                    CurrentDatetimeOperatorNode.CURRENT_DATE),
-                                getContextManager());
+        return new CurrentDatetimeOperatorNode(CurrentDatetimeOperatorNode.CURRENT_DATE, getContextManager());
     }
 |
     LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == TIME)}) <CURRENT> <TIME>
     {
-        return (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
-                            ReuseFactory.getInteger(
-                                CurrentDatetimeOperatorNode.CURRENT_TIME),
-                            getContextManager());
+        return new CurrentDatetimeOperatorNode(CurrentDatetimeOperatorNode.CURRENT_TIME, getContextManager());
     }
     | <CURRENT_TIME>
     {
-        return (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
-                            ReuseFactory.getInteger(
-                                CurrentDatetimeOperatorNode.CURRENT_TIME),
-                            getContextManager());
+        return new CurrentDatetimeOperatorNode(CurrentDatetimeOperatorNode.CURRENT_TIME, getContextManager());
     }
 |
     LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == TIMEZONE)}) <CURRENT> <TIMEZONE>
     {
-        return (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
-                            ReuseFactory.getInteger(
-                                CurrentDatetimeOperatorNode.CURRENT_TIMEZONE),
-                            getContextManager());
+        return new CurrentDatetimeOperatorNode(CurrentDatetimeOperatorNode.CURRENT_TIMEZONE, getContextManager());
     }
     | <CURRENT_TIMEZONE>
     {
-        return (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
-                            ReuseFactory.getInteger(
-                                CurrentDatetimeOperatorNode.CURRENT_TIMEZONE),
-                            getContextManager());
+        return new CurrentDatetimeOperatorNode(CurrentDatetimeOperatorNode.CURRENT_TIMEZONE, getContextManager());
     }
 |
     LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == TIMESTAMP)}) <CURRENT> <TIMESTAMP>
     {
-        return (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
-                            ReuseFactory.getInteger(
-                                CurrentDatetimeOperatorNode.CURRENT_TIMESTAMP),
-                            getContextManager());
+        return new CurrentDatetimeOperatorNode(CurrentDatetimeOperatorNode.CURRENT_TIMESTAMP, getContextManager());
     }
     | <CURRENT_TIMESTAMP>
     {
-        return (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
-                            ReuseFactory.getInteger(
-                                CurrentDatetimeOperatorNode.CURRENT_TIMESTAMP),
-                            getContextManager());
+        return new CurrentDatetimeOperatorNode(CurrentDatetimeOperatorNode.CURRENT_TIMESTAMP, getContextManager());
     }
     | <NOW> [ <LEFT_PAREN> <RIGHT_PAREN> ]
     {
-        return (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
-                            ReuseFactory.getInteger(
-                                CurrentDatetimeOperatorNode.CURRENT_TIMESTAMP),
-                            getContextManager());
+        return new CurrentDatetimeOperatorNode(CurrentDatetimeOperatorNode.CURRENT_TIMESTAMP, getContextManager());
     }
 }
 
