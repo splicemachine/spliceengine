@@ -242,10 +242,7 @@ public class GroupByList extends OrderedColumnList{
             ResultColumn newRC;
 
             /* Get a new ResultColumn */
-            newRC=(ResultColumn)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    groupingCol.getColumnName(),
-                    groupingCol.getColumnExpression().getClone(),
+            newRC = new ResultColumn(groupingCol.getColumnName(), groupingCol.getColumnExpression().getClone(),
                     getContextManager());
             newRC.setVirtualColumnId(targetRCL.size()+1);
             newRC.markGenerated();

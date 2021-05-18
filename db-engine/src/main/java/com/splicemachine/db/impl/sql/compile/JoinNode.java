@@ -1813,8 +1813,7 @@ public class JoinNode extends TableOperatorNode{
         ResultColumnList commonColumns = new ResultColumnList(getContextManager());
 
         for(String name : columnNames){
-            ResultColumn rc=(ResultColumn)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,name,null,getContextManager());
+            ResultColumn rc = new ResultColumn(name, null, getContextManager());
             commonColumns.addResultColumn(rc);
         }
 

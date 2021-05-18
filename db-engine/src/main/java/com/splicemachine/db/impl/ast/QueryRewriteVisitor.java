@@ -135,11 +135,7 @@ public class QueryRewriteVisitor extends AbstractSpliceVisitor {
                     C_NodeTypes.INT_CONSTANT_NODE,
                     Integer.valueOf(1));
 
-        ResultColumn rc = (ResultColumn) nodeFactory.getNode(
-                        C_NodeTypes.RESULT_COLUMN,
-                        null,
-                        numberOne,
-                        cm);
+        ResultColumn rc = new ResultColumn((String)null, numberOne, cm);
         ResultColumnList resultColumns = new ResultColumnList(cm);
         resultColumns.addResultColumn(rc);
 

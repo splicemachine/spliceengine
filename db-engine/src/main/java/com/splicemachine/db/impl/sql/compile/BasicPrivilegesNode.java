@@ -123,10 +123,7 @@ public class BasicPrivilegesNode extends QueryTreeNode
 						//expand asterisk to all columns of the table
 						ColumnDescriptorList cdl = td.getColumnDescriptorList();
 						for (ColumnDescriptor cd: cdl) {
-							ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
-									C_NodeTypes.RESULT_COLUMN,
-									cd.getColumnName(),
-									null,
+							ResultColumn newRC = new ResultColumn(cd.getColumnName(), null,
 									getContextManager());
 							columnLists[action].addResultColumn(newRC);
 						}

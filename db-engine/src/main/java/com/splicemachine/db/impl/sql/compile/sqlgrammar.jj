@@ -5456,11 +5456,7 @@ derivedColumn(ResultColumnList resultColumns) throws StandardException :
             columnName = ((ColumnReference) columnExpression).columnName;
         }
 
-        return (ResultColumn) nodeFactory.getNode(
-                        C_NodeTypes.RESULT_COLUMN,
-                        columnName,
-                        columnExpression,
-                        getContextManager());
+        return new ResultColumn(columnName, columnExpression, getContextManager());
     }
 }
 
@@ -9449,7 +9445,7 @@ void
 setClause(ResultColumnList columnList) throws StandardException :
 {
     ResultColumn resultColumn;
-    ValueNode     columnName;
+    ValueNode     columnRef;
     ValueNode     valueNode;
 }
 {
@@ -9459,13 +9455,9 @@ setClause(ResultColumnList columnList) throws StandardException :
         but JBuilder expects table.column, so we allow the
         general form.
      */
-    columnName = columnReference() <EQUALS_OPERATOR> valueNode = updateSource(columnName.getColumnName())
+    columnRef = columnReference() <EQUALS_OPERATOR> valueNode = updateSource(columnRef.getColumnName())
     {
-        resultColumn = (ResultColumn) nodeFactory.getNode(
-                                        C_NodeTypes.RESULT_COLUMN,
-                                        columnName,
-                                        valueNode,
-                                        getContextManager());
+        resultColumn = new ResultColumn((ColumnReference)columnRef, valueNode, getContextManager());
         columnList.addResultColumn(resultColumn);
     }
 }
@@ -9474,15 +9466,13 @@ void
 setClauseSpecial(ResultColumnList columnList) throws StandardException :
 {
     ResultColumn resultColumn;
-    ValueNode  columnName;
+    ValueNode  columnRef;
     ValueNode    valueNode;
 }
 {
-    columnName = columnReference()
+    columnRef = columnReference()
     {
-        resultColumn = (ResultColumn) nodeFactory.getNode(
-                                        C_NodeTypes.RESULT_COLUMN,
-                                        columnName,
+        resultColumn = new ResultColumn((ColumnReference)columnRef,
                                         null, /* valueNode null for now - will be populated later */
                                         getContextManager());
         columnList.addResultColumn(resultColumn);
@@ -9664,11 +9654,7 @@ columnQualifiedNameItem(ResultColumnList columnList) throws StandardException :
         ** should be hooked up to each result column, so set that
         ** to null for now.
         */
-        resultColumn = (ResultColumn) nodeFactory.getNode(
-                                        C_NodeTypes.RESULT_COLUMN,
-                                        columnRef,
-                                        null,
-                                        getContextManager());
+        resultColumn = new ResultColumn((ColumnReference)columnRef, null, getContextManager());
         columnList.addResultColumn(resultColumn);
     }
 }
@@ -9762,32 +9748,17 @@ rowValueConstructorElement(ResultColumnList resultColumns) throws StandardExcept
 {
     value = orExpression(null)
     {
-        resultColumns.addResultColumn(
-            (ResultColumn) nodeFactory.getNode(
-                            C_NodeTypes.RESULT_COLUMN,
-                            null,
-                            value,
-                            getContextManager())
-                );
+        resultColumns.addResultColumn(new ResultColumn((String)null, value, getContextManager()));
     }
 |
     value = nullSpecification()
     {
-        resultColumns.addResultColumn(
-            (ResultColumn) nodeFactory.getNode(
-                            C_NodeTypes.RESULT_COLUMN,
-                            null,
-                            value,
-                            getContextManager())
-                );
+        resultColumns.addResultColumn(new ResultColumn((String)null, value, getContextManager()));
     }
 |
     <_DEFAULT>
     {
-        resultColumns.addResultColumn(
-            (ResultColumn) nodeFactory.getNode(
-                            C_NodeTypes.RESULT_COLUMN,
-                            null,
+        resultColumns.addResultColumn(new ResultColumn((String)null,
                             (ValueNode) nodeFactory.getNode(
                                 C_NodeTypes.DEFAULT_NODE,
                                 null,
@@ -10608,11 +10579,7 @@ columnNameItem(ResultColumnList columnList) throws StandardException :
         ** should be hooked up to each result column, so set that
         ** to null for now.
         */
-        resultColumn = (ResultColumn) nodeFactory.getNode(
-                                    C_NodeTypes.RESULT_COLUMN,
-                                    columnName,
-                                    null,
-                                    getContextManager());
+        resultColumn = new ResultColumn(columnName, null, getContextManager());
         columnList.addResultColumn(resultColumn);
     }
 }
@@ -14106,11 +14073,7 @@ checkConstraintDefinition(TableName constraintName, String columnName)
         {
             /* Column check constraint */
             rclList = new ResultColumnList(getContextManager());
-            rclList.addElement((ResultColumn) nodeFactory.getNode(
-                                    C_NodeTypes.RESULT_COLUMN,
-                                    columnName,
-                                    null,
-                                    getContextManager()));
+            rclList.addElement(new ResultColumn(columnName, null, getContextManager()));
         }
 
         value.setBeginOffset( beginToken.beginOffset );
@@ -15351,12 +15314,7 @@ columnConstraint(TableName constraintName,
         [ properties = propertyList(false) <CHECK_PROPERTIES>]
     {
         ResultColumnList uniqueColumnList = new ResultColumnList(getContextManager());
-        uniqueColumnList.addElement(
-            (ResultColumn) nodeFactory.getNode(
-                            C_NodeTypes.RESULT_COLUMN,
-                            columnName,
-                            null,
-                            getContextManager()));
+        uniqueColumnList.addElement(new ResultColumn(columnName, null, getContextManager()));
 
         return (ConstraintDefinitionNode) nodeFactory.getNode(
                         C_NodeTypes.CONSTRAINT_DEFINITION_NODE,
@@ -15374,13 +15332,7 @@ columnConstraint(TableName constraintName,
         [ properties = propertyList(false)<CHECK_PROPERTIES>]
     {
         ResultColumnList fkRcl = new ResultColumnList(getContextManager());
-        fkRcl.addElement(
-                    (ResultColumn) nodeFactory.getNode(
-                                    C_NodeTypes.RESULT_COLUMN,
-                                    columnName,
-                                    null,
-                                    getContextManager())
-                );
+        fkRcl.addElement(new ResultColumn(columnName, null, getContextManager()));
         tcdn = (ConstraintDefinitionNode) nodeFactory.getNode(
                         C_NodeTypes.FK_CONSTRAINT_DEFINITION_NODE,
                         constraintName,
