@@ -3148,10 +3148,7 @@ kafkaExportStatement() throws StandardException :
 {
     <EXPORT_KAFKA> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
     {
-        return (KafkaExportNode) nodeFactory.getNode(C_NodeTypes.KAFKA_EXPORT_NODE,
-                                   statementNode,
-                                   parameterList,
-                                   getContextManager());
+        return new KafkaExportNode(statementNode, parameterList, getContextManager());
     }
 }
 
