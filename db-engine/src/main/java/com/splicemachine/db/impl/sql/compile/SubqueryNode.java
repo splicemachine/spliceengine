@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
@@ -204,14 +205,16 @@ public class SubqueryNode extends ValueNode{
      * @param hasJDBClimitClause True if the offset/fetchFirst clauses come from JDBC limit/offset escape syntax
      */
 
-    public void init(
+    public SubqueryNode(
             Object resultSet,
             Object subqueryType,
             Object leftOperand,
             Object orderCols,
             Object offset,
             Object fetchFirst,
-            Object hasJDBClimitClause){
+            Object hasJDBClimitClause, ContextManager cm){
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.SUBQUERY_NODE);
         this.resultSet=(ResultSetNode)resultSet;
         this.subqueryType= (Integer) subqueryType;
         this.orderByList=(OrderByList)orderCols;
