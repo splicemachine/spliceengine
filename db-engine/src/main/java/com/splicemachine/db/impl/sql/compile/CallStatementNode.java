@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
@@ -75,6 +76,13 @@ public class CallStatementNode extends DMLStatementNode {
         xplainTraceProcedures = new TreeSet<>();
         xplainTraceProcedures.add("SQLCAMESSAGE");
     }
+
+	public CallStatementNode() {}
+	public CallStatementNode(JavaToSQLValueNode node, ContextManager cm) {
+		setContextManager(cm);
+		setNodeType(C_NodeTypes.CALL_STATEMENT_NODE);
+		init(node);
+	}
 
 	/**
 	 * Initializer for a CallStatementNode.
