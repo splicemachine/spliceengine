@@ -845,10 +845,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             // We've grabbed a ConstantNode (or other type of ValueNode) from each level.
             // Time to materialize this combination into a new
             // ListValueNode.
-            ValueNode lcn = (ListValueNode) getNodeFactory().getNode(
-                C_NodeTypes.LIST_VALUE_NODE,
-                localConstList,
-                getContextManager());
+            ValueNode lcn = new ListValueNode(localConstList, getContextManager());
             groupedConstants.addValueNode(lcn);
             
         } else {

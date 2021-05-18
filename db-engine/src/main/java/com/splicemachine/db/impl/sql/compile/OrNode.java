@@ -245,10 +245,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
                 constList.addValueNode((ValueNode)constNodes.get(i));
             }
             
-            ValueNode lcn = (ListValueNode) getNodeFactory().getNode(
-                C_NodeTypes.LIST_VALUE_NODE,
-                constList,
-                getContextManager());
+            ValueNode lcn = new ListValueNode(constList, getContextManager());
             vnl.addValueNode(lcn);
         }
     }
