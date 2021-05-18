@@ -37,7 +37,9 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 
 import java.util.Collections;
@@ -58,7 +60,15 @@ import static com.splicemachine.db.iapi.types.TypeId.LIST_ID;
 public final class ListValueNode extends ValueNode {
     
     ValueNodeList valuesList = null;
-    
+
+    ListValueNode() {}
+
+    public ListValueNode(ValueNodeList constList, ContextManager contextManager) throws StandardException {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.LIST_VALUE_NODE);
+        init(constList);
+    }
+
     public ValueNode getValue(int index) {
         if (index < 0 || index > valuesList.size())
             return null;
