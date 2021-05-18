@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
@@ -2180,12 +2181,8 @@ public class ResultColumn extends ValueNode
      * @return A column reference referring to this ResultColumn.
      */
     public ColumnReference getColumnReference(ValueNode originalExpr) throws StandardException {
-        ColumnReference cr = (ColumnReference) getNodeFactory().getNode(
-                C_NodeTypes.COLUMN_REFERENCE,
-                getColumnName(),
-                getTableNameObject(),
-                getContextManager()
-        );
+        ColumnReference cr = new ColumnReference(getColumnName(), getTableNameObject(),
+                getContextManager());
         cr.setSource(this);
         if (getTableNumber() >= 0) {
             cr.setTableNumber(getTableNumber());

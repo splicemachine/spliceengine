@@ -1030,11 +1030,8 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
             // Build a ResultColumn/ColumnReference pair for the column //
             columnName = resultColumn.getName();
-            valueNode = (ValueNode) getNodeFactory().getNode(
-                    C_NodeTypes.COLUMN_REFERENCE,
-                    columnName,
-                    exposedName,
-                    getContextManager());
+            valueNode = new ColumnReference(columnName,
+                    exposedName, getContextManager());
             resultColumn = (ResultColumn) getNodeFactory().getNode(
                     C_NodeTypes.RESULT_COLUMN,
                     columnName,

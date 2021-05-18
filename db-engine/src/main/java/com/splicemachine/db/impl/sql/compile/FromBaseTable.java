@@ -2935,11 +2935,8 @@ public class FromBaseTable extends FromTable {
             }
 
             if((resultColumn=inputRcl.getResultColumn(position))==null){
-                valueNode=(ValueNode)getNodeFactory().getNode(
-                        C_NodeTypes.COLUMN_REFERENCE,
-                        cd.getColumnName(),
-                        exposedName,
-                        getContextManager());
+                valueNode = new ColumnReference(cd.getColumnName(),
+                        exposedName, getContextManager());
                 resultColumn=(ResultColumn)getNodeFactory().
                         getNode(
                                 C_NodeTypes.RESULT_COLUMN,

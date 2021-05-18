@@ -344,11 +344,8 @@ public class DeleteNode extends DMLModStatementNode
                 }
 
                 if(!cursorDelete) {
-                    ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
-                            C_NodeTypes.COLUMN_REFERENCE,
-                            rowIdColumn.getName(),
-                            null,
-                            getContextManager());
+                    ColumnReference columnReference = new ColumnReference(rowIdColumn.getName(),
+                            null, getContextManager());
                     columnReference.setSource(rowIdColumn);
                     columnReference.setNestingLevel(targetTable.getLevel());
                     columnReference.setSourceLevel(targetTable.getLevel());
