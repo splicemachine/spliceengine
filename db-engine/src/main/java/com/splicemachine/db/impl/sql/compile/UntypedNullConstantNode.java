@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
@@ -60,6 +61,7 @@ public final class UntypedNullConstantNode extends ConstantNode
 
     public UntypedNullConstantNode(ContextManager cm) {
         super(cm);
+        setNodeType(C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE);
     }
 
     /**

@@ -1392,8 +1392,7 @@ public final class UpdateNode extends DMLModStatementNode
                         addedGeneratedColumns.add(tableID, gc);
 
                         // we will fill in the real value later on in parseAndBindGenerationClauses();
-                        ValueNode dummy = (ValueNode) getNodeFactory().getNode
-                                (C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE, getContextManager());
+                        ValueNode dummy = new UntypedNullConstantNode(getContextManager());
                         ResultColumn newResultColumn = new ResultColumn(gc.getType(), dummy, getContextManager());
                         newResultColumn.setColumnDescriptor(baseTable, gc);
                         newResultColumn.setName(gc.getColumnName());
