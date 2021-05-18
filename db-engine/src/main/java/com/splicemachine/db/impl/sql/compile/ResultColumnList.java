@@ -2871,11 +2871,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                 tableName,
                 dts,
                 getContextManager());
-        ResultColumn rc=(ResultColumn)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                columnName,
-                bcn,
-                getContextManager());
+        ResultColumn rc = new ResultColumn(columnName, bcn, getContextManager());
         rc.setType(dts);
         addResultColumn(rc);
     }
@@ -2895,12 +2891,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
         /* Generate the RowLocation column */
         rowLocationNode = new CurrentRowLocationNode(getContextManager());
-        rowLocationColumn=
-                (ResultColumn)getNodeFactory().getNode(
-                        C_NodeTypes.RESULT_COLUMN,
-                        "",
-                        rowLocationNode,
-                        getContextManager());
+        rowLocationColumn = new ResultColumn("", rowLocationNode, getContextManager());
         rowLocationColumn.markGenerated();
 
         /* Append to the ResultColumnList */
@@ -3454,19 +3445,12 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
     }
 
     private ResultColumn makeColumnFromName(String columnName) throws StandardException{
-        return (ResultColumn)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,columnName,null,getContextManager());
+        return new ResultColumn(columnName, null, getContextManager());
     }
 
     private ResultColumn makeColumnReferenceFromName ( TableName tableName, String columnName ) throws StandardException{
         ContextManager cm=getContextManager();
-        NodeFactory nodeFactory=getNodeFactory();
-
-        return (ResultColumn)nodeFactory.getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                columnName,
-                nodeFactory.getNode(C_NodeTypes.COLUMN_REFERENCE, columnName, tableName, cm),
-                cm
-        );
+        return new ResultColumn(columnName, new ColumnReference(columnName, tableName, cm), cm);
     }
 
     /**

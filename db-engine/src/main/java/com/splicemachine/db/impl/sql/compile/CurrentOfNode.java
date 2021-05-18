@@ -236,11 +236,7 @@ public final class CurrentOfNode extends FromTable {
                                               exposedTableName,
                                             colDesc.getType(),
                                             getContextManager());
-            ResultColumn rc = (ResultColumn) getNodeFactory().getNode(
-                                            C_NodeTypes.RESULT_COLUMN,
-                                            colDesc,
-                                            bcn,
-                                            getContextManager());
+            ResultColumn rc = new ResultColumn(colDesc, bcn, getContextManager());
 
             /* Build the ResultColumnList to return */
             resultColumns.addResultColumn(rc);

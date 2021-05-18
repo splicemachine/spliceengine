@@ -1024,11 +1024,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
             columnName = resultColumn.getName();
             valueNode = new ColumnReference(columnName,
                     exposedName, getContextManager());
-            resultColumn = (ResultColumn) getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    columnName,
-                    valueNode,
-                    getContextManager());
+            resultColumn = new ResultColumn(columnName, valueNode, getContextManager());
 
             // Build the ResultColumnList to return //
             rcList.addResultColumn(resultColumn);
@@ -1813,11 +1809,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                     exposedName,
                     colDesc.getType(),
                     getContextManager());
-            resultColumn = (ResultColumn) getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    colDesc,
-                    valueNode,
-                    getContextManager());
+            resultColumn = new ResultColumn(colDesc, valueNode, getContextManager());
 
             /* Build the ResultColumnList to return */
             rcList.addResultColumn(resultColumn);

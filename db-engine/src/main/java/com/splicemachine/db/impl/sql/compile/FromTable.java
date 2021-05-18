@@ -1373,8 +1373,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             ResultColumn newResultColumn;
             if (rc.getExpression() instanceof CurrentRowLocationNode) {
                 //add a dummy value for the rowlocation reference, this value won't be used
-                newResultColumn = (ResultColumn) getNodeFactory().getNode
-                        (C_NodeTypes.RESULT_COLUMN, DataTypeDescriptor.INTEGER, getNullNode(DataTypeDescriptor.INTEGER), getContextManager());
+                newResultColumn = new ResultColumn(DataTypeDescriptor.INTEGER, getNullNode(DataTypeDescriptor.INTEGER), getContextManager());
             } else {
                 ColumnDescriptor colDesc = rc.columnDescriptor;
                 DataTypeDescriptor colType = colDesc.getType();
@@ -1404,8 +1403,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
                     defaultTree = getNullNode(colType);
                 }
 
-                newResultColumn = (ResultColumn) getNodeFactory().getNode
-                        (C_NodeTypes.RESULT_COLUMN, defaultTree.getTypeServices(), defaultTree, getContextManager());
+                newResultColumn = new ResultColumn(defaultTree.getTypeServices(), defaultTree, getContextManager());
             }
 
             defaultRow.addResultColumn(newResultColumn);

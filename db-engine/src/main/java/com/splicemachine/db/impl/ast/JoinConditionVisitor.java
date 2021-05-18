@@ -499,10 +499,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                     resultSetNode.getResultColumns().size(),
                     ContextService.getService().getCurrentContextManager());
 
-            resultColumn = (ResultColumn) nodeFactory.getNode(C_NodeTypes.RESULT_COLUMN,
-                    resultColumn.getName(),
-                    vnode,
-                    ContextService.getService().getCurrentContextManager());
+            resultColumn = new ResultColumn(resultColumn.getName(), vnode, ContextService.getService().getCurrentContextManager());
             resultColumn.markGenerated();
             resultColumn.setResultSetNumber(joinNode.getResultSetNumber());
             generatedRef.setSource(resultColumn);
@@ -555,10 +552,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
             setColumnReferenceFields(generatedRef, operand);
             operand.setHashableJoinColumnReference(generatedRef);
 
-            ResultColumn resultColumn =
-                    (ResultColumn) nodeFactory.getNode(C_NodeTypes.RESULT_COLUMN,
-                            generatedRef.getColumnName(),
-                            operand,
+            ResultColumn resultColumn = new ResultColumn(generatedRef.getColumnName(), operand,
                             ContextService.getService().getCurrentContextManager());
             resultColumn.markGenerated();
             resultColumn.setResultSetNumber(resultSetNode.getResultSetNumber());

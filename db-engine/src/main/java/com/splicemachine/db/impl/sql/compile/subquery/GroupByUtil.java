@@ -107,7 +107,7 @@ public class GroupByUtil {
         //
         // PART 1: Add column ref to subquery result columns
         //
-        ResultColumn rc = newResultColumn(subquerySelectNode.getNodeFactory(), subquerySelectNode.getContextManager(), groupByCol);
+        ResultColumn rc = newResultColumn(subquerySelectNode.getContextManager(), groupByCol);
 
         if (groupByCol instanceof ColumnReference) {
             ColumnReference colRef = (ColumnReference) groupByCol;
@@ -146,12 +146,8 @@ public class GroupByUtil {
     // nodes
     // - - - -
 
-    private static ResultColumn newResultColumn(NodeFactory nodeFactory, ContextManager contextManager, ValueNode groupByCol) throws StandardException {
-        ResultColumn rc = (ResultColumn) nodeFactory.getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                groupByCol.getColumnName(),
-                groupByCol,
-                contextManager);
+    private static ResultColumn newResultColumn(ContextManager contextManager, ValueNode groupByCol) throws StandardException {
+        ResultColumn rc = new ResultColumn(groupByCol.getColumnName(), groupByCol, contextManager);
         rc.setColumnDescriptor(null);
         return rc;
     }

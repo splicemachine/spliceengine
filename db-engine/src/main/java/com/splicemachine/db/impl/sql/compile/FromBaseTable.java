@@ -1699,11 +1699,7 @@ public class FromBaseTable extends FromTable {
                             )
                     );
 
-                    rowIdColumn=(ResultColumn)getNodeFactory().getNode(
-                            C_NodeTypes.RESULT_COLUMN,
-                            columnReference.columnName,
-                            rowLocationNode,
-                            getContextManager());
+                    rowIdColumn = new ResultColumn(columnReference.columnName, rowLocationNode, getContextManager());
                 }
                 columnReference.setTableNumber(tableNumber);
                 resultColumn=rowIdColumn;
@@ -2230,11 +2226,7 @@ public class FromBaseTable extends FromTable {
             ValueNode[] exprAsts = irg.getParsedIndexExpressions(getLanguageConnectionContext(), this);
 
             for (int i = 0; i < indexColumnTypes.length; i++) {
-                ResultColumn rc = (ResultColumn) getNodeFactory().getNode(
-                        C_NodeTypes.RESULT_COLUMN,
-                        indexColumnTypes[i],
-                        null,
-                        getContextManager());
+                ResultColumn rc = new ResultColumn(indexColumnTypes[i], null, getContextManager());
                 rc.setIndexExpression(exprAsts[i]);
                 rc.setReferenced();
                 rc.setVirtualColumnId(i + 1);  // virtual column IDs are 1-based
@@ -2867,11 +2859,7 @@ public class FromBaseTable extends FromTable {
                     exposedName,
                     colDesc.getType(),
                     getContextManager());
-            resultColumn=(ResultColumn)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    colDesc,
-                    valueNode,
-                    getContextManager());
+            resultColumn = new ResultColumn(colDesc, valueNode, getContextManager());
 
             /* Build the ResultColumnList to return */
             rcList.addResultColumn(resultColumn);
@@ -2925,12 +2913,7 @@ public class FromBaseTable extends FromTable {
             if((resultColumn=inputRcl.getResultColumn(position))==null){
                 valueNode = new ColumnReference(cd.getColumnName(),
                         exposedName, getContextManager());
-                resultColumn=(ResultColumn)getNodeFactory().
-                        getNode(
-                                C_NodeTypes.RESULT_COLUMN,
-                                cd,
-                                valueNode,
-                                getContextManager());
+                resultColumn = new ResultColumn(cd, valueNode, getContextManager());
             }
 
             /* Build the ResultColumnList to return */

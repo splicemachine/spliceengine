@@ -751,11 +751,7 @@ public class CursorNode extends DMLStatementNode{
                             origCol.getTableName()),
                     origCol.getTypeServices(),
                     getContextManager());
-            newCol=(ResultColumn)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    origCol.columnDescriptor,
-                    newNode,
-                    getContextManager());
+            newCol = new ResultColumn(origCol.columnDescriptor, newNode, getContextManager());
 
             /* Build the ResultColumnList to return */
             newList.addResultColumn(newCol);

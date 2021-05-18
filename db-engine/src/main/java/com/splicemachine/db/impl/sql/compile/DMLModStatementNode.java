@@ -449,8 +449,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
                     compilerContext.popCompilationSchema();
                 }
 
-                ResultColumn    newRC =  (ResultColumn) getNodeFactory().getNode
-                    ( C_NodeTypes.RESULT_COLUMN, generationClause.getTypeServices(), generationClause, getContextManager());
+                ResultColumn newRC = new ResultColumn(generationClause.getTypeServices(), generationClause, getContextManager());
 
                 // replace the result column in place
                 newRC.setVirtualColumnId( i + 1 ); // column ids are 1-based
