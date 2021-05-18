@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
@@ -87,13 +88,16 @@ public class TruncateOperatorNode extends BinaryOperatorNode {
     }
 
     /**
-     * Initializer for a TruncateOperatorNode.
+     * Contructor for a TruncateOperatorNode.
      *
      * @param truncOperand The truncOperand
      * @param truncValue The truncation value
      */
-    public void init( Object truncOperand,
-                      Object truncValue) throws StandardException {
+    public TruncateOperatorNode(ValueNode truncOperand, ValueNode truncValue, ContextManager contextManager)
+            throws StandardException
+    {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.TRUNC_NODE);
         operands = new ArrayList<>(Arrays.asList((ValueNode) truncOperand, (ValueNode) truncValue));
         operator = "truncate";
 
