@@ -747,12 +747,8 @@ class SQLGrammarImpl {
                                   ValueNode trimSource, boolean forDB2RTrim,
                                   ContextManager cm) throws StandardException
     {
-        if (trimChar == null)
-        {
-            trimChar = (CharConstantNode) nodeFactory.getNode(
-                    C_NodeTypes.CHAR_CONSTANT_NODE,
-                    " ",
-                    getContextManager());
+        if (trimChar == null) {
+            trimChar = new CharConstantNode(" ", getContextManager());
         }
         final int trimType = forDB2RTrim ? TernaryOperatorNode.DB2RTRIM : TernaryOperatorNode.TRIM;
         return new TernaryOperatorNode(
@@ -1113,9 +1109,7 @@ class SQLGrammarImpl {
         switch(joinType)
         {
             case JoinNode.INNERJOIN:
-                return (JoinNode) nodeFactory.getNode(
-                        C_NodeTypes.JOIN_NODE,
-                        leftRSN,
+                return new JoinNode(leftRSN,
                         rightRSN,
                         onClause,
                         usingClause,

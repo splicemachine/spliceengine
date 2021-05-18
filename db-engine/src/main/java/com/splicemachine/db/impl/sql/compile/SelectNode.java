@@ -2047,18 +2047,12 @@ public class SelectNode extends ResultSetNode {
                 null,                                // table props
                 getContextManager());
             } else {
-                joinNode = (JoinNode) getNodeFactory().getNode(
-                C_NodeTypes.JOIN_NODE,
-                leftResultSet,
-                rightResultSet,
-                null,
-                null,
-                leftRCList,
-                null,
-                //user supplied optimizer overrides
-                fromList.properties,
-                getContextManager()
-                );
+                joinNode = new JoinNode(leftResultSet, rightResultSet,
+                        null, null, leftRCList, null,
+                        //user supplied optimizer overrides
+                        fromList.properties,
+                        getContextManager()
+                        );
             }
             joinNode.setCostEstimate(rightResultSet.getCostEstimate());
 

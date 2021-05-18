@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -127,6 +128,23 @@ public class JoinNode extends TableOperatorNode{
                 }
                 return null;
         }
+    }
+
+    public JoinNode() {}
+    public JoinNode(
+            ResultSetNode leftResult,
+            ResultSetNode rightResult,
+            ValueNode onClause,
+            ResultColumnList usingClause,
+            ResultColumnList selectList,
+            Properties tableProperties,
+            Properties joinOrderStrategyProperties,
+            ContextManager cm)
+            throws StandardException
+    {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.JOIN_NODE);
+        init(leftResult, rightResult, onClause, usingClause, selectList, tableProperties, joinOrderStrategyProperties);
     }
 
     /*
