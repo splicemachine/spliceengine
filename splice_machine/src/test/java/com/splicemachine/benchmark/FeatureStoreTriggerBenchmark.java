@@ -44,8 +44,20 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
     private static final int entities  = Integer.getInteger("splice.benchmark.entities", DEFAULT_ENTITIES);
     private static final int updates  = Integer.getInteger("splice.benchmark.operations", DEFAULT_OPS);
 
+    private static Connection testConnection;
+    private static Statement testStatement;
+
     static Connection makeConnection() throws SQLException {
         Connection connection = SpliceNetConnection.getDefaultConnection();
+        connection.setSchema(schema);
+        connection.setAutoCommit(true);
+        return connection;
+    }
+
+    static Connection makeConnection(boolean useOLAP) throws SQLException {
+        SpliceNetConnection.ConnectionBuilder builder = SpliceNetConnection.newBuilder();
+        builder.useOLAP(useOLAP);
+        Connection connection = builder.build();
         connection.setSchema(schema);
         connection.setAutoCommit(true);
         return connection;
@@ -61,90 +73,76 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
             LOG.info(String.format("HOST: %s  SPLICE: %s (%s)", rs.hostName, rs.release, rs.buildHash));
         }
 
+        testConnection = makeConnection();
+        testStatement = testConnection.createStatement();
+
         createTables(info.length);
     }
 
     private static void createTables(int numHosts) throws Exception {
-        try (Connection conn = makeConnection()) {
-            try (Statement statement = conn.createStatement()) {
+        LOG.info("Creating tables...");
 
-                // Pre-split FeatureTable
-                String fileName = "/tmp/split_FeatureTable";
-                statement.execute("DROP TABLE IF EXISTS SPLITKEYS");
-                statement.execute("CREATE TABLE SPLITKEYS (pk int)");
-                for (int split = 1; split < numHosts; ++split) {
-                    int pk = split * (entities / numHosts);
-                    statement.execute("INSERT INTO SPLITKEYS VALUES (" + pk + ")");
-                }
-                statement.execute(String.format("EXPORT('%s', false, null, null, null, null) SELECT * FROM SPLITKEYS", fileName));
-                statement.execute(
-                    String.format("CREATE TABLE FeatureTable (" +
-                        "entity_key INTEGER PRIMARY KEY," +
-                        "last_update_ts TIMESTAMP," +
-                        "feature1 DOUBLE," +
-                        "feature2 DOUBLE)" +
-                        "LOGICAL SPLITKEYS LOCATION '%s'", fileName)
-                );
-
-                // Pre-split FeatureTableHistory
-                fileName = "/tmp/split_FeatureTableHistory";
-                statement.execute("DROP TABLE IF EXISTS SPLITKEYS");
-                statement.execute("CREATE TABLE SPLITKEYS (pk1 int, pk2 timestamp)");
-                String t0 = new Timestamp(0).toString();
-                for (int split = 1; split < numHosts; ++split) {
-                    int pk = split * (entities / numHosts);
-                    statement.execute("INSERT INTO SPLITKEYS VALUES (" + pk + ",'" + t0 + "')");
-                }
-                statement.execute(String.format("EXPORT('%s', false, null, null, null, null) SELECT * FROM SPLITKEYS", fileName));
-                statement.execute(
-                    String.format("CREATE TABLE FeatureTableHistory (" +
-                        "entity_key INTEGER," +
-                        "asof_ts TIMESTAMP," +
-                        "ingest_ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
-                        "feature1 DOUBLE," +
-                        "feature2 DOUBLE," +
-                        "PRIMARY KEY (entity_key, asof_ts))" +
-                        "LOGICAL SPLITKEYS LOCATION '%s'", fileName)
-                );
-
-                // Triggers
-                statement.execute(
-                    "CREATE TRIGGER FeatureTable_INSERTS " +
-                        "AFTER INSERT ON FeatureTable " +
-                        "REFERENCING NEW_TABLE AS NEWW " +
-                        "FOR EACH STATEMENT " +
-                        "INSERT INTO FeatureTableHistory (entity_key, asof_ts, ingest_ts, feature1, feature2) --splice-properties insertMode=UPSERT\n" +
-                        "SELECT NEWW.entity_key, NEWW.last_update_ts, CURRENT_TIMESTAMP, NEWW.feature1, NEWW.feature2 FROM NEWW"
-                );
-                statement.execute(
-                    "CREATE TRIGGER FeatureTable_UPDATES " +
-                        "AFTER UPDATE ON FeatureTable " +
-                        "REFERENCING NEW_TABLE AS NEWW " +
-                        "FOR EACH STATEMENT " +
-                        "INSERT INTO FeatureTableHistory ( entity_key, asof_ts, ingest_ts, feature1, feature2) --splice-properties insertMode=UPSERT\n" +
-                        "SELECT NEWW.entity_key, NEWW.last_update_ts, CURRENT_TIMESTAMP, NEWW.feature1, NEWW.feature2 FROM NEWW"
-                );
-                statement.execute(
-                    "CREATE TRIGGER FeatureTableHistory_UPDATE_OOO " +
-                        "AFTER UPDATE ON FeatureTable " +
-                        "REFERENCING NEW_TABLE AS NEWW OLD_TABLE AS OLDW " +
-                        "FOR EACH STATEMENT " +
-                        "INSERT INTO FeatureTable (entity_key, last_update_ts, feature1, feature2) --splice-properties insertMode=UPSERT\n" +
-                        "SELECT o.entity_key, o.last_update_ts, o.feature1, o.feature2 " +
-                        "FROM OLDW o INNER JOIN NEWW n ON o.ENTITY_KEY=n.ENTITY_KEY AND o.LAST_UPDATE_TS > n.LAST_UPDATE_TS"
-                );
-                statement.execute(
-                    "CREATE TABLE FeatureStaging(" +
-                        "entity_key INTEGER," +
-                        "update_order INTEGER," +
-                        "ts TIMESTAMP," +
-                        "feature1 DOUBLE," +
-                        "feature2 DOUBLE," +
-                        "PRIMARY KEY (entity_key, update_order))"
-                );
-
-            }
+        // Pre-split FeatureTable
+        String fileName = "/tmp/split_FeatureTable";
+        testStatement.execute("DROP TABLE IF EXISTS SPLITKEYS");
+        testStatement.execute("CREATE TABLE SPLITKEYS (pk int)");
+        for (int split = 1; split < numHosts; ++split) {
+            int pk = split * (entities / numHosts);
+            testStatement.execute("INSERT INTO SPLITKEYS VALUES (" + pk + ")");
         }
+        testStatement.execute(String.format("EXPORT('%s', false, null, null, null, null) SELECT * FROM SPLITKEYS", fileName));
+        testStatement.execute(
+            String.format("CREATE TABLE FeatureTable (" +
+                "entity_key INTEGER PRIMARY KEY," +
+                "last_update_ts TIMESTAMP," +
+                "feature1 DOUBLE," +
+                "feature2 DOUBLE)" +
+                "LOGICAL SPLITKEYS LOCATION '%s'", fileName)
+        );
+
+        // Pre-split FeatureTableHistory
+        fileName = "/tmp/split_FeatureTableHistory";
+        testStatement.execute("DROP TABLE IF EXISTS SPLITKEYS");
+        testStatement.execute("CREATE TABLE SPLITKEYS (pk1 int, pk2 timestamp)");
+        String t0 = new Timestamp(0).toString();
+        for (int split = 1; split < numHosts; ++split) {
+            int pk = split * (entities / numHosts);
+            testStatement.execute("INSERT INTO SPLITKEYS VALUES (" + pk + ",'" + t0 + "')");
+        }
+        testStatement.execute(String.format("EXPORT('%s', false, null, null, null, null) SELECT * FROM SPLITKEYS", fileName));
+        testStatement.execute(
+            String.format("CREATE TABLE FeatureTableHistory (" +
+                "entity_key INTEGER," +
+                "asof_ts TIMESTAMP," +
+                "ingest_ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
+                "feature1 DOUBLE," +
+                "feature2 DOUBLE," +
+                "PRIMARY KEY (entity_key, asof_ts))" +
+                "LOGICAL SPLITKEYS LOCATION '%s'", fileName)
+        );
+
+/*
+        fileName = "/tmp/split_FeatureStaging";
+        testStatement.execute("DROP TABLE IF EXISTS SPLITKEYS");
+        testStatement.execute("CREATE TABLE SPLITKEYS (pk1 int, pk2 int)");
+        for (int split = 1; split < numHosts; ++split) {
+            int pk = split * (entities / numHosts);
+            testStatement.execute("INSERT INTO SPLITKEYS VALUES (" + pk + ",0)");
+        }
+        testStatement.execute(String.format("EXPORT('%s', false, null, null, null, null) SELECT * FROM SPLITKEYS", fileName));
+
+ */
+        testStatement.execute(
+            String.format("CREATE TABLE FeatureStaging(" +
+                "entity_key INTEGER," +
+                "update_order INTEGER," +
+                "ts TIMESTAMP," +
+                "feature1 DOUBLE," +
+                "feature2 DOUBLE," +
+                "PRIMARY KEY (entity_key, update_order))"
+//                + "LOGICAL SPLITKEYS LOCATION '%s'"
+                , fileName)
+        );
     }
 
     static final String STAT_ERROR = "ERROR";
@@ -167,13 +165,20 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
             PreparedStatement insert = conn.prepareStatement("INSERT INTO FeatureStaging VALUES (?, ?, ?, ?, ?)");
             Random rnd = ThreadLocalRandom.current();
             int maxDay = (int)((ts1 - ts0 + DAYMS - 1) / DAYMS);
+            int[] used = new int[maxDay];
             for (;;) {
                 int entity = taskId.incrementAndGet();  // [1 .. entities]
                 if (entity > entities) break;
                 for (int update = 1; update <= updates; ++update) {
                     insert.setInt(1, entity);
                     insert.setInt(2, update);
-                    insert.setTimestamp(3, new Timestamp(ts0 + rnd.nextInt(maxDay) * DAYMS));
+                    // Pick unique day
+                    int day;
+                    do {
+                        day = rnd.nextInt(maxDay);
+                    } while (used[day] == entity);
+                    used[day] = entity;
+                    insert.setTimestamp(3, new Timestamp(ts0 + day * DAYMS));
                     insert.setDouble(4, rnd.nextDouble());
                     insert.setDouble(5, rnd.nextDouble());
                     insert.addBatch();
@@ -198,6 +203,14 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
         }
     }
 
+    private void populateStagingTable() throws SQLException {
+        testStatement.execute("TRUNCATE TABLE FeatureStaging");
+        long nextTimestamp = curTimestamp + 60 * DAYMS;
+        taskId.set(0);
+        runBenchmark(connections, () -> populateStagingTable(curTimestamp, nextTimestamp));
+        curTimestamp = nextTimestamp;
+    }
+
     public void insertAndUpdateFromBatches() {
         try (Connection conn = makeConnection()) {
             try (Statement statement = conn.createStatement()) {
@@ -217,6 +230,40 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
             LOG.error("Connection broken", t);
             abort = true;
         }
+    }
+
+    private void createFeatureTableTriggers() throws SQLException {
+        testStatement.execute(
+                "CREATE TRIGGER FeatureTable_INSERTS " +
+                        "AFTER INSERT ON FeatureTable " +
+                        "REFERENCING NEW_TABLE AS NEWW " +
+                        "FOR EACH STATEMENT " +
+                        "INSERT INTO FeatureTableHistory (entity_key, asof_ts, ingest_ts, feature1, feature2) --splice-properties insertMode=UPSERT\n" +
+                        "SELECT NEWW.entity_key, NEWW.last_update_ts, CURRENT_TIMESTAMP, NEWW.feature1, NEWW.feature2 FROM NEWW"
+        );
+        testStatement.execute(
+                "CREATE TRIGGER FeatureTable_UPDATES " +
+                        "AFTER UPDATE ON FeatureTable " +
+                        "REFERENCING NEW_TABLE AS NEWW " +
+                        "FOR EACH STATEMENT " +
+                        "INSERT INTO FeatureTableHistory ( entity_key, asof_ts, ingest_ts, feature1, feature2) --splice-properties insertMode=UPSERT\n" +
+                        "SELECT NEWW.entity_key, NEWW.last_update_ts, CURRENT_TIMESTAMP, NEWW.feature1, NEWW.feature2 FROM NEWW"
+        );
+        testStatement.execute(
+                "CREATE TRIGGER FeatureTableHistory_UPDATE_OOO " +
+                        "AFTER UPDATE ON FeatureTable " +
+                        "REFERENCING NEW_TABLE AS NEWW OLD_TABLE AS OLDW " +
+                        "FOR EACH STATEMENT " +
+                        "INSERT INTO FeatureTable (entity_key, last_update_ts, feature1, feature2) --splice-properties insertMode=UPSERT\n" +
+                        "SELECT o.entity_key, o.last_update_ts, o.feature1, o.feature2 " +
+                        "FROM OLDW o INNER JOIN NEWW n ON o.ENTITY_KEY=n.ENTITY_KEY AND o.LAST_UPDATE_TS > n.LAST_UPDATE_TS"
+        );
+    }
+
+    private void dropFeatureTableTriggers() throws SQLException {
+        testStatement.execute("DROP TRIGGER FeatureTable_INSERTS");
+        testStatement.execute("DROP TRIGGER FeatureTable_UPDATES");
+        testStatement.execute("DROP TRIGGER FeatureTableHistory_UPDATE_OOO");
     }
 
     static class Row {
@@ -278,34 +325,175 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
     }
 
     @Test
-    public void benchmark() {
-        LOG.info("Update the feature table from a pre-populated staging table");
-        long nextTimestamp = curTimestamp + 60 * DAYMS;
-        runBenchmark(connections, () -> populateStagingTable(curTimestamp, nextTimestamp));
-        curTimestamp = nextTimestamp;
+    public void updateFeatureTable() throws SQLException {
+        LOG.info("Updating the feature table from a pre-populated staging table");
+
+        populateStagingTable();
         Assert.assertFalse(abort);
 
-        long start = System.currentTimeMillis();
-        runBenchmark(1, () -> insertAndUpdateFromBatches());
-        long end = System.currentTimeMillis();
-        Assert.assertFalse(abort);
+        try {
+            createFeatureTableTriggers();
 
-        long throughput = getCountStats(STAT_UPDATE) * 1000L / (end - start);
-        LOG.info(STAT_UPDATE + " throughput: " + throughput + " ops/sec");
+            long start = System.currentTimeMillis();
+            runBenchmark(1, () -> insertAndUpdateFromBatches());
+            long end = System.currentTimeMillis();
+            Assert.assertFalse(abort);
+
+            long throughput = getCountStats(STAT_UPDATE) * 1000L / (end - start);
+            LOG.info(STAT_UPDATE + " throughput: " + throughput + " ops/sec");
+
+        }
+        finally {
+            dropFeatureTableTriggers();
+        }
     }
 
     @Test
-    public void benchmark2() {
-        LOG.info("Update the feature table concurrently");
-        long nextTimestamp = curTimestamp + 60 * DAYMS;
-        long start = System.currentTimeMillis();
-        runBenchmark(connections, () -> insertAndUpdateConcurrently(curTimestamp, nextTimestamp));
-        long end = System.currentTimeMillis();
-        curTimestamp = nextTimestamp;
+    public void updateFeatureTableConcurrently() throws SQLException {
+        LOG.info("Updating the feature table concurrently");
+
+        try {
+            createFeatureTableTriggers();
+
+            long nextTimestamp = curTimestamp + 60 * DAYMS;
+            long start = System.currentTimeMillis();
+            runBenchmark(connections, () -> insertAndUpdateConcurrently(curTimestamp, nextTimestamp));
+            long end = System.currentTimeMillis();
+            curTimestamp = nextTimestamp;
+            Assert.assertFalse(abort);
+
+            long throughput = getCountStats(STAT_UPDATE) * 1000L / (end - start);
+            LOG.info(STAT_UPDATE + " throughput: " + throughput + " ops/sec");
+
+        }
+        finally {
+            dropFeatureTableTriggers();
+        }
+    }
+
+    private void createHistoryTableTriggers() throws SQLException {
+        testStatement.execute(
+                "CREATE TRIGGER FeatureTableHistory_INSERT " +
+                        "AFTER INSERT ON FeatureTableHistory " +
+                        "REFERENCING NEW_TABLE AS NEWW " +
+                        "FOR EACH STATEMENT " +
+                        "INSERT INTO FeatureTable (entity_key, last_update_ts, feature1, feature2) --splice-properties insertMode=UPSERT\n" +
+                        "SELECT n.entity_key, n.asof_ts, n.feature1, n.feature2 " +
+                        "FROM NEWW n LEFT JOIN FeatureTable o ON n.entity_key = o.entity_key WHERE (o.last_update_ts IS NULL OR o.last_update_ts < n.asof_ts)"
+        );
+    }
+
+    private void dropHistoryTableTriggers() throws SQLException {
+        testStatement.execute("DROP TRIGGER FeatureTableHistory_INSERT");
+    }
+
+    public void insertAndUpdateFromBatches2() {
+        try (Connection conn = makeConnection()) {
+            try (PreparedStatement statement = conn.prepareStatement(
+                    "INSERT INTO FeatureTableHistory " +
+                            "SELECT entity_key, ts, CURRENT_TIMESTAMP, feature1, feature2 " +
+                            "FROM FeatureStaging WHERE update_order=?")) {
+                for (int update = 1; update <= updates; ++update) {
+                    long start = System.currentTimeMillis();
+                    statement.setInt(1, update);
+                    int count = statement.executeUpdate();
+                    long end = System.currentTimeMillis();
+                    updateStats(STAT_UPDATE, count, end - start);
+                }
+            }
+        }
+        catch (Throwable t) {
+            LOG.error("Connection broken", t);
+            abort = true;
+        }
+    }
+
+    public void insertAndUpdateConcurrently2(long ts0, long ts1) {
+        int idx = lastIdx.getAndIncrement();
+        PriorityQueue<Row> pq = new PriorityQueue<>((r1, r2) -> Long.signum(r1.delivery - r2.delivery));
+        Random rnd = ThreadLocalRandom.current();
+        int minEntity = idx * entities / connections;
+        int maxEntity = (idx + 1) * entities / connections;
+        for (int update = 0; update < updates; ++update) {
+            long updateTS = ts0 + update * (ts1 - ts0) / updates;
+            for (int entity = minEntity; entity < maxEntity; ++entity) {
+                Row row = new Row(entity, updateTS, rnd.nextDouble(), rnd.nextDouble(), rnd.nextLong() % (ts1 - ts0));
+                pq.add(row);
+            }
+        }
+
+        try (Connection conn = makeConnection()) {
+            try (PreparedStatement statement = conn.prepareStatement("INSERT INTO FeatureTableHistory (entity_key, asof_ts, feature1, feature2) VALUES(?,?,?,?)")) {
+                for (;;) {
+                    Row row = pq.poll();
+                    if (row == null) break;
+
+                    statement.setInt(1, row.entity);
+                    statement.setTimestamp(2, new Timestamp(row.lastUpdate));
+                    statement.setDouble(3, row.feature1);
+                    statement.setDouble(4, row.feature2);
+                    long start = System.currentTimeMillis();
+                    int count = statement.executeUpdate();
+                    long end = System.currentTimeMillis();
+                    if (count != 1) {
+                        updateStats(STAT_ERROR);
+                    } else {
+                        updateStats(STAT_UPDATE, end - start);
+                    }
+                }
+            }
+        }
+        catch (Throwable t) {
+            LOG.error("Connection broken", t);
+            abort = true;
+        }
+    }
+
+    @Test
+    public void updateHistoryTable() throws SQLException {
+        LOG.info("Updating the history table from a pre-populated staging table");
+
+        populateStagingTable();
         Assert.assertFalse(abort);
 
-        long throughput = getCountStats(STAT_UPDATE) * 1000L / (end - start);
-        LOG.info(STAT_UPDATE + " throughput: " + throughput + " ops/sec");
+        try {
+            createHistoryTableTriggers();
+
+            long start = System.currentTimeMillis();
+            runBenchmark(1, () -> insertAndUpdateFromBatches2());
+            long end = System.currentTimeMillis();
+            Assert.assertFalse(abort);
+
+            long throughput = getCountStats(STAT_UPDATE) * 1000L / (end - start);
+            LOG.info(STAT_UPDATE + " throughput: " + throughput + " ops/sec");
+
+        }
+        finally {
+            dropHistoryTableTriggers();
+        }
+    }
+
+    @Test
+    public void updateHistoryTableConcurrently() throws SQLException {
+        LOG.info("Updating the history table concurrently");
+
+        try {
+            createHistoryTableTriggers();
+
+            long nextTimestamp = curTimestamp + 60 * DAYMS;
+            long start = System.currentTimeMillis();
+            runBenchmark(connections, () -> insertAndUpdateConcurrently2(curTimestamp, nextTimestamp));
+            long end = System.currentTimeMillis();
+            curTimestamp = nextTimestamp;
+            Assert.assertFalse(abort);
+
+            long throughput = getCountStats(STAT_UPDATE) * 1000L / (end - start);
+            LOG.info(STAT_UPDATE + " throughput: " + throughput + " ops/sec");
+
+        }
+        finally {
+            dropHistoryTableTriggers();
+        }
     }
 
 }
