@@ -963,7 +963,6 @@ public class DeleteNode extends DMLModStatementNode
         ResultColumn resultColumn;
         ValueNode     valueNode;
 
-        NodeFactory nodeFactory = getNodeFactory();
         ResultColumnList columnList = new ResultColumnList(getContextManager());
         valueNode = new UntypedNullConstantNode(getContextManager());
         for(int index =0 ; index < cdl.size() ; index++)
