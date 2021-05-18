@@ -2602,10 +2602,7 @@ analyzeTableStatement() throws StandardException :
 
     Vector  parameterList = new Vector();
     if (tableName.hasSchema()) {
-      schema = (CharConstantNode) nodeFactory.getNode(
-            C_NodeTypes.CHAR_CONSTANT_NODE,
-            tableName.getSchemaName(),
-            getContextManager());
+      schema = new CharConstantNode(tableName.getSchemaName(), getContextManager());
     }
     else {
       schema = (UntypedNullConstantNode) getNodeFactory().getNode(
@@ -2614,10 +2611,7 @@ analyzeTableStatement() throws StandardException :
     }
     parameterList.addElement(schema);
 
-    CharConstantNode table = (CharConstantNode) nodeFactory.getNode(
-                                   C_NodeTypes.CHAR_CONSTANT_NODE,
-                                   tableName.getTableName(),
-                                   getContextManager());
+    CharConstantNode table = new CharConstantNode(tableName.getTableName(), getContextManager());
     parameterList.addElement(table);
 
     if (samplePercent != null) {
@@ -2663,10 +2657,7 @@ analyzeSchemaStatement() throws StandardException :
                                   getContextManager());
 
     Vector  parameterList = new Vector();
-    CharConstantNode schema = (CharConstantNode) nodeFactory.getNode(
-                C_NodeTypes.CHAR_CONSTANT_NODE,
-                schemaName,
-                getContextManager());
+    CharConstantNode schema = new CharConstantNode(schemaName, getContextManager());
     parameterList.addElement(schema);
 
     //add parameter staleOnly
@@ -2959,10 +2950,7 @@ ValueNode exportCompression() throws StandardException :
 {
     token = exportCompressionToken()
     {
-        return (ValueNode) nodeFactory.getNode(
-            C_NodeTypes.CHAR_CONSTANT_NODE,
-            token,
-            getContextManager());
+        return new CharConstantNode(token, getContextManager());
     }
 |
     expr = orExpression(null)
@@ -2999,10 +2987,7 @@ ValueNode exportFormat() throws StandardException :
 {
     token = exportFormatToken()
     {
-        return (ValueNode) nodeFactory.getNode(
-            C_NodeTypes.CHAR_CONSTANT_NODE,
-            token,
-            getContextManager());
+        return new CharConstantNode(token, getContextManager());
     }
 |
     expr = orExpression(null)
@@ -3034,10 +3019,7 @@ ValueNode exportQuoteMode() throws StandardException :
 {
     token = exportQuoteModeToken()
     {
-        return (ValueNode) nodeFactory.getNode(
-            C_NodeTypes.CHAR_CONSTANT_NODE,
-            token,
-            getContextManager());
+        return new CharConstantNode(token, getContextManager());
     }
 |
     expr = orExpression(null)
@@ -3069,10 +3051,7 @@ ValueNode floatingPointNotation() throws StandardException :
 {
     token = floatingPointNotationToken()
     {
-        return (ValueNode) nodeFactory.getNode(
-            C_NodeTypes.CHAR_CONSTANT_NODE,
-            token,
-            getContextManager());
+        return new CharConstantNode(token, getContextManager());
     }
 |
     expr = orExpression(null)
@@ -3149,10 +3128,7 @@ exportStatement() throws StandardException :
         methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
         {
             parameterList.addElement(null); // null for legacy (quote mode)
-            parameterList.addElement((CharConstantNode) nodeFactory.getNode(
-                                     C_NodeTypes.CHAR_CONSTANT_NODE,
-                                     "csv",
-                                     getContextManager()));
+            parameterList.addElement( new CharConstantNode("csv", getContextManager()));
             parameterList.addElement(null); // null for legacy (floating point notation)
             parameterList.addElement(null); // null for legacy (timestamp format)
             return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
@@ -7435,9 +7411,7 @@ valueTupleElement(ValueNode tupleOrFirstValue) throws StandardException:
         if (tupleOrFirstValue instanceof ValueTupleNode) {
             valueTuple = (ValueTupleNode) tupleOrFirstValue;
         } else {
-            valueTuple = (ValueTupleNode) nodeFactory.getNode(
-                                    C_NodeTypes.VALUE_TUPLE_NODE,
-                                    getContextManager());
+            valueTuple = new ValueTupleNode(getContextManager());
             valueTuple.addValueNode((ValueNode) tupleOrFirstValue);
         }
         if (newValue instanceof ValueTupleNode) {
@@ -8498,10 +8472,7 @@ ValueNode
 truncateFunctionCompletion(ValueNode truncateOperand) throws StandardException :
 {
         /* default truncValue to DAY */
-        ValueNode truncValue = (CharConstantNode) nodeFactory.getNode(
-                                                               C_NodeTypes.CHAR_CONSTANT_NODE,
-                                                               "DAY",  // default to DAY
-                                                               getContextManager());
+        ValueNode truncValue = new CharConstantNode("DAY" /* default to DAY */,  getContextManager());
 }
 {
     ( <RIGHT_PAREN> | <COMMA> truncValue = additiveExpression(null,0) <RIGHT_PAREN> )
@@ -14002,10 +13973,7 @@ stringLiteral() throws StandardException :
             throw StandardException.newException(SQLState.LANG_DB2_STRING_CONSTANT_TOO_LONG, StringUtil.formatForPrint(tok.image));
         string = StringUtil.compressQuotes(tok.image.substring(1, tok.image.length() - 1), SINGLEQUOTES);
         /* Trim quotes from string. */
-        return (CharConstantNode) nodeFactory.getNode(
-                                C_NodeTypes.CHAR_CONSTANT_NODE,
-                                string,
-                                getContextManager());
+        return new CharConstantNode(string, getContextManager());
     }
 }
 
