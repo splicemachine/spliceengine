@@ -321,12 +321,7 @@ public class DeleteNode extends DMLModStatementNode
                 ResultColumn rowIdColumn = targetTable.getRowIdColumn();
                 if (rowIdColumn == null) {
                     rowLocationNode = new CurrentRowLocationNode(getContextManager());
-                    rowIdColumn =
-                            (ResultColumn) getNodeFactory().getNode(
-                                    C_NodeTypes.RESULT_COLUMN,
-                                    COLUMNNAME,
-                                    rowLocationNode,
-                                    getContextManager());
+                    rowIdColumn = new ResultColumn(COLUMNNAME, rowLocationNode, getContextManager());
 
                     rowLocationNode.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
                                     false		/* Not nullable */
@@ -344,19 +339,9 @@ public class DeleteNode extends DMLModStatementNode
                     columnReference.setSource(rowIdColumn);
                     columnReference.setNestingLevel(targetTable.getLevel());
                     columnReference.setSourceLevel(targetTable.getLevel());
-                    rowLocationColumn =
-                            (ResultColumn) getNodeFactory().getNode(
-                                    C_NodeTypes.RESULT_COLUMN,
-                                    COLUMNNAME,
-                                    columnReference,
-                                    getContextManager());
+                    rowLocationColumn = new ResultColumn(COLUMNNAME, columnReference, getContextManager());
                 } else {
-                    rowLocationColumn =
-                            (ResultColumn) getNodeFactory().getNode(
-                                    C_NodeTypes.RESULT_COLUMN,
-                                    COLUMNNAME,
-                                    rowIdColumn,
-                                    getContextManager());
+                    rowLocationColumn = new ResultColumn(COLUMNNAME, rowIdColumn, getContextManager());
                 }
 
                 rowLocationColumn.bindResultColumnToExpression();
@@ -989,12 +974,7 @@ public class DeleteNode extends DMLModStatementNode
             //DELETE SET NULL
             if((cd.getType()).isNullable())
             {
-                resultColumn = (ResultColumn) nodeFactory.getNode(
-                                           C_NodeTypes.RESULT_COLUMN,
-                                        cd,
-                                        valueNode,
-                                        getContextManager());
-
+                resultColumn = new ResultColumn(cd, valueNode, getContextManager());
                 columnList.addResultColumn(resultColumn);
             }
         }

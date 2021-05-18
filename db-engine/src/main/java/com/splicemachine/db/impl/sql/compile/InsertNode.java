@@ -604,11 +604,7 @@ public final class InsertNode extends DMLModStatementNode {
                 // ValueNode nullNode = (ValueNode) getNodeFactory().getNode(
                 //     C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
                 //     getContextManager());
-                newSourceRC = (ResultColumn)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    "",
-                    getNullNode(dtd),
-                    getContextManager());
+                newSourceRC = new ResultColumn("", getNullNode(dtd), getContextManager());
                 newSourceRCLEntry = newSourceRC.cloneMe();
             }
             expandedRS.addResultColumn(newSourceRC);

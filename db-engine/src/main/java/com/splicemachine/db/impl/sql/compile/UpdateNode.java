@@ -607,12 +607,7 @@ public final class UpdateNode extends DMLModStatementNode
 
         ResultColumn rowIdColumn = targetTable.getRowIdColumn();
         if (rowIdColumn == null) {
-            rowIdColumn =
-                    (ResultColumn) getNodeFactory().getNode(
-                            C_NodeTypes.RESULT_COLUMN,
-                            COLUMNNAME,
-                            rowLocationNode,
-                            getContextManager());
+            rowIdColumn = new ResultColumn(COLUMNNAME, rowLocationNode, getContextManager());
             rowLocationNode.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
                             false        /* Not nullable */
                     )
@@ -629,19 +624,9 @@ public final class UpdateNode extends DMLModStatementNode
             columnReference.setSource(rowIdColumn);
             columnReference.setNestingLevel(targetTable.getLevel());
             columnReference.setSourceLevel(targetTable.getLevel());
-            rowLocationColumn =
-                    (ResultColumn) getNodeFactory().getNode(
-                            C_NodeTypes.RESULT_COLUMN,
-                            COLUMNNAME,
-                            columnReference,
-                            getContextManager());
+            rowLocationColumn = new ResultColumn(COLUMNNAME, columnReference, getContextManager());
         } else {
-            rowLocationColumn =
-                    (ResultColumn) getNodeFactory().getNode(
-                            C_NodeTypes.RESULT_COLUMN,
-                            COLUMNNAME,
-                            rowIdColumn,
-                            getContextManager());
+            rowLocationColumn = new ResultColumn(COLUMNNAME, rowIdColumn, getContextManager());
         }
 
         /* Append to the ResultColumnList */
@@ -1409,8 +1394,7 @@ public final class UpdateNode extends DMLModStatementNode
                         // we will fill in the real value later on in parseAndBindGenerationClauses();
                         ValueNode dummy = (ValueNode) getNodeFactory().getNode
                                 (C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE, getContextManager());
-                        ResultColumn newResultColumn = (ResultColumn) getNodeFactory().getNode
-                                (C_NodeTypes.RESULT_COLUMN, gc.getType(), dummy, getContextManager());
+                        ResultColumn newResultColumn = new ResultColumn(gc.getType(), dummy, getContextManager());
                         newResultColumn.setColumnDescriptor(baseTable, gc);
                         newResultColumn.setName(gc.getColumnName());
 
