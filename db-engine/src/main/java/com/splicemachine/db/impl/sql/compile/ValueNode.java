@@ -80,6 +80,10 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     ValueNode(ContextManager cm) {
         super(cm);
     }
+    ValueNode(ContextManager cm, int nodeType) {
+        super(cm);
+        setNodeType(nodeType);
+    }
 
     /**
      * Set this node's type from type components.
