@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -48,6 +49,13 @@ import static com.splicemachine.db.impl.sql.compile.AndNode.newAndNode;
 public class OrNode extends BinaryLogicalOperatorNode {
     /* Is this the 1st OR in the OR chain? */
     private boolean firstOr;
+
+    public OrNode() {}
+    public OrNode(ValueNode left, ValueNode right, ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.OR_NODE);
+        init(left, right);
+    }
 
     /**
      * Initializer for an OrNode
@@ -504,11 +512,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
             BooleanConstantNode    falseNode;
 
             falseNode = new BooleanConstantNode(Boolean.FALSE,getContextManager());
-            setRightOperand((ValueNode) getNodeFactory().getNode(
-                                                C_NodeTypes.OR_NODE,
-                                                getRightOperand(),
-                                                falseNode,
-                                                getContextManager()));
+            setRightOperand(new OrNode(getRightOperand(), falseNode, getContextManager()));
             ((OrNode) getRightOperand()).postBindFixup();
         }
 
@@ -526,11 +530,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
             BooleanConstantNode    falseNode;
 
             falseNode = new BooleanConstantNode(Boolean.FALSE,getContextManager());
-            curOr.setRightOperand(
-                    (ValueNode) getNodeFactory().getNode(
-                                                C_NodeTypes.OR_NODE,
-                                                curOr.getRightOperand(),
-                                                falseNode,
+            curOr.setRightOperand( new OrNode(curOr.getRightOperand(), falseNode,
                                                 getContextManager()));
             ((OrNode) curOr.getRightOperand()).postBindFixup();
         }

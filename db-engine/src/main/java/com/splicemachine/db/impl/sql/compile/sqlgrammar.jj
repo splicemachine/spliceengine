@@ -5446,11 +5446,7 @@ orExpression(ValueNode farLeftOperand) throws StandardException :
         }
         else
         {
-            return (ValueNode) nodeFactory.getNode(
-                                        C_NodeTypes.OR_NODE,
-                                        farLeftOperand,
-                                        leftOperand,
-                                        getContextManager());
+            return new OrNode(farLeftOperand, leftOperand, getContextManager());
         }
     }
 }

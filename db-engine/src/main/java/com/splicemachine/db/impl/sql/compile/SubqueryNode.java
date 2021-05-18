@@ -2471,11 +2471,7 @@ public class SubqueryNode extends ValueNode{
         if (leftNullable || rightNullable) {
             /* Create a normalized structure */
             BooleanConstantNode falseNode = new BooleanConstantNode(Boolean.FALSE,getContextManager());
-            OrNode newOr = (OrNode) getNodeFactory().getNode(
-                    C_NodeTypes.OR_NODE,
-                    newTop,
-                    falseNode,
-                    getContextManager());
+            OrNode newOr = new OrNode(newTop, falseNode, getContextManager());
             newOr.postBindFixup();
             newTop = newOr;
 
@@ -2486,11 +2482,7 @@ public class SubqueryNode extends ValueNode{
                                 leftItem,
                                 getContextManager());
                 leftIsNull.bindComparisonOperator();
-                newOr = (OrNode) getNodeFactory().getNode(
-                        C_NodeTypes.OR_NODE,
-                        leftIsNull,
-                        newTop,
-                        getContextManager());
+                newOr = new OrNode(leftIsNull, newTop, getContextManager());
                 newOr.postBindFixup();
                 newTop = newOr;
             }
@@ -2501,11 +2493,7 @@ public class SubqueryNode extends ValueNode{
                                 rightItem,
                                 getContextManager());
                 rightIsNull.bindComparisonOperator();
-                newOr = (OrNode) getNodeFactory().getNode(
-                        C_NodeTypes.OR_NODE,
-                        rightIsNull,
-                        newTop,
-                        getContextManager());
+                newOr = new OrNode(rightIsNull, newTop, getContextManager());
                 newOr.postBindFixup();
                 newTop = newOr;
             }
