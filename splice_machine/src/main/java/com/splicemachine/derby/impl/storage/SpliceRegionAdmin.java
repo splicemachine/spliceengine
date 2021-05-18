@@ -720,11 +720,11 @@ public class SpliceRegionAdmin {
         if (index != null) {
             IndexRowGenerator irg = index.getIndexDescriptor();
             IndexDescriptor id = irg.getIndexDescriptor();
-            int[] positions = id.baseColumnPositions();
+            int[] positions = id.baseColumnStoragePositions();
             int[] typeFormatIds = new int[positions.length];
             int i = 0;
             for(int position : positions) {
-                ColumnDescriptor cd = td.getColumnDescriptor(position);
+                ColumnDescriptor cd = td.getColumnDescriptorByStoragePosition(position);
                 typeFormatIds[i++] = cd.getType().getNull().getTypeFormatId();
             }
             execRow = WriteReadUtils.getExecRowFromTypeFormatIds(typeFormatIds);

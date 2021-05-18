@@ -50,7 +50,9 @@ import org.apache.log4j.Logger;
 import splice.com.google.common.primitives.Ints;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -204,28 +206,29 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         List<Integer> indexCols = tentativeIndex.getIndex().getIndexColsToMainColMapList();
         List<Integer> allFormatIds = tentativeIndex.getTable().getFormatIdsList();
         List<Integer> columnOrdering = tentativeIndex.getTable().getColumnOrderingList();
-        td.getColumnDescriptorList().elementAt(0).getType().getNull();
-        int[] rowDecodingMap = new int[allFormatIds.size()];
-        int[] baseColumnMap = new int[allFormatIds.size()];
+        List<Integer> storagePositions = tentativeIndex.getTable().getStoragePositionsList();
+        int maxStoragePosition = Collections.max(indexCols);
+        int[] rowDecodingMap = new int[maxStoragePosition];
+        int[] baseColumnMap = new int[maxStoragePosition];
         int counter = 0;
         indexFormatIds = new int[indexCols.size()];
         ExecRow indexDefaultRow = new ValueRow(indexCols.size());
         FormatableBitSet defaultValueMap = new FormatableBitSet(indexCols.size());
+        Arrays.fill(baseColumnMap, -1);
+        Arrays.fill(rowDecodingMap, -1);
 
-        for (int i = 0; i < rowDecodingMap.length;i++) {
-            rowDecodingMap[i] = -1;
-            if (indexCols.contains(i+1)) {
-                baseColumnMap[i] = counter;
-                indexFormatIds[counter] = allFormatIds.get(indexCols.get(indexCols.indexOf(i+1))-1);
+        for (int i = 0; i < storagePositions.size();i++) {
+            int storagePosition = storagePositions.get(i); // 0-based storage position
+            if (indexCols.contains(storagePosition+1)) {
+                baseColumnMap[storagePosition] = counter;
+                indexFormatIds[counter] = allFormatIds.get(storagePositions.indexOf(storagePosition));
                 indexDefaultRow.setColumn(counter+1, baseDefaultRow.getColumn(i+1));
                 if (!baseDefaultRow.getColumn(i+1).isNull())
                     defaultValueMap.set(counter);
                 counter++;
-            } else {
-                baseColumnMap[i] = -1;
             }
         }
-        // Determine which keys it scans...
+        // Determine the index intersection with primary key columns.
         FormatableBitSet accessedKeyCols = new FormatableBitSet(columnOrdering.size());
         for (int i = 0; i < columnOrdering.size(); i++) {
             if (indexCols.contains(columnOrdering.get(i)+1))
@@ -234,8 +237,11 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         for (int i = 0; i < baseColumnMap.length;i++) {
             if (columnOrdering.contains(i))
                 rowDecodingMap[i] = -1;
-            else
+            else {
+                // set it to the ordinal position of the index in the base row
+                // for more information, read the doc of TableScannerBuilder.rowDecodingMap.
                 rowDecodingMap[i] = baseColumnMap[i];
+            }
         }
 
         if (sparkHint == null) {

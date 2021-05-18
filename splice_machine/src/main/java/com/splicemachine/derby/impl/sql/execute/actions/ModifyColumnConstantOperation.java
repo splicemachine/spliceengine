@@ -14,10 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.db.catalog.DefaultInfo;
-import com.splicemachine.db.catalog.Dependable;
-import com.splicemachine.db.catalog.DependableFinder;
-import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.catalog.*;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -687,6 +684,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                                      String columnName) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
+        checkColumnUsage(columnName, tableDescriptor);
         DependencyManager dm = dd.getDependencyManager();
         boolean cascade = (behavior == StatementType.DROP_CASCADE);
         // drop any generated columns which reference this column
@@ -748,20 +746,14 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             throw ErrorState.LANG_COLUMN_NOT_FOUND_IN_TABLE.newException(columnName,tableDescriptor.getQualifiedName());
         }
 
-//        try {
-            tc.dropColumnFromConglomerate(tableDescriptor.getHeapConglomerateId(), columnDescriptor.getPosition());
-//        } catch (StandardException e) {
-//            if (ErrorState.WRITE_WRITE_CONFLICT.getSqlState().equals(e.getSQLState())) {
-//                throw ErrorState.DDL_ACTIVE_TRANSACTIONS.newException("DropColumn("+tableDescriptor.getQualifiedName()+"."+columnName+")",
-//                                                                      e.getMessage());
-//            }
-//            throw e;
-//        }
+        tc.dropColumnFromConglomerate(tableDescriptor.getHeapConglomerateId(),
+                columnDescriptor.getStoragePosition(), columnDescriptor.getPosition());
 
+        int maxStoragePosition = tableDescriptor.getColumnDescriptorList().maxStoragePosition();
         int size = tableDescriptor.getColumnDescriptorList().size();
-        int droppedColumnPosition = columnDescriptor.getPosition();
+        int droppedColumnPosition = columnDescriptor.getStoragePosition();
 
-        FormatableBitSet toDrop = new FormatableBitSet(size + 1);
+        FormatableBitSet toDrop = new FormatableBitSet(maxStoragePosition + 1);
         toDrop.set(droppedColumnPosition);
         tableDescriptor.setReferencedColumnMap(toDrop);
 
@@ -804,6 +796,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         tableDescriptor = dd.getTableDescriptor(tableId);
 
         ColumnDescriptorList tab_cdl = tableDescriptor.getColumnDescriptorList();
+        int pos = tab_cdl.getColumnDescriptor(tableDescriptor.getUUID(), columnName).getPosition();
 
         // drop the column from syscolumns
         dd.dropColumnDescriptor(tableDescriptor.getUUID(), columnName, tc);
@@ -884,6 +877,41 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // list in case we were called recursively in order to cascade-drop a
         // dependent generated column.
         tab_cdl.remove( tableDescriptor.getColumnDescriptor( columnName ) );
+        ConglomerateDescriptor[] cds = tableDescriptor.getConglomerateDescriptors();
+        for (ConglomerateDescriptor cd : cds) {
+            boolean modified = false;
+            IndexDescriptor indexDescriptor =cd.getIndexDescriptor().getIndexDescriptor();
+            if (indexDescriptor != null) {
+                int[] positions = indexDescriptor.baseColumnPositions();
+                for (int i = 0; i < positions.length; ++i) {
+                    if (positions[i] > pos) {
+                        positions[i] = positions[i] - 1;
+                        modified = true;
+                    }
+                }
+                if (modified) {
+                    dd.dropConglomerateDescriptor(cd, tc);
+                    dd.addDescriptor(cd, sd,
+                            DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc, false);
+                }
+            }
+        }
+    }
+
+    private void checkColumnUsage(String columnName, TableDescriptor td) throws StandardException{
+        int storagePosition = td.getColumnDescriptor(columnName).getStoragePosition();
+        ConglomerateDescriptorList cdl = td.getConglomerateDescriptorList();
+        for (ConglomerateDescriptor cd : cdl) {
+            if (cd.isIndex()) {
+                int[] storagePositions = cd.getIndexDescriptor().baseColumnStoragePositions();
+                for (int sp : storagePositions) {
+                    if (sp == storagePosition) {
+                        throw ErrorState.LANG_PROVIDER_HAS_DEPENDENT_OBJECT.newException(
+                                "DROP COLUMN", columnName, "INDEX", cd.getObjectName());
+                    }
+                }
+            }
+        }
     }
 
     private List<ConstantAction> handleConstraints(Activation activation,

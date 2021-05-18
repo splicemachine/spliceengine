@@ -54,9 +54,7 @@ import splice.com.google.common.primitives.Ints;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Builds an index table KVPair given a base table KVPair.
@@ -88,12 +86,16 @@ public class IndexTransformer {
     private EntryDecoder blindUpdateMutationDecoder;
     private ByteEntryAccumulator indexKeyAccumulator;
     private EntryEncoder indexValueEncoder;
-    private final DDLMessage.Index index;
-    private final DDLMessage.Table table;
-    private final int [] mainColToIndexPosMap;  // 0-based
-    private final BitSet indexedCols;   // 0-based
-    private final byte[] indexConglomBytes;
-    private final int[] indexFormatIds;
+    private DDLMessage.Index index;
+    private DDLMessage.Table table;
+    private int [] mainColToIndexPosMap;  // 0-based
+    private BitSet indexedCols;   // 0-based
+    private BitSet nonPkIndexedCols; // 0-based
+    private int[] mainColToIndexLogicalPosMap;
+    private BitSet indexedLogicalCols;
+    private BitSet nonPkIndexedLogicalCols; // 0-based
+    private byte[] indexConglomBytes;
+    private int[] indexFormatIds;
     private DescriptorSerializer[] indexRowSerializers;
     private DescriptorSerializer[] baseRowSerializers;
     private final boolean excludeNulls;
@@ -108,6 +110,7 @@ public class IndexTransformer {
     private final int numIndexExprs;
     private final BaseExecutableIndexExpression[] executableExprs;
     private final LanguageConnectionContext lcc;
+    private Map<Integer, Integer> columnStoragePositionMap = new HashMap<>();
 
     public IndexTransformer(DDLMessage.TentativeIndex tentativeIndex) throws StandardException {
         index = tentativeIndex.getIndex();
@@ -116,7 +119,16 @@ public class IndexTransformer {
         excludeDefaultValues = index.getExcludeDefaults();
         this.typeProvider = VersionedSerializers.typesForVersion(table.getTableVersion());
         List<Integer> indexColsList = index.getIndexColsToMainColMapList();
+        List<Integer> indexLogicalColsList = index.getIndexColsToMainLogicalColMapList();
+        for (int i = 0; i < indexColsList.size(); ++i) {
+            columnStoragePositionMap.put(indexColsList.get(i), indexLogicalColsList.get(i));
+        }
         indexedCols = DDLUtils.getIndexedCols(Ints.toArray(indexColsList));
+        indexedLogicalCols = DDLUtils.getIndexedCols(Ints.toArray(indexLogicalColsList));
+        nonPkIndexedCols = (BitSet)indexedCols.clone();
+        for (int pos : table.getColumnOrderingList()) {
+            nonPkIndexedCols.clear(pos);
+        }
         mainColToIndexPosMap = DDLUtils.getMainColToIndexPosMap(Ints.toArray(index.getIndexColsToMainColMapList()), indexedCols);
         indexConglomBytes = DDLUtils.getIndexConglomBytes(index.getConglomerate());
         if ( index.hasDefaultValues() && excludeDefaultValues) {
@@ -133,9 +145,9 @@ public class IndexTransformer {
             lcc = getLcc(tentativeIndex);
         } else {
             List<Integer> allFormatIds = tentativeIndex.getTable().getFormatIdsList();
-            indexFormatIds = new int[indexColsList.size()];
-            for (int i = 0; i < indexColsList.size(); i++) {
-                indexFormatIds[i] = allFormatIds.get(indexColsList.get(i)-1);
+            indexFormatIds = new int[indexLogicalColsList.size()];
+            for (int i = 0; i < indexLogicalColsList.size(); i++) {
+                indexFormatIds[i] = allFormatIds.get(indexLogicalColsList.get(i)-1);
             }
             lcc = null;
         }
@@ -384,7 +396,7 @@ public class IndexTransformer {
                 continue;
             }
 
-            int formatId = table.getFormatIds(i);
+            int formatId = table.getFormatIds(columnStoragePositionMap.get(Integer.valueOf(i+1))-1);
             int offset = rowFieldDecoder.offset();
             boolean isNull = rowDecoder.seekForward(rowFieldDecoder, i);
             int length = rowFieldDecoder.offset() - offset - 1;

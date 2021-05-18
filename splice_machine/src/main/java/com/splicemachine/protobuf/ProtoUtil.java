@@ -310,9 +310,14 @@ public class ProtoUtil {
             builder = builder.addDescColumns(!ascColumns[i]);
         }
 
-        int[] backingArray=indexDescriptor.baseColumnPositions();
-        for(int i=0;i<backingArray.length;i++){
-            builder = builder.addIndexColsToMainColMap(backingArray[i]);
+        int[] columnPositions=indexDescriptor.baseColumnStoragePositions();
+        for(int i=0;i<columnPositions.length;i++){
+            builder = builder.addIndexColsToMainColMap(columnPositions[i]);
+        }
+
+        int[] columnLogicalPositions=indexDescriptor.baseColumnPositions();
+        for(int i=0;i<columnLogicalPositions.length;i++){
+            builder = builder.addIndexColsToMainLogicalColMap(columnLogicalPositions[i]);
         }
 
         ByteArray[] bytecodeArray = indexDescriptor.getExprBytecode();
@@ -338,7 +343,8 @@ public class ProtoUtil {
                 .setConglomerate(conglomerate)
                 .addAllFormatIds(Ints.asList(td.getFormatIds()))
                 .addAllColumnOrdering(Ints.asList(sc.getColumnOrdering()))
-                .setTableUuid(transferDerbyUUID((BasicUUID)td.getUUID()));
+                .setTableUuid(transferDerbyUUID((BasicUUID)td.getUUID()))
+                .addAllStoragePositions(Ints.asList(td.getStoragePositionArray()));
         String tV = DataDictionaryUtils.getTableVersion(lcc,td.getUUID());
         if(tV!=null)
             builder = builder.setTableVersion(tV);

@@ -58,20 +58,21 @@ public interface IndexDescriptor
 	/**
 	 * Returns true if the index is duplicate keys only for null key parts. 
      * This is effective only if isUnique is false.
-	 */
-	boolean			isUniqueWithDuplicateNulls();
+     */
+    boolean            isUniqueWithDuplicateNulls();
 
-	/**
-	 * Returns an array of column positions in the base table.  Each index
-	 * column corresponds to a column position in the base table, except
-	 * the column representing the location of the row in the base table.
-	 * The returned array holds the column positions in the
-	 * base table, so, if entry 2 is the number 4, the second
-	 * column in the index is the fourth column in the table.
-	 */
-	int[]	baseColumnPositions();
+    /**
+     * Returns an array of column positions in the base table.  Each index
+     * column corresponds to a column position in the base table, except
+     * the column representing the location of the row in the base table.
+     * The returned array holds the column positions in the
+     * base table, so, if entry 2 is the number 4, the second
+     * column in the index is the fourth column in the table.
+     */
+    int[] baseColumnPositions();
 
-	/**
+    int[] baseColumnStoragePositions();
+    /**
      * Returns the postion of a column.
      * <p>
 	 * Returns the position of a column within the key (1-based).

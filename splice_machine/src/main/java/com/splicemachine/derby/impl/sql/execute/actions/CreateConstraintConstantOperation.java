@@ -220,7 +220,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
                                 td, constraintName,
                                 false, //deferable,
                                 false, //initiallyDeferred,
-                                genColumnPositions(td, false), //int[],
+                                genColumnStoragePositions(td, false), //int[],
                                 constraintId,
                                 indexId,
                                 sd,
@@ -236,7 +236,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
                                 td, constraintName,
                                 false, //deferable,
                                 false, //initiallyDeferred,
-                                genColumnPositions(td, false), //int[],
+                                genColumnStoragePositions(td, false), //int[],
                                 constraintId,
                                 indexId,
                                 sd,
@@ -255,7 +255,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 								false, //initiallyDeferred,
 								constraintId,
 								constraintText,
-								new ReferencedColumnsDescriptorImpl(genColumnPositions(td, false)), //int[],
+								new ReferencedColumnsDescriptorImpl(genColumnStoragePositions(td, false)), //int[],
 								sd,
 								enabled
 								);
@@ -279,7 +279,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 								td, constraintName,
 								false, //deferable,
 								false, //initiallyDeferred,
-								genColumnPositions(td, false), //int[],
+								genColumnStoragePositions(td, false), //int[],
 								constraintId,
 								indexId,
 								sd,
@@ -438,10 +438,10 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
      *
      * @return int[] The column positions.
      */
-    public int[] genColumnPositions(TableDescriptor td, boolean columnsMustBeOrderable) throws StandardException {
-        int[] baseColumnPositions;
+    public int[] genColumnStoragePositions(TableDescriptor td, boolean columnsMustBeOrderable) throws StandardException {
+        int[] baseColumnStoragePositions;
         // Translate the base column names to column positions
-        baseColumnPositions = new int[columnNames.length];
+        baseColumnStoragePositions = new int[columnNames.length];
         for (int i = 0; i < columnNames.length; i++) {
             ColumnDescriptor columnDescriptor;
 
@@ -457,6 +457,32 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 			if ( columnsMustBeOrderable && ( ! columnDescriptor.getType().getTypeId().orderable(cf)))
 				throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION,
 					columnDescriptor.getType().getTypeId().getSQLTypeName());
+
+            // Remember the position in the base table of each column
+            baseColumnStoragePositions[i] = columnDescriptor.getStoragePosition();
+        }
+        return baseColumnStoragePositions;
+    }
+
+    public int[] genColumnPositions(TableDescriptor td, boolean columnsMustBeOrderable) throws StandardException {
+        int[] baseColumnPositions;
+        // Translate the base column names to column positions
+        baseColumnPositions = new int[columnNames.length];
+        for (int i = 0; i < columnNames.length; i++) {
+            ColumnDescriptor columnDescriptor;
+
+            // Look up the column in the data dictionary
+            columnDescriptor = td.getColumnDescriptor(columnNames[i]);
+            if (columnDescriptor == null) {
+                throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND_IN_TABLE,
+                        columnNames[i],tableName);
+            }
+
+            // Don't allow a column to be created on a non-orderable type
+            // (for primaryKey and unique constraints)
+            if ( columnsMustBeOrderable && ( ! columnDescriptor.getType().getTypeId().orderable(cf)))
+                throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION,
+                        columnDescriptor.getType().getTypeId().getSQLTypeName());
 
             // Remember the position in the base table of each column
             baseColumnPositions[i] = columnDescriptor.getPosition();

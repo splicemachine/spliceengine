@@ -200,13 +200,13 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 
 		for(ConstraintConstantOperation constantAction:constraintActions){
 			if(constantAction.getConstraintType()== DataDictionary.PRIMARYKEY_CONSTRAINT){
-				int [] pkColumns = ((CreateConstraintConstantOperation)constantAction).genColumnPositions(td, true);
+				int [] pkColumns = ((CreateConstraintConstantOperation)constantAction).genColumnStoragePositions(td, true);
 				boolean[] ascending = new boolean[pkColumns.length];
 				for(int i=0;i<ascending.length;i++){
 					ascending[i] = true;
 				}
 
-				IndexDescriptor descriptor = new IndexDescriptorImpl("PRIMARYKEY",true,false,pkColumns,ascending,pkColumns.length,false,false);
+				IndexDescriptor descriptor = new IndexDescriptorImpl("PRIMARYKEY",true,false,pkColumns,pkColumns,ascending,pkColumns.length,false,false);
 				IndexRowGenerator irg = new IndexRowGenerator(descriptor);
 				return ddg.newConglomerateDescriptor(conglomId,null,false,irg,false,null,td.getUUID(),sd.getUUID());
 			}

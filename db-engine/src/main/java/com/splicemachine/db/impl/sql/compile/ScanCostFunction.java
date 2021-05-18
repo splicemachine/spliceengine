@@ -195,10 +195,10 @@ public class ScanCostFunction{
             LanguageConnectionContext lcc = ((QueryTreeNode)baseTable).getLanguageConnectionContext();
             indexColumns = indexDescriptor.getParsedIndexExpressions(lcc, baseTable);
         } else {
-            int[] keyColumns = indexDescriptor.baseColumnPositions();
+            int[] keyColumns = indexDescriptor.baseColumnStoragePositions();
             indexColumns = new ValueNode[keyColumns.length];
             for (int i = 0; i < keyColumns.length; i++) {
-                ColumnReference cr = resultColumns.getResultColumn(keyColumns[i]).getColumnReference(null);
+                ColumnReference cr = resultColumns.getResultColumnByStoragePosition(keyColumns[i]).getColumnReference(null);
                 cr.setTableNumber(baseTable.getTableNumber());
                 indexColumns[i] = cr;
             }

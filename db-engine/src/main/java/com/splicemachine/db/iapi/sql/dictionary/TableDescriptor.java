@@ -522,6 +522,9 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         return getColumnDescriptorList().size();
     }
 
+    public int getNumberOfStorageColumns(){
+        return getColumnDescriptorList().maxStoragePosition();
+    }
     /**
      * Get the referenced column map of the table.
      *
@@ -1203,6 +1206,9 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         return columnDescriptorList.getColumnDescriptor(oid,columnNumber);
     }
 
+    public ColumnDescriptor getColumnDescriptorByStoragePosition(int columnNumber){
+        return columnDescriptorList.getColumnDescriptorByStoragePosition(oid,columnNumber);
+    }
     /**
      * Gets a ConglomerateDescriptor[] to loop through all the conglomerate descriptors
      * for the table.
@@ -1504,7 +1510,9 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
          * and the highest baseColumnPosition is returned.
          */
     public int getBaseColumnPositions(LanguageConnectionContext lcc,
-                                       int[] baseColumnPositions, String[] columnNames) throws StandardException {
+                                      int[] baseColumnPositions,
+                                      int[] baseColumnLogicalPositions,
+                                      String[] columnNames) throws StandardException {
         int maxBaseColumnPosition = Integer.MIN_VALUE;
         ClassFactory cf = lcc.getLanguageConnectionFactory().getClassFactory();
         for (int i = 0; i < columnNames.length; i++) {
@@ -1539,7 +1547,8 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                 throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION, typeId.getSQLTypeName());
 
             // Remember the position in the base table of each column
-            baseColumnPositions[i] = columnDescriptor.getPosition();
+            baseColumnPositions[i] = columnDescriptor.getStoragePosition();
+            baseColumnLogicalPositions[i] = columnDescriptor.getPosition();
 
             if (maxBaseColumnPosition < baseColumnPositions[i])
                 maxBaseColumnPosition = baseColumnPositions[i];
@@ -1548,7 +1557,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     }
 
     public DataValueDescriptor getDefaultValue(int columnNumber) {
-        return getColumnDescriptor(columnNumber).getDefaultValue();
+        return getColumnDescriptorByStoragePosition(columnNumber).getDefaultValue();
     }
 
 }

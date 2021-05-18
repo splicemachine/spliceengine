@@ -138,6 +138,21 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
             String schemaName = td.getSchemaName();
             dropIndex(td, indexConglom, (SpliceTransactionManager)lcc.getTransactionExecute(),lcc, schemaName, indexName);
         }
+
+        if (skipCreate != null && consDesc.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT) {
+            ConglomerateDescriptorList cdl = skipCreate.getConglomerateDescriptorList();
+            DataDictionary dd = lcc.getDataDictionary();
+            TransactionController tc = lcc.getTransactionExecute();
+            for (ConglomerateDescriptor cd : cdl) {
+                if (cd.isPrimaryKey()) {
+                    cd.setIndexRowGenerator(null);
+                    dd.dropConglomerateDescriptor(cd, tc);
+                    dd.addDescriptor(cd, skipCreate.getSchemaDescriptor(), DataDictionary.SYSCONGLOMERATES_CATALOG_NUM,
+                            false, tc, false);
+                }
+            }
+
+        }
         /* If we don't need a new conglomerate then there's nothing
          * else to do.
          */
@@ -256,10 +271,10 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
         if (cols == null) {
             //column list wasn't stored in conglomerateDescriptor
             //fetch is from table descriptor
-            int [] pos = cd.getIndexDescriptor().baseColumnPositions();
+            int [] pos = cd.getIndexDescriptor().baseColumnStoragePositions();
             cols       = new String [pos.length];
             for (int i = 0; i < cols.length; i++) {
-                cols[i] = td.getColumnDescriptor(pos[i]).getColumnName();
+                cols[i] = td.getColumnDescriptorByStoragePosition(pos[i]).getColumnName();
             }
         }
         
