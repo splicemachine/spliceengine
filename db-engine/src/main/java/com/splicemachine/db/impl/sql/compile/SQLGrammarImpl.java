@@ -710,8 +710,7 @@ class SQLGrammarImpl {
             innerRCL.addResultColumn(innerRC);
         }
 
-        SelectNode selectNode = (SelectNode) nodeFactory.getNode(
-                C_NodeTypes.SELECT_NODE,
+        SelectNode selectNode = new SelectNode(
                 innerRCL,  /* SELECT list */
                 null, /* AGGREGATE list */
                 fromList,  /* FROM list */
@@ -721,9 +720,7 @@ class SQLGrammarImpl {
                 null, /* window list */
                 getContextManager());
 
-        return (SubqueryNode) nodeFactory.getNode(
-                C_NodeTypes.SUBQUERY_NODE,
-                selectNode,
+        return new SubqueryNode(selectNode,
                 SubqueryNode.FROM_SUBQUERY,
                 null,  /* left op */
                 null,  /* order by list */

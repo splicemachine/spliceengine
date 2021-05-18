@@ -152,16 +152,9 @@ public class QueryRewriteVisitor extends AbstractSpliceVisitor {
                             null,
                             cm);
 
-        SubqueryNode existsSubquery = (SubqueryNode) fromTable.getNodeFactory().getNode(
-                                        C_NodeTypes.SUBQUERY_NODE,
-                                        newSelectNode,
+        SubqueryNode existsSubquery = new SubqueryNode(newSelectNode,
                                         ReuseFactory.getInteger(SubqueryNode.EXISTS_SUBQUERY),
-                                        null,
-                                        null,
-                                        null,
-                                        null,
-                                        true,
-                                        cm);
+                                        null, null, null, null, true, cm);
         AndNode andNode = newAndNode(existsSubquery, false);
         andNode = (AndNode)selectNode.bindExtraExpressions(andNode);
         appendAndConditionToWhereClause(selectNode, andNode);

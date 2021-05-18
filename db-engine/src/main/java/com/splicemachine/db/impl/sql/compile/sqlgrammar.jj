@@ -9740,9 +9740,7 @@ subquery(int subqueryType, ValueNode leftOperand) throws StandardException :
             hasJDBClimitClause = true;
             offsetClauses[ FETCH_FIRST_CLAUSE ] = topNOut[0];
         }
-        subqueryNode = (SubqueryNode) nodeFactory.getNode(
-                                        C_NodeTypes.SUBQUERY_NODE,
-                                        queryExpression,
+        subqueryNode = new SubqueryNode(queryExpression,
                                         ReuseFactory.getInteger(subqueryType),
                                         leftOperand,
                                         orderCols,
