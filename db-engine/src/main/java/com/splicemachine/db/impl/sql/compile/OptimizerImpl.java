@@ -190,7 +190,7 @@ public class OptimizerImpl implements Optimizer{
     private static final int NANOS_TO_MILLIS = 1000000;
     private boolean forSpark = false;
 
-    private Optimizable outerTableOfJoin;
+    private ResultSetNode outerTableOfJoin;
 
     protected OptimizerImpl(OptimizableList optimizableList,
                             OptimizablePredicateList predicateList,
@@ -2705,21 +2705,18 @@ public class OptimizerImpl implements Optimizer{
 
     @Override
     public void setOuterTableOfJoin(ResultSetNode outerTableOfJoin) {
-        if (outerTableOfJoin == null)
-            this.outerTableOfJoin = null;
-        if (outerTableOfJoin instanceof Optimizable)
-            this.outerTableOfJoin = (Optimizable)outerTableOfJoin;
+        this.outerTableOfJoin = outerTableOfJoin;
     }
 
     @Override
-    public Optimizable getOuterTable() {
+    public ResultSetNode getOuterTable() {
         if (joinPosition == 0) {
             if (getJoinType() >= INNERJOIN)
                 return outerTableOfJoin;
             return null;
         }
         int propJoinOrder = proposedJoinOrder[joinPosition-1];
-        Optimizable thisOpt = optimizableList.getOptimizable(propJoinOrder);
+        ResultSetNode thisOpt = (ResultSetNode)optimizableList.getOptimizable(propJoinOrder);
         return thisOpt;
     }
 

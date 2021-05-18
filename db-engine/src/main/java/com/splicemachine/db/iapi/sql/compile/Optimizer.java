@@ -422,6 +422,6 @@ public interface Optimizer{
 
     void setOuterTableOfJoin(ResultSetNode outerTableOfJoin);
 
-    Optimizable getOuterTable();
+    ResultSetNode getOuterTable();
 
 }
