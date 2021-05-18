@@ -144,6 +144,29 @@ public class ResultColumn extends ValueNode
     /* whether this result column comes from an expression-based index column */
     private ValueNode indexExpression = null;
 
+    public ResultColumn() {}
+    public ResultColumn(String rowLocationColumnName, CurrentRowLocationNode rowLocationNode,
+                        ContextManager contextManager) throws StandardException {
+        super(contextManager);
+        setNodeType(C_NodeTypes.RESULT_COLUMN);
+        init(rowLocationColumnName, rowLocationNode);
+    }
+
+    public ResultColumn(ColumnReference cr,
+                        ValueNode expression,
+                        ContextManager cm) {
+        super(cm);
+        setNodeType(C_NodeTypes.RESULT_COLUMN);
+        initFromColumnReference(expression, cr);
+    }
+
+    public ResultColumn(String columnName, ValueNode expression, ContextManager contextManager) {
+        super(contextManager);
+        setNodeType(C_NodeTypes.RESULT_COLUMN);
+        this.name = this.exposedName = columnName;
+        setExpression(expression);
+    }
+
     /**
      * Different types of initializer parameters indicate different
      * types of initialization. Parameters may be:
@@ -194,15 +217,7 @@ public class ResultColumn extends ValueNode
         else if (arg1 instanceof ColumnReference)
         {
             ColumnReference ref = (ColumnReference) arg1;
-
-            this.name = ref.getColumnName();
-            this.exposedName = ref.getColumnName();
-            /*
-                when we bind, we'll want to make sure
-                the reference has the right table name.
-             */
-            this.reference = ref;
-            setExpression( (ValueNode) arg2 );
+            initFromColumnReference( (ValueNode) arg2, ref);
         }
         else if (arg1 instanceof ColumnDescriptor)
         {
@@ -231,6 +246,18 @@ public class ResultColumn extends ValueNode
         if (expression != null &&
                 expression.isInstanceOf(C_NodeTypes.DEFAULT_NODE))
             defaultColumn = true;
+
+    }
+
+    private void initFromColumnReference(ValueNode valueNode, ColumnReference columnReference) {
+        this.name = columnReference.getColumnName();
+        this.exposedName = columnReference.getColumnName();
+        /*
+            when we bind, we'll want to make sure
+            the reference has the right table name.
+         */
+        this.reference = columnReference;
+        setExpression(valueNode);
     }
 
     /**
@@ -509,6 +536,9 @@ public class ResultColumn extends ValueNode
     public void setExpression(ValueNode expression)
     {
         this.expression = expression;
+        if( expression == null) {
+            System.out.println("ha");
+        }
     }
 
     /**
