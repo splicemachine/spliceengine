@@ -3096,10 +3096,7 @@ exportStatement() throws StandardException :
             parameterList.addElement(fileType);
             parameterList.addElement(floatingPointNotation);
             parameterList.addElement(timestampFormat);
-            return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
-                                       statementNode,
-                                       parameterList,
-                                       getContextManager());
+            return new ExportNode(statementNode, parameterList, getContextManager());
         }
     |
         // Legacy export
@@ -3109,10 +3106,7 @@ exportStatement() throws StandardException :
             parameterList.addElement( new CharConstantNode("csv", getContextManager()));
             parameterList.addElement(null); // null for legacy (floating point notation)
             parameterList.addElement(null); // null for legacy (timestamp format)
-            return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
-                                       statementNode,
-                                       parameterList,
-                                       getContextManager());
+            return new ExportNode(statementNode, parameterList, getContextManager());
         }
     )
 }
@@ -3154,10 +3148,7 @@ binaryExportStatement() throws StandardException :
         actualParameterList.addElement(parameterList.elementAt(2));
         actualParameterList.addElement(null);
         actualParameterList.addElement(null);
-        return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
-                                   statementNode,
-                                   actualParameterList,
-                                   getContextManager());
+        return new ExportNode(statementNode, actualParameterList, getContextManager());
     }
 }
 

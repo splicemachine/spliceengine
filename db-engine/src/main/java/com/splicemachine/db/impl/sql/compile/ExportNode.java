@@ -36,8 +36,10 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
@@ -86,13 +88,13 @@ public class ExportNode extends DMLStatementNode {
         return "Export";
     }
 
-    @Override
-    public void init(Object statementNode, Object argumentsVector) throws StandardException {
-        if (!(argumentsVector instanceof List) || ((List) argumentsVector).size() != EXPECTED_ARGUMENT_COUNT) {
+    public ExportNode(StatementNode statementNode, List argsList, ContextManager cm) throws StandardException {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.EXPORT_NODE);
+        if (argsList.size() != EXPECTED_ARGUMENT_COUNT) {
             throw StandardException.newException(SQLState.LANG_DB2_NUMBER_OF_ARGS_INVALID, "EXPORT");
         }
-        List argsList = (List) argumentsVector;
-        this.node = (StatementNode) statementNode;
+        this.node = statementNode;
 
         this.exportPath = stringValue(argsList.get(0));
         this.compression = stringValue(argsList.get(1));
