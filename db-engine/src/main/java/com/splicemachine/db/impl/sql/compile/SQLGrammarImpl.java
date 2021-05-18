@@ -1258,11 +1258,7 @@ class SQLGrammarImpl {
             throw StandardException.newException(SQLState.LANG_TRUNCATE_UNKNOWN_TYPE_OPERAND, operandNode);
         }
 
-        return (ValueNode) nodeFactory.getNode(
-                C_NodeTypes.TRUNC_NODE,
-                truncateOperand,
-                truncValue,
-                getContextManager());
+        return new TruncateOperatorNode(truncateOperand, truncValue, getContextManager());
     }
 
     /**
