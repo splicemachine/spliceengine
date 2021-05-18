@@ -2628,10 +2628,7 @@ analyzeTableStatement() throws StandardException :
     value = new JavaToSQLValueNode(methodNode, getContextManager());
   }
   {
-    callStatement = (StatementNode) nodeFactory.getNode(
-      C_NodeTypes.CALL_STATEMENT_NODE,
-      value,
-      getContextManager());
+    callStatement = new CallStatementNode((JavaToSQLValueNode)value, getContextManager());
 
     setUpAndLinkParameters();
 
@@ -2670,10 +2667,7 @@ analyzeSchemaStatement() throws StandardException :
     value = new JavaToSQLValueNode(methodNode, getContextManager());
   }
   {
-    callStatement = (StatementNode) nodeFactory.getNode(
-          C_NodeTypes.CALL_STATEMENT_NODE,
-          value,
-          getContextManager());
+    callStatement = new CallStatementNode((JavaToSQLValueNode)value, getContextManager());
 
     setUpAndLinkParameters();
 
@@ -3641,12 +3635,7 @@ bareCallStatement() throws StandardException :
             throw StandardException.newException(SQLState.LANG_INVALID_CALL_STATEMENT);
         }
 
-        StatementNode callStatement =
-                                    (StatementNode) nodeFactory.getNode(
-                                                C_NodeTypes.CALL_STATEMENT_NODE,
-                                                value,
-                                                getContextManager());
-
+        StatementNode callStatement = new CallStatementNode((JavaToSQLValueNode)value, getContextManager());
         setUpAndLinkParameters();
 
         return callStatement;
@@ -10321,7 +10310,7 @@ FromTable tableFactor() throws StandardException :
         actionTextList = new ArrayList();
         actionTextList.add(internalSelectStmt);
         selectStatementNode = dmlStatement.parseStatement(internalSelectStmt, true);
-        actionNodeList = (StatementListNode) nodeFactory.getNode(C_NodeTypes.STATEMENT_LIST_NODE, getContextManager());
+        actionNodeList = new StatementListNode(getContextManager());
         actionNodeList.addStatement(selectStatementNode);
 
         String javaClassName =
@@ -13077,7 +13066,7 @@ triggerActionList(HashSet<String> hs,
                   Boolean isBefore,
                   List<String> actionTextList) throws StandardException :
 {
-    StatementListNode actionNodeList = (StatementListNode) nodeFactory.getNode(C_NodeTypes.STATEMENT_LIST_NODE, getContextManager());
+    StatementListNode actionNodeList = new StatementListNode(getContextManager());
     StatementNode actionNode = null;
 }
 {
