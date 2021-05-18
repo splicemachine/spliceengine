@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 
 import java.lang.reflect.Modifier;
@@ -52,12 +53,16 @@ import java.lang.reflect.Modifier;
 
 public final class NotNode extends UnaryLogicalOperatorNode
 {
+    public NotNode(ValueNode node, ContextManager cm) {
+        setNodeType(C_NodeTypes.NOT_NODE);
+        setContextManager(cm);
+        init(node);
+    }
     /**
      * Initializer for a NotNode
      *
      * @param operand    The operand of the NOT
      */
-
     public void init(Object operand)
     {
         super.init(operand, "not");

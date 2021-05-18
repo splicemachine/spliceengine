@@ -5472,10 +5472,7 @@ andExpression(ValueNode farLeftOperand) throws StandardException :
         /* Put the NOT on top of test */
         if (tok != null)
         {
-            test = (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.NOT_NODE,
-                                    test,
-                                    getContextManager());
+            test = new NotNode(test, getContextManager());
         }
 
         if (farLeftOperand != null)
@@ -5514,10 +5511,7 @@ isSearchCondition() throws StandardException :
                 /* Put the NOT on top of the tree */
                 if (notToken != null)
                 {
-                    result = (ValueNode) nodeFactory.getNode(
-                                            C_NodeTypes.NOT_NODE,
-                                            result,
-                                            getContextManager());
+                    result = new NotNode(result, getContextManager());
                 }
         }
         else { result = booleanPrimary; }
@@ -5599,10 +5593,7 @@ remainingPredicate(ValueNode value) throws StandardException :
         /* Put the NOT on top of the tree */
         if (tok != null)
         {
-            value = (ValueNode) nodeFactory.getNode(
-                                        C_NodeTypes.NOT_NODE,
-                                        value,
-                                        getContextManager());
+            value = new NotNode(value, getContextManager());
         }
 
         return value;
