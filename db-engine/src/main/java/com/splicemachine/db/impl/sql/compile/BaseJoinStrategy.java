@@ -40,6 +40,8 @@ import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.PropertyUtil;
 
+import static com.splicemachine.db.impl.sql.compile.JoinNode.INNERJOIN;
+
 public abstract class BaseJoinStrategy implements JoinStrategy{
     public BaseJoinStrategy(){
     }
@@ -261,4 +263,18 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
         return true;
     }
 
+    @Override
+    public String toString(){
+        return getJoinStrategyType().niceName() + "Join";
+    }
+
+    @Override
+    public String getName() {
+        return getJoinStrategyType().getName();
+    }
+
+    protected static boolean isSingleTableScan(Optimizer optimizer) {
+        return optimizer.getJoinPosition() == 0   &&
+               optimizer.getJoinType() < INNERJOIN;
+    }
 }

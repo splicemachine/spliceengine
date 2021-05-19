@@ -175,10 +175,9 @@ public class BroadcastJoinOperation extends JoinOperation{
         boolean useDataset = true;
 
         /** TODO don't know how to let spark report SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION error,
-         * so route to the rdd implementation for now for SSQ.  Also, spark join can't handle a zero length
-         * hash key, so it will use rdd as well.
+         * so route to the rdd implementation for now for SSQ.
          */
-        if (rightFromSSQ || leftHashKeys.length == 0)
+        if (rightFromSSQ)
             useDataset = false;
 
         DataSet<ExecRow> result;
