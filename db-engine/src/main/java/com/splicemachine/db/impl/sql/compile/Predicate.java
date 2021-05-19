@@ -96,7 +96,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     private HashMap<Integer, Double> scanSelectivityCache;
 
     private boolean hasCorrelatedSubquery;
-    private boolean hasCorrelatedSubqerySet;
+    private boolean hasCorrelatedSubquerySet;
 
     public ReferencedColumnsMap getReferencedColumns() {
         return referencedColumns;
@@ -135,7 +135,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         scoped=false;
         matchIndexExpression=false;
         hasCorrelatedSubquery = false;
-        hasCorrelatedSubqerySet = false;
+        hasCorrelatedSubquerySet = false;
     }
 
 	/*
@@ -1636,10 +1636,10 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
     @Override
     public boolean hasCorrelatedSubquery() throws StandardException {
-        if(hasCorrelatedSubqerySet) {
+        if(hasCorrelatedSubquerySet) {
             return hasCorrelatedSubquery;
         }
-        hasCorrelatedSubqerySet = true;
+        hasCorrelatedSubquerySet = true;
         CollectNodesVisitor visitor= new CollectNodesVisitor(SubqueryNode.class);
         this.accept(visitor);
         @SuppressWarnings("unchecked") List<SubqueryNode> subqueryNodes=visitor.getList();
