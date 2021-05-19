@@ -61,6 +61,8 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
                             CostEstimate outerCost,
                             boolean wasHinted,
                             boolean skipKeyCheck) throws StandardException {
+        if (optimizer.getJoinPosition() > 0 && innerTable.outerTableOnly())
+            return false;
         int[] hashKeyColumns;
         ConglomerateDescriptor cd = null;
         OptimizerTrace tracer = optimizer.tracer();

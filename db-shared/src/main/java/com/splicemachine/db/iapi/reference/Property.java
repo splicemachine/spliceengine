@@ -1194,6 +1194,11 @@ public interface Property {
     String CONNECTION_USE_NATIVE_SPARK = "useNativeSpark";
 
     /**
+     * Hint join strategy at the session level.
+     */
+    String CONNECTION_JOIN_STRATEGY = "joinStrategy";
+
+    /**
      * True ignores statistics for this connection
      */
     String CONNECTION_SKIP_STATS = "skipStats";
@@ -1293,5 +1298,28 @@ public interface Property {
     String SPLICE_OLAP_PARALLEL_PARTITIONS = "splice.olapParallelPartitions";
 
     String COST_MODEL = "costModel";
+
+    /**
+     * The maximum number of predicates the optimizer is allowed to derive in
+     * DNF to CNF predicate expansion.
+     * Default value is 100.  The maximum value for this parameter is 10000.
+     */
+    String MAX_DERIVED_CNF_PREDICATES =
+            "splice.optimizer.maxDerivedCNFPredicates";
+
+    /**
+     * If true, disable Unioned Index Scans access paths.
+     * The default value is false.
+     */
+    String DISABLE_UNIONED_INDEX_SCANS =
+            "splice.optimizer.disableUnionedIndexScans";
+
+    /**
+     * If true, favor Unioned Index Scans access paths by making the
+     * estimated cost artificially low.
+     * The default values is false.
+     */
+    String FAVOR_UNIONED_INDEX_SCANS =
+            "splice.optimizer.favorUnionedIndexScans";
 }
 

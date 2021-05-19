@@ -180,7 +180,7 @@ public class IndexChanger
                                 RowLocation baseRowLoc)
          throws StandardException
     {
-            ourIndexRow = irg.getIndexRowKeyTemplate();
+            ourIndexRow = irg.getIndexRowKeyTemplate(false);
 
             irg.getIndexRowKey(baseRow, baseRowLoc, ourIndexRow, baseRowReadMap);
     }
@@ -197,7 +197,7 @@ public class IndexChanger
                                 RowLocation baseRowLoc)
         throws StandardException
     {
-        ourUpdatedIndexRow = irg.getIndexRowKeyTemplate();
+        ourUpdatedIndexRow = irg.getIndexRowKeyTemplate(false);
 
         irg.getIndexRowKey(baseRow, baseRowLoc, ourUpdatedIndexRow, baseRowReadMap);
     }
