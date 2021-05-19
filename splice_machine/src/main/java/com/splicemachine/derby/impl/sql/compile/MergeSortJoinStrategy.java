@@ -79,7 +79,6 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
                                                   OptimizablePredicateList predList,
                                                   int joinType) throws StandardException {
         if (optimizer.isForSpark()
-            && (joinType == LEFTOUTERJOIN || joinType == FULLOUTERJOIN)
             && (containsCorrelatedSubquery(optimizer.getNonPushablePredicates()) || containsCorrelatedSubquery(predList))) {
             return false;
         }
