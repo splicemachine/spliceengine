@@ -42,7 +42,9 @@ package com.splicemachine.db.impl.sql.compile;
  */
 public class ParseException extends Exception {
 
-  /**
+    private static final long serialVersionUID = -4112778850759062139L;
+
+    /**
    * This constructor is used by the method "generateParseException"
    * in the generated parser.  Calling this constructor generates
    * a new object of this type with the fields "currentToken",
@@ -108,11 +110,20 @@ public class ParseException extends Exception {
   public int[][] expectedTokenSequences;
 
   /**
+   * default maximum number of possible tokens to print when printing an error (@sa getMessage)
+   */
+  private static final int MAX_SUGGESTED_TOKENS = 15;
+
+  /**
    * This is a reference to the "tokenImage" array of the generated
    * parser within which the parse error occurred.  This array is
    * defined in the generated ...Constants interface.
    */
   public String[] tokenImage;
+
+  public String getMessage() {
+    return getMessage(true, MAX_SUGGESTED_TOKENS);
+  }
 
   /**
    * This method has the standard behavior when this object has been
@@ -123,14 +134,24 @@ public class ParseException extends Exception {
    * from the parser), then this method is called during the printing
    * of the final stack trace, and hence the correct error message
    * gets displayed.
-   */
-  public String getMessage() {
+   *
+   * @param showExpected For output compatibility with previous releases, it might be beneficial
+   *                     to not show expected tokens. In this case, set showExpected=false.
+   * @param maxTokens print only a limited number of expected tokens, otherwise list can get long (100 items);
+   * @return error message
+   * */
+  public String getMessage(boolean showExpected, int maxTokens) {
     if (!specialConstructor) {
       return super.getMessage();
     }
     StringBuilder expected = new StringBuilder();
     int maxSize = 0;
+    int N = 0;
       for (int[] expectedTokenSequence : expectedTokenSequences) {
+          if(N++ > maxTokens) {
+              expected.append("...\n");
+              break;
+          }
           if (maxSize < expectedTokenSequence.length) {
               maxSize = expectedTokenSequence.length;
           }
@@ -154,17 +175,17 @@ public class ParseException extends Exception {
       tok = tok.next;
     }
     retval.append("\" at line ").append(currentToken.next.beginLine).append(", column ").append(currentToken.next.beginColumn);
- /*
-  * For output compatibility with previous releases, do not report expected tokens.
-  *
-    retval += "." + eol;
-    if (expectedTokenSequences.length == 1) {
-      retval += "Was expecting:" + eol + "    ";
-    } else {
-      retval += "Was expecting one of:" + eol + "    ";
-    }
-    retval += expected;
-  */
+
+   if(showExpected) {
+     retval.append("." + eol);
+     if (expectedTokenSequences.length == 1) {
+         retval.append("Was expecting:" + eol + "    ");
+     } else {
+         retval.append("Was expecting one of:" + eol + "    ");
+     }
+     retval.append(expected);
+  }
+  /**/
     return retval.toString();
   }
 
@@ -221,5 +242,4 @@ public class ParseException extends Exception {
       }
       return retval.toString();
    }
-
 }

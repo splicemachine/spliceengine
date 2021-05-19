@@ -38,6 +38,8 @@ import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.error.StandardException;
 import java.io.StringReader;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ParserImpl implements Parser
 {
@@ -124,6 +126,33 @@ public class ParserImpl implements Parser
 	}
 
 	/**
+	 * @param statementSQLText original statement to underly problem
+	 * @return e.g. CREATE TABEL (i INTEGER);
+	 *                     ^^^^^--------------
+	 */
+	String highlightProblematicSql(String statementSQLText,
+								   int problematicLine, int beginColumn, int endColumn) {
+		StringBuilder sb = new StringBuilder();
+		String[] str = statementSQLText.split("\n"); // or \\\n?
+		int from = Math.max(problematicLine-3, 0);
+		int end  = Math.min(problematicLine+3, str.length);
+		for(int i=from; i<end; i++) {
+			sb.append(i + ":\t");
+			sb.append(str[i] + "\n");
+			if(i+1 == problematicLine) {
+				int j=0;
+				sb.append("   \t");
+				for(; j< beginColumn-1; j++)
+					sb.append(" ");
+				for(; j<endColumn; j++)
+					sb.append("^");
+				sb.append("---------\n");
+			}
+		}
+		return sb.toString();
+	}
+
+	/**
 	 * Parse a statement and return a query tree.  Implements the Parser
 	 * interface
 	 *
@@ -134,7 +163,6 @@ public class ParserImpl implements Parser
 	 *
 	 * @exception StandardException	Thrown on error
 	 */
-
 	public Visitable parseStatement(String statementSQLText, Object[] paramDefaults)
 		throws StandardException
 	{
@@ -161,7 +189,9 @@ public class ParserImpl implements Parser
 		}
 		catch (ParseException e)
 		{
-		    throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, e.getMessage());
+			String highlight = highlightProblematicSql(statementSQLText,
+					e.currentToken.next.beginLine, e.currentToken.next.beginColumn, e.currentToken.next.endColumn);
+			throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, e.getMessage() + "\n" + highlight);
 		}
 		catch (TokenMgrError e)
 		{
@@ -174,7 +204,19 @@ public class ParserImpl implements Parser
 			// that the exception does not have any side effect.
 			// TODO : Remove the following line if javacc-152 is fixed.
 			cachedParser = null;
-		    throw StandardException.newException(SQLState.LANG_LEXICAL_ERROR, e.getMessage());
+			// e.getMessage() ==
+			// Lexical error at line L, column C.
+			String highlight = "";
+
+			Pattern outputRowsP = Pattern.compile("Lexical error at line (\\d+), column (\\d+)");
+			Matcher m = outputRowsP.matcher(e.getMessage());
+			if(m.find()) {
+				int line = Integer.parseInt(m.group(1));
+				int col  = Integer.parseInt(m.group(2));
+				highlight = "\n\n" + highlightProblematicSql(statementSQLText, line, col-1, col);
+			}
+
+			throw StandardException.newException(SQLState.LANG_LEXICAL_ERROR, e.getMessage() + highlight);
 		}
 	}
 
