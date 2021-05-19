@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.conn;
 
+import com.splicemachine.compress.MyCompressor2;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
@@ -79,11 +80,15 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import splice.com.google.common.cache.CacheBuilder;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.lang.management.ManagementFactory;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.sql.Timestamp;
 import java.util.*;
 
 import static com.splicemachine.db.iapi.reference.Property.MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED;
@@ -100,7 +105,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private final Logger stmtLogger2 = Logger.getLogger("splice-log.statement");
     private static Logger LOG = Logger.getLogger(GenericLanguageConnectionContext.class);
     private static final int LOCAL_MANAGED_CACHE_MAX_SIZE = 256;
-
 
     private static final ThreadLocal<String> badFile = new ThreadLocal<String>() {
         @Override
@@ -372,6 +376,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private boolean hasJoinStrategyHint;
     private boolean compilingStoredPreparedStatement;
 
+    static FileOutputStream fosTxt;
+    static MyCompressor2 comp;
+
     /* constructor */
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Intentional")
     public GenericLanguageConnectionContext(
@@ -535,6 +542,26 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
         String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(this, MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
         ignoreCommentOptEnabled = Boolean.valueOf(ignoreCommentOptEnabledStr);
+
+
+
+
+        if(fosTxt == null ) {
+            try {
+                fosTxt = new FileOutputStream("/tmp/log.txt");
+//                FileOutputStream fos = new FileOutputStream("/tmp/log.gz");
+//                comp = new MyCompressor(fos, 1);
+
+                comp = new MyCompressor2("/tmp/logz", null);
+            } catch (FileNotFoundException e) {
+                comp = null;
+                e.printStackTrace();
+            } catch (IOException e) {
+                comp = null;
+                e.printStackTrace();
+            }
+        }
+
 
     }
 
@@ -4020,6 +4047,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         }
     }
 
+
     @Override
     public void logEndExecuting(java.util.UUID uuid, String stmt, ExecPreparedStatement ps, ParameterValueSet pvs,
                                 long modifiedRows, long badRecords, long nanoTimeSpent) {
@@ -4040,6 +4068,40 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                     pvs.getParameterCount(), pvs.toString(), ps.getSessionPropertyValues(),
                     nanoTimeSpent / 1000, modifiedRows, badRecords));
         }
+        if(comp != null) {
+            synchronized (comp)
+            {
+                try {
+                    List<Object> row =
+                            Arrays.asList(
+                                    new Timestamp(System.currentTimeMillis()),  // time
+                                    getStatmentId(stmt),                        // statement id
+                                    stmt,                                       // statement
+                                    pvs.toString(),                             // parameters
+                                    new Integer((int) (nanoTimeSpent / 1000)),  // nanoTime spend
+                                    new Integer((int) modifiedRows),            // modified Rows
+                                    new Integer((int) badRecords) );            // bad records
+
+                    comp.addAll(Arrays.asList(row) );
+                    ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime();
+
+                    if(false && fosTxt != null) {
+
+                        StringBuilder sb = new StringBuilder();
+                        for (Object obj : row) {
+                            sb.append(obj.toString() + ";");
+                        }
+                        sb.append("\n");
+                        fosTxt.write(sb.toString().getBytes());
+                        fosTxt.flush();
+                    }
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
     }
 
     private String getLogHeader() {
