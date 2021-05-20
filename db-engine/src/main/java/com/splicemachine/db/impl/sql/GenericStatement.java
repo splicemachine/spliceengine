@@ -563,8 +563,8 @@ public class GenericStatement implements Statement{
 
     private void setSelectivityEstimationIncludingSkewedDefault(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
         /* get the selectivity estimation property so that we know what strategy to use to estimate selectivity */
-        String selectivityEstimationString = PropertyUtil.getServiceProperty(lcc.getTransactionCompile(),
-        Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED);
+        String selectivityEstimationString = PropertyUtil.getCachedDatabaseProperty(lcc,
+                Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED);
         Boolean selectivityEstimationIncludingSkewedDefault = Boolean.parseBoolean(selectivityEstimationString);
 
         cc.setSelectivityEstimationIncludingSkewedDefault(selectivityEstimationIncludingSkewedDefault);
