@@ -321,7 +321,6 @@ public class NullPredicateIT extends SpliceUnitTest {
     public void testNullBehindFunction() throws Exception {
         testQuery("select * from t --splice-properties useSpark=%s\n where cast(null as integer) not in (3,4)", "", methodWatcher);
         testQuery("select * from t --splice-properties useSpark=%s\n where upper(cast(null as varchar(10))) = 'a'", "", methodWatcher);
-        testQuery("select * from t --splice-properties useSpark=%s\n where days(cast(null as timestamp)) = 50", "", methodWatcher);
         testQuery("select * from t --splice-properties useSpark=%s\n where day(cast(null as timestamp)) = 50", "", methodWatcher);
     }
 }
