@@ -772,6 +772,7 @@ public class GenericStatement implements Statement{
         if (favorUnionedIndexScansString != null)
             favorUnionedIndexScans =
             Boolean.parseBoolean(favorUnionedIndexScansString);
+        cc.setFavorUnionedIndexScans(favorUnionedIndexScans);
     }
 
     private void setDisableParallelTaskJoinCosting(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
