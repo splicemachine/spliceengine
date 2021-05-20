@@ -24,6 +24,15 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.sql.compile.BaseJoinStrategy;
 import org.apache.log4j.Logger;
 
+/**
+ * This class is not a read join strategy but used as a join strategy "alternative"
+ * by the optimiser to allow calculating the join cardinality consistently for all
+ * join strategies. It is important to set this strategy as a start strategy for the
+ * optimizer for its side-effect.
+ *
+ * this class is only relevant for V2 cost estimation model. For more information
+ * have a look at <code>V2JoinCardinalityEstimation</code>
+ */
 public class JoinCardinalityEstimatorStrategy extends BaseJoinStrategy {
     private static final Logger LOG=Logger.getLogger(JoinCardinalityEstimatorStrategy.class);
 

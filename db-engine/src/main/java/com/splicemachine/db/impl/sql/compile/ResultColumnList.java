@@ -3699,7 +3699,6 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         costEstimate.setRowCount(cardinality);
         costEstimate.setSingleScanRowCount(cardinality);
         costEstimate.setRawRowCount(cardinality);
-        // TODO JL
     }
 
     /**

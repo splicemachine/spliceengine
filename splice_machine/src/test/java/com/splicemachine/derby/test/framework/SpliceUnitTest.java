@@ -241,12 +241,6 @@ public class SpliceUnitTest {
         }
     }
 
-    protected void rowContainsQuery(int[] levels, String query, String costModelVersion, SpliceWatcher methodWatcher, String... contains) throws Exception {
-        methodWatcher.execute(format("set session_property costModel='%s'", costModelVersion));
-        rowContainsQuery(levels, query, methodWatcher, contains);
-        methodWatcher.execute(format("set session_property costModel='%s'", CM_V1));
-    }
-
     public static void rowContainsQuery(int[] levels, String query,SpliceWatcher methodWatcher,String[]... contains) throws Exception {
         try(ResultSet resultSet = methodWatcher.executeQuery(query)){
             int i=0;
