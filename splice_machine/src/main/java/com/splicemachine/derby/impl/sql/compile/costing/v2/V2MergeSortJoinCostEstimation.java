@@ -55,7 +55,7 @@ public class V2MergeSortJoinCostEstimation implements StrategyJoinCostEstimation
         double joinCost = mergeSortJoinStrategyLocalCost(innerCost, outerCost, totalJoinedRows, optimizer.isForSpark());
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerParallelTask(joinCost);
-        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost,outerCost, optimizer);
+        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionPerParallelTask(innerCost, outerCost, optimizer);
         innerCost.setRemoteCost(remoteCostPerPartition);
         innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
         innerCost.setParallelism(outerCost.getParallelism());

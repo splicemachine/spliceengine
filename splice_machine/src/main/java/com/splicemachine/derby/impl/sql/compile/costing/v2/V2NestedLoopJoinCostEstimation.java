@@ -81,7 +81,7 @@ public class V2NestedLoopJoinCostEstimation implements StrategyJoinCostEstimatio
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerParallelTask(joinCost);
         innerCost.setSingleScanRowCount(innerCost.getEstimatedRowCount());
-        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer);
+        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionPerParallelTask(innerCost, outerCost, optimizer);
         innerCost.setRemoteCost(remoteCostPerPartition);
         innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
         innerCost.setRowOrdering(outerCost.getRowOrdering());

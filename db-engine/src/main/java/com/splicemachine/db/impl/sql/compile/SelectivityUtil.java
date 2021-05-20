@@ -328,18 +328,18 @@ public class SelectivityUtil {
                         (outerHeapSize/(outerRowCount<1.0d?1.0d:outerRowCount)));
     }
 
-    public static double getTotalPerPartitionRemoteCost(CostEstimate innerCostEstimate,
-                                                        CostEstimate outerCostEstimate,
-                                                        Optimizer    optimizer) {
+    public static double getTotalPerPartitionPerParallelTask(CostEstimate innerCostEstimate,
+                                                             CostEstimate outerCostEstimate,
+                                                             Optimizer    optimizer) {
 
-        return getTotalPerPartitionRemoteCost(innerCostEstimate,
-                                              outerCostEstimate,
-                                              optimizer, 1.0);
+        return getTotalPerPartitionPerParallelTask(innerCostEstimate,
+                                                   outerCostEstimate,
+                                                   optimizer, 1.0);
     }
-    public static double getTotalPerPartitionRemoteCost(CostEstimate innerCostEstimate,
-                                                        CostEstimate outerCostEstimate,
-                                                        Optimizer    optimizer,
-                                                        double innerTableScaleFactor){
+    public static double getTotalPerPartitionPerParallelTask(CostEstimate innerCostEstimate,
+                                                             CostEstimate outerCostEstimate,
+                                                             Optimizer    optimizer,
+                                                             double innerTableScaleFactor){
 
         // Join costing is done on a per parallel task basis, so remote costs
         // for a JoinOperation are calculated this way too, to make the units consistent.

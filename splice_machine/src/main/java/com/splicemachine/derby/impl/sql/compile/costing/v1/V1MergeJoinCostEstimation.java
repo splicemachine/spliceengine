@@ -110,7 +110,7 @@ public class V1MergeJoinCostEstimation implements StrategyJoinCostEstimation {
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerParallelTask(joinCost);
         double remoteCostPerPartition =
-                SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer, innerTableScaleFactor);
+                SelectivityUtil.getTotalPerPartitionPerParallelTask(innerCost, outerCost, optimizer, innerTableScaleFactor);
         innerCost.setRemoteCost(remoteCostPerPartition);
         innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
         innerCost.setRowOrdering(outerCost.getRowOrdering());

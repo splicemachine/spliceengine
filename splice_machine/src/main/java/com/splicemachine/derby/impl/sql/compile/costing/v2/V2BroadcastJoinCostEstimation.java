@@ -99,7 +99,7 @@ public class V2BroadcastJoinCostEstimation implements StrategyJoinCostEstimation
             innerCost.setLocalCost(joinCost);
             innerCost.setLocalCostPerParallelTask(joinCost);
             innerCost.setParallelism(outerCost.getParallelism());
-            double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer);
+            double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionPerParallelTask(innerCost, outerCost, optimizer);
             innerCost.setRemoteCost(remoteCostPerPartition);
             innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
             innerCost.setRowOrdering(outerCost.getRowOrdering());
