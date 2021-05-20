@@ -560,12 +560,14 @@ public class SelectNode extends ResultSetNode {
         // selectivity 1.0.)
         // This is also done before predicate simplification to enable
         // more predicates to be pruned away.
-        Visitor constantExpressionVisitor =
-        new ConstantExpressionVisitor(SelectNode.class);
-        if (whereClause != null)
-            whereClause = (ValueNode) whereClause.accept(constantExpressionVisitor);
-        if (havingClause != null)
-            havingClause = (ValueNode) havingClause.accept(constantExpressionVisitor);
+        if (!getCompilerContext().getDisableConstantFolding()) {
+            Visitor constantExpressionVisitor =
+                    new ConstantExpressionVisitor(SelectNode.class);
+            if (whereClause != null)
+                whereClause = (ValueNode) whereClause.accept(constantExpressionVisitor);
+            if (havingClause != null)
+                havingClause = (ValueNode) havingClause.accept(constantExpressionVisitor);
+        }
 
         // Perform predicate simplification.  Currently only
         // simple rewrites involving boolean TRUE/FALSE are done, such as:
@@ -590,10 +592,10 @@ public class SelectNode extends ResultSetNode {
                 havingClause = (ValueNode) havingClause.accept(predSimplVisitor);
         }
 
-        if (whereClause instanceof UntypedNullConstantNode) {
+        if (whereClause instanceof ConstantNode && ((ConstantNode)whereClause).isNull()) {
             whereClause = (ValueNode) getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE, false, getContextManager());
         }
-        if (havingClause instanceof UntypedNullConstantNode) {
+        if (havingClause instanceof ConstantNode && ((ConstantNode)havingClause).isNull()) {
             havingClause = (ValueNode) getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE, false, getContextManager());
         }
 
