@@ -624,7 +624,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             FormatableBitSet zeroBasedBitSet = RowUtil.shift(bitSet, 1);
 
             ExecRow baseRow = activation.getExecutionFactory().getValueRow(maxBaseColumnPosition);
-            ExecIndexRow indexRow = indexRowGenerator.getIndexRowKeyTemplate();
+            ExecIndexRow indexRow = indexRowGenerator.getIndexRowKeyTemplate(true);
             ExecRow compactBaseRow = activation.getExecutionFactory().getValueRow(baseColumnPositions.length);
 
             indexTemplateRow = indexRow;//indexRows[0];

@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.store.access.AggregateCostController;
 import com.splicemachine.db.iapi.store.access.SortCostController;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.sql.compile.AggregateNode;
+import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import com.splicemachine.db.impl.sql.compile.GroupByList;
 import com.splicemachine.db.impl.sql.compile.OrderByList;
 import com.splicemachine.db.impl.sql.compile.PredicateList;
@@ -426,6 +427,15 @@ public interface Optimizer{
     default boolean isMemPlatform() { return false; };
 
     CostModel getCostModel();
+
+    CostEstimate getNewCostEstimate(double theCost, double theRowCount, double theSingleScanRowCount);
+
+    OptimizablePredicateList getPredicateList();
+
+    Optimizable getOuterTable();
+
+    FromBaseTable getOuterBaseTable() throws StandardException;
+
 
     void setNonPushablePredicates(PredicateList predicateList);
 

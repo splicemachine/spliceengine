@@ -37,7 +37,10 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
+
+import java.util.List;
 
 /**
  * OptimizablePredicate provides services for optimizing predicates in a query.
@@ -83,6 +86,9 @@ public interface OptimizablePredicate
 
 	/** Is this predicate a stop key? */
 	boolean isStopKey();
+
+	/** Is this predicate a start or stop key? */
+	boolean isScanKey();
 
 	/**
 	 * Tell the predicate that it is to be used as a qualifier in an index
@@ -189,6 +195,15 @@ public interface OptimizablePredicate
 	void markFullJoinPredicate(boolean isForFullJoin);
 
 	boolean isFullJoinPredicate();
+
+	// Is this an OR of two or more relational operators which all are start keys or stop keys?
+	boolean isDisjunctionOfScanKeys(FromBaseTable optTable, AccessPath accessPath, Optimizer optimizer) throws StandardException;
+
+	// Collect the OR'ed conditions in this Predicate into a list of PredicateLists,
+	// with each PredicateList containing a single Predicate which is the left child
+	// of one of the OrNodes (OrNode chains are right-deep, with each left child being
+	// something other than an OrNode, if normalized properly).
+	List<OptimizablePredicateList> separateOredPredicates() throws StandardException;
 
 	boolean hasCorrelatedSubquery() throws StandardException;
 }

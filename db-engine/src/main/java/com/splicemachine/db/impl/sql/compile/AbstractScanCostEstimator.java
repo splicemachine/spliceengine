@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.costing.ScanCostEstimator;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -286,13 +287,55 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
 
     /**
      *
+     * Add Predicate and keep track of the selectivity
+     *
+     * @param p
+     * @throws StandardException
+     */
+    public void addPredicate(Predicate p, double defaultSelectivityFactor, Optimizer optimizer) throws StandardException{
+        if (p.isMultiProbeQualifier(indexColumns)) {// MultiProbeQualifier against keys (BASE)
+            addSelectivity(new InListSelectivity(scc, p, isIndexOnExpression ? indexColumns : null, QualifierPhase.BASE, defaultSelectivityFactor), SCAN);
+            collectNoStatsColumnsFromInListPred(p);
+        } else if (p.isInQualifier(baseColumnsInScan)) { // In Qualifier in Base Table (FILTER_PROJECTION) // This is not as expected, needs more research.
+            addSelectivity(new InListSelectivity(scc, p, null, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor), SCAN);
+            accumulateExprEvalCost(p);
+            collectNoStatsColumnsFromInListPred(p);
+        }
+        else if (p.isInQualifier(baseColumnsInLookup)) { // In Qualifier against looked up columns (FILTER_PROJECTION)
+            addSelectivity(new InListSelectivity(scc, p, null, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor), TOP);
+            accumulateExprEvalCost(p);
+            collectNoStatsColumnsFromInListPred(p);
+        }
+        else if ( (p.isStartKey() || p.isStopKey()) && scanPredicatePossible) { // Range Qualifier on Start/Stop Keys (BASE)
+            performQualifierSelectivity(p, QualifierPhase.BASE, isIndexOnExpression, defaultSelectivityFactor, SCAN, optimizer);
+            if (!p.isStartKey() || !p.isStopKey()) // Only allows = to further restrict BASE scan numbers
+                scanPredicatePossible = false;
+            collectNoStatsColumnsFromUnaryAndBinaryPred(p);
+        }
+        else if (p.isQualifier()) { // Qualifier in Base Table (FILTER_BASE)
+            performQualifierSelectivity(p, QualifierPhase.FILTER_BASE, isIndexOnExpression, defaultSelectivityFactor, SCAN, optimizer);
+            collectNoStatsColumnsFromUnaryAndBinaryPred(p);
+        }
+        else if (PredicateList.isQualifier(p,baseTable,cd,false)) { // Qualifier on Base Table After Index Lookup (FILTER_PROJECTION)
+            performQualifierSelectivity(p, QualifierPhase.FILTER_PROJECTION, isIndexOnExpression, defaultSelectivityFactor, TOP, optimizer);
+            accumulateExprEvalCost(p);
+            collectNoStatsColumnsFromUnaryAndBinaryPred(p);
+        }
+        else { // Project Restrict Selectivity Filter
+            addSelectivity(new DefaultPredicateSelectivity(p, baseTable, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor, optimizer), TOP);
+            accumulateExprEvalCost(p);
+        }
+    }
+
+    /**
+     *
      * Performs qualifier selectivity based on a qualifierPhase.
      *
      * @param p
      * @param qualifierPhase
      * @throws StandardException
      */
-    protected void performQualifierSelectivity(Predicate p, QualifierPhase qualifierPhase, boolean forIndexExpr, double selectivityFactor, int phase) throws StandardException {
+    protected void performQualifierSelectivity (Predicate p, QualifierPhase qualifierPhase, boolean forIndexExpr, double selectivityFactor, int phase, Optimizer optimizer) throws StandardException {
         if(p.compareWithKnownConstant(baseTable, true) &&
                 (p.getRelop().getColumnOperand(baseTable) != null ||
                         (forIndexExpr && p.getRelop().getExpressionOperand(baseTable.getTableNumber(), -1, (FromTable)baseTable, true) != null) && p.getIndexPosition() >= 0))
@@ -305,7 +348,7 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
         }
         else {
             // Predicate Cannot Be Transformed to Range, use Predicate Selectivity Defaults
-            addSelectivity(new DefaultPredicateSelectivity(p, baseTable, qualifierPhase, selectivityFactor), phase);
+            addSelectivity(new DefaultPredicateSelectivity(p, baseTable, qualifierPhase, selectivityFactor, optimizer), phase);
         }
     }
 

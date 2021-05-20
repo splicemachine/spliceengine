@@ -43,14 +43,12 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.depend.Dependency;
-import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.FloatingPointDataType;
 import com.splicemachine.db.iapi.types.SQLTimestamp;
-import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
@@ -59,7 +57,6 @@ import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.compile.TriggerReferencingStruct;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
-import com.splicemachine.db.impl.sql.execute.SPSPropertyRegistry;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
@@ -73,11 +70,11 @@ import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_COMPILE_VERSION;
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_VERSION;
+import static com.splicemachine.db.iapi.sql.compile.CompilerContext.MAX_DERIVED_CNF_PREDICATES_MAX_VALUE;
 import static com.splicemachine.db.iapi.sql.compile.CompilerContext.MAX_MULTICOLUMN_PROBE_VALUES_MAX_VALUE;
 import static com.splicemachine.db.impl.sql.compile.CharTypeCompiler.getCurrentCharTypeCompiler;
 
@@ -475,6 +472,7 @@ public class GenericStatement implements Statement{
         setSelectivityEstimationIncludingSkewedDefault(lcc, cc);
         setProjectionPruningEnabled(lcc, cc);
         setMaxMulticolumnProbeValues(lcc, cc);
+        setMaxDerivedCNFPredicates(lcc, cc);
         setMulticolumnInlistProbeOnSparkEnabled(lcc, cc);
         setConvertMultiColumnDNFPredicatesToInList(lcc, cc);
         setDisablePredicateSimplification(lcc, cc);
@@ -482,6 +480,9 @@ public class GenericStatement implements Statement{
         setAllowOverflowSensitiveNativeSparkExpressions(lcc, cc);
         setNewMergeJoin(lcc, cc);
         setDisableParallelTaskJoinCosting(lcc, cc);
+        setDisablePrefixIteratorMode(lcc, cc);
+        setDisableUnionedIndexScans(lcc, cc);
+        setFavorUnionedIndexScans(lcc, cc);
         setCurrentTimestampPrecision(lcc, cc);
         setTimestampFormat(lcc, cc);
         setSecondFunctionCompatibilityMode(lcc, cc);
@@ -589,6 +590,24 @@ public class GenericStatement implements Statement{
             // just use the default setting.
         }
         cc.setProjectionPruningEnabled(!projectionPruningOptimizationDisabled);
+    }
+
+    private void setMaxDerivedCNFPredicates(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        // User can specify the maximum number of CNF predicates to derive via the distributive
+        // law.  If the calculated number of derived predicates exceeds this value, DNF to CNF
+        // conversion is skipped.
+        String maxDerivedCNFPredicatesString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.MAX_DERIVED_CNF_PREDICATES);
+        int maxDerivedCNFPredicates = CompilerContext.DEFAULT_MAX_DERIVED_CNF_PREDICATES;
+        try {
+            if (maxDerivedCNFPredicatesString != null)
+                maxDerivedCNFPredicates = Integer.parseInt(maxDerivedCNFPredicatesString);
+        } catch (Exception e) {
+            // If the property value failed to convert to an int, don't throw an error,
+            // just use the default setting.
+        }
+        if (maxDerivedCNFPredicates > MAX_DERIVED_CNF_PREDICATES_MAX_VALUE)
+            maxDerivedCNFPredicates = MAX_DERIVED_CNF_PREDICATES_MAX_VALUE;
+        cc.setMaxDerivedCNFPredicates(maxDerivedCNFPredicates);
     }
 
     private void setMaxMulticolumnProbeValues(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
@@ -719,15 +738,35 @@ public class GenericStatement implements Statement{
         String disablePrefixIteratorModeString =
             PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_INDEX_PREFIX_ITERATION);
         boolean disablePrefixIteratorMode = CompilerContext.DEFAULT_DISABLE_INDEX_PREFIX_ITERATION;
+        if (disablePrefixIteratorModeString != null)
+            disablePrefixIteratorMode =
+            Boolean.parseBoolean(disablePrefixIteratorModeString);
+        cc.setDisablePrefixIteratorMode(disablePrefixIteratorMode);
+    }
+
+    private void setDisableUnionedIndexScans(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String disableUnionedIndexScansString =
+            PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_UNIONED_INDEX_SCANS);
+        boolean disableUnionedIndexScans = CompilerContext.DEFAULT_DISABLE_UNIONED_INDEX_SCANS;
+        if (disableUnionedIndexScansString != null)
+            disableUnionedIndexScans =
+            Boolean.parseBoolean(disableUnionedIndexScansString);
+        cc.setDisableUnionedIndexScans(disableUnionedIndexScans);
+    }
+
+    private void setFavorUnionedIndexScans(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String favorUnionedIndexScansString =
+            PropertyUtil.getCachedDatabaseProperty(lcc, Property.FAVOR_UNIONED_INDEX_SCANS);
+        boolean favorUnionedIndexScans = CompilerContext.DEFAULT_FAVOR_UNIONED_INDEX_SCANS;
         try {
-            if (disablePrefixIteratorModeString != null)
-                disablePrefixIteratorMode =
-                Boolean.parseBoolean(disablePrefixIteratorModeString);
+            if (favorUnionedIndexScansString != null)
+                favorUnionedIndexScans =
+                Boolean.parseBoolean(favorUnionedIndexScansString);
         } catch (Exception e) {
             // If the property value failed to convert to a boolean, don't throw an error,
             // just use the default setting.
         }
-        cc.setDisablePrefixIteratorMode(disablePrefixIteratorMode);
+        cc.setFavorUnionedIndexScans(favorUnionedIndexScans);
     }
 
     private void setDisableParallelTaskJoinCosting(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {

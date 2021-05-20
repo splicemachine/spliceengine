@@ -18,8 +18,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.HashableJoinStrategy;
 
-import static com.splicemachine.db.impl.sql.compile.JoinNode.*;
-
 public class MergeSortJoinStrategy extends HashableJoinStrategy {
 
     public MergeSortJoinStrategy() {
@@ -31,6 +29,8 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
                             Optimizer optimizer,
                             CostEstimate outerCost,boolean wasHinted,
                             boolean skipKeyCheck) throws StandardException {
+        if (innerTable.indexFriendlyJoinsOnly())
+            return false;
 		return correlatedSubqueryRestriction(optimizer, predList, outerCost.getJoinType())
                 && super.feasible(innerTable, predList, optimizer,outerCost,wasHinted,skipKeyCheck);
 	}
