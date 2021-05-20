@@ -560,12 +560,14 @@ public class SelectNode extends ResultSetNode {
         // selectivity 1.0.)
         // This is also done before predicate simplification to enable
         // more predicates to be pruned away.
-        Visitor constantExpressionVisitor =
-        new ConstantExpressionVisitor(SelectNode.class);
-        if (whereClause != null)
-            whereClause = (ValueNode) whereClause.accept(constantExpressionVisitor);
-        if (havingClause != null)
-            havingClause = (ValueNode) havingClause.accept(constantExpressionVisitor);
+        if (!getCompilerContext().getDisableConstantFolding()) {
+            Visitor constantExpressionVisitor =
+                    new ConstantExpressionVisitor(SelectNode.class);
+            if (whereClause != null)
+                whereClause = (ValueNode) whereClause.accept(constantExpressionVisitor);
+            if (havingClause != null)
+                havingClause = (ValueNode) havingClause.accept(constantExpressionVisitor);
+        }
 
         // Perform predicate simplification.  Currently only
         // simple rewrites involving boolean TRUE/FALSE are done, such as:

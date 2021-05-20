@@ -260,6 +260,14 @@ public class CompilerContextImpl extends ContextImpl
         return disablePredicateSimplification;
     }
 
+    public void setDisableConstantFolding(boolean newValue) {
+        disableConstantFolding = newValue;
+    }
+
+    public boolean getDisableConstantFolding() {
+        return disableConstantFolding;
+    }
+
     public void setSparkVersion(SparkVersion newValue) {
         sparkVersionInitialized = true;
         sparkVersion = newValue;
@@ -1245,6 +1253,7 @@ public class CompilerContextImpl extends ContextImpl
     private       boolean                             multicolumnInlistProbeOnSparkEnabled         = DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
     private       boolean                             convertMultiColumnDNFPredicatesToInList      = DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST;
     private       boolean                             disablePredicateSimplification               = DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION;
+    private       boolean                             disableConstantFolding                       = DEFAULT_DISABLE_CONSTANT_FOLDING;
     private       SparkVersion                        sparkVersion                                 = DEFAULT_SPLICE_SPARK_VERSION;
     private       boolean                             sparkVersionInitialized                      = false;
     private       CompilerContext.NativeSparkModeType nativeSparkAggregationMode                   = DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
