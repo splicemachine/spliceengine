@@ -151,58 +151,6 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
                      runningOperations >= newNumOperations);
     }
 
-    public static boolean
-    isMemPlatform() throws Exception{
-        try (ResultSet rs = spliceClassWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_IS_MEM_PLATFORM()")) {
-            rs.next();
-            return ((Boolean)rs.getObject(1));
-        }
-    }
-
-    public static void
-    vacuum() throws Exception{
-        // Mem doesn't have vacuum.
-        if (!isMemPlatform)
-            spliceClassWatcher.executeUpdate("CALL SYSCS_UTIL.VACUUM()");
-    }
-
-    public static int
-    getNumTables() throws Exception{
-        try (ResultSet rs = spliceClassWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_TABLE_COUNT()")) {
-            rs.next();
-            return ((Integer)rs.getObject(1));
-        }
-    }
-
-    public static int
-    getNumberOfRunningOperations() throws Exception{
-        List results = spliceClassWatcher.queryList("CALL SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS()");
-        return results.size();
-    }
-
-    @BeforeClass
-    public static void recordStats() throws Exception {
-        isMemPlatform = isMemPlatform();
-        runningOperations = getNumberOfRunningOperations();
-        vacuum();
-        numTables = getNumTables();
-    }
-
-    @AfterClass
-    public static void checkForLeaks() throws Exception {
-        vacuum();
-        int newNumTables = getNumTables();
-        // Mem platform doesn't physically remove dropped tables, so
-        // this is an HBase-only check.
-        if (!isMemPlatform)
-            assertTrue("\nStarted with " + numTables + " tables and ended with " + newNumTables,
-                         numTables >= newNumTables);
-
-        int newNumOperations = getNumberOfRunningOperations();
-        assertTrue("\nStarted with " + runningOperations + " running operations and ended with " + newNumOperations,
-                     runningOperations >= newNumOperations);
-    }
-
     protected void createInt_Proc() throws Exception {
         Connection c = conn;
         try(Statement s = c.createStatement()) {
