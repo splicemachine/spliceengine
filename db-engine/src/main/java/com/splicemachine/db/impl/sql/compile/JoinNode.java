@@ -222,7 +222,7 @@ public class JoinNode extends TableOperatorNode{
         // RESOLVE: NEED TO SET ROW ORDERING OF SOURCES IN THE ROW ORDERING
         // THAT WAS PASSED IN.
 
-        leftResultSet=optimizeSource(optimizer,leftResultSet,getLeftPredicateList(),null);
+        leftResultSet=optimizeSource(optimizer,leftResultSet,getLeftPredicateList(),null,null);
 
         /* Move all joinPredicates down to the right.
          * RESOLVE - When we consider the reverse join order then
@@ -257,9 +257,10 @@ public class JoinNode extends TableOperatorNode{
             lrsCE.setJoinType(INNERJOIN);
         double savedAccumulatedMemory = lrsCE.getAccumulatedMemory();
         lrsCE.setAccumulatedMemory(leftOptimizer.getAccumulatedMemory());
+
         optimizer.setOuterTableOfJoin(leftResultSet);
-        rightResultSet=optimizeSource(optimizer,rightResultSet,getRightPredicateList(),lrsCE);
-        optimizer.setOuterTableOfJoin(null);
+        rightResultSet=optimizeSource(optimizer,rightResultSet,getRightPredicateList(),leftResultSet.getReferencedTableMap(),lrsCE);
+        optimizer.setOuterTableOfJoin(null);      
         lrsCE.setJoinType(INNERJOIN);
         lrsCE.setAccumulatedMemory(savedAccumulatedMemory);
         costEstimate=getCostEstimate(optimizer);
