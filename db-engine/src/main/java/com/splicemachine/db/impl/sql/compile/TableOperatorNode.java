@@ -762,7 +762,6 @@ public abstract class TableOperatorNode extends FromTable{
                                            CostEstimate outerCost) throws StandardException{
         ResultSetNode retval;
 
-        boolean forSpark = optimizer != null ? optimizer.isForSpark() : false;
         if(sourceResultSet instanceof FromTable){
             FromList optList=(FromList)getNodeFactory().getNode(
                     C_NodeTypes.FROM_LIST,
@@ -778,7 +777,7 @@ public abstract class TableOperatorNode extends FromTable{
 
             LanguageConnectionContext lcc=getLanguageConnectionContext();
             OptimizerFactory optimizerFactory=lcc.getOptimizerFactory();
-            boolean forSpark = optimizer.isForSpark();
+            boolean forSpark = optimizer != null ? optimizer.isForSpark() : false;
             optimizer=optimizerFactory.getOptimizer(optList,
                                                     predList,
                                                     getDataDictionary(),
@@ -787,7 +786,6 @@ public abstract class TableOperatorNode extends FromTable{
                                                     lcc,
                                                     lcc.getCostModel());
 
-            optimizer.setForSpark(forSpark);
             optimizer.prepForNextRound();
             optimizer.setAssignedTableMap(otherChildReferenceMap);
             optimizer.setForSpark(forSpark);
