@@ -890,6 +890,11 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public DataSet convertNativeSparkToSparkDataSet() {
+         return this;
+    }
+
+    @Override
     public DataSet applyNativeSparkAggregation(int[] groupByColumns, SpliceGenericAggregator[] aggregates, boolean isRollup, OperationContext operationContext) { return null; }
 
     @Override

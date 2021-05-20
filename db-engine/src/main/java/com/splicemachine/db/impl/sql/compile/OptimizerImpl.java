@@ -53,6 +53,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.splicemachine.db.impl.sql.compile.JoinNode.INNERJOIN;
+
 /**
  * This will be the Level 1 Optimizer.
  * RESOLVE - it's a level 0 optimizer right now.
@@ -199,6 +201,8 @@ public class OptimizerImpl implements Optimizer{
 
     private CostModel costModel;
     private PredicateList nonPushablePredicateList;
+
+    private ResultSetNode outerTableOfJoin;
 
     protected OptimizerImpl(OptimizableList optimizableList,
                             OptimizablePredicateList predicateList,
@@ -2825,17 +2829,24 @@ public class OptimizerImpl implements Optimizer{
     }
 
     @Override
-    public OptimizablePredicateList getPredicateList() {
-        return predicateList;
+    public void setOuterTableOfJoin(ResultSetNode outerTableOfJoin) {
+        this.outerTableOfJoin = outerTableOfJoin;
     }
 
     @Override
-    public Optimizable getOuterTable() {
-        if (joinPosition == 0)
+    public ResultSetNode getOuterTable() {
+        if (joinPosition == 0) {
+            if (getJoinType() >= INNERJOIN)
+                return outerTableOfJoin;
             return null;
+        }
         int propJoinOrder = proposedJoinOrder[joinPosition-1];
-        Optimizable thisOpt = optimizableList.getOptimizable(propJoinOrder);
+        ResultSetNode thisOpt = (ResultSetNode)optimizableList.getOptimizable(propJoinOrder);
         return thisOpt;
+    }
+
+    public OptimizablePredicateList getPredicateList() {
+        return predicateList;
     }
 
     @Override

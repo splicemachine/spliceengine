@@ -471,6 +471,9 @@ public interface Optimizable {
      */
     default boolean indexPrefixIteratorAllowed(AccessPath accessPath) { return false; }
 
+
+    default boolean isTriggerVTI(){ return false; }
+
     /**
      * If true, this optimizable must be the outer table of a join, and
      * join plans which use it as the inner table will not be feasible.
@@ -492,4 +495,5 @@ public interface Optimizable {
      * key or index columns can be used to limit the scan.
      */
     default boolean indexFriendlyJoinsOnly() { return false; }
+
 }

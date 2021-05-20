@@ -70,7 +70,10 @@ public class DefaultPredicateSelectivity extends AbstractSelectivityHolder {
     // A ROWID = ROWID join is driven from the outer table, which reduces the number of rows qualified.
     // Find the number of qualified outer table rows to use as a reduction ratio to get the inner table selectivity.
     private double getRowIdPredSelectivity() {
-        double outerRowCount = optimizer.getOuterTable().getCurrentAccessPath().getCostEstimate().rowCount();
+        if (!(optimizer.getOuterTable() instanceof Optimizable))
+            return 1.0d;
+        Optimizable outerOptimizable = (Optimizable)optimizer.getOuterTable();
+        double outerRowCount = outerOptimizable.getCurrentAccessPath().getCostEstimate().rowCount();
         double innerRowCount = ((FromBaseTable)baseTable).getSingleScanRowCount();
         double lesserRowCount = Double.min(outerRowCount, innerRowCount);
         double selectivity;
