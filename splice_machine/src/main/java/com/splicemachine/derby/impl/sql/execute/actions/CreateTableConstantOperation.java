@@ -18,6 +18,7 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.access.api.PartitionAdmin;
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.*;
@@ -735,9 +736,9 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
             OperationContext operationContext = dsp.createOperationContext(activation);
             ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(pkFormatIds);
-            boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
+            boolean quotedEmptyIsNull = !PropertyUtil.getCachedBoolean(
                 operationContext.getActivation().getLanguageConnectionContext(),
-                Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
+                    GlobalDBProperties.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
             DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
                     null, timeFormat, dateFormat, timestampFormat, false, operationContext, quotedEmptyIsNull, true), true);
             List<ExecRow> rows = dataSet.collect();

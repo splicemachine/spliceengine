@@ -347,6 +347,16 @@ public class PropertyUtil {
         }
     }
 
+    public static boolean getCachedBoolean(LanguageConnectionContext lcc,
+                                           GlobalDBProperties.PropertyType key) throws StandardException {
+        return getCachedDatabaseBoolean(lcc, key.getName());
+    }
+
+    public static String getCached(LanguageConnectionContext lcc,
+                                   GlobalDBProperties.PropertyType key) throws StandardException {
+        return getCachedDatabaseProperty(lcc, key.getName());
+    }
+
     /**
         Find a service wide property with a default. Search order is
 
