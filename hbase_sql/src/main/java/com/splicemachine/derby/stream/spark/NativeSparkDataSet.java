@@ -1206,6 +1206,10 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
          return this;
     }
 
+    @Override
+    public DataSet convertNativeSparkToSparkDataSet() throws StandardException {
+        return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, this.context));
+    }
 
     /**
      * This function takes the current source NativeSparkDataSet ("this")

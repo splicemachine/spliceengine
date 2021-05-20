@@ -372,6 +372,8 @@ public interface DataSet<V> extends //Iterable<V>,
 
     DataSet upgradeToSparkNativeDataSet(OperationContext operationContext) throws StandardException;
 
+    DataSet convertNativeSparkToSparkDataSet() throws StandardException;
+
     DataSet applyNativeSparkAggregation(int[] groupByColumns, SpliceGenericAggregator[] aggregates, boolean isRollup, OperationContext operationContext);
 
     List<String> buildNativeSparkExplain(ExplainNode.SparkExplainKind sparkExplainKind);

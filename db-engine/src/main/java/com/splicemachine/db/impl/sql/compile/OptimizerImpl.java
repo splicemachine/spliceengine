@@ -52,6 +52,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.splicemachine.db.impl.sql.compile.JoinNode.INNERJOIN;
+
 /**
  * This will be the Level 1 Optimizer.
  * RESOLVE - it's a level 0 optimizer right now.
@@ -187,6 +189,8 @@ public class OptimizerImpl implements Optimizer{
 
     private static final int NANOS_TO_MILLIS = 1000000;
     private boolean forSpark = false;
+
+    private ResultSetNode outerTableOfJoin;
 
     protected OptimizerImpl(OptimizableList optimizableList,
                             OptimizablePredicateList predicateList,
@@ -2710,4 +2714,22 @@ public class OptimizerImpl implements Optimizer{
     public int getJoinPosition() {
         return joinPosition;
     }
+
+    @Override
+    public void setOuterTableOfJoin(ResultSetNode outerTableOfJoin) {
+        this.outerTableOfJoin = outerTableOfJoin;
+    }
+
+    @Override
+    public ResultSetNode getOuterTable() {
+        if (joinPosition == 0) {
+            if (getJoinType() >= INNERJOIN)
+                return outerTableOfJoin;
+            return null;
+        }
+        int propJoinOrder = proposedJoinOrder[joinPosition-1];
+        ResultSetNode thisOpt = (ResultSetNode)optimizableList.getOptimizable(propJoinOrder);
+        return thisOpt;
+    }
+
 }

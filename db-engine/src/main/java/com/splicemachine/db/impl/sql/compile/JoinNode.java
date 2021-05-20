@@ -257,7 +257,10 @@ public class JoinNode extends TableOperatorNode{
             lrsCE.setJoinType(INNERJOIN);
         double savedAccumulatedMemory = lrsCE.getAccumulatedMemory();
         lrsCE.setAccumulatedMemory(leftOptimizer.getAccumulatedMemory());
+
+        optimizer.setOuterTableOfJoin(leftResultSet);
         rightResultSet=optimizeSource(optimizer,rightResultSet,getRightPredicateList(),leftResultSet.getReferencedTableMap(),lrsCE);
+        optimizer.setOuterTableOfJoin(null);      
         lrsCE.setJoinType(INNERJOIN);
         lrsCE.setAccumulatedMemory(savedAccumulatedMemory);
         costEstimate=getCostEstimate(optimizer);
