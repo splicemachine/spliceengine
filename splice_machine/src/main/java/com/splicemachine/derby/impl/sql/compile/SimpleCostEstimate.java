@@ -36,7 +36,7 @@ public class SimpleCostEstimate implements CostEstimate{
     private boolean isAntiJoin;
     private double localCost = Double.MAX_VALUE;
     private double remoteCost;
-    private int numPartitions;
+    private int numPartitions = 1;
     private int parallelism = 1;
     private double numRows = Double.MAX_VALUE;
     private double singleScanRowCount = Double.MAX_VALUE;

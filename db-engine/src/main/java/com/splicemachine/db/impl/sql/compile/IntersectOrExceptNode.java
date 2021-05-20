@@ -239,12 +239,14 @@ public class IntersectOrExceptNode extends SetOperatorNode
                             optimizer,
                             leftResultSet,
                             (PredicateList) null,
+                            null,
                             null);
 
         rightResultSet = optimizeSource(
                             optimizer,
                             rightResultSet,
                             (PredicateList) null,
+                            null,
                             null);
 
         CostEstimate costEstimate = getCostEstimate(optimizer);

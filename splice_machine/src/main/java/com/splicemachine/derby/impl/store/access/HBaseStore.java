@@ -137,10 +137,13 @@ public class HBaseStore implements ModuleControl, ModuleSupportable {
 
 	public Transaction startNestedTransaction(CompatibilitySpace lockSpace,
 											  ContextManager contextManager,
-											  String nestedReadonlyUserTrans,TxnView parentTxn) throws StandardException{
+											  String nestedReadonlyUserTrans,TxnView parentTxn,
+											  byte[] destinationTable,
+											  boolean inMemoryTxn,
+											  boolean skipTransactionContextPush) throws StandardException{
 		if(LOG.isTraceEnabled())
 			LOG.trace("startNestedReadOnlyUserTransaction with context manager "+contextManager+", lock space "+lockSpace+", nestedReadonlyUserTrans "+nestedReadonlyUserTrans);
-		return transactionFactory.startNestedTransaction(this,contextManager,parentTxn);
+		return transactionFactory.startNestedTransaction(this,contextManager,parentTxn,destinationTable,inMemoryTxn,skipTransactionContextPush);
 	}
 
 		@Override
