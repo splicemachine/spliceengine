@@ -33,6 +33,8 @@ COL1 CHAR(36) NOT NULL
 
 create index Table1_Idx1 on Table1 (COL2, COL5, COL3, COL8, COL9);
 
+create index Table1_Idx2 on Table1 (COL2, COL3, COL5, COL9);
+
 insert into Table1 values ('a', 'ABCDE', timestamp('2010-12-31 15:59:59.3211111'), 'b', 'c', timestamp('1969-12-31 15:59:59.000001'), 'd', 'e', 'f', 'g');
 
 analyze table Table1;
