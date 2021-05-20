@@ -237,7 +237,7 @@ public class IndexPrefixIterationIT  extends SpliceUnitTest {
             "----\n" +
             " 1 |";
 
-        containedStrings = Arrays.asList("IndexScan", "T11_IX4", "IndexPrefixIteratorMode(129 values)", "scannedRows=1");
+        containedStrings = Arrays.asList("TableScan", "IndexPrefixIteratorMode(129 values)", "scannedRows=1");
         testQuery(query, expected, methodWatcher);
         testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
 

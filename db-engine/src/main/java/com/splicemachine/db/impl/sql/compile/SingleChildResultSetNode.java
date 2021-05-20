@@ -565,6 +565,12 @@ public abstract class SingleChildResultSetNode extends FromTable{
     }
 
     @Override
+    public boolean isTriggerVTI() {
+        if (childResult instanceof FromTable)
+            return ((FromTable)childResult).isTriggerVTI();
+        return false;
+    }
+  
     public boolean outerTableOnly() {
         if (outerTableOnly)
             return true;
