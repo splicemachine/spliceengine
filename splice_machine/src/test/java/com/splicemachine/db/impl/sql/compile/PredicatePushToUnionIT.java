@@ -230,8 +230,8 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
          */
         rowContainsQuery(new int[]{5, 8, 10}, "explain " + sqlText, methodWatcher,
                 new String[]{"TableScan", "preds=[(C3[7:2] = 1),(B3[7:1] = 1)]"},
-                new String[]{"IndexScan", "preds=[(C2[3:1] = 1),(B2[3:2] = 1)]"},
-                new String[]{"IndexScan", "preds=[(C1[0:1] = 1),(B1[0:2] = 1)]"});
+                new String[]{"IndexScan", "keys=[(C2[3:1] = 1),(B2[3:2] = 1)]"},
+                new String[]{"IndexScan", "keys=[(C1[0:1] = 1),(B1[0:2] = 1)]"});
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -273,8 +273,8 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
          */
         rowContainsQuery(new int[]{5, 8, 10}, "explain " + sqlText, methodWatcher,
                 new String[]{"TableScan", "preds=[(C3[7:2] = 1),(B3[7:1] = 1)]"},
-                new String[]{"IndexScan", "preds=[(C2[3:1] = 1),(B2[3:2] = 1)]"},
-                new String[]{"IndexScan", "preds=[(C1[0:1] = 1)]"});
+                new String[]{"IndexScan", "keys=[(C2[3:1] = 1),(B2[3:2] = 1)]"},
+                new String[]{"IndexScan", "keys=[(C1[0:1] = 1)]"});
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -313,9 +313,9 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
         10 rows selected
          */
         rowContainsQuery(new int[]{6, 9, 10}, "explain " + sqlText, methodWatcher,
-                new String[]{"MultiProbeTableScan", "preds=[(A3[9:1] IN (A         ,B         ,C         ))]"},
-                new String[]{"MultiProbeTableScan", "preds=[(A2[3:1] IN (A         ,B         ,C         ))]"},
-                new String[]{"MultiProbeTableScan", "preds=[(A1[0:1] IN (A         ,B         ,C         ))]"});
+                new String[]{"MultiProbeTableScan", "keys=[(A3[9:1] IN (A         ,B         ,C         ))]"},
+                new String[]{"MultiProbeTableScan", "keys=[(A2[3:1] IN (A         ,B         ,C         ))]"},
+                new String[]{"MultiProbeTableScan", "keys=[(A1[0:1] IN (A         ,B         ,C         ))]"});
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -372,7 +372,7 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
          */
         rowContainsQuery(new int[]{8, 10}, "explain " + sqlText, methodWatcher,
                 new String[]{"preds=[(C3[3:2] = 1),(B3[3:1] = 1)]"},
-                new String[]{"IndexScan", "preds=[(C2[0:1] = 1),(B2[0:2] = 1)]"});
+                new String[]{"IndexScan", "keys=[(C2[0:1] = 1),(B2[0:2] = 1)]"});
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -427,8 +427,8 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
          */
 
         rowContainsQuery(new int[]{7, 9}, "explain " + sqlText, methodWatcher,
-                new String[]{"MultiProbeTableScan", "preds=[((A6[3:1],B6[3:2],C6[3:3]) IN ((abcde,2,2018-12-01),(abcde,2,2018-12-05),(splice,2,2018-12-01),(splice,2,2018-12-05)))]"},
-                new String[]{"MultiProbeTableScan", "preds=[((A5[0:1],B5[0:2],C5[0:3]) IN ((abcde,2,2018-12-01),(abcde,2,2018-12-05),(splice,2,2018-12-01),(splice,2,2018-12-05)))]"});
+                new String[]{"MultiProbeTableScan", "keys=[((A6[3:1],B6[3:2],C6[3:3]) IN ((abcde,2,2018-12-01),(abcde,2,2018-12-05),(splice,2,2018-12-01),(splice,2,2018-12-05)))]"},
+                new String[]{"MultiProbeTableScan", "keys=[((A5[0:1],B5[0:2],C5[0:3]) IN ((abcde,2,2018-12-01),(abcde,2,2018-12-05),(splice,2,2018-12-01),(splice,2,2018-12-05)))]"});
 
 
 
@@ -489,8 +489,8 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
         11 rows selected
          */
         rowContainsQuery(new int[]{7, 9}, "explain " + sqlText, methodWatcher,
-                new String[]{"MultiProbeTableScan", "preds=[((A6[3:1],B6[3:2],C6[3:3]) IN ((substring(abcdeNNN, 1, 5) ,2,dataTypeServices: DATE ),(substring(abcdeNNN, 1, 5) ,2,dataTypeServices: DATE ),(splice,2,dataTypeServices: DATE ),(splice,2,dataTypeServices: DATE )))]"},
-                new String[]{"MultiProbeTableScan", "preds=[((A5[0:1],B5[0:2],C5[0:3]) IN ((substring(abcdeNNN, 1, 5) ,2,dataTypeServices: DATE ),(substring(abcdeNNN, 1, 5) ,2,dataTypeServices: DATE ),(splice,2,dataTypeServices: DATE ),(splice,2,dataTypeServices: DATE )))]"});
+                new String[]{"MultiProbeTableScan", "keys=[((A6[3:1],B6[3:2],C6[3:3]) IN ((substring(abcdeNNN, 1, 5) ,2,dataTypeServices: DATE ),(substring(abcdeNNN, 1, 5) ,2,dataTypeServices: DATE ),(splice,2,dataTypeServices: DATE ),(splice,2,dataTypeServices: DATE )))]"},
+                new String[]{"MultiProbeTableScan", "keys=[((A5[0:1],B5[0:2],C5[0:3]) IN ((substring(abcdeNNN, 1, 5) ,2,dataTypeServices: DATE ),(substring(abcdeNNN, 1, 5) ,2,dataTypeServices: DATE ),(splice,2,dataTypeServices: DATE ),(splice,2,dataTypeServices: DATE )))]"});
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -543,12 +543,12 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
          */
 
         rowContainsQuery(new int[]{7, 8, 12, 14, 17, 19}, "explain " + sqlText, methodWatcher,
-                new String[]{"TableScan", "preds=[(T11.A1[17:1] = C         ),(T11.B1[17:2] = 3)]"},
+                new String[]{"TableScan", "keys=[(T11.A1[17:1] = C         ),(T11.B1[17:2] = 3)]"},
                 new String[]{"TableScan", "preds=[(T3.C3[15:2] = 3),(T3.B3[15:1] = 3)]"},
-                new String[]{"TableScan", "preds=[(T11.A1[9:1] = C         ),(T11.B1[9:2] = 3)]"},
-                new String[]{"IndexScan", "preds=[(T2.C2[7:1] = 3),(T2.B2[7:2] = 3)]"},
-                new String[]{"TableScan", "preds=[(T11.A1[2:1] = C         ),(T11.B1[2:2] = 3)]"},
-                new String[]{"IndexScan", "preds=[(T1.C1[0:1] = 3),(T1.B1[0:2] = 3)]"});
+                new String[]{"TableScan", "keys=[(T11.A1[9:1] = C         ),(T11.B1[9:2] = 3)]"},
+                new String[]{"IndexScan", "keys=[(T2.C2[7:1] = 3),(T2.B2[7:2] = 3)]"},
+                new String[]{"TableScan", "keys=[(T11.A1[2:1] = C         ),(T11.B1[2:2] = 3)]"},
+                new String[]{"IndexScan", "keys=[(T1.C1[0:1] = 3),(T1.B1[0:2] = 3)]"});
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -603,12 +603,12 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
          */
 
         rowContainsQuery(new int[]{7, 8, 12, 14, 17, 19}, "explain " + sqlText, conn,
-                new String[]{"TableScan", "preds=[(T11.A1[17:1] = C         )]"},
+                new String[]{"TableScan", "keys=[(T11.A1[17:1] = C         )]"},
                 new String[]{"TableScan", "preds=[(T3.C3[15:2] = 3),(T3.B3[15:1] = 3)]"},
-                new String[]{"TableScan", "preds=[(T11.A1[9:1] = C         )]"},
-                new String[]{"IndexScan", "preds=[(T2.C2[7:1] = 3),(T2.B2[7:2] = 3)]"},
-                new String[]{"TableScan", "preds=[(T11.A1[2:1] = C         )]"},
-                new String[]{"IndexScan", "preds=[(T1.C1[0:1] = 3),(T1.B1[0:2] = 3)]"});
+                new String[]{"TableScan", "keys=[(T11.A1[9:1] = C         )]"},
+                new String[]{"IndexScan", "keys=[(T2.C2[7:1] = 3),(T2.B2[7:2] = 3)]"},
+                new String[]{"TableScan", "keys=[(T11.A1[2:1] = C         )]"},
+                new String[]{"IndexScan", "keys=[(T1.C1[0:1] = 3),(T1.B1[0:2] = 3)]"});
 
 
         ResultSet rs = conn.query(sqlText);
@@ -651,8 +651,8 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
         */
 
         rowContainsQuery(new int[]{7, 9}, "explain " + sqlText, methodWatcher,
-                new String[]{"TableScan", "preds=[(A6[3:1] = substring(abcdeNNN, 1, 5) ),(B6[3:2] = 2),(C6[3:3] = dataTypeServices: DATE )]"},
-                new String[]{"TableScan", "preds=[(A5[0:1] = substring(abcdeNNN, 1, 5) ),(B5[0:2] = 2),(C5[0:3] = dataTypeServices: DATE )]"});
+                new String[]{"TableScan", "keys=[(A6[3:1] = substring(abcdeNNN, 1, 5) ),(B6[3:2] = 2),(C6[3:3] = dataTypeServices: DATE )]"},
+                new String[]{"TableScan", "keys=[(A5[0:1] = substring(abcdeNNN, 1, 5) ),(B5[0:2] = 2),(C5[0:3] = dataTypeServices: DATE )]"});
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =

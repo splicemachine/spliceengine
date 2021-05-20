@@ -32,6 +32,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import org.apache.commons.lang3.tuple.Pair;
 import splice.com.google.common.base.Function;
 import splice.com.google.common.collect.Iterators;
 
@@ -153,7 +154,7 @@ public class ExplainOperation extends SpliceBaseOperation {
     }
 
     protected void clearState() {
-        Map<String, Collection<QueryTreeNode>> m = PlanPrinter.planMap.get();
+        Map<String, Collection<Pair<QueryTreeNode,Integer>>> m = PlanPrinter.planMap.get();
         String sql = activation.getPreparedStatement().getSource();
         m.remove(sql);
     }
@@ -190,10 +191,10 @@ public class ExplainOperation extends SpliceBaseOperation {
 
     @SuppressWarnings("unchecked")
     private void getPlanInformation() throws StandardException {
-        Map<String, Collection<QueryTreeNode>> m = PlanPrinter.planMap.get();
+        Map<String, Collection<Pair<QueryTreeNode,Integer>>> m = PlanPrinter.planMap.get();
         String sql = activation.getPreparedStatement().getSource();
         Iterator<String> explainStringIter;
-        Collection<QueryTreeNode> opPlanMap = m.get(sql);
+        Collection<Pair<QueryTreeNode,Integer>> opPlanMap = m.get(sql);
         if (opPlanMap != null) {
             DataSetProcessorType type = activation.datasetProcessorType();
             explainStringIter = PlanPrinter.planToIterator(opPlanMap, type);

@@ -34,7 +34,10 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.AccessPath;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.impl.ast.RSUtils;
+
+import static com.splicemachine.db.impl.sql.compile.ColumnReference.isBaseRowIdOrRowId;
 
 /**
  * Predicate Selectivity Computation
@@ -43,20 +46,73 @@ import com.splicemachine.db.impl.ast.RSUtils;
 public class DefaultPredicateSelectivity extends AbstractSelectivityHolder {
     private final Optimizable baseTable;
     private final double selectivityFactor;
-    public DefaultPredicateSelectivity(Predicate p, Optimizable baseTable, QualifierPhase phase, double selectivityFactor){
+    private final Optimizer optimizer;
+    public DefaultPredicateSelectivity(Predicate p, Optimizable baseTable, QualifierPhase phase, double selectivityFactor, Optimizer optimizer){
         super(false,0,phase,p);
         this.p = p;
         this.baseTable = baseTable;
         this.selectivityFactor = selectivityFactor;
+        this.optimizer = optimizer;
     }
 
     public double getSelectivity() throws StandardException {
         if (selectivity == -1.0d) {
-            selectivity = p.selectivity(baseTable);
+            if (isRowIdBinding() && optimizer != null && optimizer.getOuterTable() != null)
+                selectivity = getRowIdPredSelectivity();
+            if (selectivity == -1.0d)
+                selectivity = p.selectivity(baseTable);
             if (selectivityFactor > 0) // we may hint to adjust selectivity by a factor
                 selectivity *= selectivityFactor;
         }
         return selectivity;
+    }
+
+    // A ROWID = ROWID join is driven from the outer table, which reduces the number of rows qualified.
+    // Find the number of qualified outer table rows to use as a reduction ratio to get the inner table selectivity.
+    private double getRowIdPredSelectivity() {
+        double outerRowCount = optimizer.getOuterTable().getCurrentAccessPath().getCostEstimate().rowCount();
+        double innerRowCount = ((FromBaseTable)baseTable).getSingleScanRowCount();
+        double lesserRowCount = Double.min(outerRowCount, innerRowCount);
+        double selectivity;
+        if (innerRowCount == 0.0d)
+            return -1.0d;
+
+        selectivity = lesserRowCount / innerRowCount;
+        if (selectivity > 1.0d)
+            selectivity = 1.0d;
+        if (selectivity < 0.0d)
+            selectivity = 0.0d;
+        return selectivity;
+    }
+
+    // Is this a ROWID = ROWID join predicate between 2 tables?
+    private boolean isRowIdBinding() {
+        if (!(baseTable instanceof FromBaseTable))
+            return false;
+        if (p.getReferencedSet().cardinality() != 2)
+            return false;
+        AndNode andNode = p.getAndNode();
+        if (!andNode.getRightOperand().isBooleanTrue())
+            return false;
+        ValueNode operator = andNode.getLeftOperand();
+        if (!(operator instanceof BinaryRelationalOperatorNode))
+            return false;
+        BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode)operator;
+        if (bron.getOperator() != RelationalOperator.EQUALS_RELOP)
+            return false;
+        ValueNode left = bron.getLeftOperand();
+        ValueNode right = bron.getRightOperand();
+        if (!(left instanceof ColumnReference))
+            return false;
+        if (!(right instanceof ColumnReference))
+            return false;
+        ColumnReference leftCR = (ColumnReference)left;
+        ColumnReference rightCR = (ColumnReference)right;
+        if (!isBaseRowIdOrRowId(leftCR.getColumnName()))
+            return false;
+        if (!isBaseRowIdOrRowId(rightCR.getColumnName()))
+            return false;
+        return true;
     }
 
     @Override

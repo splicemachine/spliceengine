@@ -35,7 +35,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.impl.sql.compile.FirstColumnOfIndexStats;
+import com.splicemachine.db.impl.sql.compile.*;
 
 /**
  * AccessPath represents a proposed access path for an Optimizable.
@@ -198,4 +198,63 @@ public interface AccessPath {
     void setNumUnusedLeadingIndexFields(int numUnusedLeadingIndexFields);
 
     FirstColumnOfIndexStats getFirstColumnStats();
+
+	/**
+	 * Store in the access path the predicate used to enable unioned index scans.
+	 */
+    void setUisPredicate(Predicate uisPredicate);
+
+	/**
+	 * The predicate used to enable unioned index scans, if any
+	 */
+    Predicate getUisPredicate();
+
+	/**
+	 * Store in the access path the RowId predicate used to join back
+	 * to the outer base table for unioned index scan query plans, when
+	 * the UIS tree has index enabling predicates which are join predicates.
+	 */
+    void setUisRowIdPredicate(Predicate uisRowIdPredicate);
+
+	/**
+	 * The RowId predicate used to join back to the outer base table
+	 * for unioned index scan query plans, when the UIS tree has
+	 * index enabling predicates which are join predicates
+	 */
+    Predicate getUisRowIdPredicate();
+
+	/**
+	 * The tree of UnionNodes that combines results of the OR'ed index scans,
+	 * for a unioned index scans access path
+	 */
+    UnionNode getUnionOfIndexes();
+
+	/**
+	 * Store in the access path the tree of UnionNodes that combines results
+	 * of OR'ed index scans for a unioned index scans access path.
+	 */
+    void setUnionOfIndexes(UnionNode unionOfIndexes);
+
+	/**
+	 * The entire optimized result set tree of the unioned index scans
+	 * plus the rowid join back to the base table
+	 */
+    ResultSetNode getUisRowIdJoinBackToBaseTableResultSet();
+
+	/**
+	 * Store in the access path the entire optimized result set tree of
+	 * the unioned index scans plus the rowid join back to the base table.
+	 */
+    void setUisRowIdJoinBackToBaseTableResultSet(ResultSetNode uisRowIdJoinBackToBaseTableResultSet);
+
+	/**
+	 * Set all the fields in the access path related to Unioned Index Scans (UIS)
+	 * from the corresponding fields in the "other" access path.
+	 * This fields currently include:
+	 *    uisPredicate
+	 *    uisRowIdPredicate
+	 *    unionOfIndexes
+	 *    uisRowIdJoinBackToBaseTableResultSet
+	 */
+    void setUisFields(AccessPath copyFromAccessPath);
 }

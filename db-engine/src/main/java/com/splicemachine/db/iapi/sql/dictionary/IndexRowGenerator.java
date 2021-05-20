@@ -175,9 +175,9 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 	 *
 	 * @return  A row template for the index row.
 	 */
-	public ExecIndexRow getIndexRowKeyTemplate()
+	public ExecIndexRow getIndexRowKeyTemplate(boolean alwaysIncludeLocation)
 	{
-		if (id.isUnique()) {
+		if (!alwaysIncludeLocation && id.isUnique()) {
 			return getExecutionFactory().getIndexableRow(id.isAscending().length);
 		} else {
 			return getIndexRowTemplate();
