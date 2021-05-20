@@ -24,9 +24,11 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * This class  describes actions that are ALWAYS performed for a
@@ -55,7 +57,7 @@ public class DropSequenceConstantOperation extends DDLConstantOperation {
      *
      * @see com.splicemachine.db.iapi.sql.execute.ConstantAction#executeConstantAction
      */
-    public void executeConstantAction(Activation activation) throws StandardException {
+    public void executeConstantAction(Activation activation, boolean notify) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         /*
@@ -77,13 +79,19 @@ public class DropSequenceConstantOperation extends DDLConstantOperation {
         TransactionController tc = lcc.getTransactionExecute();
         // invalidate compiled statements which depend on this sequence
         dm.invalidateFor(sequenceDescriptor, DependencyManager.DROP_SEQUENCE, lcc);
+        if (notify) {
+            notifyMetadataChanges(tc,
+                    generateDDLChanges(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), activation));
+        }
 
-        DDLMessage.DDLChange ddlChange = ProtoUtil.dropSequence(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), schemaDescriptor.getSchemaName(),sequenceName);
-        // Run Remotely
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
         // drop the sequence
         dd.dropSequenceDescriptor(sequenceDescriptor, tc);
         // Clear the dependencies for the sequence
         dm.clearDependencies(lcc, sequenceDescriptor);
+    }
+
+    @Override
+    public List<DDLMessage.DDLChange> generateDDLChanges(long txnId, Activation activation) {
+        return Collections.singletonList(ProtoUtil.dropSequence(txnId, schemaDescriptor.getSchemaName(),sequenceName));
     }
 }

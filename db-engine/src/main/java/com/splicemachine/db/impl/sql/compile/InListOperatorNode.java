@@ -523,10 +523,13 @@ public final class InListOperatorNode extends BinaryListOperatorNode
             rightBCO.bindComparisonOperator();
 
             /* Create the AND */
+			// leftSide comes from leftOperand, but we want the AND nodes
+			// to be normalized (right-linked), so leftSide is passed as the
+			// right operand of the new AND.
             newAnd = (AndNode) getNodeFactory().getNode(
                                                 C_NodeTypes.AND_NODE,
-                                                leftSide,
                                                 rightBCO,
+												leftSide,
                                                 getContextManager());
             newAnd.postBindFixup();
 

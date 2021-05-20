@@ -878,9 +878,11 @@ public class BinaryOperatorNode extends OperatorNode
                     return false;
                 }
             }
-            if (getRightOperand() instanceof ColumnReference) {
-                ColumnReference rcr = (ColumnReference) getRightOperand();
-                if (rcr.getSource().getExpression() instanceof CurrentRowLocationNode) {
+        }
+        if (getRightOperand() instanceof ColumnReference) {
+            ColumnReference rcr = (ColumnReference) getRightOperand();
+            if (rcr.getSource().getExpression() instanceof CurrentRowLocationNode) {
+                if (methodName.compareToIgnoreCase("NOTEQUALS") == 0) {
                     return false;
                 }
             }
@@ -976,6 +978,19 @@ public class BinaryOperatorNode extends OperatorNode
 
     public void castRightOperandAndBindCast(DataTypeDescriptor type) throws StandardException {
         castOperandAndBindCast(1, type);
+    }
+
+    public void copyFrom(BinaryOperatorNode other) throws StandardException
+    {
+        super.copyFrom(other);
+        this.operatorType = other.operatorType;
+        this.leftMatchIndexExpr = other.leftMatchIndexExpr;
+        this.rightMatchIndexExpr = other.rightMatchIndexExpr;
+        this.leftMatchIndexExprConglomDesc = other.leftMatchIndexExprConglomDesc;
+        this.rightMatchIndexExprConglomDesc = other.rightMatchIndexExprConglomDesc;
+        this.leftMatchIndexExprColumnPosition = other.leftMatchIndexExprColumnPosition;
+        this.rightMatchIndexExprColumnPosition = other.rightMatchIndexExprColumnPosition;
+        this.xmlQuery = other.xmlQuery;
     }
 }
 

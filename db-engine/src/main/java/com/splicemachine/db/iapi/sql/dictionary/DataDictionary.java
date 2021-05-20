@@ -1820,7 +1820,7 @@ public interface DataDictionary{
      *
      * @see #addDescriptor
      */
-    void addDescriptorArray(TupleDescriptor[] tuple,
+    RowLocation[] addDescriptorArray(TupleDescriptor[] tuple,
                             TupleDescriptor parent,
                             int catalogNumber,
                             boolean allowsDuplicates,
