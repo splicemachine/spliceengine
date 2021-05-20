@@ -453,4 +453,7 @@ public class SparkLeanOperationContext<Op extends SpliceOperation> implements Op
 
     @Override
     public String getImportFileName() { return importFileName; }
+
+    @Override
+    public boolean isSpark() { return true; };
 }

@@ -810,34 +810,6 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     }
 
     /**
-     * Return whether or not this expression tree is cloneable.
-     *
-     * @return boolean    Whether or not this expression tree is cloneable.
-     */
-    public boolean isCloneable()
-    {
-        return false;
-    }
-
-    /**
-     * Return a clone of this node.
-     *
-     * @return ValueNode    A clone of this node.
-     *
-     * @exception StandardException            Thrown on error
-     */
-    public ValueNode getClone() throws StandardException
-    {
-        if (SanityManager.DEBUG)
-        {
-            SanityManager.ASSERT(false,
-                "getClone() not expected to be called for " +
-                getClass().getName());
-        }
-        return null;
-    }
-
-    /**
      * Copy all of the "appropriate fields" for a shallow copy.
      *
      * @param oldVN        The ValueNode to copy from.
@@ -1669,4 +1641,11 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     protected static final double ALLOC_COST_FACTOR = 350;
 
     public double getBaseOperationCost() throws StandardException { return 0.0; }
+
+    public void copyFrom(OperatorNode other) throws StandardException
+    {
+        super.copyFrom(other);
+        this.dataTypeServices = other.dataTypeServices;
+        this.transformed = other.transformed;
+    }
 }

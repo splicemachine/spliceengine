@@ -710,7 +710,7 @@ public class FullOuterJoinIT extends SpliceUnitTest {
                 "select a5 as X from t5) dt where X in (1,3,5,7)", useSpark, joinStrategy);
 
         rowContainsQuery(new int[]{5, 7, 8}, "explain " + sqlText, methodWatcher,
-                new String[]{"MultiProbeTableScan", "preds=[(A5[7:1] IN (1,3,5,7))]"},
+                new String[]{"MultiProbeTableScan", "keys=[(A5[7:1] IN (1,3,5,7))]"},
                 new String[]{"ProjectRestrict", "preds=[(A1[4:1] IN (1,3,5,7))]"},
                 new String[]{"FullOuterJoin", "preds=[(A1[4:1] = A2[4:2])]"});
 

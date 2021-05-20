@@ -14,23 +14,15 @@
 
 package com.splicemachine.derby.impl.sql.compile;
 
-import com.splicemachine.EngineDriver;
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.conn.SessionProperties;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.sql.compile.*;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
 
-import static com.splicemachine.db.impl.sql.compile.JoinNode.INNERJOIN;
 
 public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 
@@ -44,6 +36,10 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
                             CostEstimate outerCost,
                             boolean wasHinted,
                             boolean skipKeyCheck) throws StandardException{
+
+        if (optimizer.getJoinPosition() > 0 && innerTable.outerTableOnly())
+            return false;
+
         /* Nested loop is feasible, except in the corner case
          * where innerTable is a VTI that cannot be materialized
          * (because it has a join column as a parameter) and
