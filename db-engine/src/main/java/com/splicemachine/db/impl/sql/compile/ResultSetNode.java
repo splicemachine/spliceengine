@@ -220,7 +220,9 @@ public abstract class ResultSetNode extends QueryTreeNode{
         // only set if currently unset
         if(resultSetNumber==-1){
             resultSetNumber=getCompilerContext().getNextResultSetNumber();
-            resultColumns.setResultSetNumber(resultSetNumber);
+            // todo: DB-11050
+            if(resultColumns != null)
+                resultColumns.setResultSetNumber(resultSetNumber);
         }
     }
 

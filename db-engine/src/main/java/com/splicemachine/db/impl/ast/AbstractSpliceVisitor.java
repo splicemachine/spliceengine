@@ -915,7 +915,7 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     public Visitable visit(SetSessionPropertyNode node) throws StandardException {
         return defaultVisit(node);
     }
-    
+
     @Override
     public Visitable visit(ListValueNode node) throws StandardException {
         return defaultVisit(node);
@@ -958,6 +958,16 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
 
     @Override
     public Visitable visit(ToHbaseEscapedOperatorNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
+    @Override
+    public Visitable visit(MergeNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
+    @Override
+    public Visitable visit(MatchingClauseNode node) throws StandardException {
         return defaultVisit(node);
     }
 }
