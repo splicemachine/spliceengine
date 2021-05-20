@@ -37,11 +37,16 @@ import com.splicemachine.db.iapi.sql.compile.Visitable;
 
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.error.StandardException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.StringReader;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@SuppressFBWarnings(value={
+        "NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", // SpotBugs can't see that currentToken.next is initialized
+},
+        justification = ".")
 public class ParserImpl implements Parser {
     /*
      ** We will use the following constant to pass in to

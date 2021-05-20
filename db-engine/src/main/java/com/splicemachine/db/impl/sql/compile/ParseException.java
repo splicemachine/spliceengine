@@ -40,6 +40,15 @@ package com.splicemachine.db.impl.sql.compile;
  * You can modify this class to customize your error reporting
  * mechanisms so long as you retain the public fields.
  */
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value={
+    // SpotBugs can't see that currentToken.next is initialized
+    "NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD",
+    "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD",
+},
+    justification = ".")
 public class ParseException extends Exception {
 
     private static final long serialVersionUID = -4112778850759062139L;
@@ -139,6 +148,7 @@ public class ParseException extends Exception {
      * @param maxTokens    print only a limited number of expected tokens, otherwise list can get long (100 items);
      * @return error message
      */
+    @SuppressFBWarnings(value={"NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD"})
     public String getMessage(boolean showExpected, int maxTokens) {
         if (!specialConstructor) {
             return super.getMessage();
