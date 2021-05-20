@@ -117,10 +117,7 @@ class AccessPathImpl implements AccessPath{
         setLockMode(copyFrom.getLockMode());
         setMissingHashKeyOK(copyFrom.isMissingHashKeyOK());
         setNumUnusedLeadingIndexFields(copyFrom.getNumUnusedLeadingIndexFields());
-        setUisPredicate(copyFrom.getUisPredicate());
-        setUisRowIdPredicate(copyFrom.getUisRowIdPredicate());
-        setUnionOfIndexes(copyFrom.getUnionOfIndexes());
-        setUisRowIdJoinBackToBaseTableResultSet(copyFrom.getUisRowIdJoinBackToBaseTableResultSet());
+        setUisFields(copyFrom);
     }
 
     @Override public Optimizer getOptimizer(){ return optimizer; }
@@ -232,6 +229,14 @@ class AccessPathImpl implements AccessPath{
     @Override
     public void setUisRowIdJoinBackToBaseTableResultSet(ResultSetNode uisRowIdJoinBackToBaseTableResultSet) {
         this.uisRowIdJoinBackToBaseTableResultSet = uisRowIdJoinBackToBaseTableResultSet;
+    }
+
+    @Override
+    public void setUisFields(AccessPath copyFromAccessPath) {
+        setUisPredicate(copyFromAccessPath.getUisPredicate());
+        setUisRowIdPredicate(copyFromAccessPath.getUisRowIdPredicate());
+        setUnionOfIndexes(copyFromAccessPath.getUnionOfIndexes());
+        setUisRowIdJoinBackToBaseTableResultSet(copyFromAccessPath.getUisRowIdJoinBackToBaseTableResultSet());
     }
 
 }

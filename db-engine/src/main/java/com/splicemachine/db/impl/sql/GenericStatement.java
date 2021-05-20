@@ -43,14 +43,12 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.depend.Dependency;
-import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.FloatingPointDataType;
 import com.splicemachine.db.iapi.types.SQLTimestamp;
-import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
@@ -59,7 +57,6 @@ import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.compile.TriggerReferencingStruct;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
-import com.splicemachine.db.impl.sql.execute.SPSPropertyRegistry;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
@@ -73,7 +70,6 @@ import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_COMPILE_VERSION;
@@ -268,8 +264,7 @@ public class GenericStatement implements Statement{
                                          boolean internalSQL) throws StandardException{
         return prepMinion(lcc, cacheMe, paramDefaults, spsSchema, internalSQL, null);
     }
-    @SuppressFBWarnings(value = "ML_SYNC_ON_FIELD_TO_GUARD_CHANGING_THAT_FIELD",
-            justification = "the new object created at line 370 will not be put into cache and it cannot be referenced by other threads")
+
     private PreparedStatement prepMinion(LanguageConnectionContext lcc,
                                          boolean cacheMe,
                                          Object[] paramDefaults,
@@ -331,14 +326,15 @@ public class GenericStatement implements Statement{
             lcc.setOrigStmtTxt(statementText);
         }
 
-//        boolean isExplain=isExplainStatement();
         if(preparedStmt==null){
             if(cacheMe)
                 preparedStmt=(GenericStorablePreparedStatement)((GenericLanguageConnectionContext)lcc).lookupStatement(this);
 
-            if(preparedStmt==null){
-                preparedStmt=new GenericStorablePreparedStatement(this);
-            }else{
+            if (preparedStmt==null || preparedStmt.referencesSessionSchema()) {
+                // cannot use this state since it is private to a connection.
+                // switch to a new statement.
+                preparedStmt = new GenericStorablePreparedStatement(this);
+            } else {
                 foundInCache=true;
             }
         }
@@ -351,19 +347,7 @@ public class GenericStatement implements Statement{
         // cache of prepared statement objects...
         synchronized(preparedStmt){
             for(;;){
-                if(foundInCache){
-                    if(preparedStmt.referencesSessionSchema()){
-                        // cannot use this state since it is private to a connection.
-                        // switch to a new statement.
-                        foundInCache=false;
-                        // reassigning preparedStmt causes a FindBugs bug ML_SYNC_ON_FIELD_TO_GUARD_CHANGING_THAT_FIELD
-                        preparedStmt=new GenericStorablePreparedStatement(this);
-                        break;
-                    }
-                }
-
                 // did it get updated while we waited for the lock on it?
-
                 if(preparedStmt.upToDate()){
                     /*
                      * -sf- DB-1082 regression note:
@@ -382,8 +366,9 @@ public class GenericStatement implements Statement{
                     Collection<Dependency> selfDep = lcc.getDataDictionary().getDependencyManager().find(preparedStmt.getObjectID());
                     if(selfDep!=null){
                         for(Dependency dep:selfDep){
-                            if(dep.getDependent().equals(preparedStmt))
+                            if (dep.getDependent().equals(preparedStmt)) {
                                 return preparedStmt;
+                            }
                         }
                     }
                     //we actually aren't valid, because the dependency is missing.
@@ -401,11 +386,8 @@ public class GenericStatement implements Statement{
                 }
             }
 
-            // if we reach here from the break at line 371, preparedStmt object is different
-            synchronized (preparedStmt) {
-                preparedStmt.compilingStatement = true;
-                preparedStmt.setActivationClass(null);
-            }
+            preparedStmt.compilingStatement = true;
+            preparedStmt.setActivationClass(null);
         }
         CompilerContext cc = null;
         try{
@@ -434,12 +416,14 @@ public class GenericStatement implements Statement{
             } else {
                 cc = pushCompilerContext(lcc, internalSQL, spsSchema);
             }
-            if (internalSQL)
+            if (internalSQL) {
                 cc.setCompilingTrigger(true);
+            }
             fourPhasePrepare(lcc,paramDefaults,timestamps,foundInCache,cc,boundAndOptimizedStatement, cacheMe, false);
         } catch (Throwable e) {
-            if(foundInCache)
-                ((GenericLanguageConnectionContext)lcc).removeStatement(this);
+            if (foundInCache) {
+                ((GenericLanguageConnectionContext) lcc).removeStatement(this);
+            }
             throw StandardException.getOrWrap(e);
         }
         finally{
@@ -461,8 +445,9 @@ public class GenericStatement implements Statement{
 
         lcc.commitNestedTransaction();
 
-        if(statementContext!=null)
-            lcc.popStatementContext(statementContext,null);
+        if (statementContext != null) {
+            lcc.popStatementContext(statementContext, null);
+        }
 
         return preparedStmt;
     }
@@ -498,7 +483,7 @@ public class GenericStatement implements Statement{
         setDisablePrefixIteratorMode(lcc, cc);
         setDisableSubqueryFlattening(lcc, cc);
         setDisableUnionedIndexScans(lcc, cc);
-        setfavorUnionedIndexScans(lcc, cc);
+        setFavorUnionedIndexScans(lcc, cc);
         setCurrentTimestampPrecision(lcc, cc);
         setTimestampFormat(lcc, cc);
         setSecondFunctionCompatibilityMode(lcc, cc);
@@ -764,16 +749,11 @@ public class GenericStatement implements Statement{
         String disableSubqueryFlatteningString =
             PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_SUBQUERY_FLATTENING);
         boolean disableSubqueryFlattening = CompilerContext.DEFAULT_DISABLE_SUBQUERY_FLATTENING;
-        try {
-            if (disableSubqueryFlatteningString != null)
-                disableSubqueryFlattening =
-                Boolean.parseBoolean(disableSubqueryFlatteningString);
-        } catch (Exception e) {
-            // If the property value failed to convert to a boolean, don't throw an error,
-            // just use the default setting.
-        }
+        if (disableSubqueryFlatteningString != null)
+            disableSubqueryFlattening =
+            Boolean.parseBoolean(disableSubqueryFlatteningString);
         cc.setDisableSubqueryFlattening(disableSubqueryFlattening);
-    }
+    }          
 
     private void setDisableUnionedIndexScans(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
         String disableUnionedIndexScansString =
@@ -785,19 +765,13 @@ public class GenericStatement implements Statement{
         cc.setDisableUnionedIndexScans(disableUnionedIndexScans);
     }
 
-    private void setfavorUnionedIndexScans(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+    private void setFavorUnionedIndexScans(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
         String favorUnionedIndexScansString =
             PropertyUtil.getCachedDatabaseProperty(lcc, Property.FAVOR_UNIONED_INDEX_SCANS);
         boolean favorUnionedIndexScans = CompilerContext.DEFAULT_FAVOR_UNIONED_INDEX_SCANS;
-        try {
-            if (favorUnionedIndexScansString != null)
-                favorUnionedIndexScans =
-                Boolean.parseBoolean(favorUnionedIndexScansString);
-        } catch (Exception e) {
-            // If the property value failed to convert to a boolean, don't throw an error,
-            // just use the default setting.
-        }
-        cc.setFavorUnionedIndexScans(favorUnionedIndexScans);
+        if (favorUnionedIndexScansString != null)
+            favorUnionedIndexScans =
+            Boolean.parseBoolean(favorUnionedIndexScansString);
     }
 
     private void setDisableParallelTaskJoinCosting(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {

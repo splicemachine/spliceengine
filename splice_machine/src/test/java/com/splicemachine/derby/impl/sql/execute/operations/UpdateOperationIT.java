@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
@@ -204,6 +205,16 @@ public class UpdateOperationIT {
                         "-------------------\n" +
                         " 300 | 900 |63367 |",
                 TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test
+    public void testUpdateMultipleColumnsInvalidSyntax() throws Exception {
+        try {
+            methodWatcher.execute("update LOCATION set (addr, zip) = ('900', '63367') where num=300");
+        } catch (SQLException e) {
+            assertEquals("42X67", e.getSQLState());
+            assertEquals("Invalid UPDATE statement syntax.", e.getMessage());
+        }
     }
 
     @Test

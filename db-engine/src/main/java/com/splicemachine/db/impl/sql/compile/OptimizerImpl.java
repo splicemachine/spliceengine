@@ -895,6 +895,12 @@ public class OptimizerImpl implements Optimizer{
             }
 
             // If we want to re-use this Optimizable without re-planning it, return now.
+            // This is the case where nextOptimizable uses a Unioned Index Scans access path,
+            // and it is being joined with another table which itself might use a UIS access path.
+            // We want to set the join cost estimate to an uninitialized state and set assignedTableMap
+            // to include the proper tables, but we don't want to push any new predicates to this
+            // table because it has already been materialized into a sequence of statements that
+            // can't be modified.
             ResultSetNode optimizableResultSet = (ResultSetNode) optimizableList.getOptimizable(nextOptimizable);
             if (optimizableResultSet.skipBindAndOptimize) {
                 if (optimizableResultSet instanceof FromTable) {
@@ -2426,10 +2432,7 @@ public class OptimizerImpl implements Optimizer{
                 bestAp.setLockMode(currentAccessPath.getLockMode());
                 bestAp.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
                 bestAp.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
-                bestAp.setUisPredicate(currentAccessPath.getUisPredicate());
-                bestAp.setUisRowIdPredicate(currentAccessPath.getUisRowIdPredicate());
-                bestAp.setUnionOfIndexes(currentAccessPath.getUnionOfIndexes());
-                bestAp.setUisRowIdJoinBackToBaseTableResultSet(currentAccessPath.getUisRowIdJoinBackToBaseTableResultSet());
+                bestAp.setUisFields(currentAccessPath);
                 optimizable.rememberJoinStrategyAsBest(bestAp);
             }
 
@@ -2449,10 +2452,7 @@ public class OptimizerImpl implements Optimizer{
             bestAp.setLockMode(currentAccessPath.getLockMode());
             bestAp.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
             bestAp.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
-            bestAp.setUisPredicate(currentAccessPath.getUisPredicate());
-            bestAp.setUisRowIdPredicate(currentAccessPath.getUisRowIdPredicate());
-            bestAp.setUnionOfIndexes(currentAccessPath.getUnionOfIndexes());
-            bestAp.setUisRowIdJoinBackToBaseTableResultSet(currentAccessPath.getUisRowIdJoinBackToBaseTableResultSet());
+            bestAp.setUisFields(currentAccessPath);
             optimizable.rememberJoinStrategyAsBest(bestAp);
             return;
         }
@@ -2469,10 +2469,7 @@ public class OptimizerImpl implements Optimizer{
             bestAp.setLockMode(currentAccessPath.getLockMode());
             bestAp.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
             bestAp.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
-            bestAp.setUisPredicate(currentAccessPath.getUisPredicate());
-            bestAp.setUisRowIdPredicate(currentAccessPath.getUisRowIdPredicate());
-            bestAp.setUnionOfIndexes(currentAccessPath.getUnionOfIndexes());
-            bestAp.setUisRowIdJoinBackToBaseTableResultSet(currentAccessPath.getUisRowIdJoinBackToBaseTableResultSet());
+            bestAp.setUisFields(currentAccessPath);
             optimizable.rememberJoinStrategyAsBest(bestAp);
 
             /*
@@ -2503,10 +2500,7 @@ public class OptimizerImpl implements Optimizer{
             bestAp.setLockMode(currentAccessPath.getLockMode());
             bestAp.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
             bestAp.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
-            bestAp.setUisPredicate(currentAccessPath.getUisPredicate());
-            bestAp.setUisRowIdPredicate(currentAccessPath.getUisRowIdPredicate());
-            bestAp.setUnionOfIndexes(currentAccessPath.getUnionOfIndexes());
-            bestAp.setUisRowIdJoinBackToBaseTableResultSet(currentAccessPath.getUisRowIdJoinBackToBaseTableResultSet());
+            bestAp.setUisFields(currentAccessPath);
             optimizable.rememberJoinStrategyAsBest(bestAp);
         }
 
@@ -2549,10 +2543,7 @@ public class OptimizerImpl implements Optimizer{
                 ap.setSpecialMaxScan(currentAccessPath.getSpecialMaxScan());
                 ap.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
                 ap.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
-                ap.setUisPredicate(currentAccessPath.getUisPredicate());
-                ap.setUisRowIdPredicate(currentAccessPath.getUisRowIdPredicate());
-                ap.setUnionOfIndexes(currentAccessPath.getUnionOfIndexes());
-                ap.setUisRowIdJoinBackToBaseTableResultSet(currentAccessPath.getUisRowIdJoinBackToBaseTableResultSet());
+                ap.setUisFields(currentAccessPath);
 
             /*
             ** It's a non-matching index scan either if there is no
@@ -2600,10 +2591,7 @@ public class OptimizerImpl implements Optimizer{
                             ap.setSpecialMaxScan(currentAccessPath.getSpecialMaxScan());
                             ap.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
                             ap.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
-                            ap.setUisPredicate(currentAccessPath.getUisPredicate());
-                            ap.setUisRowIdPredicate(currentAccessPath.getUisRowIdPredicate());
-                            ap.setUnionOfIndexes(currentAccessPath.getUnionOfIndexes());
-                            ap.setUisRowIdJoinBackToBaseTableResultSet(currentAccessPath.getUisRowIdJoinBackToBaseTableResultSet());
+                            ap.setUisFields(currentAccessPath);
 
                         /*
                         ** It's a non-matching index scan either if there is no

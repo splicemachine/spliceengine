@@ -214,7 +214,7 @@ public interface AccessPath {
 	 * to the outer base table for unioned index scan query plans, when
 	 * the UIS tree has index enabling predicates which are join predicates.
 	 */
-    void setUisRowIdPredicate(Predicate uisPredicate);
+    void setUisRowIdPredicate(Predicate uisRowIdPredicate);
 
 	/**
 	 * The RowId predicate used to join back to the outer base table
@@ -246,4 +246,15 @@ public interface AccessPath {
 	 * the unioned index scans plus the rowid join back to the base table.
 	 */
     void setUisRowIdJoinBackToBaseTableResultSet(ResultSetNode uisRowIdJoinBackToBaseTableResultSet);
+
+	/**
+	 * Set all the fields in the access path related to Unioned Index Scans (UIS)
+	 * from the corresponding fields in the "other" access path.
+	 * This fields currently include:
+	 *    uisPredicate
+	 *    uisRowIdPredicate
+	 *    unionOfIndexes
+	 *    uisRowIdJoinBackToBaseTableResultSet
+	 */
+    void setUisFields(AccessPath copyFromAccessPath);
 }
