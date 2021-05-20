@@ -181,6 +181,7 @@ public interface CompilerContext extends Context
     boolean DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED = true;
     boolean DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST = true;
     boolean DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION = false;
+    boolean DEFAULT_DISABLE_CONSTANT_FOLDING = false;
     SparkVersion DEFAULT_SPLICE_SPARK_VERSION = new SimpleSparkVersion("2.2.0");
     NativeSparkModeType DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE = NativeSparkModeType.SYSTEM;
     boolean DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS = true;
@@ -714,6 +715,8 @@ public interface CompilerContext extends Context
     void setDisablePredicateSimplification(boolean newValue);
 
     boolean getDisablePredicateSimplification();
+
+    boolean getDisableConstantFolding();
 
     void setSparkVersion(SparkVersion newValue);
 
