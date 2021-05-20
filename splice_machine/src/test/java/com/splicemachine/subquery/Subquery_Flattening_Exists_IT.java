@@ -205,6 +205,25 @@ public class Subquery_Flattening_Exists_IT {
     }
 
     @Test
+    public void correlated_inequalityTwoPredicatesReferencingSameOuterColumn() throws Exception {
+        /* no extra predicates */
+        assertUnorderedResult(conn(),
+        "select a1 from A where exists (select 1 from C join B on b1=c1 join D on c1=d1 where a1<=b1 and a2 <= b2)", ZERO_SUBQUERY_NODES, "" +
+           "A1 |\n" +
+              "----\n" +
+              " 0 |\n" +
+              " 1 |\n" +
+              "11 |\n" +
+              " 2 |\n" +
+              " 3 |\n" +
+              " 4 |\n" +
+              " 5 |\n" +
+              " 6 |\n" +
+              " 7 |"
+        );
+    }
+
+    @Test
     public void correlated_inequalityTwoSubqueryTables() throws Exception {
         /* no extra predicates */
         assertUnorderedResult(conn(),

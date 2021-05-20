@@ -119,9 +119,18 @@ public class GroupByUtil {
 
                         if (fromTable instanceof FromBaseTable) {
                             FromBaseTable fromBaseTable = (FromBaseTable)fromTable;
-                            FromBaseTable pushedFromBaseTable = fromBaseTable.shallowClone();
-                            pushedFromBaseTable = (FromBaseTable)subquerySelectNode.getFromList().bindExtraTableAndAddToFromClause(pushedFromBaseTable);
-                            pushedFromBaseTable.setLevel(subquerySelectNode.getNestingLevel());
+                            FromTable alreadyPushedTable =
+                                subquerySelectNode.getFromList().
+                                 getFromTableByName(fromBaseTable.getTableName().getTableName(),
+                                                    fromBaseTable.getTableName().getSchemaName(), true);
+
+                            if (alreadyPushedTable == null) {
+                                FromBaseTable pushedFromBaseTable = fromBaseTable.shallowClone();
+                                pushedFromBaseTable =
+                                    (FromBaseTable) subquerySelectNode.getFromList().
+                                                    bindExtraTableAndAddToFromClause(pushedFromBaseTable);
+                                pushedFromBaseTable.setLevel(subquerySelectNode.getNestingLevel());
+                            }
                             leftColRef = (ColumnReference) subquerySelectNode.bindExtraExpressions(leftColRef);
 
                             outerColumnReference = rightColRef;

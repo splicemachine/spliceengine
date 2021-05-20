@@ -390,6 +390,21 @@ public class Subquery_Flattening_NotExists_IT {
                 "NULL |");
     }
 
+    @Test
+    public void correlated_inequalityTwoPredicatesReferencingSameOuterColumn() throws Exception {
+        /* no extra predicates */
+        assertUnorderedResult(conn(),
+        "select a1 from A where not exists (select 1 from C join B on b1=c1 join D on c1=d1 where a1<=b1 and a2 <= b2)", ZERO_SUBQUERY_NODES, "" +
+           "A1  |\n" +
+              "------\n" +
+              " 12  |\n" +
+              " 12  |\n" +
+              " 13  |\n" +
+              " 13  |\n" +
+              "NULL |"
+        );
+    }
+
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
     // multiple NOT exists

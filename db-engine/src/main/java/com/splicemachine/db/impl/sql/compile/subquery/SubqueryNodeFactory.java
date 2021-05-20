@@ -107,7 +107,9 @@ public class SubqueryNodeFactory {
                                                 FromSubquery fromSubquery,
                                                 ValueNode joinClause,
                                                 FromTable outerFromTable) throws StandardException {
-        /* Currently we only attempt not-exist flattening if the outer table has one table. */
+        /* If outerFromTable is null, that means there is only one outer table.
+         * If outerFromTable is not null, it specifies the outer table we are flattening.
+         */
         FromTable outerTable = outerFromTable == null ? (FromTable)outerFromList.getNodes().get(0) : outerFromTable;
 
         HalfOuterJoinNode outerJoinNode = (HalfOuterJoinNode) nodeFactory.getNode(
