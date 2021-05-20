@@ -907,6 +907,12 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         }
     }
 
+    public static String getRTrimmedColumnName(String colName) {
+        if (colName == null)
+            return null;
+        return colName + "_rtrimmed";
+    }
+
     private Dataset<Row> getJoinedDataset(OperationContext context, Dataset<Row> leftDF, Dataset<Row> rightDF, boolean isCross, boolean wasRightOuter,
                                           Broadcast crossBType, boolean isBroadcast, SparkExpressionNode sparkJoinPredicate,
                                           JoinType joinType) throws StandardException {
@@ -917,6 +923,9 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         boolean varcharDB2CompatibilityMode = PropertyUtil.getCachedBoolean(
                 context.getActivation().getLanguageConnectionContext(),
                 GlobalDBProperties.SPLICE_DB2_VARCHAR_COMPATIBLE);
+
+        HashMap<String, Column> leftColMap = new HashMap<>();
+        HashMap<String, Column> rightColMap = new HashMap<>();
 
         List<String> extraColNamesLeft = new ArrayList<>();
         List<Column> extraColumnsLeft = new ArrayList<>();
@@ -929,32 +938,43 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             Tuple2<String, String>[] rightColTypes = rightDF.dtypes();
             String leftColNames[] = new String[rightJoinKeys.length];
             String rightColNames[] = new String[rightJoinKeys.length];
-            boolean leftAdded = false;
-            boolean rightAdded = false;
             // Add new rtrimmed join key columns for string types
             // if using DB2 compatibility mode.
             for (int i = 0; i < rightJoinKeys.length; i++) {
                 leftColNames[i] = ValueRow.getNamedColumn(leftJoinKeys[i]);
                 if (varcharDB2CompatibilityMode && leftColTypes[leftJoinKeys[i]]._2().equals("StringType")) {
-                    extraColumnsLeft.add(rtrim(col(leftColNames[i])));
-                    leftColNames[i] = leftColNames[i] + "_rtrimmed";
-                    extraColNamesLeft.add(leftColNames[i]);
-                    leftAdded = true;
+                    String leftTrimmedColName = getRTrimmedColumnName(leftColNames[i]);
+                    leftColMap.put(leftTrimmedColName, rtrim(col(leftColNames[i])));
+                    leftColNames[i] = leftTrimmedColName;
                 }
                 rightColNames[i] = ValueRow.getNamedColumn(rightJoinKeys[i]);
                 if (varcharDB2CompatibilityMode && rightColTypes[rightJoinKeys[i]]._2().equals("StringType")) {
-                    extraColumnsRight.add(rtrim(col(rightColNames[i])));
-                    rightColNames[i] = rightColNames[i] + "_rtrimmed";
-                    extraColNamesRight.add(rightColNames[i]);
-                    rightAdded = true;
+                    String rightTrimmedColName = getRTrimmedColumnName(rightColNames[i]);
+                    rightColMap.put(rightTrimmedColName, rtrim(col(rightColNames[i])));
+                    rightColNames[i] = rightTrimmedColName;
                 }
             }
-            if (leftAdded)
+            if (sparkJoinPredicate != null && varcharDB2CompatibilityMode)
+                sparkJoinPredicate.transformToRTrimmedColumnExpression(leftColTypes,
+                                                                       rightColTypes,
+                                                                       leftColMap,
+                                                                       rightColMap);
+            if (!leftColMap.isEmpty()) {
+                for (Map.Entry<String, Column> pair : leftColMap.entrySet()) {
+                    extraColNamesLeft.add(pair.getKey());
+                    extraColumnsLeft.add(pair.getValue());
+                }
                 leftDF = NativeSparkUtils.withColumns(extraColNamesLeft, extraColumnsLeft, leftDF);
-            if (rightAdded)
+            }
+            if (!rightColMap.isEmpty()) {
+                for (Map.Entry<String, Column> pair : rightColMap.entrySet()) {
+                    extraColNamesRight.add(pair.getKey());
+                    extraColumnsRight.add(pair.getValue());
+                }
                 rightDF = NativeSparkUtils.withColumns(extraColNamesRight, extraColumnsRight, rightDF);
+            }
 
-            if (!varcharDB2CompatibilityMode && sparkJoinPredicate != null) {
+            if (sparkJoinPredicate != null) {
                 filterExpr = sparkJoinPredicate.getColumnExpression(leftDF, rightDF, ParserUtils::getDataTypeFromString);
             } else {
                 for (int i = 0; i < rightJoinKeys.length; i++) {
@@ -965,6 +985,8 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                 }
             }
         }
+        if (!isCross && filterExpr == null && rightJoinKeys.length == 0)
+            filterExpr= lit(true);
 
         if (isBroadcast) {
             rightDF = broadcast(rightDF);
@@ -1252,6 +1274,10 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
          return this;
     }
 
+    @Override
+    public DataSet convertNativeSparkToSparkDataSet() throws StandardException {
+        return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, this.context));
+    }
 
     /**
      * This function takes the current source NativeSparkDataSet ("this")

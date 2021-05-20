@@ -94,4 +94,5 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
     ActivationHolder getActivationHolder();
     long getBadRecordThreshold();
     String getImportFileName();
+    default boolean isSpark() { return false; };
 }

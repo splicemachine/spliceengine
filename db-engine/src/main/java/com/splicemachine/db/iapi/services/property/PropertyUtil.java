@@ -94,8 +94,7 @@ public class PropertyUtil {
             Property.LOCKS_ESCALATION_THRESHOLD,
             Property.DATABASE_PROPERTIES_ONLY,
             Property.DEFAULT_CONNECTION_MODE_PROPERTY,
-            PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM,
-            Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED
+            PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM
     };
 
     /**

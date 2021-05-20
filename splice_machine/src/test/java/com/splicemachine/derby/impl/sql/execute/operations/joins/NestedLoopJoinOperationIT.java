@@ -541,7 +541,7 @@ public class NestedLoopJoinOperationIT extends SpliceUnitTest {
 
         rowContainsQuery(new int[]{3, 4, 5}, "explain " + sql, methodWatcher,
                 new String[]{"NestedLoopJoin"},
-                new String[]{"TableScan[T1", "preds=[(CTX.SQLCol1[1:1] = T1.A1[2:1])]"},
+                new String[]{"TableScan[T1", "keys=[(CTX.SQLCol1[1:1] = T1.A1[2:1])]"},
                 new String[]{"Values", "outputRows=1"});
 
         ResultSet rs = methodWatcher.executeQuery(sql);
