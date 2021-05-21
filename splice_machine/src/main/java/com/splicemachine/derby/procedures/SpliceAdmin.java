@@ -22,7 +22,6 @@ import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.iapi.db.PropertyInfo;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
@@ -75,6 +74,7 @@ import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.DbEngineUtils;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.logging.Logging;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
@@ -97,8 +97,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.*;
 
@@ -1118,6 +1116,10 @@ public class SpliceAdmin extends BaseAdminProcedures {
             DataDictionary dd = lcc.getDataDictionary();
             dd.startWriting(lcc);
             String previous = PropertyUtil.getCachedDatabaseProperty(lcc, key);
+            PropertyInfo.setDatabaseProperty(key, value);
+
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createSetDatabaseProperty(tc.getActiveStateTxn().getTxnId(), key);
+            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 
             ResultHelper resultHelper = new ResultHelper();
 
@@ -1130,32 +1132,23 @@ public class SpliceAdmin extends BaseAdminProcedures {
             resultHelper.newRow();
             c1.set("PREVIOUS VALUE");  c2.set(previous);
 
-            Optional<GlobalDBProperties.PropertyType> p = PropertyHelper.getAllProperties()
-                    .filter( prop -> prop.getName().equals(key)).findFirst();
-            if(p.isPresent()) {
-                String str = p.get().validate(value);
-                if (!str.isEmpty())
-                    throw new SQLException(str);
-                resultHelper.newRow();
-                c1.set("INFO");
-                c2.set(p.get().getInformation());
-            }
-            else
-            {
+            if( !PropertyHelper.getAllProperties().contains(key) ) {
                 resultHelper.newRow();
                 resultHelper.newRow();
                 c1.set("!!! WARNING !!!");
                 c2.set("Database Property '" + key + "' seems to be unknown!");
-            }
-            PropertyInfo.setDatabaseProperty(key, value);
 
-            DDLMessage.DDLChange ddlChange = ProtoUtil.createSetDatabaseProperty(tc.getActiveStateTxn().getTxnId(), key);
-            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+                SpliceLogUtils.warn(LOG, "Database Property '" + key + "' was set, but it seems to be unknown");
+            }
+            else {
+                // reserved to add information about properties later
+                resultHelper.newRow();
+                c1.set("INFO");
+                c2.set("");
+            }
             resultSet[0] = resultHelper.getResultSet();
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
-        } catch (SQLException e) {
-            throw e;
         } catch (Exception e) {
             throw new SQLException(e);
         }
@@ -1168,26 +1161,19 @@ public class SpliceAdmin extends BaseAdminProcedures {
         ResultHelper resultHelper = new ResultHelper();
         ResultHelper.VarcharColumn colProperty = resultHelper.addVarchar("PROPERTY_NAME", -1);
         ResultHelper.VarcharColumn colValue    = resultHelper.addVarchar("VALUE", -1);
-        ResultHelper.VarcharColumn colInfo     = resultHelper.addVarchar("INFO", 100);
+        ResultHelper.VarcharColumn colInfo     = resultHelper.addVarchar("INFO", 50);
         if( filter != null ) {
             filter = DbEngineUtils.getJavaRegexpFilterFromAsteriskFilter(filter);
         }
 
-        Stream<GlobalDBProperties.PropertyType> propertyStream = PropertyHelper.getAllProperties();
-        if( filter != null && filter.length() > 0) {
-            String finalFilter = filter;
-            propertyStream = propertyStream.filter(p -> p.getName().matches(finalFilter));
-        }
-
-        List<GlobalDBProperties.PropertyType> propertiesList = propertyStream.collect(Collectors.toList());
-        propertiesList.sort(Comparator.comparing(GlobalDBProperties.PropertyType::getName));
-        for(GlobalDBProperties.PropertyType property : propertiesList) {
-            String value = PropertyUtil.getCachedDatabaseProperty(lcc, property.getName());
+        for(String property : PropertyHelper.getAllProperties()) {
+            if( filter != null && filter.length() > 0 && !property.matches(filter) ) continue;
+            String value = PropertyUtil.getCachedDatabaseProperty(lcc, property);
             if( showNonNullOnly && value == null ) continue;
             resultHelper.newRow();
-            colProperty.set(property.getName());
+            colProperty.set(property);
             colValue.set(value);
-            colInfo.set(property.getInformation());
+            colInfo.set(""); // reserved to add information about properties later
         }
         resultSet[0] = resultHelper.getResultSet();
     }

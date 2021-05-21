@@ -578,23 +578,23 @@ public class SpliceAdminIT extends SpliceUnitTest {
             try (ResultSet rs = methodWatcher.executeQuery(String.format(timestampFormat, "'YYYY'"))) {
                 String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
                 Assert.assertEquals(
-                        "name      |                         value                          |\n" +
-                                "-------------------------------------------------------------------------\n" +
-                                " PROPERTY_NAME |            splice.function.timestampFormat             |\n" +
-                                "   NEW VALUE   |                         YYYY                           |\n" +
-                                "PREVIOUS VALUE |                         NULL                           |\n" +
-                                "     INFO      |format for timestamps when cast to string on the server |", actual);
+                        "name      |             value              |\n" +
+                                "-------------------------------------------------\n" +
+                                " PROPERTY_NAME |splice.function.timestampFormat |\n" +
+                                "   NEW VALUE   |             YYYY               |\n" +
+                                "PREVIOUS VALUE |             NULL               |\n" +
+                                "     INFO      |                                |", actual);
             }
 
             try (ResultSet rs = methodWatcher.executeQuery(String.format(timestampFormat, "'yyyy-MM-dd HH:mm:ss'"))) {
                 String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
                 Assert.assertEquals(
-                        "name      |                         value                          |\n" +
-                                "-------------------------------------------------------------------------\n" +
-                                " PROPERTY_NAME |            splice.function.timestampFormat             |\n" +
-                                "   NEW VALUE   |                  yyyy-MM-dd HH:mm:ss                   |\n" +
-                                "PREVIOUS VALUE |                         YYYY                           |\n" +
-                                "     INFO      |format for timestamps when cast to string on the server |", actual);
+                        "name      |             value              |\n" +
+                                "-------------------------------------------------\n" +
+                                " PROPERTY_NAME |splice.function.timestampFormat |\n" +
+                                "   NEW VALUE   |      yyyy-MM-dd HH:mm:ss       |\n" +
+                                "PREVIOUS VALUE |             YYYY               |\n" +
+                                "     INFO      |                                |", actual);
             }
         } finally {
             methodWatcher.execute(String.format(timestampFormat, "NULL"));
@@ -603,24 +603,14 @@ public class SpliceAdminIT extends SpliceUnitTest {
 
     @Test
     public void testGetGlobalDatabaseProperties() throws Exception {
-        methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.currentTimestampPrecision', NULL )");
         methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.timestampFormat', NULL )");
 
         try (ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_GLOBAL_DATABASE_PROPERTIES('splice*timestamp*', false)") ) {
             String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
             Assert.assertEquals(
-                            "PROPERTY_NAME          | VALUE |                         INFO                           |\n" +
-                                    "--------------------------------------------------------------------------------------------------\n" +
-                                    "splice.function.timestampFormat | NULL  |format for timestamps when cast to string on the server |", actual );
-        }
-
-        try (ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_GLOBAL_DATABASE_PROPERTIES('*imestamp*', false)") ) {
-            String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-            Assert.assertEquals(
-                    "PROPERTY_NAME               | VALUE |                         INFO                           |\n" +
-                            "------------------------------------------------------------------------------------------------------------\n" +
-                            "splice.function.currentTimestampPrecision | NULL  |   Fractional seconds precision of current_timestamp    |\n" +
-                            "     splice.function.timestampFormat      | NULL  |format for timestamps when cast to string on the server |", actual );
+                            "PROPERTY_NAME          | VALUE |INFO |\n" +
+                            "-----------------------------------------------\n" +
+                            "splice.function.timestampFormat | NULL  |     |", actual );
         }
 
         try (ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_GLOBAL_DATABASE_PROPERTIES('splice*timestamp*', true)") ) {

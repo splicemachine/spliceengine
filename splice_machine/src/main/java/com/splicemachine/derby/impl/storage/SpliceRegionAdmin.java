@@ -20,7 +20,6 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
@@ -1071,10 +1070,10 @@ public class SpliceRegionAdmin {
             valueSizeHints.add(dvd.estimateMemoryUsage());
         }
 
-        boolean quotedEmptyIsNull = !PropertyUtil.getCachedBoolean(
-                lcc, GlobalDBProperties.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
-        boolean preserveLineEndings = PropertyUtil.getCachedBoolean(
-                lcc, GlobalDBProperties.PRESERVE_LINE_ENDINGS);
+        boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
+                lcc, Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
+        boolean preserveLineEndings = PropertyUtil.getCachedDatabaseBoolean(
+                lcc, Property.PRESERVE_LINE_ENDINGS);
 
         CsvParserConfig config = new CsvParserConfig(preference)
                 .oneLineRecord(false).quotedEmptyIsNull(quotedEmptyIsNull).preserveLineEndings(preserveLineEndings);

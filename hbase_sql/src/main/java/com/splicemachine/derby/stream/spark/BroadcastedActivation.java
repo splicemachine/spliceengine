@@ -14,7 +14,8 @@
 
 package com.splicemachine.derby.stream.spark;
 
-import com.splicemachine.db.iapi.reference.GlobalDBProperties;
+import com.splicemachine.client.SpliceClient;
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -52,9 +53,9 @@ public class BroadcastedActivation implements Externalizable {
         this.bcast = SpliceSpark.getContext().broadcast(serializedValue);
         try {
             this.DB2VarcharCompatibilityMode =
-                PropertyUtil.getCachedBoolean(
+                PropertyUtil.getCachedDatabaseBoolean(
                               activationHolder.getLCC(),
-                               GlobalDBProperties.SPLICE_DB2_VARCHAR_COMPATIBLE);
+                               Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
         }
         catch (Exception e) {
 

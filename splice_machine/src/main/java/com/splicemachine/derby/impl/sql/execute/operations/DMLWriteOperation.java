@@ -18,7 +18,7 @@ import com.splicemachine.db.catalog.types.UserDefinedTypeIdImpl;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.iapi.reference.GlobalDBProperties;
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
@@ -506,7 +506,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         if (getModifiedRows() == 0) {
             LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
             String spliceDB2ErrorCompatible =
-                    PropertyUtil.getCached(lcc, GlobalDBProperties.SPLICE_DB2_ERROR_COMPATIBLE);
+                    PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_DB2_ERROR_COMPATIBLE);
             if (spliceDB2ErrorCompatible != null && spliceDB2ErrorCompatible.compareToIgnoreCase("TRUE") == 0) {
                 SQLWarning warning = StandardException.newDB2CompatibleWarning(SQLState.LANG_NO_ROW_FOUND, ExceptionSeverity.DB2_NO_ROW_FOUND_SEVERITY);
                 activation.addWarning(warning);

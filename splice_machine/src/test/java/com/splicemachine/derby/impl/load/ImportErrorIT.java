@@ -86,11 +86,6 @@ public class ImportErrorIT extends SpliceUnitTest {
         BADDIR = SpliceUnitTest.createBadLogDirectory(schema.schemaName);
     }
 
-    @After
-    public void after() throws Exception {
-        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('derby.database.convertOutOfRangeTimeStamps', null)");
-    }
-
     @Test
     public void testNoSuchTable() throws Exception {
         runImportTest("NO_SUCH_TABLE","null_col.csv",BADDIR.getCanonicalPath(),new ErrorCheck() {

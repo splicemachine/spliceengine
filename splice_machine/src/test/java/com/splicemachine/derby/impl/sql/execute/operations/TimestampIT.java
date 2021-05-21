@@ -781,9 +781,7 @@ public class TimestampIT extends SpliceUnitTest {
         try (Statement s = conn.createStatement()) {
             s.execute("CALL SYSCS_UTIL.SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE()");
             s.execute("CALL SYSCS_UTIL.INVALIDATE_GLOBAL_DICTIONARY_CACHE()");
-            s.execute("call syscs_util.syscs_set_global_database_property('derby.database.convertOutOfRangeTimeStamps', null)");
-            s.execute("call syscs_util.syscs_set_global_database_property('splice.function.timestampFormat', null)");
-            s.execute("call syscs_util.syscs_set_global_database_property('splice.function.currentTimestampPrecision', null)");
+            s.execute("call syscs_util.syscs_set_global_database_property('derby.database.convertOutOfRangeTimeStamps', 'false')");
 
             s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t1"));
             s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t11"));
@@ -938,26 +936,22 @@ public class TimestampIT extends SpliceUnitTest {
     @Test
     public void testCurrentTimestampPrecision() throws Exception {
 
-        try {
-            // we might get very unlucky when timestamps end in 0s, e.g.
-            // 2020-12-06 21:50:13.123456000 would have length of 2020-12-06 21:50:13.123456, even if precision is set to 9
-            // to avoid sporadics, we try this 100 times
-            for (int i = 0; i < 100; i++) {
-                boolean bOK;
-                methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.currentTimestampPrecision', '1' )");
-                bOK = "2020-12-06 21:50:13.1".length()
-                        == methodWatcher.executeGetString("values current timestamp", 1).length();
-                methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.currentTimestampPrecision', '9' )");
-                bOK = bOK && "2020-12-06 21:50:13.123456789".length()
-                        == methodWatcher.executeGetString("values current timestamp", 1).length();
+        // we might get very unlucky when timestamps end in 0s, e.g.
+        // 2020-12-06 21:50:13.123456000 would have length of 2020-12-06 21:50:13.123456, even if precision is set to 9
+        // to avoid sporadics, we try this 100 times
+        for(int i=0; i<100; i++)
+        {
+            boolean bOK;
+            methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.currentTimestampPrecision', '1' )");
+            bOK = "2020-12-06 21:50:13.1".length()
+                    == methodWatcher.executeGetString( "values current timestamp", 1 ).length();
+            methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.currentTimestampPrecision', '9' )");
+            bOK = bOK && "2020-12-06 21:50:13.123456789".length()
+                    == methodWatcher.executeGetString( "values current timestamp", 1 ).length();
 
-                if (bOK) return;
-            }
-            Assert.fail("current timestamp precision didn't work");
+            if(bOK) return;
         }
-        finally {
-            methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.currentTimestampPrecision', null )");
-        }
+        Assert.fail("current timestamp precision didn't work");
     }
 
     private static void verifyCurrentTimezoneInvalid(String query) throws Exception {
