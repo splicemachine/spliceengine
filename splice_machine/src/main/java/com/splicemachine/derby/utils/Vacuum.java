@@ -67,6 +67,23 @@ public class Vacuum{
         }
     }
 
+    private void addNewFlushFuture(List<Future> flushFutures,
+                                   long tableConglom,
+                                   String tableName,
+                                   PartitionFactory partitionFactory) {
+        flushFutures.add(SIDriver.driver().getExecutorService().submit(new Runnable() {
+            @Override
+            public void run() {
+                LOG.info("Flushing possibly-active dropped table: " + tableName);
+                try(Partition partition=partitionFactory.getTable(Long.toString(tableConglom))){
+                    partition.flush();
+                }catch(IOException e){
+                    LOG.error("Vacuum Unexpected exception", e);
+                }
+            }
+        }));
+    }
+
     public void vacuumDatabase(long oldestActiveTransaction) throws SQLException{
         //get all the conglomerates from sys.sysconglomerates
         LongHashSet activeConglomerates = new LongHashSet();
@@ -84,6 +101,7 @@ public class Vacuum{
         Set<Long> allTableConglomerates = new HashSet<>();
         Queue<Long> toDelete = new ConcurrentLinkedQueue<>();
         SIDriver driver = SIDriver.driver();
+        PartitionFactory partitionFactory = driver.getTableFactory();
         try (Partition dropped = driver.getTableFactory().getTable(HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME)) {
             try (DataScanner scanner = dropped.openScanner(driver.baseOperationFactory().newScan())) {
                 while (true) {
@@ -106,6 +124,7 @@ public class Vacuum{
                 LOG.trace("Found " + Iterables.size(hTableDescriptors) + " HBase tables.");
             }
             List<Future> deletionFutures = new ArrayList<>();
+            List<Future> flushFutures = new ArrayList<>();
 
             for(TableDescriptor table:hTableDescriptors){
                 boolean restoreMode = SIDriver.driver().lifecycleManager().isRestoreMode();
@@ -129,6 +148,7 @@ public class Vacuum{
                     allTableConglomerates.add(tableConglom);
                     boolean requiresDroppedId = false;
                     boolean ignoreDroppedId = false;
+                    boolean hasDroppedId = table.getDroppedTransactionId() != null || droppedConglomerates.containsKey(tableConglom);
                     if (table.getTransactionId() != null) {
                         TxnView txn = SIDriver.driver().getTxnSupplier().getTransaction(Long.parseLong(table.getTransactionId()));
                         if (txn.getEffectiveBeginTimestamp() >= oldestActiveTransaction) {
@@ -138,6 +158,12 @@ public class Vacuum{
                             if (LOG.isInfoEnabled()) {
                                 LOG.info("Ignoring recently created table: " + table.getTableName() + " by transaction " + txn.getTxnId());
                             }
+                            // Can't tell if the active transactions are using this table.
+                            // Since we can't drop the conglomerate, let us at least flush
+                            // it from memstore to free up memory.
+                            if (hasDroppedId)
+                                addNewFlushFuture(flushFutures, tableConglom,
+                                                  table.getTableName(), partitionFactory);
                             continue;
                         }
                         if (txn.getEffectiveState().equals(Txn.State.ROLLEDBACK)) {
@@ -148,7 +174,6 @@ public class Vacuum{
                             requiresDroppedId = true;
                         }
                     }
-                    boolean hasDroppedId = table.getDroppedTransactionId() != null || droppedConglomerates.containsKey(tableConglom);
                     if (!ignoreDroppedId && hasDroppedId) {
                         long txnId;
                         // The first case deals with conglomerates dropped before DB-7501 got merged
@@ -165,6 +190,12 @@ public class Vacuum{
                             if (LOG.isInfoEnabled()) {
                                 LOG.info("Ignoring recently dropped table: " + table.getTableName() + " by transaction " + txn.getTxnId());
                             }
+                            // Can't tell if the active transactions are using this table.
+                            // Since we can't drop the conglomerate, let us at least flush
+                            // it from memstore to free up memory.
+                            if (hasDroppedId)
+                                addNewFlushFuture(flushFutures, tableConglom,
+                                                  table.getTableName(), partitionFactory);
                             continue;
                         }
                     } else if (requiresDroppedId) {
@@ -201,6 +232,10 @@ public class Vacuum{
             }
 
             for (Future f : deletionFutures) {
+                f.get();
+            }
+
+            for (Future f : flushFutures) {
                 f.get();
             }
 
