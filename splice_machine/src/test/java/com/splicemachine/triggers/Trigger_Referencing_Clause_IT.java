@@ -967,7 +967,7 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
         }
     }
 
-    // Cause trigger rows to go over 10000000, causing a
+    // Cause trigger rows to go over 1000000, causing a
     // rollback and switch to spark execution.
     @Test
     public void testNestedTriggersSwitchToSpark() throws Exception {
@@ -1014,10 +1014,7 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
             s.execute("insert into t1 select * from t1 --splice-properties useSpark=true\n");
             s.execute("insert into t1 select * from t1 --splice-properties useSpark=true\n");
             s.execute("insert into t1 select * from t1 --splice-properties useSpark=true\n");
-            s.execute("insert into t1 select * from t1 --splice-properties useSpark=true\n");  // 327680 rows
             s.execute("insert into t1 select * from t1 --splice-properties useSpark=true\n");
-            s.execute("insert into t1 select * from t1 --splice-properties useSpark=true\n");
-            s.execute("insert into t1 select * from t1 --splice-properties useSpark=true\n");  // 2621440 rows
 
 
             s.execute("CREATE TRIGGER mytrig\n" +
@@ -1051,9 +1048,9 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
             s.execute("insert into t2 select * from t1");
 
             String query = "select count(*) from t2";
-            String expected = "1    |\n" +
-                              "---------\n" +
-                              "2621440 |";
+            String expected = "1   |\n" +
+                              "--------\n" +
+                              "327680 |";
             testQuery(query, expected, s);
 
             query = "select count(*) from t3";
@@ -1061,8 +1058,8 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
 
             query = "select count(*) from t4";
             expected = "1    |\n" +
-                       "----------\n" +
-                       "15728640 |";
+            "---------\n" +
+            "1966080 |";
             testQuery(query, expected, s);
 
             query = "select count(*) from t5";
