@@ -3185,13 +3185,8 @@ deleteBody() throws StandardException :
     <FROM> javaToSQLNode = newInvocation()
     [ whereToken = <WHERE> whereClause = whereClause(whereToken) ]
     {
-        fromTable =  (FromTable) nodeFactory.getNode(
-                                    C_NodeTypes.FROM_VTI,
-                                    javaToSQLNode.getJavaValueNode(),
-                                    (String) null,
-                                    null,
-                                    (Properties) null,
-                                    getContextManager());
+        fromTable =  new FromVTI((MethodCallNode)javaToSQLNode.getJavaValueNode(), (String) null,
+                                    null, (Properties) null, getContextManager());
 
         return getDeleteNode(fromTable, tableName, whereClause, null, parameterList);
     }
@@ -3384,13 +3379,8 @@ targetTable() throws StandardException :
     LOOKAHEAD( { newInvocationFollows(1) } )
     javaToSQLNode = newInvocation()
     {
-        return (QueryTreeNode) nodeFactory.getNode(
-                                C_NodeTypes.FROM_VTI,
-                                javaToSQLNode.getJavaValueNode(),
-                                correlationName,
-                                null,
-                                (Properties) null,
-                                getContextManager());
+        return new FromVTI((MethodCallNode)javaToSQLNode.getJavaValueNode(), correlationName,
+                                null, (Properties) null, getContextManager());
     }
 |
     tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
@@ -3457,13 +3447,8 @@ updateBody() throws StandardException :
         <SET> columnList = setClauseList()
     [ whereToken = <WHERE> whereClause = whereClause(whereToken) ]
     {
-        fromTable =  (FromTable) nodeFactory.getNode(
-                                    C_NodeTypes.FROM_VTI,
-                                    javaToSQLNode.getJavaValueNode(),
-                                    (String) null,
-                                    null,
-                                    (Properties) null,
-                                    getContextManager());
+        fromTable =  new FromVTI((MethodCallNode)javaToSQLNode.getJavaValueNode(), (String) null,
+                                    null, (Properties) null, getContextManager());
 
         return getUpdateNode(fromTable, tableName, columnList, whereClause);
     }
@@ -10192,9 +10177,7 @@ FromTable tableFactor() throws StandardException :
         <RIGHT_PAREN> ]
         [ optionalTableClauses = optionalTableProperties() ]
     {
-        fromTable = (FromTable) nodeFactory.getNode(
-                                C_NodeTypes.FROM_VTI,
-                                javaToSQLNode.getJavaValueNode(),
+        fromTable = new FromVTI((MethodCallNode)javaToSQLNode.getJavaValueNode(),
                                 correlationName,
                                 derivedRCL,
                                 ((optionalTableClauses != null) ?
@@ -10288,19 +10271,11 @@ FromTable tableFactor() throws StandardException :
                format("CREATE TRIGGER %s AFTER %s ON %s REFERENCING %s_TABLE AS %s FOR EACH STATEMENT VALUES 1",
                       triggerName, stmtKind, targetTableName, newOrOld, correlationName);
 
-        FromVTI fromVTI =
-          (FromVTI) nodeFactory.getNode(
-                        C_NodeTypes.FROM_VTI,
-                        javaToSQLNode.getJavaValueNode(),
-                        correlationName,
-                        derivedRCL,
-                        ((optionalTableClauses != null) ?
+        FromVTI fromVTI = new FromVTI((MethodCallNode)javaToSQLNode.getJavaValueNode(), correlationName,
+                        derivedRCL, ((optionalTableClauses != null) ?
                             (Properties) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] :
                             (Properties) null),
-                        typeDescriptor,
-                        parameterList,
-                        new Boolean(true),
-                        getContextManager());
+                        typeDescriptor, parameterList, Boolean.TRUE, getContextManager());
         fromVTI.setFromTableDMLStmt(dmlStatement);
         fromVTI.setTempTriggerDefinition(tempTriggerDefinition);
         fromVTI.setTempTriggerSQLText(tempTriggerSQLText);
