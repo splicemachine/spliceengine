@@ -193,9 +193,10 @@ public class SubqueryNode extends ValueNode{
 
     private boolean hintNotFlatten=false;
 
+    public SubqueryNode() {}
+
     /**
-     * Initializer.
-     *
+     * Constructor
      * @param resultSet          The ResultSetNode for the subquery
      * @param subqueryType       The type of the subquery
      * @param leftOperand        The left operand, if any, of the subquery
@@ -204,17 +205,28 @@ public class SubqueryNode extends ValueNode{
      * @param fetchFirst         FETCH FIRST n ROWS ONLY
      * @param hasJDBClimitClause True if the offset/fetchFirst clauses come from JDBC limit/offset escape syntax
      */
+    public SubqueryNode(ResultSetNode resultSet,
+            Integer subqueryType,
+            ValueNode leftOperand,
+            OrderByList orderCols,
+            ValueNode offset,
+            ValueNode fetchFirst,
+            Boolean hasJDBClimitClause, ContextManager cm) throws StandardException
+    {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.SUBQUERY_NODE);
+        init(resultSet, subqueryType, leftOperand, orderCols, offset, fetchFirst, hasJDBClimitClause);
+    }
 
-    public SubqueryNode(
+    public void init(
             Object resultSet,
             Object subqueryType,
             Object leftOperand,
             Object orderCols,
             Object offset,
             Object fetchFirst,
-            Object hasJDBClimitClause, ContextManager cm){
-        setContextManager(cm);
-        setNodeType(C_NodeTypes.SUBQUERY_NODE);
+            Object hasJDBClimitClause)
+    {
         this.resultSet=(ResultSetNode)resultSet;
         this.subqueryType= (Integer) subqueryType;
         this.orderByList=(OrderByList)orderCols;
