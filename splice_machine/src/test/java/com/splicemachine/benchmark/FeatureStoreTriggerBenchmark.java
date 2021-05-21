@@ -48,15 +48,14 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
     private static Statement testStatement;
 
     static Connection makeConnection() throws SQLException {
-        Connection connection = SpliceNetConnection.getDefaultConnection();
-        connection.setSchema(schema);
-        connection.setAutoCommit(true);
-        return connection;
+        return makeConnection(null);
     }
 
-    static Connection makeConnection(boolean useOLAP) throws SQLException {
+    static Connection makeConnection(Boolean useOLAP) throws SQLException {
         SpliceNetConnection.ConnectionBuilder builder = SpliceNetConnection.newBuilder();
-        builder.useOLAP(useOLAP);
+        if (useOLAP != null) {
+            builder.useOLAP(useOLAP);
+        }
         Connection connection = builder.build();
         connection.setSchema(schema);
         connection.setAutoCommit(true);
@@ -121,7 +120,6 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
                 "LOGICAL SPLITKEYS LOCATION '%s'", fileName)
         );
 
-/*
         fileName = "/tmp/split_FeatureStaging";
         testStatement.execute("DROP TABLE IF EXISTS SPLITKEYS");
         testStatement.execute("CREATE TABLE SPLITKEYS (pk1 int, pk2 int)");
@@ -131,7 +129,6 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
         }
         testStatement.execute(String.format("EXPORT('%s', false, null, null, null, null) SELECT * FROM SPLITKEYS", fileName));
 
- */
         testStatement.execute(
             String.format("CREATE TABLE FeatureStaging(" +
                 "entity_key INTEGER," +
@@ -139,9 +136,8 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
                 "ts TIMESTAMP," +
                 "feature1 DOUBLE," +
                 "feature2 DOUBLE," +
-                "PRIMARY KEY (entity_key, update_order))"
-//                + "LOGICAL SPLITKEYS LOCATION '%s'"
-                , fileName)
+                "PRIMARY KEY (entity_key, update_order))" +
+                "LOGICAL SPLITKEYS LOCATION '%s'", fileName)
         );
     }
 
@@ -283,7 +279,7 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
 
     static final AtomicInteger lastIdx = new AtomicInteger(0);
 
-    public void insertAndUpdateConcurrently(long ts0, long ts1) {
+    private void insertAndUpdateConcurrently(long ts0, long ts1) {
         int idx = lastIdx.getAndIncrement();
         PriorityQueue<Row> pq = new PriorityQueue<>((r1, r2) -> Long.signum(r1.delivery - r2.delivery));
         Random rnd = ThreadLocalRandom.current();
@@ -388,7 +384,7 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
         testStatement.execute("DROP TRIGGER FeatureTableHistory_INSERT");
     }
 
-    public void insertAndUpdateFromBatches2() {
+    private void insertAndUpdateFromBatches2() {
         try (Connection conn = makeConnection()) {
             try (PreparedStatement statement = conn.prepareStatement(
                     "INSERT INTO FeatureTableHistory " +
@@ -409,8 +405,10 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
         }
     }
 
-    public void insertAndUpdateConcurrently2(long ts0, long ts1) {
-        int idx = lastIdx.getAndIncrement();
+    static final AtomicInteger lastIdx2 = new AtomicInteger(0);
+
+    private void insertAndUpdateConcurrently2(long ts0, long ts1) {
+        int idx = lastIdx2.getAndIncrement();
         PriorityQueue<Row> pq = new PriorityQueue<>((r1, r2) -> Long.signum(r1.delivery - r2.delivery));
         Random rnd = ThreadLocalRandom.current();
         int minEntity = idx * entities / connections;
