@@ -35,12 +35,14 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 
 /**
  * This class represents a MERGE INTO statement.
  */
-public class MergeNode extends DDLStatementNode
+public class MergeNode extends DMLStatementNode
 {
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -84,63 +86,132 @@ public class MergeNode extends DDLStatementNode
                      QueryTreeNodeVector<MatchingClauseNode> matchingClauses, ContextManager cm)
             throws StandardException
     {
-        super(cm);
+        setContextManager(cm);
 
-        if ( !( targetTable instanceof FromBaseTable) ) { notBaseTable(); }
-        else { _targetTable = (FromBaseTable) targetTable; }
+//        if ( !( targetTable instanceof FromBaseTable) ) { notBaseTable(); }
+//        else {
+            _targetTable = (FromBaseTable) targetTable;
+//        }
 
         _sourceTable = sourceTable;
         _searchCondition = searchCondition;
         _matchingClauses = matchingClauses;
+
+        makeJoin();
     }
 
-    /** Throw a "not base table" exception */
-    private void    notBaseTable()  throws StandardException
+    /**
+     * <p>
+     * Construct the left outer join which will drive the execution.
+     * </p>
+     */
+    private void    makeJoin() throws StandardException
     {
-        throw new RuntimeException("not FromBaseTable table");
+        resultSet = new HalfOuterJoinNode
+                (
+                        _sourceTable,
+                        _targetTable,
+                        _searchCondition,
+                        null,
+                        false,
+                        null,
+                        getContextManager()
+                );
     }
 
-    // todo: this is dummy code
+    ////////////////////////////////////////////////////////////////////////////////////
+    //
+    // bind() BEHAVIOR
+    //
+    ///////////////////////////////////////////////////////////////////////////////////
+
     @Override
-    public ConstantAction makeConstantAction() throws StandardException
-    {
-        return getGenericConstantActionFactory().
-                getSetSchemaConstantAction("SPLICE", StatementType.SET_SCHEMA_USER);
+    public String statementToString() {
+        return "MERGE";
     }
 
     @Override
-    public void acceptChildren(Visitor v)
-            throws StandardException
+    public void bindStatement() throws StandardException
     {
-        if ( _leftJoinCursor != null )
+        DataDictionary dd = getDataDictionary();
+
+        //
+        // Bind the left join. This binds _targetTable and _sourceTable.
+        //
+        bind( dd );
+
+        bindSearchCondition();
+
+        if ( !targetIsBaseTable() )
         {
-            _leftJoinCursor.acceptChildren( v );
+            throw new RuntimeException("SQLState.LANG_TARGET_NOT_BASE_TABLE");
         }
-        else
-        {
-            super.acceptChildren( v );
 
-            _targetTable.accept( v );
-            _sourceTable.accept( v );
-            _searchCondition.accept( v );
+        if ( !sourceIsBase_View_or_VTI() )
+        {
+            throw new RuntimeException("SQLState.LANG_SOURCE_NOT_BASE_VIEW_OR_VTI");
+        }
+
+        // source and target may not have the same correlation names
+        if ( getExposedName( _targetTable ).equals( getExposedName( _sourceTable ) ) )
+        {
+            throw new RuntimeException("SQLState.LANG_SAME_EXPOSED_NAME");
         }
 
         for ( MatchingClauseNode mcn : _matchingClauses )
         {
-            mcn.accept( v );
+            mcn.bind( (JoinNode) resultSet, _targetTable );
         }
+
+        throw new RuntimeException("SQLState.NOT_IMPLEMENTED MERGE");
     }
 
-    @Override
-    public String toString()
+    /** Get the exposed name of a FromTable */
+    private String  getExposedName( FromTable ft ) throws StandardException
     {
-        return "MERGE INTO toString";
-    } // end of toString
+        return ft.getTableName().getTableName();
+    }
 
-    @Override
-    public String statementToString()
+    /**  Bind the search condition, the ON clause of the left join */
+    private void    bindSearchCondition()   throws StandardException
     {
-        return "MERGE INTO";
+        FromList    fromList = new FromList
+                ( getNodeFactory().doJoinOrderOptimization(), getContextManager() );
+
+        resultSet.bindResultColumns( fromList );
+    }
+
+    /** Return true if the target table is a base table */
+    private boolean targetIsBaseTable() throws StandardException
+    {
+        if ( !( _targetTable instanceof FromBaseTable) ) { return false; }
+
+        FromBaseTable   fbt = (FromBaseTable) _targetTable;
+        TableDescriptor desc = fbt.getTableDescriptor();
+        if ( desc == null ) { return false; }
+
+        return ( desc.getTableType() == TableDescriptor.BASE_TABLE_TYPE );
+    }
+
+    /** Return true if the source table is a base table, view, or table function */
+    private boolean sourceIsBase_View_or_VTI() throws StandardException
+    {
+        if ( _sourceTable instanceof FromVTI ) { return true; }
+        if ( !( _sourceTable instanceof FromBaseTable) ) { return false; }
+
+        FromBaseTable   fbt = (FromBaseTable) _sourceTable;
+        TableDescriptor desc = fbt.getTableDescriptor();
+        if ( desc == null ) { return false; }
+
+        switch( desc.getTableType() )
+        {
+            case TableDescriptor.BASE_TABLE_TYPE:
+            case TableDescriptor.VIEW_TYPE:
+                return true;
+
+            default:
+                return false;
+        }
     }
 
 }
