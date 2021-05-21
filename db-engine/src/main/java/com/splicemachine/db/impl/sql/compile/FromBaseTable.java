@@ -1083,18 +1083,8 @@ public class FromBaseTable extends FromTable {
                             null,
                             getContextManager());
         DMLStatementNode
-        stmt = (CursorNode) nodeFactory.getNode(
-                C_NodeTypes.CURSOR_NODE,
-                "SELECT",
-                selectNode,
-                null,
-                null,
-                null,
-                null,
-                Boolean.valueOf( false ),
-                ReuseFactory.getInteger(CursorNode.UNSPECIFIED),
-                null,
-                getContextManager());
+        stmt = new CursorNode("SELECT", selectNode, null, null, null, null,
+                Boolean.FALSE, ReuseFactory.getInteger(CursorNode.UNSPECIFIED), null, getContextManager());
         stmt.setUseSparkOverride(Boolean.valueOf(optimizer.isForSpark()));
         stmt.bindStatement();
         walkAST(getLanguageConnectionContext(), stmt, CompilationPhase.AFTER_BIND);
