@@ -114,7 +114,7 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
 
             @Override
             public Exception getException() throws InterruptedException {
-                // no-op
+                return null;
             }
         };
     }
