@@ -1083,9 +1083,6 @@ public interface Property {
     String DISABLE_PREDICATE_SIMPLIFICATION =
             "derby.database.disablePredicateSimplification";
 
-    String DISABLE_CONSTANT_FOLDING =
-            "splice.database.disableConstantFolding";
-
     String BULK_IMPORT_SAMPLE_FRACTION = "splice.bulkImport.sample.fraction";
 
     /**
