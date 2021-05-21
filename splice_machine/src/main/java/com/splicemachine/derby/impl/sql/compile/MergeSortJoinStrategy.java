@@ -14,9 +14,14 @@
 
 package com.splicemachine.derby.impl.sql.compile;
 
+import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.impl.sql.compile.HashableJoinStrategy;
+import com.splicemachine.db.impl.sql.compile.PredicateList;
+import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
 
 public class MergeSortJoinStrategy extends HashableJoinStrategy {
 
@@ -31,20 +36,17 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
                             boolean skipKeyCheck) throws StandardException {
         if (innerTable.indexFriendlyJoinsOnly())
             return false;
-		return correlatedSubqueryRestriction(optimizer, predList, outerCost.getJoinType())
-                && super.feasible(innerTable, predList, optimizer,outerCost,wasHinted,skipKeyCheck);
+		return super.feasible(innerTable, predList, optimizer,outerCost,wasHinted,skipKeyCheck);
 	}
 
     /** @see JoinStrategy#multiplyBaseCostByOuterRows */
-    @Override
-    public boolean multiplyBaseCostByOuterRows() {
+	public boolean multiplyBaseCostByOuterRows() {
 		return true;
 	}
 
     /**
      * @see JoinStrategy#joinResultSetMethodName
      */
-    @Override
     public String joinResultSetMethodName() {
         return "getMergeSortJoinResultSet";
     }
@@ -52,12 +54,10 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
     /**
      * @see JoinStrategy#halfOuterJoinResultSetMethodName
      */
-    @Override
     public String halfOuterJoinResultSetMethodName() {
         return "getMergeSortLeftOuterJoinResultSet";
     }
 
-    @Override
     public String fullOuterJoinResultSetMethodName() {
         return "getMergeSortFullOuterJoinResultSet";
     }
@@ -73,24 +73,5 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
     @Override
     public int maxCapacity(int userSpecifiedCapacity,int maxMemoryPerTable,double perRowUsage){
         return Integer.MAX_VALUE;
-    }
-
-    private boolean correlatedSubqueryRestriction(Optimizer optimizer,
-                                                  OptimizablePredicateList predList,
-                                                  int joinType) throws StandardException {
-        if (optimizer.isForSpark()
-            && (containsCorrelatedSubquery(optimizer.getNonPushablePredicates()) || containsCorrelatedSubquery(predList))) {
-            return false;
-        }
-        return true;
-    }
-
-    private boolean containsCorrelatedSubquery(OptimizablePredicateList predList) throws StandardException {
-        for (int i = 0; i < predList.size(); i++) {
-            if(predList.getOptPredicate(i).hasCorrelatedSubquery()) {
-                return true;
-            }
-        }
-        return false;
     }
 }

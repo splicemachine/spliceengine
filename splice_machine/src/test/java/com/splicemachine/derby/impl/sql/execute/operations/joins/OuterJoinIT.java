@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.utils.Pair;
 import splice.com.google.common.collect.ImmutableMap;
 import com.splicemachine.derby.test.framework.*;
@@ -51,8 +50,6 @@ public class OuterJoinIT extends SpliceUnitTest {
     private static final String TABLE_NAME_10 = "dupes";
     private static final String TABLE_NAME_11 = "t3";
     private static final String TABLE_NAME_12 = "t4";
-    private static final String TABLE_NAME_13 = "oj1";
-    private static final String TABLE_NAME_14 = "oj2";
 
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
@@ -82,8 +79,6 @@ public class OuterJoinIT extends SpliceUnitTest {
     private static SpliceTableWatcher j4 = new SpliceTableWatcher("j4", CLASS_NAME, "(a int, b int, c int, d int)");
     private static SpliceTableWatcher j5 = new SpliceTableWatcher("j5", CLASS_NAME, "(a int, b int, c int, d int)");
     private static SpliceTableWatcher j6 = new SpliceTableWatcher("j6", CLASS_NAME, "(a int, b int, c int, d int)");
-    private static SpliceTableWatcher oj1 = new SpliceTableWatcher(TABLE_NAME_13, CLASS_NAME, "(a int, b int)");
-    private static SpliceTableWatcher oj2 = new SpliceTableWatcher(TABLE_NAME_14, CLASS_NAME, "(a int, b int)");
 
 
     @ClassRule
@@ -114,8 +109,6 @@ public class OuterJoinIT extends SpliceUnitTest {
             .around(j4)
             .around(j5)
             .around(j6)
-            .around(oj1)
-            .around(oj2)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -247,23 +240,7 @@ public class OuterJoinIT extends SpliceUnitTest {
             })
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "small_msdatasample/startup.sql", CLASS_NAME))
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME))
-            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/basic_join_dataset.sql", CLASS_NAME))
-            .around(new SpliceDataWatcher(){
-                @Override
-                protected void starting(Description description) {
-                    try {
-                        Statement statement = spliceClassWatcher.getStatement();
-                        statement.execute(String.format("insert into %s values (155,540)", oj1));
-                        statement.execute(String.format("insert into %s values (155,540)", oj2));
-                        statement.executeQuery(String.format("analyze table %s",oj1));
-                        statement.executeQuery(String.format("analyze table %s",oj2));
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    } finally {
-                        spliceClassWatcher.closeAll();
-                    }
-                }
-            }) ;
+            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/basic_join_dataset.sql", CLASS_NAME));
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
@@ -653,32 +630,6 @@ public class OuterJoinIT extends SpliceUnitTest {
 
         try(ResultSet rs = methodWatcher.executeQuery(query)) {
             Assert.assertEquals(17, SpliceUnitTest.resultSetSize(rs));
-        }
-    }
-
-    @Test
-    public void testNonflattenableCorrelatedSubqueryAsJoinConditionForLeftOuterJoin() throws SQLException {
-        String query = "SELECT * FROM oj1 ALPHA LEFT OUTER JOIN \n" +
-                       "oj2 BETA --splice-properties useSpark=True, joinStrategy=sortmerge\n" +
-                       "ON ALPHA.b=BETA.b AND BETA.a = (SELECT MAX(A) FROM oj2 SUBQ WHERE SUBQ.b=ALPHA.b)";
-
-        try(ResultSet ignored = methodWatcher.executeQuery(query)) {
-            Assert.fail("expected optimizer to fail finding a plan");
-        } catch (SQLException sqlException) {
-            Assert.assertEquals(SQLState.LANG_NO_BEST_PLAN_FOUND, sqlException.getSQLState());
-        }
-
-        query = "SELECT * FROM oj1 ALPHA LEFT OUTER JOIN \n" +
-                "oj2 BETA --splice-properties useSpark=True, joinStrategy=nestedloop\n" +
-                "ON ALPHA.b=BETA.b AND BETA.a = (SELECT MAX(A) FROM oj2 SUBQ WHERE SUBQ.b=ALPHA.b)";
-
-        try(ResultSet rs = methodWatcher.executeQuery(query)) {
-            Assert.assertTrue(rs.next());
-            Assert.assertEquals(155, rs.getInt(1));
-            Assert.assertEquals(540, rs.getInt(2));
-            Assert.assertEquals(155, rs.getInt(3));
-            Assert.assertEquals(540, rs.getInt(4));
-            Assert.assertFalse(rs.next());
         }
     }
 
