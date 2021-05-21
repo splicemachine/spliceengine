@@ -44,7 +44,6 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 
 public class SubqueryList extends QueryTreeNodeVector<SubqueryNode>{
     public SubqueryList() {}
-
     public SubqueryList(ContextManager contextManager) {
         setContextManager(contextManager);
         setNodeType(C_NodeTypes.SUBQUERY_LIST);

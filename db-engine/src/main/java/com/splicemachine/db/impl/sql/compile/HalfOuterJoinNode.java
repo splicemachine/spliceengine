@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.util.JBitSet;
@@ -42,6 +43,7 @@ import splice.com.google.common.base.Joiner;
 import splice.com.google.common.collect.Lists;
 
 import java.util.List;
+import java.util.Properties;
 
 /**
  * An HalfOuterJoinNode represents a left or a right outer join result set.
@@ -50,6 +52,16 @@ import java.util.List;
  */
 
 public class HalfOuterJoinNode extends JoinNode{
+
+    public HalfOuterJoinNode() {}
+    public HalfOuterJoinNode(FromTable leftResult, FromBaseTable rightResult, ValueNode onClause,
+                             ResultColumnList usingClause, Boolean rightOuterJoin, Properties tableProperties,
+                             ContextManager contextManager) throws StandardException {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.HALF_OUTER_JOIN_NODE);
+        init(leftResult, rightResult, onClause, usingClause, rightOuterJoin, tableProperties);
+    }
+
     private boolean rightOuterJoin;
     private boolean transformed=false;
 
