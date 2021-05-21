@@ -41,7 +41,6 @@ import java.util.*;
 import java.util.concurrent.*;
 
 
-
 /**
  * Created by dgomezferro on 5/20/16.
  */
@@ -57,6 +56,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
     private StreamListener streamListener;
     private long offset = 0;
     private long limit = -1;
+    private CountDownLatch olapFutureCallbackInvoked = new CountDownLatch(1);
 
     public RemoteQueryClientImpl(SpliceBaseOperation root, String hostname) {
         this.root = root;
@@ -147,6 +147,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
                         LOG.error("Unexpected exception, shouldn't happen", e);
                         streamListener.failed(e);
                     }
+                    olapFutureCallbackInvoked.countDown();
                 }
             }, MoreExecutors.sameThreadExecutor());
         } catch (IOException e) {
@@ -244,5 +245,10 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
         streamListener.stopAllStreams();
         if (olapFuture != null)
             olapFuture.cancel(false);
+    }
+
+    public Exception getException() throws InterruptedException {
+        olapFutureCallbackInvoked.await(5, TimeUnit.SECONDS);
+        return (Exception) streamListener.getFailure();
     }
 }
