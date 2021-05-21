@@ -941,7 +941,7 @@ public class DeleteNode extends DMLModStatementNode
                                                      null, /* windows */
                                                      getContextManager());
 
-        return new UpdateNode( tableName, resultSet, cursorDelete, getContextManager());
+        return new UpdateNode( tableName, resultSet, cursorDelete, false, getContextManager());
     }
 
 

@@ -95,14 +95,18 @@ public final class UpdateNode extends DMLModStatementNode
     /* Subquery name for updating from multi-column subquery case */
     public static final String SUBQ_NAME = "UPDSBQ";
 
+    private     boolean         inMatchedClause;
+
     public UpdateNode() {}
-    public UpdateNode(TableName tableName, SelectNode resultSet, Boolean cursorUpdate, ContextManager cm) {
+    public UpdateNode(TableName tableName, SelectNode resultSet, Boolean cursorUpdate, boolean inMatchedClause, ContextManager cm) {
         setContextManager(cm);
         setNodeType(C_NodeTypes.UPDATE_NODE);
         super.init(resultSet);
         this.targetTableName = tableName;
         this.cursorUpdate = cursorUpdate;
+        this.inMatchedClause = inMatchedClause;
     }
+
 
     /**
      * Initializer for an UpdateNode.
@@ -413,9 +417,9 @@ public final class UpdateNode extends DMLModStatementNode
         ** Get the result FromTable, which should be the only table in the
          ** from list.
         */
-        resultFromList = resultSet.getFromList();
         // Splice fork - don't enforce this if special subquery syntax
-        if (!isUpdateWithSubquery) {
+        if (!isUpdateWithSubquery && !inMatchedClause) {
+            resultFromList = resultSet.getFromList();
             if (SanityManager.DEBUG) {
                 SanityManager.ASSERT(resultFromList.size() == 1,
                         "More than one table in result from list in an update.");

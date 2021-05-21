@@ -34,6 +34,8 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 
+import java.util.ArrayList;
+
 public class MatchingClauseNode extends QueryTreeNode {
 
     ///////////////////////////////////////////////////////////////////////////////////
@@ -42,39 +44,20 @@ public class MatchingClauseNode extends QueryTreeNode {
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-    private static final String CURRENT_OF_NODE_NAME = "$MERGE_CURRENT";
-
     ///////////////////////////////////////////////////////////////////////////////////
     //
     // STATE
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-    //
-    // Filled in by the constructor.
-    //
+    // filled in by the constructor
     private ValueNode           _matchingRefinement;
     private ResultColumnList    _updateColumns;
     private ResultColumnList    _insertColumns;
     private ResultColumnList    _insertValues;
 
-    //
-    // Filled in at bind() time.
-    //
-
-    // the INSERT/UPDATE/DELETE statement of this WHEN [ NOT ] MATCHED clause
+    // filled in at bind() time
     private DMLModStatementNode _dml;
-
-    // the columns in the temporary conglomerate which drives the INSERT/UPDATE/DELETE
-    private ResultColumnList        _thenColumns;
-
-    //
-    // Filled in at generate() time.
-    //
-    private int     _clauseNumber;
-    private String  _actionMethodName;
-    private String  _resultSetFieldName;
-    private String  _rowMakingMethodName;
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -85,9 +68,14 @@ public class MatchingClauseNode extends QueryTreeNode {
     /**
      * Constructor called by factory methods.
      */
-    private MatchingClauseNode (ValueNode matchingRefinement, ResultColumnList updateColumns,
-                                ResultColumnList insertColumns, ResultColumnList insertValues, ContextManager cm)
-            throws StandardException
+    private MatchingClauseNode
+    (
+            ValueNode  matchingRefinement,
+            ResultColumnList   updateColumns,
+            ResultColumnList   insertColumns,
+            ResultColumnList   insertValues,
+            ContextManager     cm
+    )
     {
         super( cm );
 
@@ -98,25 +86,164 @@ public class MatchingClauseNode extends QueryTreeNode {
     }
 
     /** Make a WHEN MATCHED ... THEN UPDATE clause */
-    static MatchingClauseNode makeUpdateClause (ValueNode matchingRefinement, ResultColumnList updateColumns,
-                                                ContextManager cm)
-            throws StandardException
+    public  static  MatchingClauseNode   makeUpdateClause
+    (
+            ValueNode  matchingRefinement,
+            ResultColumnList   updateColumns,
+            ContextManager     cm
+    )
     {
         return new MatchingClauseNode( matchingRefinement, updateColumns, null, null, cm );
     }
 
     /** Make a WHEN MATCHED ... THEN DELETE clause */
-    static MatchingClauseNode makeDeleteClause(ValueNode matchingRefinement, ContextManager cm)
-            throws StandardException
+    public  static  MatchingClauseNode   makeDeleteClause
+    (
+            ValueNode  matchingRefinement,
+            ContextManager     cm
+    )
     {
         return new MatchingClauseNode( matchingRefinement, null, null, null, cm );
     }
 
     /** Make a WHEN NOT MATCHED ... THEN INSERT clause */
-    static MatchingClauseNode makeInsertClause(ValueNode matchingRefinement, ResultColumnList insertColumns,
-                                               ResultColumnList insertValues, ContextManager cm)
-            throws StandardException
+    public  static  MatchingClauseNode   makeInsertClause
+    (
+            ValueNode  matchingRefinement,
+            ResultColumnList   insertColumns,
+            ResultColumnList   insertValues,
+            ContextManager     cm
+    )
     {
         return new MatchingClauseNode( matchingRefinement, null, insertColumns, insertValues, cm );
     }
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //
+    // ACCESSORS
+    //
+    ///////////////////////////////////////////////////////////////////////////////////
+
+    /** Return true if this is a WHEN MATCHED ... UPDATE clause */
+    public  boolean isUpdateClause()    { return (_updateColumns != null); }
+
+    /** Return true if this is a WHEN NOT MATCHED ... INSERT clause */
+    public  boolean isInsertClause()    { return (_insertValues != null); }
+
+    /** Return true if this is a WHEN MATCHED ... DELETE clause */
+    public  boolean isDeleteClause()    { return !( isUpdateClause() || isInsertClause() ); }
+
+    /** Return the bound DML statement--returns null if called before binding */
+    public  DMLModStatementNode getDML()    { return _dml; }
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //
+    // bind() BEHAVIOR
+    //
+    ///////////////////////////////////////////////////////////////////////////////////
+
+    /** Bind this WHEN [ NOT ] MATCHED clause against the parent JoinNode */
+    public void    bind( JoinNode joinNode, FromTable targetTable )
+            throws StandardException
+    {
+        String  clauseType = isInsertClause() ? "WHEN NOT MATCHED" : "WHEN MATCHED";
+
+        // For WHEN NOT MATCHED clauses, the target table is not in scope.
+        boolean useTargetTable = !isInsertClause();
+
+        if ( _matchingRefinement != null )
+        {
+            _matchingRefinement = joinNode.bindExpression
+                    ( _matchingRefinement, true, useTargetTable, clauseType );
+        }
+
+        if ( isDeleteClause() ) { bindDelete( joinNode, targetTable ); }
+        if ( isUpdateClause() ) { bindUpdate( joinNode, targetTable ); }
+        if ( isInsertClause() ) { bindInsert( joinNode, targetTable ); }
+    }
+
+    /** Bind a WHEN MATCHED ... THEN UPDATE clause */
+    private void    bindUpdate( JoinNode joinNode, FromTable targetTable )
+            throws StandardException
+    {
+        SelectNode  selectNode = new SelectNode
+                (
+                        _updateColumns,
+                        joinNode.makeFromList( true, true ),
+                        null,      // where clause
+                        null,      // group by list
+                        null,      // having clause
+                        null,      // window list
+                        null,      // optimizer plan override
+                        getContextManager()
+                );
+        assert( false );
+        //_dml = new UpdateNode( targetTable.getTableName(), selectNode, true, getContextManager() );
+
+        _dml.bindStatement();
+    }
+
+    /** Bind a WHEN MATCHED ... THEN DELETE clause */
+    private void    bindDelete( JoinNode joinNode, FromTable targetTable )
+            throws StandardException
+    {
+        SelectNode  selectNode = new SelectNode
+                (
+                        null,      // select list
+                        joinNode.makeFromList( true, true ),
+                        null,      // where clause
+                        null,      // group by list
+                        null,      // having clause
+                        null,      // window list
+                        null,      // optimizer plan override
+                        getContextManager()
+                );
+        assert( false );
+        //_dml = new DeleteNode( targetTable.getTableName(), selectNode, getContextManager() );
+
+        _dml.bindStatement();
+    }
+
+    /** Bind a WHEN NOT MATCHED ... THEN INSERT clause */
+    private void    bindInsert( JoinNode joinNode, FromTable targetTable )
+            throws StandardException
+    {
+        // needed to make the SelectNode bind
+        _insertValues.replaceOrForbidDefaults( targetTable.getTableDescriptor(), _insertColumns, true );
+
+        // the VALUES clause may not mention columns in the target table
+        _insertValues.bindExpressions
+                (
+                        joinNode.makeFromList( true, false ),
+                        new SubqueryList( getContextManager() ),
+                        new ArrayList<AggregateNode>()
+                );
+
+        SelectNode  selectNode = new SelectNode
+                (
+                        _insertValues,      // select list
+                        joinNode.makeFromList( true, true ),
+                        null,      // where clause
+                        null,      // group by list
+                        null,      // having clause
+                        null,      // window list
+                        null,      // optimizer plan override
+                        getContextManager()
+                );
+        _dml = new InsertNode
+                (
+                        targetTable.getTableName(),
+                        _insertColumns,
+                        selectNode,
+                        null,      // targetProperties
+                        null,      // order by cols
+                        null,      // offset
+                        null,      // fetch first
+                        false,     // has JDBC limit clause
+                        getContextManager()
+                );
+
+        _dml.bindStatement();
+    }
+
 }
