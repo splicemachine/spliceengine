@@ -32,12 +32,18 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.StatementType;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+
+import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * This class represents a MERGE INTO statement.
@@ -67,7 +73,7 @@ public class MergeNode extends DMLStatementNode
     private FromBaseTable   _targetTable;
     private FromTable   _sourceTable;
     private ValueNode   _searchCondition;
-    private QueryTreeNodeVector<MatchingClauseNode> _matchingClauses;
+    private ArrayList<MatchingClauseNode>   _matchingClauses;
 
     //
     // Filled in at bind() time.
@@ -82,88 +88,92 @@ public class MergeNode extends DMLStatementNode
     private ConstantAction      _constantAction;
     private CursorNode          _leftJoinCursor;
 
-    public MergeNode(FromTable targetTable, FromTable sourceTable, ValueNode searchCondition,
-                     QueryTreeNodeVector<MatchingClauseNode> matchingClauses, ContextManager cm)
+    ///////////////////////////////////////////////////////////////////////////////////
+    //
+    // CONSTRUCTOR
+    //
+    ///////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * <p>
+     * Constructor for a MergeNode.
+     * </p>
+     */
+    public  MergeNode
+    (
+            FromTable          targetTable,
+            FromTable          sourceTable,
+            ValueNode          searchCondition,
+            ArrayList<MatchingClauseNode> matchingClauses,
+            ContextManager     cm
+    )
             throws StandardException
     {
-        setContextManager(cm);
+        //super( null, null, cm );
 
-//        if ( !( targetTable instanceof FromBaseTable) ) { notBaseTable(); }
-//        else {
-            _targetTable = (FromBaseTable) targetTable;
-//        }
+        if ( !( targetTable instanceof FromBaseTable) ) { notBaseTable(); }
+        else { _targetTable = (FromBaseTable) targetTable; }
 
         _sourceTable = sourceTable;
         _searchCondition = searchCondition;
         _matchingClauses = matchingClauses;
-
-        makeJoin();
     }
 
-    /**
-     * <p>
-     * Construct the left outer join which will drive the execution.
-     * </p>
-     */
-    private void    makeJoin() throws StandardException
-    {
-        resultSet = new HalfOuterJoinNode
-                (
-                        _sourceTable,
-                        _targetTable,
-                        _searchCondition,
-                        null,
-                        false,
-                        null,
-                        getContextManager()
-                );
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////
     //
     // bind() BEHAVIOR
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public String statementToString() {
-        return "MERGE";
-    }
-
-    @Override
     public void bindStatement() throws StandardException
     {
-        DataDictionary dd = getDataDictionary();
+        DataDictionary  dd = getDataDictionary();
 
-        //
-        // Bind the left join. This binds _targetTable and _sourceTable.
-        //
-        bind( dd );
-
-        bindSearchCondition();
-
-        if ( !targetIsBaseTable() )
-        {
-            throw new RuntimeException("SQLState.LANG_TARGET_NOT_BASE_TABLE");
-        }
-
-        if ( !sourceIsBase_View_or_VTI() )
-        {
-            throw new RuntimeException("SQLState.LANG_SOURCE_NOT_BASE_VIEW_OR_VTI");
-        }
+        FromList    dummyFromList = new FromList( getContextManager() );
+        FromBaseTable   dummyTargetTable = new FromBaseTable
+                (
+                        _targetTable.tableName,
+                        _targetTable.correlationName,
+                        null,
+                        null,
+                        getContextManager()
+                );
+        FromTable       dummySourceTable = cloneSourceTable();
 
         // source and target may not have the same correlation names
-        if ( getExposedName( _targetTable ).equals( getExposedName( _sourceTable ) ) )
+        if ( getExposedName( dummyTargetTable ).equals( getExposedName( dummySourceTable ) ) )
         {
-            throw new RuntimeException("SQLState.LANG_SAME_EXPOSED_NAME");
+            throw new RuntimeException("StandardException.newException( SQLState.LANG_SAME_EXPOSED_NAME )");
+        }
+
+        dummyFromList.addFromTable( dummySourceTable );
+        dummyFromList.addFromTable( dummyTargetTable );
+        dummyFromList.bindTables( dd, new FromList( getNodeFactory().doJoinOrderOptimization(), getContextManager() ) );
+
+        if ( !targetIsBaseTable( dummyTargetTable ) ) { notBaseTable(); }
+
+        for ( MatchingClauseNode mcn : _matchingClauses )
+        {
+            mcn.bind( dd, this, dummyFromList, dummyTargetTable );
+        }
+
+        bindLeftJoin( dd );
+
+        // re-bind the matchingRefinement clauses now that we have result set numbers
+        // from the driving left join.
+        for ( MatchingClauseNode mcn : _matchingClauses )
+        {
+            mcn.bindRefinement( this, _leftJoinFromList );
         }
 
         for ( MatchingClauseNode mcn : _matchingClauses )
         {
-            mcn.bind( (JoinNode) resultSet, _targetTable );
+            if ( mcn.isUpdateClause() || mcn.isInsertClause() )
+            {
+                throw StandardException.newException( SQLState.NOT_IMPLEMENTED, "MERGE" );
+            }
         }
-
-        throw new RuntimeException("SQLState.NOT_IMPLEMENTED MERGE");
     }
 
     /** Get the exposed name of a FromTable */
@@ -172,21 +182,145 @@ public class MergeNode extends DMLStatementNode
         return ft.getTableName().getTableName();
     }
 
-    /**  Bind the search condition, the ON clause of the left join */
-    private void    bindSearchCondition()   throws StandardException
+    /**
+     * Bind the driving left join select.
+     * Stuffs the left join SelectNode into the resultSet variable.
+     */
+    private void    bindLeftJoin( DataDictionary dd )   throws StandardException
     {
-        FromList    fromList = new FromList
-                ( getNodeFactory().doJoinOrderOptimization(), getContextManager() );
+        CompilerContext cc = getCompilerContext();
+        final int previousReliability = cc.getReliability();
 
-        resultSet.bindResultColumns( fromList );
+        try {
+            cc.setReliability( previousReliability | CompilerContext.SQL_IN_ROUTINES_ILLEGAL );
+
+            HalfOuterJoinNode   hojn = new HalfOuterJoinNode
+                    (
+                            _sourceTable,
+                            _targetTable,
+                            _searchCondition,
+                            null,
+                            false,
+                            null,
+                            getContextManager()
+                    );
+
+            _leftJoinFromList = hojn.makeFromList( true, true );
+            _leftJoinFromList.bindTables( dd, new FromList( getNodeFactory().doJoinOrderOptimization(), getContextManager() ) );
+
+            if ( !sourceIsBase_View_or_VTI() )
+            {
+                throw new RuntimeException("StandardException.newException( SQLState.LANG_SOURCE_NOT_BASE_VIEW_OR_VTI )");
+            }
+
+            FromList    topFromList = new FromList( getNodeFactory().doJoinOrderOptimization(), getContextManager() );
+            topFromList.addFromTable( hojn );
+
+            // preliminary binding of the matching clauses to resolve column
+            // referneces. this ensures that we can add all of the columns from
+            // the matching refinements to the SELECT list of the left join.
+            // we re-bind the matching clauses when we're done binding the left join
+            // because, at that time, we have result set numbers needed for
+            // code generation.
+            for ( MatchingClauseNode mcn : _matchingClauses )
+            {
+                mcn.bindRefinement( this, _leftJoinFromList );
+            }
+
+            ResultColumnList    selectList = buildSelectList();
+
+            // calculate the offsets into the SELECT list which define the rows for
+            // the WHEN [ NOT ] MATCHED  actions
+            for ( MatchingClauseNode mcn : _matchingClauses )
+            {
+                mcn.bindThenColumns( selectList );
+            }
+
+            resultSet = new SelectNode
+                    (
+                            selectList,
+                            topFromList,
+                            null,      // where clause
+                            null,      // group by list
+                            null,      // having clause
+                            null,      // window list
+                            null,      // optimizer plan override
+                            getContextManager()
+                    );
+
+            // Wrap the SELECT in a CursorNode in order to finish binding it.
+            _leftJoinCursor = new CursorNode
+                    (
+                            "SELECT",
+                            resultSet,
+                            null,
+                            null,
+                            null,
+                            null,
+                            false,
+                            CursorNode.READ_ONLY,
+                            null,
+                            getContextManager()
+                    );
+            _leftJoinCursor.bindStatement();
+        }
+        finally
+        {
+            // Restore previous compiler state
+            cc.setReliability( previousReliability );
+        }
+    }
+
+    /** Throw a "not base table" exception */
+    private void    notBaseTable()  throws StandardException
+    {
+        throw new RuntimeException("throw StandardException.newException( SQLState.LANG_TARGET_NOT_BASE_TABLE )");
+    }
+
+    /** Build the select list for the left join */
+    private ResultColumnList    buildSelectList() throws StandardException
+    {
+        HashMap<String,ColumnReference> drivingColumnMap = new HashMap<String,ColumnReference>();
+        getColumnsInExpression( drivingColumnMap, _searchCondition );
+
+        for ( MatchingClauseNode mcn : _matchingClauses )
+        {
+            mcn.getColumnsInExpressions( this, drivingColumnMap );
+            getColumnsFromList( drivingColumnMap, mcn.getBufferedColumns() );
+        }
+
+        ResultColumnList    selectList = new ResultColumnList( getContextManager() );
+
+        // add all of the columns from the source table which are mentioned
+        addColumns( (FromTable) _leftJoinFromList.elementAt( SOURCE_TABLE_INDEX ), drivingColumnMap, selectList );
+        // add all of the columns from the target table which are mentioned
+        addColumns( (FromTable) _leftJoinFromList.elementAt( TARGET_TABLE_INDEX ), drivingColumnMap, selectList );
+
+        addTargetRowLocation( selectList );
+
+        return selectList;
+    }
+
+    /** Add the target table's row location to the left join's select list */
+    private void    addTargetRowLocation( ResultColumnList selectList )
+            throws StandardException
+    {
+        // tell the target table to generate a row location column
+        _targetTable.setRowLocationColumnName( TARGET_ROW_LOCATION_NAME );
+
+        TableName   fromTableName = _targetTable.getTableName();
+        ColumnReference cr = new ColumnReference
+                ( TARGET_ROW_LOCATION_NAME, fromTableName, getContextManager() );
+        ResultColumn    rowLocationColumn = new ResultColumn( (String) null, cr, getContextManager() );
+        rowLocationColumn.markGenerated();
+
+        selectList.addResultColumn( rowLocationColumn );
     }
 
     /** Return true if the target table is a base table */
-    private boolean targetIsBaseTable() throws StandardException
+    private boolean targetIsBaseTable( FromBaseTable targetTable ) throws StandardException
     {
-        if ( !( _targetTable instanceof FromBaseTable) ) { return false; }
-
-        FromBaseTable   fbt = (FromBaseTable) _targetTable;
+        FromBaseTable   fbt = targetTable;
         TableDescriptor desc = fbt.getTableDescriptor();
         if ( desc == null ) { return false; }
 
@@ -212,6 +346,274 @@ public class MergeNode extends DMLStatementNode
             default:
                 return false;
         }
+    }
+
+    /** Clone the source table for binding the MATCHED clauses */
+    private FromTable   cloneSourceTable() throws StandardException
+    {
+        if ( _sourceTable instanceof FromVTI )
+        {
+            FromVTI source = (FromVTI) _sourceTable;
+
+            return new FromVTI
+                    (
+                            source.methodCall,
+                            source.correlationName,
+                            source.resultColumns,
+                            null,
+                            source.exposedName,
+                            getContextManager()
+                    );
+        }
+        else if ( _sourceTable instanceof FromBaseTable )
+        {
+            FromBaseTable   source = (FromBaseTable) _sourceTable;
+            return new FromBaseTable
+                    (
+                            source.tableName,
+                            source.correlationName,
+                            null,
+                            null,
+                            getContextManager()
+                    );
+        }
+        else
+        {
+            throw StandardException.newException( SQLState.LANG_SOURCE_NOT_BASE_VIEW_OR_VTI );
+        }
+    }
+
+    /**
+     * <p>
+     * Add to an evolving select list the columns from the indicated table.
+     * </p>
+     */
+    private void    addColumns
+    (
+            FromTable  fromTable,
+            HashMap<String,ColumnReference> drivingColumnMap,
+            ResultColumnList   selectList
+    )
+            throws StandardException
+    {
+        String[]    columnNames = getColumns( getExposedName( fromTable ), drivingColumnMap );
+
+        for ( int i = 0; i < columnNames.length; i++ )
+        {
+            ColumnReference cr = new ColumnReference
+                    ( columnNames[ i ], fromTable.getTableName(), getContextManager() );
+            ResultColumn    rc = new ResultColumn( (String) null, cr, getContextManager() );
+            selectList.addResultColumn( rc );
+        }
+    }
+
+    /** Get the column names from the table with the given table number, in sorted order */
+    private String[]    getColumns( String exposedName, HashMap<String,ColumnReference> map )
+    {
+        ArrayList<String>   list = new ArrayList<String>();
+
+        for ( ColumnReference cr : map.values() )
+        {
+            if ( exposedName.equals( cr.getTableName() ) ) { list.add( cr.getColumnName() ); }
+        }
+
+        String[]    retval = new String[ list.size() ];
+        list.toArray( retval );
+        Arrays.sort( retval );
+
+        return retval;
+    }
+
+    /** Add the columns in the matchingRefinement clause to the evolving map */
+    void    getColumnsInExpression
+    ( HashMap<String,ColumnReference> map, ValueNode expression )
+            throws StandardException
+    {
+        if ( expression == null ) { return; }
+
+        CollectNodesVisitor<ColumnReference> getCRs =
+                new CollectNodesVisitor<ColumnReference>(ColumnReference.class);
+
+        expression.accept(getCRs);
+        List<ColumnReference> colRefs = getCRs.getList();
+
+        getColumnsFromList( map, colRefs );
+    }
+
+    /** Add a list of columns to the the evolving map */
+    private void    getColumnsFromList
+    ( HashMap<String,ColumnReference> map, ResultColumnList rcl )
+            throws StandardException
+    {
+        ArrayList<ColumnReference>  colRefs = new ArrayList<ColumnReference>();
+
+        for ( int i = 0; i < rcl.size(); i++ )
+        {
+            ResultColumn    rc = rcl.elementAt( i );
+            ColumnReference cr = rc.getReference();
+            if ( cr != null ) { colRefs.add( cr ); }
+        }
+
+        getColumnsFromList( map, colRefs );
+    }
+
+    /** Add a list of columns to the the evolving map */
+    private void    getColumnsFromList
+    ( HashMap<String,ColumnReference> map, List<ColumnReference> colRefs )
+            throws StandardException
+    {
+        for ( ColumnReference cr : colRefs )
+        {
+            if ( cr.getTableName() == null )
+            {
+                ResultColumn    rc = _leftJoinFromList.bindColumnReference( cr );
+                TableName       tableName = new TableName( null, rc.getTableName(), getContextManager() );
+                cr = new ColumnReference( cr.getColumnName(), tableName, getContextManager() );
+            }
+
+            String  key = makeDCMKey( cr.getTableName(), cr.getColumnName() );
+            if ( map.get( key ) == null )
+            {
+                map.put( key, cr );
+            }
+        }
+    }
+
+    /** Make a HashMap key for a column in the driving column map of the LEFT JOIN */
+    private String  makeDCMKey( String tableName, String columnName )
+    {
+        return IdUtil.mkQualifiedName( tableName, columnName );
+    }
+
+    /** Boilerplate for binding an expression against a FromList */
+    void bindExpression( ValueNode value, FromList fromList )
+            throws StandardException
+    {
+        CompilerContext cc = getCompilerContext();
+        final int previousReliability = cc.getReliability();
+
+        try {
+            cc.setReliability( previousReliability | CompilerContext.SQL_IN_ROUTINES_ILLEGAL );
+
+            value.bindExpression
+                    (
+                            fromList,
+                            new SubqueryList( getContextManager() ),
+                            new ArrayList<AggregateNode>()
+                    );
+        }
+        finally
+        {
+            // Restore previous compiler state
+            cc.setReliability( previousReliability );
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //
+    // optimize() BEHAVIOR
+    //
+    ///////////////////////////////////////////////////////////////////////////////////
+
+    @Override
+    public void optimizeStatement() throws StandardException
+    {
+        /* First optimize the left join */
+        _leftJoinCursor.optimizeStatement();
+
+        /* In language we always set it to row lock, it's up to store to
+         * upgrade it to table lock.  This makes sense for the default read
+         * committed isolation level and update lock.  For more detail, see
+         * Beetle 4133.
+         */
+        //lockMode = TransactionController.MODE_RECORD;
+
+        // now optimize the INSERT/UPDATE/DELETE actions
+        for ( MatchingClauseNode mcn : _matchingClauses )
+        {
+            mcn.optimize();
+        }
+    }
+    ///////////////////////////////////////////////////////////////////////////////////
+    //
+    // generate() BEHAVIOR
+    //
+    ///////////////////////////////////////////////////////////////////////////////////
+
+    @Override
+    public void generate( ActivationClassBuilder acb, MethodBuilder mb )
+            throws StandardException
+    {
+        int     clauseCount = _matchingClauses.size();
+
+        /* generate the parameters */
+        generateParameterValueSet(acb);
+
+        acb.pushGetResultSetFactoryExpression( mb );
+
+        // arg 1: the driving left join
+        _leftJoinCursor.generate( acb, mb );
+
+        ConstantAction[]    clauseActions = new ConstantAction[ clauseCount ];
+        for ( int i = 0; i < clauseCount; i++ )
+        {
+            MatchingClauseNode  mcn = _matchingClauses.get( i );
+
+            mcn.generate( acb, i );
+            clauseActions[ i ] = mcn.makeConstantAction( acb );
+        }
+        _constantAction = getGenericConstantActionFactory().getMergeConstantAction( clauseActions );
+
+        mb.callMethod
+                ( VMOpcode.INVOKEINTERFACE, (String) null, "getMergeResultSet", ClassName.ResultSet, 1 );
+    }
+
+    @Override
+    public ConstantAction makeConstantAction() throws StandardException
+    {
+        return _constantAction;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    //
+    // Visitable BEHAVIOR
+    //
+    ///////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Accept the visitor for all visitable children of this node.
+     *
+     * @param v the visitor
+     *
+     * @exception StandardException on error
+     */
+    @Override
+    void acceptChildren(Visitor v)
+            throws StandardException
+    {
+        if ( _leftJoinCursor != null )
+        {
+            _leftJoinCursor.acceptChildren( v );
+        }
+        else
+        {
+            super.acceptChildren( v );
+
+            _targetTable.accept( v );
+            _sourceTable.accept( v );
+            _searchCondition.accept( v );
+        }
+
+        for ( MatchingClauseNode mcn : _matchingClauses )
+        {
+            mcn.accept( v );
+        }
+    }
+
+    @Override
+    String statementToString()
+    {
+        return "MERGE";
     }
 
 }

@@ -1816,4 +1816,7 @@ public interface StoredFormatIds {
             (MIN_ID_2 + 704);
 
 
+    // todo
+    int MATCHING_CLAUSE_CONSTANT_ACTION_V01_ID = 1788;
+    int MERGE_CONSTANT_ACTION_V01_ID = 1789;
 }
