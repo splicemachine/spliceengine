@@ -472,15 +472,7 @@ abstract class DDLStatementNode extends StatementNode
         { tableName.setSchemaName(getSchemaDescriptor().getSchemaName()); }
         
         FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
-        FromBaseTable table = (FromBaseTable) getNodeFactory().getNode
-            (
-             C_NodeTypes.FROM_BASE_TABLE,
-             tableName,
-             null,
-             null,
-             null,
-             getContextManager()
-             );
+        FromBaseTable table = new FromBaseTable(tableName, null, null, null, getContextManager());
 
         if ( creatingTable )
         {

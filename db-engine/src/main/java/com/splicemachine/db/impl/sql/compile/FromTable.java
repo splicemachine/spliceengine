@@ -152,8 +152,12 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      */
     @Override
     public void init(Object correlationName,Object tableProperties){
-        this.correlationName=(String)correlationName;
-        this.tableProperties=(Properties)tableProperties;
+        init2((String)correlationName, (Properties)tableProperties);
+    }
+
+    public void init2(String correlationName, Properties tableProperties){
+        this.correlationName = correlationName;
+        this.tableProperties = tableProperties;
         tableNumber=-1;
         bestPlanMap=null;
         outerJoinLevel = 0;

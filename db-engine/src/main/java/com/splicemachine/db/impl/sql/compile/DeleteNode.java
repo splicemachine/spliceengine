@@ -877,14 +877,9 @@ public class DeleteNode extends DMLModStatementNode
         tableName.init(schemaName , targetTableName);
 
         NodeFactory nodeFactory = getNodeFactory();
-        FromList   fromList = new FromList(getContextManager());
-        FromTable fromTable = (FromTable) nodeFactory.getNode(
-                                                    C_NodeTypes.FROM_BASE_TABLE,
-                                                    tableName,
-                                                    null,
-                                                    ReuseFactory.getInteger(FromBaseTable.DELETE),
-                                                    null,
-                                                    getContextManager());
+        FromList      fromList = new FromList(getContextManager());
+        FromBaseTable fromTable = new FromBaseTable(tableName, null, ReuseFactory.getInteger(FromBaseTable.DELETE),
+                                                    null, getContextManager());
 
         //we would like to use references index & table scan instead of
         //what optimizer says for the dependent table scan.
@@ -925,13 +920,8 @@ public class DeleteNode extends DMLModStatementNode
 
         NodeFactory nodeFactory = getNodeFactory();
         FromList  fromList = new FromList(getContextManager());
-        FromTable fromTable = (FromTable) nodeFactory.getNode(
-                                                    C_NodeTypes.FROM_BASE_TABLE,
-                                                    tableName,
-                                                    null,
-                                                    ReuseFactory.getInteger(FromBaseTable.DELETE),
-                                                    null,
-                                                    getContextManager());
+        FromTable fromTable = new FromBaseTable(tableName, null, ReuseFactory.getInteger(FromBaseTable.DELETE),
+                                                    null, getContextManager());
 
 
         //we would like to use references index & table scan instead of
