@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
@@ -502,8 +503,9 @@ public class GenericStatement implements Statement{
     }
 
     private void setVarcharDB2CompatibilityMode(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        // why not getCachedDatabaseBoolean ?
         String varcharDB2CompatibilityModeString =
-        PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
+            PropertyUtil.getCached(lcc, GlobalDBProperties.SPLICE_DB2_VARCHAR_COMPATIBLE);
         boolean varcharDB2CompatibilityMode = CompilerContext.DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE;
         try {
             if (varcharDB2CompatibilityModeString != null)
@@ -617,6 +619,11 @@ public class GenericStatement implements Statement{
         cc.setMulticolumnInlistProbeOnSparkEnabled(multicolumnInlistProbeOnSparkEnabled);
     }
 
+    private boolean getBooleanParam(LanguageConnectionContext lcc, GlobalDBProperties.PropertyType property,
+                                    boolean defaultValue) throws StandardException {
+        return getBooleanParam(lcc, property.getName(), defaultValue);
+
+    }
     private boolean getBooleanParam(LanguageConnectionContext lcc, String property, boolean defaultValue) throws StandardException {
         String paramString = PropertyUtil.getCachedDatabaseProperty(lcc, property);
         boolean value = defaultValue;
@@ -680,17 +687,17 @@ public class GenericStatement implements Statement{
 
     private void setNewMergeJoin(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
         String newMergeJoinString =
-        PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_NEW_MERGE_JOIN);
+        PropertyUtil.getCached(lcc, GlobalDBProperties.SPLICE_NEW_MERGE_JOIN);
         CompilerContext.NewMergeJoinExecutionType newMergeJoin =
         CompilerContext.DEFAULT_SPLICE_NEW_MERGE_JOIN;
         try {
             if (newMergeJoinString != null) {
                 newMergeJoinString = newMergeJoinString.toLowerCase();
-                if (newMergeJoinString.equals("on"))
+                if (newMergeJoinString.equalsIgnoreCase("on"))
                     newMergeJoin = CompilerContext.NewMergeJoinExecutionType.ON;
-                else if (newMergeJoinString.equals("off"))
+                else if (newMergeJoinString.equalsIgnoreCase("off"))
                     newMergeJoin = CompilerContext.NewMergeJoinExecutionType.OFF;
-                else if (newMergeJoinString.equals("forced"))
+                else if (newMergeJoinString.equalsIgnoreCase("forced"))
                     newMergeJoin = CompilerContext.NewMergeJoinExecutionType.FORCED;
             }
         } catch (Exception e) {
@@ -711,7 +718,8 @@ public class GenericStatement implements Statement{
     }          
 
     private void setDisableParallelTaskJoinCosting(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
-        boolean param = getBooleanParam(lcc, Property.DISABLE_PARALLEL_TASKS_JOIN_COSTING, CompilerContext.DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING);
+        boolean param = getBooleanParam(lcc, GlobalDBProperties.DISABLE_PARALLEL_TASKS_JOIN_COSTING,
+                CompilerContext.DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING);
         cc.setDisablePerParallelTaskJoinCosting(param);
     }
 
@@ -727,7 +735,7 @@ public class GenericStatement implements Statement{
 
     private void setCurrentTimestampPrecision(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
         String currentTimestampPrecisionString =
-        PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_CURRENT_TIMESTAMP_PRECISION);
+                PropertyUtil.getCached(lcc, GlobalDBProperties.SPLICE_CURRENT_TIMESTAMP_PRECISION);
         int currentTimestampPrecision = CompilerContext.DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION;
         try {
             if (currentTimestampPrecisionString != null)
@@ -744,8 +752,7 @@ public class GenericStatement implements Statement{
     }
 
     private void setTimestampFormat(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
-        String timestampFormatString =
-                PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_TIMESTAMP_FORMAT);
+        String timestampFormatString = PropertyUtil.getCached(lcc, GlobalDBProperties.SPLICE_TIMESTAMP_FORMAT );
         if(timestampFormatString == null)
             cc.setTimestampFormat(CompilerContext.DEFAULT_TIMESTAMP_FORMAT);
         else {
@@ -791,7 +798,7 @@ public class GenericStatement implements Statement{
 
     private void setFloatingPointNotation(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
         String floatingPointNotationString =
-                PropertyUtil.getCachedDatabaseProperty(lcc, Property.FLOATING_POINT_NOTATION);
+                PropertyUtil.getCached(lcc, GlobalDBProperties.FLOATING_POINT_NOTATION);
         if(floatingPointNotationString == null) {
             cc.setFloatingPointNotation(CompilerContext.DEFAULT_FLOATING_POINT_NOTATION);
         } else {

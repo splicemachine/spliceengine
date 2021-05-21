@@ -185,23 +185,6 @@ public class JoinNode extends TableOperatorNode{
 
     }
 
-    protected void movePushablePredicatesToRhs() throws StandardException {
-        // Walk joinPredicates backwards due to possible deletes
-        for(int index=joinPredicates.size()-1;index>=0;index--){
-            Predicate predicate;
-
-            predicate=joinPredicates.elementAt(index);
-            if(!predicate.getPushable()){
-                continue;
-            }
-
-            joinPredicates.removeElementAt(index);
-            optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION,0,0,0.0,
-                                     this.getClass().getName() + " pushing predicate right.",predicate);
-            getRightPredicateList().addElement(predicate);
-        }
-    }
-
     @Override
     public CostEstimate optimizeIt(Optimizer optimizer,
                                    OptimizablePredicateList predList,
@@ -241,7 +224,7 @@ public class JoinNode extends TableOperatorNode{
         // RESOLVE: NEED TO SET ROW ORDERING OF SOURCES IN THE ROW ORDERING
         // THAT WAS PASSED IN.
 
-        leftResultSet=optimizeSource(optimizer, leftResultSet, getLeftPredicateList(), null, null, null);
+        leftResultSet=optimizeSource(optimizer,leftResultSet,getLeftPredicateList(),null,null);
 
         /* Move all joinPredicates down to the right.
          * RESOLVE - When we consider the reverse join order then
@@ -251,7 +234,21 @@ public class JoinNode extends TableOperatorNode{
          * RESOLVE - This logic needs to be looked at when we
          * implement full outer join.
          */
-        movePushablePredicatesToRhs();
+        // Walk joinPredicates backwards due to possible deletes
+
+
+        for(int index=joinPredicates.size()-1;index>=0;index--){
+            Predicate predicate;
+
+            predicate=joinPredicates.elementAt(index);
+            if(!predicate.getPushable()){
+                continue;
+            }
+            joinPredicates.removeElementAt(index);
+            optimizer.tracer().trace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION,0,0,0.0,
+                                     "JoinNode pushing predicate right.",predicate);
+            getRightPredicateList().addElement(predicate);
+        }
 
         CostEstimate lrsCE = leftResultSet.getCostEstimate();
         if (this instanceof FullOuterJoinNode)
@@ -263,7 +260,7 @@ public class JoinNode extends TableOperatorNode{
         double savedAccumulatedMemory = lrsCE.getAccumulatedMemory();
         lrsCE.setAccumulatedMemory(leftOptimizer.getAccumulatedMemory());
         optimizer.setOuterTableOfJoin(leftResultSet);
-        rightResultSet=optimizeSource(optimizer, rightResultSet, getRightPredicateList(), joinPredicates, leftResultSet.getReferencedTableMap(), lrsCE);
+        rightResultSet=optimizeSource(optimizer,rightResultSet,getRightPredicateList(),leftResultSet.getReferencedTableMap(),lrsCE);
         optimizer.setOuterTableOfJoin(null);
         lrsCE.setJoinType(INNERJOIN);
         lrsCE.setAccumulatedMemory(savedAccumulatedMemory);

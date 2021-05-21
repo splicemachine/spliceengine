@@ -200,7 +200,6 @@ public class OptimizerImpl implements Optimizer{
     boolean foundCompleteJoinPlan = false;
 
     private CostModel costModel;
-    private PredicateList nonPushablePredicateList;
 
     private ResultSetNode outerTableOfJoin;
 
@@ -285,8 +284,6 @@ public class OptimizerImpl implements Optimizer{
         this.bestRowOrdering=newRowOrdering();
 
         this.costModel = costModel;
-        // create empty list of non-pushable predicates.
-        this.nonPushablePredicateList = new PredicateList();
     }
 
     @Override
@@ -2871,16 +2868,4 @@ public class OptimizerImpl implements Optimizer{
        return outerBaseTable;
     }
 
-
-    @Override
-    public void setNonPushablePredicates(PredicateList predicateList) {
-        if(predicateList != null) {
-            this.nonPushablePredicateList = predicateList;
-        }
-    }
-
-    @Override
-    public PredicateList getNonPushablePredicates() {
-        return nonPushablePredicateList;
-    }
 }
