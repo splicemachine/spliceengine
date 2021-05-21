@@ -3234,16 +3234,9 @@ deleteBody() throws StandardException :
         boolean isBulkDelete = DeleteNode.isBulkDelete(deleteProperties);
 
         if (fromTable == null)
-            fromTable = (FromTable) nodeFactory.getNode(
-                                        C_NodeTypes.FROM_BASE_TABLE,
-                                        tableName,
-                                        correlationName,
-                                        ReuseFactory.getInteger(
-                                                FromBaseTable.DELETE),
-                                        null,
-                                        isBulkDelete,
-                                        null,
-                                        getContextManager());
+            fromTable = new FromBaseTable(tableName, correlationName,
+                                        ReuseFactory.getInteger(FromBaseTable.DELETE),
+                                        null, isBulkDelete, null, getContextManager());
 
 
         /* Update the FromTable with any properties, if non-null */
@@ -3535,14 +3528,9 @@ updateBody() throws StandardException :
          * decision that the parser's output should look like the language.
          */
         if (fromTable == null)
-            fromTable = (FromTable) nodeFactory.getNode(
-                                        C_NodeTypes.FROM_BASE_TABLE,
-                                        tableName,
-                                        correlationName,
-                                        ReuseFactory.getInteger(
-                                                        FromBaseTable.UPDATE),
-                                        null,
-                                        getContextManager());
+            fromTable = new FromBaseTable(tableName, correlationName,
+                                        ReuseFactory.getInteger(FromBaseTable.UPDATE),
+                                        null, getContextManager());
 
         /* Update the FromTable with any properties, if non-null */
         if (targetProperties != null)
@@ -10338,9 +10326,7 @@ FromTable tableFactor() throws StandardException :
     tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
         optionalTableClauses = optionalTableClauses()
     {
-        fromTable = (FromTable) nodeFactory.getNode(
-                                            C_NodeTypes.FROM_BASE_TABLE,
-                                            tableName,
+        fromTable = new FromBaseTable(tableName, 
                                             (String) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME],
                                             (ResultColumnList) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL],
                                             (Properties) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES],

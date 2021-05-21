@@ -262,25 +262,27 @@ public class FromBaseTable extends FromTable {
      * @param isBulkDelete bulk delete flag or past tx id.
      * @param pastTxIdExpr the past transaction expression.
      */
-    @Override
-    public void init(Object tableName,Object correlationName,Object rclOrUD,Object propsOrRcl, Object isBulkDelete, Object pastTxIdExpr){
+    public FromBaseTable(TableName tableName, String correlationName,Object rclOrUD,Object propsOrRcl, Object isBulkDelete, Object pastTxIdExpr,
+                         ContextManager cm){
+        this(tableName, correlationName, rclOrUD, propsOrRcl, cm);
         this.isBulkDelete = (Boolean) isBulkDelete;
         if(pastTxIdExpr != null) {
             this.pastTxIdExpression = (ValueNode) pastTxIdExpr;
         }
-        init(tableName, correlationName, rclOrUD, propsOrRcl);
+
     }
 
-    @Override
-    public void init(Object tableName,Object correlationName,Object rclOrUD,Object propsOrRcl){
+    public FromBaseTable(TableName tableName, String correlationName,Object rclOrUD,Object propsOrRcl, ContextManager cm){
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.FROM_BASE_TABLE);
         if(rclOrUD instanceof Integer){
-            init(correlationName,null);
-            this.tableName=(TableName)tableName;
+            init2(correlationName, null);
+            this.tableName = tableName;
             this.updateOrDelete=(Integer)rclOrUD;
             resultColumns=(ResultColumnList)propsOrRcl;
         }else{
-            init(correlationName,propsOrRcl);
-            this.tableName=(TableName)tableName;
+            init2(correlationName, (Properties) propsOrRcl);
+            this.tableName = tableName;
             resultColumns=(ResultColumnList)rclOrUD;
         }
 
