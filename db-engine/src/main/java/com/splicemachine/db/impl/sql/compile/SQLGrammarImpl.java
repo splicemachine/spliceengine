@@ -17,7 +17,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
-import org.python.antlr.op.Param;
 
 import java.sql.Types;
 import java.util.Arrays;
@@ -572,7 +571,7 @@ class SQLGrammarImpl {
                 tableName, /* target table for update */
                 resultSet, /* SelectNode just created */
                 fromTable instanceof CurrentOfNode,
-                getContextManager());
+                false, getContextManager());
         setUpAndLinkParameters();
 
         return node;
@@ -677,7 +676,7 @@ class SQLGrammarImpl {
                         tableName, /* target table for update */
                         resultSet, /* SelectNode just created */
                         fromTable instanceof CurrentOfNode,
-                        getContextManager());
+                false, getContextManager());
 
         node.setUpdateWithSubquery(true);
         setUpAndLinkParameters();

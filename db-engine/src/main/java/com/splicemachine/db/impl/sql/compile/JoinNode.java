@@ -1693,32 +1693,7 @@ public class JoinNode extends TableOperatorNode{
                 }
             }
 
-            /* Create a new fromList with only left and right children before
-             * binding the join clause. Valid column references in the join clause
-             * are limited to columns from the 2 tables being joined. This
-             * algorithm enforces that.
-             */
-            FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
-            fromList.addElement(leftResultSet);
-            fromList.addElement(rightResultSet);
-
-            int previousReliability=orReliability(CompilerContext.ON_CLAUSE_RESTRICTION);
-            joinClause=joinClause.bindExpression(fromList,subqueryList,aggregateVector);
-            cc.setReliability(previousReliability);
-
-            // SQL 2003, section 7.7 SR 5
-            SelectNode.checkNoWindowFunctions(joinClause,"ON");
-            SelectNode.checkNoGroupingFunctions(joinClause,"ON");
-
-            /*
-            ** We cannot have aggregates in the ON clause.
-            ** In the future, if we relax this, we'll need
-            ** to be able to pass the aggregateVector up
-            ** the tree.
-            */
-            if(!aggregateVector.isEmpty()){
-                throw StandardException.newException(SQLState.LANG_NO_AGGREGATES_IN_ON_CLAUSE);
-            }
+            joinClause = bindExpression( joinClause, true, true, "ON" );
         }
         /* USING clause */
         else if(usingClause!=null){
@@ -1808,6 +1783,69 @@ public class JoinNode extends TableOperatorNode{
                 );
             }
         }
+    }
+
+
+    /**
+     * Bind an expression against the child tables of the JoinNode. May
+     * update the subquery and aggregate lists in the JoinNode. Assumes that
+     * the subquery and aggregate lists for the JoinNode have already been created.
+     *
+     * @return the bound expression
+     */
+    public  ValueNode   bindExpression
+    (
+            ValueNode expression,
+            boolean    useLeftChild,
+            boolean    useRightChild,
+            String expressionType
+    )
+            throws StandardException
+    {
+        CompilerContext cc = getCompilerContext();
+        /* Create a new fromList with only left and right children before
+         * binding the join clause. Valid column references in the join clause
+         * are limited to columns from the 2 tables being joined. This
+         * algorithm enforces that.
+         */
+        FromList fromList = makeFromList( useLeftChild, useRightChild );
+        fromList.addElement(leftResultSet);
+        fromList.addElement(rightResultSet);
+
+        int previousReliability=orReliability(CompilerContext.ON_CLAUSE_RESTRICTION);
+        expression = expression.bindExpression(fromList,subqueryList,aggregateVector);
+        cc.setReliability(previousReliability);
+
+        // SQL 2003, section 7.7 SR 5
+        SelectNode.checkNoWindowFunctions(joinClause, expressionType);
+        SelectNode.checkNoGroupingFunctions(joinClause, expressionType);
+
+        /*
+         ** We cannot have aggregates in the ON clause.
+         ** In the future, if we relax this, we'll need
+         ** to be able to pass the aggregateVector up
+         ** the tree.
+         */
+        if(!aggregateVector.isEmpty()){
+            throw StandardException.newException(SQLState.LANG_NO_AGGREGATES_IN_ON_CLAUSE);
+        }
+        return expression;
+    }
+
+    /** Make a FromList for binding */
+    public  FromList    makeFromList
+    (
+            boolean    useLeftChild,
+            boolean    useRightChild
+    )
+            throws StandardException
+    {
+        FromList fromList = new FromList( getNodeFactory().doJoinOrderOptimization(), getContextManager() );
+
+        if ( useLeftChild ) { fromList.addElement((FromTable) leftResultSet); }
+        if ( useRightChild ) { fromList.addElement((FromTable) rightResultSet); }
+
+        return fromList;
     }
 
     /**
