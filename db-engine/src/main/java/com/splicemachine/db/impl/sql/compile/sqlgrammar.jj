@@ -3327,18 +3327,13 @@ preparableSelectStatement(boolean checkParams) throws StandardException :
         // must be READ ONLY or empty, and the cursor
         // is implicitly READ_ONLY.
 
-        retval = (CursorNode) nodeFactory.getNode(
-                C_NodeTypes.CURSOR_NODE,
-                "SELECT",
-                queryExpression,
-                null,
-                orderCols,
-                offsetClauses[ OFFSET_CLAUSE ],
-                offsetClauses[ FETCH_FIRST_CLAUSE ],
-                Boolean.valueOf( hasJDBClimitClause ),
-                ReuseFactory.getInteger(forUpdateState.intValue()),
-                (forUpdateState.intValue() == CursorNode.READ_ONLY ? null : updateColumns ),
-                getContextManager());
+        retval = new CursorNode("SELECT", queryExpression, null, orderCols, 
+                      offsetClauses[ OFFSET_CLAUSE ],
+                      offsetClauses[ FETCH_FIRST_CLAUSE ],
+                      Boolean.valueOf( hasJDBClimitClause ),
+                      ReuseFactory.getInteger(forUpdateState.intValue()),
+                      (forUpdateState.intValue() == CursorNode.READ_ONLY ? null : updateColumns ),
+                      getContextManager());
 
         if (checkParams)
         {
@@ -3627,19 +3622,10 @@ bareCallStatement() throws StandardException :
         }
 
         // wrap the row result set in a cursor node
-        StatementNode cursorNode =
-                    (StatementNode) nodeFactory.getNode(
-                        C_NodeTypes.CURSOR_NODE,
-                        "SELECT",
-                        resultSetNode,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        ReuseFactory.getInteger(CursorNode.READ_ONLY),
-                        null,
-                        getContextManager());
+        CursorNode cursorNode = new CursorNode("SELECT",
+                                resultSetNode, null, null, null, null, null,
+                                ReuseFactory.getInteger(CursorNode.READ_ONLY),
+                                null, getContextManager());
 
         // set the 0th param to be a RETURN param
         returnParam.setReturnOutputParam(value);
