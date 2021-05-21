@@ -243,7 +243,7 @@ public final class CurrentOfNode extends FromTable {
                                             getContextManager());
 
             /* Build the ResultColumnList to return */
-            resultColumns.addResultColumn(rc);
+            getResultColumns().addResultColumn(rc);
         }
 
         /* Assign the tableNumber */
@@ -331,7 +331,7 @@ public final class CurrentOfNode extends FromTable {
             boolean notfound = false;
 
             resultColumn =
-                resultColumns.getResultColumn(columnReference.getColumnName());
+                getResultColumns().getResultColumn(columnReference.getColumnName());
 
             if (resultColumn != null)
             {

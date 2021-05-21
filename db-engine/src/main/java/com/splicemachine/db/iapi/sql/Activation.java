@@ -657,4 +657,13 @@ public interface Activation extends Dependent, AutoCloseable
     boolean isRowTrigger();
 
     void setIsRowTrigger(boolean newValue);
+
+    default boolean isNestedTrigger() {
+        LanguageConnectionContext lcc = getLanguageConnectionContext();
+        if (lcc == null)
+            return false;
+        if (lcc.getTriggerStack() == null)
+            return false;
+        return !lcc.getTriggerStack().isEmpty();
+    }
 }

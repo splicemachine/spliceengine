@@ -48,6 +48,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -232,7 +233,7 @@ public class ExplainNode extends DMLStatementNode {
     }
 
     @Override
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
+    public void buildTree(Collection<Pair<QueryTreeNode,Integer>> tree, int depth) throws StandardException {
         if ( node!= null)
             node.buildTree(tree,depth);
     }
@@ -251,7 +252,9 @@ public class ExplainNode extends DMLStatementNode {
             } else if (!t.getNoStatsColumnIds().isEmpty()) {
                 TableDescriptor td = t.getTableDescriptor();
                 for (int columnId : t.getNoStatsColumnIds()) {
-                    noStatsColumnSet.add(tableName + "." + td.getColumnDescriptor(columnId).getColumnName());
+                    // RowID columns may have column id of zero.
+                    if (columnId > 0)
+                        noStatsColumnSet.add(tableName + "." + td.getColumnDescriptor(columnId).getColumnName());
                 }
             }
         }

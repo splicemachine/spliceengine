@@ -55,10 +55,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 
@@ -1273,10 +1270,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
                 int isolationLevel=TransactionController.ISOLATION_NOLOCK;
 
-                try (ConglomerateController cc = lcc.getTransactionCompile().openConglomerate(
-                        conglomerateId,false,0,TransactionController.MODE_RECORD,isolationLevel)) {
-                    rl=cc.newRowLocationTemplate();
-                }
+                rl = new HBaseRowLocation();
 
                 savedItem=acb.addItem(rl);
 
@@ -2708,10 +2702,12 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                         continue;
                     }
                 }
-                rc.setUnreferenced();
+                if (!rc.sourceResultSetForbidsColumnRemoval())
+                    rc.setUnreferenced();
             }
         }
     }
+
     /**
      * Copy the referenced RCs from this list to the supplied target list.
      *
@@ -2895,6 +2891,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
         /* Generate the RowLocation column */
         rowLocationNode = new CurrentRowLocationNode(getContextManager());
+        rowLocationNode.bindExpression(null, null, null);
         rowLocationColumn=
                 (ResultColumn)getNodeFactory().getNode(
                         C_NodeTypes.RESULT_COLUMN,

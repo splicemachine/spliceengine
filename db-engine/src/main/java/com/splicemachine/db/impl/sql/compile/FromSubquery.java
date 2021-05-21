@@ -415,7 +415,7 @@ public class FromSubquery extends FromTable
     {
 
         if(subquery != null && subquery instanceof SelectNode){
-            ResultColumnList rcl = subquery.resultColumns;
+            ResultColumnList rcl = subquery.getResultColumns();
             HashMap<String, ResultColumn> hs = new HashMap<>();
 
             for(ResultColumn rc : rcl){

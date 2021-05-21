@@ -533,7 +533,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     }
                 }
             }
-            startParams.setProperty("catalogVersion", dictionaryVersion.toString());
             assert authorizationDatabaseOwner!=null:"Failed to get Database Owner authorization";
 
             // Update (or create) the system stored procedures if requested.

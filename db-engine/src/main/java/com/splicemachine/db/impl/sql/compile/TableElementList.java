@@ -59,6 +59,7 @@ import splice.com.google.common.collect.Lists;
 import java.util.*;
 
 import static com.splicemachine.db.iapi.sql.compile.C_NodeTypes.TABLE_ELEMENT_LIST;
+import static com.splicemachine.db.impl.sql.compile.ColumnReference.checkForDerivedColNameInDDL;
 
 /**
  * A TableElementList represents the list of columns and other table elements
@@ -208,6 +209,7 @@ public class TableElementList extends QueryTreeNodeVector {
                 {
                     throw StandardException.newException(SQLState.LANG_LONG_DATA_TYPE_NOT_ALLOWED, cdn.getColumnName());
                 }
+                checkForDerivedColNameInDDL(cdn.getColumnName());
                 checkForDuplicateColumns(ddlStmt, columnHT, cdn.getColumnName());
                 cdn.checkUserType(td);
                 cdn.bindAndValidateDefault(dd, td);
