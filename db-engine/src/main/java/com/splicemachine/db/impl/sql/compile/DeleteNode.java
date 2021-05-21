@@ -106,7 +106,7 @@ public class DeleteNode extends DMLModStatementNode
 
     public DeleteNode(TableName targetTableName,
                SelectNode queryExpression, Boolean cursorDelete,
-               Properties targetProperties, ContextManager cm)
+               Properties targetProperties, MatchingClauseNode matchingClause, ContextManager cm)
     {
         super.init(queryExpression);
         setContextManager(cm);
@@ -114,6 +114,7 @@ public class DeleteNode extends DMLModStatementNode
         this.targetTableName = targetTableName;
         this.targetProperties = targetProperties;
         this.cursorDelete = cursorDelete;
+        this.matchingClause = matchingClause;
     }
 
     public DeleteNode(TableName tableName, SelectNode queryExpression, ContextManager cm) {
@@ -200,7 +201,8 @@ public class DeleteNode extends DMLModStatementNode
             CurrentOfNode               currentOfNode = null;
 
             DataDictionary dataDictionary = getDataDictionary();
-            super.bindTables(dataDictionary);
+            // for DELETE clause of a MERGE statement, the tables have already been bound
+            if ( !inMatchingClause() ) { super.bindTables(dataDictionary); }
 
             // wait to bind named target table until the underlying
             // cursor is bound, so that we can get it from the
@@ -217,6 +219,9 @@ public class DeleteNode extends DMLModStatementNode
             if (targetTable instanceof CurrentOfNode)
             {
                 currentOfNode = (CurrentOfNode) targetTable;
+
+                cursorTargetTableName = inMatchingClause() ?
+                        targetTableName : currentOfNode.getBaseCursorTargetTableName();
 
                 cursorTargetTableName = currentOfNode.getBaseCursorTargetTableName();
                 // instead of an assert, we might say the cursor is not updatable.
@@ -265,9 +270,10 @@ public class DeleteNode extends DMLModStatementNode
 
             /* Generate a select list for the ResultSetNode - CurrentRowLocation(). */
             if (SanityManager.DEBUG)
-                SanityManager.ASSERT((resultSet.getResultColumns() == null),
+            {
+                SanityManager.ASSERT((resultSet.resultColumns == null),
                               "resultColumns is expected to be null until bind time");
-
+            }
 
             if (targetTable instanceof FromVTI)
             {
@@ -314,8 +320,15 @@ public class DeleteNode extends DMLModStatementNode
                     readColsBitSet = null;
                 }
 
-                /* Set the new result column list in the result set */
+                /* Add the new result columns to the driving result set */
+                ResultColumnList    originalRCL = resultSet.resultColumns;
+                if ( originalRCL != null )
+                {
+                    originalRCL.appendResultColumns( resultColumnList, false );
+                    resultColumnList = originalRCL;
+                }
                 resultSet.setResultColumns(resultColumnList);
+
                 /* Bind the expressions before the ResultColumns are bound */
                 super.bindExpressions();
                 /*
@@ -622,7 +635,16 @@ public class DeleteNode extends DMLModStatementNode
 
         acb.pushGetResultSetFactoryExpression(mb);
         acb.newRowLocationScanResultSetName();
-        resultSet.generate(acb, mb); // arg 1
+
+        // arg 1
+        if ( inMatchingClause() )
+        {
+            matchingClause.generateResultSetField( acb, mb );
+        }
+        else
+        {
+            resultSet.generate( acb, mb );
+        }
 
         String resultSetGetter;
         int argCount;
@@ -980,7 +1002,18 @@ public class DeleteNode extends DMLModStatementNode
         }
 
         getCompilerContext().setDataSetProcessorType(dataSetProcessorType);
-        super.optimizeStatement();
+        //
+        // If this is the INSERT/UPDATE/DELETE action of a MERGE statement,
+        // then we don't need to optimize the dummy driving result set, which
+        // is never actually run.
+        //
+        // don't need to optimize the dummy SELECT, which is never actually run
+        if ( !inMatchingClause() )
+        {
+            /* First optimize the query */
+            super.optimizeStatement();
+        }
+
     }
 
     /**

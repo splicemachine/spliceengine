@@ -101,7 +101,10 @@ abstract class DMLModStatementNode extends DMLStatementNode
     protected TableName synonymTableName;
     /* Primary Key Column numbers */
     protected int[] pkColumns;
+    protected MatchingClauseNode  matchingClause;
 
+    /** Returns true if this DMLModStatement a [ NOT ] MATCHED action of a MERGE statement */
+    public  boolean inMatchingClause() { return matchingClause != null; }
 
     /**
      * Initializer for a DMLModStatementNode -- delegate to DMLStatementNode

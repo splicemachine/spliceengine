@@ -109,6 +109,30 @@ import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNA
  */
 
 public class FromBaseTable extends FromTable {
+
+    /**
+     * Constructor for a table in a FROM list. Parameters are as follows:
+     *
+     * @param tableName         The name of the table
+     * @param correlationName   The correlation name
+     * @param derivedRCL        The derived column list
+     * @param tableProperties   The Properties list associated with the table.
+     * @param cm                The context manager
+     */
+    FromBaseTable(TableName tableName,
+                  String correlationName,
+                  ResultColumnList derivedRCL,
+                  Properties tableProperties,
+                  ContextManager cm)
+    {
+        super(correlationName, tableProperties, cm);
+        this.tableName = tableName;
+        resultColumns = derivedRCL;
+        setOrigTableName(this.tableName);
+        templateColumns = resultColumns;
+    }
+
+
     static final int UNSET=-1;
     /**
      * Whether or not we have checked the index statistics for staleness.
