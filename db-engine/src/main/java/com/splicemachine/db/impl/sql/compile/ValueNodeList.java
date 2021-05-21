@@ -531,10 +531,8 @@ public class ValueNodeList extends QueryTreeNodeVector
                         prevCN.getValue();
 
                     /* Swap curr and prev if prev > curr */
-                    if (currODV == null ||
-                            prevODV != null && (
-                                (judgeODV == null && (prevODV.compare(currODV)) > 0) ||
-                                (judgeODV != null && judgeODV.greaterThan(prevODV, currODV).equals(true)))) {
+                    if ((judgeODV == null && (prevODV.compare(currODV)) > 0) ||
+                        (judgeODV != null && judgeODV.greaterThan(prevODV, currODV).equals(true))) {
                         if (multiColumn) {
                             setElementAt(lvn, index - 1);
                             setElementAt(prevLVN, index);
