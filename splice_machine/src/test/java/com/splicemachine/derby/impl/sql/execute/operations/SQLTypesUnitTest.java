@@ -106,7 +106,6 @@ public class SQLTypesUnitTest {
         Assert.assertEquals(SQLTimestamp.getFormatLength("MM/dd/yyyy HH:mm:ss.SSSSS"), "MM/dd/yyyy HH:mm:ss.SSSSS".length());
         Assert.assertEquals(SQLTimestamp.getFormatLength("yyyy.MM.dd HH mm ss.SSSSS"), "yyyy-MM-dd-HH.mm.ss.SSSSS".length());
         Assert.assertEquals(SQLTimestamp.getFormatLength("hh:mm:ss a"), "12:34:56 PM".length());
-        Assert.assertEquals(SQLTimestamp.getFormatLength("QQ YYYY"), 7);
 
         SpliceUnitTest.assertThrows( () -> { SQLTimestamp.getFormatLength("h:mm:ss a") ; },
                 "java.lang.IllegalArgumentException: not supported format \"h:mm:ss a\": 'h' can't be repeated 1 times");

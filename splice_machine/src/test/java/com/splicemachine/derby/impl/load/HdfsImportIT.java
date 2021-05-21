@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.impl.load;
 
-import com.splicemachine.db.iapi.reference.GlobalDBProperties;
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportBuilder;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
@@ -2130,7 +2130,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     public static void setPreserveLineEndings(Connection conn, Boolean preserve) throws Exception {
         try (Statement s = conn.createStatement()) {
             s.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( " +
-                    "'" + GlobalDBProperties.PRESERVE_LINE_ENDINGS.getName() + "', '" + preserve + "' )");
+                    "'" + Property.PRESERVE_LINE_ENDINGS + "', '" + preserve + "' )");
         }
     }
 

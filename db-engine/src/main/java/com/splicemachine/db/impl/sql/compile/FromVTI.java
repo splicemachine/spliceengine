@@ -36,7 +36,7 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.iapi.reference.GlobalDBProperties;
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
@@ -1685,9 +1685,8 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
         mb.push(printExplainInformationForActivation());
 
-        boolean quotedEmptyIsNull = !PropertyUtil.getCachedBoolean(
-                getLanguageConnectionContext(),
-                GlobalDBProperties.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
+        boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
+                getLanguageConnectionContext(), Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
 
         mb.push(quotedEmptyIsNull);
 
