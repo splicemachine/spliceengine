@@ -86,6 +86,9 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
     }
 
     private boolean containsCorrelatedSubquery(OptimizablePredicateList predList) throws StandardException {
+        if(predList == null) {
+            return false;
+        }
         for (int i = 0; i < predList.size(); i++) {
             if(predList.getOptPredicate(i).hasCorrelatedSubquery()) {
                 return true;
