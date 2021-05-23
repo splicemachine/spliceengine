@@ -918,7 +918,6 @@ public class DeleteNode extends DMLModStatementNode
         TableName tableName = new TableName();
         tableName.init(schemaName , targetTableName);
 
-        NodeFactory nodeFactory = getNodeFactory();
         FromList  fromList = new FromList(getContextManager());
         FromTable fromTable = new FromBaseTable(tableName, null, ReuseFactory.getInteger(FromBaseTable.DELETE),
                                                     null, getContextManager());
@@ -957,7 +956,7 @@ public class DeleteNode extends DMLModStatementNode
         valueNode = new UntypedNullConstantNode(getContextManager());
         for(int index =0 ; index < cdl.size() ; index++)
         {
-            ColumnDescriptor cd = (ColumnDescriptor) cdl.elementAt(index);
+            ColumnDescriptor cd = cdl.elementAt(index);
             //only columns that are nullable need to be set to 'null' for ON
             //DELETE SET NULL
             if((cd.getType()).isNullable())
