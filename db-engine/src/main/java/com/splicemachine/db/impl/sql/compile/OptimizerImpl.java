@@ -53,6 +53,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.splicemachine.db.impl.sql.compile.JoinNode.INNERJOIN;
+
 /**
  * This will be the Level 1 Optimizer.
  * RESOLVE - it's a level 0 optimizer right now.
@@ -198,6 +200,8 @@ public class OptimizerImpl implements Optimizer{
     boolean foundCompleteJoinPlan = false;
 
     private CostModel costModel;
+
+    private ResultSetNode outerTableOfJoin;
 
     protected OptimizerImpl(OptimizableList optimizableList,
                             OptimizablePredicateList predicateList,
@@ -1185,7 +1189,7 @@ public class OptimizerImpl implements Optimizer{
 
         /* if the current optimizable is from SSQ, we need to use outer join, set the OuterJoin flag in cost accordingly */
         boolean isJoinTypeSaved = false;
-        int savedJoinType = JoinNode.INNERJOIN;
+        int savedJoinType = INNERJOIN;
         if (optimizable instanceof FromTable) {
             FromTable fromTable = (FromTable)optimizable;
             if (fromTable.getFromSSQ() || fromTable.getOuterJoinLevel() > 0) {
@@ -1194,7 +1198,7 @@ public class OptimizerImpl implements Optimizer{
                 isJoinTypeSaved = true;
             } else if (outerCost.getJoinType() == JoinNode.LEFTOUTERJOIN && fromTable.getOuterJoinLevel() == 0) {
                 savedJoinType = outerCost.getJoinType();
-                outerCost.setJoinType(JoinNode.INNERJOIN);
+                outerCost.setJoinType(INNERJOIN);
                 isJoinTypeSaved = true;
             }
         }
@@ -2844,5 +2848,22 @@ public class OptimizerImpl implements Optimizer{
     @Override
     public CostModel getCostModel() {
         return costModel;
+    }
+
+    @Override
+    public void setOuterTableOfJoin(ResultSetNode outerTableOfJoin) {
+        this.outerTableOfJoin = outerTableOfJoin;
+    }
+
+    @Override
+    public ResultSetNode getOuterTable() {
+        if (joinPosition == 0) {
+            if (getJoinType() >= INNERJOIN)
+                return outerTableOfJoin;
+            return null;
+        }
+        int propJoinOrder = proposedJoinOrder[joinPosition-1];
+        ResultSetNode thisOpt = (ResultSetNode)optimizableList.getOptimizable(propJoinOrder);
+        return thisOpt;
     }
 }

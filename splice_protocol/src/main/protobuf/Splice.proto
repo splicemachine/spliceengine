@@ -32,6 +32,12 @@ message AllocateFilterMessage {
     optional bytes addressMatch = 1;
 }
 
+message KeyPrefixProbingFilterMessage {
+    required bytes  firstKeyColumnDVDAsByteArray = 1;
+    required string tableVersion = 2;
+    required bytes  secondaryFilter = 3;
+}
+
 message SuccessFilterMessage {
     repeated bytes failedTasks = 1;
 }

@@ -918,6 +918,7 @@ public class FromBaseTable extends FromTable {
             finalCostEstimate = firstPassCostEstimate = firstPassCostEstimate.cloneMe();
             AccessPath firstPassAccessPath = new AccessPathImpl(optimizer);
             firstPassAccessPath.copy(currentAccessPath);
+            currentAccessPath.setNumUnusedLeadingIndexFields(0);
             disableIndexPrefixIteration = true;
             CostEstimate secondPassCostEstimate =
                 estimateCostHelper(predList, cd, outerCost, optimizer, rowOrdering);
@@ -930,6 +931,13 @@ public class FromBaseTable extends FromTable {
         return finalCostEstimate;
     }
 
+    private void reduceEstimatedCosts(CostEstimate estimate) {
+        double costScaleFactor = 1e-9;
+        estimate.setLocalCost(estimate.getLocalCost() * costScaleFactor);
+        estimate.setRemoteCost(estimate.getRemoteCost() * costScaleFactor);
+        estimate.setLocalCostPerParallelTask(estimate.getLocalCostPerParallelTask() * costScaleFactor);
+        estimate.setRemoteCostPerParallelTask(estimate.getRemoteCostPerParallelTask() * costScaleFactor);
+    }
 
     private
     CostEstimate estimateCostHelper(OptimizablePredicateList predList,
@@ -1078,6 +1086,7 @@ public class FromBaseTable extends FromTable {
         boolean oldIsAntiJoin = outerCost.isAntiJoin();
         outerCost.setAntiJoin(isAntiJoin);
         currentJoinStrategy.estimateCost(this, baseTableRestrictionList, cd, outerCost, optimizer, costEstimate);
+        adjustCostsForHintedIndexPrefixIteration(costEstimate, baseTableRestrictionList, optimizer);
         outerCost.setAntiJoin(oldIsAntiJoin);
         tracer.trace(OptimizerFlag.COST_OF_N_SCANS,tableNumber,0,outerCost.rowCount(),costEstimate, correlationName);
 
@@ -1085,6 +1094,24 @@ public class FromBaseTable extends FromTable {
         currentJoinStrategy.putBasePredicates(predList, baseTableRestrictionList);
 
         return costEstimate;
+    }
+
+    // Make the cost of Index Prefix Iteration cheaper if the
+    // favorUnionedIndexScans session hint is used.
+    private void
+    adjustCostsForHintedIndexPrefixIteration(CostEstimate costEstimate, PredicateList predList, Optimizer optimizer) {
+        if (!getLanguageConnectionContext().favorIndexPrefixIteration())
+            return;
+
+        if (optimizer.getOuterTable() instanceof Optimizable) {
+            Optimizable opt = (Optimizable)optimizer.getOuterTable();
+            AccessPath ap = opt.getCurrentAccessPath();
+            if (ap.getNumUnusedLeadingIndexFields() > 0)
+                reduceEstimatedCosts(costEstimate);
+        }
+        else if (currentAccessPath.getNumUnusedLeadingIndexFields() > 0) {
+            reduceEstimatedCosts(costEstimate);
+        }
     }
 
     @Override

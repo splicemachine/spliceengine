@@ -14,6 +14,8 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -35,7 +37,8 @@ public class MScan implements DataScan{
     private boolean descending = false;
 
     @Override
-    public void addRowkeyRangesFilter(List<Pair<byte[],byte[]>> rowkeyPairs)  throws IOException {
+    public void addRowkeyRangesFilter(List<Pair<byte[],byte[]>> rowkeyPairs,
+                                      boolean skipStartStopKeyAdjustment)  throws IOException {
         // No implementation on mem platform for now.
         // If this function is getting called, it is an error condition.
         throw new IOException();
@@ -144,5 +147,12 @@ public class MScan implements DataScan{
 
     @Override
     public void setSmall(boolean small) {
+    }
+
+    @Override
+    public void attachKeyPrefixFilter(DataValueDescriptor firstColumn, String tableVersion) throws IOException {
+        // No implementation on mem platform for now.
+        // If this function is getting called, it is an error condition.
+        throw new IOException();
     }
 }

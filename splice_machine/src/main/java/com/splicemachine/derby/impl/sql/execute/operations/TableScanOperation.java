@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -28,9 +29,11 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.storage.DataScan;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -56,6 +59,7 @@ public class TableScanOperation extends ScanOperation{
     protected int[] baseColumnMap;
     protected static final String NAME=TableScanOperation.class.getSimpleName().replaceAll("Operation","");
     protected byte[] tableNameBytes;
+    protected ExecRow firstRowOfIndexPrefixIteration = null;
 
     /**
      *
@@ -345,11 +349,21 @@ public class TableScanOperation extends ScanOperation{
         // we currently don't support external tables in Control, so this shouldn't happen
         assert storedAs == null || !( dsp.getType() == DataSetProcessor.Type.CONTROL && !storedAs.isEmpty() )
                 : "tried to access external table " + tableDisplayName + ":" + tableName + " over control/OLTP";
+
+        DataScan dataScan = getNonSIScan();
+        if (firstRowOfIndexPrefixIteration != null) {
+            try {
+                dataScan.attachKeyPrefixFilter(firstRowOfIndexPrefixIteration.getColumn(1), tableVersion);
+            } catch (IOException e) {
+                throw StandardException.plainWrapException(e);
+            }
+        }
+
         return dsp.<TableScanOperation,ExecRow>newScanSet(this,tableName)
                 .tableDisplayName(tableDisplayName)
                 .activation(activation)
                 .transaction(txn)
-                .scan(getNonSIScan())
+                .scan(dataScan)
                 .template(currentTemplate)
                 .tableVersion(tableVersion)
                 .indexName(indexName)
@@ -386,4 +400,13 @@ public class TableScanOperation extends ScanOperation{
     public boolean isForUpdate(){
         return forUpdate;
     }
+
+    public ExecRow getFirstRowOfIndexPrefixIteration() {
+        return firstRowOfIndexPrefixIteration;
+    }
+
+    public void setFirstRowOfIndexPrefixIteration(ExecRow firstRowOfIndexPrefixIteration) {
+        this.firstRowOfIndexPrefixIteration = firstRowOfIndexPrefixIteration;
+    }
+
 }
