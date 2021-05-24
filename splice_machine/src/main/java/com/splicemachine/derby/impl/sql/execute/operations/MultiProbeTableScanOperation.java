@@ -215,7 +215,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             List<DataScan> scans =
                 scanInformation.getScans(getCurrentTransaction(),
                                          ((BaseActivation) activation).getFirstIndexColumnKeys(),
-                                         activation, getKeyDecodingMap());
+                                         activation, getKeyDecodingMap(),
+                                         firstRowOfIndexPrefixIteration != null);
             DataSet<ExecRow> dataSet = dsp.getEmpty();
             OperationContext<MultiProbeTableScanOperation> operationContext = dsp.<MultiProbeTableScanOperation>createOperationContext(this);
             dsp.prependSpliceExplainString(this.explainPlan);
@@ -223,6 +224,14 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             List<ScanSetBuilder<ExecRow>> datasets = new ArrayList<>(scans.size());
             for (DataScan scan : scans) {
                 deSiify(scan);
+                if (firstRowOfIndexPrefixIteration != null) {
+                    try {
+                        scan.attachKeyPrefixFilter(firstRowOfIndexPrefixIteration.getColumn(1),
+                                                   tableVersion);
+                    } catch (IOException e) {
+                        throw StandardException.plainWrapException(e);
+                    }
+                }
                 ScanSetBuilder<ExecRow> ssb = dsp.<MultiProbeTableScanOperation, ExecRow>newScanSet(this, tableName)
                         .tableDisplayName(tableDisplayName)
                         .activation(this.getActivation())

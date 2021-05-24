@@ -14,6 +14,9 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.derby.hbase.KeyPrefixProbingFilter;
 import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -56,6 +59,9 @@ public class HScan implements DataScan {
      * it to the {@link Scan} held in this {@link HScan} as a {@link Filter}.
      *
      * @param rowkeyPairs the list of [startKey, stopKey) pairs to convert.
+     * @param skipStartStopKeyAdjustment if true, do not adjust the start and
+     *                                   stop keys using the first and last
+     *                                   row ranges.
      *
      * @return if this {@link HScan} currently has no filter, build a new
      * {@link MultiRowRangeFilter} out of {@code rowkeyPairs} and attach it
@@ -72,7 +78,8 @@ public class HScan implements DataScan {
      * @see     Scan
      */
     @Override
-    public void addRowkeyRangesFilter(List<Pair<byte[],byte[]>> rowkeyPairs) throws IOException {
+    public void addRowkeyRangesFilter(List<Pair<byte[],byte[]>> rowkeyPairs,
+                                      boolean skipStartStopKeyAdjustment) throws IOException {
         if (rowkeyPairs == null || rowkeyPairs.size() < 1) {
             return;
         }
@@ -102,14 +109,16 @@ public class HScan implements DataScan {
             byte[] filterStopRow = sortedRanges.get(sortedRanges.size()-1).getStopRow();
             // Only replace the current start/stop row if those from the filter
             // are more restrictive.
-            if (currentStartRow == null     ||
-                currentStartRow.length == 0 ||
-                Bytes.compareTo(currentStartRow, filterStartRow) < 0)
-                scan.withStartRow(filterStartRow);
-            if (currentStopRow == null     ||
-                currentStopRow.length == 0 ||
-                Bytes.compareTo(currentStopRow, filterStopRow) > 0)
-                scan.withStopRow(filterStopRow);
+            if (!skipStartStopKeyAdjustment) {
+                if (currentStartRow == null ||
+                    currentStartRow.length == 0 ||
+                    Bytes.compareTo(currentStartRow, filterStartRow) < 0)
+                    scan.withStartRow(filterStartRow);
+                if (currentStopRow == null ||
+                    currentStopRow.length == 0 ||
+                    Bytes.compareTo(currentStopRow, filterStopRow) > 0)
+                    scan.withStopRow(filterStopRow);
+            }
         }
     }
 
@@ -239,5 +248,12 @@ public class HScan implements DataScan {
     @Override
     public void setSmall(boolean small) {
         scan.setSmall(small);
+    }
+
+    @Override
+    public void attachKeyPrefixFilter(DataValueDescriptor firstColumn, String tableVersion) throws IOException {
+        Filter secondaryFilter = scan.getFilter();
+        scan.setFilter(null);
+        filter(new HFilterWrapper(new KeyPrefixProbingFilter(firstColumn, tableVersion, secondaryFilter)));
     }
 }
