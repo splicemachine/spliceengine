@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.*;
+import com.splicemachine.db.impl.sql.execute.MergeConstantAction;
 import com.splicemachine.derby.impl.sql.execute.actions.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -515,5 +516,27 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
         return new RevokeRoleConstantOperation(roleNames,grantees);
     }
 
+    /**
+     * Make the ConstantAction for a WHEN [ NOT ] MATCHED clause.
+     */
+    @Override
+    public ConstantAction getMatchingClauseConstantAction(int clauseType,
+                                                          String matchRefinementName,
+                                                          int[] thenColumns,
+                                                          String resultSetFieldName,
+                                                          String actionMethodName,
+                                                          ConstantAction thenAction)
+    {
+        return new MatchingClauseConstantAction
+                (clauseType, matchRefinementName, thenColumns, resultSetFieldName, actionMethodName, thenAction);
+    }
+
+    /**
+     * Make the ConstantAction for a MERGE statement.
+     */
+    public ConstantAction getMergeConstantAction(ConstantAction[] matchingClauses)
+    {
+        return new MergeConstantAction( matchingClauses );
+    }
 
 }

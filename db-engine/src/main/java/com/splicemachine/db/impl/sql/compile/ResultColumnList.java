@@ -113,9 +113,6 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
     public ResultColumnList(){
     }
-    public ResultColumnList(ContextManager cm) {
-        super(cm);
-    }
 
     public ResultColumnList(ContextManager contextManager) {
         setContextManager(contextManager);

@@ -571,7 +571,7 @@ class SQLGrammarImpl {
                 tableName, /* target table for update */
                 resultSet, /* SelectNode just created */
                 fromTable instanceof CurrentOfNode,
-                false, getContextManager());
+                null, getContextManager());
         setUpAndLinkParameters();
 
         return node;
@@ -677,7 +677,7 @@ class SQLGrammarImpl {
                         tableName, /* target table for update */
                         resultSet, /* SelectNode just created */
                         fromTable instanceof CurrentOfNode,
-                false, getContextManager());
+                        null, getContextManager());
 
         node.setUpdateWithSubquery(true);
         setUpAndLinkParameters();

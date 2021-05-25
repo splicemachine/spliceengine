@@ -32,25 +32,35 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.ClassName;
+import com.splicemachine.db.iapi.services.compiler.LocalField;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Properties;
 
 public class MatchingClauseNode extends QueryTreeNode {
+    ///////////////////////////////////////////////////////////////////////////////////
+    //
+    // CONSTANTS
+    //
+    ///////////////////////////////////////////////////////////////////////////////////
+
+    private static  final   String  CURRENT_OF_NODE_NAME = "$MERGE_CURRENT";
+
     /** clauseType for WHEN NOT MATCHED ... THEN INSERT */
     public  static  final   int WHEN_NOT_MATCHED_THEN_INSERT = 0;
     /** clauseType for WHEN MATCHED ... THEN UPDATE */
     public  static  final   int WHEN_MATCHED_THEN_UPDATE = 1;
     /** clauseType for WHEN MATCHED ... THEN DELETE */
     public  static  final   int WHEN_MATCHED_THEN_DELETE = 2;
-
-    ///////////////////////////////////////////////////////////////////////////////////
-    //
-    // CONSTANTS
-    //
-    ///////////////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -274,7 +284,7 @@ public class MatchingClauseNode extends QueryTreeNode {
                         null,      // optimizer plan override
                         getContextManager()
                 );
-        _dml = new UpdateNode( targetTable.getTableName(), selectNode, this, getContextManager() );
+        _dml = new UpdateNode( targetTable.getTableName(), selectNode, false, this, getContextManager() );
 
         _dml.bindStatement();
     }
@@ -303,7 +313,9 @@ public class MatchingClauseNode extends QueryTreeNode {
                         null, /* optimizer plan override */
                         getContextManager()
                 );
-        _dml = new DeleteNode( targetTable.getTableName(), selectNode, this, getContextManager() );
+        Properties tableProperties = null; // todo
+        _dml = new DeleteNode( targetTable.getTableName(), selectNode, false,
+                tableProperties, this, getContextManager() );
 
         _dml.bindStatement();
 
@@ -485,7 +497,7 @@ public class MatchingClauseNode extends QueryTreeNode {
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-    ConstantAction makeConstantAction( ActivationClassBuilder acb )
+    ConstantAction makeConstantAction(ActivationClassBuilder acb )
             throws StandardException
     {
         // generate the clause-specific refinement
@@ -515,9 +527,9 @@ public class MatchingClauseNode extends QueryTreeNode {
     }
     private int getClauseType()
     {
-        if ( isUpdateClause() ) { return ConstantAction.WHEN_MATCHED_THEN_UPDATE; }
-        else if ( isInsertClause() ) { return ConstantAction.WHEN_NOT_MATCHED_THEN_INSERT; }
-        else { return ConstantAction.WHEN_MATCHED_THEN_DELETE; }
+        if ( isUpdateClause() ) { return MatchingClauseNode.WHEN_MATCHED_THEN_UPDATE; }
+        else if ( isInsertClause() ) { return MatchingClauseNode.WHEN_NOT_MATCHED_THEN_INSERT; }
+        else { return MatchingClauseNode.WHEN_MATCHED_THEN_DELETE; }
     }
 
     /**
@@ -586,7 +598,7 @@ public class MatchingClauseNode extends QueryTreeNode {
      * @exception StandardException on error
      */
     @Override
-    void acceptChildren(Visitor v)
+    public void acceptChildren(Visitor v)
             throws StandardException
     {
         super.acceptChildren( v );
