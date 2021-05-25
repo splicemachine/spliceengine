@@ -14,6 +14,7 @@
 
 package com.splicemachine.stream;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import splice.com.google.common.net.HostAndPort;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
@@ -247,6 +248,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             olapFuture.cancel(false);
     }
 
+    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED", justification = "intended")
     public Exception getException() throws InterruptedException {
         olapFutureCallbackInvoked.await(5, TimeUnit.SECONDS);
         return (Exception) streamListener.getFailure();
