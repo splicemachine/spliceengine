@@ -29,7 +29,6 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.*;
-import com.splicemachine.db.impl.sql.execute.MergeConstantAction;
 import com.splicemachine.derby.impl.sql.execute.actions.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;

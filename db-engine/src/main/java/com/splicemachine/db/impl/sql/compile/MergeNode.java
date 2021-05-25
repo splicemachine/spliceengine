@@ -32,7 +32,9 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.StatementType;
@@ -41,9 +43,12 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.iapi.util.IdUtil;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * This class represents a MERGE INTO statement.
@@ -73,7 +78,7 @@ public class MergeNode extends DMLStatementNode
     private FromBaseTable   _targetTable;
     private FromTable   _sourceTable;
     private ValueNode   _searchCondition;
-    private ArrayList<MatchingClauseNode>   _matchingClauses;
+    private List<MatchingClauseNode>   _matchingClauses;
 
     //
     // Filled in at bind() time.
@@ -104,11 +109,12 @@ public class MergeNode extends DMLStatementNode
             FromTable          targetTable,
             FromTable          sourceTable,
             ValueNode          searchCondition,
-            ArrayList<MatchingClauseNode> matchingClauses,
+            QueryTreeNodeVector<MatchingClauseNode> matchingClauses,
             ContextManager     cm
     )
             throws StandardException
     {
+        setContextManager(cm);
         //super( null, null, cm );
 
         if ( !( targetTable instanceof FromBaseTable) ) { notBaseTable(); }
@@ -116,7 +122,7 @@ public class MergeNode extends DMLStatementNode
 
         _sourceTable = sourceTable;
         _searchCondition = searchCondition;
-        _matchingClauses = matchingClauses;
+        _matchingClauses = matchingClauses.getNodes();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////
@@ -379,7 +385,7 @@ public class MergeNode extends DMLStatementNode
         }
         else
         {
-            throw StandardException.newException( SQLState.LANG_SOURCE_NOT_BASE_VIEW_OR_VTI );
+            throw new RuntimeException("StandardException.newException( SQLState.LANG_SOURCE_NOT_BASE_VIEW_OR_VTI )");
         }
     }
 
@@ -431,8 +437,7 @@ public class MergeNode extends DMLStatementNode
     {
         if ( expression == null ) { return; }
 
-        CollectNodesVisitor<ColumnReference> getCRs =
-                new CollectNodesVisitor<ColumnReference>(ColumnReference.class);
+        CollectNodesVisitor getCRs = new CollectNodesVisitor(ColumnReference.class);
 
         expression.accept(getCRs);
         List<ColumnReference> colRefs = getCRs.getList();
@@ -466,7 +471,7 @@ public class MergeNode extends DMLStatementNode
         {
             if ( cr.getTableName() == null )
             {
-                ResultColumn    rc = _leftJoinFromList.bindColumnReference( cr );
+                ValueNode rc = _leftJoinFromList.bindColumnReference( cr );
                 TableName       tableName = new TableName( null, rc.getTableName(), getContextManager() );
                 cr = new ColumnReference( cr.getColumnName(), tableName, getContextManager() );
             }
@@ -588,7 +593,7 @@ public class MergeNode extends DMLStatementNode
      * @exception StandardException on error
      */
     @Override
-    void acceptChildren(Visitor v)
+    public void acceptChildren(Visitor v)
             throws StandardException
     {
         if ( _leftJoinCursor != null )
@@ -611,7 +616,7 @@ public class MergeNode extends DMLStatementNode
     }
 
     @Override
-    String statementToString()
+    public String statementToString()
     {
         return "MERGE";
     }
