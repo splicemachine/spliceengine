@@ -190,8 +190,8 @@ public class OlapConfigurations implements ConfigurationDefault {
     public static final String SPARK_SLOW_RESULT_STREAMING_BATCH_SIZE = "spark.slow.result.streaming.batch.size";
     public static final int DEFAULT_SPARK_SLOW_RESULT_STREAMING_BATCH_SIZE = 20;
 
-    public static final String SPARK_RESULT_STREAMING_THROTTLE_MAX_WAIT = "spark.result.streaming.throttle.max.wait";
-    public static final int DEFAULT_SPARK_RESULT_STREAMING_THROTTLE_MAX_WAIT = 120;
+    public static final String SPARK_RESULT_STREAMING_THROTTLE_ENABLED = "spark.result.streaming.throttle.enabled";
+    public static final boolean DEFAULT_SPARK_RESULT_STREAMING_THROTTLE_ENABLED = true;
 
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
@@ -239,7 +239,7 @@ public class OlapConfigurations implements ConfigurationDefault {
         builder.sparkIoCompressionCodec = configurationSource.getString(SPARK_IO_COMPRESSION_CODEC, DEFAULT_SPARK_IO_COMPRESSION_CODEC);
         builder.sparkResultStreamingBatches = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCHES, DEFAULT_SPARK_RESULT_STREAMING_BATCHES);
         builder.sparkResultStreamingBatchSize = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCH_SIZE, DEFAULT_SPARK_RESULT_STREAMING_BATCH_SIZE);
-        builder.sparkResultStreamingThrottleMaxWait = configurationSource.getInt(SPARK_RESULT_STREAMING_THROTTLE_MAX_WAIT, DEFAULT_SPARK_RESULT_STREAMING_THROTTLE_MAX_WAIT);
+        builder.sparkResultStreamingThrottleEnabled = configurationSource.getBoolean(SPARK_RESULT_STREAMING_THROTTLE_ENABLED, DEFAULT_SPARK_RESULT_STREAMING_THROTTLE_ENABLED);
         builder.sparkSlowResultStreamingBatches = configurationSource.getInt(SPARK_SLOW_RESULT_STREAMING_BATCHES, DEFAULT_SPARK_SLOW_RESULT_STREAMING_BATCHES);
         builder.sparkSlowResultStreamingBatchSize = configurationSource.getInt(SPARK_SLOW_RESULT_STREAMING_BATCH_SIZE, DEFAULT_SPARK_SLOW_RESULT_STREAMING_BATCH_SIZE);
 
