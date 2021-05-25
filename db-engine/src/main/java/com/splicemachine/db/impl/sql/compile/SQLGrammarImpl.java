@@ -537,7 +537,7 @@ class SQLGrammarImpl {
                 null, /* window list */
                 getContextManager());
 
-        DeleteNode dn = new DeleteNode(getContextManager(), tableName, resultSet, fromTable instanceof CurrentOfNode, targetProperties);
+        DeleteNode dn = new DeleteNode(tableName, resultSet, fromTable instanceof CurrentOfNode, targetProperties, getContextManager());
         setUpAndLinkParameters();
         return dn;
     }

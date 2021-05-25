@@ -104,9 +104,9 @@ public class DeleteNode extends DMLModStatementNode
 
     public DeleteNode() {}
 
-    public DeleteNode(ContextManager cm, TableName targetTableName,
+    public DeleteNode(TableName targetTableName,
                SelectNode queryExpression, Boolean cursorDelete,
-               Properties targetProperties)
+               Properties targetProperties, ContextManager cm)
     {
         super.init(queryExpression);
         setContextManager(cm);
@@ -114,6 +114,12 @@ public class DeleteNode extends DMLModStatementNode
         this.targetTableName = targetTableName;
         this.targetProperties = targetProperties;
         this.cursorDelete = cursorDelete;
+    }
+
+    public DeleteNode(TableName tableName, SelectNode queryExpression, ContextManager cm) {
+        super.init(tableName, queryExpression);
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.DELETE_NODE);
     }
 
     /**
@@ -897,11 +903,7 @@ public class DeleteNode extends DMLModStatementNode
                                                      null, /* windows */
                                                      getContextManager());
 
-        return (StatementNode) nodeFactory.getNode(
-                                                    C_NodeTypes.DELETE_NODE,
-                                                    tableName,
-                                                    resultSet,
-                                                    getContextManager());
+        return new DeleteNode(tableName, resultSet, getContextManager());
 
     }
 
