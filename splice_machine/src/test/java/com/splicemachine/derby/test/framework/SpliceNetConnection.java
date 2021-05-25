@@ -145,6 +145,7 @@ public class SpliceNetConnection {
         private String minPlanTimeout;
         private String currentFunctionPath;
         private String jdbcDb2Compatible;
+        private String autoCommit;
 
         @Override
         public ConnectionBuilder clone() throws CloneNotSupportedException {
@@ -207,6 +208,10 @@ public class SpliceNetConnection {
             this.jdbcDb2Compatible = Boolean.toString(db2Compatible);
             return this;
         }
+        public ConnectionBuilder autoCommit(boolean autoCommit) {
+            this.autoCommit = Boolean.toString(autoCommit);
+            return this;
+        }
 
         public Connection build() throws SQLException {
             Properties info = new Properties();
@@ -230,6 +235,9 @@ public class SpliceNetConnection {
                 info.put("CurrentFunctionPath", currentFunctionPath);
             if (jdbcDb2Compatible != null || jdbcJdbcDb2CompatibleMode != null)
                 info.put("jdbcDb2CompatibleMode", jdbcDb2Compatible != null ? jdbcDb2Compatible : jdbcJdbcDb2CompatibleMode);
+            if (autoCommit != null) {
+                info.put("autoCommit", autoCommit);
+            }
             StringBuilder url = new StringBuilder();
             if (host != null || port != null) {
                 url.append(URL_PREFIX);

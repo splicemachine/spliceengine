@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
 import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -786,7 +787,8 @@ public class OperatorToString {
                 if (!sparkSupportedType(cr.getTypeId().getTypeFormatId(), operand))
                     throwNotImplementedError();
 
-                String columnString = format("c%d", source.getVirtualColumnId()-1);
+                int columnNumber = source.getVirtualColumnId()-1;
+                String columnString = ValueRow.getNamedColumn(columnNumber);
                 if (vars.buildExpressionTree) {
                     boolean leftDataFrame;
                     int rsn =  source.getResultSetNumber();
@@ -796,7 +798,7 @@ public class OperatorToString {
                     else {
                         leftDataFrame = (rsn == vars.leftResultSetNumber);
                         vars.sparkExpressionTree =
-                        new SparkColumnReference(columnString, leftDataFrame);
+                        new SparkColumnReference(columnNumber, leftDataFrame);
                     }
                 }
                 return columnString;
@@ -814,7 +816,8 @@ public class OperatorToString {
                 if (!sparkSupportedType(operand.getTypeId().getTypeFormatId(), operand))
                     throwNotImplementedError();
 
-                String columnString = format("c%d", source.getVirtualColumnId()-1);
+                int columnNumber = source.getVirtualColumnId()-1;
+                String columnString = ValueRow.getNamedColumn(columnNumber);
                 if (vars.buildExpressionTree) {
                     boolean leftDataFrame;
                     int rsn =  source.getResultSetNumber();
@@ -824,7 +827,7 @@ public class OperatorToString {
                     else {
                         leftDataFrame = (rsn == vars.leftResultSetNumber);
                         vars.sparkExpressionTree =
-                        new SparkColumnReference(columnString, leftDataFrame);
+                        new SparkColumnReference(columnNumber, leftDataFrame);
                     }
                 }
                 return columnString;

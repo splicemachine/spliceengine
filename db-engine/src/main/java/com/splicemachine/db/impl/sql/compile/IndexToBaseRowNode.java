@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.sql.compile.RequiredRowOrdering;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.Collection;
 import java.util.Vector;
@@ -395,9 +396,8 @@ public class IndexToBaseRowNode extends FromTable{
         }
     }
     @Override
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException{
-        setDepth(depth);
-        tree.add(this);
+    public void buildTree(Collection<Pair<QueryTreeNode,Integer>> tree, int depth) throws StandardException{
+        addNodeToExplainTree(tree, this, depth);
         source.buildTree(tree,depth+1);
     }
 

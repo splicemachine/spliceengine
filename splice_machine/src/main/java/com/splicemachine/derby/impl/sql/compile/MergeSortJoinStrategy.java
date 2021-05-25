@@ -34,6 +34,8 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
                             Optimizer optimizer,
                             CostEstimate outerCost,boolean wasHinted,
                             boolean skipKeyCheck) throws StandardException {
+        if (innerTable.indexFriendlyJoinsOnly())
+            return false;
 		return super.feasible(innerTable, predList, optimizer,outerCost,wasHinted,skipKeyCheck);
 	}
 

@@ -23,8 +23,8 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
+import java.util.Properties;
 
 /**
  * Tests around the maintenance of TransactionAdmin tools.
@@ -143,5 +143,43 @@ public class TransactionAdminIT {
 //        try(Statement s = conn1.createStatement()){
 //            s.execute("insert into "+table+" (a,b) values (1,1)");
 //        }
+    }
+
+    @Test
+    public void testConnection() throws Exception {
+
+        Connection connection = classWatcher.connectionBuilder().autoCommit(false).build();
+        boolean autoCommit = connection.getAutoCommit();
+        Assert.assertTrue(autoCommit==false);
+
+        Connection connectionAutoCommit = classWatcher.connectionBuilder().autoCommit(true).build();
+        autoCommit = connectionAutoCommit.getAutoCommit();
+        Assert.assertTrue(autoCommit==true);
+
+        try(Statement statement = connection.createStatement()) {
+            statement.execute("create table a(i int)");
+        }
+        connection.commit();
+
+        try(Statement statement = connection.createStatement()) {
+            statement.execute("insert into a values 1,2,3");
+        }
+
+        try(Statement statement = connectionAutoCommit.createStatement()) {
+            ResultSet rs = statement.executeQuery("select count(*) from a");
+            rs.next();
+            int count = rs.getInt(1);
+            Assert.assertTrue(count == 0);
+        }
+        connection.commit();
+
+        try(Statement statement = connectionAutoCommit.createStatement()) {
+            ResultSet rs = statement.executeQuery("select count(*) from a");
+            rs.next();
+            int count = rs.getInt(1);
+            Assert.assertTrue(count == 3);
+        }
+        connection.close();
+        connectionAutoCommit.close();
     }
 }

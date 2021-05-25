@@ -29,6 +29,7 @@ import org.junit.runner.Description;
 
 import java.sql.*;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 
 import static org.junit.Assert.*;
@@ -1564,9 +1565,7 @@ public class SpliceDateFunctionsIT extends SpliceUnitTest {
     @Test
     public void testBindTimezoneOperation() throws Exception {
         // See DB-11973
-        testQueryContains(
-                "select timestamp(trim('2016-08-05-07.12.59.000000')) + current timezone from sysibm.sysdummy1",
-                "2016-08-05",
-                methodWatcher);
+        testQueryContains("select timestamp(trim('2016-08-05-07.12.59.000000')) + current timezone from sysibm.sysdummy1",
+                          Arrays.asList("2016-08-04", "2016-08-05", "2016-08-06"), methodWatcher, true);
     }
 }

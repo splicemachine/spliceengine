@@ -232,6 +232,17 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
             rightPadBitDataConstantNode((BitConstantNode) getLeftOperand(), (ColumnReference) getRightOperand());
         }
 
+        // TODO: Enable this code to allow native spark joins involving REALs.
+        // REAL/FLOAT does not play nice on Spark, so doing this allows native spark execution.
+//        if (getLeftOperand().getTypeId().isRealTypeId()) {
+//            castLeftOperandAndBindCast(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE,
+//                                       getLeftOperand().getTypeServices().isNullable()));
+//        }
+//        if (getRightOperand().getTypeId().isRealTypeId()) {
+//            castRightOperandAndBindCast(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE,
+//                                       getRightOperand().getTypeServices().isNullable()));
+//        }
+
         /* Test type compatibility and set type info for this node */
         bindComparisonOperator();
 
@@ -554,5 +565,12 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
             result = result && getRightOperand().collectExpressions(exprMap);
         }
         return result;
+    }
+
+    public void copyFrom(BinaryComparisonOperatorNode other) throws StandardException
+    {
+        super.copyFrom(other);
+        this.forQueryRewrite = other.forQueryRewrite;
+        this.betweenSelectivity = other.betweenSelectivity;
     }
 }

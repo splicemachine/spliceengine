@@ -190,6 +190,8 @@ public class JoinNode extends TableOperatorNode{
                                    OptimizablePredicateList predList,
                                    CostEstimate outerCost,
                                    RowOrdering rowOrdering) throws StandardException{
+        if (skipBindAndOptimize)
+            return costEstimate;
         optimizer.tracer().trace(OptimizerFlag.CALLING_ON_JOIN_NODE,0,0,0.0,null);
 
         // It's possible that a call to optimize the left/right will cause
@@ -257,7 +259,9 @@ public class JoinNode extends TableOperatorNode{
             lrsCE.setJoinType(INNERJOIN);
         double savedAccumulatedMemory = lrsCE.getAccumulatedMemory();
         lrsCE.setAccumulatedMemory(leftOptimizer.getAccumulatedMemory());
+        optimizer.setOuterTableOfJoin(leftResultSet);
         rightResultSet=optimizeSource(optimizer,rightResultSet,getRightPredicateList(),leftResultSet.getReferencedTableMap(),lrsCE);
+        optimizer.setOuterTableOfJoin(null);
         lrsCE.setJoinType(INNERJOIN);
         lrsCE.setAccumulatedMemory(savedAccumulatedMemory);
         costEstimate=getCostEstimate(optimizer);
@@ -534,6 +538,14 @@ public class JoinNode extends TableOperatorNode{
      */
     @Override
     public ResultColumn getMatchingColumn(ColumnReference columnReference) throws StandardException{
+        if (skipBindAndOptimize) {
+            if (getTableName() != null &&
+                getTableName().getTableName() != null &&
+                getTableName().getTableName().equals(columnReference.getTableName()))
+                return resultColumns.getResultColumn(columnReference.getColumnName(), true);
+            else
+                return null;
+        }
         /* Get the logical left and right sides of the join.
          * (For RIGHT OUTER JOIN, the left is the right
          * and the right is the left and the JOIN is the NIOJ).
@@ -627,6 +639,8 @@ public class JoinNode extends TableOperatorNode{
      */
     @Override
     public void bindExpressions(FromList fromListParam) throws StandardException{
+        if (skipBindAndOptimize)
+            return;
         super.bindExpressions(fromListParam);
 
         // Now that both the left and the right side of the join have been
@@ -648,6 +662,8 @@ public class JoinNode extends TableOperatorNode{
      */
     @Override
     public void bindResultColumns(FromList fromListParam) throws StandardException{
+        if (skipBindAndOptimize)
+            return;
         super.bindResultColumns(fromListParam);
 
         /* Now we build our RCL */
@@ -696,6 +712,8 @@ public class JoinNode extends TableOperatorNode{
                                   ResultColumnList targetColumnList,
                                   DMLStatementNode statement,
                                   FromList fromListParam) throws StandardException{
+        if (skipBindAndOptimize)
+            return;
         super.bindResultColumns(targetTableDescriptor,targetVTI,targetColumnList,statement,fromListParam);
 
         /* Now we build our RCL */
@@ -737,6 +755,8 @@ public class JoinNode extends TableOperatorNode{
      */
     @Override
     public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException{
+        if (skipBindAndOptimize)
+            return this;
         ResultSetNode newTreeTop;
 
         newTreeTop=super.preprocess(numTables,gbl,fromList);
@@ -765,6 +785,8 @@ public class JoinNode extends TableOperatorNode{
                                       FromList outerFromList,
                                       SubqueryList outerSubqueryList,
                                       PredicateList outerPredicateList) throws StandardException{
+        if (skipBindAndOptimize)
+            return;
         /* Put the expression trees in conjunctive normal form.
          * NOTE - This needs to occur before we preprocess the subqueries
          * because the subquery transformations assume that any subquery operator
@@ -1644,9 +1666,11 @@ public class JoinNode extends TableOperatorNode{
                the top AND node with a boolean true.
              */
             if (!joinClauseNormalized) {
-                Visitor constantExpressionVisitor =
-                        new ConstantExpressionVisitor(SelectNode.class);
-                joinClause = (ValueNode) joinClause.accept(constantExpressionVisitor);
+                if (!getCompilerContext().getDisableConstantFolding()) {
+                    Visitor constantExpressionVisitor =
+                            new ConstantExpressionVisitor(SelectNode.class);
+                    joinClause = (ValueNode) joinClause.accept(constantExpressionVisitor);
+                }
 
                 if (!getCompilerContext().getDisablePredicateSimplification()) {
                     Visitor predSimplVisitor =
@@ -1951,7 +1975,7 @@ public class JoinNode extends TableOperatorNode{
         int numArgs=getNumJoinArguments();
 
         leftResultSet.generate(acb,mb); // arg 1
-        mb.push(leftResultSet.resultColumns.size()); // arg 2
+        mb.push(leftResultSet.getResultColumns().size()); // arg 2
 
         if(isNestedLoopOverHashableJoin()){
 
@@ -1987,7 +2011,7 @@ public class JoinNode extends TableOperatorNode{
         }
 
         rightResultSet.generate(acb,mb); // arg 3
-        mb.push(rightResultSet.resultColumns.size()); // arg 4
+        mb.push(rightResultSet.getResultColumns().size()); // arg 4
 
         if(rightResultSet instanceof Optimizable &&
                 (isHashableJoin(rightResultSet) || isCrossJoin())){
@@ -2303,8 +2327,8 @@ public class JoinNode extends TableOperatorNode{
         List<QueryTreeNode> refedcolmnList = collectReferencedColumns();
 
         // clear the referenced fields for both source tables
-        leftResultSet.resultColumns.setColumnReferences(false, true);
-        rightResultSet.resultColumns.setColumnReferences(false, true);
+        leftResultSet.getResultColumns().setColumnReferences(false, true);
+        rightResultSet.getResultColumns().setColumnReferences(false, true);
 
         markReferencedResultColumns(refedcolmnList);
 

@@ -212,6 +212,8 @@ public class UnionNode extends SetOperatorNode{
                                    OptimizablePredicateList predList,
                                    CostEstimate outerCost,
                                    RowOrdering rowOrdering) throws StandardException{
+        if (skipBindAndOptimize)
+            return costEstimate;
         /*
         ** RESOLVE: Most types of Optimizables only implement estimateCost(),
         ** and leave it up to optimizeIt() in FromTable to figure out the
@@ -514,6 +516,8 @@ public class UnionNode extends SetOperatorNode{
      */
     @Override
     public void bindExpressions(FromList fromListParam) throws StandardException{
+        if (skipBindAndOptimize)
+            return;
         super.bindExpressions(fromListParam);
 
         if (TriggerReferencingStruct.fromTableTriggerDescriptor.get() != null)
