@@ -3266,12 +3266,7 @@ currentOfClause( String correlationName ) throws StandardException :
 {
     <CURRENT> <OF> cursorName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
     {
-        return (FromTable) nodeFactory.getNode(
-                                C_NodeTypes.CURRENT_OF_NODE,
-                                correlationName,
-                                cursorName,
-                                null,
-                                getContextManager());
+        return new CurrentOfNode(correlationName, cursorName, null, getContextManager());
     }
 }
 
