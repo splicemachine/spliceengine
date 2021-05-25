@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.StatementType;
@@ -86,6 +87,31 @@ import java.util.Properties;
  * After optimizing, ...
  */
 public final class InsertNode extends DMLModStatementNode {
+
+    InsertNode() {}
+    InsertNode(
+            QueryTreeNode    targetName,
+            ResultColumnList insertColumns,
+            ResultSetNode    queryExpression,
+            Properties       targetProperties,
+            OrderByList      orderByList,
+            ValueNode        offset,
+            ValueNode        fetchFirst,
+            boolean          hasJDBClimitClause,
+            ContextManager cm)
+    {
+        setNodeType(C_NodeTypes.INSERT_NODE);
+        setContextManager(cm);
+        init(targetName,
+                insertColumns,
+                queryExpression,
+                targetProperties,
+                orderByList,
+                offset,
+                fetchFirst,
+                hasJDBClimitClause);
+    }
+
     public enum InsertMode {INSERT, UPSERT, LOAD_REPLACE}
 
     public InsertMode insertMode = InsertMode.INSERT;
