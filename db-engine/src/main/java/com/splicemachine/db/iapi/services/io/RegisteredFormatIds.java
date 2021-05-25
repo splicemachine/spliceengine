@@ -544,5 +544,8 @@ String[] TwoByte = {
         /* 473 */       "com.splicemachine.db.impl.sql.catalog.CoreDDFinderClassInfo",
         /* 474 */       "com.splicemachine.db.catalog.types.UDTAliasInfo",
         /* 475 */       "com.splicemachine.db.catalog.types.AggregateAliasInfo",
+        /* 476 */       "com.splicemachine.derby.impl.sql.execute.actions.MatchingClauseConstantAction",
+        /* 477 */       "com.splicemachine.derby.impl.sql.execute.actions.MergeConstantAction",
+
 };
 }

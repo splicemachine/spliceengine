@@ -95,16 +95,24 @@ public final class UpdateNode extends DMLModStatementNode
     /* Subquery name for updating from multi-column subquery case */
     public static final String SUBQ_NAME = "UPDSBQ";
 
-    private     boolean         inMatchedClause;
-
     public UpdateNode() {}
-    public UpdateNode(TableName tableName, SelectNode resultSet, Boolean cursorUpdate, boolean inMatchedClause, ContextManager cm) {
+
+    /**
+     * Constructor for an UpdateNode.
+     *
+     * @param targetTableName  The name of the table to update
+     * @param resultSet        The ResultSet that we will generate
+     * @param matchingClause   Non-null if this DML is part of a MATCHED clause of a MERGE statement.
+     * @param cm               The context manager
+     */
+    public UpdateNode(TableName targetTableName, SelectNode resultSet, Boolean cursorUpdate,
+                      MatchingClauseNode matchingClause, ContextManager cm) {
         setContextManager(cm);
         setNodeType(C_NodeTypes.UPDATE_NODE);
         super.init(resultSet);
-        this.targetTableName = tableName;
+        this.targetTableName = targetTableName;
         this.cursorUpdate = cursorUpdate;
-        this.inMatchedClause = inMatchedClause;
+        this.matchingClause = matchingClause;
     }
 
 
@@ -1493,7 +1501,7 @@ public final class UpdateNode extends DMLModStatementNode
                 }
             }
 
-            if (!isUpdateWithSubquery) {
+            if (!isUpdateWithSubquery && !inMatchingClause() ) {
                 /* The table name is
                  * unnecessary for an update.  More importantly, though, it
                  * creates a problem in the degenerate case with a positioned
@@ -1575,7 +1583,10 @@ public final class UpdateNode extends DMLModStatementNode
 
         for ( int i = 0; i < count; i++ )
         {
-            ResultColumn    rc = (ResultColumn) targetRCL.elementAt( i );
+            ResultColumn rc = targetRCL.elementAt( i );
+
+            // defaults may already have been substituted for MERGE statements
+            if ( rc.wasDefaultColumn() ) { continue; }
 
             if ( rc.hasGenerationClause() )
             {

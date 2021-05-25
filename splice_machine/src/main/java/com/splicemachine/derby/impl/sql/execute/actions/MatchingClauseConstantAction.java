@@ -64,6 +64,7 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
     private transient TemporaryRowHolderImpl _thenRows;
     private transient ResultSet _actionRS;
 
+    public  MatchingClauseConstantAction() {}
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -129,7 +130,7 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
         // to be appropriate to it.
         //
         try {
-            //activation.pushConstantAction( _thenAction );
+            activation.pushConstantAction( _thenAction );
 
             try {
                 //
@@ -153,7 +154,7 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
         }
         finally
         {
-            //activation.popConstantAction();
+            activation.popConstantAction();
         }
     }
 

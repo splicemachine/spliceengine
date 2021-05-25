@@ -32,25 +32,36 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.ClassName;
+import com.splicemachine.db.iapi.services.compiler.LocalField;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.Node;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Properties;
 
 public class MatchingClauseNode extends QueryTreeNode {
+    ///////////////////////////////////////////////////////////////////////////////////
+    //
+    // CONSTANTS
+    //
+    ///////////////////////////////////////////////////////////////////////////////////
+
+    private static  final   String  CURRENT_OF_NODE_NAME = "$MERGE_CURRENT";
+
     /** clauseType for WHEN NOT MATCHED ... THEN INSERT */
     public  static  final   int WHEN_NOT_MATCHED_THEN_INSERT = 0;
     /** clauseType for WHEN MATCHED ... THEN UPDATE */
     public  static  final   int WHEN_MATCHED_THEN_UPDATE = 1;
     /** clauseType for WHEN MATCHED ... THEN DELETE */
     public  static  final   int WHEN_MATCHED_THEN_DELETE = 2;
-
-    ///////////////////////////////////////////////////////////////////////////////////
-    //
-    // CONSTANTS
-    //
-    ///////////////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -152,6 +163,12 @@ public class MatchingClauseNode extends QueryTreeNode {
 
     /** Return true if this is a WHEN MATCHED ... DELETE clause */
     public  boolean isDeleteClause()    { return !( isUpdateClause() || isInsertClause() ); }
+
+    String getType() {
+        if(isUpdateClause()) return "UPDATE clause";
+        else if(isInsertClause()) return "INSERT clause";
+        else return "DELETE clause";
+    }
 
     /** Return the bound DML statement--returns null if called before binding */
     public  DMLModStatementNode getDML()    { return _dml; }
@@ -274,7 +291,7 @@ public class MatchingClauseNode extends QueryTreeNode {
                         null,      // optimizer plan override
                         getContextManager()
                 );
-        _dml = new UpdateNode( targetTable.getTableName(), selectNode, this, getContextManager() );
+        _dml = new UpdateNode( targetTable.getTableName(), selectNode, false, this, getContextManager() );
 
         _dml.bindStatement();
     }
@@ -294,16 +311,18 @@ public class MatchingClauseNode extends QueryTreeNode {
         fromList.addFromTable( currentOfNode );
         SelectNode      selectNode = new SelectNode
                 (
-                        null,
-                        fromList, /* FROM list */
-                        null, /* WHERE clause */
-                        null, /* GROUP BY list */
-                        null, /* having clause */
-                        null, /* window list */
-                        null, /* optimizer plan override */
+                        null, /* selectList */
+                        null, /* aggregateVector */
+                        fromList, /* fromList */
+                        null, /* whereClause */
+                        null, /* groupByList */
+                        null, /* havingClause */
+                        null, /* windowDefinitionList */
                         getContextManager()
                 );
-        _dml = new DeleteNode( targetTable.getTableName(), selectNode, this, getContextManager() );
+        Properties tableProperties = null; // todo
+        _dml = new DeleteNode( targetTable.getTableName(), selectNode, false,
+                tableProperties, this, getContextManager() );
 
         _dml.bindStatement();
 
@@ -422,7 +441,9 @@ public class MatchingClauseNode extends QueryTreeNode {
             ValueNode       bufferedExpression = bufferedRC.getExpression();
             int                     offset = -1;    // start out undefined
 
-            if ( bufferedExpression instanceof ColumnReference )
+            if ( bufferedExpression.getColumnName().equals("###RowLocationToDelete"))
+                offset = selectCount;
+            else if ( bufferedExpression instanceof ColumnReference )
             {
                 ColumnReference bufferedCR = (ColumnReference) bufferedExpression;
                 String              tableName = bufferedCR.getTableName();
@@ -439,7 +460,7 @@ public class MatchingClauseNode extends QueryTreeNode {
                     if ( selectCR != null )
                     {
                         if (
-                                tableName.equals( selectCR.getTableName() ) &&
+                                tableName != null && tableName.equals( selectCR.getTableName() ) &&
                                         columnName.equals( selectCR.getColumnName() )
                         )
                         {
@@ -449,7 +470,7 @@ public class MatchingClauseNode extends QueryTreeNode {
                     }
                 }
             }
-            else if ( bufferedExpression instanceof CurrentRowLocationNode )
+            else if( bufferedExpression instanceof CurrentRowLocationNode )
             {
                 //
                 // There is only one RowLocation in the SELECT list, the row location for the
@@ -485,7 +506,7 @@ public class MatchingClauseNode extends QueryTreeNode {
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-    ConstantAction makeConstantAction( ActivationClassBuilder acb )
+    ConstantAction makeConstantAction(ActivationClassBuilder acb )
             throws StandardException
     {
         // generate the clause-specific refinement
@@ -515,9 +536,9 @@ public class MatchingClauseNode extends QueryTreeNode {
     }
     private int getClauseType()
     {
-        if ( isUpdateClause() ) { return ConstantAction.WHEN_MATCHED_THEN_UPDATE; }
-        else if ( isInsertClause() ) { return ConstantAction.WHEN_NOT_MATCHED_THEN_INSERT; }
-        else { return ConstantAction.WHEN_MATCHED_THEN_DELETE; }
+        if ( isUpdateClause() ) { return MatchingClauseNode.WHEN_MATCHED_THEN_UPDATE; }
+        else if ( isInsertClause() ) { return MatchingClauseNode.WHEN_NOT_MATCHED_THEN_INSERT; }
+        else { return MatchingClauseNode.WHEN_MATCHED_THEN_DELETE; }
     }
 
     /**
@@ -586,7 +607,7 @@ public class MatchingClauseNode extends QueryTreeNode {
      * @exception StandardException on error
      */
     @Override
-    void acceptChildren(Visitor v)
+    public void acceptChildren(Visitor v)
             throws StandardException
     {
         super.acceptChildren( v );

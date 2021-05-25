@@ -559,6 +559,18 @@ public interface Activation extends Dependent, AutoCloseable
      */
     java.sql.ResultSet getTargetVTI();
 
+    /**
+     * Push a ConstantAction to be returned by getConstantAction().
+     * Returns the newConstantAction.
+     */
+    public  ConstantAction    pushConstantAction( ConstantAction newConstantAction );
+
+    /**
+     * Pop the ConstantAction stack, returning the element which was just popped
+     * off the stack.
+     */
+    public  ConstantAction    popConstantAction();
+
     ConstantAction    getConstantAction();
 
     //store a reference to the parent table result sets

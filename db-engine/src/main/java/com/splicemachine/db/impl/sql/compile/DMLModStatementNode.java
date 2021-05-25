@@ -1413,8 +1413,17 @@ abstract class DMLModStatementNode extends DMLStatementNode
    */
     public void optimizeStatement() throws StandardException
     {
-        /* First optimize the query */
-        super.optimizeStatement();
+        //
+        // If this is the INSERT/UPDATE/DELETE action of a MERGE statement,
+        // then we don't need to optimize the dummy driving result set, which
+        // is never actually run.
+        //
+        // don't need to optimize the dummy SELECT, which is never actually run
+        if ( !inMatchingClause() )
+        {
+            /* First optimize the query */
+            super.optimizeStatement();
+        }
 
         /* In language we always set it to row lock, it's up to store to
          * upgrade it to table lock.  This makes sense for the default read

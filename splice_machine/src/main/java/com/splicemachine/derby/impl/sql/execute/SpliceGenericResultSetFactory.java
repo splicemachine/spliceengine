@@ -2445,6 +2445,18 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
         }
     }
 
+    /**
+     @see ResultSetFactory#getMergeResultSet
+     @exception StandardException thrown on error
+     */
+    public ResultSet getMergeResultSet(NoPutResultSet drivingLeftJoin)
+            throws StandardException
+    {
+        Activation activation = drivingLeftJoin.getActivation();
+//        getAuthorizer( activation ).authorize( activation, Authorizer.SQL_WRITE_OP );
+        return new MergeOperation( drivingLeftJoin, activation );
+    }
+
     @Override
     public NoPutResultSet getDeleteCascadeResultSet(NoPutResultSet source,
                                                     int constantActionItem,

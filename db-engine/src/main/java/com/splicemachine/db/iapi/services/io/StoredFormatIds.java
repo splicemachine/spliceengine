@@ -1209,6 +1209,18 @@ public interface StoredFormatIds {
     int REAL_LAST_INDEX_KEY_SCAN_STATISTICS_IMPL_V01_ID =
             (MIN_ID_2 + 327);
 
+    /**
+     class com.splicemachine.db.impl.sql.execute.MatchingClauseConstantAction
+     */
+    static public final int MATCHING_CLAUSE_CONSTANT_ACTION_V01_ID =
+            (MIN_ID_2 + 331); // todo: no idea what theses number should be
+
+    /**
+     class com.splicemachine.db.impl.sql.execute.MergeConstantAction
+     */
+    static public final int MERGE_CONSTANT_ACTION_V01_ID =
+            (MIN_ID_2 + 332); // todo: no idea what theses number should be
+
     ////////////////////////////////////////////////////////////////////////////
     //
     // New versions of 2.0 Language ConstantActions, versioned in 3.0
@@ -1814,9 +1826,4 @@ public interface StoredFormatIds {
 
     int ARRAY_TYPE_ID_IMPL =
             (MIN_ID_2 + 704);
-
-
-    // todo
-    int MATCHING_CLAUSE_CONSTANT_ACTION_V01_ID = 1788;
-    int MERGE_CONSTANT_ACTION_V01_ID = 1789;
 }
