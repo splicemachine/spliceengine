@@ -45,6 +45,8 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.SqlXmlUtil;
@@ -513,5 +515,18 @@ public abstract class OperatorNode extends ValueNode
         this.operands = new ArrayList<>(other.operands);
         this.interfaceTypes = new ArrayList<>(other.interfaceTypes);
         this.resultInterfaceType = other.resultInterfaceType;
+    }
+
+    protected boolean isIndexColumn(ColumnReference cr, ConglomerateDescriptor cd) {
+        IndexRowGenerator irg = cd == null ? null : cd.getIndexDescriptor();
+        if (irg != null && !irg.isOnExpression() && irg.baseColumnPositions() != null) {
+            for (int pos : irg.baseColumnPositions()) {
+                if (cr.getColumnNumber() == pos) {
+                    return true;
+                }
+            }
+        }
+        // index on expression case is handled in PredicateList.isQualifier()
+        return false;
     }
 }
