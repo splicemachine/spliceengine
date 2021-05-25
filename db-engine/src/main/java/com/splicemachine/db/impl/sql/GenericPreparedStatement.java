@@ -367,11 +367,13 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
 
             ResultSet resultSet = null;
             try {
-
                 resultSet = activation.execute();
 
                 resultSet.open();
             } catch (StandardException se) {
+                if (resultSet != null) {
+                    resultSet.close();
+                }
                 /* Can't handle recompiling SPS action recompile here */
                 if (!se.getMessageId().equals(SQLState.LANG_STATEMENT_NEEDS_RECOMPILE) || spsAction) {
                     if (se instanceof ResubmitDistributedException)

@@ -20,6 +20,7 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
+import org.apache.spark.sql.catalyst.parser.SqlBaseBaseListener;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -27,6 +28,7 @@ import org.junit.rules.TestRule;
 
 import java.sql.*;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Properties;
 
 import static com.splicemachine.test_tools.Rows.row;
@@ -34,6 +36,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  *
@@ -120,6 +123,12 @@ public class SpliceUDTIT extends SpliceUnitTest {
                 "EXTERNAL NAME 'com.splicemachine.customer.NielsenTesting.testInternalConnection'");
         w.execute("create table test(id integer, name varchar(30))");
         w.execute("insert into test values(1,'erin')");
+
+        w.execute("create function throwNPE(int)\n" +
+                "RETURNS int\n" +
+                "LANGUAGE JAVA\n" +
+                "PARAMETER STYLE JAVA \n" +
+                "EXTERNAL NAME 'com.splicemachine.customer.ThrowNPE.throwNPE'");
 
     }
 
@@ -213,5 +222,32 @@ public class SpliceUDTIT extends SpliceUnitTest {
                 assertThat(res, allOf(containsString("a"), containsString("b"), containsString("c"), containsString("d")));
             }
         }
+    }
+
+    @Test
+    public void testDB12107() throws Exception {
+        methodWatcher.execute("create table t0(c0 boolean, c1 timestamp)");
+        methodWatcher.execute("create table t2(c0 timestamp not null)");
+        methodWatcher.execute("insert into t0(c0) values (false)");
+        methodWatcher.execute("INSERT INTO T0(C0, C1) VALUES (TRUE, '1970-01-13 04:08:02'), (TRUE, '1969-12-12 03:20:09')");
+        methodWatcher.execute("INSERT INTO T0(C1) VALUES ('1969-12-12 03:20:09')");
+        methodWatcher.execute("INSERT INTO T0(C1) VALUES ('1970-01-13 08:53:47')");
+
+        testFail("SELECT MAX(agg0) " +
+                "FROM (SELECT MAX(T2.C0)  as agg0 FROM T0 LEFT OUTER JOIN T2 ON ((T0.C1)!=(T2.C0)) and 1 = thrownpe(1)" +
+                "WHERE T0.C0 " +
+                "UNION ALL " +
+                "SELECT MAX(T2.C0)  as agg0 " +
+                "FROM T0 LEFT OUTER JOIN T2 ON ((T0.C1)!=(T2.C0)) " +
+                "WHERE NOT (T0.C0) " +
+                "UNION ALL " +
+                "SELECT MAX(T2.C0)  as agg0 " +
+                "FROM T0 LEFT OUTER JOIN T2 ON ((T0.C1)!=(T2.C0)) " +
+                "WHERE (T0.C0) IS NULL) as asdf",
+                Collections.singletonList("Splice Engine exception: unexpected exception"),
+            methodWatcher);
+
+        methodWatcher.execute("drop table t0");
+        methodWatcher.execute("drop table t1");
     }
 }
