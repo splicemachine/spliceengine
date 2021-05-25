@@ -89,6 +89,23 @@ import java.util.Properties;
 public final class InsertNode extends DMLModStatementNode {
 
     InsertNode() {}
+
+    InsertNode(
+            QueryTreeNode    targetName,
+            ResultColumnList insertColumns,
+            ResultSetNode    queryExpression,
+            MatchingClauseNode matchingClause,
+            Properties       targetProperties,
+            OrderByList      orderByList,
+            ValueNode        offset,
+            ValueNode        fetchFirst,
+            boolean          hasJDBClimitClause,
+            ContextManager   cm) {
+        this(targetName, insertColumns, queryExpression, targetProperties, orderByList,
+                offset, fetchFirst, hasJDBClimitClause, cm);
+        this.matchingClause = matchingClause;
+    }
+
     InsertNode(
             QueryTreeNode    targetName,
             ResultColumnList insertColumns,

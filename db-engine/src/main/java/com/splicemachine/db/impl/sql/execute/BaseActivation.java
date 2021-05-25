@@ -195,6 +195,11 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
      */
     private SQLSessionContext sqlSessionContextForChildren;
 
+    /**
+     * Stack of ConstantActions.
+     */
+    private Stack<ConstantAction>   constantActionStack = new Stack<ConstantAction>();
+
     //Following is the position of the session table names list in savedObjects in compiler context
     //This is updated to be the correct value at cursor generate time if the cursor references any session table names.
     //If the cursor does not reference any session table names, this will stay negative
@@ -289,8 +294,23 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
         return preStmt;
     }
 
-    public ConstantAction getConstantAction() {
-        return preStmt.getConstantAction();
+    public ConstantAction pushConstantAction( ConstantAction newConstantAction )
+    {
+        return constantActionStack.push( newConstantAction );
+    }
+
+    public ConstantAction popConstantAction()
+    {
+        return constantActionStack.pop();
+    }
+
+    public ConstantAction getConstantAction()
+    {
+        if ( constantActionStack.size() > 0 )
+        {
+            return constantActionStack.peek();
+        }
+        else { return preStmt.getConstantAction(); }
     }
 
 

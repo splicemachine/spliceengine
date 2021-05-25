@@ -104,6 +104,16 @@ public class DeleteNode extends DMLModStatementNode
 
     public DeleteNode() {}
 
+    /**
+     * Constructor for a DeleteNode.
+     *
+     * @param targetTableName   The name of the table to delete from
+     * @param queryExpression   The query expression that will generate
+     *                          the rows to delete from the given table
+     * @param cursorDelete      todo
+     * @param matchingClause    Non-null if this DML is part of a MATCHED clause of a MERGE statement.
+     * @param cm                The context manager
+     */
     public DeleteNode(TableName targetTableName,
                SelectNode queryExpression, Boolean cursorDelete,
                Properties targetProperties, MatchingClauseNode matchingClause, ContextManager cm)
@@ -223,7 +233,6 @@ public class DeleteNode extends DMLModStatementNode
                 cursorTargetTableName = inMatchingClause() ?
                         targetTableName : currentOfNode.getBaseCursorTargetTableName();
 
-                cursorTargetTableName = currentOfNode.getBaseCursorTargetTableName();
                 // instead of an assert, we might say the cursor is not updatable.
                 if (SanityManager.DEBUG)
                     SanityManager.ASSERT(cursorTargetTableName != null);
@@ -963,7 +972,7 @@ public class DeleteNode extends DMLModStatementNode
                                                      null, /* windows */
                                                      getContextManager());
 
-        return new UpdateNode( tableName, resultSet, cursorDelete, false, getContextManager());
+        return new UpdateNode( tableName, resultSet, cursorDelete, null, getContextManager());
     }
 
 

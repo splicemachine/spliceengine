@@ -1,4 +1,4 @@
-package com.splicemachine.db.impl.sql.execute;
+package com.splicemachine.derby.impl.sql.execute.actions;
 
 /*
    Derby - Class org.apache.derby.impl.sql.execute.MergeConstantAction
