@@ -75,7 +75,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     public StreamListener(long limit, long offset, int batches, int batchSize) {
         this(limit, offset, batches, batchSize, StreamableRDD.DEFAULT_PARALLEL_PARTITIONS, true);
     }
-    public StreamListener(long limit, long offset, int batches, int batchSize, int parallelPartitions, boolean throttleEnables) {
+    public StreamListener(long limit, long offset, int batches, int batchSize, int parallelPartitions, boolean throttleEnabled) {
         this.offset = offset;
         this.limit = limit;
         this.batchSize = batchSize;
@@ -87,7 +87,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         this.partitionStateMap.put(-1, first);
         this.uuid = UUID.randomUUID();
         this.parallelPartitions = parallelPartitions;
-        this.throttleEnabled = throttleEnables;
+        this.throttleEnabled = throttleEnabled;
     }
 
     public void setOlapChannel(Channel olapChannel) {
