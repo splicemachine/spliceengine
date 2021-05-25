@@ -1,0 +1,114 @@
+/*
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
+ *
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package com.splicemachine.stream;
+
+import com.splicemachine.stream.handlers.OpenHandler;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioSocketChannel;
+import org.apache.log4j.Logger;
+import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
+
+import java.io.*;
+import java.net.InetSocketAddress;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadFactory;
+
+/**
+ * OlapStreamListener handles a communication from StreamLister to manage throttling if a client overloaded with
+ * messages or paused consuming.
+ */
+public class OlapStreamListener extends ChannelInboundHandlerAdapter implements Serializable {
+
+    private static final Logger LOG = Logger.getLogger(OlapStreamListener.class);
+
+    private transient CountDownLatch active;
+    private UUID uuid;
+    private String host;
+    private int port;
+    private boolean clientConsuming;
+
+    public OlapStreamListener(String host, int port, UUID uuid) {
+        this.active = new CountDownLatch(1);
+        this.host = host;
+        this.port = port;
+        this.uuid = uuid;
+        this.clientConsuming = false;
+    }
+
+    public boolean isClientConsuming() {
+        return clientConsuming;
+    }
+
+    public void createChannelToStreamListener() {
+        InetSocketAddress socketAddr = new InetSocketAddress(host, port);
+        Bootstrap bootstrap;
+        ThreadFactory tf = new ThreadFactoryBuilder().setDaemon(true).setNameFormat("OlapStreamListener-" + host + ":" + port + "[" + uuid + "]").build();
+        NioEventLoopGroup workerGroup = new NioEventLoopGroup(2, tf);
+
+        try {
+            bootstrap = new Bootstrap();
+            bootstrap.group(workerGroup);
+            bootstrap.channel(NioSocketChannel.class);
+            bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
+            bootstrap.handler(new OpenHandler(this));
+
+            ChannelFuture futureConnect = bootstrap.connect(socketAddr).sync();
+
+            active.await();
+            this.clientConsuming = true;
+        } catch (Exception e) {
+
+        }
+    }
+
+    @Override
+    public void channelActive(final ChannelHandlerContext ctx) throws Exception {
+        LOG.info("Starting olap stream listener " + this);
+        ctx.writeAndFlush(new StreamProtocol.InitOlapStream(uuid)).sync();
+        active.countDown();
+    }
+
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
+        if (msg instanceof StreamProtocol.PauseStream) {
+            if (clientConsuming) {
+                LOG.trace("Client is overloaded, asked for a pause: " + this.toString());
+                clientConsuming = false;
+            }
+        } else if (msg instanceof StreamProtocol.ContinueStream) {
+            if (!clientConsuming) {
+                LOG.trace("Client is resuming to consume: " + this.toString());
+                clientConsuming = true;
+            }
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "OlapStreamListener{" +
+                ", host='" + host + '\'' +
+                ", port=" + port +
+                ", uuid=" + uuid.toString() +
+                ", clientConsuming=" + clientConsuming +
+                '}';
+
+    }
+}
