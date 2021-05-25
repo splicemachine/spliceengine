@@ -193,9 +193,8 @@ public class Vacuum{
                             // Can't tell if the active transactions are using this table.
                             // Since we can't drop the conglomerate, let us at least flush
                             // it from memstore to free up memory.
-                            if (hasDroppedId)
-                                addNewFlushFuture(flushFutures, tableConglom,
-                                                  table.getTableName(), partitionFactory);
+                            addNewFlushFuture(flushFutures, tableConglom,
+                                              table.getTableName(), partitionFactory);
                             continue;
                         }
                     } else if (requiresDroppedId) {
