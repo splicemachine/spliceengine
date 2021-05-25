@@ -528,5 +528,27 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
         return new RevokeRoleConstantOperation(roleNames,grantees);
     }
 
+    /**
+     * Make the ConstantAction for a WHEN [ NOT ] MATCHED clause.
+     */
+    @Override
+    public ConstantAction getMatchingClauseConstantAction(int clauseType,
+                                                          String matchRefinementName,
+                                                          int[] thenColumns,
+                                                          String resultSetFieldName,
+                                                          String actionMethodName,
+                                                          ConstantAction thenAction)
+    {
+        return new MatchingClauseConstantAction
+                (clauseType, matchRefinementName, thenColumns, resultSetFieldName, actionMethodName, thenAction);
+    }
+
+    /**
+     * Make the ConstantAction for a MERGE statement.
+     */
+    public ConstantAction getMergeConstantAction(ConstantAction[] matchingClauses)
+    {
+        return new MergeConstantAction( matchingClauses );
+    }
 
 }

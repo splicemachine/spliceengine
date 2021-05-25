@@ -1736,7 +1736,12 @@ public abstract class QueryTreeNode implements Node, Visitable{
                     sqlState=SQLState.LANG_NON_DETERMINISTIC_GENERATION_CLAUSE;
                     break;
             }
-        }else{
+        }
+        else if ( (getCompilerContext().getReliability() & fragmentBitMask & CompilerContext.SQL_IN_ROUTINES_ILLEGAL) != 0)
+        {
+            sqlState = SQLState.LANG_ROUTINE_CANT_PERMIT_SQL;
+        }
+        else{
             sqlState=SQLState.LANG_UNRELIABLE_QUERY_FRAGMENT;
         }
         throw StandardException.newException(sqlState,fragmentType);

@@ -32,21 +32,103 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.Node;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.iapi.util.IdUtil;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 
 /**
- * This class represents a MERGE INTO statement.
+ * <p>
+ * A MergeNode represents a MERGE statement. The statement looks like
+ * this...
+ * </p>
+ *
+ * <pre>
+ * MERGE INTO targetTable
+ * USING sourceTable
+ * ON searchCondition
+ * matchingClause1 ... matchingClauseN
+ * </pre>
+ *
+ * <p>
+ * ...where each matching clause looks like this...
+ * </p>
+ *
+ * <pre>
+ * WHEN MATCHED [ AND matchingRefinement ] THEN DELETE
+ * </pre>
+ *
+ * <p>
+ * ...or
+ * </p>
+ *
+ * <pre>
+ * WHEN MATCHED [ AND matchingRefinement ] THEN UPDATE SET col1 = expr1, ... colM = exprM
+ * </pre>
+ *
+ * <p>
+ * ...or
+ * </p>
+ *
+ * <pre>
+ * WHEN NOT MATCHED [ AND matchingRefinement ] THEN INSERT columnList VALUES valueList
+ * </pre>
+ *
+ * <p>
+ * The Derby compiler essentially rewrites this statement into a driving left join
+ * followed by a series of DELETE/UPDATE/INSERT actions. The left join looks like
+ * this:
+ * </p>
+ *
+ * <pre>
+ * SELECT selectList FROM sourceTable LEFT OUTER JOIN targetTable ON searchCondition
+ * </pre>
+ *
+ * <p>
+ * The selectList of the driving left join consists of the following:
+ * </p>
+ *
+ * <ul>
+ * <li>All of the columns mentioned in the searchCondition.</li>
+ * <li>All of the columns mentioned in the matchingRefinement clauses.</li>
+ * <li>All of the columns mentioned in the SET clauses and the INSERT columnLists and valueLists.</li>
+ * <li>All additional columns needed for the triggers and foreign keys fired by the DeleteResultSets
+ * and UpdateResultSets constructed for the WHEN MATCHED clauses.</li>
+ * <li>All additional columns needed to build index rows and evaluate generated columns
+ * needed by the UpdateResultSets constructed for the WHEN MATCHED...THEN UPDATE clauses.</li>
+ * <li>A trailing targetTable.RowLocation column.</li>
+ * </ul>
+ *
+ * <p>
+ * The matchingRefinement expressions are bound and generated against the
+ * FromList of the driving left join. Dummy DeleteNode, UpdateNode, and InsertNode
+ * statements are independently constructed in order to bind and generate the DELETE/UPDATE/INSERT
+ * actions.
+ * </p>
+ *
+ * <p>
+ * At execution time, the targetTable.RowLocation column is used to determine
+ * whether a given driving row matches. The row matches iff targetTable.RowLocation is not null.
+ * The driving row is then assigned to the
+ * first DELETE/UPDATE/INSERT action to which it applies. The relevant columns from
+ * the driving row are extracted and buffered in a temporary table specific to that
+ * DELETE/UPDATE/INSERT action. After the driving left join has been processed,
+ * the DELETE/UPDATE/INSERT actions are run in order, each taking its corresponding
+ * temporary table as its source ResultSet.
+ * </p>
  */
 public class MergeNode extends DMLStatementNode
 {
@@ -73,14 +155,12 @@ public class MergeNode extends DMLStatementNode
     private FromBaseTable   _targetTable;
     private FromTable   _sourceTable;
     private ValueNode   _searchCondition;
-    private ArrayList<MatchingClauseNode>   _matchingClauses;
+    private List<MatchingClauseNode>   _matchingClauses;
 
     //
     // Filled in at bind() time.
     //
-    private ResultColumnList    _selectList;
     private FromList                _leftJoinFromList;
-    private HalfOuterJoinNode   _hojn;
 
     //
     // Filled in at generate() time.
@@ -104,11 +184,12 @@ public class MergeNode extends DMLStatementNode
             FromTable          targetTable,
             FromTable          sourceTable,
             ValueNode          searchCondition,
-            ArrayList<MatchingClauseNode> matchingClauses,
+            QueryTreeNodeVector<MatchingClauseNode> matchingClauses,
             ContextManager     cm
     )
             throws StandardException
     {
+        setContextManager(cm);
         //super( null, null, cm );
 
         if ( !( targetTable instanceof FromBaseTable) ) { notBaseTable(); }
@@ -116,7 +197,7 @@ public class MergeNode extends DMLStatementNode
 
         _sourceTable = sourceTable;
         _searchCondition = searchCondition;
-        _matchingClauses = matchingClauses;
+        _matchingClauses = matchingClauses.getNodes();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////
@@ -239,12 +320,12 @@ public class MergeNode extends DMLStatementNode
             resultSet = new SelectNode
                     (
                             selectList,
-                            topFromList,
+                            null, // aggregateVector
+                            topFromList, // fromList
                             null,      // where clause
                             null,      // group by list
                             null,      // having clause
                             null,      // window list
-                            null,      // optimizer plan override
                             getContextManager()
                     );
 
@@ -379,7 +460,7 @@ public class MergeNode extends DMLStatementNode
         }
         else
         {
-            throw StandardException.newException( SQLState.LANG_SOURCE_NOT_BASE_VIEW_OR_VTI );
+            throw new RuntimeException("StandardException.newException( SQLState.LANG_SOURCE_NOT_BASE_VIEW_OR_VTI )");
         }
     }
 
@@ -431,8 +512,7 @@ public class MergeNode extends DMLStatementNode
     {
         if ( expression == null ) { return; }
 
-        CollectNodesVisitor<ColumnReference> getCRs =
-                new CollectNodesVisitor<ColumnReference>(ColumnReference.class);
+        CollectNodesVisitor getCRs = new CollectNodesVisitor(ColumnReference.class);
 
         expression.accept(getCRs);
         List<ColumnReference> colRefs = getCRs.getList();
@@ -466,7 +546,7 @@ public class MergeNode extends DMLStatementNode
         {
             if ( cr.getTableName() == null )
             {
-                ResultColumn    rc = _leftJoinFromList.bindColumnReference( cr );
+                ValueNode rc = _leftJoinFromList.bindColumnReference( cr );
                 TableName       tableName = new TableName( null, rc.getTableName(), getContextManager() );
                 cr = new ColumnReference( cr.getColumnName(), tableName, getContextManager() );
             }
@@ -588,7 +668,7 @@ public class MergeNode extends DMLStatementNode
      * @exception StandardException on error
      */
     @Override
-    void acceptChildren(Visitor v)
+    public void acceptChildren(Visitor v)
             throws StandardException
     {
         if ( _leftJoinCursor != null )
@@ -611,9 +691,8 @@ public class MergeNode extends DMLStatementNode
     }
 
     @Override
-    String statementToString()
+    public String statementToString()
     {
         return "MERGE";
     }
-
 }

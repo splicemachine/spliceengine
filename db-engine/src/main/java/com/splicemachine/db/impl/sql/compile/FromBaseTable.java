@@ -125,7 +125,9 @@ public class FromBaseTable extends FromTable {
                   Properties tableProperties,
                   ContextManager cm)
     {
-        super(correlationName, tableProperties, cm);
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.FROM_BASE_TABLE);
+        init2(correlationName, tableProperties);
         this.tableName = tableName;
         resultColumns = derivedRCL;
         setOrigTableName(this.tableName);
@@ -251,6 +253,9 @@ public class FromBaseTable extends FromTable {
 
     private boolean getUpdateLocks;
 
+    // non-null if we need to return a row location column
+    private String  rowLocationColumnName;
+
     // true if we are running with sql authorization and this is the SYSUSERS table
     private boolean authorizeSYSUSERS;
 
@@ -337,6 +342,12 @@ public class FromBaseTable extends FromTable {
         setOrigTableName(this.tableName);
         templateColumns=resultColumns;
         usedNoStatsColumnIds=new HashSet<>();
+    }
+
+    /** Set the name of the row location column */
+    void    setRowLocationColumnName( String rowLocationColumnName )
+    {
+        this.rowLocationColumnName = rowLocationColumnName;
     }
 
     /**
@@ -2513,7 +2524,11 @@ public class FromBaseTable extends FromTable {
                 columnReference.setColumnNumber(
                         resultColumn.getColumnPosition());
 
-                if(tableDescriptor!=null){
+                // set the column-referenced bit if this is not the row location column
+                if ( (tableDescriptor != null) && ( (rowLocationColumnName == null) ||
+                                !(rowLocationColumnName.equals( columnReference.getColumnName() )) )
+                )
+                {
                     FormatableBitSet referencedColumnMap=tableDescriptor.getReferencedColumnMap();
                     if(referencedColumnMap==null)
                         referencedColumnMap=new FormatableBitSet(
@@ -3123,6 +3138,11 @@ public class FromBaseTable extends FromTable {
     public void generate(ActivationClassBuilder acb,
                          MethodBuilder mb)
             throws StandardException{
+
+        if ( rowLocationColumnName != null )
+        {
+            resultColumns.conglomerateId = tableDescriptor.getHeapConglomerateId();
+        }
         //
         // By now the map of referenced columns has been filled in.
         // We check to see if SYSUSERS.PASSWORD is referenced.
@@ -3692,6 +3712,18 @@ public class FromBaseTable extends FromTable {
 
             /* Build the ResultColumnList to return */
             rcList.addResultColumn(resultColumn);
+        }
+
+        // add a row location column as necessary
+        if ( rowLocationColumnName != null )
+        {
+            CurrentRowLocationNode  rowLocationNode = new CurrentRowLocationNode( getContextManager() );
+            ResultColumn    rowLocationColumn = new ResultColumn
+                    ( rowLocationColumnName, rowLocationNode, getContextManager() );
+            rowLocationColumn.markGenerated();
+            rowLocationNode.bindExpression( null, null, null );
+            rowLocationColumn.bindResultColumnToExpression();
+            rcList.addResultColumn( rowLocationColumn );
         }
 
         return rcList;

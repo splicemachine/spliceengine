@@ -17,18 +17,15 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.io.StreamStorable;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.iapi.types.SQLRef;
 import com.splicemachine.db.impl.sql.compile.MatchingClauseNode;
 import com.splicemachine.derby.impl.sql.execute.actions.MatchingClauseConstantAction;
-import com.splicemachine.db.impl.sql.execute.MergeConstantAction;
-import com.splicemachine.db.impl.sql.execute.TemporaryRowHolderImpl;
 import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.derby.impl.sql.execute.actions.MergeConstantAction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 
@@ -52,11 +49,11 @@ public class MergeOperation extends NoRowsOperation
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-    private NoPutResultSet          _drivingLeftJoin;
+    private NoPutResultSet      _drivingLeftJoin;
     private MergeConstantAction _constants;
 
-    private ExecRow                 _row;
-    private long                        _rowCount;
+    private ExecRow             _row;
+    private long                _rowCount;
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -168,6 +165,8 @@ public class MergeOperation extends NoRowsOperation
             rowsFound = true;
 
             rlColumn = _row.getColumn( _row.nColumns() );
+
+            // todo: not clear what this does
             baseRowLocation = null;
 
             boolean matched = false;
@@ -176,7 +175,7 @@ public class MergeOperation extends NoRowsOperation
                 if ( !rlColumn.isNull() )
                 {
                     matched = true;
-                    baseRowLocation = (RowLocation) rlColumn.getObject();
+                    baseRowLocation = (RowLocation) rlColumn; //.getObject(); // todo what is this
                 }
             }
 

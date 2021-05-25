@@ -886,4 +886,13 @@ public abstract class GenericConstantActionFactory {
     public abstract ConstantAction getRevokeRoleConstantAction(List roleNames, List grantees);
 
     public abstract ConstantAction[] createConstraintConstantActionArray(int size);
+
+    public abstract ConstantAction getMatchingClauseConstantAction(int clauseType,
+                                                          String matchRefinementName,
+                                                          int[] thenColumns,
+                                                          String resultSetFieldName,
+                                                          String actionMethodName,
+                                                          ConstantAction thenAction);
+
+    public abstract ConstantAction getMergeConstantAction(ConstantAction[] matchingClauses);
 }
