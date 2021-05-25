@@ -9437,9 +9437,7 @@ insertColumnsAndSource(QueryTreeNode targetTable)
             offsetClauses[ FETCH_FIRST_CLAUSE ] = topNOut[0];
         }
 
-        StatementNode insertNode =  (StatementNode) nodeFactory.getNode(
-                            C_NodeTypes.INSERT_NODE,
-                            targetTable,
+        InsertNode insertNode =  new InsertNode(targetTable,
                             columnList,
                             queryExpression,
                             targetProperties,
