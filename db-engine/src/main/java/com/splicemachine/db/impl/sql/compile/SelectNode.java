@@ -872,7 +872,8 @@ public class SelectNode extends ResultSetNode {
     @Override
     public void rejectParameters() throws StandardException {
         super.rejectParameters();
-        fromList.rejectParameters();
+        if(fromList != null)
+            fromList.rejectParameters();
     }
 
     /**

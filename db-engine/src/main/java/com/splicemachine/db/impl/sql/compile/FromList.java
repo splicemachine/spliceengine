@@ -45,6 +45,8 @@ import com.splicemachine.db.iapi.util.StringUtil;
 
 import java.util.*;
 
+import static com.splicemachine.db.impl.sql.compile.ColumnReference.isBaseRowIdOrRowId;
+
 /**
  * A FromList represents the list of tables in a FROM clause in a DML
  * statement.  It extends QueryTreeNodeVector.
@@ -585,6 +587,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
             }
             /* Simpler to always set previousLevel then to test and set */
             previousLevel=currentLevel;
+            if(index == 0 && isBaseRowIdOrRowId(columnReference.columnName)) continue;
 
             ResultColumn resultColumn=fromTable.getMatchingColumn(columnReference);
 

@@ -37,13 +37,14 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.Node;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.util.IdUtil;
+import com.splicemachine.db.impl.ast.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -245,12 +246,12 @@ public class MergeNode extends DMLStatementNode
             resultSet = new SelectNode
                     (
                             selectList,
-                            topFromList,
+                            null, // aggregateVector
+                            topFromList, // fromList
                             null,      // where clause
                             null,      // group by list
                             null,      // having clause
                             null,      // window list
-                            null,      // optimizer plan override
                             getContextManager()
                     );
 
@@ -619,6 +620,19 @@ public class MergeNode extends DMLStatementNode
     public String statementToString()
     {
         return "MERGE";
+    }
+
+    @Override
+    public String toString2() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("MergeNode\n");
+        Node.append2(sb, "targetTable", "  ", _targetTable);
+        Node.append2(sb, "sourceTable", "  ", _sourceTable);
+        Node.append2(sb, "searchCondition", "  ", _searchCondition);
+        ((BinaryRelationalOperatorNode)_searchCondition).toString();
+        sb.append("  matchingClauses\n");
+        Node.printList(sb, _matchingClauses, "  ");
+        return sb.toString();
     }
 
 }

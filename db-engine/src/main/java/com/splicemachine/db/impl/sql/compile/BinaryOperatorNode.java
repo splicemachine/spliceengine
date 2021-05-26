@@ -40,11 +40,13 @@ import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.Node;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.ast.StringUtils;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
@@ -249,6 +251,16 @@ public class BinaryOperatorNode extends OperatorNode
         {
             return "";
         }
+    }
+
+    @Override
+    public String toString2() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("BinaryOperatorNode:\n");
+        sb.append(StringUtils.printN("operator", operator) + "\n");
+        sb.append(StringUtils.printN("methodName", methodName) + "\n");
+        Node.printList(sb, this.operands, "  ");
+        return sb.toString();
     }
 
     /**
