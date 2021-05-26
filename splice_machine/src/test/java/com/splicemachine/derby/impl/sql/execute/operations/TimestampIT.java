@@ -110,6 +110,7 @@ public class TimestampIT extends SpliceUnitTest {
             s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t3b"));
             s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t4"));
             s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t5"));
+            s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t6"));
 
             s.executeUpdate(String.format("create table %s ", SCHEMA + ".t1") + "(col1 timestamp, col2 int, primary key(col1,col2))");
             s.executeUpdate(String.format("create table %s ", SCHEMA + ".t11") + "(col1 timestamp, col2 int)");
@@ -119,6 +120,7 @@ public class TimestampIT extends SpliceUnitTest {
             s.executeUpdate(String.format("create index idx1 on %s ", SCHEMA + ".t3") + "(col1)");
             s.executeUpdate(String.format("create table %s ", SCHEMA + ".t4") + "(col1 timestamp, col2 timestamp)");
             s.executeUpdate(String.format("create table %s ", SCHEMA + ".t5") + "(col1 timestamp)");
+            s.executeUpdate(String.format("create table %s ", SCHEMA + ".t6") + "(FIPS1 TIME, FIPS2 TIMESTAMP)");
 
             conn.commit();
             ResultSet rs = s.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_GLOBAL_DATABASE_PROPERTY('derby.database.createTablesWithVersion2Serializer')");
@@ -886,6 +888,18 @@ public class TimestampIT extends SpliceUnitTest {
                         TestUtils.FormattedResult.ResultFactory.toString(rs));
             }
         }
+    }
+
+    @Test
+    public void testTimestampInsertOnSpark6DigitsPrecision() throws Exception {
+        methodWatcher.executeUpdate("insert into t6 values ( TIME( '16:03:00'), TIMESTAMP( '1996-08-24 16:03:00.999999') )");
+        String expected =
+            "FIPS1  |           FIPS2           |\n" +
+            "--------------------------------------\n" +
+            "16:03:00 |1996-08-24 16:03:00.999999 |";
+        String query = format("SELECT * FROM t6 --splice-properties useSpark=%s", useSpark);
+        testQuery(query, expected, methodWatcher);
+        methodWatcher.executeUpdate("delete from t6");
     }
 
     private void withFormat(String format) throws Exception {
