@@ -165,6 +165,8 @@ public class MergeOperation extends NoRowsOperation
             rowsFound = true;
 
             rlColumn = _row.getColumn( _row.nColumns() );
+
+            // todo: not clear what this does
             baseRowLocation = null;
 
             boolean matched = false;
@@ -173,7 +175,7 @@ public class MergeOperation extends NoRowsOperation
                 if ( !rlColumn.isNull() )
                 {
                     matched = true;
-                    baseRowLocation = (RowLocation) rlColumn.getObject();
+                    baseRowLocation = (RowLocation) rlColumn; //.getObject(); // todo what is this
                 }
             }
 

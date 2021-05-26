@@ -1806,8 +1806,6 @@ public class JoinNode extends TableOperatorNode{
          * algorithm enforces that.
          */
         FromList fromList = makeFromList( useLeftChild, useRightChild );
-        fromList.addElement(leftResultSet);
-        fromList.addElement(rightResultSet);
 
         int previousReliability=orReliability(CompilerContext.ON_CLAUSE_RESTRICTION);
         expression = expression.bindExpression(fromList,subqueryList,aggregateVector);

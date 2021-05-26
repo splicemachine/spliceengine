@@ -329,15 +329,6 @@ public class DeleteNode extends DMLModStatementNode
                     readColsBitSet = null;
                 }
 
-                /* Add the new result columns to the driving result set */
-                ResultColumnList    originalRCL = resultSet.resultColumns;
-                if ( originalRCL != null )
-                {
-                    originalRCL.appendResultColumns( resultColumnList, false );
-                    resultColumnList = originalRCL;
-                }
-                resultSet.setResultColumns(resultColumnList);
-
                 /* Bind the expressions before the ResultColumns are bound */
                 super.bindExpressions();
                 /*
@@ -371,14 +362,22 @@ public class DeleteNode extends DMLModStatementNode
                 } else {
                     rowLocationColumn = new ResultColumn(COLUMNNAME, rowIdColumn, getContextManager());
                 }
-
-                rowLocationColumn.bindResultColumnToExpression();
+                rowLocationColumn.markGenerated();
 
                 /* Append to the ResultColumnList */
                 resultColumnList.addResultColumn(rowLocationColumn);
 
                 /* Force the added columns to take on the table's correlation name, if any */
                 correlateAddedColumns( resultColumnList, targetTable );
+
+                /* Add the new result columns to the driving result set */
+                ResultColumnList    originalRCL = resultSet.resultColumns;
+                if ( originalRCL != null )
+                {
+                    originalRCL.appendResultColumns( resultColumnList, false );
+                    resultColumnList = originalRCL;
+                }
+                resultSet.setResultColumns(resultColumnList);
             }
 
 

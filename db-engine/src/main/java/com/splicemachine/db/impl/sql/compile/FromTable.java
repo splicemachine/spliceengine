@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.db.impl.ast.StringUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.*;
@@ -957,10 +958,10 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
     @Override
     public String toString(){
         if(SanityManager.DEBUG){
-            return "correlation Name: "+correlationName+"\n"+
-                    (corrTableName!=null? corrTableName.toString():"null")+"\n"+
-                    "tableNumber "+tableNumber+"\n"+
-                    "level "+level+"\n"+
+            return StringUtils.printN("correlationName", correlationName) + "\n" +
+                   StringUtils.printN("corrTableName",   corrTableName)   + "\n" +
+                   StringUtils.printN("tableNumber",     tableNumber)     + "\n" +
+                    StringUtils.printN("level",          level)           + "\n" +
                     super.toString();
         }else{
             return "";

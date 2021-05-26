@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.Node;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
@@ -162,6 +163,12 @@ public class MatchingClauseNode extends QueryTreeNode {
 
     /** Return true if this is a WHEN MATCHED ... DELETE clause */
     public  boolean isDeleteClause()    { return !( isUpdateClause() || isInsertClause() ); }
+
+    String getType() {
+        if(isUpdateClause()) return "UPDATE clause";
+        else if(isInsertClause()) return "INSERT clause";
+        else return "DELETE clause";
+    }
 
     /** Return the bound DML statement--returns null if called before binding */
     public  DMLModStatementNode getDML()    { return _dml; }
@@ -304,13 +311,13 @@ public class MatchingClauseNode extends QueryTreeNode {
         fromList.addFromTable( currentOfNode );
         SelectNode      selectNode = new SelectNode
                 (
-                        null,
-                        fromList, /* FROM list */
-                        null, /* WHERE clause */
-                        null, /* GROUP BY list */
-                        null, /* having clause */
-                        null, /* window list */
-                        null, /* optimizer plan override */
+                        null, /* selectList */
+                        null, /* aggregateVector */
+                        fromList, /* fromList */
+                        null, /* whereClause */
+                        null, /* groupByList */
+                        null, /* havingClause */
+                        null, /* windowDefinitionList */
                         getContextManager()
                 );
         Properties tableProperties = null; // todo
@@ -434,7 +441,9 @@ public class MatchingClauseNode extends QueryTreeNode {
             ValueNode       bufferedExpression = bufferedRC.getExpression();
             int                     offset = -1;    // start out undefined
 
-            if ( bufferedExpression instanceof ColumnReference )
+            if ( bufferedExpression.getColumnName().equals("###RowLocationToDelete"))
+                offset = selectCount;
+            else if ( bufferedExpression instanceof ColumnReference )
             {
                 ColumnReference bufferedCR = (ColumnReference) bufferedExpression;
                 String              tableName = bufferedCR.getTableName();
@@ -451,7 +460,7 @@ public class MatchingClauseNode extends QueryTreeNode {
                     if ( selectCR != null )
                     {
                         if (
-                                tableName.equals( selectCR.getTableName() ) &&
+                                tableName != null && tableName.equals( selectCR.getTableName() ) &&
                                         columnName.equals( selectCR.getColumnName() )
                         )
                         {
@@ -461,7 +470,7 @@ public class MatchingClauseNode extends QueryTreeNode {
                     }
                 }
             }
-            else if ( bufferedExpression instanceof CurrentRowLocationNode )
+            else if( bufferedExpression instanceof CurrentRowLocationNode )
             {
                 //
                 // There is only one RowLocation in the SELECT list, the row location for the
@@ -623,6 +632,18 @@ public class MatchingClauseNode extends QueryTreeNode {
         if ( isUpdateClause() ) { return "UPDATE"; }
         else if ( isInsertClause() ) { return "INSERT"; }
         else { return "DELETE"; }
+    }
+
+    @Override
+    public String toString2() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("MatchingClauseNode, type = " + getType() + "\n");
+        Node.append2(sb, "matchingRefinement", "  ", _matchingRefinement);
+        Node.append2(sb, "updateColumns", "  ", _updateColumns);
+        Node.append2(sb, "insertColumns", "  ", _insertColumns);
+        Node.append2(sb, "insertValues", "  ", _insertValues);
+        Node.append2(sb, "dml", "  ", _dml);
+        return sb.toString();
     }
 
 }

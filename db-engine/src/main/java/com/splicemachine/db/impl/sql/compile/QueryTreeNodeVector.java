@@ -34,8 +34,11 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.Node;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.impl.ast.StringUtils;
+import net.jpountz.util.Utils;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -172,5 +175,16 @@ class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNode impleme
 
     public List<T> getNodes(){
         return v;
+    }
+
+    @Override
+    public String toString2() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("QueryTreeNodeVector" + "\n" );
+        for(int i=0; i<v.size(); i++) {
+            sb.append("  Node " + i + "\n");
+            Node.printList(sb, v, "  ");
+        }
+        return sb.toString();
     }
 }

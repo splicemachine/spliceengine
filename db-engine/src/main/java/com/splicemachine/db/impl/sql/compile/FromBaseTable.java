@@ -62,6 +62,7 @@ import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.ast.CollectingVisitorBuilder;
 import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
+import com.splicemachine.db.impl.ast.StringUtils;
 import com.splicemachine.db.impl.sql.catalog.SYSTOKENSRowFactory;
 import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -1973,17 +1974,12 @@ public class FromBaseTable extends FromTable {
     @Override
     public String toString(){
         if(SanityManager.DEBUG){
-            return "tableName: "+
-                    (tableName!=null?tableName.toString():"null")+"\n"+
-                    "tableDescriptor: "+tableDescriptor+"\n"+
-                    "updateOrDelete: "+updateOrDelete+"\n"+
-                    (tableProperties!=null?
-                            tableProperties.toString():"null")+"\n"+
-                    "existsTable: "+existsTable+"\n"+
-                    "dependencyMap: "+
-                    (dependencyMap!=null
-                            ?dependencyMap.toString()
-                            :"null")+"\n"+
+            return  StringUtils.printN("tableName",       tableName)       + "\n" +
+                    StringUtils.printN("tableDescriptor", tableDescriptor) + "\n" +
+                    StringUtils.printN("updateOrDelete",  updateOrDelete)  + "\n" +
+                    StringUtils.printN("tableProperties", tableProperties) + "\n" +
+                    StringUtils.printN("existsTable",     existsTable)     + "\n" +
+                    StringUtils.printN("dependencyMap",   dependencyMap)   + "\n" +
                     super.toString();
         }else{
             return "";
