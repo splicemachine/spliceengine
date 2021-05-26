@@ -292,6 +292,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     // default to 6
     private int tableLimitForExhaustiveSearch = 6;
 
+    // default to v1
+    private String costModelName = "v1";
+
     // this used to be computed in OptimizerFactoryContextImpl; i.e everytime a
     // connection was made. To keep the semantics same I'm putting it out here
     // instead of in the OptimizerFactory which is only initialized when the
@@ -459,6 +462,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             throw e;
         }  catch (Exception e) {
             // no op, use default value 6
+        }
+
+        String costModelString = PropertyUtil.getCachedDatabaseProperty(this, Property.COST_MODEL);
+        if (costModelString != null && CostModelRegistry.exists(costModelString)) {
+            costModelName = costModelString;
         }
 
         try {
@@ -715,6 +723,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         if (tableLimit != null)
             return tableLimit;
         return tableLimitForExhaustiveSearch;
+    }
+
+    @Override
+    public String getCostModelName() {
+        String cmName = (String) sessionProperties.getProperty(
+                SessionProperties.PROPERTYNAME.COSTMODEL);
+        if (cmName != null)
+            return cmName;
+        return costModelName;
     }
 
     @Override
@@ -4134,13 +4151,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public CostModel getCostModel() {
-        String costModelName = getSessionProperties().getPropertyString(SessionProperties.PROPERTYNAME.COSTMODEL);
-        if(CostModelRegistry.exists(costModelName)) {
+    public CostModel getCostModel(String costModelName) {
+        if(costModelName != null && CostModelRegistry.exists(costModelName)) {
             return CostModelRegistry.getCostModel(costModelName);
-        } else {
-            return CostModelRegistry.getCostModel("v1");
         }
+        return null;
     }
 
     @Override

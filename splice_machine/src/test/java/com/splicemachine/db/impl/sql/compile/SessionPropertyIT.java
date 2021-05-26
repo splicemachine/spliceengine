@@ -362,4 +362,38 @@ public class SessionPropertyIT extends SpliceUnitTest {
            Arrays.asList("Invalid session property value '-1' specified, 'value should be a positive long' is expected. ");
         testUpdateFail("set session_property minPlanTimeout=-1", expectedErrors, methodWatcher);
     }
+
+    @Test
+    public void TestCostModelSessionProperty() throws Exception {
+        TestConnection conn = methodWatcher.createConnection();
+        String testQuery = "explain select * from %s\n t1 inner join t2 on a1=a2 inner join t3 on a2=a3";
+
+        conn.execute("set session_property costModel='v2'");
+        String sqlText = "values current session_property";
+        try (ResultSet rs = conn.query(sqlText)) {
+            String expected = "1       |\n" +
+                    "---------------\n" +
+                    "COSTMODEL=v2; |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+        rowContainsQuery(5, String.format(testQuery, ""), "costModel=v2", conn);
+
+        // overwrite session property by using a query hint
+        rowContainsQuery(5, String.format(testQuery, "--SPLICE-PROPERTIES costModel='v1'"), "costModel=v1", conn);
+
+        // set session property to null
+        conn.execute("set session_property costModel=null");
+        sqlText = "values current session_property";
+        try (ResultSet rs = conn.query(sqlText)) {
+            String expected = "1 |\n" +
+                    "----\n" +
+                    "   |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        // default cost model is v1
+        rowContainsQuery(5, String.format(testQuery, ""), "costModel=v1", conn);
+
+        conn.close();
+    }
 }

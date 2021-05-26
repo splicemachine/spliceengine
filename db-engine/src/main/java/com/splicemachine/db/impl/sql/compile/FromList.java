@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.OptimizableList;
 import com.splicemachine.db.iapi.sql.compile.Optimizer;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModelRegistry;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
@@ -56,6 +57,8 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
     boolean useStatistics=true;
 
     int tableLimitForExhaustiveSearch;
+
+    String costModelName;
 
     // FromList could have a view in it's list. If the view is defined in SESSION
     // schema, then we do not want to cache the statement's plan. This boolean
@@ -91,6 +94,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
         fixedJoinOrder=!((Boolean)optimizeJoinOrder);
         isTransparent=false;
         tableLimitForExhaustiveSearch = getLanguageConnectionContext().getTableLimitForExhaustiveSearch();
+        costModelName = getLanguageConnectionContext().getCostModelName();
     }
 
     /**
@@ -838,6 +842,13 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
                     if (tableLimitForExhaustiveSearch <= 0)
                         throw StandardException.newException(SQLState.LANG_INVALID_TABLE_LIMIT_FOR_EXHAUSTIVE_SEARCH, value);
                     break;
+                case "costModel":
+                    if (value != null && CostModelRegistry.exists(value)) {
+                        costModelName = value;
+                    } else {
+                        throw StandardException.newException(SQLState.LANG_INVALID_FROM_LIST_PROPERTY, key, value);
+                    }
+                    break;
                 default:
                     throw StandardException.newException(SQLState.LANG_INVALID_FROM_LIST_PROPERTY,key,value);
             }
@@ -1504,5 +1515,13 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
     public int getTableLimitForExhaustiveSearch()
     {
         return tableLimitForExhaustiveSearch;
+    }
+
+    @Override
+    public String getCostModelName() {
+        if (costModelName == null) {
+            return getLanguageConnectionContext().getCostModelName();
+        }
+        return costModelName;
     }
 }

@@ -142,8 +142,7 @@ public class OptimizerFactoryImpl
 								  DataDictionary dDictionary,
 								  RequiredRowOrdering requiredRowOrdering,
 								  int numTablesInQuery,
-								  LanguageConnectionContext lcc,
-								  CostModel costModel)
+								  LanguageConnectionContext lcc)
 				throws StandardException
 	{
 		/* Get/set up the array of join strategies.
@@ -165,8 +164,7 @@ public class OptimizerFactoryImpl
 							dDictionary,
 							requiredRowOrdering,
 							numTablesInQuery,
-							lcc,
-								costModel);
+							lcc);
 	}
 
 	/**
@@ -199,8 +197,7 @@ public class OptimizerFactoryImpl
 										 DataDictionary dDictionary,
 										 RequiredRowOrdering requiredRowOrdering,
 										 int numTablesInQuery,
-										 LanguageConnectionContext lcc,
-										 CostModel costModel)
+										 LanguageConnectionContext lcc)
 				throws StandardException
 	{
 
@@ -216,7 +213,7 @@ public class OptimizerFactoryImpl
 							lcc.getLockEscalationThreshold(),
 							requiredRowOrdering,
 							numTablesInQuery,
-							costModel);
+							lcc.getCostModel(optimizableList.getCostModelName()));
 	}
 
 	/**

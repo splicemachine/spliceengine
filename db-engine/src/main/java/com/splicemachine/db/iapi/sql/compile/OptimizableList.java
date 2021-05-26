@@ -120,4 +120,9 @@ public interface OptimizableList {
 	 * Return the maximum number of tables to be considered for exhaustive search.
 	 */
 	int getTableLimitForExhaustiveSearch();
+
+	/**
+	 * Return the name of the cost model used to optimize this optimizable list.
+	 */
+	String getCostModelName();
 }
