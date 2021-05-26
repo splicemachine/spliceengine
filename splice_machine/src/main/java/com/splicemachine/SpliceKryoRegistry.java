@@ -113,19 +113,25 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 
     private static volatile KryoPool spliceKryoPool;
 
+    public static final long SINGLE_DAY_NUM_MILLISECONDS = 86400000L;
+
     // The minimum encoded timestamp value using the old encoding
     // 0001-01-01 00:00:00.0
     // (new Timestamp(-1899, 0, 1, 0, 0, 0, 0)).getTime()
-    public static final long MIN_ENCODED_TIMESTAMP = -62135740800000L;
+    public static final long MIN_OLD_ENCODED_TIMESTAMP = -62135740800000L - SINGLE_DAY_NUM_MILLISECONDS;
 
     // The maximum encoded timestamp value using the old encoding
     // 9999-12-31 23:59:59.999999999
     // (new Timestamp(9999-1900, 11, 31, 23, 59, 59, 999999999)).getTime()
-    public static final long MAX_ENCODED_TIMESTAMP = 253402329599999L;
+    // Add a day's worth of milliseconds to this value to account for
+    // time zones.  9999-12-31 23:59:59.999999999 on a given system in
+    // one time zone may have more total milliseconds than on a system
+    // in a different time zone.
+    public static final long MAX_OLD_ENCODED_TIMESTAMP = 253402329599999L + SINGLE_DAY_NUM_MILLISECONDS;
 
     // An increment to add to the new timestamp encoding such that
     // TimestampV3DescriptorSerializer.formatLong(new Timestamp(-1899, 0, 1, 0, 0, 0, 0)) +
-    // NEW_TIMESTAMP_ENCODING_INCREMENT > MAX_ENCODED_TIMESTAMP
+    // NEW_TIMESTAMP_ENCODING_INCREMENT > MAX_OLD_ENCODED_TIMESTAMP
     // The lowest value we could use is 62389143129600000L, but round it
     // up, to be safe, and so it's easier to see the original encoded
     // value embedded in the new one after the increment is applied.
@@ -419,7 +425,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
             @Override
             protected void readValue(Kryo kryo,Input input,SQLTimestamp dvd) throws StandardException{
                 long encodedTimestamp = input.readLong();
-                if (encodedTimestamp > MAX_ENCODED_TIMESTAMP) {
+                if (encodedTimestamp > MAX_OLD_ENCODED_TIMESTAMP) {
                     encodedTimestamp -= NEW_TIMESTAMP_ENCODING_INCREMENT;
                     dvd.setValue(TimestampV3DescriptorSerializer.decodeTimestamp(encodedTimestamp));
                 }
