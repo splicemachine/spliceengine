@@ -116,12 +116,12 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
     // The minimum encoded timestamp value using the old encoding
     // 0001-01-01 00:00:00.0
     // (new Timestamp(-1899, 0, 1, 0, 0, 0, 0)).getTime()
-    public static long MIN_ENCODED_TIMESTAMP = -62135740800000L;
+    public static final long MIN_ENCODED_TIMESTAMP = -62135740800000L;
 
     // The maximum encoded timestamp value using the old encoding
     // 9999-12-31 23:59:59.999999999
     // (new Timestamp(9999-1900, 11, 31, 23, 59, 59, 999999999)).getTime()
-    public static long MAX_ENCODED_TIMESTAMP = 253402329599999L;
+    public static final long MAX_ENCODED_TIMESTAMP = 253402329599999L;
 
     // An increment to add to the new timestamp encoding such that
     // TimestampV3DescriptorSerializer.formatLong(new Timestamp(-1899, 0, 1, 0, 0, 0, 0)) +
@@ -129,7 +129,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
     // The lowest value we could use is 62389143129600000L, but round it
     // up, to be safe, and so it's easier to see the original encoded
     // value embedded in the new one after the increment is applied.
-    public static long NEW_TIMESTAMP_ENCODING_INCREMENT = 70000000000000000L;
+    public static final long NEW_TIMESTAMP_ENCODING_INCREMENT = 70000000000000000L;
 
     public static Class<?> getClassFromString(String className) {
         Class<?> foundClass = null;
