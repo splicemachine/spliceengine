@@ -34,10 +34,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.compile.OptimizableList;
-import com.splicemachine.db.iapi.sql.compile.Optimizer;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.compile.costing.CostModelRegistry;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.util.JBitSet;
@@ -94,7 +91,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
         fixedJoinOrder=!((Boolean)optimizeJoinOrder);
         isTransparent=false;
         tableLimitForExhaustiveSearch = getLanguageConnectionContext().getTableLimitForExhaustiveSearch();
-        costModelName = getLanguageConnectionContext().getCostModelName();
+        costModelName = getCostModelFromProperties();
     }
 
     /**
@@ -1517,10 +1514,23 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
         return tableLimitForExhaustiveSearch;
     }
 
+    public String getCostModelFromProperties() {
+        // get session property first
+        String value = getLanguageConnectionContext().getCostModelName();
+        if (value == null) {
+            // if session property is not set, get database property
+            value = getCompilerContext().getCostModelName();
+        }
+        if (value == null || !CostModelRegistry.exists(value)) {
+            value = CompilerContext.DEFAULT_COST_MODEL_NAME;
+        }
+        return value;
+    }
+
     @Override
     public String getCostModelName() {
         if (costModelName == null) {
-            return getLanguageConnectionContext().getCostModelName();
+            return getCostModelFromProperties();
         }
         return costModelName;
     }
