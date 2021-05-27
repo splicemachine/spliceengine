@@ -16,7 +16,6 @@ package com.splicemachine.stream;
 
 import com.splicemachine.stream.handlers.OpenHandler;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelOption;
@@ -71,7 +70,7 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter implements 
             bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
             bootstrap.handler(new OpenHandler(this));
 
-            ChannelFuture futureConnect = bootstrap.connect(socketAddr).sync();
+            bootstrap.connect(socketAddr).sync();
 
             active.await();
         } catch (Exception e) {
@@ -90,12 +89,12 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter implements 
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         if (msg instanceof StreamProtocol.PauseStream) {
             if (clientConsuming) {
-                LOG.trace("Client is overloaded, asked for a pause: " + this.toString());
+                LOG.trace("Client is overloaded, asked for a pause: " + this);
                 clientConsuming = false;
             }
         } else if (msg instanceof StreamProtocol.ContinueStream) {
             if (!clientConsuming) {
-                LOG.trace("Client is resuming to consume: " + this.toString());
+                LOG.trace("Client is resuming to consume: " + this);
                 clientConsuming = true;
             }
         }
