@@ -94,23 +94,6 @@ public class ZkUtils{
         }
     }
 
-    public static boolean createOrUpdate(String path, byte[] bytes, List<ACL> acls, CreateMode createMode)
-            throws KeeperException, InterruptedException {
-        try{
-            getRecoverableZooKeeper().create(path,bytes,acls,createMode);
-            return true;
-        }catch(KeeperException e){
-            if(e.code()==KeeperException.Code.NODEEXISTS){
-                // update the value if needed
-                if (!Arrays.equals(getRecoverableZooKeeper().getData(path, false, null), bytes)) {
-                    getRecoverableZooKeeper().setData(path, bytes, -1);
-                }
-                return true;
-            }
-            throw e;
-        }
-    }
-
     public static boolean safeDelete(String path,int version) throws KeeperException, InterruptedException{
         try{
             getRecoverableZooKeeper().delete(path,version);

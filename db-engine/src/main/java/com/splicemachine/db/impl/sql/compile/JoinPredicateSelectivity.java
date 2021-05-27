@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
 
 /**
  * Join Predicate Selectivity Holder
@@ -39,7 +40,7 @@ import com.splicemachine.db.iapi.sql.compile.Optimizable;
  */
 public class JoinPredicateSelectivity extends DefaultPredicateSelectivity {
     public JoinPredicateSelectivity(Predicate p, Optimizable baseTable, QualifierPhase phase, double selectivity){
-        super(p, baseTable, phase, 1.0);
+        super(p, baseTable, phase, 1.0, null);
         this.selectivity = selectivity;
     }
 

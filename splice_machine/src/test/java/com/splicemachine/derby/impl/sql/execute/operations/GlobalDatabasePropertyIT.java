@@ -18,11 +18,15 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.SerialTest;
+import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+
+import java.sql.ResultSet;
+import java.sql.Statement;
 
 /**
  *
@@ -58,4 +62,20 @@ public class GlobalDatabasePropertyIT extends SpliceUnitTest {
         }
     }
 
+    @Test
+    public void testSelectivityEstimationIncludingSkewed() throws Exception {
+        String sql = "call syscs_util.syscs_get_global_database_property('derby.database.selectivityEstimationIncludingSkewedDefault')";
+        try (TestConnection conn = methodWatcher.getOrCreateConnection()) {
+            setProperty("derby.database.selectivityEstimationIncludingSkewedDefault", "true");
+            try(Statement s = conn.createStatement();
+                ResultSet rs = s.executeQuery(sql)) {
+                while(rs.next()) {
+                    String result = rs.getString("PROPERTY_VALUE");
+                    Assert.assertTrue(result.compareToIgnoreCase("true") == 0);
+                }
+            }
+        } finally {
+            setProperty("derby.database.selectivityEstimationIncludingSkewedDefault", "NULL");
+        }
+    }
 }

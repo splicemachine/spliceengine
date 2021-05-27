@@ -146,6 +146,7 @@ public class SpliceNetConnection {
         private String currentFunctionPath;
         private String jdbcDb2Compatible;
         private String snapshot;
+        private String autoCommit;
 
         @Override
         public ConnectionBuilder clone() throws CloneNotSupportedException {
@@ -208,6 +209,10 @@ public class SpliceNetConnection {
             this.jdbcDb2Compatible = Boolean.toString(db2Compatible);
             return this;
         }
+        public ConnectionBuilder autoCommit(boolean autoCommit) {
+            this.autoCommit = Boolean.toString(autoCommit);
+            return this;
+        }
 
         public ConnectionBuilder snapshot(long snapshot) {
             this.snapshot = Long.toString(snapshot);
@@ -238,6 +243,9 @@ public class SpliceNetConnection {
                 info.put("jdbcDb2CompatibleMode", jdbcDb2Compatible != null ? jdbcDb2Compatible : jdbcJdbcDb2CompatibleMode);
             if (snapshot != null)
                 info.put("snapshot", snapshot);
+            if (autoCommit != null) {
+                info.put("autoCommit", autoCommit);
+            }
             StringBuilder url = new StringBuilder();
             if (host != null || port != null) {
                 url.append(URL_PREFIX);

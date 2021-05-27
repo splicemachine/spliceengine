@@ -2,6 +2,7 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.catalog.DefaultSystemProcedureGenerator;
 import com.splicemachine.db.impl.sql.catalog.Procedure;
@@ -206,5 +207,30 @@ public class ProcedureUnitTest {
         SpliceSystemProcedures.createSysUtilProcedures(proc);
         Assert.assertEquals(-1971755069, proc.stream().map( procedure -> procedure.getName() ).sorted()
                 .map( s -> s.hashCode()).reduce(0, (subtotal, element) -> subtotal + element).longValue() );
+    }
+
+    @Test
+    public void testValidateGlobalOptions() {
+        Assert.assertEquals(
+                "Error parsing '2' for option splice.function.preserveLineEndings: " +
+                        "java.lang.RuntimeException: Expected either TRUE or FALSE.",
+                GlobalDBProperties.PRESERVE_LINE_ENDINGS.validate("2") );
+
+        Assert.assertEquals("", GlobalDBProperties.SPLICE_TIMESTAMP_FORMAT.validate("hh:mm:ss a") );
+        Assert.assertEquals("Error parsing 'h:mm:ss a' for option splice.function.timestampFormat: " +
+                        "java.lang.IllegalArgumentException: not supported format \"h:mm:ss a\": 'h' can't be repeated 1 times",
+                GlobalDBProperties.SPLICE_TIMESTAMP_FORMAT.validate("h:mm:ss a") );
+
+        Assert.assertEquals("", GlobalDBProperties.SPLICE_CURRENT_TIMESTAMP_PRECISION.validate("1234") );
+        Assert.assertEquals("Error parsing 'abcd' for option splice.function.currentTimestampPrecision: " +
+                        "java.lang.NumberFormatException: For input string: \"abcd\"",
+                GlobalDBProperties.SPLICE_CURRENT_TIMESTAMP_PRECISION.validate("abcd") );
+
+        Assert.assertEquals("", GlobalDBProperties.FLOATING_POINT_NOTATION.validate("plain") );
+        Assert.assertEquals("Error parsing 'abcd' for option splice.function.floatingPointNotation: " +
+                        "java.lang.RuntimeException: Supported values are [plain, normalized, default].",
+                GlobalDBProperties.FLOATING_POINT_NOTATION.validate("abcd") );
+
+
     }
 }

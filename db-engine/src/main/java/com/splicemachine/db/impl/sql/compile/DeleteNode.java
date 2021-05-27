@@ -262,7 +262,7 @@ public class DeleteNode extends DMLModStatementNode
 
             /* Generate a select list for the ResultSetNode - CurrentRowLocation(). */
             if (SanityManager.DEBUG)
-                SanityManager.ASSERT((resultSet.resultColumns == null),
+                SanityManager.ASSERT((resultSet.getResultColumns() == null),
                               "resultColumns is expected to be null until bind time");
 
 

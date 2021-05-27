@@ -554,7 +554,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 createDbOwnerSchema(bootingTC, getSpliceDatabaseDescriptor().getUUID(), SchemaDescriptor.DEFAULT_USER_NAME);
             }
 
-            startParams.setProperty("catalogVersion", dictionaryVersion.toString());
             assert authorizationDatabasesOwner.containsKey(spliceDbDesc.getUUID()) :"Failed to get Database Owner authorization";
 
             // Update (or create) the system stored procedures if requested.

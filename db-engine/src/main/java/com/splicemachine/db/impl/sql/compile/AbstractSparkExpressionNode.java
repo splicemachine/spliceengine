@@ -36,11 +36,16 @@ import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataType;
+import scala.Tuple2;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.HashMap;
 import java.util.function.Function;
+
+import static org.apache.spark.sql.functions.col;
+import static org.apache.spark.sql.functions.rtrim;
 
 public abstract class AbstractSparkExpressionNode implements SparkExpressionNode
 {
@@ -48,7 +53,7 @@ public abstract class AbstractSparkExpressionNode implements SparkExpressionNode
     protected SparkExpressionNode right;
 
     protected int abstractSerializationVersion = 1;
-    protected int serializationVersion = 1;
+    protected int serializationVersion = 2;
 
     @Override
     public void setLeftChild(SparkExpressionNode left) {
@@ -91,6 +96,47 @@ public abstract class AbstractSparkExpressionNode implements SparkExpressionNode
         abstractSerializationVersion = in.readInt();
         left = (SparkExpressionNode)in.readObject();
         right = (SparkExpressionNode)in.readObject();
+    }
+
+    public void transformToRTrimmedColumnExpression(Tuple2<String, String>[] leftColTypes,
+                                                    Tuple2<String, String>[] rightColTypes,
+                                                    HashMap<String, Column> leftColMap,
+                                                    HashMap<String, Column> rightColMap) {
+        if (left != null)
+            left.transformToRTrimmedColumnExpression(leftColTypes,
+                                              rightColTypes,
+                                              leftColMap,
+                                              rightColMap);
+        if (right != null)
+            right.transformToRTrimmedColumnExpression(leftColTypes,
+                                               rightColTypes,
+                                               leftColMap,
+                                               rightColMap);
+        if (this instanceof SparkColumnReference) {
+            SparkColumnReference colRef = (SparkColumnReference)this;
+            Tuple2<String, String>[] colTypes;
+            HashMap<String, Column> colMap;
+            if (colRef.isLeftDataFrame()) {
+                colTypes = leftColTypes;
+                colMap   = leftColMap;
+            }
+            else {
+                colTypes = rightColTypes;
+                colMap   = rightColMap;
+            }
+            if (colTypes[colRef.getColumnNumber()]._2().equals("StringType")) {
+                String colName = colRef.getColumnName();
+                String rTrimmedColName = getRTrimmedColumnName(colName);
+                colMap.put(rTrimmedColName, rtrim(col(colName)));
+                colRef.setColumnName(rTrimmedColName);
+            }
+        }
+    }
+
+    public static String getRTrimmedColumnName(String colName) {
+        if (colName == null)
+            return null;
+        return colName + "_rtrimmed";
     }
 }
 

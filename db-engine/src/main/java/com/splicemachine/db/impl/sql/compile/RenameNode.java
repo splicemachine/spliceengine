@@ -51,6 +51,8 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.sql.StatementType;
 
+import static com.splicemachine.db.impl.sql.compile.ColumnReference.checkForDerivedColNameInDDL;
+
 /**
  * A RenameNode is the root of a QueryTree that represents a
  * RENAME TABLE/COLUMN/INDEX statement.
@@ -378,6 +380,7 @@ public class RenameNode extends DDLStatementNode
     private void renameColumnBind(DataDictionary dd)
         throws StandardException
     {
+		checkForDerivedColNameInDDL(newObjectName);
         ColumnDescriptor columnDescriptor = td.getColumnDescriptor(oldObjectName);
 
         /* Verify that old column name does exist in the table */

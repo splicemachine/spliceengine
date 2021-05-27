@@ -140,6 +140,10 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
             return this;
         }
 
+        public ConnectionBuilder autoCommit(boolean autoCommit) {
+            delegate.autoCommit(autoCommit);
+            return this;
+        }
         /**
          * Always creates a new connection, replacing this class's reference to the current connection, if any.
          */

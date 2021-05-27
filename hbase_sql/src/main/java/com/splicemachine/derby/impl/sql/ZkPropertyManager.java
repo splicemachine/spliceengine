@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 
 import com.splicemachine.access.HConfiguration;
@@ -67,8 +68,14 @@ public class ZkPropertyManager implements PropertyManager{
 
     @Override
     public void addProperty(String propertyName,String propertyValue) throws StandardException{
+        String path = zkSpliceDerbyPropertyPath + "/" + propertyName;
         try{
-            ZkUtils.createOrUpdate(zkSpliceDerbyPropertyPath+"/"+propertyName,Bytes.toBytes(propertyValue),ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
+            if (ZkUtils.getRecoverableZooKeeper().exists(path, false) == null) {
+                ZkUtils.safeCreate(path, Bytes.toBytes(propertyValue), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+            }
+            else {
+                ZkUtils.setData(path, Bytes.toBytes(propertyValue), -1);
+            }
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -83,6 +90,15 @@ public class ZkPropertyManager implements PropertyManager{
             }
         }catch(Exception e){
             throw Exceptions.parseException(e);
+        }
+    }
+
+    @Override
+    public void removeProperty(String propertyName){
+        try {
+            ZkUtils.safeDelete(zkSpliceDerbyPropertyPath + "/" + propertyName, -1);
+        } catch (KeeperException | InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 }

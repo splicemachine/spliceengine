@@ -130,6 +130,9 @@ public final class BooleanConstantNode extends ConstantNode
      */
     Object getConstantValueAsObject()
     {
+        if (unknownValue) {
+            return null;
+        }
         return booleanValue ? Boolean.TRUE : Boolean.FALSE;
     }
 
@@ -203,6 +206,9 @@ public final class BooleanConstantNode extends ConstantNode
     {
         if (! underNotNode)
         {
+            return this;
+        }
+        if (unknownValue) {
             return this;
         }
 
