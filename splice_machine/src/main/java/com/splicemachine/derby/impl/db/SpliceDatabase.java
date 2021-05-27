@@ -34,7 +34,7 @@ import com.splicemachine.db.iapi.services.property.PropertySetCallback;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
-import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModelRegistry;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModelRegistry;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -44,7 +44,6 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.ast.*;
 import com.splicemachine.db.impl.db.BasicDatabase;
@@ -56,7 +55,7 @@ import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.ddl.DDLMessage.DDLChange;
 import com.splicemachine.derby.ddl.*;
-import com.splicemachine.derby.impl.sql.compile.costing.V1JoinCostEstimationModel;
+import com.splicemachine.derby.impl.sql.compile.costing.V1CostModel;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -133,7 +132,7 @@ public class SpliceDatabase extends BasicDatabase{
             }
         }
 
-        JoinCostEstimationModelRegistry.registerJoinCostEstimationModel("v1", new V1JoinCostEstimationModel());
+        CostModelRegistry.registerCostModel("v1", new V1CostModel());
 
         if(create){
             SpliceLogUtils.info(LOG,"Creating the Splice Machine database");
@@ -157,8 +156,9 @@ public class SpliceDatabase extends BasicDatabase{
         afterOptVisitors.add(LimitOffsetVisitor.class);
         afterOptVisitors.add(PlanPrinter.class);
 
-        List<Class<? extends ISpliceVisitor>> afterBindVisitors=new ArrayList<>(1);
+        List<Class<? extends ISpliceVisitor>> afterBindVisitors=new ArrayList<>(2);
         afterBindVisitors.add(RepeatedPredicateVisitor.class);
+        afterBindVisitors.add(QueryRewriteVisitor.class);
 
         List<Class<? extends ISpliceVisitor>> afterParseClasses=Collections.emptyList();
         lctx.setASTVisitor(new SpliceASTWalker(afterParseClasses, afterBindVisitors, afterOptVisitors));
@@ -358,132 +358,7 @@ public class SpliceDatabase extends BasicDatabase{
             public void startChange(DDLChange change) throws StandardException{
                 DataDictionary dataDictionary=getDataDictionary();
                 DependencyManager dependencyManager=dataDictionary.getDependencyManager();
-                switch(change.getDdlChangeType()){
-                    case CREATE_INDEX:
-                        DDLUtils.preCreateIndex(change,dataDictionary,dependencyManager);
-                        break;
-                    case DROP_INDEX:
-                        DDLUtils.preDropIndex(change,dataDictionary,dependencyManager);
-                        break;
-                    case DROP_SEQUENCE:
-                        DDLUtils.preDropSequence(change,dataDictionary,dependencyManager);
-                        break;
-                    case CHANGE_PK:
-                    case ADD_CHECK:
-                    case ADD_NOT_NULL:
-                    case ADD_COLUMN:
-                    case ADD_PRIMARY_KEY:
-                    case ADD_UNIQUE_CONSTRAINT:
-                    case DROP_COLUMN:
-                    case DROP_CONSTRAINT:
-                    case DROP_PRIMARY_KEY:
-                    case DICTIONARY_UPDATE:
-                    case CREATE_TABLE:
-                    case CREATE_SCHEMA:
-                        break;
-                    case DROP_TABLE:
-                        DDLUtils.preDropTable(change,dataDictionary,dependencyManager);
-                        break;
-                    case DROP_VIEW:
-                        DDLUtils.preDropView(change,dataDictionary,dependencyManager);
-                        break;
-                    case ALTER_TABLE:
-                        DDLUtils.preAlterTable(change,dataDictionary,dependencyManager);
-                        break;
-                    case RENAME_TABLE:
-                        DDLUtils.preRenameTable(change,dataDictionary,dependencyManager);
-                        break;
-                    case CREATE_TRIGGER:
-                        DDLUtils.preCreateTrigger(change,dataDictionary,dependencyManager);
-                        break;
-                    case CREATE_ROLE:
-                        DDLUtils.preCreateRole(change,dataDictionary,dependencyManager);
-                        break;
-                    case DROP_TRIGGER:
-                        DDLUtils.preDropTrigger(change,dataDictionary,dependencyManager);
-                        break;
-                    case DROP_ALIAS:
-                        DDLUtils.preDropAlias(change,dataDictionary,dependencyManager);
-                        break;
-                    case RENAME_INDEX:
-                        DDLUtils.preRenameIndex(change,dataDictionary,dependencyManager);
-                        break;
-                    case RENAME_COLUMN:
-                        DDLUtils.preRenameColumn(change,dataDictionary,dependencyManager);
-                        break;
-                    case DROP_SCHEMA:
-                        DDLUtils.preDropSchema(change,dataDictionary,dependencyManager);
-                        break;
-                    case UPDATE_SCHEMA_OWNER:
-                        DDLUtils.preUpdateSchemaOwner(change,dataDictionary,dependencyManager);
-                        break;
-                    case DROP_ROLE:
-                        DDLUtils.preDropRole(change,dataDictionary,dependencyManager);
-                        break;
-                    case TRUNCATE_TABLE:
-                        DDLUtils.preTruncateTable(change,dataDictionary,dependencyManager);
-                        break;
-                    case REVOKE_PRIVILEGE:
-                        DDLUtils.preRevokePrivilege(change,dataDictionary,dependencyManager);
-                        break;
-                    case ALTER_STATS:
-                        DDLUtils.preAlterStats(change,dataDictionary,dependencyManager);
-                        break;
-                    case ENTER_RESTORE_MODE:
-                        SIDriver.driver().lifecycleManager().enterRestoreMode();
-                        Collection<Context> allContexts = ContextService.getService().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
-                        for (Context context : allContexts) {
-                            ((LanguageConnectionContext) context).enterRestoreMode();
-                        }
-                        break;
-                    case SET_REPLICATION_ROLE:
-                        String role = change.getSetReplicationRole().getRole();
-                        SIDriver.driver().lifecycleManager().setReplicationRole(role);
-                        allContexts=ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
-                        for(Context context : allContexts){
-                            ((LanguageConnectionContext) context).setReplicationRole(role);
-                        }
-                        SpliceLogUtils.info(LOG,"set replication role to %s", role);
-                        break;
-                    case ROLLING_UPGRADE:
-                        DDLMessage.RollingUpgrade.OperationType type = change.getRollingUpgrade().getType();
-                        if (type == DDLMessage.RollingUpgrade.OperationType.BEGIN) {
-                            SIDriver.driver().setRollingUpgrade(true);
-                        }
-                        else if (type == DDLMessage.RollingUpgrade.OperationType.END) {
-                            SIDriver.driver().setRollingUpgrade(false);
-                        }
-                        break;
-                    case NOTIFY_JAR_LOADER:
-                        DDLUtils.preNotifyJarLoader(change,dataDictionary,dependencyManager);
-                        break;
-                    case NOTIFY_MODIFY_CLASSPATH:
-                        DDLUtils.preNotifyModifyClasspath(change,dataDictionary,dependencyManager);
-                        break;
-                    case REFRESH_ENTRPRISE_FEATURES:
-                        EngineDriver.driver().refreshEnterpriseFeatures();
-                        break;
-                    case GRANT_REVOKE_ROLE:
-                        DDLUtils.preGrantRevokeRole(change, dataDictionary, dependencyManager);
-                        break;
-                    case SET_DATABASE_PROPERTY:
-                        DDLUtils.preSetDatabaseProperty(change, dataDictionary, dependencyManager);
-                        break;
-                    case UPDATE_SYSTEM_PROCEDURES:
-                        DDLUtils.preUpdateSystemProcedures(change, dataDictionary);
-                        break;
-                    case CREATE_ALIAS:
-                    case CREATE_VIEW:
-                        break;
-                    case LEAVE_RESTORE_MODE:
-                        DDLUtils.preLeaveRestore(change, dataDictionary);
-                        break;
-                    case ADD_FOREIGN_KEY: // fallthrough, this is necessary since the parent of the foreign key now has one extra child!
-                    case DROP_FOREIGN_KEY:
-                        DDLUtils.preDropForeignKey(change, dataDictionary);
-                    default:
-                        break;
-                }
+                DDLUtils.dispatchChangeAction(change, dataDictionary, dependencyManager, null);
                 final List<DDLAction> ddlActions = new ArrayList<>();
                 ddlActions.add(new AddIndexToPipeline());
                 ddlActions.add(new DropIndexFromPipeline());

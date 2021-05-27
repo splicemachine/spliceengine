@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 
 import java.util.List;
 

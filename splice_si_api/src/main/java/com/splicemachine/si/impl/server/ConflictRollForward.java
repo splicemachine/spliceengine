@@ -94,4 +94,8 @@ public class ConflictRollForward {
     public List<DataMutation> getMutations() {
         return mutations;
     }
+
+    public TxnSupplier getTxnSupplier() {
+        return txnSupplier;
+    }
 }

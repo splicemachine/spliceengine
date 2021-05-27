@@ -50,8 +50,8 @@ import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.*;
 import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModel;
-import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModelRegistry;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModelRegistry;
 import com.splicemachine.db.iapi.sql.conn.*;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Provider;
@@ -490,6 +490,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_MIN_PLAN_TIMEOUT, SessionProperties.PROPERTYNAME.MINPLANTIMEOUT);
             setSessionFromConnectionProperty(connectionProperties, Property.CURRENT_FUNCTION_PATH, SessionProperties.PROPERTYNAME.CURRENTFUNCTIONPATH);
             setSessionFromConnectionProperty(connectionProperties, Property.OLAP_ALWAYS_PENALIZE_NLJ, SessionProperties.PROPERTYNAME.OLAPALWAYSPENALIZENLJ);
+            setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_JOIN_STRATEGY, SessionProperties.PROPERTYNAME.JOINSTRATEGY);
 
             String disableAdvancedTC = connectionProperties.getProperty(Property.CONNECTION_DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
             if (disableAdvancedTC != null && disableAdvancedTC.equalsIgnoreCase("true")) {
@@ -519,9 +520,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                     favorIndexPrefixIteration.equalsIgnoreCase("true")) {
                 this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.FAVORINDEXPREFIXITERATION, "TRUE".toString());
             }
-            String joinCostEstimationModel = connectionProperties.getProperty(Property.JOIN_COST_ESTIMATION_MODEL);
-            if(joinCostEstimationModel != null && JoinCostEstimationModelRegistry.exists(joinCostEstimationModel)) {
-                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.JOINCOSTESTIMATIONMODEL, joinCostEstimationModel);
+            String costModel = connectionProperties.getProperty(Property.COST_MODEL);
+            if(costModel != null && CostModelRegistry.exists(costModel)) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.COSTMODEL, costModel);
             }
         }
         if (type.isSessionHinted()) {
@@ -1498,11 +1499,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      */
     @Override
     public PreparedStatement lookupStatement(GenericStatement statement) throws StandardException {
-        GenericStorablePreparedStatement ps = getDataDictionary().getDataDictionaryCache().statementCacheFind(statement);
-        if (ps == null) {
-            ps = new GenericStorablePreparedStatement(statement);
-            getDataDictionary().getDataDictionaryCache().statementCacheAdd(statement, ps);
-        }
+        GenericStorablePreparedStatement ps = getDataDictionary().getDataDictionaryCache().cacheIfAbsent(statement);
         synchronized (ps) {
             if (ps.upToDate()) {
                 GeneratedClass ac = ps.getActivationClass();
@@ -4134,12 +4131,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public JoinCostEstimationModel getJoinCostEstimationModel() {
-        String joinCostEstimationModeName = getSessionProperties().getPropertyString(SessionProperties.PROPERTYNAME.JOINCOSTESTIMATIONMODEL);
-        if(JoinCostEstimationModelRegistry.exists(joinCostEstimationModeName)) {
-            return JoinCostEstimationModelRegistry.getJoinCostEstimationModel(joinCostEstimationModeName);
+    public CostModel getCostModel() {
+        String costModelName = getSessionProperties().getPropertyString(SessionProperties.PROPERTYNAME.COSTMODEL);
+        if(CostModelRegistry.exists(costModelName)) {
+            return CostModelRegistry.getCostModel(costModelName);
         } else {
-            return JoinCostEstimationModelRegistry.getJoinCostEstimationModel("v1");
+            return CostModelRegistry.getCostModel("v1");
         }
     }
 
@@ -4289,4 +4286,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         return activeStateTxId;
     }
 
+    @Override
+    public String getHintedJoinStrategy() {
+        return (String) sessionProperties.getProperty(
+            SessionProperties.PROPERTYNAME.JOINSTRATEGY);
+    }
 }

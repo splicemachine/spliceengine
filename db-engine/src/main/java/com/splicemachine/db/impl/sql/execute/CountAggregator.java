@@ -50,150 +50,150 @@ import java.io.ObjectOutput;
  */
 public final class CountAggregator extends SystemAggregator
 {
-	private long value;
-	private boolean isCountStar;
+    private long value;
+    private boolean isCountStar;
 
-	/**
-	 */
-	public ExecAggregator setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnType )
-	{
-			isCountStar = aggregateName.equals("COUNT(*)");
-			return this;
-	}
+    /**
+     */
+    public ExecAggregator setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnType )
+    {
+            isCountStar = aggregateName.equals("COUNT(*)");
+            return this;
+    }
 
-	/**
-	 * @see ExecAggregator#merge
-	 *
-	 * @exception	StandardException	on error
-	 */
-	public void merge(ExecAggregator addend)
-		throws StandardException
-	{
-			if(addend==null)
-					return; //assume null is the same thing as zero
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(addend instanceof CountAggregator,
-				"addend is supposed to be the same type of aggregator for the merge operator");
-		}
+    /**
+     * @see ExecAggregator#merge
+     *
+     * @exception    StandardException    on error
+     */
+    public void merge(ExecAggregator addend)
+        throws StandardException
+    {
+            if(addend==null)
+                    return; //assume null is the same thing as zero
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(addend instanceof CountAggregator,
+                "addend is supposed to be the same type of aggregator for the merge operator");
+        }
 
-		value += ((CountAggregator)addend).value;
-	}
+        value += ((CountAggregator)addend).value;
+    }
 
-	public void add(DataValueDescriptor addend) throws StandardException{
-		value+=addend.getLong();
-	}
+    public void add(DataValueDescriptor addend) throws StandardException{
+        value+=addend.getLong();
+    }
 
-	/**
-	 * Return the result of the aggregation.  Just
-	 * spit out the running count.
-	 *
-	 * @return the value as a Long 
-	 */
-	public DataValueDescriptor getResult()
-	{
-		return new com.splicemachine.db.iapi.types.SQLLongint(value);
-	}
+    /**
+     * Return the result of the aggregation.  Just
+     * spit out the running count.
+     *
+     * @return the value as a Long
+     */
+    public DataValueDescriptor getResult()
+    {
+        return new com.splicemachine.db.iapi.types.SQLLongint(value);
+    }
 
 
-	/**
-	 * Accumulate for count().  Toss out all nulls in this kind of count.
-	 * Increment the count for count(*). Count even the null values.
-	 *
-	 * @param addend	value to be added in
-	 * @param ga		the generic aggregator that is calling me
-	 *
-	 * @see ExecAggregator#accumulate
-	 */
-	public void accumulate(DataValueDescriptor addend, Object ga)
-		throws StandardException
-	{
-		if (isCountStar)
-			value++;
-		else
-			super.accumulate(addend, ga);
-	}
+    /**
+     * Accumulate for count().  Toss out all nulls in this kind of count.
+     * Increment the count for count(*). Count even the null values.
+     *
+     * @param addend    value to be added in
+     * @param ga        the generic aggregator that is calling me
+     *
+     * @see ExecAggregator#accumulate
+     */
+    public void accumulate(DataValueDescriptor addend, Object ga)
+        throws StandardException
+    {
+        if (isCountStar)
+            value++;
+        else
+            super.accumulate(addend, ga);
+    }
 
-	protected final void accumulate(DataValueDescriptor addend) {
-			value++;
-	}
+    protected final void accumulate(DataValueDescriptor addend) {
+            value++;
+    }
 
-	/**
-	 * @return ExecAggregator the new aggregator
-	 */
-	public ExecAggregator newAggregator()
-	{
-		CountAggregator ca = new CountAggregator();
-		ca.isCountStar = isCountStar;
-		return ca;
-	}
+    /**
+     * @return ExecAggregator the new aggregator
+     */
+    public ExecAggregator newAggregator()
+    {
+        CountAggregator ca = new CountAggregator();
+        ca.isCountStar = isCountStar;
+        return ca;
+    }
 
-	public boolean isCountStar()
-	{
-		return isCountStar;
-	}
+    public boolean isCountStar()
+    {
+        return isCountStar;
+    }
 
-	/////////////////////////////////////////////////////////////
-	// 
-	// FORMATABLE INTERFACE
-	// 
-	/////////////////////////////////////////////////////////////
-	/**
-	 * Although we are not expected to be persistent per se,
-	 * we may be written out by the sorter temporarily.  So
-	 * we need to be able to write ourselves out and read
-	 * ourselves back in.
-	 *
-	 * @exception IOException thrown on error
-	 */
-	@Override
-	protected void writeExternalOld(ObjectOutput out) throws IOException {
-		super.writeExternal(out);
-		out.writeBoolean(isCountStar);
-		out.writeLong(value);
-	}
+    /////////////////////////////////////////////////////////////
+    //
+    // FORMATABLE INTERFACE
+    //
+    /////////////////////////////////////////////////////////////
+    /**
+     * Although we are not expected to be persistent per se,
+     * we may be written out by the sorter temporarily.  So
+     * we need to be able to write ourselves out and read
+     * ourselves back in.
+     *
+     * @exception IOException thrown on error
+     */
+    @Override
+    protected void writeExternalOld(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeBoolean(isCountStar);
+        out.writeLong(value);
+    }
 
-	/**
-	 * @see java.io.Externalizable#readExternal
-	 *
-	 * @exception IOException io exception
-	 * @exception ClassNotFoundException on error
-	 */
-	@Override
-	protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
-		super.readExternal(in);
-		isCountStar = in.readBoolean();
-		value = in.readLong();
-	}
+    /**
+     * @see java.io.Externalizable#readExternal
+     *
+     * @exception IOException io exception
+     * @exception ClassNotFoundException on error
+     */
+    @Override
+    protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        isCountStar = in.readBoolean();
+        value = in.readLong();
+    }
 
-	/**
-	 * Get the formatID which corresponds to this class.
-	 *
-	 *	@return	the formatID of this class
-	 */
-	public	int	getTypeFormatId() { return StoredFormatIds.AGG_COUNT_V01_ID; }
+    /**
+     * Get the formatID which corresponds to this class.
+     *
+     *    @return    the formatID of this class
+     */
+    public    int    getTypeFormatId() { return StoredFormatIds.AGG_COUNT_V01_ID; }
 
-	@Override
-	protected CatalogMessage.SystemAggregator.Builder toProtobufBuilder() throws IOException {
-		CatalogMessage.SystemAggregator.Builder builder = super.toProtobufBuilder();
+    @Override
+    protected CatalogMessage.SystemAggregator.Builder toProtobufBuilder() throws IOException {
+        CatalogMessage.SystemAggregator.Builder builder = super.toProtobufBuilder();
 
-		CatalogMessage.CountAggregator countAggregator = CatalogMessage.CountAggregator.newBuilder()
-				.setIsCountStar(isCountStar)
-				.setValue(value)
-				.build();
+        CatalogMessage.CountAggregator countAggregator = CatalogMessage.CountAggregator.newBuilder()
+                .setIsCountStar(isCountStar)
+                .setValue(value)
+                .build();
 
-		builder.setType(CatalogMessage.SystemAggregator.Type.CountAggregator)
-				.setExtension(CatalogMessage.CountAggregator.countAggregator, countAggregator);
+        builder.setType(CatalogMessage.SystemAggregator.Type.CountAggregator)
+                .setExtension(CatalogMessage.CountAggregator.countAggregator, countAggregator);
 
-		return builder;
-	}
+        return builder;
+    }
 
-	@Override
-	protected void init(CatalogMessage.SystemAggregator systemAggregator) throws IOException, ClassNotFoundException {
-		super.init(systemAggregator);
-		CatalogMessage.CountAggregator countAggregator =
-				systemAggregator.getExtension(CatalogMessage.CountAggregator.countAggregator);
-		isCountStar = countAggregator.getIsCountStar();
-		value = countAggregator.getValue();
-	}
+    @Override
+    protected void init(CatalogMessage.SystemAggregator systemAggregator) throws IOException, ClassNotFoundException {
+        super.init(systemAggregator);
+        CatalogMessage.CountAggregator countAggregator =
+                systemAggregator.getExtension(CatalogMessage.CountAggregator.countAggregator);
+        isCountStar = countAggregator.getIsCountStar();
+        value = countAggregator.getValue();
+    }
 }

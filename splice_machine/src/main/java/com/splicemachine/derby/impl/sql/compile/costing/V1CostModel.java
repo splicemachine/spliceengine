@@ -16,14 +16,19 @@ package com.splicemachine.derby.impl.sql.compile.costing;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModel;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
+import com.splicemachine.db.iapi.sql.compile.costing.ScanCostEstimator;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.derby.stream.function.ZipperFunction;
+import com.splicemachine.db.iapi.store.access.StoreCostController;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.compile.ResultColumnList;
 
+import java.util.BitSet;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class V1JoinCostEstimationModel implements JoinCostEstimationModel {
+public class V1CostModel implements CostModel {
 
     private static Map<JoinStrategy.JoinStrategyType, StrategyJoinCostEstimation> joinCostEstimationMap = new ConcurrentHashMap<>();
     static {
@@ -35,18 +40,33 @@ public class V1JoinCostEstimationModel implements JoinCostEstimationModel {
     }
 
     @Override
-    public void estimateCost(JoinStrategy.JoinStrategyType joinStrategyType,
-                             Optimizable innerTable,
-                             OptimizablePredicateList predList,
-                             ConglomerateDescriptor cd,
-                             CostEstimate outerCost,
-                             Optimizer optimizer,
-                             CostEstimate costEstimate) throws StandardException {
+    public void estimateJoinCost(JoinStrategy.JoinStrategyType joinStrategyType,
+                                 Optimizable innerTable,
+                                 OptimizablePredicateList predList,
+                                 ConglomerateDescriptor cd,
+                                 CostEstimate outerCost,
+                                 Optimizer optimizer,
+                                 CostEstimate costEstimate) throws StandardException {
         StrategyJoinCostEstimation joinCostEstimation = joinCostEstimationMap.get(joinStrategyType);
         if(SanityManager.DEBUG) {
             SanityManager.ASSERT(joinCostEstimation != null,
                                  String.format("unexpected missing cost estimation for %s", joinStrategyType.niceName()));
         }
         joinCostEstimation.estimateCost(innerTable, predList, cd, outerCost, optimizer, costEstimate);
+    }
+
+    @Override
+    public ScanCostEstimator getNewScanCostEstimator(Optimizable baseTable,
+                                                     ConglomerateDescriptor cd,
+                                                     StoreCostController scc,
+                                                     CostEstimate scanCost,
+                                                     ResultColumnList resultColumns,
+                                                     DataValueDescriptor[] scanRowTemplate,
+                                                     BitSet baseColumnsInScan,
+                                                     BitSet baseColumnsInLookup,
+                                                     boolean forUpdate,
+                                                     HashSet<Integer> usedNoStatsColumnIds) throws StandardException {
+        return new V1ScanCostEstimator(baseTable, cd, scc, scanCost, resultColumns, scanRowTemplate,
+                                       baseColumnsInScan, baseColumnsInLookup, forUpdate, usedNoStatsColumnIds);
     }
 }

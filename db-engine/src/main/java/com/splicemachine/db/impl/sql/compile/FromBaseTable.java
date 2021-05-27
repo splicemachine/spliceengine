@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.costing.ScanCostEstimator;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.*;
@@ -64,6 +65,7 @@ import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.catalog.SYSTOKENSRowFactory;
 import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.commons.lang3.tuple.Pair;
 import splice.com.google.common.base.Joiner;
 import splice.com.google.common.base.Predicates;
 import splice.com.google.common.collect.Lists;
@@ -71,7 +73,9 @@ import splice.com.google.common.collect.Lists;
 import java.lang.reflect.Modifier;
 import java.util.*;
 
+import static com.splicemachine.db.impl.ast.RSUtils.isNLJ;
 import static com.splicemachine.db.impl.ast.RSUtils.isRSN;
+import static com.splicemachine.db.impl.sql.compile.ColumnReference.*;
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
 // Temporary until user override for disposable stats has been removed.
@@ -169,6 +173,13 @@ public class FromBaseTable extends FromTable {
      */
     int numUnusedLeadingIndexFields = 0;
 
+    /* If non-null, an access path of unioned index scans was chosen
+       as truly the best access path, and this is the tree of operations
+       which performs the UNIONs of index accesses plus the final rowid
+       join back to the base table.
+     */
+    private ResultSetNode uisRowIdJoinBackToBaseTableResultSet = null;
+
     private double singleScanRowCount;
 
     private FormatableBitSet heapReferencedCols;
@@ -232,6 +243,10 @@ public class FromBaseTable extends FromTable {
 
     // expressions in whole query referencing columns in this base table
     private Set<ValueNode> referencingExpressions = null;
+
+    private boolean considerOnlyBaseConglomerate;
+
+    private static final String BASEROWID2 = "BASEROWID2";
 
     @Override
     public boolean isParallelizable(){
@@ -557,6 +572,28 @@ public class FromBaseTable extends FromTable {
         }
     }
 
+    // Collects the "preds" for the EXPLAIN text.
+    public void pullNonKeyPredicates(OptimizablePredicateList optimizablePredicates) throws StandardException{
+        for(int i=restrictionList.size()-1;i>=0;i--){
+            OptimizablePredicate pred = restrictionList.getOptPredicate(i);
+            if (pred.isScanKey())
+                continue;
+            optimizablePredicates.addOptPredicate(restrictionList.getOptPredicate(i));
+            restrictionList.removeOptPredicate(i);
+        }
+    }
+
+    // Collects the "keys" for the EXPLAIN text.
+    public void pullKeyPredicates(OptimizablePredicateList optimizablePredicates) throws StandardException{
+        for(int i=restrictionList.size()-1;i>=0;i--){
+            OptimizablePredicate pred = restrictionList.getOptPredicate(i);
+            if (!pred.isScanKey())
+                continue;
+            optimizablePredicates.addOptPredicate(restrictionList.getOptPredicate(i));
+            restrictionList.removeOptPredicate(i);
+        }
+    }
+
     @Override
     public boolean isCoveringIndex(ConglomerateDescriptor cd) throws StandardException{
         /* You can only be a covering index if you're an index */
@@ -691,6 +728,7 @@ public class FromBaseTable extends FromTable {
 
             switch (key.toLowerCase()) {
                 case "index":
+                    userSpecifiedIndexName = null;
                     // User only allowed to specify 1 of index and constraint, not both
                     if(constraintSpecified){
                         throw StandardException.newException(SQLState.LANG_BOTH_FORCE_INDEX_AND_CONSTRAINT_SPECIFIED,
@@ -837,6 +875,7 @@ public class FromBaseTable extends FromTable {
 
                 tableProperties.remove("constraint");
                 tableProperties.put("index",indexName);
+                userSpecifiedIndexName = null;
             }
         }
     }
@@ -867,6 +906,18 @@ public class FromBaseTable extends FromTable {
         ap.setMissingHashKeyOK(false);
         bestAp.setMissingHashKeyOK(false);
         bestSortAp.setMissingHashKeyOK(false);
+        ap.setUisPredicate(null);
+        bestAp.setUisPredicate(null);
+        bestSortAp.setUisPredicate(null);
+        ap.setUisRowIdPredicate(null);
+        bestAp.setUisRowIdPredicate(null);
+        bestSortAp.setUisRowIdPredicate(null);
+        ap.setUnionOfIndexes(null);
+        bestAp.setUnionOfIndexes(null);
+        bestSortAp.setUnionOfIndexes(null);
+        ap.setUisRowIdJoinBackToBaseTableResultSet(null);
+        bestAp.setUisRowIdJoinBackToBaseTableResultSet(null);
+        bestSortAp.setUisRowIdJoinBackToBaseTableResultSet(null);
         ap.setNumUnusedLeadingIndexFields(0);
         bestAp.setNumUnusedLeadingIndexFields(0);
         bestSortAp.setNumUnusedLeadingIndexFields(0);
@@ -894,6 +945,393 @@ public class FromBaseTable extends FromTable {
         return mapAbsoluteToRelativeColumnPosition(absolutePosition);
     }
 
+    // To get the cost of a Unioned Index Scans access path by building
+    // and optimizing a statement tree to be used as an altenative to the
+    // current FromBaseTable object.  If this access path is picked, we can
+    // "generate" the operation tree from this statement tree instead of
+    // generating a TableScanOperation.  The statement tree is a UNION of
+    // multiple index and/or PK accesses followed by a RowID join back to the
+    // base table to collect all referenced columns.
+    private void bindAndOptimizeUnionedIndexScansPath(AccessPath uisAccessPath,
+                                                      ConglomerateDescriptor cd,
+                                                      CostEstimate outerCost,
+                                                      Optimizer optimizer,
+                                                      OptimizablePredicateList predList) throws StandardException {
+        UnionNode unionOfIndexes = uisAccessPath.getUnionOfIndexes();
+        NodeFactory nodeFactory = getNodeFactory();
+        // A copy of this base table which we can bind and optimize without
+        // affecting the original.
+        FromBaseTable baseTable = this.shallowClone();
+
+        // Only the base table has all table columns, so forcing the RowId join
+        // to use the base table conglomerate is guaranteed to work for all cases.
+        baseTable.setConsiderOnlyBaseConglomerate(true);
+
+        // Only consider nested loop and merge joins (though merge join does
+        // not currently support rowid join, that may be a good future enhancement).
+        baseTable.setIndexFriendlyJoinsOnly(true);
+
+        FromList fromList = (FromList) nodeFactory.getNode(
+                            C_NodeTypes.FROM_LIST,
+                            getNodeFactory().doJoinOrderOptimization(),
+                            getContextManager());
+
+        // Nested loop join (and merge join) requires the index join keys
+        // to be applied on the inner table, so force the UNION of RowIds
+        // to be the outer table of the join.  Not doing this may leave it
+        // to chance that we pick a performant join.
+        unionOfIndexes.setOuterTableOnly(true);
+        SubqueryNode    derivedTable = (SubqueryNode) nodeFactory.getNode(
+                                        C_NodeTypes.SUBQUERY_NODE,
+                                        unionOfIndexes,  // UnionNode
+                                        ReuseFactory.getInteger(SubqueryNode.FROM_SUBQUERY),
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        true,
+                                        getContextManager());
+
+        String unionAllCorrelationName = "dnfPathDT_###_" + baseTable.getExposedTableName();
+        FromTable fromSubquery = (FromTable) nodeFactory.getNode(
+                                            C_NodeTypes.FROM_SUBQUERY,
+                                            derivedTable.getResultSet(),
+                                            derivedTable.getOrderByList(),
+                                            derivedTable.getOffset(),
+                                            derivedTable.getFetchFirst(),
+                                            Boolean.valueOf( derivedTable.hasJDBClimitClause() ),
+                                            unionAllCorrelationName,
+                                            null,  // derivedRCL
+                                            (Properties) null,
+                                            getContextManager());
+        fromSubquery.setOuterTableOnly(true);
+        fromList.addFromTable(baseTable);
+        fromList.addFromTable(fromSubquery);
+
+        // Build a baseTable.BASEROWID = UIS_Statement_Tree.BASEROWID join predicate.
+        ColumnReference ridCol1 = (ColumnReference) nodeFactory.getNode(
+                                C_NodeTypes.COLUMN_REFERENCE,
+                                BASEROWID,
+                                this.getExposedTableName(),
+                                getContextManager());
+        ColumnReference ridCol2 =
+        (ColumnReference) nodeFactory.getNode(
+                                C_NodeTypes.COLUMN_REFERENCE,
+                                BASEROWID,
+                                fromSubquery.getTableName(),
+                                getContextManager());
+
+        // Set up the rowid = rowid predicate to join back to the base table.
+        BinaryRelationalOperatorNode whereClause =
+                (BinaryRelationalOperatorNode)
+                nodeFactory.getNode(
+                        C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
+                        ridCol2,
+                        ridCol1,
+                        getContextManager());
+
+        // Include all referenced columns.
+        ResultColumnList    finalResultColumns = (ResultColumnList) nodeFactory.getNode(
+                                    C_NodeTypes.RESULT_COLUMN_LIST,
+                                    getContextManager());
+
+        for (ResultColumn rc : resultColumns) {
+            if (!rc.isReferenced())
+                continue;
+            ColumnReference newCol = (ColumnReference) nodeFactory.getNode(
+                                    C_NodeTypes.COLUMN_REFERENCE,
+                                    rc.getName(),
+                                    this.getExposedTableName(),
+                                    getContextManager());
+            ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
+                    C_NodeTypes.RESULT_COLUMN,
+                    rc.getName(),
+                    newCol,
+                    getContextManager());
+            finalResultColumns.addResultColumn(newRC);
+        }
+
+        ResultColumn baseRowId2RC = null;
+
+        // The base rowid of the outer table needs a different name in order
+        // to maintain unique column names.  This RowID refers to the outer table,
+        // not the current FromBaseTable object we're sitting in.
+        if (unionOfIndexes.resultColumns.getResultColumn(BASEROWID2) != null) {
+            ColumnReference newCol = (ColumnReference) nodeFactory.getNode(
+                                    C_NodeTypes.COLUMN_REFERENCE,
+                                    BASEROWID2,
+                                    fromSubquery.getTableName(),
+                                    getContextManager());
+            baseRowId2RC = (ResultColumn) getNodeFactory().getNode(
+                    C_NodeTypes.RESULT_COLUMN,
+                    BASEROWID2,
+                    newCol,
+                    getContextManager());
+            finalResultColumns.addResultColumn(baseRowId2RC);
+        }
+
+        SelectNode selectNode = (SelectNode) nodeFactory.getNode(
+                            C_NodeTypes.SELECT_NODE,
+                            finalResultColumns,
+                            null,         /* AGGREGATE list */
+                            fromList,
+                            whereClause,
+                            null,
+                            null,
+                            null,
+                            getContextManager());
+        DMLStatementNode
+        stmt = (CursorNode) nodeFactory.getNode(
+                C_NodeTypes.CURSOR_NODE,
+                "SELECT",
+                selectNode,
+                null,
+                null,
+                null,
+                null,
+                Boolean.valueOf( false ),
+                ReuseFactory.getInteger(CursorNode.UNSPECIFIED),
+                null,
+                getContextManager());
+        stmt.setUseSparkOverride(Boolean.valueOf(optimizer.isForSpark()));
+        stmt.bindStatement();
+        walkAST(getLanguageConnectionContext(), stmt, CompilationPhase.AFTER_BIND);
+        stmt.optimizeStatement();
+        // The AFTER_OPTIMIZE phase call to walkAST is deferred until we commit to
+        // this access path when recordUisAccessPath is called.
+
+        ResultSetNode uisRowIdJoinBackToBaseTableResultSet = stmt.getResultSetNode();
+
+        if (uisRowIdJoinBackToBaseTableResultSet instanceof ScrollInsensitiveResultSetNode) {
+            ScrollInsensitiveResultSetNode scrollInsensitiveResultSetNode =
+            (ScrollInsensitiveResultSetNode) uisRowIdJoinBackToBaseTableResultSet;
+            uisRowIdJoinBackToBaseTableResultSet = scrollInsensitiveResultSetNode.getChildResult();
+        }
+        ResultSetNode uisJoin = uisRowIdJoinBackToBaseTableResultSet;
+
+        // If there is an outer table base rowid saved in the AST, construct a
+        // BASEROWID = BASEROWID join predicate between the outer table and the
+        // Unioned Index Scans result, and attach it to the access path.
+        if (baseRowId2RC != null) {
+            baseRowId2RC = uisRowIdJoinBackToBaseTableResultSet.getResultColumns().getResultColumn(BASEROWID2);
+            Predicate outerTableRowIdJoinPred =
+                buildRowIdPredWithOuterTable(optimizer, baseRowId2RC, fromSubquery);
+            uisAccessPath.setUisRowIdPredicate(outerTableRowIdJoinPred);
+        }
+
+        // Traverse down to the JoinNode to verify it was built.
+        // Also, set up an access path for it (for completeness).
+        while (uisJoin instanceof SingleChildResultSetNode)
+            uisJoin = ((SingleChildResultSetNode)uisJoin).getChildResult();
+
+        if (!(uisJoin instanceof JoinNode))
+            throw StandardException.newException(LANG_INTERNAL_ERROR,
+                 "Join node missing in unioned index scan query plan.");
+
+        JoinNode rowidJoin = (JoinNode)uisJoin;
+        initializeUnionedIndexScanAccessPath(rowidJoin, optimizer);
+
+        // We actually want the ProjectRestrictNode as the FromTable
+        // to use in place of this FromBaseTable because it should have the
+        // same exact resultColumnList as the base table.
+        // The JoinNode will include the RowId columns and the column numbers
+        // won't match up.
+        FromTable uisFromTable = ((FromTable) uisRowIdJoinBackToBaseTableResultSet);
+        initializeUnionedIndexScanAccessPath(uisFromTable, optimizer);
+
+        // Save the final set of statements in the access path.
+        uisAccessPath.setUisRowIdJoinBackToBaseTableResultSet(uisRowIdJoinBackToBaseTableResultSet);
+
+        // We don't want to bind or re-optimize this tree if we re-use it again.
+        unionOfIndexes.setSkipBindAndOptimize(true);
+
+        // Finally, record the cost of the UIS operations in the access path.
+        CostEstimate uisCost = uisRowIdJoinBackToBaseTableResultSet.getCostEstimate().cloneMe();
+        if (baseRowId2RC == null && optimizer.getOuterTable() != null) {
+            // Now add the cost of the join with the outer table.
+            AccessPath currentAccessPath = getCurrentAccessPath();
+            JoinStrategy currentJoinStrategy=currentAccessPath.getJoinStrategy();
+            currentJoinStrategy.getBasePredicates(predList,baseTableRestrictionList,this);
+            uisCost.setPredicateList(baseTableRestrictionList);
+            currentJoinStrategy.estimateCost(this, baseTableRestrictionList, cd, outerCost, optimizer, uisCost);
+            currentJoinStrategy.putBasePredicates(predList, baseTableRestrictionList);
+            uisAccessPath.setJoinStrategy(currentJoinStrategy);
+            uisAccessPath.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
+        }
+        uisAccessPath.setCostEstimate(uisCost);
+    }
+
+    // Build a uisResultSet.BASEROWID2 = outerTable.BASEROWID join predicate.
+    private Predicate buildRowIdPredWithOuterTable(Optimizer optimizer,
+                                                   ResultColumn baseRowId2RC,
+                                                   FromTable uisResultSet) throws StandardException {
+        if (optimizer.getJoinPosition() == 0)
+            return null;
+
+        FromList fromList = (FromList)optimizer.getOptimizableList();
+
+        FromTable outerTable = (FromTable) optimizer.getOuterTable();
+
+        // Traverse to the named table.  A FromTable is expected
+        // to be named in order to do proper binding.
+        SingleChildResultSetNode aboveResultSetNode = null;
+        while (outerTable instanceof SingleChildResultSetNode) {
+            aboveResultSetNode = (SingleChildResultSetNode) outerTable;
+            outerTable = (FromTable)aboveResultSetNode.getChildResult();
+        }
+        if (!(outerTable instanceof FromBaseTable))
+            return null;
+
+        FromBaseTable outerBaseTable = (FromBaseTable)outerTable;
+
+        NodeFactory nodeFactory = getNodeFactory();
+        ColumnReference ridCol1 = (ColumnReference) nodeFactory.getNode(
+                                C_NodeTypes.COLUMN_REFERENCE,
+                                BASEROWID2,
+                                uisResultSet.getTableName(),
+                                getContextManager());
+        ridCol1.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
+                                               false    /* Not nullable */
+                                               ));
+        ridCol1.setSource(baseRowId2RC);
+
+        ColumnReference ridCol2 =
+        (ColumnReference) nodeFactory.getNode(
+                                C_NodeTypes.COLUMN_REFERENCE,
+                                BASEROWID,
+                                outerBaseTable.getExposedTableName(),
+                                getContextManager());
+        ridCol2 = (ColumnReference)fromList.bindColumnReference(ridCol2);
+        ridCol2.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
+                                               false    /* Not nullable */
+                                               ));
+
+        // Set up the rowid = rowid predicate to join back to the base table.
+        BinaryRelationalOperatorNode whereClause =
+                (BinaryRelationalOperatorNode)
+                nodeFactory.getNode(
+                        C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
+                        ridCol1,
+                        ridCol2,
+                        getContextManager());
+
+        whereClause.bindComparisonOperator();
+
+        AndNode andNode = AndNode.newAndNode(whereClause, false);
+
+        JBitSet newJBitSet=new JBitSet(getCompilerContext().getNumTables());
+        Predicate
+        newPred=(Predicate)getNodeFactory().getNode(C_NodeTypes.PREDICATE,
+                  andNode, newJBitSet, getContextManager());
+        newPred.setOuterJoinLevel(whereClause.getOuterJoinLevel());
+        if (aboveResultSetNode instanceof ProjectRestrictNode) {
+            ProjectRestrictNode prn = (ProjectRestrictNode)aboveResultSetNode;
+            // Add the BASEROWID column to the ProjectRestrictNode resultColumns
+            // if it hasn't been added yet.
+            if (prn.getResultColumns().getResultColumn(BASEROWID) == null) {
+                ResultColumn rowIdResultColumn = outerBaseTable.getRowIdColumn();
+                rowIdResultColumn.setVirtualColumnId(prn.getResultColumns().size()+1);
+                rowIdResultColumn.setReferenced();
+                rowIdResultColumn.markGenerated();
+                ridCol2.setSource(rowIdResultColumn);
+
+                prn.getResultColumns().addResultColumn(rowIdResultColumn);
+                prn.assignResultSetNumber();
+            }
+        }
+        return newPred;
+    }
+
+    // In case we need to join the result to another table, since we are skipping
+    // binding and optimizing of this FromTable, we need to make sure certain items
+    // are set up that the join planner requires for proper processing.
+    void initializeUnionedIndexScanAccessPath(FromTable fromTable, Optimizer optimizer) throws StandardException {
+        fromTable.setCorrelationName(getExposedTableName().getTableName());
+        fromTable.initAccessPaths(optimizer);
+        AccessPath currentAP = fromTable.getCurrentAccessPath();
+        AccessPath bestAP = fromTable.getBestAccessPath();
+        AccessPath trulyBestAP = fromTable.getTrulyTheBestAccessPath();
+
+        CostEstimate costEstimate=getCostEstimate(optimizer);
+        currentAP.setCostEstimate(costEstimate);
+        costEstimate.setCost(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
+
+        bestAP.setCostEstimate(fromTable.getCostEstimate());
+        trulyBestAP.setCostEstimate(fromTable.getCostEstimate());
+        bestAP.setJoinStrategy(bestAP.getOptimizer().getJoinStrategy(JoinStrategy.JoinStrategyType.NESTED_LOOP.ordinal()));
+        trulyBestAP.setJoinStrategy(trulyBestAP.getOptimizer().getJoinStrategy(JoinStrategy.JoinStrategyType.NESTED_LOOP.ordinal()));
+        fromTable.setSkipBindAndOptimize(true);
+    }
+
+    // A special purpose assignResultSetNumber method which gets a result set number
+    // for the FromBaseTable object which is separate from that used in the
+    // Unioned Index Scans access path, if any.
+    // The resultColumns are updated to refer to the Unioned Index Scans result columns.
+    private void assignResultSetNumber(int resultSetNumber,
+                                       ResultSetNode replacementResultSet) throws StandardException{
+        // only set if currently unset
+        if(this.resultSetNumber==-1){
+            ResultColumnList replacementResultColumns = replacementResultSet.getResultColumns();
+            this.resultSetNumber = getCompilerContext().getNextResultSetNumber();
+            resultColumns.setResultSetNumber(resultSetNumber);
+            // There may be an extra column reserved for the RowID.
+            int minColumns = Integer.min(replacementResultColumns.size(), resultColumns.size());
+            int maxColumns = Integer.max(replacementResultColumns.size(), resultColumns.size());
+            if (maxColumns != minColumns &&
+                maxColumns != minColumns + 1)
+                throw StandardException.newException(LANG_INTERNAL_ERROR,
+                     "Incorrectly built result columns for unioned index scan.");
+
+            updateResultColumnExpressions(replacementResultColumns);
+        }
+    }
+
+    public void assignResultSetNumber() throws StandardException{
+        int uisResultSetNumber = getUnionIndexScanResultSetNumber();
+        // We have the result set number of the Union Index Scans, if set.
+        if (uisResultSetNumber > -1)
+            assignResultSetNumber(uisResultSetNumber, getUnionIndexScanResultSet());
+        else if(resultSetNumber==-1){
+            // only set if currently unset
+            resultSetNumber=getCompilerContext().getNextResultSetNumber();
+            resultColumns.setResultSetNumber(resultSetNumber);
+        }
+    }
+
+    // Find the truly the best access path's Unioned Index Scans result set number.
+    public int getUnionIndexScanResultSetNumber() throws StandardException {
+        ResultSetNode uisRowIdJoinBackToBaseTableResultSet;
+        if (trulyTheBestAccessPath != null &&
+            trulyTheBestAccessPath.getUisRowIdJoinBackToBaseTableResultSet() != null) {
+            uisRowIdJoinBackToBaseTableResultSet =
+                trulyTheBestAccessPath.getUisRowIdJoinBackToBaseTableResultSet();
+            uisRowIdJoinBackToBaseTableResultSet.assignResultSetNumber();
+            return uisRowIdJoinBackToBaseTableResultSet.getResultSetNumber();
+        }
+        else
+            return -1;
+    }
+
+    // Find the truly the best access path's Unioned Index Scans result set (statements).
+    public ResultSetNode getUnionIndexScanResultSet() {
+        if (trulyTheBestAccessPath != null &&
+            trulyTheBestAccessPath.getUisRowIdJoinBackToBaseTableResultSet() != null)
+            return trulyTheBestAccessPath.getUisRowIdJoinBackToBaseTableResultSet();
+        return null;
+    }
+
+    private void walkAST(LanguageConnectionContext lcc, Visitable queryTree, CompilationPhase phase) throws StandardException {
+        ASTVisitor visitor = lcc.getASTVisitor();
+        if (visitor != null) {
+            try {
+                visitor.begin("", phase);
+                queryTree.accept(visitor);
+            } finally {
+                visitor.end(phase);
+            }
+        }
+    }
+
     @Override
     public CostEstimate estimateCost(OptimizablePredicateList predList,
                                      ConglomerateDescriptor cd,
@@ -902,18 +1340,64 @@ public class FromBaseTable extends FromTable {
                                      RowOrdering rowOrdering) throws StandardException {
         CostEstimate finalCostEstimate;
         CostEstimate firstPassCostEstimate;
+
+        // Reset Unioned Index Scans access path in case the
+        // previous path chose to use it.
+        currentAccessPath.setUisPredicate(null);
+        currentAccessPath.setUisRowIdPredicate(null);
+        currentAccessPath.setUnionOfIndexes(null);
+        currentAccessPath.setUisRowIdJoinBackToBaseTableResultSet(null);
+
+        // Unioned index scans access path
+        AccessPath uisAccessPath = null;
+
+        // Unioned Index Scans currently not eligible for semijoin.
+        // Build and cost the Unioned Index Scans access path.
+        OptimizablePredicate uisPred =
+            (isOneRowResultSet() || getCompilerContext().getDisableUnionedIndexScans()) ? null :
+            getUsefulPredicateForUnionedIndexScan(predList);
+        if (uisPred != null) {
+            // Using the found DNF predicate of index accesses, build the UNION
+            // statements to apply each ORed conditional expression in a separate
+            // scan, and combine all of the scans together.  The UNIONs will eliminate
+            // duplicate ROWIDs.
+            uisAccessPath =
+                buildUnionedScans(uisPred, optimizer);
+
+            // If a UIS UNION tree was built, construct the ROWID join(s) to get
+            // the final rows, optimize the tree, and cost it.
+            if (uisAccessPath != null)
+                bindAndOptimizeUnionedIndexScansPath(uisAccessPath, cd, outerCost, optimizer, predList);
+        }
+
+        // Cost the standard base table access path.
         finalCostEstimate = firstPassCostEstimate =
             estimateCostHelper(predList, cd, outerCost, optimizer, rowOrdering);
         AccessPath currentAccessPath = getCurrentAccessPath();
 
-        // Cost accessing this conglomerate using the index with
-        // the first index column not used by any useful predicates
-        // versus scanning all rows in the conglomerate.
-        // Choose the cheapest of the two access paths.
         LanguageConnectionContext lcc = getLanguageConnectionContext();
-        if (lcc.favorIndexPrefixIteration())
-            return finalCostEstimate;
-        if (currentAccessPath.getNumUnusedLeadingIndexFields() > 0) {
+
+        boolean hintedUISAccessPath = false;
+
+        // Cost accessing this conglomerate using a Unioned Index Scans
+        // access path vs. standard access path.
+        if (uisAccessPath != null &&
+            (getCompilerContext().getFavorUnionedIndexScans() ||
+            uisAccessPath.getCostEstimate().compare(firstPassCostEstimate) < 0)) {
+
+            hintedUISAccessPath = getCompilerContext().getFavorUnionedIndexScans();
+            if (hintedUISAccessPath)
+                reduceEstimatedCosts(uisAccessPath);
+            currentAccessPath.copy(uisAccessPath);
+            finalCostEstimate = firstPassCostEstimate = uisAccessPath.getCostEstimate();
+        }
+
+        // Cost index access where the first index column is not present
+        // in any useful predicates the best cost currentAccessPath from above.
+        if (currentAccessPath.getNumUnusedLeadingIndexFields() > 0 &&
+            !hintedUISAccessPath &&
+            !lcc.favorIndexPrefixIteration()) {
+
             finalCostEstimate = firstPassCostEstimate = firstPassCostEstimate.cloneMe();
             AccessPath firstPassAccessPath = new AccessPathImpl(optimizer);
             firstPassAccessPath.copy(currentAccessPath);
@@ -926,11 +1410,292 @@ public class FromBaseTable extends FromTable {
             else
                 finalCostEstimate = secondPassCostEstimate;
         }
+
         return finalCostEstimate;
     }
 
+    private void reduceEstimatedCosts(AccessPath accessPath) {
+        accessPath.setCostEstimate(accessPath.getCostEstimate().cloneMe());
 
-    private
+        double costScaleFactor = 1e-9;
+        CostEstimate estimate = accessPath.getCostEstimate();
+
+        estimate.setLocalCost(estimate.getLocalCost() * costScaleFactor);
+        estimate.setRemoteCost(estimate.getRemoteCost() * costScaleFactor);
+        estimate.setLocalCostPerParallelTask(estimate.getLocalCostPerParallelTask() * costScaleFactor);
+        estimate.setRemoteCostPerParallelTask(estimate.getRemoteCostPerParallelTask() * costScaleFactor);
+    }
+
+    private OptimizablePredicate getUsefulPredicateForUnionedIndexScan(OptimizablePredicateList predicateList) throws StandardException {
+        // Only consider the unioned index scan path once per table,
+        // on the first conglomerate, or on the current, user-specified one.
+        boolean hintedIndex = getUserSpecifiedIndexName() != null;
+        if (currentAccessPath.getConglomerateDescriptor().isIndex() &&
+            !hintedIndex)
+            return null;
+        if (currentAccessPath.getUisRowIdJoinBackToBaseTableResultSet() != null)
+            return null;
+        if (predicateList == null)
+            return null;
+        AccessPath accessPath = hintedIndex ? currentAccessPath : null;
+        return predicateList.getUsefulPredicateForUnionedIndexScan(this, accessPath, currentAccessPath.getOptimizer());
+    }
+
+    // Generate a new AccessPath with its unionOfIndexes field populated
+    // with a UnionNode of the PK or index accesses to perform, if legal.
+    // Otherwise, return null.
+    private AccessPath buildUnionedScans(OptimizablePredicate uisPred,
+                                         Optimizer optimizer) throws StandardException {
+        List<OptimizablePredicateList> predicateLists;
+        FromTable combinedResults = null;
+        predicateLists = uisPred.separateOredPredicates();
+        if (predicateLists == null || predicateLists.size() == 0)
+            return null;
+
+        FromBaseTable baseTable;
+        for (OptimizablePredicateList predList:predicateLists) {
+            baseTable = shallowClone();
+            baseTable.setIndexFriendlyJoinsOnly(true);
+            if (predList.size() != 1)
+                return null;
+
+            AccessPath currentAccessPath = getCurrentAccessPath();
+            JoinStrategy currentJoinStrategy=currentAccessPath.getJoinStrategy();
+            currentJoinStrategy.getBasePredicates(predList, baseTable.baseTableRestrictionList, this);
+            if (combinedResults != null) {
+                combinedResults = getUnionNode(combinedResults, baseTable, optimizer);
+                if (combinedResults == null)
+                    return null;
+            }
+            else
+                combinedResults = baseTable;
+        }
+
+        combinedResults.setOuterTableOnly(true);
+        AccessPath uisAccessPath = new AccessPathImpl(optimizer);
+        uisAccessPath.copy(currentAccessPath);
+        uisAccessPath.setUisPredicate((Predicate)uisPred);
+        uisAccessPath.setUnionOfIndexes((UnionNode)combinedResults);
+        return uisAccessPath;
+    }
+
+    // RCL with a single BASEROWID.
+    ResultColumnList singleRowIdColumnResultColumnList() throws StandardException {
+        String columnName = BASEROWID;
+        ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
+                                C_NodeTypes.COLUMN_REFERENCE,
+                                columnName,
+                                getExposedTableName(),
+                                getContextManager());
+
+        ResultColumn rowIdResultColumn =
+            (ResultColumn)getNodeFactory().getNode(
+                C_NodeTypes.RESULT_COLUMN,
+                columnName,
+                columnReference,
+                getContextManager());
+        ResultColumnList
+            newList=(ResultColumnList)getNodeFactory().getNode(
+                    C_NodeTypes.RESULT_COLUMN_LIST,
+                    getContextManager());
+
+        newList.addResultColumn(rowIdResultColumn);
+        return newList;
+    }
+
+    // Add a BASEROWID2 column referencing the base rowid of the outer table of the current join.
+    void addOuterTableRowIdToRCList(ResultColumnList resultColumnList, FromTable outerTable) throws StandardException {
+        String columnName = BASEROWID;
+        TableName outerTableName = outerTable instanceof FromBaseTable ?
+                                   ((FromBaseTable) outerTable).getExposedTableName() : outerTable.getTableName();
+        ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
+                                C_NodeTypes.COLUMN_REFERENCE,
+                                columnName,
+                                outerTableName,
+                                getContextManager());
+        ResultColumn rowIdResultColumn =
+            (ResultColumn)getNodeFactory().getNode(
+                C_NodeTypes.RESULT_COLUMN,
+                BASEROWID2,
+                columnReference,
+                getContextManager());
+
+        resultColumnList.addResultColumn(rowIdResultColumn);
+    }
+
+    // Build one branch of the UNION tree for UIS access path.
+    ResultSetNode buildSelectNode(ResultSetNode source, Optimizer optimizer) throws StandardException {
+        if (source instanceof UnionNode)
+            return source;
+        PredicateList predList;
+        ValueNode whereClause = null;
+        Predicate pred = null;
+        if (source instanceof FromBaseTable) {
+            predList = new PredicateList();
+            FromBaseTable baseTable = (FromBaseTable)source;
+            optimizer.getJoinStrategy(0).putBasePredicates(predList, baseTable.baseTableRestrictionList);
+            if (predList.size() > 1)
+                throw StandardException.newException(LANG_INTERNAL_ERROR,
+                    "Improperly built internal predicate list while processing unioned index scan.");
+            pred = (Predicate)predList.getOptPredicate(0);
+            whereClause = pred.getAndNode();
+       }
+       else
+           throw StandardException.newException(LANG_INTERNAL_ERROR,
+                "Expected a base table source while processing unioned index scan.");
+
+       FromList fromList = (FromList) getNodeFactory().getNode(
+                                    C_NodeTypes.FROM_LIST,
+                                    getNodeFactory().doJoinOrderOptimization(),
+                                    getContextManager());
+
+       FromBaseTable innerTableCopy = ((FromBaseTable)source).shallowClone();
+       innerTableCopy.setIndexFriendlyJoinsOnly(true);
+
+       fromList.addFromTable(innerTableCopy);
+       ResultColumnList resultColumnList = singleRowIdColumnResultColumnList();
+
+       int joinPosition = optimizer.getJoinPosition();
+       if (pred.getReferencedSet().cardinality() > 1) {
+
+           if (joinPosition > 0) {
+               FromTable outerTable = (FromTable) optimizer.getOuterTable();
+               ProjectRestrictNode
+                   projectRestrict = outerTable instanceof ProjectRestrictNode ?
+                                     (ProjectRestrictNode) outerTable : null;
+
+               // Traverse to the named table.  A FromTable is expected
+               // to be named in order to do proper binding.
+               while (outerTable instanceof SingleChildResultSetNode) {
+                   if (outerTable.getTableName() != null)
+                       break;
+
+                   SingleChildResultSetNode resultSetNode = (SingleChildResultSetNode) outerTable;
+                   outerTable = (FromTable)resultSetNode.getChildResult();
+               }
+               FromBaseTable outerBaseTable = null;
+               ResultSetNode unionIndexScanResultSet = null;
+               if (!(outerTable instanceof FromBaseTable)) {
+                   if (outerTable.getCorrelationName() == null)
+                       throw StandardException.newException(LANG_INTERNAL_ERROR,
+                        "Unexpected outer table source result set while processing unioned index scan.");
+               }
+               else {
+                   outerBaseTable = (FromBaseTable) outerTable;
+                   unionIndexScanResultSet = outerBaseTable.getUnionIndexScanResultSet();
+               }
+               FromTable outerRelation;
+               if (unionIndexScanResultSet != null)
+                   outerRelation = (FromTable) unionIndexScanResultSet;
+               else {
+                   outerRelation = outerBaseTable.shallowClone();
+                   boolean noError =
+                       addPredsFromOuterRestrictionList(projectRestrict, whereClause);
+                   // If an error occurred in constructing the UNIONs, abandon the
+                   // attempt at this access path.
+                   if (!noError)
+                       return null;
+
+                   // Need to correlate each reference to an outer table row in the inner
+                   // result set with the matching outer table row in the join back to the
+                   // outer table.  Save the base rowid to facilitate this join back.
+                   addOuterTableRowIdToRCList(resultColumnList, outerRelation);
+               }
+
+               // Join predicates that enable the union index scans require
+               // that current optimizable be planned as the inner table,
+               // so mark the other table as outer table only.
+               outerRelation.setOuterTableOnly(true);
+               fromList.addFromTable(outerRelation);
+           }
+           else  // Must be joining to a table if the UIS predicate is a join predicate
+               return null;
+       }
+       else if (optimizer.isForSpark() && joinPosition > 0) {
+           AccessPath currentAccessPath = getCurrentAccessPath();
+           // Similar to the spark nested loop join cost penalty,
+           // avoid nested loop joins on spark when there are no
+           // index-enabling join predicates.
+           if (isNLJ(currentAccessPath))
+               return null;
+       }
+
+       SelectNode selectNode = (SelectNode) getNodeFactory().getNode(
+                            C_NodeTypes.SELECT_NODE,
+                            resultColumnList,
+                            null,
+                            fromList,
+                            whereClause,
+                            null,
+                            null,
+                            null,
+                            getContextManager());
+       return selectNode;
+    }
+
+    // If the UIS access path table has join predicates, pull in the single-table predicates
+    // on the outer tables so they can reduce the number of rows considered in the join of each
+    // UNION branch of a UIS access path.
+    @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification = "intentional")
+    private boolean addPredsFromOuterRestrictionList(ProjectRestrictNode projectRestrict, ValueNode whereClause) {
+       if (projectRestrict != null) {
+           PredicateList restrictionList = null;
+           restrictionList = projectRestrict.getRestrictionList();
+           // Applying Unioned Index Scan join predicates is typically only effective
+           // if the outer table has predicates limiting the scan.
+           // Avoid costly plans with no such predicates for now, unless we can find
+           // some reason to use them in the future.
+           if (restrictionList == null || restrictionList.isEmpty())
+               return false;
+           if (restrictionList != null) {
+               CloneCRsVisitor cloneCRsVisitor = new CloneCRsVisitor();
+               cloneCRsVisitor.setInitializeSourceOfCR(true);
+               AndNode tempAnd = (AndNode)whereClause;
+   nextPred:   for(int i=0; i < restrictionList.size(); i++) {
+                   Predicate predicate = restrictionList.elementAt(i);
+                   AndNode andNodeToAdd = predicate.getAndNode();
+                   if (tempAnd == andNodeToAdd)
+                       continue nextPred;
+                   while (!tempAnd.getRightOperand().isBooleanTrue()) {
+                       tempAnd = (AndNode) tempAnd.getRightOperand();
+                       if (tempAnd == andNodeToAdd)
+                           continue nextPred;
+                   }
+                   try {
+                       andNodeToAdd = (AndNode)andNodeToAdd.accept(cloneCRsVisitor);
+                   }
+                   catch (StandardException e) {
+                       // If unable to clone all ColumnReferences, it is
+                       // unsafe to use this predicate tree.
+                       return false;
+                   }
+                   tempAnd.setRightOperand(andNodeToAdd);
+               }
+           }
+       }
+       return true;
+    }
+
+    // Build a UNION node between 2 branches in a Unioned Index Scans access path.
+    private UnionNode getUnionNode(ResultSetNode leftSide, ResultSetNode rightSide, Optimizer optimizer) throws StandardException {
+       ResultSetNode leftTree = buildSelectNode(leftSide, optimizer);
+       if (leftTree == null)
+           return null;
+       ResultSetNode rightTree = buildSelectNode(rightSide, optimizer);
+       if (rightTree == null)
+           return null;
+
+       return
+        (UnionNode) getNodeFactory().getNode(
+                C_NodeTypes.UNION_NODE,
+                leftTree,
+                rightTree,
+                Boolean.FALSE,
+                Boolean.FALSE,
+                null,
+                getContextManager());
+    }
+
     CostEstimate estimateCostHelper(OptimizablePredicateList predList,
                                     ConglomerateDescriptor cd,
                                     CostEstimate outerCost,
@@ -1006,7 +1771,7 @@ public class FromBaseTable extends FromTable {
             scanColumnList = new BitSet();
         }
         DataValueDescriptor[] rowTemplate=getRowTemplate(cd,getBaseCostController());
-        ScanCostFunction scf = new ScanCostFunction(
+        ScanCostEstimator scf = optimizer.getCostModel().getNewScanCostEstimator(
                 this,
                 cd,
                 scc,
@@ -1049,7 +1814,7 @@ public class FromBaseTable extends FromTable {
 
                 //skip join predicates unless they support predicate pushdown
                 if(!p.isHashableJoinPredicate()&& !p.isFullJoinPredicate() || currentJoinStrategy.allowsJoinPredicatePushdown()) {
-                    scf.addPredicate(p, defaultSelectivityFactor);
+                    scf.addPredicate(p, defaultSelectivityFactor, optimizer);
                     numUnusedLeadingIndexFields = currentAccessPath.getNumUnusedLeadingIndexFields();
                 }
             }
@@ -1195,6 +1960,8 @@ public class FromBaseTable extends FromTable {
     @Override
     public ResultSetNode bindNonVTITables(DataDictionary dataDictionary,
                                           FromList fromListParam)throws StandardException{
+        if (skipBindAndOptimize)
+            return this;
         TableDescriptor tableDescriptor=bindTableDescriptor();
 
         int tableType = tableDescriptor.getTableType();
@@ -1272,7 +2039,10 @@ public class FromBaseTable extends FromTable {
                 if(SanityManager.DEBUG){
                     //noinspection ConstantConditions
                     SanityManager.ASSERT(vd!=null,"vd not expected to be null for "+tableName);
-                }
+                }        // make sure there's a restriction list
+                restrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+                baseTableRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+
 
                 cvn=(CreateViewNode)parseStatement(vd.getViewText(),false);
 
@@ -1633,6 +2403,35 @@ public class FromBaseTable extends FromTable {
         /* Nothing to do, since RCL bound in bindNonVTITables() */
     }
 
+    private void buildRowIdColumn(boolean isRowId) throws StandardException {
+        String colName = isRowId ? ROWID : BASEROWID;
+
+        if(rowIdColumn==null){
+            ResultColumn match = resultColumns.getResultColumn(colName);
+            if (match != null) {
+                rowIdColumn = match;
+                return;
+            }
+
+            ValueNode rowLocationNode=(ValueNode)getNodeFactory().getNode(
+                    C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
+                    getContextManager());
+
+            rowLocationNode.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
+                            false        /* Not nullable */
+                    )
+            );
+
+            rowIdColumn=(ResultColumn)getNodeFactory().getNode(
+                    C_NodeTypes.RESULT_COLUMN,
+                    colName,
+                    rowLocationNode,
+                    getContextManager());
+
+            rowIdColumn.markGenerated();
+        }
+    }
+
     /**
      * Try to find a ResultColumn in the table represented by this FromBaseTable
      * that matches the name in the given ColumnReference.
@@ -1692,23 +2491,8 @@ public class FromBaseTable extends FromTable {
                     referencedColumnMap.set(resultColumn.getColumnPosition());
                     tableDescriptor.setReferencedColumnMap(referencedColumnMap);
                 }
-            }else if(columnReference.columnName.compareTo("ROWID")==0){
-                if(rowIdColumn==null){
-                    ValueNode rowLocationNode=(ValueNode)getNodeFactory().getNode(
-                            C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
-                            getContextManager());
-
-                    rowLocationNode.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
-                                    false        /* Not nullable */
-                            )
-                    );
-
-                    rowIdColumn=(ResultColumn)getNodeFactory().getNode(
-                            C_NodeTypes.RESULT_COLUMN,
-                            columnReference.columnName,
-                            rowLocationNode,
-                            getContextManager());
-                }
+            }else if(isBaseRowIdOrRowId(columnReference.columnName)){
+                buildRowIdColumn(isRowId(columnReference.columnName));
                 columnReference.setTableNumber(tableNumber);
                 resultColumn=rowIdColumn;
             }
@@ -1787,13 +2571,9 @@ public class FromBaseTable extends FromTable {
          */
         prRCList.doProjection(true);
 
-        // Add rowId column to prRCList
-        if(rowIdColumn!=null){
-            prRCList.addResultColumn(rowIdColumn);
-        }
-
         /* Finally, we create the new ProjectRestrictNode */
-        return (ResultSetNode)getNodeFactory().getNode(
+        ResultSetNode projectRestrict =
+            (ResultSetNode)getNodeFactory().getNode(
                 C_NodeTypes.PROJECT_RESTRICT_NODE,
                 this,
                 prRCList,
@@ -1803,6 +2583,13 @@ public class FromBaseTable extends FromTable {
                 null,    /* Restrict subquery list */
                 null,
                 getContextManager());
+
+        // Add rowId column to prRCList
+        if(rowIdColumn!=null){
+            ((CurrentRowLocationNode)rowIdColumn.getExpression()).setSourceResultSet(projectRestrict);
+            prRCList.addResultColumn(rowIdColumn);
+        }
+        return projectRestrict;
     }
 
     private void markFirstColumnReferencedForIndexIteratorMode() throws StandardException {
@@ -2015,6 +2802,11 @@ public class FromBaseTable extends FromTable {
                     baseConglomerateDescriptor,
                     false);
             templateColumns.addRCForRID();
+            // Resolve the row id column to the last column in the index
+            // instead of the index row's CurrentRowLocation (key) if the
+            // base row id is requested.
+            if (rowIdColumn != null && isBaseRowId(rowIdColumn.getName()))
+                resultColumns.addRCForRID();
 
             // If this is for update then we need to get the RID in the result row
             if(forUpdate()){
@@ -2335,7 +3127,10 @@ public class FromBaseTable extends FromTable {
             }
         }
 
-        generateResultSet(acb,mb);
+        if (getTrulyTheBestAccessPath().getUisRowIdJoinBackToBaseTableResultSet() != null)
+            getTrulyTheBestAccessPath().getUisRowIdJoinBackToBaseTableResultSet().generate(acb, mb);
+        else
+            generateResultSet(acb,mb);
 
         /*
         ** Remember if this base table is the cursor target table, so we can
@@ -3624,9 +4419,11 @@ public class FromBaseTable extends FromTable {
 
     private String getUserSpecifiedIndexName(){
         String retval=null;
+        if (userSpecifiedIndexName != null)
+            return userSpecifiedIndexName;
 
         if(tableProperties!=null){
-            retval=tableProperties.getProperty("index");
+            retval=tableProperties.getProperty(INDEX_PROPERTY_NAME);
         }
 
         return retval;
@@ -3684,6 +4481,9 @@ public class FromBaseTable extends FromTable {
         int index=-1;
 
         if (currCD != null){
+            if (considerOnlyBaseConglomerate)
+                return null;
+
             for (index=0; index < conglomDescs.length; index++) {
                 if (currCD == conglomDescs[index]) {
                     break;
@@ -3693,6 +4493,12 @@ public class FromBaseTable extends FromTable {
 
         index ++;
         while (index<conglomDescs.length) {
+            if (considerOnlyBaseConglomerate) {
+                if (!conglomDescs[index].isIndex())
+                    return conglomDescs[index];
+                index ++;
+                continue;
+            }
             if (isIndexEligible(conglomDescs[index], predList))
                 return conglomDescs[index];
             tracer.trace(OptimizerFlag.SPARSE_INDEX_NOT_ELIGIBLE,0,0,0.0,conglomDescs[index]);
@@ -3751,6 +4557,10 @@ public class FromBaseTable extends FromTable {
         if(requalificationRestrictionList!=null){
             requalificationRestrictionList.accept(v, this);
         }
+
+        if (uisRowIdJoinBackToBaseTableResultSet!=null) {
+            uisRowIdJoinBackToBaseTableResultSet.accept(v, this);
+        }
     }
 
     @Override
@@ -3789,6 +4599,9 @@ public class FromBaseTable extends FromTable {
                 .append(",").append(getFinalCostEstimate(false).prettyFromBaseTableString());
         if (indexName != null)
             sb.append(",baseTable=").append(getPrettyTableName());
+        List<String> keys =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getKeyPreds(this)), PredicateUtils.predToString);
+        if(keys!=null && !keys.isEmpty()) //add
+            sb.append(",keys=[").append(Joiner.on(",").skipNulls().join(keys)).append("]");
         List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
         if(qualifiers!=null && !qualifiers.isEmpty()) //add
             sb.append(",preds=[").append(Joiner.on(",").skipNulls().join(qualifiers)).append("]");
@@ -3806,6 +4619,9 @@ public class FromBaseTable extends FromTable {
         sb.append(getFinalCostEstimate(false).prettyFromBaseTableString(attrDelim));
         if (indexName != null)
             sb.append(attrDelim).append("baseTable=").append(getPrettyTableName());
+        List<String> keys =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getKeyPreds(this)), PredicateUtils.predToString);
+        if (keys != null && !keys.isEmpty())
+            sb.append(attrDelim).append("keys=[").append(Joiner.on(",").skipNulls().join(keys)).append("]");
         List<String> qualifiers = Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
         if (qualifiers != null && !qualifiers.isEmpty())
             sb.append(attrDelim).append("preds=[").append(Joiner.on(",").skipNulls().join(qualifiers)).append("]");
@@ -3845,9 +4661,12 @@ public class FromBaseTable extends FromTable {
     }
 
     @Override
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
-        setDepth(depth);
-        tree.add(this);
+    public void buildTree(Collection<Pair<QueryTreeNode,Integer>> tree, int depth) throws StandardException {
+        if (getTrulyTheBestAccessPath().getUisRowIdJoinBackToBaseTableResultSet() != null) {
+            getTrulyTheBestAccessPath().getUisRowIdJoinBackToBaseTableResultSet().buildTree(tree, depth);
+            return;
+        }
+        addNodeToExplainTree(tree, this, depth);
         /* predicates in restrictionList after post-opt stage should be redundant, as all the predicates
            should have been either in storeRestrictionList or nonStoreRestrictionList.
            When searching the current FromBaseTable node for subqueries, we may get duplicate SubqueryNodes.
@@ -3949,6 +4768,10 @@ public class FromBaseTable extends FromTable {
 
     public void setReferencingExpressions(Map<Integer, Set<ValueNode>> exprMap) {
         referencingExpressions = exprMap.get(tableNumber);
+    }
+
+    public void setReferencingExpressionsFromOther(Set<ValueNode> referencingExpressions) {
+        this.referencingExpressions = referencingExpressions;
     }
 
     @Override
@@ -4060,5 +4883,99 @@ public class FromBaseTable extends FromTable {
         return !skipStats &&
                useRealTableStats &&
                currentIndexFirstColumnStats.getFirstIndexColumnCardinality() <= maxPrefixIteratorValues;
+    }
+
+    public void setMinRetentionPeriod(long minRetentionPeriod) {
+        this.minRetentionPeriod = minRetentionPeriod;
+    }
+
+    public void setColumnNames(String [] columnNames) {
+        this.columnNames = columnNames;
+    }
+
+    public FromBaseTable shallowClone() throws StandardException {
+        FromBaseTable
+           fromBaseTable = (FromBaseTable) getNodeFactory().getNode(
+                                        C_NodeTypes.FROM_BASE_TABLE,
+                                        tableName,
+                                        correlationName,
+                                        resultColumns,
+                                        null,
+                                        isBulkDelete,
+                                        pastTxIdExpression,
+                                        getContextManager());
+        // make sure there's a restriction list
+        fromBaseTable.restrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+        fromBaseTable.baseTableRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+
+        fromBaseTable.shallowCopy(this);
+        return fromBaseTable;
+    }
+
+    @Override
+    protected void shallowCopy(ResultSetNode otherResultSet) throws StandardException {
+        super.shallowCopy(otherResultSet);
+        if (!(otherResultSet instanceof FromBaseTable))
+            return;
+
+        FromBaseTable other = (FromBaseTable)otherResultSet;
+
+        tableDescriptor            = other.tableDescriptor;
+        baseConglomerateDescriptor = other.baseConglomerateDescriptor;
+        conglomDescs               = other.conglomDescs;
+        updateOrDelete             = other.updateOrDelete;
+        skipStats                  = other.skipStats;
+        useRealTableStats          = other.useRealTableStats;
+        splits                     = other.splits;
+        defaultRowCount            = other.defaultRowCount;
+        defaultSelectivityFactor   = other.defaultSelectivityFactor;
+        bulkFetch                  = other.bulkFetch;
+        bulkFetchTurnedOff         = other.bulkFetchTurnedOff;
+        setColumnNames(other.columnNames);
+        if (other.distinctScan)
+            markForDistinctScan();
+
+        // The following items are intentionally not copied.
+        // Each table must have its own unshared predicates.
+        // baseTableRestrictionList       = other.baseTableRestrictionList;
+        // nonBaseTableRestrictionList    = other.nonBaseTableRestrictionList;
+        // storeRestrictionList           = other.storeRestrictionList;
+        // nonStoreRestrictionList        = other.nonStoreRestrictionList;
+        // requalificationRestrictionList = other.requalificationRestrictionList;
+
+        setAntiJoin(other.isAntiJoin);
+        setAggregateForSpecialMaxScan(other.aggrForSpecialMaxScan);
+        setMinRetentionPeriod(other.minRetentionPeriod);
+        setReferencingExpressionsFromOther(other.referencingExpressions);
+    }
+
+    public void setConsiderOnlyBaseConglomerate(boolean considerOnlyBaseConglomerate) {
+        this.considerOnlyBaseConglomerate = considerOnlyBaseConglomerate;
+    }
+
+    @Override
+    public boolean outerTableOnly() {
+        if (outerTableOnly)
+            return true;
+        return (trulyTheBestAccessPath != null &&
+                trulyTheBestAccessPath.getUisRowIdJoinBackToBaseTableResultSet() != null);
+    }
+
+    // Save the Unioned Index Scans statement tree from the access path into the base table,
+    // and finalize the tree by doing the AFTER_OPTIMIZE walking of the AST.
+    @Override
+    protected void recordUisAccessPath(AccessPath ap) throws StandardException {
+        super.recordUisAccessPath(ap);
+        uisRowIdJoinBackToBaseTableResultSet = ap.getUisRowIdJoinBackToBaseTableResultSet();
+        if (uisRowIdJoinBackToBaseTableResultSet != null) {
+            walkAST(getLanguageConnectionContext(),
+                    uisRowIdJoinBackToBaseTableResultSet,
+                    CompilationPhase.AFTER_OPTIMIZE);
+            uisRowIdJoinBackToBaseTableResultSet.assignResultSetNumber();
+        }
+    }
+
+    public double getSingleScanRowCount() {
+        return singleScanRowCount;
     }
 }

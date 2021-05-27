@@ -360,4 +360,9 @@ public class SQLRef extends DataType implements RefDataValue {
 		return value.getSparkObject();
 	}
 
+	public int hashCode()
+	{
+		return value.hashCode();
+	}
+
 }
