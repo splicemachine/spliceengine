@@ -3076,10 +3076,7 @@ public class FromBaseTable extends FromTable {
                 if (cloneRCs) {
                     //noinspection ConstantConditions
                     newCol = oldCol.cloneMe();
-                    oldCol.setExpression(
-                            (ValueNode) getNodeFactory().getNode(
-                                    C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                                    this,
+                    oldCol.setExpression( new VirtualColumnNode(this,
                                     newCol,
                                     ReuseFactory.getInteger(oldCol.getVirtualColumnId()),
                                     getContextManager()));

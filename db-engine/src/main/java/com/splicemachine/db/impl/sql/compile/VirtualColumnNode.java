@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
@@ -66,6 +67,12 @@ public class VirtualColumnNode extends ValueNode
     int columnId;
 
     private boolean correlated = false;
+
+    public VirtualColumnNode() {}
+    public VirtualColumnNode(ResultSetNode sourceResultSet, ResultColumn sourceColumn, int columnId, ContextManager contextManager) throws StandardException {
+        super(contextManager, C_NodeTypes.VIRTUAL_COLUMN_NODE);
+        init(sourceResultSet, sourceColumn, new Integer(columnId));
+    }
 
 
     /**
@@ -382,12 +389,7 @@ public class VirtualColumnNode extends ValueNode
     @Override
     public ValueNode getClone() throws StandardException
     {
-        VirtualColumnNode shallowClone =
-           (VirtualColumnNode) getNodeFactory().getNode(C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                sourceResultSet, // source result set.
-                sourceColumn,
-                columnId,
-                getContextManager());
-        return shallowClone;
+        return new VirtualColumnNode(sourceResultSet, // source result set.
+                sourceColumn, columnId, getContextManager());
     }
 }

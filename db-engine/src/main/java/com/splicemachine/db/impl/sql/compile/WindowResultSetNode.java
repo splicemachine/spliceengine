@@ -649,12 +649,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 // To do this, we'll create a VCN pointing to the right place and use the orphaned RC to
                 // find the reference above us. When found, we'll replace the referencing expression with
                 // this VCN.
-                VirtualColumnNode vcn = (VirtualColumnNode) getNodeFactory().getNode(C_NodeTypes
-                                                                                         .VIRTUAL_COLUMN_NODE,
-                                                                                     this, // source result set.
-                                                                                     winRC,
-                                                                                     winRCL.size(),
-                                                                                     getContextManager());
+                VirtualColumnNode vcn = new VirtualColumnNode(this, // source result set.
+                        winRC, winRCL.size(), getContextManager());
                 // This substitution visitor for column reference links we broke while inserting ourselves
                 referencesToSubstitute.addMapping(grandChildRC, vcn);
             }
@@ -1359,11 +1355,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         throws StandardException {
         ValueNode newExpression;
         if (expressionToReplace instanceof VirtualColumnNode) {
-            newExpression = (VirtualColumnNode) getNodeFactory().getNode(C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                                                                         this, // source result set.
-                                                                         sourceRC,
-                                                                         this.getResultColumns().size(),
-                                                                         getContextManager());
+            newExpression = new VirtualColumnNode(this, // source result set.
+                    sourceRC, this.getResultColumns().size(), getContextManager());
         } else {
             // just create a CR to replace the expression. This needs to be a CR because the setters don't exist
             // on ValueNode
