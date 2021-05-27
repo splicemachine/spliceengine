@@ -20,6 +20,7 @@ import java.util.ServiceLoader;
 
 import com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeManager;
 import com.splicemachine.replication.ReplicationManager;
+import com.splicemachine.snapshot.SnapshotManager;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.access.configuration.HBaseConfiguration;
@@ -115,6 +116,11 @@ public class ManagerLoader {
 
         @Override
         public UpgradeManager getUpgradeManager() throws StandardException {
+            throw StandardException.newException(SQLState.MANAGER_DISABLED);
+        }
+
+        @Override
+        public SnapshotManager getSnapshotManager() throws StandardException{
             throw StandardException.newException(SQLState.MANAGER_DISABLED);
         }
 

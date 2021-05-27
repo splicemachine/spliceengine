@@ -89,6 +89,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private volatile TabInfoImpl physicalStatsTable=null;
     private volatile TabInfoImpl sourceCodeTable=null;
     private volatile TabInfoImpl snapshotTable = null;
+    private volatile TabInfoImpl snapshotItemsTable = null;
     private volatile TabInfoImpl tokenTable = null;
     private volatile TabInfoImpl replicationTable = null;
     private volatile TabInfoImpl naturalNumbersTable = null;
@@ -993,11 +994,14 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         ArrayList<String> toUpgrade = new ArrayList<>();
         Function<TabInfoImpl, Void> addTabInfo =  (TabInfoImpl info ) ->
         {
-            toUpgrade.add( Long.toString(info.getHeapConglomerate()) );
-            for( int j = 0; j < info.getNumberOfIndexes(); j++ )
-                toUpgrade.add( Long.toString(info.getIndexConglomerate(j)) );
+            if (info.getHeapConglomerate() > 0){
+                toUpgrade.add(Long.toString(info.getHeapConglomerate()));
+                for (int j = 0; j < info.getNumberOfIndexes(); j++)
+                    toUpgrade.add(Long.toString(info.getIndexConglomerate(j)));
+            }
             return null;
         };
+
         for (int i = 0; i < coreInfo.length; ++i) {
             assert coreInfo[i] != null;
             addTabInfo.apply(coreInfo[i]);
@@ -1021,8 +1025,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     public void removeUnusedBackupTables(TransactionController tc) throws StandardException {
-        dropUnusedBackupTable("SYSBACKUPFILESET", tc);
-        dropUnusedBackupTable("SYSBACKUPJOBS", tc);
+        dropTable("SYSBACKUPFILESET", tc);
+        dropTable("SYSBACKUPJOBS", tc);
     }
 
     public void removeUnusedBackupProcedures(TransactionController tc) throws StandardException {
@@ -1041,7 +1045,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
     }
 
-    private void dropUnusedBackupTable(String tableName, TransactionController tc) throws StandardException {
+    private void dropTable(String tableName, TransactionController tc) throws StandardException {
         SchemaDescriptor sd = getSystemSchemaDescriptor();
         TableDescriptor td = getTableDescriptor(tableName, sd, tc);
         SpliceTransactionManager sm = (SpliceTransactionManager) tc;
@@ -1741,8 +1745,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         DataValueDescriptor[] fetchedRow = new DataValueDescriptor[templateRow.length()];
         DataValueDescriptor[] newRow = new DataValueDescriptor[templateRow.length()];
 
-        FormatableBitSet columnToUpdateSet=new FormatableBitSet(templateRow.length());
-        for(int i=0 ; i < templateRow.length() ; i++) {
+        FormatableBitSet columnToUpdateSet = new FormatableBitSet(templateRow.length());
+        for (int i = 0; i < templateRow.length(); i++) {
             columnToUpdateSet.set(i);
         }
 
@@ -1754,7 +1758,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             }
         }
 
-        try (ScanController sc=tc.openScan(
+        try (ScanController sc = tc.openScan(
                 tabInfo.getHeapConglomerate(),
                 false,
                 0,
@@ -1872,5 +1876,44 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             throw StandardException.newException(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT,
                     cd.getDescriptorName(), tabInfo.getTableName());
         }
+    }
+
+    public void upgradeSnapshotSystemTables(TransactionController tc) throws Exception {
+
+        SchemaDescriptor systemSchemaDescriptor=getSystemSchemaDescriptor();
+
+        // Create SNAPSHOTITEMS table
+        TabInfoImpl snapshotItemsTabInfo=getSnapshotItemsTable();
+        if(getTableDescriptor(snapshotItemsTabInfo.getTableName(),systemSchemaDescriptor,tc)==null){
+            LOG.info(String.format("Creating system table %s.%s",
+                    systemSchemaDescriptor.getSchemaName(),snapshotItemsTabInfo.getTableName()));
+
+            makeCatalog(snapshotItemsTabInfo,systemSchemaDescriptor,tc,null);
+        }else{
+            LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.",
+                    systemSchemaDescriptor.getSchemaName(),snapshotItemsTabInfo.getTableName()));
+        }
+
+        PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
+        TabInfoImpl snapshotTabInfo=getSnapshotTable();
+
+        SpliceLogUtils.info(LOG, "Recreating table %s", snapshotTabInfo.getTableName());
+        dropTable(snapshotTabInfo.getTableName(), tc);
+        makeCatalog(snapshotTabInfo,systemSchemaDescriptor,tc,null);
+        noncoreInfo[SYSSNAPSHOT_NUM - NUM_CORE] = snapshotTabInfo;
+
+        List<String> conglomerateList = Lists.newArrayList();
+        conglomerateList.add(Long.toString(snapshotTable.getHeapConglomerate()));
+        conglomerateList.add(Long.toString(snapshotTabInfo.getIndexConglomerate(0)));
+        admin.upgradeTablePrioritiesFromList(conglomerateList);
+
+    }
+
+    private TabInfoImpl getSnapshotItemsTable() throws StandardException{
+        if(snapshotItemsTable == null){
+            snapshotItemsTable = new TabInfoImpl(new SYSSNAPSHOTITEMSRowFactory(uuidFactory,exFactory,dvf,this));
+        }
+        initSystemIndexVariables(snapshotItemsTable);
+        return snapshotItemsTable;
     }
 }

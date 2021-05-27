@@ -1059,16 +1059,17 @@ public class TempTableIT extends SpliceUnitTest {
             });
             connection.commit();
 
-            try {
-                SQLClosures.execute(connection, statement -> {
-                    statement.execute(String.format("call syscs_util.snapshot_table('%s', '%s', '%s_snapshot_1')",
-                            tableSchema.schemaName, tableName, tableName));
-                    fail("Expected exception since SNAPSHOT_TABLE is not allowed on a temp table.");
-                });
-            } catch (SQLException e) {
-                // expected
-                Assert.assertEquals(e.getLocalizedMessage(), "42995", e.getSQLState());
-            }
+            // TODO - Re-enable this test once table snapshot is reimplemented.
+//            try {
+//                SQLClosures.execute(connection, statement -> {
+//                    statement.execute(String.format("call syscs_util.snapshot_table('%s', '%s', '%s_snapshot_1')",
+//                            tableSchema.schemaName, tableName, tableName));
+//                    fail("Expected exception since SNAPSHOT_TABLE is not allowed on a temp table.");
+//                });
+//            } catch (SQLException e) {
+//                // expected
+//                Assert.assertEquals(e.getLocalizedMessage(), "42995", e.getSQLState());
+//            }
 
             SQLClosures.execute(connection, statement -> {
                 statement.execute(String.format("call syscs_util.enable_column_statistics('%s', '%s', 'title')",

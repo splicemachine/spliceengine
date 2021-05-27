@@ -5322,6 +5322,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                             }
                     }
 
+                    if (subCD == null ) {
+                        LanguageConnectionContext lcc = getLCC();
+                        if (lcc.isCloningData()) {
+                            // During data cloning, many DDLs are executed in parallel under one transaction. Some DDLs,
+                            // foreign key creation, may see inconsistent state between sys.sysconstraints and
+                            // sys.sysforeignkeys. Ignore them as if DDLs are executed in separate transactions.
+                            continue;
+                        }
+                    }
                     assert subCD != null : "subCD is expected to be non-null";
 
                     /* Cache the TD in the SCD so that
@@ -8413,6 +8422,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 case SYSNATURALNUMBERS_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSNATURALNUMBERSRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
+                case SYSSNAPSHOT_ITEMS_NUM:
+                    retval=new TabInfoImpl(new SYSSNAPSHOTITEMSRowFactory(luuidFactory,exFactory,dvf,this));
+                    break;
                 default:
                     retval=null;
                     break;
@@ -11330,6 +11342,44 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     @Override
+    public SnapshotDescriptor getSnapshotDescriptor(long snapshotId) throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSSNAPSHOT_NUM);
+        DataValueDescriptor dvd = new SQLLongint(snapshotId);
+        ExecIndexRow keyRow=exFactory.getIndexableRow(0);
+        keyRow.setColumn(1, dvd);
+
+        SnapshotDescriptor sd = (SnapshotDescriptor)
+                getDescriptorViaIndex(
+                        SYSSNAPSHOTSRowFactory.SYSSNAPSHOTS_INDEX1_ID,
+                        keyRow,
+                        null,
+                        ti,
+                        null,
+                        null,
+                        false);
+
+        return sd;
+    }
+
+    @Override
+    public List<SnapshotItemDescriptor> getSnapshotItemDescriptorList(long snapshotId) throws StandardException {
+        DataValueDescriptor dvd = new SQLLongint(snapshotId);
+        TabInfoImpl ti=getNonCoreTI(SYSSNAPSHOT_ITEMS_NUM);
+        int columnId = SYSSNAPSHOTITEMSRowFactory.SNAPSHOTID;
+        ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(1);
+        scanQualifier[0][0].setQualifier(
+                columnId - 1,    /* column number */
+                dvd,
+                Orderable.ORDER_OP_EQUALS,
+                false,
+                false,
+                false);
+        ArrayList<SnapshotItemDescriptor> list = new ArrayList<>();
+        getDescriptorViaHeap(null,scanQualifier,ti,null,list);
+        return list;
+    }
+
+    @Override
     public void addSnapshot(TupleDescriptor descriptor, TransactionController tc) throws StandardException
     {
         TabInfoImpl ti=getNonCoreTI(SYSSNAPSHOT_NUM);
@@ -11341,15 +11391,35 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     @Override
-    public void deleteSnapshot(String snapshotName, long conglomeratenumber, TransactionController tc) throws StandardException
+    public void deleteSnapshot(long snapshotId, TransactionController tc) throws StandardException
     {
         TabInfoImpl ti=getNonCoreTI(SYSSNAPSHOT_NUM);
-        ExecIndexRow keyRow = exFactory.getIndexableRow(2);
-        keyRow.setColumn(1, new SQLVarchar(snapshotName));
-        keyRow.setColumn(2, new SQLLongint(conglomeratenumber));
+        ExecIndexRow keyRow = exFactory.getIndexableRow(1);
+        keyRow.setColumn(1, new SQLLongint(snapshotId));
         ti.deleteRow(tc, keyRow, SYSSNAPSHOTSRowFactory.SYSSNAPSHOTS_INDEX1_ID);
     }
 
+    @Override
+    public void addSnapshotItems(TupleDescriptor[] descriptor, TransactionController tc) throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSSNAPSHOT_ITEMS_NUM);
+        ExecRow[] rows = new ValueRow[descriptor.length];
+        for (int i = 0; i < descriptor.length; ++i) {
+            rows[i] = ti.getCatalogRowFactory().makeRow(descriptor[i], null);
+        }
+
+        int insertRetCode = ti.insertRowList(rows,tc, null);
+        if (insertRetCode != TabInfoImpl.ROWNOTDUPLICATE)
+            throw StandardException.newException(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT,
+                    "SYSBACKUPITEMS_INDEX2", SYSBACKUPITEMSRowFactory.TABLENAME_STRING);
+    }
+
+    @Override
+    public void deleteAllSnapshotItems(long snapshotId, TransactionController tc) throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSSNAPSHOT_ITEMS_NUM);
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1, new SQLLongint(snapshotId));
+        ti.deleteRow(tc, keyRow, SYSBACKUPITEMSRowFactory.SYSBACKUPITEMS_INDEX1_ID);
+    }
     @Override
     public void saveSourceCode(SourceCodeDescriptor descriptor, TransactionController tc) throws StandardException {
         TabInfoImpl ti = getNonCoreTI(SYSSOURCECODE_CATALOG_NUM);

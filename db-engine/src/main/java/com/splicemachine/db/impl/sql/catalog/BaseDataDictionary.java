@@ -180,7 +180,8 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
             "SYSDUMMY1",
             "SYSREPLICATION",
             "", // invalid entry for the removed system table MON_GET_CONNECTION which is now a table-valued function.
-            "SYSNATURALNUMBERS"
+            "SYSNATURALNUMBERS",
+            "SNAPSHOTITEMS"
     };
 
     protected    static final int        NUM_NONCORE = nonCoreNames.length;
