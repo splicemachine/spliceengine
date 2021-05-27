@@ -45,10 +45,12 @@ public class SpliceDependencyManager extends BasicDependencyManager {
       // tc == null means do it in the user transaction
       TransactionController tcToUse = (tc == null) ? lcc.getTransactionExecute() : tc;
       BaseSpliceTransaction usrTxn = ((SpliceTransactionManager)tcToUse).getRawTransaction();
-      assert usrTxn instanceof SpliceTransaction: "Programmer error: cannot elevate a non-SpliceTransaction";
-      SpliceTransaction txn = (SpliceTransaction)usrTxn;
-      if(!txn.allowsWrites())
-          txn.elevate(Bytes.toBytes(copyTo.getObjectName()));
+      //assert usrTxn instanceof SpliceTransaction: "Programmer error: cannot elevate a non-SpliceTransaction";
+        if (usrTxn instanceof SpliceTransaction) {
+            SpliceTransaction txn = (SpliceTransaction) usrTxn;
+            if (!txn.allowsWrites())
+                txn.elevate(Bytes.toBytes(copyTo.getObjectName()));
+        }
       super.copyDependencies(copyFrom, copyTo, persistentOnly, cm, tc);
   }
 

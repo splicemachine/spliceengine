@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
 import com.splicemachine.backup.BackupSystemProcedures;
+import com.splicemachine.backup.SnapshotSystemProcedure;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -688,40 +689,32 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .build();
         procedures.add(minRetentionPeriod);
 
-        Procedure snapshotSchema = Procedure.newBuilder().name("SNAPSHOT_SCHEMA")
+        Procedure snapshotSchema = Procedure.newBuilder().name("CREATE_SCHEMA_SNAPSHOT")
                 .varchar("schemaName", 128)
-                .varchar("snapshotName", 128)
+                .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA)
                 .numOutputParams(0)
-                .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .numResultSets(1)
+                .ownerClass(SnapshotSystemProcedure.class.getCanonicalName())
                 .build();
         procedures.add(snapshotSchema);
 
-        Procedure snapshotTable = Procedure.newBuilder().name("SNAPSHOT_TABLE")
-                .varchar("schemaName", 128)
-                .varchar("tableName", 128)
-                .varchar("snapshotName", 128)
+        Procedure cloneSnapshot = Procedure.newBuilder().name("CLONE_SCHEMA_SNAPSHOT")
+                .bigint("snapshotId")
+                .catalog("schemaName")
+                .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA)
                 .numOutputParams(0)
-                .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .numResultSets(1)
+                .ownerClass(SnapshotSystemProcedure.class.getCanonicalName())
                 .build();
-        procedures.add(snapshotTable);
+        procedures.add(cloneSnapshot);
 
         Procedure deleteSnapshot = Procedure.newBuilder().name("DELETE_SNAPSHOT")
-                .varchar("snapshotName", 128)
+                .bigint("snapshoId")
                 .numOutputParams(0)
-                .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .numResultSets(1)
+                .ownerClass(SnapshotSystemProcedure.class.getCanonicalName())
                 .build();
         procedures.add(deleteSnapshot);
-
-        Procedure restoreSnapshot = Procedure.newBuilder().name("RESTORE_SNAPSHOT")
-                .varchar("snapshotName", 128)
-                .numOutputParams(0)
-                .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(restoreSnapshot);
 
         Procedure getEncodedRegionName = Procedure.newBuilder().name("GET_ENCODED_REGION_NAME")
                 .catalog("schemaName")

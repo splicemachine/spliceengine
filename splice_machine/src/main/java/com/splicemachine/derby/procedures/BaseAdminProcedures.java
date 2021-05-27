@@ -25,6 +25,9 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.jdbc.ConnectionContext;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -163,6 +166,15 @@ public abstract class BaseAdminProcedures {
                 return conn;
         }
         throw Util.noCurrentConnection();
+    }
+
+    public static Connection getCurrentConnection() throws SQLException {
+
+        ContextManager cm = ContextService.getCurrentContextManager();
+        ConnectionContext cc =
+                (ConnectionContext) cm.getContext(ConnectionContext.CONTEXT_ID);
+
+        return cc.getNestedConnection(true);
     }
 
     protected static ExecRow buildExecRow(ResultColumnDescriptor[] columns) throws SQLException {

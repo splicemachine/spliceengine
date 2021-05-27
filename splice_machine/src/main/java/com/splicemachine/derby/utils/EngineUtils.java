@@ -171,7 +171,7 @@ public class EngineUtils{
     }
 
     public static void checkSchemaVisibility(String schemaName) throws SQLException, StandardException {
-        EmbedConnection conn = (EmbedConnection) SpliceAdmin.getDefaultConn();
+        EmbedConnection conn = (EmbedConnection) SpliceAdmin.getCurrentConnection();
         EmbedDatabaseMetaData dmd = (EmbedDatabaseMetaData)conn.getMetaData();
         try (ResultSet rs = dmd.getSchemas(null,schemaName)) {
             if (!rs.next()) {

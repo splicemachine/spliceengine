@@ -270,10 +270,14 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
                 ReferencedKeyConstraintDescriptor referencedConstraint = DDUtils.locateReferencedConstraint
                     ( dd, td, constraintName, columnNames, otherConstraintInfo );
                 DDUtils.Checker foreignKeyChecker = readCheckerConfig();
+                if (lcc.isCloningData()) {
+                    foreignKeyChecker = DDUtils.Checker.None;
+                }
                 if(foreignKeyChecker == DDUtils.Checker.None) {
                     LOG.warn("no foreign key checker is set, bypassing foreign key dependency check"); // should be in DDUtils.
                 }
-                DDUtils.validateReferentialActions(dd, td, constraintName, otherConstraintInfo,columnNames, fkGraph, foreignKeyChecker);
+
+                DDUtils.validateReferentialActions(dd, td, constraintName, otherConstraintInfo, columnNames, fkGraph, foreignKeyChecker);
 
 				conDesc = ddg.newForeignKeyConstraintDescriptor(
 								td, constraintName,
@@ -298,11 +302,11 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 				 * table.
 				 */
 				if ( (! forCreateTable) &&
-					 dd.activeConstraint( conDesc ) )
+					 dd.activeConstraint( conDesc ) && !lcc.isCloningData() )
 				{
-					validateFKConstraint(
+                    validateFKConstraint(
                             (ForeignKeyConstraintDescriptor)conDesc,
-										 referencedConstraint,
+                            referencedConstraint,
                             lcc);
 				}
 
@@ -511,7 +515,10 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
      */
     @Override
     public void prePrepareDataDictionaryActions(Activation activation) throws StandardException {
-        if (getConstraintType() == DataDictionary.FOREIGNKEY_CONSTRAINT && readCheckerConfig() == DDUtils.Checker.SpliceMachine) {
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+
+        if (getConstraintType() == DataDictionary.FOREIGNKEY_CONSTRAINT &&
+                readCheckerConfig() == DDUtils.Checker.SpliceMachine && !lcc.isCloningData()) {
 
             DataDictionary dd = activation.getLanguageConnectionContext().getDataDictionary();
             TableDescriptor td = getTableDescriptor(activation, false);

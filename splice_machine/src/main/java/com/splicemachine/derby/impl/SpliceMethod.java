@@ -45,7 +45,7 @@ public class SpliceMethod<T> {
             }
             return (T) method.invoke(activation);
         } catch (Throwable t) {
-            throw Exceptions.parseException(t);
+            throw StandardException.plainWrapException(t);
         }
     }
 
