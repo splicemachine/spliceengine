@@ -66,6 +66,11 @@ public class SpliceDateFunctionsIT extends SpliceUnitTest {
             "H", schemaWatcher.schemaName, "(col1 Timestamp, col2 varchar(10), col3 varchar(10))");
     private static final SpliceTableWatcher tableWatcherI = new SpliceTableWatcher(
             "I", schemaWatcher.schemaName, "(t Time, d Date, ts Timestamp, pat varchar(30), datestr varchar(30))");
+    private static final SpliceTableWatcher tableWatcherJ = new SpliceTableWatcher(
+            "J", schemaWatcher.schemaName, "(t timestamp)");
+    private static final SpliceTableWatcher tableWatcherK = new SpliceTableWatcher(
+            "K", schemaWatcher.schemaName, "(d dec)");
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
             .around(schemaWatcher)
@@ -78,6 +83,8 @@ public class SpliceDateFunctionsIT extends SpliceUnitTest {
             .around(tableWatcherG)
             .around(tableWatcherH)
             .around(tableWatcherI)
+            .around(tableWatcherJ)
+            .around(tableWatcherK)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -220,6 +227,10 @@ public class SpliceDateFunctionsIT extends SpliceUnitTest {
                     classWatcher.prepareStatement(
                             "insert into " + tableWatcherI + " (t, d, ts, pat, datestr) values (Time('05:22:33'), " +
                                     "Date('2021-01-30'), Timestamp('2021-01-30 05:22:33.04'), 'YYYY-MM-DD HH:mm:ss.SSS', '2021-01-30 05:22:33.04')").execute();
+                    classWatcher.prepareStatement(
+                            "insert into " + tableWatcherJ + " (t) values Timestamp('2015-11-19 11:03:45.095'),Timestamp('2015-01-18 11:03:44.095')").execute();
+                    classWatcher.prepareStatement(
+                            "insert into " + tableWatcherK + " (d) values (45.095),(44.095) ").execute();
                     // FIXME JC: See @Ignored test testToTimestampFunction below...
 //                        classWatcher.prepareStatement(
 //                            "insert into " + tableWatcherI + " (ts, pat, datestr) values (Timestamp('2011-09-17 " +
@@ -1567,5 +1578,21 @@ public class SpliceDateFunctionsIT extends SpliceUnitTest {
         // See DB-11973
         testQueryContains("select timestamp(trim('2016-08-05-07.12.59.000000')) + current timezone from sysibm.sysdummy1",
                           Arrays.asList("2016-08-04", "2016-08-05", "2016-08-06"), methodWatcher, true);
+    }
+
+    @Test
+    public void testSecondTimestampFunctionReferencingTable() throws Exception {
+        // See DB-12089
+        testQueryContains("select * from --splice-properties joinOrder=fixed\n" +
+                                  "K\n" +
+                                  "join J\n" +
+                                  "on INTEGER(SECOND(t)) = INTEGER(d)",
+                          Arrays.asList("45 |2015-11-19 11:03:45.095", "44 |2015-01-18 11:03:44.095"), methodWatcher, true);
+
+        testQueryContains("select * from --splice-properties joinOrder=fixed\n" +
+                                  "J\n" +
+                                  "join K\n" +
+                                  "on INTEGER(SECOND(t)) = INTEGER(d)",
+                          Arrays.asList("2015-11-19 11:03:45.095 |45", "2015-01-18 11:03:44.095 |44"), methodWatcher, true);
     }
 }

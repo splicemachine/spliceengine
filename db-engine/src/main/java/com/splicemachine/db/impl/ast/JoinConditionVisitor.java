@@ -349,7 +349,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
         // except for Except and Intersect node.
         // because for NLJ, join condition could be pushed down under union operation and joins.
         Iterable<ResultSetNode> rights = Iterables.filter(
-                RSUtils.nodesUntilIntersectOrExcept(j.getRightResultSet()),
+                RSUtils.nodesUntilIntersectOrExcept(j.getLeftResultSet()),
                 RSUtils.rsnHasPreds);
 
         splice.com.google.common.base.Predicate<Predicate> joinScoped = evalableAtNode(j);

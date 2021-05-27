@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
@@ -157,5 +158,18 @@ public class SecondFunctionNode extends OperatorNode {
             return Math.min(60, numberOfRows);
         }
         return numberOfRows;
+    }
+
+    @Override
+    public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly)
+            throws StandardException {
+        if(operands == null) {
+            return true;
+        }
+        boolean pushable = true;
+        for(ValueNode operand : operands) {
+            pushable = operand.categorize(referencedTabs, referencedColumns, simplePredsOnly) && pushable;
+        }
+        return pushable;
     }
 }
