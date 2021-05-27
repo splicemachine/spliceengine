@@ -220,7 +220,12 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
         TransactionController tc = lcc.getTransactionExecute();
 
-        notifyMetadataChange(tc, ProtoUtil.createAlterTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) this.tableId));
+        if (!lcc.isCloningData()) {
+            DDLChange ddlChange = ProtoUtil.createAlterTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
+                    (BasicUUID) this.tableId);
+            // Run Remotely
+            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+        }
     }
 
     protected void executeConstraintActions(Activation activation) throws StandardException {

@@ -21,7 +21,6 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
