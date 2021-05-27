@@ -50,6 +50,8 @@ public class UpgradeUtils {
         SIDriver driver = SIDriver.driver();
         int rowsRewritten = 0;
 
+        int batchSize = 100;
+        List<DataPut> mutations = Lists.newArrayList();
         EntryDecoder entryDecoder = new EntryDecoder();
         TxnView txn = ((SpliceTransactionManager) tc).getActiveStateTxn();
         BitSet fields = new BitSet();
@@ -75,14 +77,28 @@ public class UpgradeUtils {
                             encoder.reset();
                             encoder.encodeNextUnsorted(nextRaw);
                             put.addCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES, entryEncoder.encode());
-                            destTable.put(put);
+                            //destTable.put(put);
+                            mutations.add(put);
                             rowsRewritten++;
+                            if (rowsRewritten % batchSize == 0) {
+                                batchWrite(destTable, mutations);
+                            }
                         }
                     }
                 }
             }
+            if (mutations.size() > 0) {
+               batchWrite(destTable, mutations);
+            }
         }
         SpliceLogUtils.info(LOG, "Wrote %d rows to SPLICE_CONGLOMERATE_SI.", rowsRewritten);
+    }
+
+    public static void batchWrite(Partition table, List<DataPut> mutations) throws IOException {
+        DataPut[] puts = new DataPut[mutations.size()];
+        puts = mutations.toArray(puts);
+        table.writeBatch(puts);
+        mutations.clear();;
     }
 
     public static void upgradeConglomerates(TransactionController tc,
