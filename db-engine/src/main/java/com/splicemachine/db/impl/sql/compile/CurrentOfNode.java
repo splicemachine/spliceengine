@@ -131,7 +131,7 @@ public final class CurrentOfNode extends FromTable {
             singleScanCostEstimate = optimizer.newCostEstimate();
         }
 
-        singleScanCostEstimate.setCost(0.0d, 1.0d, 1.0d);
+        singleScanCostEstimate.setCost(0.0d, 1.0d, 1.0d, 1.0d);
         getBestAccessPath().setCostEstimate(singleScanCostEstimate);
         getBestSortAvoidancePath().setCostEstimate(singleScanCostEstimate);
 
@@ -430,7 +430,7 @@ public final class CurrentOfNode extends FromTable {
 
         /* Assume there is no cost associated with fetching the current row */
         bestCostEstimate = optimizer.newCostEstimate();
-        bestCostEstimate.setCost(0.0d, outerRows, outerRows);
+        bestCostEstimate.setCost(0.0d, outerRows, outerRows, outerRows);
 
         return this;
     }

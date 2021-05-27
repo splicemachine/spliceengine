@@ -45,9 +45,9 @@ public interface CostEstimate extends StoreCostResult {
     /**
      * Set the cost for this cost estimate.
      */
-    void setCost(double cost, double rowCount, double singleScanRowCount);
+    void setCost(double cost, double rowCount, double singleScanRowCount, double rawRowCount);
 
-    void setCost(double cost, double rowCount, double singleScanRowCount,int numPartitions, int parallelism);
+    void setCost(double cost, double rowCount, double singleScanRowCount, double rawRowCount, int numPartitions, int parallelism);
 
     void setRemoteCost(double remoteCost);
 
@@ -327,4 +327,12 @@ public interface CostEstimate extends StoreCostResult {
     void setOptimizer(Optimizer optimizer);
 
     Optimizer getOptimizer();
+
+    void setJoinSelectionCardinality(double rowCount);
+
+    double getJoinSelectionCardinality();
+
+    void setRawRowCount(double rawRowCount);
+
+    double getRawRowCount();
 }

@@ -73,14 +73,14 @@ public class CostEstimateImpl implements CostEstimate {
     }
 
     @Override
-    public void setCost(double cost, double rowCount, double singleScanRowCount) {
-        setCost(cost,rowCount,singleScanRowCount,0,0);
+    public void setCost(double cost, double rowCount, double singleScanRowCount, double rawRowCount) {
+        setCost(cost,rowCount,singleScanRowCount,rawRowCount,0,0);
     }
 
     /** @see CostEstimate#setCost */
     @Override
-    public void setCost(double cost, double rowCount,
-                        double singleScanRowCount, int numPartitions, int parallelism) {
+    public void setCost(double cost, double rowCount, double singleScanRowCount, double rawRowCount,
+                        int numPartitions, int parallelism) {
         if (SanityManager.DEBUG) {
             if (cost < 0.0 ||
                     rowCount < 0.0 ||
@@ -631,4 +631,24 @@ public class CostEstimateImpl implements CostEstimate {
 
     @Override
     public Optimizer getOptimizer() { return null; }
+
+    @Override
+    public void setJoinSelectionCardinality(double rowCount) {
+        // no-op
+    }
+
+    @Override
+    public double getJoinSelectionCardinality() {
+        return -1.0d;
+    }
+
+    @Override
+    public void setRawRowCount(double rawRowCount) {
+        // no-op
+    }
+
+    @Override
+    public double getRawRowCount() {
+        return -1.0d;
+    }
 }

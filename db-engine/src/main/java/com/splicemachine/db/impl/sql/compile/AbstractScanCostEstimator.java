@@ -117,7 +117,7 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
     // will be used shortly
     private final boolean forUpdate;
 
-    private final boolean isOlap;
+    protected final boolean isOlap;
 
     // selectivity elements for scanning phase
     protected final List<SelectivityHolder>[] scanSelectivityHolder;

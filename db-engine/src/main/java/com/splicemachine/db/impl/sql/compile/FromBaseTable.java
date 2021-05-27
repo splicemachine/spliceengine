@@ -885,7 +885,7 @@ public class FromBaseTable extends FromTable {
          ** to the maximum cost so that the optimizer will think that
          ** any access path is better than none.
          */
-        costEstimate.setCost(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
+        costEstimate.setCost(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
 
         super.startOptimizing(optimizer,rowOrdering);
     }
@@ -1019,7 +1019,7 @@ public class FromBaseTable extends FromTable {
                 getLanguageConnectionContext().getOptimizerFactory().getIndexBatchSize(),
                 getLanguageConnectionContext().getOptimizerFactory().getIndexLookupBlocks(),
                 forUpdate(),
-                dataSetProcessorType.isOlap(),
+                optimizer.isForSpark(),
                 usedNoStatsColumnIds);
 
         // check if specialMaxScan is applicable

@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.costing.SelectivityEstimator;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
@@ -52,46 +53,42 @@ import static com.splicemachine.db.impl.sql.compile.AbstractScanCostEstimator.co
 public class SelectivityUtil {
 
 
-    public enum SelectivityJoinType {
-        LEFTOUTER, INNER, ANTIJOIN, FULLOUTER
-    }
-
-    public enum JoinPredicateType {
-        MERGE_SEARCH, /* join conditions on index columns that can be used for merge join to search for matching rows */
-        HASH_SEARCH,  /* join conditions that can be used for hash-based joins (like broadcast, sortmerge) to search for matching rows, they should be equality join conditions */
-        ALL   /* all join conditions, equality or not */
-    }
-
     public static final double  DEFAULT_SINGLE_POINT_SELECTIVITY = 0.1d;
     public static final double  DEFAULT_BETWEEN_SELECTIVITY = 0.5d;
     public static final double  DEFAULT_RANGE_SELECTIVITY = 0.33d;
     public static final double  DEFAULT_INLIST_SELECTIVITY = 0.9d;
 
-    public static double estimateJoinSelectivity(Optimizable innerTable, ConglomerateDescriptor innerCD,
-                            OptimizablePredicateList predList,
-                            long innerRowCount,long outerRowCount,
-                            CostEstimate outerCost,
-                            JoinPredicateType predicateType) throws StandardException {
+    public static double estimateJoinSelectivity(SelectivityEstimator selectivityEstimator,
+                                                 Optimizable innerTable,
+                                                 ConglomerateDescriptor innerCD,
+                                                 OptimizablePredicateList predList,
+                                                 long innerRowCount, long outerRowCount,
+                                                 CostEstimate outerCost,
+                                                 SelectivityEstimator.JoinPredicateType predicateType) throws StandardException {
         if (outerCost.getJoinType() == JoinNode.LEFTOUTERJOIN)
-            return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.LEFTOUTER, predicateType);
+            return estimateJoinSelectivity(selectivityEstimator, innerTable,innerCD,predList,innerRowCount,outerRowCount,
+                                           SelectivityEstimator.SelectivityJoinType.LEFTOUTER, predicateType);
         else if (outerCost.getJoinType() == JoinNode.FULLOUTERJOIN)
-            return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.FULLOUTER, predicateType);
+            return estimateJoinSelectivity(selectivityEstimator, innerTable,innerCD,predList,innerRowCount,outerRowCount,
+                                           SelectivityEstimator.SelectivityJoinType.FULLOUTER, predicateType);
         else if (outerCost.isAntiJoin())
-            return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.ANTIJOIN, predicateType);
+            return estimateJoinSelectivity(selectivityEstimator, innerTable,innerCD,predList,innerRowCount,outerRowCount,
+                                           SelectivityEstimator.SelectivityJoinType.ANTIJOIN, predicateType);
         else
-            return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.INNER, predicateType);
+            return estimateJoinSelectivity(selectivityEstimator, innerTable,innerCD,predList,innerRowCount,outerRowCount,
+                                           SelectivityEstimator.SelectivityJoinType.INNER, predicateType);
     }
 
 
-    private static boolean isTheRightJoinPredicate(Predicate p, JoinPredicateType predicateType) {
-        if (p == null || predicateType != JoinPredicateType.ALL && !p.isHashableJoinPredicate())
+    private static boolean isTheRightJoinPredicate(Predicate p, SelectivityEstimator.JoinPredicateType predicateType) {
+        if (p == null || predicateType != SelectivityEstimator.JoinPredicateType.ALL && !p.isHashableJoinPredicate())
             return false;
 
         if (p.referencedSet.cardinality() < 2)
             return false;
 
         // only equality join conditions can be used for hashable joins to search for matching rows
-        if (predicateType == JoinPredicateType.HASH_SEARCH || predicateType == JoinPredicateType.MERGE_SEARCH) {
+        if (predicateType == SelectivityEstimator.JoinPredicateType.HASH_SEARCH || predicateType == SelectivityEstimator.JoinPredicateType.MERGE_SEARCH) {
             ValueNode valueNode = p.getAndNode().getLeftOperand();
             if (valueNode instanceof BinaryRelationalOperatorNode) {
                 BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode) valueNode;
@@ -100,7 +97,7 @@ public class SelectivityUtil {
                 }
 
                 // only equality join condition without extra expression on index column can be used by merge join to search for matching rows
-                if (predicateType == JoinPredicateType.MERGE_SEARCH) {
+                if (predicateType == SelectivityEstimator.JoinPredicateType.MERGE_SEARCH) {
                     if (p.getIndexPosition() < 0) {
                         return false;
                     } else {
@@ -116,11 +113,12 @@ public class SelectivityUtil {
         return true;
     }
 
-    public static double estimateJoinSelectivity(Optimizable innerTable, ConglomerateDescriptor innerCD,
+    public static double estimateJoinSelectivity(SelectivityEstimator selectivityEstimator,
+                                                 Optimizable innerTable, ConglomerateDescriptor innerCD,
                                                  OptimizablePredicateList predList,
                                                  long innerRowCount,long outerRowCount,
-                                                 SelectivityJoinType selectivityJoinType,
-                                                 JoinPredicateType predicateType) throws StandardException {
+                                                 SelectivityEstimator.SelectivityJoinType selectivityJoinType,
+                                                 SelectivityEstimator.JoinPredicateType predicateType) throws StandardException {
 
         assert innerTable != null : "Null value of argument 'innerTable' passed in to estimateJoinSelectivity";
 
@@ -143,8 +141,8 @@ public class SelectivityUtil {
                     continue;
 
                 predSelectivities.add(new JoinPredicateSelectivity(p, innerTable, QualifierPhase.FILTER_BASE,
-                                                           p.joinSelectivity(innerTable, innerCD, innerRowCount,
-                                                                             outerRowCount, selectivityJoinType)));
+                                                           p.joinSelectivity(selectivityEstimator, innerTable, innerCD,
+                                                                             innerRowCount, outerRowCount, selectivityJoinType)));
             }
         }
         if (predSelectivities.size() == 1)
@@ -216,7 +214,7 @@ public class SelectivityUtil {
         }
         return selectivity;
     }
-    public static double estimateScanSelectivity(Optimizable innerTable, OptimizablePredicateList predList, JoinPredicateType predicateType) throws StandardException {
+    public static double estimateScanSelectivity(Optimizable innerTable, OptimizablePredicateList predList, SelectivityEstimator.JoinPredicateType predicateType) throws StandardException {
         double selectivity = 1d;
         if (innerTable == null) {
             return selectivity;
@@ -330,18 +328,18 @@ public class SelectivityUtil {
                         (outerHeapSize/(outerRowCount<1.0d?1.0d:outerRowCount)));
     }
 
-    public static double getTotalPerPartitionRemoteCost(CostEstimate innerCostEstimate,
-                                                        CostEstimate outerCostEstimate,
-                                                        Optimizer    optimizer) {
+    public static double getTotalPerPartitionPerParallelTask(CostEstimate innerCostEstimate,
+                                                             CostEstimate outerCostEstimate,
+                                                             Optimizer    optimizer) {
 
-        return getTotalPerPartitionRemoteCost(innerCostEstimate,
-                                              outerCostEstimate,
-                                              optimizer, 1.0);
+        return getTotalPerPartitionPerParallelTask(innerCostEstimate,
+                                                   outerCostEstimate,
+                                                   optimizer, 1.0);
     }
-    public static double getTotalPerPartitionRemoteCost(CostEstimate innerCostEstimate,
-                                                        CostEstimate outerCostEstimate,
-                                                        Optimizer    optimizer,
-                                                        double innerTableScaleFactor){
+    public static double getTotalPerPartitionPerParallelTask(CostEstimate innerCostEstimate,
+                                                             CostEstimate outerCostEstimate,
+                                                             Optimizer    optimizer,
+                                                             double innerTableScaleFactor){
 
         // Join costing is done on a per parallel task basis, so remote costs
         // for a JoinOperation are calculated this way too, to make the units consistent.

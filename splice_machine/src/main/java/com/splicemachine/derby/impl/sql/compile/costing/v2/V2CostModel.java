@@ -11,33 +11,37 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.impl.sql.compile.costing;
+package com.splicemachine.derby.impl.sql.compile.costing.v2;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import com.splicemachine.db.iapi.sql.compile.costing.ScanCostEstimator;
+import com.splicemachine.db.iapi.sql.compile.costing.SelectivityEstimator;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.compile.ResultColumnList;
+import com.splicemachine.derby.impl.sql.compile.costing.StrategyJoinCostEstimation;
 
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class V1CostModel implements CostModel {
-
+public class V2CostModel implements CostModel {
     private static Map<JoinStrategy.JoinStrategyType, StrategyJoinCostEstimation> joinCostEstimationMap = new ConcurrentHashMap<>();
     static {
-        joinCostEstimationMap.put(JoinStrategy.JoinStrategyType.BROADCAST, new V1BroadcastJoinCostEstimation());
-        joinCostEstimationMap.put(JoinStrategy.JoinStrategyType.CROSS, new V1CrossJoinCostEstimation());
-        joinCostEstimationMap.put(JoinStrategy.JoinStrategyType.MERGE, new V1MergeJoinCostEstimation());
-        joinCostEstimationMap.put(JoinStrategy.JoinStrategyType.MERGE_SORT, new V1MergeSortJoinCostEstimation());
-        joinCostEstimationMap.put(JoinStrategy.JoinStrategyType.NESTED_LOOP, new V1NestedLoopJoinCostEstimationModel());
+        joinCostEstimationMap.put(JoinStrategy.JoinStrategyType.CARDINALITY_ESTIMATOR, new V2JoinCardinalityEstimation());
+        joinCostEstimationMap.put(JoinStrategy.JoinStrategyType.BROADCAST, new V2BroadcastJoinCostEstimation());
+        joinCostEstimationMap.put(JoinStrategy.JoinStrategyType.CROSS, new V2CrossJoinCostEstimation());
+        joinCostEstimationMap.put(JoinStrategy.JoinStrategyType.MERGE, new V2MergeJoinCostEstimation());
+        joinCostEstimationMap.put(JoinStrategy.JoinStrategyType.MERGE_SORT, new V2MergeSortJoinCostEstimation());
+        joinCostEstimationMap.put(JoinStrategy.JoinStrategyType.NESTED_LOOP, new V2NestedLoopJoinCostEstimation());
     }
+
+    private static final SelectivityEstimator selectivityEstimator = new V2SelectivityEstimator();
 
     @Override
     public void estimateJoinCost(JoinStrategy.JoinStrategyType joinStrategyType,
@@ -52,7 +56,7 @@ public class V1CostModel implements CostModel {
             SanityManager.ASSERT(joinCostEstimation != null,
                                  String.format("unexpected missing cost estimation for %s", joinStrategyType.niceName()));
         }
-        joinCostEstimation.estimateCost(innerTable, predList, cd, outerCost, optimizer, costEstimate);
+        joinCostEstimation.estimateCost(innerTable, predList, cd, outerCost, costEstimate, optimizer, selectivityEstimator);
     }
 
     @Override
@@ -69,8 +73,13 @@ public class V1CostModel implements CostModel {
                                                      boolean forUpdate,
                                                      boolean isOlap,
                                                      HashSet<Integer> usedNoStatsColumnIds) throws StandardException {
-        return new V1ScanCostEstimator(baseTable, cd, scc, scanCost, resultColumns, scanRowTemplate,
+        return new V2ScanCostEstimator(baseTable, cd, scc, scanCost, resultColumns, scanRowTemplate,
                                        baseColumnsInScan, baseColumnsInLookup, indexLookupBatchRowCount,
                                        indexLookupConcurrentBatchesCount, forUpdate, isOlap, usedNoStatsColumnIds);
+    }
+
+    @Override
+    public String toString() {
+        return "v2";
     }
 }

@@ -38,6 +38,7 @@ package com.splicemachine.db.impl.sql.compile;
  import com.splicemachine.db.iapi.services.sanity.SanityManager;
  import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
  import com.splicemachine.db.iapi.sql.compile.Optimizable;
+ import com.splicemachine.db.iapi.sql.compile.costing.SelectivityEstimator;
  import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
  import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
  import com.splicemachine.db.iapi.store.access.ScanController;
@@ -1566,18 +1567,23 @@ public class BinaryRelationalOperatorNode
      * ColumnReferences are heavily used to determine when we can use statistics for computations.  It would be nice
      * to remove the instance of bits and focus more on the implementation at the node level (TODO).
      *
-     * @param optTable
-     * @param currentCd
-     * @param innerRowCount
-     * @param outerRowCount
-     * @param selectivityJoinType
-     * @return
+     *
+     * @param selectivityEstimator A SelectivityEstimator instance containing concrete formulae.
+     * @param optTable RHS of the join.
+     * @param currentCd Conglomerate descriptor being considered in current access path.
+     * @param innerRowCount RHS row count. This is the output row count of the RHS subtree.
+     * @param outerRowCount LHS row count. This is the output row count of the LHS subtree.
+     * @param selectivityJoinType Join type.
+     * @return An estimate of join selectivity of this join.
      * @throws StandardException
      */
     @Override
-    public double joinSelectivity(Optimizable optTable,
+    public double joinSelectivity(SelectivityEstimator selectivityEstimator,
+                                  Optimizable optTable,
                                   ConglomerateDescriptor currentCd,
-                                  long innerRowCount, long outerRowCount, SelectivityUtil.SelectivityJoinType selectivityJoinType) throws StandardException {
+                                  long innerRowCount,
+                                  long outerRowCount,
+                                  SelectivityEstimator.SelectivityJoinType selectivityJoinType) throws StandardException {
         assert optTable != null:"null values passed into predicate joinSelectivity";
         // Binary Relational Operator Node...
         double selectivity;
@@ -1588,34 +1594,27 @@ public class BinaryRelationalOperatorNode
             if (!right.useRealColumnStatistics()) {
                 noStatsColumns.add(right.getSchemaQualifiedColumnName());
             }
-            if (selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.LEFTOUTER)) {
-                selectivity = (1.0d - right.nullSelectivity()) / right.nonZeroCardinality(innerRowCount);
-            } else if (selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.FULLOUTER)) {
-                // TODO DB-7816, temporarily borrow the selectivity logic from left join, may need to revisit
-                selectivity = (1.0d - right.nullSelectivity()) / right.nonZeroCardinality(innerRowCount);
+            if (selectivityJoinType.equals(SelectivityEstimator.SelectivityJoinType.LEFTOUTER)) {
+                selectivity = selectivityEstimator.leftOuterJoinSelectivity(outerRowCount, innerRowCount, null, right);
+            } else if (selectivityJoinType.equals(SelectivityEstimator.SelectivityJoinType.FULLOUTER)) {
+                selectivity = selectivityEstimator.fullOuterJoinSelectivity(outerRowCount, innerRowCount, null, right);
             } else if (operandMayHaveStatistics(LEFT)) {
                 ColumnReference left = getColumnOrIndexExprColumn(LEFT);
                 assert left != null;
                 if (!left.useRealColumnStatistics()) {
                     noStatsColumns.add(left.getSchemaQualifiedColumnName());
                 }
-                selectivity = ((1.0d - left.nullSelectivity()) * (1.0d - right.nullSelectivity())) /
-                        Math.min(left.nonZeroCardinality(outerRowCount), right.nonZeroCardinality(innerRowCount));
-                selectivity = selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.INNER) ?
-                        selectivity : 1.0d - selectivity;
-                if (optTable instanceof FromTable && ((FromTable) optTable).getExistsTable()) {
-                    selectivity = selectivity * left.nonZeroCardinality(outerRowCount)/outerRowCount;
-                    if ((optTable instanceof FromBaseTable) && ((FromBaseTable) optTable).isAntiJoin()) {
-                        selectivity = selectivity /(innerRowCount - (double)innerRowCount/right.nonZeroCardinality(innerRowCount) + 1);
-                    }
-                }
+
+                selectivity = selectivityEstimator.innerJoinSelectivity(optTable, outerRowCount, innerRowCount,
+                                                                        left, right, selectivityJoinType);
             } else { // No Left Column Reference
-                selectivity = super.joinSelectivity(optTable, currentCd, innerRowCount, outerRowCount, selectivityJoinType);
+                selectivity = super.joinSelectivity(selectivityEstimator, optTable, currentCd, innerRowCount, outerRowCount, selectivityJoinType);
             }
         } else { // No Right ColumnReference
-            selectivity = super.joinSelectivity(optTable, currentCd, innerRowCount, outerRowCount, selectivityJoinType);
+            selectivity = super.joinSelectivity(selectivityEstimator, optTable, currentCd, innerRowCount, outerRowCount, selectivityJoinType);
         }
-        assert selectivity >= 0.0d:"selectivity is out of bounds " + selectivity + this + " right-> " + getRightOperand() + " left -> " + getLeftOperand();
+        assert selectivityEstimator.checkJoinSelectivity(selectivity)
+                : "selectivity is out of bounds " + selectivity + this + " right-> " + getRightOperand() + " left -> " + getLeftOperand();
         return selectivity;
     }
 

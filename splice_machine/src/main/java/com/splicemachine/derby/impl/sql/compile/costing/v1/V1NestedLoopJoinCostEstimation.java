@@ -11,12 +11,13 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.impl.sql.compile.costing;
+package com.splicemachine.derby.impl.sql.compile.costing.v1;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.costing.SelectivityEstimator;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -24,10 +25,11 @@ import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import com.splicemachine.db.impl.sql.compile.Predicate;
 import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
 import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
+import com.splicemachine.derby.impl.sql.compile.costing.StrategyJoinCostEstimation;
 
 import static com.splicemachine.db.impl.sql.compile.JoinNode.INNERJOIN;
 
-public class V1NestedLoopJoinCostEstimationModel implements StrategyJoinCostEstimation {
+public class V1NestedLoopJoinCostEstimation implements StrategyJoinCostEstimation {
 
     private static final double NLJ_ON_SPARK_PENALTY = 1e15;  // msirek-temp
 
@@ -36,8 +38,9 @@ public class V1NestedLoopJoinCostEstimationModel implements StrategyJoinCostEsti
                              OptimizablePredicateList predList,
                              ConglomerateDescriptor cd,
                              CostEstimate outerCost,
+                             CostEstimate innerCost,
                              Optimizer optimizer,
-                             CostEstimate innerCost) throws StandardException {
+                             SelectivityEstimator selectivityEstimator) throws StandardException {
         if(outerCost.isUninitialized() ||(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0)){
             /*
              * Derby calls this method at the end of each table scan, even if it's not a join (or if it's
@@ -64,7 +67,7 @@ public class V1NestedLoopJoinCostEstimationModel implements StrategyJoinCostEsti
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerParallelTask(joinCost);
         innerCost.setSingleScanRowCount(innerCost.getEstimatedRowCount());
-        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer);
+        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionPerParallelTask(innerCost, outerCost, optimizer);
         innerCost.setRemoteCost(remoteCostPerPartition);
         innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
     }

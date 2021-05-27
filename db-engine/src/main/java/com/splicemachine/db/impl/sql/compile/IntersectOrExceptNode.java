@@ -257,7 +257,9 @@ public class IntersectOrExceptNode extends SetOperatorNode
                               getRowCountEstimate( leftCostEstimate.rowCount(),
                                                    rightCostEstimate.rowCount()),
                               getSingleScanRowCountEstimate( leftCostEstimate.singleScanRowCount(),
-                                                             rightCostEstimate.singleScanRowCount()));
+                                                             rightCostEstimate.singleScanRowCount()),
+                              getRawRowCountEstimate(leftCostEstimate.getRawRowCount(),
+                                                     rightCostEstimate.getRawRowCount()));
 
         return costEstimate;
     } // End of estimateCost
@@ -436,8 +438,8 @@ public class IntersectOrExceptNode extends SetOperatorNode
         finalCostEstimate.setCost(
             leftCE.getEstimatedCost() + rightCE.getEstimatedCost(),
             getRowCountEstimate(leftCE.rowCount(), rightCE.rowCount()),
-            getSingleScanRowCountEstimate(leftCE.singleScanRowCount(),
-                rightCE.singleScanRowCount()));
+            getSingleScanRowCountEstimate(leftCE.singleScanRowCount(), rightCE.singleScanRowCount()),
+            getRawRowCountEstimate(leftCE.getRawRowCount(), rightCE.getRawRowCount()));
 
         return finalCostEstimate;
     }
@@ -480,6 +482,10 @@ public class IntersectOrExceptNode extends SetOperatorNode
     double getSingleScanRowCountEstimate( double leftSingleScanRowCount, double rightSingleScanRowCount)
     {
         return getRowCountEstimate( leftSingleScanRowCount, rightSingleScanRowCount);
+    }
+
+    double getRawRowCountEstimate(double leftRawRowCount, double rightRawRowCount) {
+        return getRowCountEstimate(leftRawRowCount, rightRawRowCount);
     }
 
 

@@ -64,4 +64,6 @@ public interface CostModel {
                                               boolean forUpdate,
                                               boolean isOlap,
                                               HashSet<Integer> usedNoStatsColumnIds) throws StandardException;
+
+    String toString();
 }

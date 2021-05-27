@@ -3696,9 +3696,9 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         }
         if (cardinality > costEstimate.rowCount()) // Cannot create more rows than you have...
             return;
-        costEstimate.setRowCount((double) cardinality);
-        costEstimate.setSingleScanRowCount((double) cardinality);
-        // TODO JL
+        costEstimate.setRowCount(cardinality);
+        costEstimate.setSingleScanRowCount(cardinality);
+        costEstimate.setRawRowCount(cardinality);
     }
 
     /**

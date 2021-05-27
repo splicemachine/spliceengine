@@ -33,11 +33,11 @@ package com.splicemachine.db.iapi.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
+import com.splicemachine.db.iapi.sql.compile.costing.SelectivityEstimator;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 import com.splicemachine.db.iapi.util.JBitSet;
-import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
 
 /**
  * OptimizablePredicate provides services for optimizing predicates in a query.
@@ -163,15 +163,20 @@ public interface OptimizablePredicate
      *
      * Join Selectivity calculation for an optimizable predicate.
      *
-     * @param table
-     * @param cd
-     * @param innerRowCount
-     * @param outerRowCount
-     * @param selectivityJoinType
-     * @return
+     *
+	 * @param selectivityEstimator
+	 * @param table
+	 * @param cd
+	 * @param innerRowCount
+	 * @param outerRowCount
+	 * @param selectivityJoinType
+	 * @return
      * @throws StandardException
      */
-	double joinSelectivity(Optimizable table,ConglomerateDescriptor cd, long innerRowCount, long outerRowCount, SelectivityUtil.SelectivityJoinType selectivityJoinType) throws StandardException;
+	double joinSelectivity(SelectivityEstimator selectivityEstimator,
+						   Optimizable table, ConglomerateDescriptor cd,
+						   long innerRowCount, long outerRowCount,
+						   SelectivityEstimator.SelectivityJoinType selectivityJoinType) throws StandardException;
 
 	double scanSelectivity(Optimizable innerTable) throws StandardException;
 	/**

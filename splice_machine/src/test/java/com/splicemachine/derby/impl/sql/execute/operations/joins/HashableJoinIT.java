@@ -84,6 +84,12 @@ public class HashableJoinIT extends SpliceUnitTest {
         createData(classWatcher.getOrCreateConnection(), schemaWatcher.toString());
     }
 
+    protected void rowContainsQuery(int[] levels, String query, String costModelVersion, SpliceWatcher methodWatcher, String... contains) throws Exception {
+        methodWatcher.execute(format("set session_property costModel='%s'", costModelVersion));
+        rowContainsQuery(levels, query, methodWatcher, contains);
+        methodWatcher.execute(format("set session_property costModel='%s'", CM_V1));
+    }
+
     @Test
     public void testInfeasibleHashableJoin() throws Exception {
         String sqlText = String.format("select D.c1, D.c2, G.c2 from D, G --splice-properties useSpark=%b\n " +
@@ -93,7 +99,8 @@ public class HashableJoinIT extends SpliceUnitTest {
                 "                    and L.c2 = D.c2" +
                 "                    and L.e = 'X'))", useSpark);
 
-        rowContainsQuery(new int[]{4, 6}, "explain " + sqlText, methodWatcher, "Subquery", useSpark ? "BroadcastJoin" : "NestedLoopJoin");
+        rowContainsQuery(new int[]{4, 6}, "explain " + sqlText, CM_V1, methodWatcher, "Subquery", useSpark ? "BroadcastJoin" : "NestedLoopJoin");
+        rowContainsQuery(new int[]{4, 6}, "explain " + sqlText, CM_V2, methodWatcher, "Subquery", "NestedLoopJoin");
 
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             assertFalse(rs.next());

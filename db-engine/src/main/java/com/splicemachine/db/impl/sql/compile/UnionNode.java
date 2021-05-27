@@ -295,14 +295,16 @@ public class UnionNode extends SetOperatorNode{
             localCost = Math.max(leftCost.localCost(),rightCost.localCost());
             remoteCost = Math.max(leftCost.remoteCost(),rightCost.remoteCost());
         }
-        double outputRows = leftCost.rowCount()+rightCost.rowCount();
-        double heapSize = leftCost.getEstimatedHeapSize()+rightCost.getEstimatedHeapSize();
+        double outputRows = leftCost.rowCount() + rightCost.rowCount();
+        double rawOutputRows = leftCost.getRawRowCount() + rightCost.getRawRowCount();
+        double heapSize = leftCost.getEstimatedHeapSize() + rightCost.getEstimatedHeapSize();
         int partitions = leftCost.partitionCount() + rightCost.partitionCount();
 
 
         costEstimate.setLocalCost(localCost);
         costEstimate.setRemoteCost(remoteCost);
         costEstimate.setRowCount(outputRows);
+        costEstimate.setRawRowCount(rawOutputRows);
         costEstimate.setEstimatedHeapSize((long)heapSize);
         costEstimate.setNumPartitions(partitions);
         costEstimate.setParallelism(Math.max(leftCost.getParallelism(), rightCost.getParallelism()));
@@ -707,7 +709,8 @@ public class UnionNode extends SetOperatorNode{
 
         finalCostEstimate=getNewCostEstimate();
         finalCostEstimate.setCost(leftCE.getEstimatedCost(), leftCE.rowCount(),
-                leftCE.singleScanRowCount()+ rightCE.singleScanRowCount());
+                                  leftCE.singleScanRowCount()+ rightCE.singleScanRowCount(),
+                                  leftCE.getRawRowCount() + rightCE.getRawRowCount());
 
         finalCostEstimate.add(rightCE,finalCostEstimate);
         return finalCostEstimate;

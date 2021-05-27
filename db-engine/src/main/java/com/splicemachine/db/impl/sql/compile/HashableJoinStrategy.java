@@ -561,10 +561,10 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
      *
      * @exception StandardException		Thrown on error
      */
-    public int[] findHashKeyColumns(Optimizable innerTable,
-                                    ConglomerateDescriptor cd,
-                                    OptimizablePredicateList predList,
-                                    JBitSet joinedTableSet) throws StandardException {
+    public static int[] findHashKeyColumns(Optimizable innerTable,
+                                           ConglomerateDescriptor cd,
+                                           OptimizablePredicateList predList,
+                                           JBitSet joinedTableSet) throws StandardException {
         if (predList == null)
             return (int[]) null;
 

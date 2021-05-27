@@ -230,12 +230,22 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             ** looked at the strategy, so go back to null.
             */
             if(ap.getJoinStrategy()!=null){
-                ap.setJoinStrategy(null);
-
-                found=false;
+                if (ap.getJoinStrategy().getJoinStrategyType() == JoinStrategy.JoinStrategyType.CARDINALITY_ESTIMATOR) {
+                    ap.setJoinStrategy(optimizer.getJoinStrategy(userSpecifiedJoinStrategy));
+                    ap.setHintedJoinStrategy(true);
+                    found = true;
+                } else {
+                    ap.setJoinStrategy(null);
+                    found = false;
+                }
             }else{
-                ap.setJoinStrategy(optimizer.getJoinStrategy(userSpecifiedJoinStrategy));
-                ap.setHintedJoinStrategy(true);
+                JoinStrategy js = optimizer.getJoinStrategy(userSpecifiedJoinStrategy);
+                if (js != null && js.getJoinStrategyType() == JoinStrategy.JoinStrategyType.NESTED_LOOP) {
+                    ap.setJoinStrategy(optimizer.getJoinStrategy("CardinalityEstimator"));
+                } else {
+                    ap.setJoinStrategy(js);
+                    ap.setHintedJoinStrategy(true);
+                }
 
                 if(ap.getJoinStrategy()==null){
                     throw StandardException.newException(SQLState.LANG_INVALID_JOIN_STRATEGY,
@@ -260,7 +270,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             // but a single-table scan, so only consider nested loop
             // join in that case (which is what ends up getting
             // picked for single-table scan anyways).
-            if (joinStrategyNumber == 0 || !isSingleTableScan(optimizer)) {
+            if (joinStrategyNumber == 0 || joinStrategyNumber == 1 || !isSingleTableScan(optimizer)) {
 
                 /* Step through the join strategies. */
                 ap.setJoinStrategy(optimizer.getJoinStrategy(joinStrategyNumber));
@@ -629,12 +639,12 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         CostEstimate ce=getBestAccessPath().getCostEstimate();
 
         if(ce!=null)
-            ce.setCost(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
+            ce.setCost(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
 
         ce=getBestSortAvoidancePath().getCostEstimate();
 
         if(ce!=null)
-            ce.setCost(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
+            ce.setCost(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
 
         if(!canBeOrdered())
             rowOrdering.addUnorderedOptimizable(this);
