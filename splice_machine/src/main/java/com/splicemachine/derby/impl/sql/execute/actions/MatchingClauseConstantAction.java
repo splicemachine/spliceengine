@@ -64,6 +64,7 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
     private transient TemporaryRowHolderImpl _thenRows;
     private transient ResultSet _actionRS;
 
+    public  MatchingClauseConstantAction() {}
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
