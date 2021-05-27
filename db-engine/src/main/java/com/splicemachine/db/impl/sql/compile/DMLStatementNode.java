@@ -278,9 +278,7 @@ public abstract class DMLStatementNode extends StatementNode {
         CollectNodesVisitor cnv = new CollectNodesVisitor(FromTable.class);
         resultSet.accept(cnv);
         for (Object obj : cnv.getList()) {
-            if (obj instanceof FromBaseTable) {
-                ((FromBaseTable) obj).determineSpark();
-            }
+            ((FromTable) obj).determineSpark();
             type = type.combine(((FromTable) obj).getDataSetProcessorType());
             sparkExecType = sparkExecType.combine(((FromTable) obj).getSparkExecutionType());
         }

@@ -4715,32 +4715,6 @@ public class FromBaseTable extends FromTable {
                 super.toHTMLString();
     }
 
-    public void determineSpark() {
-        setDataSetProcessorType(getDataSetProcessorTypeForAccessPath(getTrulyTheBestAccessPath()));
-    }
-
-    /**
-     * Return the data set processor type for a given access path.
-     *
-     * @param accessPath the access path
-     */
-    public DataSetProcessorType getDataSetProcessorTypeForAccessPath(AccessPath accessPath) {
-        if (! dataSetProcessorType.isDefaultOltp()) {
-            // No need to assess cost
-            return dataSetProcessorType;
-        }
-        long sparkRowThreshold = getLanguageConnectionContext().getOptimizerFactory().getDetermineSparkRowThreshold();
-        // we need to check not only the number of row scanned, but also the number of output rows for the
-        // join result
-        assert dataSetProcessorType.isDefaultOltp();
-        if (accessPath != null &&
-                (accessPath.getCostEstimate().getScannedBaseTableRows() > sparkRowThreshold ||
-                 accessPath.getCostEstimate().getEstimatedRowCount() > sparkRowThreshold)) {
-                return DataSetProcessorType.COST_SUGGESTED_OLAP;
-        }
-        return dataSetProcessorType;
-    }
-
     private boolean hasConstantPredicate(int tableNum, int colNum, OptimizablePredicateList predList) {
         if (predList instanceof PredicateList)
             return ((PredicateList)predList).constantColumn(tableNum, colNum);
