@@ -383,7 +383,7 @@ public class SpliceTableAdmin {
 
     private static long countTable(String schema, String table, String index) throws SQLException {
         String sql = String.format(
-                "select count(*) from %s.%s --splice-properties index=%s", schema, table, index==null?"null":index);
+                "select count(*) from \"%s\".\"%s\" --splice-properties index=%s", schema, table, index==null?"null":index);
         Connection connection = SpliceAdmin.getDefaultConn();
         try(PreparedStatement ps = connection.prepareStatement(sql);
                 ResultSet rs = ps.executeQuery()) {
