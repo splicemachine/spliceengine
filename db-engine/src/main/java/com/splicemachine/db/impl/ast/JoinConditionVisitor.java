@@ -493,11 +493,8 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
 
             ColumnReference generatedRef = new ColumnReference(resultColumn.getName(),
                     null, ContextService.getService().getCurrentContextManager());
-            VirtualColumnNode vnode = (VirtualColumnNode) nodeFactory.getNode(C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                    resultSetNode, // source result set.
-                    resultColumn,
-                    resultSetNode.getResultColumns().size(),
-                    ContextService.getService().getCurrentContextManager());
+            VirtualColumnNode vnode = new VirtualColumnNode(resultSetNode, // source result set.
+                    resultColumn, resultSetNode.getResultColumns().size(), ContextService.getService().getCurrentContextManager());
 
             resultColumn = new ResultColumn(resultColumn.getName(), vnode, ContextService.getService().getCurrentContextManager());
             resultColumn.markGenerated();

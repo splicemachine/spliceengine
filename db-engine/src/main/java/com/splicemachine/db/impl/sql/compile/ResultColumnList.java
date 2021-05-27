@@ -1675,12 +1675,8 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             /* dts = resultColumn.getExpression().getTypeServices(); */
 
             /* Vectors are 0-based, VirtualColumnIds are 1-based */
-            resultColumn.expression=(ValueNode)getNodeFactory().getNode(
-                    C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                    sourceResultSet,
-                    sourceResultColumnList.elementAt(index),
-                    ReuseFactory.getInteger(index+1),
-                    getContextManager());
+            resultColumn.expression = new VirtualColumnNode(sourceResultSet, sourceResultColumnList.elementAt(index),
+                    index+1, getContextManager());
 
             /* Mark the ResultColumn as being referenced */
             if(markReferenced){
