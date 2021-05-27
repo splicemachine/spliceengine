@@ -36,6 +36,7 @@ import java.util.concurrent.ThreadFactory;
  * messages or paused consuming.
  */
 public class OlapStreamListener extends ChannelInboundHandlerAdapter implements Serializable {
+    private static final long serialVersionUID = 1l;
 
     private static final Logger LOG = Logger.getLogger(OlapStreamListener.class);
 
@@ -43,14 +44,14 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter implements 
     private UUID uuid;
     private String host;
     private int port;
-    private boolean clientConsuming;
+    volatile  private boolean clientConsuming;
 
     public OlapStreamListener(String host, int port, UUID uuid) {
         this.active = new CountDownLatch(1);
         this.host = host;
         this.port = port;
         this.uuid = uuid;
-        this.clientConsuming = false;
+        this.clientConsuming = true;
     }
 
     public boolean isClientConsuming() {
@@ -73,9 +74,8 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter implements 
             ChannelFuture futureConnect = bootstrap.connect(socketAddr).sync();
 
             active.await();
-            this.clientConsuming = true;
         } catch (Exception e) {
-
+            LOG.warn(String.format("Could not connect to StreamListener %s", uuid.toSting()));
         }
     }
 
@@ -109,6 +109,5 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter implements 
                 ", uuid=" + uuid.toString() +
                 ", clientConsuming=" + clientConsuming +
                 '}';
-
     }
 }
