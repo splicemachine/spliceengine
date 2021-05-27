@@ -44,7 +44,6 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.util.IdUtil;
-import com.splicemachine.db.impl.ast.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,7 +51,84 @@ import java.util.HashMap;
 import java.util.List;
 
 /**
- * This class represents a MERGE INTO statement.
+ * <p>
+ * A MergeNode represents a MERGE statement. The statement looks like
+ * this...
+ * </p>
+ *
+ * <pre>
+ * MERGE INTO targetTable
+ * USING sourceTable
+ * ON searchCondition
+ * matchingClause1 ... matchingClauseN
+ * </pre>
+ *
+ * <p>
+ * ...where each matching clause looks like this...
+ * </p>
+ *
+ * <pre>
+ * WHEN MATCHED [ AND matchingRefinement ] THEN DELETE
+ * </pre>
+ *
+ * <p>
+ * ...or
+ * </p>
+ *
+ * <pre>
+ * WHEN MATCHED [ AND matchingRefinement ] THEN UPDATE SET col1 = expr1, ... colM = exprM
+ * </pre>
+ *
+ * <p>
+ * ...or
+ * </p>
+ *
+ * <pre>
+ * WHEN NOT MATCHED [ AND matchingRefinement ] THEN INSERT columnList VALUES valueList
+ * </pre>
+ *
+ * <p>
+ * The Derby compiler essentially rewrites this statement into a driving left join
+ * followed by a series of DELETE/UPDATE/INSERT actions. The left join looks like
+ * this:
+ * </p>
+ *
+ * <pre>
+ * SELECT selectList FROM sourceTable LEFT OUTER JOIN targetTable ON searchCondition
+ * </pre>
+ *
+ * <p>
+ * The selectList of the driving left join consists of the following:
+ * </p>
+ *
+ * <ul>
+ * <li>All of the columns mentioned in the searchCondition.</li>
+ * <li>All of the columns mentioned in the matchingRefinement clauses.</li>
+ * <li>All of the columns mentioned in the SET clauses and the INSERT columnLists and valueLists.</li>
+ * <li>All additional columns needed for the triggers and foreign keys fired by the DeleteResultSets
+ * and UpdateResultSets constructed for the WHEN MATCHED clauses.</li>
+ * <li>All additional columns needed to build index rows and evaluate generated columns
+ * needed by the UpdateResultSets constructed for the WHEN MATCHED...THEN UPDATE clauses.</li>
+ * <li>A trailing targetTable.RowLocation column.</li>
+ * </ul>
+ *
+ * <p>
+ * The matchingRefinement expressions are bound and generated against the
+ * FromList of the driving left join. Dummy DeleteNode, UpdateNode, and InsertNode
+ * statements are independently constructed in order to bind and generate the DELETE/UPDATE/INSERT
+ * actions.
+ * </p>
+ *
+ * <p>
+ * At execution time, the targetTable.RowLocation column is used to determine
+ * whether a given driving row matches. The row matches iff targetTable.RowLocation is not null.
+ * The driving row is then assigned to the
+ * first DELETE/UPDATE/INSERT action to which it applies. The relevant columns from
+ * the driving row are extracted and buffered in a temporary table specific to that
+ * DELETE/UPDATE/INSERT action. After the driving left join has been processed,
+ * the DELETE/UPDATE/INSERT actions are run in order, each taking its corresponding
+ * temporary table as its source ResultSet.
+ * </p>
  */
 public class MergeNode extends DMLStatementNode
 {
@@ -84,9 +160,7 @@ public class MergeNode extends DMLStatementNode
     //
     // Filled in at bind() time.
     //
-    private ResultColumnList    _selectList;
     private FromList                _leftJoinFromList;
-    private HalfOuterJoinNode   _hojn;
 
     //
     // Filled in at generate() time.
@@ -629,7 +703,6 @@ public class MergeNode extends DMLStatementNode
         Node.append2(sb, "targetTable", "  ", _targetTable);
         Node.append2(sb, "sourceTable", "  ", _sourceTable);
         Node.append2(sb, "searchCondition", "  ", _searchCondition);
-        ((BinaryRelationalOperatorNode)_searchCondition).toString();
         sb.append("  matchingClauses\n");
         Node.printList(sb, _matchingClauses, "  ");
         return sb.toString();
