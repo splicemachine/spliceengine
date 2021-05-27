@@ -75,7 +75,7 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter implements 
 
             active.await();
         } catch (Exception e) {
-            LOG.warn(String.format("Could not connect to StreamListener %s", uuid.toSting()));
+            LOG.warn(String.format("Could not connect to StreamListener %s", uuid.toString()));
         }
     }
 
