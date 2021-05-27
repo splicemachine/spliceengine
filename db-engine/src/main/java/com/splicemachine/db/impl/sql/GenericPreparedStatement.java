@@ -367,46 +367,53 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
 
             ResultSet resultSet = null;
             try {
-                resultSet = activation.execute();
+                try {
+                    resultSet = activation.execute();
 
-                resultSet.open();
-            } catch (StandardException se) {
+                    resultSet.open();
+                } catch (StandardException se) {
+                    if (resultSet != null) {
+                        resultSet.close();
+                    }
+                    /* Can't handle recompiling SPS action recompile here */
+                    if (!se.getMessageId().equals(SQLState.LANG_STATEMENT_NEEDS_RECOMPILE) || spsAction) {
+                        if (se instanceof ResubmitDistributedException)
+                            statementContext.cleanupOnError(se);
+                        throw se;
+                    }
+                    statementContext.cleanupOnError(se);
+                    continue;
+
+                }
+
+
+                if (needToClearSavePoint) {
+                    /* We're done with our updates */
+                    statementContext.clearSavePoint();
+                }
+
+                lccToUse.popStatementContext(statementContext, null);
+
+                if (activation.isSingleExecution()) {
+
+                    // if the result set is 'done', i.e. not openable,
+                    // then we can also release the activation.
+                    // Note that a result set with output parameters
+                    // or rows to return is explicitly finished
+                    // by the user.
+                    if (resultSet.isClosed())
+                        activation.close();
+                    else
+                        resultSet.registerCloseable(activation);
+                }
+
+                return resultSet;
+            } catch (Throwable t) {
                 if (resultSet != null) {
                     resultSet.close();
                 }
-                /* Can't handle recompiling SPS action recompile here */
-                if (!se.getMessageId().equals(SQLState.LANG_STATEMENT_NEEDS_RECOMPILE) || spsAction) {
-                    if (se instanceof ResubmitDistributedException)
-                        statementContext.cleanupOnError(se);
-                    throw se;
-                }
-                statementContext.cleanupOnError(se);
-                continue;
-
+                throw t;
             }
-
-
-            if (needToClearSavePoint) {
-                /* We're done with our updates */
-                statementContext.clearSavePoint();
-            }
-
-            lccToUse.popStatementContext(statementContext, null);
-
-            if (activation.isSingleExecution()) {
-
-                // if the result set is 'done', i.e. not openable,
-                // then we can also release the activation.
-                // Note that a result set with output parameters
-                // or rows to return is explicitly finished
-                // by the user.
-                if (resultSet.isClosed())
-                    activation.close();
-                else
-                    resultSet.registerCloseable(activation);
-            }
-
-            return resultSet;
 
         }
     }
