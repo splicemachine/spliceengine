@@ -223,7 +223,7 @@ public class SQLConfiguration implements ConfigurationDefault {
     private static final int DEFAULT_NESTEDLOOPJOIN_BATCH_SIZE = 25;
 
     public static final String CONTROL_EXECUTION_ROWS_LIMIT = "splice.controlExecution.rowsLimit";
-    private static final int DEFAULT_CONTROL_EXECUTION_ROWS_LIMIT = 10000000;
+    private static final int DEFAULT_CONTROL_EXECUTION_ROWS_LIMIT = 1000000;
 
     public static final String MAX_CHECK_TABLE_ERRORS="splice.max.checktable.error";
     private static final int DEFAULT_MAX_CHECK_TABLE_ERRORS = 1000;
