@@ -607,7 +607,7 @@ public class TruncateFunctionIT {
             fail("Expected exception.");
         } catch (Exception e) {
             Assert.assertEquals("Syntax error: Encountered \")\" at line 1, column 17.",
-                                e.getLocalizedMessage());
+                                e.getLocalizedMessage().split("\n")[0]);
         }
     }
 
@@ -620,7 +620,7 @@ public class TruncateFunctionIT {
             fail("Expected exception.");
         } catch (Exception e) {
             Assert.assertEquals("Syntax error: Encountered \"null\" at line 1, column 17.",
-                                e.getLocalizedMessage());
+                                e.getLocalizedMessage().split("\n")[0]);
         }
     }
 
