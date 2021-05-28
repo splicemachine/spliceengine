@@ -335,7 +335,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         Procedure getProgress = Procedure.newBuilder().name("SYSCS_GET_PROGRESS")
                 .numOutputParams(0)
                 .varchar("drdaTokenFilter",64)
-                .smallint("useDrdaToken")
+                .integer("useDrdaToken")
                 .numResultSets(1)
                 .ownerClass(SpliceAdmin.class.getCanonicalName())
                 .build();
@@ -347,7 +347,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         Procedure getProgressLocal = Procedure.newBuilder().name("SYSCS_GET_PROGRESS_LOCAL")
                 .numOutputParams(0)
                 .varchar("drdaTokenFilter",64)
-                .smallint("useDrdaToken")
+                .integer("useDrdaToken")
                 .numResultSets(1)
                 .ownerClass(SpliceAdmin.class.getCanonicalName())
                 .build();
