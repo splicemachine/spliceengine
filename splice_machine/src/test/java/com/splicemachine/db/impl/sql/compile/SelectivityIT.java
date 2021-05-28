@@ -23,6 +23,7 @@ import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.io.File;
 import java.sql.*;
 import java.util.Properties;
 
@@ -701,20 +702,22 @@ public class SelectivityIT extends SpliceUnitTest {
         /* column with extrapolation enabled, a5 is between [1,320] */
         /* value inside min-max range */
         double rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where a5=10", methodWatcher));
-        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 16, rowCount, 0.0);
+        /* accurate number is 16, but due to inaccuracy in stats, it could be somewhat off, but it should not be 1 */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount >=8);
         /* value outside min-max range */
         rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where a5=1000", methodWatcher));
-        /* use rpv, but rpv = 0 since all items are in NO_FALSE_POSITIVE class, noSkewCount == 0 */
-        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 1, rowCount, 0.0);
+        /* accurate number is 16, but due to inaccuracy in stats, it could be somewhat off, but it should not be 1 */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount >=8);
 
         /* column with extrapolation disabled a55 has the same value as a5 */
         /* value inside min-max range */
         rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where a55=10", methodWatcher));
-        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 16, rowCount, 0.0);
+        /* accurate number is 16, but due to inaccuracy in stats, it could be somewhat off, but it should not be 1 */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount >=8);
         /* value outside min-max range */
         rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where a55=1000", methodWatcher));
         /* estimation should be 1 */
-        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 1, rowCount, 0.0);
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount ==1);
     }
 
     @Test
@@ -722,20 +725,22 @@ public class SelectivityIT extends SpliceUnitTest {
         /* column with extrapolation enabled, c5 is between ['2018-01-01,2018-11-16] */
         /* value inside min-max range */
         double rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where c5='2018-01-30'", methodWatcher));
-        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 16, rowCount, 0.0);
+        /* accurate number is 16, but due to inaccuracy in stats, it could be somewhat off, but it should not be 1 */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount >=8);
         /* value outside min-max range */
         rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where c5='2019-01-01'", methodWatcher));
-        /* use rpv, but rpv = 0 since all items are in NO_FALSE_POSITIVE class, noSkewCount == 0 */
-        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 1, rowCount, 0.0);
+        /* accurate number is 16, but due to inaccuracy in stats, it could be somewhat off, but it should not be 1 */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount >=8);
 
         /* column with extrapolation disabled a55 has the same value as c55 */
         /* value inside min-max range */
         rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where c5='2018-01-30'", methodWatcher));
-        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 16, rowCount, 0.0);
+        /* accurate number is 16, but due to inaccuracy in stats, it could be somewhat off, but it should not be 1 */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount >=8);
         /* value outside min-max range */
         rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where c55='2019-01-01'", methodWatcher));
-        /* estimation should be 1 */
-        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 1, rowCount, 0.0);
+                /* estimation should be 1 */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount == 1);
     }
 
     @Test
@@ -743,11 +748,12 @@ public class SelectivityIT extends SpliceUnitTest {
         /* column with extrapolation enabled, d5 is between ['2018-01-01 09:45:00.0,2018-11-16 09:45:00.0] */
         /* value inside min-max range */
         double rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where d5='2018-01-30 09:45:00.0'", methodWatcher));
-        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 16, rowCount, 0.0);
+        /* accurate number is 16, but due to inaccuracy in stats, it could be somewhat off, but it should not be 1 */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount >=8);
         /* value outside min-max range */
         rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where d5='2019-01-01 09:45:00.0'", methodWatcher));
-        /* use rpv, but rpv = 0 since all items are in NO_FALSE_POSITIVE class, noSkewCount == 0 */
-        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 1, rowCount, 0.0);
+        /* accurate number is 16, but due to inaccuracy in stats, it could be somewhat off, but it should not be 1 */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount >=8);
     }
 
     @Test
@@ -825,16 +831,15 @@ public class SelectivityIT extends SpliceUnitTest {
     public void testInlistWithExtrapolation() throws Exception {
         /* element fall out of the min-max range */
         double rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where c5 in ('2017-12-01', '2017-12-02')", methodWatcher));
-        /* we use average rows per value (rpv) to extrapolate for each element in the inlist even if it falls out of the min-max range */
-        /* but rpv = 0 since all items are in NO_FALSE_POSITIVE class, noSkewCount == 0 */
-        Assert.assertEquals("Estimation wrong, actual rowCount="+rowCount, 1, rowCount, 0.0);
+        /* we use average rows per value to extrapolate for each element in the inlist even if it falls out of the min-max range */
+        Assert.assertEquals("Estimation wrong, actual rowCount="+rowCount, rowCount, 32, 16);
 
         /******************************************************************/
         /*compare to column c55 with same data but extrapolation disabled */
         /******************************************************************/
         rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where c55 in ('2017-12-01', '2017-12-02')", methodWatcher));
         /* no row will qualify with elements out side the min-max range */
-        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 1, rowCount, 0.0);
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount==1);
     }
 
     @Test
@@ -849,9 +854,8 @@ public class SelectivityIT extends SpliceUnitTest {
 
         /* element fall out of the min-max range */
         rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where a5 != 1000", methodWatcher));
-        /* with extrapolation, estimation should be less than the total rows if statistics are inaccurate */
-        /* but rpv = 0 since all items are in NO_FALSE_POSITIVE class, noSkewCount == 0 */
-        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 5120, rowCount, 0.0);
+        /* with extrapolation, estimation should be less than the total rows */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount<5120);
         /******************************************************************/
         /*compare to column a55 with same data but extrapolation disabled */
         /******************************************************************/
@@ -862,7 +866,7 @@ public class SelectivityIT extends SpliceUnitTest {
         /* element fall out of the min-max range */
         rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where a55 != 1000", methodWatcher));
         /* estimation should be the same as the total rows, as no rows should be excluded */
-        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 5120, rowCount, 0.0);
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount==5120);
     }
 
     @Test
