@@ -36,7 +36,11 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.sql.compile.FromBaseTable;
+import com.splicemachine.db.impl.sql.compile.PredicateList;
 import com.splicemachine.db.impl.sql.compile.ValueNode;
+
+import java.util.List;
 
 /**
  * OptimizablePredicateList provides services for optimizing a table in a query.
@@ -388,4 +392,16 @@ public interface OptimizablePredicateList {
 	 * @return
 	 */
 	void countScanFlags();
+
+	/**
+	 *
+	 * Test if this predicate list contains a potential unioned index scans access path,
+	 * and return the predicate which enables that access path.
+	 * If accessPath is non-null, only test the index or primary key conglomerate specified
+	 * in the accessPath, otherwise test each conglomerate defined for the base table.
+	 *
+	 * @return The predicate which enables unioned index scans access path.
+	 */
+	OptimizablePredicate getUsefulPredicateForUnionedIndexScan(FromBaseTable optTable, AccessPath accessPath, Optimizer optimizer) throws StandardException;
+
 }

@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.sql.LanguageFactory;
 import com.splicemachine.db.iapi.sql.ParameterValueSet;
 import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
@@ -1538,6 +1539,8 @@ public interface LanguageConnectionContext extends Context {
 
     boolean favorIndexPrefixIteration();
 
+    CostModel getCostModel();
+
     void setupLocalSPSCache(boolean fromSparkExecution,
                             SPSDescriptor fromTableDmlSpsDescriptor) throws StandardException;
 
@@ -1573,4 +1576,10 @@ public interface LanguageConnectionContext extends Context {
      * @note this method has side effects.
      */
     PreparedStatement lookupStatement(GenericStatement statement) throws StandardException;
+
+    /**
+     * Get value of session-hinted joinStrategy
+     * @return value of joinStrategy
+     */
+    String getHintedJoinStrategy();
 }

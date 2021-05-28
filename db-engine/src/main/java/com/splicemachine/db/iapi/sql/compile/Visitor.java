@@ -123,4 +123,13 @@ public interface Visitor
 	 * in case this is an ASTVisitor.
 	 */
 	default ISpliceVisitor getBaseVisitor() { return null; }
+
+	/**
+	 * After visiting a given node, a different node may be returned.
+	 * If walkChildrenOfNewParent returns true, the children of that
+	 * new parent will be visited instead of the children of the
+	 * original parent.  Default is to visit the original parent's
+	 * children.
+	 */
+	default boolean visitChildrenOfNewParent() { return false; }
 }	

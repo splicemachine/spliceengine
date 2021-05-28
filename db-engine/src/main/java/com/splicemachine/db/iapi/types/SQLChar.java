@@ -2931,8 +2931,6 @@ public class SQLChar extends DataType implements StringDataValue, StreamStorable
     }
 
     /**
-     * This function public for testing purposes.
-     *
      * @param trimType  Type of trim (LEADING, TRAILING, or BOTH)
      * @param trimChar  Character to trim
      * @param source    String from which to trim trimChar

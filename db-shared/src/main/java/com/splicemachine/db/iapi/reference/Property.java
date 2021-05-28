@@ -32,23 +32,21 @@
 package com.splicemachine.db.iapi.reference;
 
 /**
- List of all properties understood by the system. It also has some other static fields.
-
-
- <P>
- This class exists for two reasons
- <Ol>
- <LI> To act as the internal documentation for the properties.
- <LI> To remove the need to declare a java static field for the property
- name in the protocol/implementation class. This reduces the footprint as
- the string is final and thus can be included simply as a String constant pool entry.
- </OL>
- <P>
- This class should not be shipped with the product.
-
- <P>
- This class has no methods, all it contains are String's which by
- are public, static and final since they are declared in an interface.
+ * (DEPRECATED, please add new options / migrate old to com.splicemachine.db.iapi.reference.GlobalDBProperties)
+ *
+ * List of all properties understood by the system (setable with SYSCS_SET_GLOBAL_DATABASE_PROPERTY).
+ * Other static fields should go to PropertyHelper.
+ *
+ * This class exists for two reasons
+ * - To act as the internal documentation for the properties.
+ * - To remove the need to declare a java static field for the property
+ *   name in the protocol/implementation class. This reduces the footprint as
+ *   the string is final and thus can be included simply as a String constant pool entry.
+ *
+ * This class should not be shipped with the product.
+ *
+ * This class has no methods, all it contains are String's which by
+ * are public, static and final since they are declared in an interface.
  */
 
 public interface Property {
@@ -1083,6 +1081,9 @@ public interface Property {
     String DISABLE_PREDICATE_SIMPLIFICATION =
             "derby.database.disablePredicateSimplification";
 
+    String DISABLE_CONSTANT_FOLDING =
+            "splice.database.disableConstantFolding";
+
     String BULK_IMPORT_SAMPLE_FRACTION = "splice.bulkImport.sample.fraction";
 
     /**
@@ -1146,20 +1147,9 @@ public interface Property {
     String SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS =
             "splice.execution.allowOverflowSensitiveNativeSparkExpressions";
 
-    /**
-     * Fractional seconds precision of current_timestamp.
-     */
-    String SPLICE_CURRENT_TIMESTAMP_PRECISION = "splice.function.currentTimestampPrecision";
-
-    /**
-     * Fractional seconds precision of timestamp.
-     */
-    String SPLICE_TIMESTAMP_FORMAT = "splice.function.timestampFormat";
-
     String SPLICE_SECOND_FUNCTION_COMPATIBILITY_MODE = "splice.function.secondCompatibilityMode";
 
-    String FLOATING_POINT_NOTATION = "splice.function.floatingPointNotation";
-    String PRESERVE_LINE_ENDINGS = "splice.function.preserveLineEndings";
+    String COUNT_RETURN_TYPE = "splice.bind.countReturnType";
 
     String CURSOR_UNTYPED_EXPRESSION_TYPE = "splice.bind.cursorUntypedExpressionType";
 
@@ -1190,6 +1180,11 @@ public interface Property {
      * True hints native spark execution for this session; false hints non native spark execution for this connection
      */
     String CONNECTION_USE_NATIVE_SPARK = "useNativeSpark";
+
+    /**
+     * Hint join strategy at the session level.
+     */
+    String CONNECTION_JOIN_STRATEGY = "joinStrategy";
 
     /**
      * True ignores statistics for this connection
@@ -1237,22 +1232,6 @@ public interface Property {
 
     String CONNECTION_DISABLE_NLJ_PREDICATE_PUSH_DOWN = "disableNLJPredicatePushDown";
 
-    String SPLICE_DB2_ERROR_COMPATIBLE = "splice.db2.error.compatible";
-
-    String SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE = "splice.db2.import.empty_string_compatible";
-
-    String SPLICE_DB2_VARCHAR_COMPATIBLE = "splice.db2.varchar.compatible";
-
-    String SPLICE_NEW_MERGE_JOIN =
-            "splice.execution.newMergeJoin";
-
-    /**
-     * If enabled, disable calculation of join costs as cost per parallel task
-     * and revert to using the old units: cost per partition (cost per region).
-     */
-    String DISABLE_PARALLEL_TASKS_JOIN_COSTING =
-            "splice.optimizer.disablePerParallelTaskJoinCosting";
-
     /**
      * If true, causes evaluation of all predicates via a ProjectRestrict node.
      * In other words, all scans of a primary key or index will scan all rows.
@@ -1286,6 +1265,29 @@ public interface Property {
 
     String ENTERPRISE_ENABLE = "splicemachine.enterprise.enable";
 
-    String SPLICE_OLAP_PARALLEL_PARTITIONS = "splice.olapParallelPartitions";
+    String COST_MODEL = "costModel";
+
+    /**
+     * The maximum number of predicates the optimizer is allowed to derive in
+     * DNF to CNF predicate expansion.
+     * Default value is 100.  The maximum value for this parameter is 10000.
+     */
+    String MAX_DERIVED_CNF_PREDICATES =
+            "splice.optimizer.maxDerivedCNFPredicates";
+
+    /**
+     * If true, disable Unioned Index Scans access paths.
+     * The default value is false.
+     */
+    String DISABLE_UNIONED_INDEX_SCANS =
+            "splice.optimizer.disableUnionedIndexScans";
+
+    /**
+     * If true, favor Unioned Index Scans access paths by making the
+     * estimated cost artificially low.
+     * The default values is false.
+     */
+    String FAVOR_UNIONED_INDEX_SCANS =
+            "splice.optimizer.favorUnionedIndexScans";
 }
 

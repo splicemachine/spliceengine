@@ -297,4 +297,34 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
         }
     }
 
+
+    @Test
+    public void testDB12106() throws Exception {
+        methodWatcher.execute("create table tt0(c0 boolean, c1 timestamp)");
+        methodWatcher.execute("create table tt2(c0 timestamp not null)");
+        methodWatcher.execute("insert into tt0(c0) values (false)");
+        methodWatcher.execute("INSERT INTO Tt0(C0, C1) VALUES (TRUE, '1970-01-13 04:08:02'), (TRUE, '1969-12-12 03:20:09')");
+        methodWatcher.execute("INSERT INTO Tt0(C1) VALUES ('1969-12-12 03:20:09')");
+        methodWatcher.execute("INSERT INTO Tt0(C1) VALUES ('1970-01-13 08:53:47')");
+
+        testQuery("SELECT MAX(agg0) " +
+                        "FROM (SELECT MAX(Tt2.C0)  as agg0 FROM Tt0 LEFT OUTER JOIN Tt2 ON ((Tt0.C1)!=(Tt2.C0)) " +
+                        "WHERE Tt0.C0 " +
+                        "UNION ALL " +
+                        "SELECT MAX(Tt2.C0)  as agg0 " +
+                        "FROM Tt0 LEFT OUTER JOIN Tt2 ON ((Tt0.C1)!=(Tt2.C0)) " +
+                        "WHERE NOT (Tt0.C0) " +
+                        "UNION ALL " +
+                        "SELECT MAX(Tt2.C0)  as agg0 " +
+                        "FROM Tt0 LEFT OUTER JOIN Tt2 ON ((Tt0.C1)!=(Tt2.C0)) " +
+                        "WHERE (Tt0.C0) IS NULL) as asdf",
+                "1  |\n" +
+                        "------\n" +
+                        "NULL |",
+                methodWatcher);
+
+        methodWatcher.execute("drop table tt0");
+        methodWatcher.execute("drop table tt2");
+    }
+
 }

@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.compile;
 
 import java.util.List;
 
+import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -157,6 +158,8 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
     private final long maxTimeout;
     private final boolean isMemPlatform;
 
+    private final CostModel costModel;
+
     public SpliceLevel2OptimizerImpl(OptimizableList optimizableList,
                                      OptimizablePredicateList predicateList,
                                      DataDictionary dDictionary,
@@ -168,23 +171,25 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
                                      int tableLockThreshold,
                                      RequiredRowOrdering requiredRowOrdering,
                                      int numTablesInQuery,
-                                     LanguageConnectionContext lcc) throws StandardException{
+                                     LanguageConnectionContext lcc,
+                                     CostModel costModel) throws StandardException{
         super(optimizableList,
-                predicateList,
-                dDictionary,
-                ruleBasedOptimization,
-                noTimeout,
-                useStatistics,
-                maxMemoryPerTable,
-                joinStrategies,
-                tableLockThreshold,
-                requiredRowOrdering,
-                numTablesInQuery,
-                lcc);
+              predicateList,
+              dDictionary,
+              ruleBasedOptimization,
+              noTimeout,
+              useStatistics,
+              maxMemoryPerTable,
+              joinStrategies,
+              tableLockThreshold,
+              requiredRowOrdering,
+              numTablesInQuery,
+              lcc, costModel);
         SConfiguration configuration=EngineDriver.driver().getConfiguration();
         this.minTimeout=configuration.getOptimizerPlanMinimumTimeout();
         this.maxTimeout=configuration.getOptimizerPlanMaximumTimeout();
         isMemPlatform = EngineDriver.isMemPlatform();
+        this.costModel = costModel;
         tracer().trace(OptimizerFlag.STARTED,0,0,0.0,null);
     }
 
@@ -244,4 +249,9 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
 
     @Override
     public boolean isMemPlatform() { return isMemPlatform; };
+
+    @Override
+    public CostModel getCostModel() {
+        return costModel;
+    }
 }

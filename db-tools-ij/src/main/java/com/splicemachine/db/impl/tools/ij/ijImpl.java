@@ -40,16 +40,22 @@ public class ijImpl extends ijCommands {
     Statement currentStatement = null;
     Object currentStatementLock = new Object();
 
-    public void cancelCurrentStatement(LocalizedOutput out) {
+    public boolean
+    cancelCurrentStatement(LocalizedOutput out) {
         synchronized (currentStatementLock) {
             try {
                 if(currentStatement != null)
                 {
                     out.println("\nCTRL+C -> Canceling Statement...\n");
                     currentStatement.cancel();
+                    return true;
+                }
+                else {
+                    return false;
                 }
             } catch (Exception e) {
                 out.println("Error Canceling Statement: " + e.toString());
+                return false;
             }
         }
     }

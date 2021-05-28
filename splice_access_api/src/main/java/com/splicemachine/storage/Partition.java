@@ -100,10 +100,11 @@ public interface Partition extends AutoCloseable{
      * @param previous a holder object to save storage. If {@code null} is passed in, then a new RowResult
      *                 is created. Otherwise, the previous value is used. This allows us to save on object creation
      *                 when we wish to fetch a lot of these at the same time
+     * @param obj A ConflictRollForward object to pass in active transaction cache and fetch rolled back cells
      * @return a DataResult containing the latest value of all present cells for the specified key.
      * @throws IOException if something goes wrong
      */
-    DataResult getLatest(byte[] key,DataResult previous) throws IOException;
+    DataResult getLatest(byte[] key,DataResult previous, Object obj) throws IOException;
 
     Lock getRowLock(byte[] key,int keyOff,int keyLen) throws IOException;
 

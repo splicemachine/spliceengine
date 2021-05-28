@@ -30,6 +30,10 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -221,6 +225,22 @@ public class StatisticsProceduresIT extends SpliceUnitTest {
         new TableCreator(conn4)
                 .withCreate("create table t7 (a int, b int)")
                 .withInsert("insert into t7 values (?,?)")
+                .withRows(rows(
+                        row(2,2),
+                        row(3,3),
+                        row(4,4),
+                        row(5,5),
+                        row(6,6),
+                        row(7,7),
+                        row(8,8),
+                        row(9,9),
+                        row(10,10)))
+                .create();
+
+        new TableCreator(conn4)
+                .withCreate("create table t8 (a int default 0, b int)")
+                .withIndex("create index idx_t8 on t8 (a)")
+                .withInsert("insert into t8 values (?,?)")
                 .withRows(rows(
                         row(2,2),
                         row(3,3),
@@ -1208,6 +1228,19 @@ public class StatisticsProceduresIT extends SpliceUnitTest {
 
         /* step 6: clean up */
         methodWatcher4.execute("drop table TAB_TO_SPLIT");
+    }
+
+    @Test
+    public void testParameterizedPredicateOnFakeColumnStats() throws Exception {
+        methodWatcher4.execute(format("call syscs_util.fake_table_statistics('%s', 'T8', 10000, 100, 4)", SCHEMA4));
+        methodWatcher4.execute(format("call syscs_util.fake_column_statistics('%s', 'T8', '%s', 0, 10)", SCHEMA4, "A"));
+
+
+        List<String> containedStrings = Arrays.asList("scannedRows=10,outputRows=10");
+        List<String> notContainedStrings = Collections.emptyList();
+        List<Integer> paramList = Arrays.asList(2);
+
+        testParameterizedExplainContains(format("select a from %s.T8 where a = ?", SCHEMA4), methodWatcher4, containedStrings, notContainedStrings, paramList);
     }
 
     @Test

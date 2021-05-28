@@ -18,13 +18,17 @@ import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
+import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SliceIterator;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -151,11 +155,18 @@ public class WritableTxn extends AbstractTxn{
                     case ROLLEDBACK:
                         throw exceptionFactory.cannotCommit(txnId, state);
                     case ACTIVE:
-                        if (ROOT_TRANSACTION.equals(parentTxn)) {
-                            tc.unregisterActiveTransaction(getBeginTimestamp());
+                        try {
+                            commitTimestamp = tc.commit(txnId);
+                            state = State.COMMITTED;
+                        } finally {
+                            if (ROOT_TRANSACTION.equals(parentTxn)) {
+                                tc.unregisterActiveTransaction(getBeginTimestamp());
+                                SIDriver driver = SIDriver.driver();
+                                if (state == State.COMMITTED && driver != null) {
+                                    cacheCommittedStatus(driver.getTxnSupplier());
+                                }
+                            }
                         }
-                        commitTimestamp = tc.commit(txnId);
-                        state = State.COMMITTED;
                 }
             }
         } else {
@@ -163,6 +174,23 @@ public class WritableTxn extends AbstractTxn{
         }
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"After commit: txn=%s,commitTimestamp=%s",this,commitTimestamp);
+    }
+
+    private void cacheCommittedStatus(TxnSupplier txnSupplier) {
+        Deque<AbstractTxn> toProcess = new ArrayDeque<>();
+        toProcess.add(this);
+        while(!toProcess.isEmpty()) {
+            AbstractTxn txn = toProcess.pop();
+            if (txn.getState() == State.COMMITTED) {
+                txnSupplier.cache(new CommittedTxn(txn.getTxnId(), this.commitTimestamp));
+                for (Txn c : txn.children) {
+                    if (c instanceof AbstractTxn) {
+                        toProcess.add((AbstractTxn) c);
+                    }
+                }
+
+            }
+        }
     }
 
     @Override
@@ -193,11 +221,14 @@ public class WritableTxn extends AbstractTxn{
                         return;
                 }
 
-                if (ROOT_TRANSACTION.equals(parentTxn)) {
-                    tc.unregisterActiveTransaction(getBeginTimestamp());
+                try {
+                    tc.rollback(txnId);
+                    state = State.ROLLEDBACK;
+                } finally {
+                    if (ROOT_TRANSACTION.equals(parentTxn)) {
+                        tc.unregisterActiveTransaction(getBeginTimestamp());
+                    }
                 }
-                tc.rollback(txnId);
-                state = State.ROLLEDBACK;
             }
         } else {
             subRollback();

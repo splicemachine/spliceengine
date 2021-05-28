@@ -2689,24 +2689,76 @@ public class ExternalTableIT extends SpliceUnitTest {
         }
     }
 
-    @Test
-    public void testAnalyzeExternalTable() throws Exception {
-        String path = getResourceDirectory() + "parquet_simple_file_test";
-
+    String analyzeExternalTable(String path) throws SQLException {
         try (ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.ANALYZE_EXTERNAL_TABLE('" + path + "')") ) {
             StringBuilder sb = new StringBuilder();
-            while( rs.next() ) {
+            while (rs.next()) {
                 sb.append(rs.getString(1) + "\n");
             }
-            String expected = "CREATE EXTERNAL TABLE T (\n" +
-                    " column1 CHAR/VARCHAR(x),\n" +
-                    " column2 CHAR/VARCHAR(x),\n" +
-                    " partition1 CHAR/VARCHAR(x) \n" +
-                    ") PARTITIONED BY(\n" +
-                    " partition1 \n" +
-                    ")\n" +
-                    " STORED AS PARQUET LOCATION '%s';\n";
-            Assert.assertEquals(String.format(expected, path),  sb.toString());
+            return sb.toString();
         }
     }
+
+    @Test
+    public void testAnalyzeExternalTableParquet() throws Exception {
+        String path1 = getResourceDirectory() + "parquet_simple_file_test";
+        String path2 = path1 + "/partition1=BBB/part-r-00001-da882b05-9234-4b0b-832f-005d0f177e18.parquet";
+        String expected = "CREATE EXTERNAL TABLE T (\n" +
+                " column1 CHAR/VARCHAR(x),\n" +
+                " column2 CHAR/VARCHAR(x),\n" +
+                " partition1 CHAR/VARCHAR(x) \n" +
+                ") PARTITIONED BY(\n" +
+                " partition1 \n" +
+                ")\n" +
+                " STORED AS PARQUET LOCATION '%s';\n";
+        for( String path : new String[]{path1, path2} ) {
+            Assert.assertEquals(String.format(expected, path), analyzeExternalTable(path));
+        }
+    }
+
+
+    @Test
+    public void testAnalyzeExternalTableOrc() throws Exception {
+        String path1 = getResourceDirectory() + "orc_partition_existing";
+        String path2 = path1 + "/c3=333/c1=CCC/part-00002-511e1530-b64d-4f6e-b726-1d11ff530a42.orc";
+        String expected = "CREATE EXTERNAL TABLE T (\n" +
+                " c0 INT,\n" +
+                " c2 BOOLEAN,\n" +
+                " c4 DOUBLE,\n" +
+                " c5 CHAR/VARCHAR(x),\n" +
+                " c3 INT,\n" +
+                " c1 CHAR/VARCHAR(x) \n" +
+                ") PARTITIONED BY(\n" +
+                " c3,\n" +
+                " c1 \n" +
+                ")\n" +
+                " STORED AS ORC LOCATION '%s';\n";
+        for( String path : new String[]{path1, path2} ) {
+            Assert.assertEquals(String.format(expected, path), analyzeExternalTable(path));
+        }
+    }
+
+    @Test
+    public void testAnalyzeExternalTableCsv() throws Exception {
+        String path1 = getResourceDirectory() + "textfile_partition_existing";
+        String path2 = path1 + "/c3=222/c1=BBB/part-00001-1ac549f9-3d88-4ec3-96f1-8bc6833db6ec.csv";
+        String expected =
+                "CREATE EXTERNAL TABLE T (\n" +
+                " _c0 CHAR/VARCHAR(x),\n" +
+                " _c1 CHAR/VARCHAR(x),\n" +
+                " _c2 CHAR/VARCHAR(x),\n" +
+                " _c3 CHAR/VARCHAR(x),\n" +
+                " c3 INT,\n" +
+                " c1 CHAR/VARCHAR(x) \n" +
+                ") PARTITIONED BY(\n" +
+                " c3,\n" +
+                " c1 \n" +
+                ")\n" +
+                " STORED AS TEXTFILE LOCATION '%s';\n";
+
+        for( String path : new String[]{path1, path2} ) {
+            Assert.assertEquals(String.format(expected, path), analyzeExternalTable(path));
+        }
+    }
+
 }

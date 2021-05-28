@@ -55,6 +55,11 @@ class AccessPathImpl implements AccessPath{
     private boolean isJoinStrategyHinted = false;
     private boolean missingHashKeyOK = false;
     private int numUnusedLeadingIndexFields;
+    private Predicate uisPredicate;
+    private Predicate uisRowIdPredicate;
+    private UnionNode unionOfIndexes = null;
+    private ResultSetNode uisRowIdJoinBackToBaseTableResultSet = null;
+
 
     AccessPathImpl(Optimizer optimizer){
         this.optimizer=optimizer;
@@ -112,6 +117,7 @@ class AccessPathImpl implements AccessPath{
         setLockMode(copyFrom.getLockMode());
         setMissingHashKeyOK(copyFrom.isMissingHashKeyOK());
         setNumUnusedLeadingIndexFields(copyFrom.getNumUnusedLeadingIndexFields());
+        setUisFields(copyFrom);
     }
 
     @Override public Optimizer getOptimizer(){ return optimizer; }
@@ -126,9 +132,10 @@ class AccessPathImpl implements AccessPath{
                     ", specialMaxScan == "+specialMaxScan+
                     ", joinStrategy == " + (joinStrategy == null ? "null" : joinStrategy) +
                     ", lockMode == "+lockMode+
-                    ", optimizer level == "+optimizer.getLevel()+
+                    ", optimizer level == "+ (optimizer != null ? optimizer.getLevel() : -1) +
                     ", missingHashKeyOK == "+isMissingHashKeyOK()+
-                    ", numUnusedLeadingIndexFields == "+getNumUnusedLeadingIndexFields();
+                    ", numUnusedLeadingIndexFields == "+getNumUnusedLeadingIndexFields()+
+                    ", unionedIndexScan == " + Boolean.valueOf(getUisRowIdJoinBackToBaseTableResultSet() != null);
         }else{
             return "";
         }
@@ -183,4 +190,53 @@ class AccessPathImpl implements AccessPath{
     public FirstColumnOfIndexStats getFirstColumnStats() {
         return getCostEstimate().getFirstColumnStats();
     }
+
+    @Override
+    public void setUisPredicate(Predicate uisPredicate) {
+        this.uisPredicate = uisPredicate;
+    }
+
+    @Override
+    public Predicate getUisPredicate() {
+        return uisPredicate;
+    }
+
+    @Override
+    public void setUisRowIdPredicate(Predicate uisRowIdPredicate) {
+        this.uisRowIdPredicate = uisRowIdPredicate;
+    }
+
+    @Override
+    public Predicate getUisRowIdPredicate() {
+        return uisRowIdPredicate;
+    }
+
+    @Override
+    public UnionNode getUnionOfIndexes() {
+        return unionOfIndexes;
+    }
+
+    @Override
+    public void setUnionOfIndexes(UnionNode unionOfIndexes) {
+        this.unionOfIndexes = unionOfIndexes;
+    }
+
+    @Override
+    public ResultSetNode getUisRowIdJoinBackToBaseTableResultSet() {
+        return uisRowIdJoinBackToBaseTableResultSet;
+    }
+
+    @Override
+    public void setUisRowIdJoinBackToBaseTableResultSet(ResultSetNode uisRowIdJoinBackToBaseTableResultSet) {
+        this.uisRowIdJoinBackToBaseTableResultSet = uisRowIdJoinBackToBaseTableResultSet;
+    }
+
+    @Override
+    public void setUisFields(AccessPath copyFromAccessPath) {
+        setUisPredicate(copyFromAccessPath.getUisPredicate());
+        setUisRowIdPredicate(copyFromAccessPath.getUisRowIdPredicate());
+        setUnionOfIndexes(copyFromAccessPath.getUnionOfIndexes());
+        setUisRowIdJoinBackToBaseTableResultSet(copyFromAccessPath.getUisRowIdJoinBackToBaseTableResultSet());
+    }
+
 }

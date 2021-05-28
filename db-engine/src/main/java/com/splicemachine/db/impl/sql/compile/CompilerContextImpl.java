@@ -59,6 +59,7 @@ import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.SQLWarning;
+import java.sql.Types;
 import java.util.*;
 
 import static com.splicemachine.db.iapi.sql.compile.DataSetProcessorType.*;
@@ -221,6 +222,14 @@ public class CompilerContextImpl extends ContextImpl
         projectionPruningEnabled = onOff;
     }
 
+    public int getMaxDerivedCNFPredicates() {
+        return maxDerivedCNFPredicates;
+    }
+
+    public void setMaxDerivedCNFPredicates(int newValue) {
+        maxDerivedCNFPredicates = newValue;
+    }
+
     public int getMaxMulticolumnProbeValues() {
         return maxMulticolumnProbeValues;
     }
@@ -249,6 +258,14 @@ public class CompilerContextImpl extends ContextImpl
 
     public boolean getDisablePredicateSimplification() {
         return disablePredicateSimplification;
+    }
+
+    public void setDisableConstantFolding(boolean newValue) {
+        disableConstantFolding = newValue;
+    }
+
+    public boolean getDisableConstantFolding() {
+        return disableConstantFolding;
     }
 
     public void setSparkVersion(SparkVersion newValue) {
@@ -300,6 +317,18 @@ public class CompilerContextImpl extends ContextImpl
 
     public boolean getDisablePrefixIteratorMode() { return disablePrefixIteratorMode; }
 
+    public void setDisableUnionedIndexScans(boolean newValue) {
+        disableUnionedIndexScans = newValue;
+    }
+
+    public boolean getDisableUnionedIndexScans() { return disableUnionedIndexScans; }
+
+    public void setFavorUnionedIndexScans(boolean newValue) {
+        favorUnionedIndexScans = newValue;
+    }
+
+    public boolean getFavorUnionedIndexScans() { return favorUnionedIndexScans; }
+
     public void setVarcharDB2CompatibilityMode(boolean newValue) {
         varcharDB2CompatibilityMode = newValue;
     }
@@ -323,6 +352,11 @@ public class CompilerContextImpl extends ContextImpl
         floatingPointNotation = value;
     }
 
+    public void setCountReturnType(int value)
+    {
+        countReturnType = value;
+    }
+
     public void setCursorUntypedExpressionType(DataTypeDescriptor type)
     {
         cursorUntypedExpressionType = type;
@@ -342,6 +376,10 @@ public class CompilerContextImpl extends ContextImpl
 
     public int getFloatingPointNotation() {
         return floatingPointNotation;
+    }
+
+    public int getCountReturnType() {
+        return countReturnType;
     }
 
     public DataTypeDescriptor getCursorUntypedExpressionType() {
@@ -628,7 +666,7 @@ public class CompilerContextImpl extends ContextImpl
         /*
         ** Not found, so get a StoreCostController from the store.
         */
-        StoreCostController retval = lcc.getTransactionCompile().openStoreCost(td,cd,skipStats, defaultRowCount, requestedSplits);
+        StoreCostController retval = lcc.getTransactionCompile().openStoreCost(td,cd,skipStats, defaultRowCount, requestedSplits, getVarcharDB2CompatibilityMode());
 
         /* Put it in the array */
         storeCostControllers.put(pairedKey, retval);
@@ -1211,9 +1249,11 @@ public class CompilerContextImpl extends ContextImpl
     private       boolean                             selectivityEstimationIncludingSkewedDefault  = false;
     private       boolean                             projectionPruningEnabled;
     private       int                                 maxMulticolumnProbeValues                    = DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
+    private       int                                 maxDerivedCNFPredicates                      = DEFAULT_MAX_DERIVED_CNF_PREDICATES;
     private       boolean                             multicolumnInlistProbeOnSparkEnabled         = DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
     private       boolean                             convertMultiColumnDNFPredicatesToInList      = DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST;
     private       boolean                             disablePredicateSimplification               = DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION;
+    private       boolean                             disableConstantFolding                       = DEFAULT_DISABLE_CONSTANT_FOLDING;
     private       SparkVersion                        sparkVersion                                 = DEFAULT_SPLICE_SPARK_VERSION;
     private       boolean                             sparkVersionInitialized                      = false;
     private       CompilerContext.NativeSparkModeType nativeSparkAggregationMode                   = DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
@@ -1222,6 +1262,7 @@ public class CompilerContextImpl extends ContextImpl
 
     private       String                              timestampFormat                              = DEFAULT_TIMESTAMP_FORMAT;
     private       int                                 floatingPointNotation                        = DEFAULT_FLOATING_POINT_NOTATION;
+    private       int                                 countReturnType                              = DEFAULT_COUNT_RETURN_TYPE;
     private       String                              secondFunctionCompatibilityMode              = DEFAULT_SECOND_FUNCTION_COMPATIBILITY_MODE;
     private       DataTypeDescriptor                  cursorUntypedExpressionType                  = null;
     // Used to track the flattened half outer joins.
@@ -1231,6 +1272,8 @@ public class CompilerContextImpl extends ContextImpl
     private       NewMergeJoinExecutionType           newMergeJoin                                 = DEFAULT_SPLICE_NEW_MERGE_JOIN;
     private       boolean                             disablePerParallelTaskJoinCosting            = DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING;
     private       boolean                             disablePrefixIteratorMode                    = DEFAULT_DISABLE_INDEX_PREFIX_ITERATION;
+    private       boolean                             disableUnionedIndexScans                     = DEFAULT_DISABLE_UNIONED_INDEX_SCANS;
+    private       boolean                             favorUnionedIndexScans                       = DEFAULT_FAVOR_UNIONED_INDEX_SCANS;
     private       boolean                             varcharDB2CompatibilityMode                  = DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE;
     /**
      * Saved execution time default schema, if we need to change it

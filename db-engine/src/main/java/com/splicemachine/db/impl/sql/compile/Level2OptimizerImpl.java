@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 
@@ -46,22 +47,23 @@ public class Level2OptimizerImpl extends OptimizerImpl{
     private OptimizerTrace tracer;
 
     public Level2OptimizerImpl(OptimizableList optimizableList,
-                        OptimizablePredicateList predicateList,
-                        DataDictionary dDictionary,
-                        boolean ruleBasedOptimization,
-                        boolean noTimeout,
-                        boolean useStatistics,
-                        int maxMemoryPerTable,
-                        JoinStrategy[] joinStrategies,
-                        int tableLockThreshold,
-                        RequiredRowOrdering requiredRowOrdering,
-                        int numTablesInQuery,
-                        LanguageConnectionContext lcc)
+                               OptimizablePredicateList predicateList,
+                               DataDictionary dDictionary,
+                               boolean ruleBasedOptimization,
+                               boolean noTimeout,
+                               boolean useStatistics,
+                               int maxMemoryPerTable,
+                               JoinStrategy[] joinStrategies,
+                               int tableLockThreshold,
+                               RequiredRowOrdering requiredRowOrdering,
+                               int numTablesInQuery,
+                               LanguageConnectionContext lcc,
+                               CostModel costModel)
             throws StandardException{
         super(optimizableList, predicateList, dDictionary,
               ruleBasedOptimization, noTimeout, useStatistics, maxMemoryPerTable,
               joinStrategies, tableLockThreshold, requiredRowOrdering,
-              numTablesInQuery);
+              numTablesInQuery, costModel);
 
         // Remember whether or not optimizer trace is on;
         optimizerTrace=lcc.getOptimizerTrace();

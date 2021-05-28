@@ -51,7 +51,7 @@ import java.util.HashMap;
  *
  */
 
-abstract class SetOperatorNode extends TableOperatorNode
+public abstract class SetOperatorNode extends TableOperatorNode
 {
     /**
     ** Tells whether to eliminate duplicate rows.  all == TRUE means do
@@ -580,6 +580,8 @@ abstract class SetOperatorNode extends TableOperatorNode
     public void bindResultColumns(FromList fromListParam)
                     throws StandardException
     {
+        if (skipBindAndOptimize)
+            return;
         super.bindResultColumns(fromListParam);
 
         if (TriggerReferencingStruct.fromTableTriggerDescriptor.get() != null)
@@ -592,6 +594,8 @@ abstract class SetOperatorNode extends TableOperatorNode
     public void bindResultColumns(FromList fromListParam, boolean bindRightOnly)
             throws StandardException
     {
+        if (skipBindAndOptimize)
+            return;
         super.bindResultColumns(fromListParam, bindRightOnly);
 
         /* Now we build our RCL */
@@ -1155,11 +1159,15 @@ abstract class SetOperatorNode extends TableOperatorNode
         for (int i=0; i<resultColumns.size(); i++) {
             ResultColumn rc = resultColumns.elementAt(i);
             if (rc.isReferenced()) {
-                leftResultSet.resultColumns.elementAt(i).setReferenced();
-                rightResultSet.resultColumns.elementAt(i).setReferenced();
+                leftResultSet.getResultColumns().elementAt(i).setReferenced();
+                rightResultSet.getResultColumns().elementAt(i).setReferenced();
             }
         }
 
         return this;
+    }
+
+    public boolean isAll() {
+        return all;
     }
 }

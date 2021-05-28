@@ -48,6 +48,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.sql.execute.OnceResultSet;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
@@ -2862,9 +2863,8 @@ public class SubqueryNode extends ValueNode{
         setType(dts.getNullabilityType(true));
     }
     @Override
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
-        setDepth(depth);
-        tree.add(this);
+    public void buildTree(Collection<Pair<QueryTreeNode,Integer>> tree, int depth) throws StandardException {
+        addNodeToExplainTree(tree, this, depth);
         resultSet.buildTree(tree,depth+1);
     }
 
