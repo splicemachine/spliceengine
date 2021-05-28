@@ -594,7 +594,8 @@ public class SpliceUnitTest {
             fail(failMsg);
         }
         catch (Exception e) {
-            boolean found = expectedErrors.contains(e.getMessage());
+            String msg = e.getMessage().split("\n")[0];
+            boolean found = expectedErrors.contains(msg);
             if (!found)
                 fail(format("\n + Unexpected error message: %s + \n", e.getMessage()));
         }
@@ -609,7 +610,8 @@ public class SpliceUnitTest {
             fail(failMsg);
         }
         catch (Exception e) {
-            boolean found = expectedErrors.contains(e.getMessage());
+            String msg = e.getMessage().split("\n")[0];
+            boolean found = expectedErrors.contains(msg);
             if (!found)
                 fail(format("\n + Unexpected error message: %s + \n", e.getMessage()));
         }

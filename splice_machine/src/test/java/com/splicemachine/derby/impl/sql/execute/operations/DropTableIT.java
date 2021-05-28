@@ -140,7 +140,8 @@ public class DropTableIT extends SpliceUnitTest {
         }
         catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","42X01",e.getSQLState());
-            Assert.assertEquals("Wrong Warning Message", "Syntax error: Encountered \"EXISTS\" at line 1, column 12.", e.getMessage());
+            Assert.assertEquals("Wrong Warning Message",
+                    "Syntax error: Encountered \"EXISTS\" at line 1, column 12.", e.getMessage().split("\n")[0]);
         }
     }
 
