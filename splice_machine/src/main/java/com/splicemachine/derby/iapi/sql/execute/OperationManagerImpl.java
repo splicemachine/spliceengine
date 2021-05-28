@@ -46,10 +46,6 @@ public class OperationManagerImpl implements OperationManager {
 
     public UUID registerOperation(SpliceOperation operation, Thread executingThread, Date submittedTime, DataSetProcessor.Type engine, String rdbIntTkn) {
         Random rnd = ThreadLocalRandom.current();
-        // Question is if we really need two different UUIDs here.
-        // seems like we don't always have a rdbIntTkn, but shouldn't we maybe only then create a custom UUID?
-        // like if(rdbIntTkn == null) rdbIntTkn = new UUID(rnd.nextLong(), rnd.nextLong()).toString(); ?
-        // HOWEVER, it might be that rdbIntTkn is not really unique, but only per connection?
         UUID uuid = new UUID(rnd.nextLong(), rnd.nextLong());
         RunningOperation ro = new RunningOperation(operation, executingThread, submittedTime, engine, uuid, rdbIntTkn);
         operations.put(uuid, ro);

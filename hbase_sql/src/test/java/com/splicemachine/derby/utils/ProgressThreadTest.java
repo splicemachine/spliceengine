@@ -60,7 +60,7 @@ select * from a inner join (select count(*) as i from a ) b --splice-properties 
  on a.i = b.i inner join (select count(*) as i from a ) c --splice-properties joinStrategy=broadcast
  on a.i = c.i;
 */
-public class ProgressThreadIT {
+public class ProgressThreadTest {
     @Test
     public void testSerDeProgressInfo() {
         ProgressInfo pi = new ProgressInfo("Hello,\nWorld!", 148, 22, 24, 89043, 390, 60);
