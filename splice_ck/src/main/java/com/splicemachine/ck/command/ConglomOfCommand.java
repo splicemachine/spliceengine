@@ -22,12 +22,12 @@ import picocli.CommandLine;
 
 import java.util.concurrent.Callable;
 
-@CommandLine.Command(name = "regionof",
+@CommandLine.Command(name = "conglomof",
         descriptionHeading = "Description:%n",
-        description = "retrieve HBase region(s) of SpliceMachine table",
+        description = "retrieve HBase conglomerate of SpliceMachine table",
         parameterListHeading = "Parameters:%n",
         optionListHeading = "Options:%n")
-public class RegionOfCommand extends CommonOptions implements Callable<Integer> {
+public class ConglomOfCommand extends CommonOptions implements Callable<Integer> {
 
     @CommandLine.Parameters(index = "0", description = "SpliceMachine schema name")
     String schema;
@@ -40,7 +40,7 @@ public class RegionOfCommand extends CommonOptions implements Callable<Integer> 
             HBaseInspector hbaseInspector = new HBaseInspector(Utils.constructConfig(zkq, port));
             table = EngineUtils.validateTable(table);
             schema = EngineUtils.validateSchema(schema);
-            System.out.println(hbaseInspector.regionsOf(schema, table));
+            System.out.println(hbaseInspector.conglomOf(schema, table));
             return 0;
         } catch (Exception e) {
             System.out.println(Utils.checkException(e, table));

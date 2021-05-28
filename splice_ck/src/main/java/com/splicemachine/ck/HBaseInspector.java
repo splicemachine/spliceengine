@@ -31,19 +31,17 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.HPut;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Pair;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.RegionMetrics;
+import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableNotFoundException;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.TableDescriptor;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
-import java.util.BitSet;
-import java.util.List;
+import java.sql.Timestamp;
+import java.util.*;
 import java.util.function.Predicate;
 
 import static com.splicemachine.ck.Constants.*;
@@ -66,7 +64,7 @@ public class HBaseInspector {
         // scan for one more than the limit so the we know if we truncated
         int scanLimit = limit == 0 ? 0 : limit+1;
         int count = 0;
-        ConnectionWrapper c = getCachedConnection().withRegion(region);
+        ConnectionWrapper c = getCachedConnection().withConglom(region);
         try(final ResultScanner rs = rowKey == null ?
                 c.scanVersions(scanLimit, versions) :
                 c.scanSingleRow(rowKey, versions)) {
@@ -89,8 +87,7 @@ public class HBaseInspector {
         return ConnectionSingleton.getConnection(config);
     }
 
-
-    private Utils.Tabular getListTables(Predicate<Utils.Tabular.Row> filter) throws Exception {
+    private Utils.Tabular getListTables(Predicate<Utils.Tabular.Row> filter) throws IOException {
         Utils.Tabular tabular = new Utils.Tabular(Utils.Tabular.SortHint.AsString, TBL_TABLES_COL0, TBL_TABLES_COL1,
                                                   TBL_TABLES_COL2, TBL_TABLES_COL3, TBL_TABLES_COL4);
 
@@ -107,8 +104,8 @@ public class HBaseInspector {
 
     private Utils.Tabular getListSchemas() throws Exception {
         Utils.Tabular tabular = new Utils.Tabular(Utils.Tabular.SortHint.AsString, TBL_SCHEMAS_COL0, TBL_SCHEMAS_COL1, TBL_SCHEMAS_COL2);
-        String region = regionOf(null, SYSSCHEMASRowFactory.TABLENAME_STRING);
-        try(final ResultScanner rs = getCachedConnection().withRegion(region).scanColumn(SIConstants.PACKED_COLUMN_BYTES)) {
+        String region = conglomOf(null, SYSSCHEMASRowFactory.TABLENAME_STRING);
+        try(final ResultScanner rs = getCachedConnection().withConglom(region).scanColumn(SIConstants.PACKED_COLUMN_BYTES)) {
             for (final Result r : rs) {
                 for(final Cell c : r.listCells()) {
                     final UserDataDecoder decoder = new SysSchemasDataDecoder();
@@ -123,9 +120,9 @@ public class HBaseInspector {
     }
 
     private String schemaIdOf(String schemaName) throws Exception {
-        String region = regionOf(null, SYSSCHEMASRowFactory.TABLENAME_STRING);
+        String region = conglomOf(null, SYSSCHEMASRowFactory.TABLENAME_STRING);
         final ValContainer<Pair<Long, String>> schemaId = new ValContainer<>(null);
-        try(final ResultScanner rs = getCachedConnection().withRegion(region).scanColumn(SIConstants.PACKED_COLUMN_BYTES)) {
+        try(final ResultScanner rs = getCachedConnection().withConglom(region).scanColumn(SIConstants.PACKED_COLUMN_BYTES)) {
             for (final Result r : rs) {
                 for(final Cell c : r.listCells()) {
                     final UserDataDecoder decoder = new SysSchemasDataDecoder();
@@ -154,7 +151,7 @@ public class HBaseInspector {
         // scan for one more than the limit so the we know if we truncated
         int scanLimit = limit == 0 ? 0 : limit+1;
         int count = 0;
-        ConnectionWrapper c = getCachedConnection().withRegion(region);
+        ConnectionWrapper c = getCachedConnection().withConglom(region);
         try(final ResultScanner rs = c.scanVersions(scanLimit, 0 /*all*/ ) ) {
             for (Result row : rs) {
                 if( count++ == limit ) {
@@ -187,10 +184,10 @@ public class HBaseInspector {
     }
 
     private String referenceId(String schema, String table) throws Exception {
-        final String region = regionOf(null, SYSTABLESRowFactory.TABLENAME_STRING);
+        final String conglom = conglomOf(null, SYSTABLESRowFactory.TABLENAME_STRING);
         final String schemaId = schemaIdOf(schema);
         final ValContainer<Pair<Long, String>> result = new ValContainer<>(null);
-        try(final ResultScanner rs = getCachedConnection().withRegion(region).scanColumn(SIConstants.PACKED_COLUMN_BYTES)) {
+        try(final ResultScanner rs = getCachedConnection().withConglom(conglom).scanColumn(SIConstants.PACKED_COLUMN_BYTES)) {
             for (final Result r : rs) {
                 for(final Cell userData : r.listCells()) {
                     UserDataDecoder decoder = new SysTableDataDecoder();
@@ -217,12 +214,12 @@ public class HBaseInspector {
     }
 
     private Utils.Tabular constructSchemaFromSysColsTable(final String tableId) throws Exception {
-        final String region = regionOf(null, SYSCOLUMNSRowFactory.TABLENAME_STRING);
+        final String region = conglomOf(null, SYSCOLUMNSRowFactory.TABLENAME_STRING);
         final Pair<String, String> schemaTableNames = tableOf(tableId);
         final String referenceId = referenceId(schemaTableNames.getFirst(), schemaTableNames.getSecond());
         final ValContainer<Utils.Tabular> columns = new ValContainer<>(new Utils.Tabular(Utils.Tabular.SortHint.AsString,TBL_COLTABLE_COL0,
                 TBL_COLTABLE_COL1, TBL_COLTABLE_COL2));
-        try(final ResultScanner rs = getCachedConnection().withRegion(region).scanColumn(SIConstants.PACKED_COLUMN_BYTES)) {
+        try(final ResultScanner rs = getCachedConnection().withConglom(region).scanColumn(SIConstants.PACKED_COLUMN_BYTES)) {
             for (final Result r : rs) {
                 for(final Cell c : r.listCells()) {
                     final UserDataDecoder decoder = new SysColsDataDecoder();
@@ -239,7 +236,7 @@ public class HBaseInspector {
         return columns.get();
     }
 
-    public String regionOf(String schemaName, String tableName) throws Exception {
+    public String conglomOf(String schemaName, String tableName) throws IOException {
         Utils.Tabular results = getListTables(result ->
                 result.cols.get(TBL_TABLES_NAME_IDX).equals(tableName)
                         && (schemaName == null ? result.cols.get(TBL_TABLES_SCHEMA_IDX).equals(NULL) :
@@ -252,6 +249,55 @@ public class HBaseInspector {
                 .orElseThrow(TableNotFoundException::new);
         assert row.cols.size() > 0;
         return row.cols.get(TBL_TABLES_HBASE_NAME_IDX);
+    }
+
+    public String regionsOf(String schemaName, String tableName) throws Exception {
+        List<RegionInfo> regions = getCachedConnection().withConglom(conglomOf(schemaName, tableName)).getRegions();
+        Map<String, Pair<ServerName, RegionMetrics>> regionMetrices = regionMetrices();
+        if(regionMetrices.isEmpty()) {
+            throw new IOException(String.format("could not find region information for table %s.%s", schemaName, tableName));
+        }
+        regions.sort((lhs, rhs) -> Bytes.compareTo(lhs.getStartKey(), rhs.getStartKey()));
+        Utils.Tabular tabular = new Utils.Tabular(Utils.Tabular.SortHint.AsInteger, "Index", "RegionName",
+                                                  "Offline?", "Start", "Stop", "Host", "HFile count", "HFile size",
+                                                  "MemStore size", "Latest Major Compaction");
+        int i = 0;
+        for (RegionInfo region : regions) {
+            Pair<ServerName, RegionMetrics> regionMetrics = regionMetrices.get(region.getRegionNameAsString());
+            if(regionMetrics == null) {
+                throw new IOException(String.format("could not find info for region %s", Bytes.toString(region.getRegionName())));
+            }
+            long lastMajorCompactionTime = regionMetrics.getSecond().getLastMajorCompactionTimestamp();
+            String lastMajorCompactionOutput = "never compacted";
+            if(lastMajorCompactionTime > 0) {
+                lastMajorCompactionOutput = new Timestamp(regionMetrics.getSecond().getLastMajorCompactionTimestamp()).toString();
+            }
+            tabular.addRow(String.valueOf(i++),
+                           checkNull(region.getEncodedName()),
+                           checkNull(Boolean.toString(region.isOffline())),
+                           checkNull(Bytes.toString(region.getStartKey())),
+                           checkNull(Bytes.toString(region.getEndKey())),
+                           checkNull(regionMetrics.getFirst().getAddress().toString()),
+                           checkNull(String.valueOf(regionMetrics.getSecond().getStoreFileCount())),
+                           checkNull(regionMetrics.getSecond().getStoreFileSize().toString()),
+                           checkNull(regionMetrics.getSecond().getMemStoreSize().toString()),
+                           checkNull(lastMajorCompactionOutput));
+        }
+        return Utils.printTabularResults(tabular);
+    }
+
+    private Map<String, Pair<ServerName, RegionMetrics>> regionMetrices() throws IOException {
+        Collection<ServerName> servers = getCachedConnection().getServers();
+        Map<String, Pair<ServerName, RegionMetrics>> result = new HashMap<>();
+        for(ServerName server : servers) {
+            List<RegionMetrics> regionMetrices = getCachedConnection().withServer(server).getRegionMetrics();
+            if(regionMetrices != null && !regionMetrices.isEmpty()) {
+                for(RegionMetrics regionMetrics : regionMetrices) {
+                    result.put(regionMetrics.getNameAsString(), new Pair<>(server, regionMetrics));
+                }
+            }
+        }
+        return result;
     }
 
     public Pair<String, String> tableOf(String regionName) throws Exception {
@@ -304,6 +350,6 @@ public class HBaseInspector {
 
     public void putRow(String region, String rowKey, long txn, RPutConfig putConfig) throws Exception {
         Put put = toPutOp(region, putConfig, Bytes.fromHex(rowKey), txn);
-        getCachedConnection().withRegion(region).put(put);
+        getCachedConnection().withConglom(region).put(put);
     }
 }

@@ -37,7 +37,7 @@ public class TColsCommand extends CommonOptions implements Callable<Integer> {
             HBaseInspector hbaseInspector = new HBaseInspector(Utils.constructConfig(zkq, port));
             table = EngineUtils.validateTable(table);
             schema = EngineUtils.validateSchema(schema);
-            System.out.println(Utils.printTabularResults(hbaseInspector.columnsOf(hbaseInspector.regionOf(schema, table))));
+            System.out.println(Utils.printTabularResults(hbaseInspector.columnsOf(hbaseInspector.conglomOf(schema, table))));
             return 0;
         } catch (Exception e) {
             System.out.println(Utils.checkException(e, table));

@@ -27,8 +27,8 @@ import java.util.Scanner;
 @Command(mixinStandardHelpOptions = true, name = "spliceck", description = "SpliceMachine check command suite",
         descriptionHeading = "Description:%n",
         optionListHeading = "Options:%n", subcommands = {TListCommand.class,
-        TColsCommand.class, RegionOfCommand.class, TableOfCommand.class, RGetCommand.class, RPutCommand.class,
-        TxListCommand.class, SListCommand.class})
+        TColsCommand.class, ConglomOfCommand.class, RegionOfCommand.class, TableOfCommand.class, RGetCommand.class,
+        RPutCommand.class, TxListCommand.class, SListCommand.class})
 class RootCommand {
     @SuppressFBWarnings("DM_DEFAULT_ENCODING") // intentional
     public static void main(String... args) {

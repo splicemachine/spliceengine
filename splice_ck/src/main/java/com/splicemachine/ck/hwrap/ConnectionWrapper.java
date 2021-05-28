@@ -16,11 +16,14 @@ package com.splicemachine.ck.hwrap;
 
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.RegionMetrics;
+import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -30,6 +33,7 @@ public class ConnectionWrapper implements AutoCloseable {
     private Connection connection = null;
     private Configuration configuration = null;
     private Table table = null;
+    private ServerName server;
 
     public ConnectionWrapper() {}
 
@@ -44,7 +48,7 @@ public class ConnectionWrapper implements AutoCloseable {
         return this;
     }
 
-    public ConnectionWrapper withRegion(String region) throws IOException {
+    public ConnectionWrapper withConglom(String region) throws IOException {
         assert connection != null;
         table = connection.getTable(TableName.valueOf(region));
         return this;
@@ -99,6 +103,26 @@ public class ConnectionWrapper implements AutoCloseable {
     public List<TableDescriptor> descriptorsOfPattern(final String pattern) throws IOException {
         tell("hbase list table descriptors with pattern", pattern);
         return connection.getAdmin().listTableDescriptors(Pattern.compile(pattern));
+    }
+
+    public List<RegionInfo> getRegions() throws IOException {
+        assert table != null;
+        return connection.getAdmin().getRegions(table.getName());
+    }
+
+    public Collection<ServerName> getServers() throws IOException {
+        return connection.getAdmin().getRegionServers();
+    }
+
+    public ConnectionWrapper withServer(ServerName serverName) {
+        this.server = serverName;
+        return this;
+    }
+
+    public List<RegionMetrics> getRegionMetrics() throws IOException {
+        assert server != null;
+        assert table != null;
+        return connection.getAdmin().getRegionMetrics(server, table.getName());
     }
 
     @Override

@@ -83,8 +83,6 @@ public class Utils {
                 this.cols = Arrays.asList(cols);
             }
 
-
-
             @Override
             public int compareTo(Row o) {
                 if(o == null) {
