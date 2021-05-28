@@ -30,4 +30,6 @@ public interface RemoteQueryClient extends AutoCloseable {
 
     /** Close this client forcefully, terminating any currently running query */
     void interrupt();
+
+    Exception getException() throws InterruptedException;
 }

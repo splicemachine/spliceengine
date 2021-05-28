@@ -657,6 +657,17 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
                 SpliceLogUtils.trace(LOG, "getNextRowCore %s locatedRow=%s", this, locatedRow);
             return null;
         } catch(Exception e){
+            if (remoteQueryClient != null) {  // OLAP execution
+                try {
+                    Exception re = remoteQueryClient.getException();
+                    if (re != null) {
+                        e = re;
+                    }
+                } catch (InterruptedException interruptedException) {
+                    // do nothing, throw e
+                }
+            }
+
             checkInterruptedException(e);
             StandardException se = Exceptions.parseException(e);
             if (se instanceof ResubmitDistributedException) {
