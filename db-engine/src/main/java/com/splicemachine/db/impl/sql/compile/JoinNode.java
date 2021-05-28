@@ -1669,9 +1669,11 @@ public class JoinNode extends TableOperatorNode{
                the top AND node with a boolean true.
              */
             if (!joinClauseNormalized) {
-                Visitor constantExpressionVisitor =
-                        new ConstantExpressionVisitor(SelectNode.class);
-                joinClause = (ValueNode) joinClause.accept(constantExpressionVisitor);
+                if (!getCompilerContext().getDisableConstantFolding()) {
+                    Visitor constantExpressionVisitor =
+                            new ConstantExpressionVisitor(SelectNode.class);
+                    joinClause = (ValueNode) joinClause.accept(constantExpressionVisitor);
+                }
 
                 if (!getCompilerContext().getDisablePredicateSimplification()) {
                     Visitor predSimplVisitor =

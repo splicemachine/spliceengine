@@ -94,8 +94,7 @@ public class PropertyUtil {
             Property.LOCKS_ESCALATION_THRESHOLD,
             Property.DATABASE_PROPERTIES_ONLY,
             Property.DEFAULT_CONNECTION_MODE_PROPERTY,
-            PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM,
-            Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED
+            PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM
     };
 
     /**
@@ -346,6 +345,16 @@ public class PropertyUtil {
         } else {
             return Boolean.parseBoolean(value.trim());
         }
+    }
+
+    public static boolean getCachedBoolean(LanguageConnectionContext lcc,
+                                           GlobalDBProperties.PropertyType key) throws StandardException {
+        return getCachedDatabaseBoolean(lcc, key.getName());
+    }
+
+    public static String getCached(LanguageConnectionContext lcc,
+                                   GlobalDBProperties.PropertyType key) throws StandardException {
+        return getCachedDatabaseProperty(lcc, key.getName());
     }
 
     /**

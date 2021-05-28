@@ -17,7 +17,7 @@ package com.splicemachine.derby.vti;
 import com.google.common.io.Files;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -135,9 +135,8 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         boolean defaultValue = CompilerContext.DEFAULT_PRESERVE_LINE_ENDINGS;
         if( op == null || op.getActivation() == null || op.getActivation().getLanguageConnectionContext() == null )
             return defaultValue;
-        String preserveLineEndingsString =
-                PropertyUtil.getCachedDatabaseProperty(op.getActivation().getLanguageConnectionContext(),
-                        Property.PRESERVE_LINE_ENDINGS);
+        String preserveLineEndingsString = PropertyUtil.getCached(op.getActivation().getLanguageConnectionContext(),
+                                                GlobalDBProperties.PRESERVE_LINE_ENDINGS);
         try {
             if (preserveLineEndingsString != null)
                 return Boolean.parseBoolean(preserveLineEndingsString);
