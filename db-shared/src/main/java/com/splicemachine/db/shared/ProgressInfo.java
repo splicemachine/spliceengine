@@ -61,6 +61,7 @@ public class ProgressInfo {
     public int getNumTasks() {
         return numTasks;
     };
+    public String VERSION = "1";
 
     public ProgressInfo(String jobname,
                         int jobNumber,
@@ -129,26 +130,31 @@ public class ProgressInfo {
     private ProgressInfo() { };
 
     // outputting in format
-    // jobname
-    // jobNumber numCompletedStages numStages numCompletedTasks numActiveTasks
+    // VERSION;jobNumber numCompletedStages numStages numCompletedTasks numActiveTasks
+    // jobname (may include \n)
 
     public String serializeToString() {
         StringBuilder sb = new StringBuilder();
-        sb.append(jobname);
-        sb.append("\n");
+        sb.append(VERSION); sb.append(";");
         sb.append(jobNumber); sb.append(" ");
         sb.append(numCompletedStages); sb.append(" ");
         sb.append(numStages); sb.append(" ");
         sb.append(numCompletedTasks); sb.append(" ");
         sb.append(numActiveTasks); sb.append(" ");
         sb.append(numTasks);
+        sb.append("\n");
+        sb.append(jobname);
         return sb.toString();
     }
 
     ProgressInfo deserializeFromStringInternal(String str) {
-        jobname = str.split("\n")[0];
+        if(!str.startsWith(VERSION + ";"))
+            throw new RuntimeException("progress information version has changed, expected " + VERSION);
+        str = str.substring(VERSION.length()+1);
+        int sep = str.indexOf('\n');
+        jobname = str.substring(sep+1);
         jobname = jobname.replace("<br/>", "\n");
-        String arr[] = str.split("\n")[1].split(" ");
+        String arr[] = str.substring(0, sep).split(" ");
         jobNumber = Integer.parseInt(arr[0]);
         numCompletedStages = Integer.parseInt(arr[1]);
         numStages = Integer.parseInt(arr[2]);
@@ -156,5 +162,11 @@ public class ProgressInfo {
         numActiveTasks = Integer.parseInt(arr[4]);
         numTasks = Integer.parseInt(arr[5]);
         return this;
+    }
+
+    public boolean isInvalid() {
+        return jobNumber < 0 || numCompletedStages < 0 || numStages < 0 || numCompletedStages < 0
+                || numActiveTasks < 0 || numTasks < 0 || numCompletedTasks > numTasks || numActiveTasks > numTasks
+                || numCompletedStages > numStages;
     }
 }

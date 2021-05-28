@@ -36,12 +36,15 @@ public class ProgressThread extends Thread {
     private String progressBar =  "[------------+----------25%----------+-----------50%-----------+----------75%-----------+-----------]";
     private byte[] progressBarB = progressBar.getBytes();
     private int PROGRESS_BAR_LENGTH = progressBarB.length;
+    private String lastJobName = "";
 
     Supplier<String> progressInfoProvider;
     PrintStream outputStream;
     boolean started = false;
     boolean hadException = false;
     public boolean canceled = false;
+    public boolean smallJobs = false;
+    int smallJobCompleted =0 ;
 
     // used in tests only
     public ProgressThread(Supplier<String> op, PrintStream outputStream) {
@@ -67,7 +70,8 @@ public class ProgressThread extends Thread {
     }
 
     private void printProgressBarChar(int i) {
-        outputStream.print( (char)progressBarB[i] );
+        if(i < PROGRESS_BAR_LENGTH)
+            outputStream.print( (char)progressBarB[i] );
     }
 
     public void finishCurrentProgressBar() {
@@ -78,22 +82,48 @@ public class ProgressThread extends Thread {
         outputStream.print("\n");
     }
 
-    private void updateProgress(ProgressInfo pi) {
+    public void updateProgress(ProgressInfo pi) {
+        if(pi.isInvalid()) return;
         startedProgress = true;
+        int numCompleted = pi.getNumCompletedTasks();
+        int numTasks = pi.getNumTasks();
 
         if( currentJob != pi.getJobNumber() || currentStage != pi.getNumCompletedStages()) {
-            // JOB or STAGE has changed
-            if(currentJob != -1)
-                finishCurrentProgressBar();
-            currentJob = pi.getJobNumber();
             currentStage = pi.getNumCompletedStages();
-            currentPercentage = 0;
-            outputStream.println(pi.getJobname() + " (Job " + (pi.getJobNumber()+1) + ", Stage "
-                    + (pi.getNumCompletedStages()+1) + " of " + pi.getNumStages() + ")");
+            if(smallJobs && pi.getNumTasks() <= 2 && smallJobCompleted < PROGRESS_BAR_LENGTH) {
+                numCompleted = ++smallJobCompleted;
+                numTasks = PROGRESS_BAR_LENGTH;
+            }
+            else {
+                // JOB or STAGE has changed
+                if (currentJob != -1)
+                    finishCurrentProgressBar();
+                currentJob = pi.getJobNumber();
+                currentPercentage = 0;
+                // jobname might include SQL statement which can be long and multi-lined,
+                // so don't repeat the job name if it doesn't change
+                String jobName = (lastJobName != null && lastJobName.equals(pi.getJobname())) ? "" : pi.getJobname() + " ";
+                lastJobName = pi.getJobname();
+                if (pi.getNumTasks() <= 2) {
+                    outputStream.println(jobName + "(Collection of Jobs)");
+                    smallJobs = true;
+                    smallJobCompleted = 0;
+                    numCompleted = 0;
+                    numTasks = PROGRESS_BAR_LENGTH;
+                } else {
+                    smallJobs = false;
+                    outputStream.println(jobName + "(Job " + (pi.getJobNumber() + 1) + ", Stage "
+                            + (pi.getNumCompletedStages() + 1) + " of " + pi.getNumStages() + ")");
+                }
+            }
         }
-        int perc = (pi.getNumCompletedTasks()* PROGRESS_BAR_LENGTH)/pi.getNumTasks();
+
+        int perc = (numCompleted* PROGRESS_BAR_LENGTH)/numTasks;
+        if(perc < currentPercentage)
+            return; // ignore progress going backward
         for(int i=currentPercentage; i<perc; i++) {
             printProgressBarChar(i);
+
         }
         currentPercentage = perc;
     }
@@ -101,6 +131,7 @@ public class ProgressThread extends Thread {
     public void updateProgress(String s) {
         if( s.length() > 0 && !s.equals("-") ) {
             try {
+                //outputStream.println(s);
                 updateProgress(ProgressInfo.deserializeFromString(s));
             } catch (Exception e) {
                 if(!hadException) {
