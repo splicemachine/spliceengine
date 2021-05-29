@@ -757,6 +757,7 @@ public abstract class TableOperatorNode extends FromTable{
     protected ResultSetNode optimizeSource(Optimizer optimizer,
                                            ResultSetNode sourceResultSet,
                                            PredicateList predList,
+                                           PredicateList nonPushablePredicates,
                                            JBitSet otherChildReferenceMap,
                                            CostEstimate outerCost) throws StandardException{
         ResultSetNode retval;
@@ -789,6 +790,7 @@ public abstract class TableOperatorNode extends FromTable{
             optimizer.prepForNextRound();
             optimizer.setAssignedTableMap(otherChildReferenceMap);
             optimizer.setForSpark(forSpark);
+            optimizer.setNonPushablePredicates(nonPushablePredicates);
 
             if(sourceResultSet==leftResultSet){
                 leftOptimizer=optimizer;
