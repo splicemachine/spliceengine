@@ -35,7 +35,6 @@ import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
@@ -331,18 +330,15 @@ public interface RelationalOperator
 	 * down that subtree.  See BinaryRelationalOperatorNode for an
 	 * example of where this comes into play.
 	 *
-	 * @param optTable  The Optimizable table in question.
-	 * @param cd        The conglomerate descriptor of optTable currently
-	 *                  in consideration. It's only used in case of
-	 *                  forPush == true.
-	 * @param forPush   Are we asking because we're trying to push?
+	 * @param optTable	The Optimizable table in question.
+	 * @param forPush	Are we asking because we're trying to push?
 	 *
 	 * @return	true if this operator can be compiled into a Qualifier
 	 *			for the given Optimizable table.
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	boolean isQualifier(Optimizable optTable, ConglomerateDescriptor cd, boolean forPush)
+	boolean isQualifier(Optimizable optTable, boolean forPush)
 		throws StandardException;
 
 	/**
