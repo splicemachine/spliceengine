@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
@@ -379,18 +380,26 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 	public boolean orderedNulls() { return true; }
 
 	@Override
-	public boolean isQualifier(Optimizable optTable, boolean forPush) {
+	public boolean isQualifier(Optimizable optTable, ConglomerateDescriptor cd, boolean forPush) {
 		/*
-		** It's a Qualifier if the operand is a ColumnReference referring
-		** to a column in the given Optimizable table.
-		*/
-		if ( ! (operand instanceof ColumnReference))
+		 ** It's a Qualifier if the operand is a ColumnReference referring
+		 ** to a column in the given Optimizable table.
+		 */
+		if ( ! (getOperand() instanceof ColumnReference))
 			return false;
 
-		ColumnReference cr = (ColumnReference) operand;
+		ColumnReference cr = (ColumnReference) getOperand();
 		FromTable ft = (FromTable) optTable;
 
-		return cr.getTableNumber()==ft.getTableNumber();
+		if (cr.getTableNumber() != ft.getTableNumber()) {
+			return false;
+		}
+
+		if (forPush && cd != null && cd.isIndex()) {
+			return isIndexColumn(cr, cd);
+		}
+
+		return true;
 	}
 
 	@Override
