@@ -20,6 +20,7 @@
 package com.splicemachine.derby.hbase;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.PrivateCellUtil;
@@ -36,6 +37,7 @@ import java.util.List;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
+@SuppressFBWarnings(value="HE_EQUALS_NO_HASHCODE", justification="Intentional")
 public class SpliceMultiRowRangeFilter extends MultiRowRangeFilter {
 
     private final RangeIteration ranges;
