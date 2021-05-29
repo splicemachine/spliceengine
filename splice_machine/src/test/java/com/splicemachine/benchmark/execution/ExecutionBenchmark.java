@@ -19,7 +19,7 @@ public class ExecutionBenchmark extends Benchmark {
     protected static final String BASE_TABLE = "BASE_TABLE";
     protected static final String BASE_TABLE_IDX = "BASE_TABLE_IDX";
     protected static final int NUM_EXECS = 5;
-    protected static final int NUM_WARMUP_RUNS = 5;
+    protected static final int NUM_WARMUP_RUNS = 3;
     protected static final int NUM_CONNECTIONS = 10;
 
     protected static final int TABLE_DEF = 0;

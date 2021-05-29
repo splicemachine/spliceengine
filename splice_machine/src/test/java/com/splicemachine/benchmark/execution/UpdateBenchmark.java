@@ -66,7 +66,6 @@ public class UpdateBenchmark extends ExecutionBenchmark {
 
         LOG.info("Populating tables");
         curSize.set(0);
-        runBenchmark(1, () -> populateTables(testConnection, dataSize, batchSize, numTableColumns, insertParamStr, curSize.getAndAdd(dataSize)));
 
         refreshTableState(testStatement, SCHEMA);
     }
@@ -76,10 +75,14 @@ public class UpdateBenchmark extends ExecutionBenchmark {
         spliceSchemaWatcher.cleanSchemaObjects();
         testStatement.close();
         testConnection.close();
+        reportStats();
     }
 
     private void benchmark(boolean singleRowUpdate) {
         int concurrency = curSize.getAndAdd(dataSize);
+
+        populateTables(testConnection, dataSize, batchSize, numTableColumns, insertParamStr, concurrency);
+
         String sqlText = String.format("UPDATE %s SET %s WHERE col_0 = ?",
             BASE_TABLE,
             updateParamStr);
@@ -143,14 +146,9 @@ public class UpdateBenchmark extends ExecutionBenchmark {
     @Parameterized.Parameters
     public static Collection testParams() {
         return Arrays.asList(new Object[][] {
-            {50, 1, 50, 5000, false},
-            {50, 10, 50, 5000, false},
-
-            {1000, 1, 50, 5000, false},
-            {1000, 10, 50, 5000, false},
-
-            {1500, 1, 50, 5000, false},
-            {1500, 10, 50, 5000, false},
+            {50, 10, 50, 1000, false},
+            {1000, 10, 50, 1000, false},
+            {1500, 10, 50, 1000, false},
         });
     }
 

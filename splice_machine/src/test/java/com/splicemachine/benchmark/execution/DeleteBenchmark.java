@@ -69,6 +69,7 @@ public class DeleteBenchmark extends ExecutionBenchmark {
         spliceSchemaWatcher.cleanSchemaObjects();
         testStatement.close();
         testConnection.close();
+        reportStats();
     }
 
     private void benchmark() {
@@ -111,14 +112,14 @@ public class DeleteBenchmark extends ExecutionBenchmark {
     @Parameterized.Parameters
     public static Collection testParams() {
         return Arrays.asList(new Object[][] {
-            {50, 1, 50, 5000, false},
-            {50, 10, 50, 5000, false},
+            {50, 1, 50, 1000, false},
+            {50, 10, 50, 1000, false},
 
-            {1000, 1, 50, 5000, false},
-            {1000, 10, 50, 5000, false},
+            {1000, 1, 50, 1000, false},
+            {1000, 10, 50, 1000, false},
 
-            {1500, 1, 50, 5000, false},
-            {1500, 10, 50, 5000, false},
+            {1500, 1, 50, 1000, false},
+            {1500, 10, 50, 1000, false},
         });
     }
 

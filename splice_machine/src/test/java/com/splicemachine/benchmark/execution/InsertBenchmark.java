@@ -61,6 +61,7 @@ public class InsertBenchmark extends ExecutionBenchmark {
         spliceSchemaWatcher.cleanSchemaObjects();
         testStatement.close();
         testConnection.close();
+        reportStats();
     }
 
     private void benchmark(boolean isBatch) {
