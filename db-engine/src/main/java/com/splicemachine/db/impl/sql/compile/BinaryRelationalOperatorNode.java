@@ -883,7 +883,8 @@ public class BinaryRelationalOperatorNode
     }
 
     @Override
-    public boolean isQualifier(Optimizable optTable,boolean forPush) throws StandardException{
+    public boolean isQualifier(Optimizable optTable, ConglomerateDescriptor cd, boolean forPush)
+            throws StandardException {
         /* If this rel op is for an IN-list probe predicate then we never
          * treat it as a qualifer.  The reason is that if we treat it as
          * a qualifier then we could end up generating it as a qualifier,
@@ -896,10 +897,10 @@ public class BinaryRelationalOperatorNode
             return false;
 
         FromTable ft;
-        ValueNode otherSide=null;
-        ColumnReference cr;
-        boolean found=false;
-        boolean walkSubtree=true;
+        ValueNode otherSide = null;
+        ColumnReference cr = null;
+        boolean found = false;
+        boolean walkSubtree = true;
 
         ft=(FromTable)optTable;
 
@@ -942,7 +943,15 @@ public class BinaryRelationalOperatorNode
         ** Qualifier if the other side does not refer to the table we are
         ** optimizing.
         */
-        return !valNodeReferencesOptTable(otherSide,ft,forPush,true);
+        if (valNodeReferencesOptTable(otherSide, ft, forPush, true)) {
+            return false;
+        }
+
+        if (forPush && cd != null && cd.isIndex()) {
+            return isIndexColumn(cr, cd);
+        }
+
+        return true;
     }
 
     public boolean isQualifierForHashableJoin(Optimizable optTable,boolean forPush) throws StandardException{

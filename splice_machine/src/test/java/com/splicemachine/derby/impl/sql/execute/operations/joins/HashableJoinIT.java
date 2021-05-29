@@ -76,6 +76,15 @@ public class HashableJoinIT extends SpliceUnitTest {
                 .withCreate("create table L (c2 int not null, e char(1) not null, foreign key (c2) references G(c2))")
                 .create();
 
+        new TableCreator(conn)
+                .withCreate("create table TA (c1 char(36))")
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table TB (c2 char(36), s char(1), z char(1), hsp char(2), f char(1), pfnr char(10))")
+                .withIndex("create index XPFHSPF on TB (hsp, f, s, z, c2)")
+                .create();
+
         conn.commit();
     }
 
@@ -94,6 +103,29 @@ public class HashableJoinIT extends SpliceUnitTest {
                 "                    and L.e = 'X'))", useSpark);
 
         rowContainsQuery(new int[]{4, 6}, "explain " + sqlText, methodWatcher, "Subquery", useSpark ? "BroadcastJoin" : "NestedLoopJoin");
+
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            assertFalse(rs.next());
+        }
+    }
+
+    // DB-12085
+    @Test
+    public void testInvalidOrListQualifierForHashableJoin() throws Exception {
+        String sqlText = String.format("select * from --splice-properties joinOrder=fixed\n" +
+                                               " TA, TB --splice-properties index=XPFHSPF, joinStrategy=sortmerge\n" +
+                                               " where TA.c1 = TB.c2" +
+                                               "   AND TB.s = '3' AND TB.z <> 'S' AND TB.hsp = 'LE'" +
+                                               "   AND NOT (TB.f = 'L' AND TB.pfnr = '12345678  ')");
+
+        // NOT (TB.f = 'L' AND TB.pfnr = '12345678  ') is transformed to
+        // (TB.f <> 'L' OR TB.pfnr <> '12345678  ')
+        // Before DB-12085, isQualifier() returns true for TB.pfnr <> '12345678  '. This is wrong because index
+        // columns of XPFHSPF do not contain pfnr.
+
+        rowContainsQuery(new int[]{4, 6}, "explain " + sqlText, methodWatcher,
+                         new String[]{"ProjectRestrict", "preds=[((TB.F[3:5] <> L) or ((TB.PFNR[3:6] <> 12345678  ) or false))]"},
+                         new String[]{"IndexScan[XPFHSPF", "preds=[(TA.C1[5:1] = TB.C2[5:2]),(TB.HSP[3:4] = LE),(TB.S[3:2] = 3),(TB.Z[3:3] <> S)]"});
 
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             assertFalse(rs.next());
