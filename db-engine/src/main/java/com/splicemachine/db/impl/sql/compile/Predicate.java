@@ -584,7 +584,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
                             return false;
                         }
                     } else {
-                        if(!((RelationalOperator)or_node.getLeftOperand()).isQualifier(optTable, cd, pushPreds)){
+                        if(!((RelationalOperator)or_node.getLeftOperand()).isQualifier(optTable, pushPreds)){
                             // one of the terms is not a pushable Qualifier.
                             return false;
                         }

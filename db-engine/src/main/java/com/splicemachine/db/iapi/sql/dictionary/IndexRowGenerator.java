@@ -419,7 +419,7 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 
 	/** @see IndexDescriptor#baseColumnPositions */
 	public int[] baseColumnPositions() {
-		return id == null ? null : id.baseColumnPositions();
+		return id.baseColumnPositions();
 	}
 
 	/** @see IndexDescriptor#getKeyColumnPosition */
