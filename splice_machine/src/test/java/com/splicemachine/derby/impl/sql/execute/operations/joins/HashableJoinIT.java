@@ -132,7 +132,7 @@ public class HashableJoinIT extends SpliceUnitTest {
 
         rowContainsQuery(new int[]{4, 6}, "explain " + sqlText, methodWatcher,
                          new String[]{"ProjectRestrict", "preds=[((TB.F[3:5] <> L) or ((TB.PFNR[3:6] <> 12345678  ) or false))]"},
-                         new String[]{"IndexScan[XPFHSPF", "keys=[(TB.HSP[3:4] = LE)],preds=[(TA.C1[5:1] = TB.C2[5:2]),(TB.S[3:2] = 3),(TB.Z[3:3] <> S)]"});
+                         new String[]{"IndexScan[XPFHSPF", "preds=[(TA.C1[5:1] = TB.C2[5:2]),(TB.HSP[3:4] = LE),(TB.S[3:2] = 3),(TB.Z[3:3] <> S)]"});
 
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             assertFalse(rs.next());
