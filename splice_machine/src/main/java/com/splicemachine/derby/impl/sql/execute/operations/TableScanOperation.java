@@ -387,52 +387,6 @@ public class TableScanOperation extends ScanOperation{
                 .map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
     }
 
-    /**
-     * @return the Table Scan DataSet which probes each first index column via KeyPrefixProbingFilter
-     */
-    public DataSet<ExecRow> getKeyPrefixFilterScan(ExecRow firstRow, DataSetProcessor dsp) throws StandardException{
-        TxnView txn = getCurrentTransaction();
-        operationContext = dsp.createOperationContext(this);
-
-        DataScan dataScan = getNonSIScan();
-        try {
-            dataScan.attachKeyPrefixFilter(firstRow.getColumn(1), tableVersion);
-        }
-        catch (IOException e) {
-            throw StandardException.plainWrapException(e);
-        }
-
-        DataSet<ExecRow> dataSet =
-        dsp.<TableScanOperation,ExecRow>newScanSet(this,tableName)
-                .tableDisplayName(tableDisplayName)
-                .activation(activation)
-                .transaction(txn)
-                .scan(dataScan)
-                .template(currentTemplate)
-                .tableVersion(tableVersion)
-                .indexName(indexName)
-                .reuseRowLocation(true)
-                .keyColumnEncodingOrder(scanInformation.getColumnOrdering())
-                .keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
-                .keyColumnTypes(getKeyFormatIds())
-                .accessedKeyColumns(scanInformation.getAccessedPkColumns())
-                .keyDecodingMap(getKeyDecodingMap())
-                .rowDecodingMap(getRowDecodingMap())
-                .baseColumnMap(baseColumnMap)
-                .delimited(delimited)
-                .escaped(escaped)
-                .lines(lines)
-                .storedAs(storedAs)
-                .location(location)
-                .partitionByColumns(getPartitionColumnMap())
-                .defaultRow(defaultRow,scanInformation.getDefaultValueMap())
-                .ignoreRecentTransactions(isReadOnly(txn))
-                .buildDataSet(this)
-                .map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
-
-        return dataSet;
-    }
-
     protected boolean isReadOnly(TxnView txn) {
         while(txn != Txn.ROOT_TRANSACTION) {
             if (txn.allowsWrites())
