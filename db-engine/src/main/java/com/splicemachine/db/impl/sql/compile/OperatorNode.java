@@ -35,6 +35,8 @@ import java.lang.reflect.Modifier;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.types.SqlXmlUtil;
 
 /**
@@ -94,5 +96,18 @@ public abstract class OperatorNode extends ValueNode {
         // Read the cached value and push it onto the stack in the method
         // generated for the operator.
         mb.getField(sqlXmlUtil);
+    }
+
+    protected boolean isIndexColumn(ColumnReference cr, ConglomerateDescriptor cd) {
+        IndexRowGenerator irg = cd == null ? null : cd.getIndexDescriptor();
+        if (irg != null && !irg.isOnExpression() && irg.baseColumnPositions() != null) {
+            for (int pos : irg.baseColumnPositions()) {
+                if (cr.getColumnNumber() == pos) {
+                    return true;
+                }
+            }
+        }
+        // index on expression case is handled in PredicateList.isQualifier()
+        return false;
     }
 }
