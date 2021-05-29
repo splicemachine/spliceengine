@@ -595,7 +595,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 Integer position = isIndexUseful(pred, optTable, pushPreds, skipProbePreds, cd);
                 return position != null;
             } else {
-                return pred.getRelop().isQualifier(optTable, cd, pushPreds);
+                return pred.getRelop().isQualifier(optTable, pushPreds);
             }
         }
         return true;
@@ -669,7 +669,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
          * operator or b) it's not a qualifier, then it's not useful for
          * limiting the scan, so skip it.
          */
-        if(!isIn && !isBetween && ((relop==null) || (!isIndexOnExpr && !relop.isQualifier(optTable, cd, pushPreds)))){
+        if(!isIn && !isBetween && ((relop==null) || (!isIndexOnExpr && !relop.isQualifier(optTable,pushPreds)))){
             return null;
         }
 
@@ -1750,14 +1750,14 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
      * @param otherPL  ParameterList for non-qualifiers
      * @throws StandardException Thrown on error
      */
-    protected void transferNonQualifiers(Optimizable optTable, PredicateList otherPL) throws StandardException{
+    protected void transferNonQualifiers(Optimizable optTable,PredicateList otherPL) throws StandardException{
         //Walk list backwards since we can delete while traversing the list.
         for(int index=size()-1;index>=0;index--){
             Predicate pred=elementAt(index);
 
             // Transfer each non-qualifier
             //noinspection ConstantConditions
-            if(!pred.isRelationalOpPredicate() || !pred.getRelop().isQualifier(optTable, null, false)){
+            if(!pred.isRelationalOpPredicate() || !pred.getRelop().isQualifier(optTable,false)){
                 pred.clearScanFlags();
                 removeElementAt(index);
                 otherPL.addElement(pred);
