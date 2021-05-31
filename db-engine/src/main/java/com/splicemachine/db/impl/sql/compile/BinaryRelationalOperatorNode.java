@@ -1169,10 +1169,18 @@ public class BinaryRelationalOperatorNode
                 getRightOperand() instanceof ConstantNode){
             ConstantNode leftOp=(ConstantNode)getLeftOperand();
             ConstantNode rightOp=(ConstantNode)getRightOperand();
-            DataValueDescriptor leftVal=leftOp.getValue();
-            DataValueDescriptor rightVal=rightOp.getValue();
 
-            if(leftVal != null && !leftVal.isNull() && rightVal != null && !rightVal.isNull()){
+            if (leftOp.isNull()) {
+                return getLeftOperand();
+            }
+            if (rightOp.isNull()) {
+                return getRightOperand();
+            }
+
+            DataValueDescriptor leftVal = leftOp.getValue();
+            DataValueDescriptor rightVal = rightOp.getValue();
+
+            if(leftVal != null && !leftVal.isNull() && rightVal != null && !rightVal.isNull()) {
                 int comp=leftVal.compare(rightVal);
                 switch(operatorType){
                     case EQUALS_RELOP:

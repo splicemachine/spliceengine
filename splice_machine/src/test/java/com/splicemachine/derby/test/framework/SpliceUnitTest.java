@@ -1318,6 +1318,26 @@ public class SpliceUnitTest {
         }
     }
 
+    protected void checkIntExpression(String input, int expectedOutput, TestConnection conn) throws SQLException {
+        String sql = addPotentiallyMissingSelect(input);
+        try(ResultSet rs = conn.query(sql)) {
+            rs.next();
+            Assert.assertEquals(expectedOutput, rs.getInt(1));
+        }
+    }
+
+    protected void checkIntExpression(String input, int expectedOutput, SpliceWatcher methodWatcher) throws SQLException {
+        checkIntExpression(input, expectedOutput, methodWatcher.getOrCreateConnection());
+    }
+
+    private String addPotentiallyMissingSelect(String input) {
+        if (!input.toLowerCase().startsWith("select")) {
+            return format("select %s", input);
+        } else {
+            return input;
+        }
+    }
+
     public static boolean isMemPlatform(SpliceWatcher watcher) throws Exception{
         try (ResultSet rs = watcher.executeQuery("CALL SYSCS_UTIL.SYSCS_IS_MEM_PLATFORM()")) {
             rs.next();
