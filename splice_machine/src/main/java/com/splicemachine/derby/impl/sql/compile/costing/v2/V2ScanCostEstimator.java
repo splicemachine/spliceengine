@@ -197,6 +197,14 @@ public class V2ScanCostEstimator extends AbstractScanCostEstimator {
             double olapReductionFactor = Math.max(2, Math.min(Math.log(numPartitions), Math.log(parallelism)));
             baseCost = baseCost / olapReductionFactor + OLAP_START_OVERHEAD;
         }
+        if (isIndexOnExpression && baseColumnsInLookup == null) {
+            // covering index on expression
+            // This is a trick to prefer a covering index on expressions over table scan. We have to
+            // do it this way because in current optimizer framework, best plan is decided in costing
+            // from tables. But an index expression may be evaluated later, for example, as a grouping
+            // expression or a select expression.
+            baseCost *= 0.9999;
+        }
         assert baseCost >= 0 : "baseCost cannot be negative -> " + baseCost;
 
         double fromBaseTableRowCount = totalRowCount * filterBaseTableSelectivity;

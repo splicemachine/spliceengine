@@ -166,6 +166,14 @@ public class V1ScanCostEstimator extends AbstractScanCostEstimator {
         double scannedRowCount = totalRowCount * baseTableSelectivity;
         baseCost += (numFirstIndexColumnProbes*2)*localLatency*(1+congAverageWidth/100d);
         baseCost += (Math.max(scannedRowCount, 1)*localLatency*(1+congAverageWidth/100d));
+        if (isIndexOnExpression && baseColumnsInLookup == null) {
+            // covering index on expression
+            // This is a trick to prefer a covering index on expressions over table scan. We have to
+            // do it this way because in current optimizer framework, best plan is decided in costing
+            // from tables. But an index expression may be evaluated later, for example, as a grouping
+            // expression or a select expression.
+            baseCost *= 0.9999;
+        }
         assert congAverageWidth >= 0 : "congAverageWidth cannot be negative -> " + congAverageWidth;
         assert baseCost >= 0 : "baseCost cannot be negative -> " + baseCost;
 
