@@ -157,10 +157,10 @@ public class MergeNode extends DMLStatementNode
     private ValueNode   _searchCondition;
     private List<MatchingClauseNode>   _matchingClauses;
 
-    //
-    // Filled in at bind() time.
-    //
+    // filled in at bind() time
+    private ResultColumnList    _selectList;
     private FromList                _leftJoinFromList;
+    private HalfOuterJoinNode   _hojn;
 
     //
     // Filled in at generate() time.
@@ -236,7 +236,7 @@ public class MergeNode extends DMLStatementNode
 
         for ( MatchingClauseNode mcn : _matchingClauses )
         {
-            mcn.bind( dd, this, dummyFromList, dummyTargetTable );
+            mcn.bindResultSetNumbers( this, _leftJoinFromList );
         }
 
         bindLeftJoin( dd );
@@ -250,7 +250,7 @@ public class MergeNode extends DMLStatementNode
 
         for ( MatchingClauseNode mcn : _matchingClauses )
         {
-            if ( mcn.isUpdateClause() || mcn.isInsertClause() )
+            if ( mcn.isUpdateClause() )
             {
                 throw StandardException.newException( SQLState.NOT_IMPLEMENTED, "MERGE" );
             }
@@ -275,7 +275,7 @@ public class MergeNode extends DMLStatementNode
         try {
             cc.setReliability( previousReliability | CompilerContext.SQL_IN_ROUTINES_ILLEGAL );
 
-            HalfOuterJoinNode   hojn = new HalfOuterJoinNode
+            _hojn = new HalfOuterJoinNode
                     (
                             _sourceTable,
                             _targetTable,
@@ -286,7 +286,7 @@ public class MergeNode extends DMLStatementNode
                             getContextManager()
                     );
 
-            _leftJoinFromList = hojn.makeFromList( true, true );
+            _leftJoinFromList = _hojn.makeFromList( true, true );
             _leftJoinFromList.bindTables( dd, new FromList( getNodeFactory().doJoinOrderOptimization(), getContextManager() ) );
 
             if ( !sourceIsBase_View_or_VTI() )
@@ -295,10 +295,10 @@ public class MergeNode extends DMLStatementNode
             }
 
             FromList    topFromList = new FromList( getNodeFactory().doJoinOrderOptimization(), getContextManager() );
-            topFromList.addFromTable( hojn );
+            topFromList.addFromTable( _hojn );
 
             // preliminary binding of the matching clauses to resolve column
-            // referneces. this ensures that we can add all of the columns from
+            // references. this ensures that we can add all of the columns from
             // the matching refinements to the SELECT list of the left join.
             // we re-bind the matching clauses when we're done binding the left join
             // because, at that time, we have result set numbers needed for
@@ -310,11 +310,14 @@ public class MergeNode extends DMLStatementNode
 
             ResultColumnList    selectList = buildSelectList();
 
+            // save a copy so that we can remap column references when generating the temporary rows
+            _selectList = selectList.copyListAndObjects();
+
             // calculate the offsets into the SELECT list which define the rows for
             // the WHEN [ NOT ] MATCHED  actions
             for ( MatchingClauseNode mcn : _matchingClauses )
             {
-                mcn.bindThenColumns( selectList );
+                mcn.bindThenColumns( _selectList );
             }
 
             resultSet = new SelectNode
@@ -624,6 +627,14 @@ public class MergeNode extends DMLStatementNode
     public void generate( ActivationClassBuilder acb, MethodBuilder mb )
             throws StandardException
     {
+        for ( MatchingClauseNode mcn : _matchingClauses )
+        {
+            if ( mcn.isUpdateClause() )
+            {
+                throw StandardException.newException( SQLState.NOT_IMPLEMENTED, "MERGE" );
+            }
+        }
+
         int     clauseCount = _matchingClauses.size();
 
         /* generate the parameters */
@@ -639,7 +650,7 @@ public class MergeNode extends DMLStatementNode
         {
             MatchingClauseNode  mcn = _matchingClauses.get( i );
 
-            mcn.generate( acb, i );
+            mcn.generate( acb, _selectList, _hojn, i );
             clauseActions[ i ] = mcn.makeConstantAction( acb );
         }
         _constantAction = getGenericConstantActionFactory().getMergeConstantAction( clauseActions );

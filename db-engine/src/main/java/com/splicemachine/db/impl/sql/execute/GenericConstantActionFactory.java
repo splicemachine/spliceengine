@@ -412,6 +412,7 @@ public abstract class GenericConstantActionFactory {
      *    @param baseRowReadMap        BaseRowReadMap[heapColId]->ReadRowColumnId.
      *  @param streamStorableHeapColIds Null for non rep. (0 based)
      *  @param singleRowSource        Whether or not source is a single row source
+     *  @param underMerge   True if this is an action of a MERGE statement.
      *
      *  @exception StandardException        Thrown on failure
      */
@@ -444,7 +445,8 @@ public abstract class GenericConstantActionFactory {
                                 int                    numColumns,
                                 UUID                dependencyId,
                                 boolean                singleRowSource,
-                                ConstantAction[]    dependentConstantActions
+                                ConstantAction[]    dependentConstantActions,
+                                boolean             underMerge
     )
             throws StandardException;
 
@@ -632,6 +634,7 @@ public abstract class GenericConstantActionFactory {
      *  @param singleRowSource    Whether or not source is a single row source
      *  @param autoincRowLocation array of row locations into syscolumns for
                                   autoincrement columns
+     *  @param underMerge   True if this is an INSERT action of a MERGE statement.
      *
      * @exception StandardException        Thrown on failure
      */
@@ -659,7 +662,8 @@ public abstract class GenericConstantActionFactory {
                                 Object[]            stageControl,
                                 Object[]            ddlList,
                                 boolean                singleRowSource,
-                                RowLocation[]        autoincRowLocation
+                                RowLocation[]        autoincRowLocation,
+                                boolean             underMerge
                             )
             throws StandardException;
 
@@ -742,6 +746,7 @@ public abstract class GenericConstantActionFactory {
      *  @param numColumns            The number of columns being read.
      *    @param positionedUpdate        is this a positioned update
      *  @param singleRowSource        Whether or not source is a single row source
+     *  @param underMerge   True if this is an action of a MERGE statement.
      *
      *  @exception StandardException Thrown on failure
      */
@@ -770,7 +775,8 @@ public abstract class GenericConstantActionFactory {
                                 int                    numColumns,
                                 boolean                positionedUpdate,
                                 boolean                singleRowSource,
-                                int[] storagePositionArray
+                                int[] storagePositionArray,
+                                boolean underMerge
                             )
             throws StandardException;
 
@@ -894,5 +900,19 @@ public abstract class GenericConstantActionFactory {
                                                           String actionMethodName,
                                                           ConstantAction thenAction);
 
+    public abstract ConstantAction getMatchingClauseConstantAction(
+            int    clauseType,
+            String matchRefinementName,
+            ResultDescription  thenColumnSignature,
+            String rowMakingMethodName,
+            int[]  thenColumns,
+            String resultSetFieldName,
+            String actionMethodName,
+            ConstantAction thenAction
+    );
+
+    /**
+     * Make the ConstantAction for a MERGE statement.
+     */
     public abstract ConstantAction getMergeConstantAction(ConstantAction[] matchingClauses);
 }
