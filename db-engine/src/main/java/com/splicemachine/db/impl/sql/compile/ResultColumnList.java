@@ -3370,6 +3370,25 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         }
     }
 
+    /** Set the default in a ResultColumn */
+    void    setDefault( ResultColumn rc, ColumnDescriptor cd, DefaultInfoImpl defaultInfo )
+            throws StandardException
+    {
+        /* Query is dependent on the DefaultDescriptor */
+        DefaultDescriptor defaultDescriptor = cd.getDefaultDescriptor(getDataDictionary());
+        getCompilerContext().createDependency(defaultDescriptor);
+
+        rc.setExpression
+                (
+                        DefaultNode.parseDefault
+                                (
+                                        defaultInfo.getDefaultText(),
+                                        getLanguageConnectionContext(),
+                                        getCompilerContext()
+                                )
+                );
+    }
+
     /**
      * Walk the RCL and check for DEFAULTs.  DEFAULTs
      * are invalid at the time that this method is called,

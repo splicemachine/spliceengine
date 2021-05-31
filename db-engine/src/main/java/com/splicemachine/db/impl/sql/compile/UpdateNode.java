@@ -865,7 +865,8 @@ public final class UpdateNode extends DMLModStatementNode
                   readColsBitSet.getNumBitsSet(),
               positionedUpdate,
               resultSet.isOneRowResultSet(),
-              targetTableDescriptor.getStoragePositionArray()
+              targetTableDescriptor.getStoragePositionArray(),
+              inMatchingClause()
               );
     }
 

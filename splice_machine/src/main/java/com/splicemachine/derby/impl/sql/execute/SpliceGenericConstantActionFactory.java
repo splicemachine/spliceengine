@@ -248,7 +248,8 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                                                   FKInfo[] fkInfo,TriggerInfo triggerInfo,
                                                   FormatableBitSet baseRowReadList,int[] baseRowReadMap,
                                                   int[] streamStorableHeapColIds,int numColumns,UUID dependencyId,
-                                                  boolean singleRowSource,ConstantAction[] dependentConstantActions)
+                                                  boolean singleRowSource,ConstantAction[] dependentConstantActions,
+                                                  boolean underMerge)
             throws StandardException{
         SpliceLogUtils.trace(LOG,"getDeleteConstantAction for {%s.%s}",schemaName,tableName);
         return new DeleteConstantOperation(
@@ -270,7 +271,8 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                 numColumns,
                 singleRowSource,
                 resultDescription,
-                dependentConstantActions
+                dependentConstantActions,
+                underMerge
         );
     }
 
@@ -354,7 +356,8 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
             TriggerInfo triggerInfo,int[] streamStorableHeapColIds,
             boolean[] indexedCols,UUID dependencyId,Object[] stageControl,
             Object[] ddlList,boolean singleRowSource,
-            RowLocation[] autoincRowLocation) throws StandardException{
+            RowLocation[] autoincRowLocation,
+            boolean underMerge) throws StandardException{
         SpliceLogUtils.trace(LOG,"getInsertConstantAction for {%s}",tableDescriptor);
         return new InsertConstantOperation(tableDescriptor,
                 conglomId,
@@ -373,7 +376,8 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                 streamStorableHeapColIds,
                 indexedCols,
                 singleRowSource,
-                autoincRowLocation
+                autoincRowLocation,
+                underMerge
         );
     }
 
@@ -438,7 +442,8 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                                                   int numColumns,
                                                   boolean positionedUpdate,
                                                   boolean singleRowSource,
-                                                  int[] storagePositionArray) throws StandardException{
+                                                  int[] storagePositionArray,
+                                                  boolean underMerge) throws StandardException{
         return new UpdateConstantOperation(
                 conglomId,
                 heapSCOCI,
@@ -460,7 +465,8 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                 numColumns,
                 positionedUpdate,
                 singleRowSource,
-                storagePositionArray
+                storagePositionArray,
+                underMerge
         );
     }
 
@@ -532,15 +538,28 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
      * Make the ConstantAction for a WHEN [ NOT ] MATCHED clause.
      */
     @Override
-    public ConstantAction getMatchingClauseConstantAction(int clauseType,
-                                                          String matchRefinementName,
-                                                          int[] thenColumns,
-                                                          String resultSetFieldName,
-                                                          String actionMethodName,
-                                                          ConstantAction thenAction)
+    public ConstantAction getMatchingClauseConstantAction(
+            int    clauseType,
+            String matchRefinementName,
+            ResultDescription  thenColumnSignature,
+            String rowMakingMethodName,
+            int[]  thenColumns,
+            String resultSetFieldName,
+            String actionMethodName,
+            ConstantAction thenAction
+    )
     {
         return new MatchingClauseConstantAction
-                (clauseType, matchRefinementName, thenColumns, resultSetFieldName, actionMethodName, thenAction);
+                (
+                        clauseType,
+                        matchRefinementName,
+                        thenColumnSignature,
+                        rowMakingMethodName,
+                        thenColumns,
+                        resultSetFieldName,
+                        actionMethodName,
+                        thenAction
+                );
     }
 
     /**

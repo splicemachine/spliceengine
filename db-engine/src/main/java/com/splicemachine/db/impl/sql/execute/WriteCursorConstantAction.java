@@ -98,6 +98,8 @@ public abstract class WriteCursorConstantAction implements ConstantAction, Forma
     boolean singleRowSource;
     protected int[] pkColumns;
 
+    /** True if this is an action of a MERGE statement */
+    private boolean underMerge;
 
     // CONSTRUCTORS
 
@@ -126,6 +128,7 @@ public abstract class WriteCursorConstantAction implements ConstantAction, Forma
      * @param baseRowReadMap           BaseRowReadMap[heapColId]->ReadRowColumnId. (0 based)
      * @param streamStorableHeapColIds Null for non rep. (0 based)
      * @param singleRowSource          Whether or not source is a single row source
+     * @param underMerge   True if this action is under a MERGE statement
      */
     public WriteCursorConstantAction(
             long conglomId,
@@ -145,7 +148,8 @@ public abstract class WriteCursorConstantAction implements ConstantAction, Forma
             FormatableBitSet baseRowReadList,
             int[] baseRowReadMap,
             int[] streamStorableHeapColIds,
-            boolean singleRowSource
+            boolean singleRowSource,
+            boolean underMerge
     ) {
         this.conglomId = conglomId;
         this.heapSCOCI = heapSCOCI;
@@ -166,6 +170,7 @@ public abstract class WriteCursorConstantAction implements ConstantAction, Forma
         this.streamStorableHeapColIds = streamStorableHeapColIds;
         this.singleRowSource = singleRowSource;
         this.indexNames = indexNames;
+        this.underMerge = underMerge;
         if (SanityManager.DEBUG) {
             if (fkInfo != null) {
                 SanityManager.ASSERT(fkInfo.length != 0, "fkinfo array has no elements, if there are no foreign keys, then pass in null");
@@ -262,6 +267,7 @@ public abstract class WriteCursorConstantAction implements ConstantAction, Forma
                 pkColumns[i] = in.readInt();
             }
         }
+        underMerge = in.readBoolean();
     }
 
     /**
@@ -308,11 +314,13 @@ public abstract class WriteCursorConstantAction implements ConstantAction, Forma
                 out.writeInt(pkColumn);
             }
         }
-
-
+        out.writeBoolean( underMerge );
     }
 
     // ACCESSORS
+
+    /** Return true if this is an action of a MERGE statement */
+    public  boolean underMerge() { return underMerge; }
 
     /**
      * Get the conglomerate id for the changed heap.
