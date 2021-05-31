@@ -118,7 +118,6 @@ public class ExplainNode extends DMLStatementNode {
                        Integer end,
                        ContextManager cm) {
         setContextManager(cm);
-        setNodeType(C_NodeTypes.EXPLAIN_NODE);
         node = statementNode;
         this.sparkExplainKind = sparkExplainKind;
         this.showNoStatsObjects = showNoStatsObjects;

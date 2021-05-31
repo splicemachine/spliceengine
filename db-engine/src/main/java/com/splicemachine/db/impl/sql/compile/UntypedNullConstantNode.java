@@ -61,7 +61,6 @@ public final class UntypedNullConstantNode extends ConstantNode
 
     public UntypedNullConstantNode(ContextManager cm) {
         super(cm);
-        setNodeType(C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE);
     }
 
     /**

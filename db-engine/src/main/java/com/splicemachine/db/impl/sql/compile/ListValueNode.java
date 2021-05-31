@@ -61,7 +61,7 @@ public final class ListValueNode extends ValueNode {
     
     ValueNodeList valuesList = null;
 
-    ListValueNode() {}
+    public ListValueNode() {}
 
     public ListValueNode(ValueNodeList constList, ContextManager contextManager) throws StandardException {
         setContextManager(contextManager);

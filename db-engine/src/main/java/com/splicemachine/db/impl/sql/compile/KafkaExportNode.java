@@ -58,7 +58,6 @@ public class KafkaExportNode extends DMLStatementNode {
 
     public KafkaExportNode(StatementNode statementNode, List argumentsVector, ContextManager cm) throws StandardException {
         setContextManager(cm);
-        setNodeType(C_NodeTypes.KAFKA_EXPORT_NODE);
         this.node = statementNode;
         this.topicName = ExportNode.stringValue(argumentsVector.get(0));
     }
