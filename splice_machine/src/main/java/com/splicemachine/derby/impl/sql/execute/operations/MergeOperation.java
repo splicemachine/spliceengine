@@ -23,6 +23,7 @@ import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.compile.MatchingClauseNode;
+import com.splicemachine.db.impl.sql.execute.TemporaryRowHolderImpl;
 import com.splicemachine.derby.impl.sql.execute.actions.MatchingClauseConstantAction;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.impl.sql.execute.actions.MergeConstantAction;
@@ -55,6 +56,8 @@ public class MergeOperation extends NoRowsOperation
     private ExecRow             _row;
     private long                _rowCount;
 
+    private TemporaryRowHolderImpl[]    _thenRows;
+
     ///////////////////////////////////////////////////////////////////////////////////
     //
     // CONSTRUCTOR
@@ -74,6 +77,7 @@ public class MergeOperation extends NoRowsOperation
         super( activation );
         _drivingLeftJoin = drivingLeftJoin;
         _constants = (MergeConstantAction) activation.getConstantAction();
+        _thenRows = new TemporaryRowHolderImpl[ _constants.matchingClauseCount() ];
     }
 
     ///////////////////////////////////////////////////////////////////////////////////
@@ -103,7 +107,7 @@ public class MergeOperation extends NoRowsOperation
         int         clauseCount = _constants.matchingClauseCount();
         for ( int i = 0; i < clauseCount; i++ )
         {
-            _constants.getMatchingClause( i ).executeConstantAction( activation );
+            _constants.getMatchingClause( i ).executeConstantAction( activation, _thenRows[ i ] );
         }
 
         cleanUp();
@@ -115,6 +119,12 @@ public class MergeOperation extends NoRowsOperation
     {
         super.setup();
 
+        int         clauseCount = _constants.matchingClauseCount();
+        for ( int i = 0; i < clauseCount; i++ )
+        {
+            _constants.getMatchingClause( i ).init();
+        }
+
         _rowCount = 0L;
         _drivingLeftJoin.openCore();
     }
@@ -123,7 +133,7 @@ public class MergeOperation extends NoRowsOperation
      */
 //    public void close() throws StandardException
 //    {
-//        //close( false );
+//        //close( false ); // todo
 //    }
 
     public void cleanUp() throws StandardException
@@ -131,6 +141,13 @@ public class MergeOperation extends NoRowsOperation
         int         clauseCount = _constants.matchingClauseCount();
         for ( int i = 0; i < clauseCount; i++ )
         {
+            TemporaryRowHolderImpl  thenRows = _thenRows[ i ];
+            if ( thenRows != null )
+            {
+                thenRows.close();
+                _thenRows[ i ] = null;
+            }
+
             _constants.getMatchingClause( i ).cleanUp();
         }
     }
@@ -182,9 +199,10 @@ public class MergeOperation extends NoRowsOperation
             // find the first clause which applies to this row
             MatchingClauseConstantAction    matchingClause = null;
             int         clauseCount = _constants.matchingClauseCount();
-            for ( int i = 0; i < clauseCount; i++ )
+            int         clauseIdx = 0;
+            for ( ; clauseIdx < clauseCount; clauseIdx++ )
             {
-                MatchingClauseConstantAction    candidate = _constants.getMatchingClause( i );
+                MatchingClauseConstantAction    candidate = _constants.getMatchingClause( clauseIdx );
                 boolean isWhenMatchedClause = false;
 
                 switch ( candidate.clauseType() )
@@ -209,7 +227,7 @@ public class MergeOperation extends NoRowsOperation
 
             if ( matchingClause != null )
             {
-                matchingClause.bufferThenRow( activation, _drivingLeftJoin.getResultDescription(), _row );
+                _thenRows[ clauseIdx ] = matchingClause.bufferThenRow( activation, _thenRows[ clauseIdx ], _row );
                 _rowCount++;
             }
         }

@@ -57,6 +57,9 @@ public interface NoPutResultSet extends ResultSet, RowLocationRetRowSource
 	String	LAST			=	"last";
 	String	PREVIOUS		=	"previous";
 
+	// result set number of all temporary result sets
+	public  static  final   int TEMPORARY_RESULT_SET_NUMBER = 0;
+
 	/**
 	 * Mark the ResultSet as the topmost one in the ResultSet tree.
 	 * Useful for closing down the ResultSet on an error.
