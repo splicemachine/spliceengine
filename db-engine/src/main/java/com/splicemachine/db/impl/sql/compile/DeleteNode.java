@@ -882,7 +882,6 @@ public class DeleteNode extends DMLModStatementNode
         TableName tableName = new TableName();
         tableName.init(schemaName , targetTableName);
 
-        NodeFactory nodeFactory = getNodeFactory();
         FromList      fromList = new FromList(getContextManager());
         FromBaseTable fromTable = new FromBaseTable(tableName, null, ReuseFactory.getInteger(FromBaseTable.DELETE),
                                                     null, getContextManager());

@@ -488,9 +488,6 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
 
         try {
             LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-            NodeFactory nodeFactory = lcc.getLanguageConnectionFactory().
-                    getNodeFactory();
-
             ColumnReference generatedRef = new ColumnReference(resultColumn.getName(),
                     null, ContextService.getService().getCurrentContextManager());
             VirtualColumnNode vnode = new VirtualColumnNode(resultSetNode, // source result set.
