@@ -253,8 +253,15 @@ public class FromBaseTable extends FromTable {
         return false;
     }
 
+    public FromBaseTable() {}
+
+    public FromBaseTable(ContextManager cm){
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.FROM_BASE_TABLE);
+    }
+
     /**
-     * Initializer for a table in a FROM list.
+     * Constructor for a table in a FROM list.
      * @param tableName The name of the table
      * @param correlationName The correlation name
      * @param rclOrUD update/delete flag or result column list
@@ -264,17 +271,33 @@ public class FromBaseTable extends FromTable {
      */
     public FromBaseTable(TableName tableName, String correlationName,Object rclOrUD,Object propsOrRcl, Object isBulkDelete, Object pastTxIdExpr,
                          ContextManager cm){
-        this(tableName, correlationName, rclOrUD, propsOrRcl, cm);
+        this(cm);
+        init2(tableName, correlationName, rclOrUD, propsOrRcl, isBulkDelete, pastTxIdExpr);
+    }
+
+    public FromBaseTable(TableName tableName, String correlationName,Object rclOrUD,Object propsOrRcl, ContextManager cm) {
+        this(cm);
+        init2(tableName, correlationName, rclOrUD, propsOrRcl);
+    }
+
+    @Override
+    public void init(Object tableName, Object correlationName,Object rclOrUD,Object propsOrRcl, Object isBulkDelete, Object pastTxIdExpr){
+        init2((TableName)tableName, (String)correlationName, rclOrUD, propsOrRcl, isBulkDelete, pastTxIdExpr);
+    }
+
+    public void init(Object tableName, Object correlationName,Object rclOrUD,Object propsOrRcl){
+        init2((TableName) tableName, (String) correlationName, rclOrUD, propsOrRcl);
+    }
+
+    public void init2(TableName tableName, String correlationName,Object rclOrUD,Object propsOrRcl, Object isBulkDelete, Object pastTxIdExpr){
         this.isBulkDelete = (Boolean) isBulkDelete;
         if(pastTxIdExpr != null) {
             this.pastTxIdExpression = (ValueNode) pastTxIdExpr;
         }
-
+        init2(tableName, correlationName, rclOrUD, propsOrRcl);
     }
 
-    public FromBaseTable(TableName tableName, String correlationName,Object rclOrUD,Object propsOrRcl, ContextManager cm){
-        setContextManager(cm);
-        setNodeType(C_NodeTypes.FROM_BASE_TABLE);
+    public void init2(TableName tableName, String correlationName,Object rclOrUD,Object propsOrRcl){
         if(rclOrUD instanceof Integer){
             init2(correlationName, null);
             this.tableName = tableName;
@@ -4833,9 +4856,7 @@ public class FromBaseTable extends FromTable {
 
     public FromBaseTable shallowClone() throws StandardException {
         FromBaseTable
-           fromBaseTable = (FromBaseTable) getNodeFactory().getNode(
-                                        C_NodeTypes.FROM_BASE_TABLE,
-                                        tableName,
+           fromBaseTable = new FromBaseTable(tableName,
                                         correlationName,
                                         resultColumns,
                                         null,
