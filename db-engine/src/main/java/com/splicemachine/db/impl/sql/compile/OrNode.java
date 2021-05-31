@@ -32,19 +32,30 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableInt;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
+import static com.splicemachine.db.impl.sql.compile.AndNode.newAndNode;
+
 public class OrNode extends BinaryLogicalOperatorNode {
     /* Is this the 1st OR in the OR chain? */
     private boolean firstOr;
+
+    public OrNode() {}
+    public OrNode(ValueNode left, ValueNode right, ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.OR_NODE);
+        init(left, right);
+    }
 
     /**
      * Initializer for an OrNode
@@ -242,10 +253,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
                 constList.addValueNode((ValueNode)constNodes.get(i));
             }
             
-            ValueNode lcn = (ListValueNode) getNodeFactory().getNode(
-                C_NodeTypes.LIST_VALUE_NODE,
-                constList,
-                getContextManager());
+            ValueNode lcn = new ListValueNode(constList, getContextManager());
             vnl.addValueNode(lcn);
         }
     }
@@ -458,13 +466,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
         }
 
         /* Convert the OrNode to an AndNode */
-        AndNode    andNode;
-
-        andNode = (AndNode) getNodeFactory().getNode(
-                                                    C_NodeTypes.AND_NODE,
-                                                    getLeftOperand(),
-                                                    getRightOperand(),
-                                                    getContextManager());
+        AndNode andNode = new AndNode(getLeftOperand(), getRightOperand(), getContextManager());
         andNode.setType(getTypeServices());
         return andNode;
     }
@@ -509,15 +511,8 @@ public class OrNode extends BinaryLogicalOperatorNode {
         {
             BooleanConstantNode    falseNode;
 
-            falseNode = (BooleanConstantNode) getNodeFactory().getNode(
-                                            C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                                            Boolean.FALSE,
-                                            getContextManager());
-            setRightOperand((ValueNode) getNodeFactory().getNode(
-                                                C_NodeTypes.OR_NODE,
-                                                getRightOperand(),
-                                                falseNode,
-                                                getContextManager()));
+            falseNode = new BooleanConstantNode(Boolean.FALSE,getContextManager());
+            setRightOperand(new OrNode(getRightOperand(), falseNode, getContextManager()));
             ((OrNode) getRightOperand()).postBindFixup();
         }
 
@@ -534,19 +529,29 @@ public class OrNode extends BinaryLogicalOperatorNode {
         {
             BooleanConstantNode    falseNode;
 
-            falseNode = (BooleanConstantNode) getNodeFactory().getNode(
-                                            C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                                            Boolean.FALSE,
-                                            getContextManager());
-            curOr.setRightOperand(
-                    (ValueNode) getNodeFactory().getNode(
-                                                C_NodeTypes.OR_NODE,
-                                                curOr.getRightOperand(),
-                                                falseNode,
+            falseNode = new BooleanConstantNode(Boolean.FALSE,getContextManager());
+            curOr.setRightOperand( new OrNode(curOr.getRightOperand(), falseNode,
                                                 getContextManager()));
             ((OrNode) curOr.getRightOperand()).postBindFixup();
         }
 
+        normalize();
+
+        /* Finally, we continue to normalize the left and right subtrees. */
+        setLeftOperand(getLeftOperand().changeToCNF(false));
+        setRightOperand(getRightOperand().changeToCNF(false));
+
+        // See if we can convert this OR into an AND for
+        // a more complete conversion to CNF.
+        if (underTopAndNode) {
+            ValueNode newOperator = dnfToCNF();
+            if (newOperator != null)
+                return newOperator;
+        }
+        return this;
+    }
+
+    public void normalize() {
         /* If leftOperand is an OrNode, then we modify the tree from:
          *
          *                this
@@ -586,12 +591,158 @@ public class OrNode extends BinaryLogicalOperatorNode {
             newRight.setLeftOperand(oldLeft.getRightOperand());
             newRight.setRightOperand(oldRight);
         }
+    }
 
-        /* Finally, we continue to normalize the left and right subtrees. */
-        setLeftOperand(getLeftOperand().changeToCNF(false));
-        setRightOperand(getRightOperand().changeToCNF(false));
+    private ValueNode dnfToCNF() throws StandardException {
+        // Collect the children in the chain of linked OR nodes.
+        // Any child AND nodes can be combined via the distributive property.
+        List<List<ValueNode>> linkedChildren = new ArrayList<>();
+        collectChildLists(getLeftOperand(), true, linkedChildren);
+        collectChildLists(getRightOperand(), true, linkedChildren);
+        long numDerivedPredicates = getNumDerivedPredicates(linkedChildren);
 
-        return this;
+        // If number of derived predicates we would build is 1 or less (means there are no ANDs),
+        // or larger than the maximum allowed, don't perform the expansion.
+        long maxPredicates = getCompilerContext().getMaxDerivedCNFPredicates();
+        if (numDerivedPredicates <= 1 ||
+            numDerivedPredicates > maxPredicates)
+            return null;
+        return buildCNFPredicates(linkedChildren, null, 0, null, null);
+    }
+
+    private long getNumDerivedPredicates(List<List<ValueNode>> linkedChildren) {
+        long runningCount = 1;
+        for (List<ValueNode> andedPreds:linkedChildren) {
+            runningCount *= andedPreds.size();
+            // Try to avoid overflow of runningCount.
+            if (runningCount > Integer.MAX_VALUE)
+                return runningCount;
+        }
+        return runningCount;
+    }
+
+    private ValueNode buildCNFPredicates(List<List<ValueNode>> linkedChildren,
+                                         List<OrNode> disjuncts,
+                                         int depth,
+                                         OrNode currentOrNode,
+                                         OrNode firstOrNode) throws StandardException {
+        int numberOfOrs = linkedChildren.size() - 1;
+        List<ValueNode> predicates = linkedChildren.get(depth);
+        OrNode newOrNode;
+
+        if (depth == 0)
+            disjuncts = new ArrayList<>();
+        for (ValueNode pred:predicates) {
+            if (pred instanceof OrNode)
+                newOrNode = (OrNode)pred;
+            else
+                newOrNode = newOrNode(pred);
+            if (depth == 0)
+                firstOrNode = newOrNode;
+            else // Build a right-linked chain of OR nodes
+                currentOrNode.setRightOperand(newOrNode);
+            if (depth < numberOfOrs) {
+                buildCNFPredicates(linkedChildren, disjuncts, depth + 1, newOrNode, firstOrNode);
+            }
+            else {
+                OrNode newOrChain =
+                    firstOrNode.shallowCloneORChain();
+                disjuncts.add(newOrChain);
+            }
+        }
+
+        // Now combine the disjunctions.
+        if (depth == 0) {
+            AndNode firstAnd = null;
+            AndNode newAndNode, currentAnd = null;
+            for (OrNode orNode:disjuncts) {
+                newAndNode = newAndNode(orNode, true);
+                if (firstAnd == null)
+                    firstAnd = newAndNode;
+                else
+                    currentAnd.setRightOperand(newAndNode);
+                currentAnd = newAndNode;
+            }
+            try {
+                CloneCRsVisitor cloneCRsVisitor = new CloneCRsVisitor();
+                firstAnd = (AndNode)firstAnd.accept(cloneCRsVisitor);
+            }
+            catch (StandardException e) {
+                // If unable to clone all ColumnReferences, it is
+                // unsafe to use this predicate tree.
+                return null;
+            }
+            return firstAnd;
+        }
+        return null;
+    }
+
+    public static OrNode newOrNode(ValueNode left) throws StandardException {
+        ValueNode falseNode=(ValueNode)left.getNodeFactory().getNode(
+                C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+                Boolean.FALSE,
+                left.getContextManager());
+        OrNode    orNode;
+        orNode = (OrNode) left.getNodeFactory().getNode(
+                                                    C_NodeTypes.OR_NODE,
+                                                    left,
+                                                    falseNode,
+                                                    left.getContextManager());
+        orNode.postBindFixup();
+        return orNode;
+    }
+
+    private List<ValueNode> linkNewList(List<List<ValueNode>> linkedChildren) {
+        List<ValueNode> andNodeLinkedChildren = new ArrayList<>();
+        linkedChildren.add(andNodeLinkedChildren);
+        return andNodeLinkedChildren;
+    }
+
+    private void collectChildLists(ValueNode node,
+                                   boolean underOrNode,
+                                   List<List<ValueNode>> linkedChildren) {
+        if (underOrNode) {
+            if (node instanceof AndNode) {
+                collectAndLinkedChildren((AndNode) node, linkNewList(linkedChildren));
+            }
+            else if (node instanceof OrNode) {
+                collectChildLists(((OrNode) node).getLeftOperand(), true, linkedChildren);
+                collectChildLists(((OrNode) node).getRightOperand(), true, linkedChildren);
+            }
+            else {
+                // OR'ing a FALSE does not change the outcome, so do not
+                // include boolean FALSE.
+                if (node instanceof BooleanConstantNode) {
+                    BooleanConstantNode bcn = (BooleanConstantNode) node;
+                    if (bcn.isBooleanFalse())
+                        return;
+                }
+                linkNewList(linkedChildren).add(node);
+            }
+        }
+    }
+
+    private void collectAndLinkedChildren(AndNode node,
+                                          List<ValueNode> andNodeLinkedChildren) {
+        if (node.getLeftOperand() instanceof AndNode)
+            collectAndLinkedChildren((AndNode)node.getLeftOperand(), andNodeLinkedChildren);
+        else
+            addAndedPredicate(node.getLeftOperand(), andNodeLinkedChildren);
+        if (node.getRightOperand() instanceof AndNode)
+            collectAndLinkedChildren((AndNode)node.getRightOperand(), andNodeLinkedChildren);
+        else
+            addAndedPredicate(node.getRightOperand(), andNodeLinkedChildren);
+    }
+
+    private void addAndedPredicate(ValueNode node, List<ValueNode> andNodeLinkedChildren) {
+        // AND'ing a TRUE does not change the outcome, so do not
+        // include boolean TRUE.
+        if (node instanceof BooleanConstantNode) {
+            BooleanConstantNode bcn = (BooleanConstantNode) node;
+            if (bcn.isBooleanTrue())
+                return;
+        }
+        andNodeLinkedChildren.add(node);
     }
 
     /**
@@ -633,5 +784,44 @@ public class OrNode extends BinaryLogicalOperatorNode {
                             getRightOperand().getTypeServices()
                                             )
                 );
+    }
+
+    public OrNode shallowCloneORChain() throws StandardException {
+        ValueNode node = this;
+        OrNode nextOrNode, currentOr = null;
+        OrNode firstNode = null;
+        while (node instanceof OrNode) {
+            OrNode orNode = (OrNode) node;
+            nextOrNode = newOrNode(orNode.getLeftOperand());
+            if (firstNode == null)
+                firstNode = nextOrNode;
+            else
+                currentOr.setRightOperand(nextOrNode);
+
+            currentOr = nextOrNode;
+            node = orNode.getRightOperand();
+        }
+        return firstNode;
+    }
+
+    @Override
+    public boolean isCloneable()
+    {
+        return true;
+    }
+
+    @Override
+    public ValueNode getClone() throws StandardException
+    {
+        ValueNode left = getLeftOperand();
+        ValueNode right = getRightOperand();
+        OrNode    orNode;
+        orNode = (OrNode) left.getNodeFactory().getNode(
+                                                    C_NodeTypes.OR_NODE,
+                                                    left,
+                                                    right,
+                                                    left.getContextManager());
+        orNode.postBindFixup();
+        return orNode;
     }
 }

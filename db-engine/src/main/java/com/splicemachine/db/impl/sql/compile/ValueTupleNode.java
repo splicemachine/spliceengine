@@ -1,6 +1,8 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.util.JBitSet;
 
@@ -14,6 +16,12 @@ import java.util.List;
  */
 public class ValueTupleNode extends ValueNode {
     private List<ValueNode> tuple = new ArrayList<>();
+
+    public ValueTupleNode() {}
+    public ValueTupleNode(ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.VALUE_TUPLE_NODE);
+    }
 
     @Override
     protected boolean isEquivalent(ValueNode o) throws StandardException {

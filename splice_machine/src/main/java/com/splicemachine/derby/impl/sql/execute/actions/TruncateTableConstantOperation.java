@@ -18,9 +18,7 @@ import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
-import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLChangeType;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.job.fk.FkJobSubmitter;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
@@ -184,10 +182,8 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
              */
         dd.startWriting(lcc);
 
-
         // Invalidate cache
-        DDLMessage.DDLChange change = ProtoUtil.createTruncateTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) tableId);
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(change));
+        notifyMetadataChange(tc, ProtoUtil.createTruncateTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) tableId));
 
         properties.setProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR, td.getSchemaName());
         properties.setProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR, td.getName());

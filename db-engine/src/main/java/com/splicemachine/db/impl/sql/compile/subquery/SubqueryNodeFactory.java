@@ -58,7 +58,7 @@ public class SubqueryNodeFactory {
     public AndNode buildAndNode() throws StandardException {
         ValueNode left = buildBooleanTrue();
         ValueNode right = buildBooleanTrue();
-        return (AndNode) nodeFactory.getNode(C_NodeTypes.AND_NODE, left, right, contextManager);
+        return new AndNode(left, right, contextManager);
     }
 
     /**
@@ -74,7 +74,7 @@ public class SubqueryNodeFactory {
      * BooleanConstantNode -- TRUE
      */
     public BooleanConstantNode buildBooleanTrue() throws StandardException {
-        BooleanConstantNode trueNode = (BooleanConstantNode) nodeFactory.getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE, Boolean.TRUE, contextManager);
+        BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE,contextManager);
         trueNode.setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, false));
         return trueNode;
     }

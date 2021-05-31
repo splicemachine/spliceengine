@@ -33,7 +33,10 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
 import java.util.Collections;
@@ -64,6 +67,12 @@ public class VirtualColumnNode extends ValueNode
     int columnId;
 
     private boolean correlated = false;
+
+    public VirtualColumnNode() {}
+    public VirtualColumnNode(ResultSetNode sourceResultSet, ResultColumn sourceColumn, int columnId, ContextManager contextManager) throws StandardException {
+        super(contextManager, C_NodeTypes.VIRTUAL_COLUMN_NODE);
+        init(sourceResultSet, sourceColumn, Integer.valueOf(columnId));
+    }
 
 
     /**
@@ -365,5 +374,22 @@ public class VirtualColumnNode extends ValueNode
 
     public int getColumnId() {
         return columnId;
+    }
+
+    public boolean immutable() {
+        return (getSourceResultSet() != null && getSourceResultSet().skipBindAndOptimize);
+    }
+
+    // By convention VirtualColumnNode's isCloneable method returns true, but
+    // it did not provide a getClone() method.
+    // It is not desirable to clone the entire VirtualColumnNode tree because
+    // Splice relies on node sharing of ResultColumn nodes so the proper source
+    // result set is always referenced.  Therefore VirtualColumnNode's getClone
+    // will do a shallow clone.
+    @Override
+    public ValueNode getClone() throws StandardException
+    {
+        return new VirtualColumnNode(sourceResultSet, // source result set.
+                sourceColumn, columnId, getContextManager());
     }
 }

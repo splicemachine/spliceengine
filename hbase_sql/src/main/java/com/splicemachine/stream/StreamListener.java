@@ -399,6 +399,10 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             }
         }
     }
+
+    public Throwable getFailure() {
+        return failure;
+    }
 }
 
 class PartitionState {

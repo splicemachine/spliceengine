@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.util.StatementUtils;
@@ -36,7 +37,7 @@ import java.util.*;
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.resultSetSize;
 import static org.junit.Assert.*;
 
-public class UnionOperationIT {
+public class UnionOperationIT extends SpliceUnitTest {
 
     private static final String CLASS_NAME = UnionOperationIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);

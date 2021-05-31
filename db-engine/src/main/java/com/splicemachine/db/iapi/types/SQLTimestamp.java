@@ -47,7 +47,7 @@ import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
-import com.splicemachine.primitives.Bytes;
+import com.splicemachine.db.shared.common.sql.Utils;
 import org.apache.datasketches.theta.UpdateSketch;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.sql.Row;
@@ -173,44 +173,8 @@ public final class SQLTimestamp extends DataType implements DateTimeDataValue {
         return BASE_MEMORY_USAGE;
     } // end of estimateMemoryUsage
 
-    /**
-     * this also checks if the format is a valid fixed-size timestamp format
-     * see also https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html
-     * we support:
-     * yyyy, yy, uuuu, uu, eee, EEE, MM, mm, dd, HH, hh, ss, a
-     * up to 9x S (nanoseconds), and other characters " ,.-/:"
-     * @param format
-     * @throws IllegalArgumentException if format is not supported
-     * @return length of format
-     */
-    public static int getFormatLength(String format) throws IllegalArgumentException
-    {
-        byte[] b = format.getBytes(Bytes.UTF8_CHARSET);
-        int repeat = 0;
-        char last = (char)b[0];
-        int length = b.length;
-        for(int i=0; i<b.length+1; i++) {
-            if (i != b.length && (char) b[i] == last) {
-                repeat++;
-                continue;
-            }
-            int r = repeat;
-            char l = last;
-            repeat = 1;
-            if( i != b.length)
-                last = (char) b[i];
-            if ((l == 'y' || l == 'u') && (r == 4 || r == 2)) continue;
-            else if (r == 2 &&  "MmdHhs".indexOf(l) != -1 ) continue;
-            else if (r == 3 && (l == 'e' || l == 'E')) continue;
-            else if (l == 'S' && r <= 9) continue; // s fraction max 9
-            else if (r == 1 && l == 'a') {
-                length++;
-                continue;
-            }
-            else if(" ,.-/:".indexOf(l) != -1) continue;
-            throw new IllegalArgumentException("not supported format \"" + format + "\": '" + l + "' can't be repeated " + r + " times");
-        }
-        return length;
+    public static int getFormatLength(String format) throws IllegalArgumentException {
+        return Utils.getTimestampFormatLength(format);
     }
 
     /**

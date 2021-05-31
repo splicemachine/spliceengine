@@ -15,7 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -177,10 +177,9 @@ public class BroadcastJoinOperation extends JoinOperation{
         boolean useDataset = true;
 
         /** TODO don't know how to let spark report SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION error,
-         * so route to the rdd implementation for now for SSQ.  Also, spark join can't handle a zero length
-         * hash key, so it will use rdd as well.
+         * so route to the rdd implementation for now for SSQ.
          */
-        if (rightFromSSQ || leftHashKeys.length == 0)
+        if (rightFromSSQ)
             useDataset = false;
 
         DataSet<ExecRow> result;
@@ -219,9 +218,9 @@ public class BroadcastJoinOperation extends JoinOperation{
                 }
                 // Adding a filter in this manner disables native spark execution,
                 // so only do it if required.
-                boolean varcharDB2CompatibilityMode = PropertyUtil.getCachedDatabaseBoolean(
+                boolean varcharDB2CompatibilityMode = PropertyUtil.getCachedBoolean(
                         operationContext.getActivation().getLanguageConnectionContext(),
-                        Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
+                        GlobalDBProperties.SPLICE_DB2_VARCHAR_COMPATIBLE);
                 if (restriction != null && (varcharDB2CompatibilityMode || sparkJoinPredicate == null)) {
                     result = result.filter(new JoinRestrictionPredicateFunction(operationContext));
                 }

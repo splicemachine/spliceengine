@@ -157,7 +157,7 @@ public class FullOuterJoinNode extends JoinNode {
         }
 
 		/* Recurse down both sides of tree */
-        PredicateList noPredicates= (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
+        PredicateList noPredicates= new PredicateList(getContextManager());
         leftFromTable.pushExpressions(noPredicates);
         rightFromTable.pushExpressions(noPredicates);
     }
@@ -218,10 +218,7 @@ public class FullOuterJoinNode extends JoinNode {
 
         super.transformOuterJoins(predicateTree, numTables);
         if(PredicateSimplificationVisitor.isBooleanTrue(joinClause)){
-            JoinNode ij=(JoinNode)
-                    getNodeFactory().getNode(
-                            C_NodeTypes.JOIN_NODE,
-                            leftResultSet,
+            JoinNode ij = new JoinNode(leftResultSet,
                             rightResultSet,
                             joinClause,
                             null,
@@ -319,10 +316,7 @@ public class FullOuterJoinNode extends JoinNode {
             }
 
             if (action == CONVERSION.CONVERTINNER) {
-                ij = (JoinNode)
-                        getNodeFactory().getNode(
-                                C_NodeTypes.JOIN_NODE,
-                                leftResultSet,
+                ij = new JoinNode(leftResultSet,
                                 rightResultSet,
                                 joinClause,
                                 null,

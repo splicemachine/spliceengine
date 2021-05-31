@@ -299,8 +299,6 @@ public interface C_NodeNames
 
     String INTERSECT_OR_EXCEPT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.IntersectOrExceptNode";
 
-    String UNTYPED_NULL_CONSTANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.UntypedNullConstantNode";
-
     String USERTYPE_CONSTANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.UserTypeConstantNode";
 
     String VALUE_NODE_LIST_NAME = "com.splicemachine.db.impl.sql.compile.ValueNodeList";
@@ -322,14 +320,6 @@ public interface C_NodeNames
     String WINDOW_RESULTSET_NODE_NAME = "com.splicemachine.db.impl.sql.compile.WindowResultSetNode";
 
     String ROW_COUNT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.RowCountNode";
-
-    String EXPLAIN_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ExplainNode";
-
-    String EXPORT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ExportNode";
-
-    String KAFKA_EXPORT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.KafkaExportNode";
-
-    String TRUNC_NODE_NAME = "com.splicemachine.db.impl.sql.compile.TruncateOperatorNode";
 
     String SET_SESSION_PROPERTY_NAME = "com.splicemachine.db.impl.sql.compile.SetSessionPropertyNode";
 

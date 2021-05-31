@@ -213,19 +213,12 @@ public abstract class WindowFunctionNode extends AggregateNode {
           * replaced ourselves.
           */
         if (generatedRef == null) {
-            generatedRC = (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                "##SQLColWinGen_" + getSQLName(),
-                this,
-                getContextManager());
+            generatedRC = new ResultColumn("##SQLColWinGen_" + getSQLName(), this, getContextManager());
             generatedRC.markGenerated();
 
             // The generated column reference. It's returned from this method but is also maintained
             // by this aggregate node
-            generatedRef = (ColumnReference) getNodeFactory().getNode(
-                C_NodeTypes.COLUMN_REFERENCE,
-                generatedRC.getName(),
-                null,
+            generatedRef = new ColumnReference(generatedRC.getName(), null,
                 getContextManager());
 
             generatedRef.setSource(generatedRC);

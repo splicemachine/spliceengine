@@ -39,6 +39,8 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 
 import java.lang.reflect.Modifier;
 
@@ -51,12 +53,16 @@ import java.lang.reflect.Modifier;
 
 public final class NotNode extends UnaryLogicalOperatorNode
 {
+    public NotNode(ValueNode node, ContextManager cm) {
+        setNodeType(C_NodeTypes.NOT_NODE);
+        setContextManager(cm);
+        init(node);
+    }
     /**
      * Initializer for a NotNode
      *
      * @param operand    The operand of the NOT
      */
-
     public void init(Object operand)
     {
         super.init(operand, "not");
@@ -131,5 +137,27 @@ public final class NotNode extends UnaryLogicalOperatorNode
         mb.upCast(ClassName.DataValueDescriptor);
 
         mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "equals", interfaceName, 2);
+    }
+
+    @Override
+    public boolean isCloneable()
+    {
+        return true;
+    }
+
+    @Override
+    public ValueNode getClone() throws StandardException
+    {
+        ValueNode left = getOperand();
+        NotNode notNode = (NotNode) left.getNodeFactory().getNode(
+                                                    C_NodeTypes.NOT_NODE,
+                                                    left,
+                                                    left.getContextManager());
+        notNode.postBindFixup();
+        return notNode;
+    }
+
+    void postBindFixup() throws StandardException{
+        setType(getOperand().getTypeServices());
     }
 }
