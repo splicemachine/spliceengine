@@ -513,6 +513,14 @@ public class ScanCostFunction{
         // Base Cost + LookupCost + Projection Cost
         double congAverageWidth = scc.getConglomerateAvgRowWidth();
         double baseCost = openLatency+closeLatency+(totalRowCount*baseTableSelectivity*localLatency*(1+congAverageWidth/100d));
+        if (isIndexOnExpression && baseColumnsInLookup == null) {
+            // covering index on expression
+            // This is a trick to prefer a covering index on expressions over table scan. We have to
+            // do it this way because in current optimizer framework, best plan is decided in costing
+            // from tables. But an index expression may be evaluated later, for example, as a grouping
+            // expression or a select expression.
+            baseCost *= 0.9999;
+        }
         assert congAverageWidth >= 0 : "congAverageWidth cannot be negative -> " + congAverageWidth;
         assert baseCost >= 0 : "baseCost cannot be negative -> " + baseCost;
         scanCost.setFromBaseTableRows(Math.round(filterBaseTableSelectivity * totalRowCount));

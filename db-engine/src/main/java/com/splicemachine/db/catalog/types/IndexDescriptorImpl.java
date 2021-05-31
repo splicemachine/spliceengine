@@ -607,8 +607,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
         for (int i = 0; i < exprTexts.length; i++) {
             ValueNode exprAst = (ValueNode) p.parseSearchCondition(exprTexts[i]);
             setTableNumberToIndexExpr(exprAst, optTable);
-            bindNecessaryNodesInIndexExpr(exprAst, optTable, lcc);
-            exprAsts[i] = exprAst;
+            exprAsts[i] = bindNecessaryNodesInIndexExpr(exprAst, optTable, lcc);
         }
         lcc.popCompilerContext(newCC);
         return exprAsts;
@@ -636,24 +635,10 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
      * @param lcc a LanguageConnectionContext instance
      * @throws StandardException
      */
-    private static void bindNecessaryNodesInIndexExpr(ValueNode ast, Optimizable optTable, LanguageConnectionContext lcc)
+    private static ValueNode bindNecessaryNodesInIndexExpr(ValueNode ast, Optimizable optTable, LanguageConnectionContext lcc)
             throws StandardException
     {
-        // JavaToSQLValueNode has to be bound because the subtree structure might change during binding.
-        // Also, in case of a method call, method name may be resolved to a different one.
-        CollectNodesVisitor cnv = new CollectNodesVisitor(JavaToSQLValueNode.class);
-        ast.accept(cnv);
-        List<JavaToSQLValueNode> jtsvList = cnv.getList();
-        if (!jtsvList.isEmpty() && optTable instanceof FromTable) {
-            NodeFactory nf = lcc.getLanguageConnectionFactory().getNodeFactory();
-            FromList fromList = (FromList) nf.getNode(
-                    C_NodeTypes.FROM_LIST,
-                    nf.doJoinOrderOptimization(),
-                    optTable,
-                    lcc.getContextManager());
-            for (JavaToSQLValueNode jtsvNode : jtsvList) {
-                jtsvNode.bindExpression(fromList, new SubqueryList(), new ArrayList<AggregateNode>() {});
-            }
-        }
+        IndexExpressionBindingVisitor iebv = new IndexExpressionBindingVisitor(lcc, optTable);
+        return (ValueNode) ast.accept(iebv);
     }
 }
