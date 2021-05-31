@@ -74,6 +74,7 @@ public class DeleteConstantOperation extends WriteCursorConstantOperation {
      *  @param streamStorableHeapColIds Null for non rep. (0 based)
 	 *  @param numColumns	Number of columns to read.
 	 *  @param singleRowSource		Whether or not source is a single row source
+	 *  @param underMerge   True if this is an action of a MERGE statement.
 	 */
 	@SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
 	public	DeleteConstantOperation(
@@ -95,7 +96,8 @@ public class DeleteConstantOperation extends WriteCursorConstantOperation {
 								int					numColumns,
 								boolean				singleRowSource,
 								ResultDescription   resultDescription,
-								ConstantAction[] dependentCActions) {
+								ConstantAction[] dependentCActions,
+								boolean underMerge) {
 		super( conglomId, 
 			   heapSCOCI,
                 pkColumns,
@@ -111,7 +113,8 @@ public class DeleteConstantOperation extends WriteCursorConstantOperation {
 			   baseRowReadList,
 			   baseRowReadMap,
 			   streamStorableHeapColIds,
-			   singleRowSource
+			   singleRowSource,
+			   underMerge
 			   );
 
     	SpliceLogUtils.trace(LOG, "DeleteConstantOperation instance");

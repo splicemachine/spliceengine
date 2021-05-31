@@ -49,6 +49,7 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.iapi.sql.execute.ResultSetFactory;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -919,7 +920,8 @@ public final class InsertNode extends DMLModStatementNode {
                   null,
                   null,
                   resultSet.isOneRowResultSet(),
-                  autoincRowLocation
+                  autoincRowLocation,
+                  inMatchingClause()
                   );
         }
         else
@@ -1061,7 +1063,14 @@ public final class InsertNode extends DMLModStatementNode {
         acb.pushGetResultSetFactoryExpression(mb);
 
         // arg 1
-        resultSet.generate(acb, mb);
+        if ( inMatchingClause() )
+        {
+            matchingClause.generateResultSetField( acb, mb );
+        }
+        else
+        {
+            resultSet.generate( acb, mb );
+        }
 
         // arg 2 generate code to evaluate generation clauses
         generateGenerationClauses( resultColumnList, resultSet.getResultSetNumber(), false, acb, mb );
