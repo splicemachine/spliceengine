@@ -90,7 +90,6 @@ public class ExportNode extends DMLStatementNode {
 
     public ExportNode(StatementNode statementNode, List argsList, ContextManager cm) throws StandardException {
         setContextManager(cm);
-        setNodeType(C_NodeTypes.EXPORT_NODE);
         if (argsList.size() != EXPECTED_ARGUMENT_COUNT) {
             throw StandardException.newException(SQLState.LANG_DB2_NUMBER_OF_ARGS_INVALID, "EXPORT");
         }

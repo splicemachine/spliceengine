@@ -97,7 +97,6 @@ public class TruncateOperatorNode extends BinaryOperatorNode {
             throws StandardException
     {
         setContextManager(contextManager);
-        setNodeType(C_NodeTypes.TRUNC_NODE);
         operands = new ArrayList<>(Arrays.asList((ValueNode) truncOperand, (ValueNode) truncValue));
         operator = "truncate";
 

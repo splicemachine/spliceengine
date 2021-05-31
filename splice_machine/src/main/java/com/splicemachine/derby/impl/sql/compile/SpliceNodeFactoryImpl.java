@@ -167,9 +167,6 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.TABLE_ELEMENT_LIST:
                 return C_NodeNames.TABLE_ELEMENT_LIST_NAME;
 
-            case C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE:
-                return C_NodeNames.UNTYPED_NULL_CONSTANT_NODE_NAME;
-
             case C_NodeTypes.TABLE_ELEMENT_NODE:
                 return C_NodeNames.TABLE_ELEMENT_NODE_NAME;
 
@@ -607,18 +604,6 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 
             case C_NodeTypes.NEXT_SEQUENCE_NODE:
                 return C_NodeNames.NEXT_SEQUENCE_NODE_NAME;
-
-            case C_NodeTypes.EXPLAIN_NODE:
-                return C_NodeNames.EXPLAIN_NODE_NAME;
-
-            case C_NodeTypes.EXPORT_NODE:
-                return C_NodeNames.EXPORT_NODE_NAME;
-
-            case C_NodeTypes.KAFKA_EXPORT_NODE:
-                return C_NodeNames.KAFKA_EXPORT_NODE_NAME;
-
-            case C_NodeTypes.TRUNC_NODE:
-                return C_NodeNames.TRUNC_NODE_NAME;
 
             case C_NodeTypes.ARRAY_OPERATOR_NODE:
                 return C_NodeNames.ARRAY_OPERATOR_NODE_NAME;
