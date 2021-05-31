@@ -29,6 +29,9 @@ import java.net.InetSocketAddress;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * OlapStreamListener handles a communication from StreamLister to manage throttling if a client overloaded with
@@ -44,6 +47,8 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter implements 
     private String host;
     private int port;
     volatile  private boolean clientConsuming;
+    final Lock lock = new ReentrantLock();
+    final Condition consumingCondition = lock.newCondition();
 
     public OlapStreamListener(String host, int port, UUID uuid) {
         this.active = new CountDownLatch(1);
@@ -55,6 +60,14 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter implements 
 
     public boolean isClientConsuming() {
         return clientConsuming;
+    }
+
+    public Lock getLock() {
+        return lock;
+    }
+
+    public Condition getCondition() {
+        return consumingCondition;
     }
 
     public void createChannelToStreamListener() {
@@ -86,17 +99,23 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter implements 
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        if (msg instanceof StreamProtocol.PauseStream) {
-            if (clientConsuming) {
-                LOG.trace("Client is overloaded, asked for a pause: " + this);
-                clientConsuming = false;
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        lock.lock();
+        try {
+            if (msg instanceof StreamProtocol.PauseStream) {
+                if (clientConsuming) {
+                    LOG.trace("Client is overloaded, asked for a pause: " + this);
+                    clientConsuming = false;
+                }
+            } else if (msg instanceof StreamProtocol.ContinueStream) {
+                if (!clientConsuming) {
+                    LOG.trace("Client is resuming to consume: " + this);
+                    clientConsuming = true;
+                    consumingCondition.signalAll();
+                }
             }
-        } else if (msg instanceof StreamProtocol.ContinueStream) {
-            if (!clientConsuming) {
-                LOG.trace("Client is resuming to consume: " + this);
-                clientConsuming = true;
-            }
+        } finally {
+            lock.unlock();
         }
     }
 
