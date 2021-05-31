@@ -1173,14 +1173,22 @@ public class BinaryRelationalOperatorNode
      * operator is known; otherwise, this operator node
      */
     ValueNode evaluateConstantExpressions() throws StandardException{
-        if(leftOperand instanceof ConstantNode &&
-                rightOperand instanceof ConstantNode){
-            ConstantNode leftOp=(ConstantNode)leftOperand;
-            ConstantNode rightOp=(ConstantNode)rightOperand;
-            DataValueDescriptor leftVal=leftOp.getValue();
-            DataValueDescriptor rightVal=rightOp.getValue();
+        if(getLeftOperand() instanceof ConstantNode &&
+                getRightOperand() instanceof ConstantNode){
+            ConstantNode leftOp=(ConstantNode)getLeftOperand();
+            ConstantNode rightOp=(ConstantNode)getRightOperand();
 
-            if(leftVal != null && !leftVal.isNull() && rightVal != null && !rightVal.isNull()){
+            if (leftOp.isNull()) {
+                return getLeftOperand();
+            }
+            if (rightOp.isNull()) {
+                return getRightOperand();
+            }
+
+            DataValueDescriptor leftVal = leftOp.getValue();
+            DataValueDescriptor rightVal = rightOp.getValue();
+
+            if(leftVal != null && !leftVal.isNull() && rightVal != null && !rightVal.isNull()) {
                 int comp=leftVal.compare(rightVal);
                 switch(operatorType){
                     case EQUALS_RELOP:

@@ -219,7 +219,7 @@ public class PredicateSimplificationIT  extends SpliceUnitTest {
         List<String> containedStrings = Arrays.asList("MultiProbeIndexScan", "(A1[0:1] IN (1,2,3,4,5,6)");
         List<String> notContainedStrings = null;
         testQuery(query, expected);
-        if (!disablePredicateSimpification)
+        if (!disablePredicateSimpification && !disableConstantFolding)
             testExplainContains(query, containedStrings, notContainedStrings);
 
         query = format("select 1 from A --SPLICE-PROPERTIES useSpark=%s\n" +
@@ -234,7 +234,7 @@ public class PredicateSimplificationIT  extends SpliceUnitTest {
 
         containedStrings = Arrays.asList("MultiProbeIndexScan", "(A1[0:1] IN (4,5,6)");
         testQuery(query, expected);
-        if (!disablePredicateSimpification)
+        if (!disablePredicateSimpification && !disableConstantFolding)
             testExplainContains(query, containedStrings, notContainedStrings);
 
         query = format("select 1 from A --SPLICE-PROPERTIES useSpark=%s\n" +
@@ -246,7 +246,7 @@ public class PredicateSimplificationIT  extends SpliceUnitTest {
         containedStrings = Arrays.asList("Values(");
         notContainedStrings = Arrays.asList("TableScan");
         testQuery(query, expected);
-        if (!disablePredicateSimpification)
+        if (!disablePredicateSimpification && !disableConstantFolding)
             testExplainContains(query, containedStrings, notContainedStrings);
 
         query = format("select 1 from A --SPLICE-PROPERTIES useSpark=%s\n" +
@@ -288,14 +288,14 @@ public class PredicateSimplificationIT  extends SpliceUnitTest {
         containedStrings = Arrays.asList("");
         notContainedStrings = Arrays.asList("MultiProbeIndexScan", "preds");
         testQuery(query, expected);
-        if (!disablePredicateSimpification)
+        if (!disablePredicateSimpification && !disableConstantFolding)
             testExplainContains(query, containedStrings, notContainedStrings);
 
         query = format("select 1 from A --SPLICE-PROPERTIES useSpark=%s\n" +
             "where (true or a1 in (1,2,3) and a2 in (10,20,30) and a3 in (100,200,300)) ", useSpark);
 
         testQuery(query, expected);
-        if (!disablePredicateSimpification)
+        if (!disablePredicateSimpification && !disableConstantFolding)
             testExplainContains(query, containedStrings, notContainedStrings);
 
         query = format("select 1 from A --SPLICE-PROPERTIES useSpark=%s\n" +
@@ -314,7 +314,7 @@ public class PredicateSimplificationIT  extends SpliceUnitTest {
             containedStrings = Arrays.asList("MultiProbeIndexScan", "[((A1[0:1],A2[0:2]) IN ((4,40),(4,50),(4,60),(5,40),(5,50),(5,60),(6,40),(6,50),(6,60)))]");
         notContainedStrings = null;
         testQuery(query, expected);
-        if (!disablePredicateSimpification)
+        if (!disablePredicateSimpification && !disableConstantFolding)
             testExplainContains(query, containedStrings, notContainedStrings);
     }
 
@@ -337,7 +337,7 @@ public class PredicateSimplificationIT  extends SpliceUnitTest {
         String query;
         List<String> containedStrings;
         List<String> notContainedStrings;
-        if (!disablePredicateSimpification) {
+        if (!disablePredicateSimpification && !disableConstantFolding) {
             query = format("select 1 from A, B --SPLICE-PROPERTIES joinStrategy=MERGE, useSpark=%s\n" +
                     "where a1 = b1 or false ", useSpark);
 
@@ -358,7 +358,7 @@ public class PredicateSimplificationIT  extends SpliceUnitTest {
         notContainedStrings = Arrays.asList("preds");;
         testQuery(query, expected);
 
-        if (!disablePredicateSimpification)
+        if (!disablePredicateSimpification && !disableConstantFolding)
             testExplainContains(query, containedStrings, notContainedStrings);
 
         query = format("select count(*) from A --SPLICE-PROPERTIES useSpark=%s\n" +
@@ -408,7 +408,7 @@ public class PredicateSimplificationIT  extends SpliceUnitTest {
         containedStrings = Arrays.asList("");
         notContainedStrings = Arrays.asList("preds");;
         testQuery(query, expected);
-        if (!disablePredicateSimpification)
+        if (!disablePredicateSimpification && !disableConstantFolding)
             testExplainContains(query, containedStrings, notContainedStrings);
 
         query = format("select count(*) from A --SPLICE-PROPERTIES useSpark=%s\n" +
@@ -416,7 +416,7 @@ public class PredicateSimplificationIT  extends SpliceUnitTest {
             "a1 in (select d1 from D) ", useSpark);
 
         testQuery(query, expected);
-        if (!disablePredicateSimpification)
+        if (!disablePredicateSimpification && !disableConstantFolding)
             testExplainContains(query, containedStrings, notContainedStrings);
     }
 
@@ -439,7 +439,7 @@ public class PredicateSimplificationIT  extends SpliceUnitTest {
         List<String> notContainedStrings = null;
         List<Integer> paramList = Arrays.asList(1,2,3,4,5,6);
         testPreparedQuery(query, expected, paramList);
-        if (!disablePredicateSimpification)
+        if (!disablePredicateSimpification && !disableConstantFolding)
             testParameterizedExplainContains(query, containedStrings, notContainedStrings, paramList);
 
         containedStrings = Arrays.asList("Values(");
@@ -475,7 +475,7 @@ public class PredicateSimplificationIT  extends SpliceUnitTest {
         containedStrings = Arrays.asList("");
         notContainedStrings = Arrays.asList("Values", "preds");
         testPreparedQuery(query, expected, paramList);
-        if (!disablePredicateSimpification)
+        if (!disablePredicateSimpification && !disableConstantFolding)
             testParameterizedExplainContains(query, containedStrings, notContainedStrings, paramList);
 
         query = format("select count(*) from A --SPLICE-PROPERTIES useSpark=%s\n" +
@@ -501,7 +501,7 @@ public class PredicateSimplificationIT  extends SpliceUnitTest {
         containedStrings = Arrays.asList("");
         notContainedStrings = Arrays.asList("Values", "preds");
         testPreparedQuery(query, expected, paramList);
-        if (!disablePredicateSimpification)
+        if (!disablePredicateSimpification && !disableConstantFolding)
             testParameterizedExplainContains(query, containedStrings, notContainedStrings, paramList);
 
         query = format("select count(*) from A --SPLICE-PROPERTIES useSpark=%s\n" +
@@ -528,7 +528,7 @@ public class PredicateSimplificationIT  extends SpliceUnitTest {
         containedStrings = Arrays.asList("");
         notContainedStrings = Arrays.asList("Values", "preds");
         testPreparedQuery(query, expected, paramList);
-        if (!disablePredicateSimpification)
+        if (!disablePredicateSimpification && !disableConstantFolding)
             testParameterizedExplainContains(query, containedStrings, notContainedStrings, paramList);
 
         query = format("select count(*) from A --SPLICE-PROPERTIES useSpark=%s, index=pred_simpl_a1_a2\n" +
