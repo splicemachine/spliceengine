@@ -88,6 +88,7 @@ import java.util.Properties;
  */
 public final class InsertNode extends DMLModStatementNode {
 
+    InsertNode() {}
     InsertNode(
             QueryTreeNode    targetName,
             ResultColumnList insertColumns,
