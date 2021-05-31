@@ -71,7 +71,7 @@ public class StreamListenerIT {
                             "order by a1";
 
                     try(Connection connection = spliceClassWatcher.createConnection(); Statement s = connection.createStatement()){
-                        s.setQueryTimeout(120);
+                        s.setQueryTimeout(240);
                         ResultSet rs = s.executeQuery(sql);
                         long counter = 0;
                         while (rs.next()) {
