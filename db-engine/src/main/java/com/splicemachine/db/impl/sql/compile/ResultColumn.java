@@ -545,9 +545,6 @@ public class ResultColumn extends ValueNode
     public void setExpression(ValueNode expression)
     {
         this.expression = expression;
-        if( expression == null) {
-            System.out.println("ha");
-        }
     }
 
     /**
