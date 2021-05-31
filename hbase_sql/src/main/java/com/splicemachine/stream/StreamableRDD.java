@@ -113,7 +113,12 @@ public class StreamableRDD<T> {
                 try {
                     if (running < DEFAULT_PARALLEL_THREADS) {
                         if (running == 0 && !olapStreamListener.isClientConsuming()) {
-                            Thread.sleep(500);
+                            olapStreamListener.getLock().lock();
+                            try {
+                                olapStreamListener.getCondition().await(10, TimeUnit.SECONDS);
+                            } finally {
+                                olapStreamListener.getLock().unlock();
+                            }
                             continue;
                         }
                         if (olapStreamListener.isClientConsuming() && submitted < partitionBatches) {
