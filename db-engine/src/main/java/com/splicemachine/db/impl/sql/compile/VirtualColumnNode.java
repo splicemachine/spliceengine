@@ -71,7 +71,7 @@ public class VirtualColumnNode extends ValueNode
     public VirtualColumnNode() {}
     public VirtualColumnNode(ResultSetNode sourceResultSet, ResultColumn sourceColumn, int columnId, ContextManager contextManager) throws StandardException {
         super(contextManager, C_NodeTypes.VIRTUAL_COLUMN_NODE);
-        init(sourceResultSet, sourceColumn, new Integer(columnId));
+        init(sourceResultSet, sourceColumn, Integer.valueOf(columnId));
     }
 
 

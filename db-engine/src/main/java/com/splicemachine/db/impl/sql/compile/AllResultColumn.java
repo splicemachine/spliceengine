@@ -103,4 +103,8 @@ public class AllResultColumn extends ResultColumn
     public TableName getTableNameObject() {
         return tableName;
     }
+
+    public boolean equals(Object o){
+        return this == o;
+    }
 }
