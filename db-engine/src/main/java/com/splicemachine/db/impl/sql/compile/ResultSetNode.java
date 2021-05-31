@@ -1681,15 +1681,23 @@ public abstract class ResultSetNode extends QueryTreeNode{
             if(colMap[index]!=-1){
                 // getResultColumn uses 1-based positioning, so offset the
                 // colMap entry appropriately
-                oldResultColumn=
-                        resultColumns.getResultColumn(colMap[index]+1);
+                oldResultColumn =
+                        resultColumns.getResultColumn(colMap[index] + 1);
 
-                newColumnReference= new ColumnReference(oldResultColumn.getName(),
-                        null, getContextManager());
+                newColumnReference = new ColumnReference(
+                        oldResultColumn.getName(), null, getContextManager());
+
+                DataTypeDescriptor  dtd = oldResultColumn.getType();
+                if ( dtd == null )
+                {
+                    ColumnDescriptor    cd = target.targetTableDescriptor.getColumnDescriptor( index + 1 );
+                    dtd = cd.getType();
+                }
+
                 /* The ColumnReference points to the source of the value */
                 newColumnReference.setSource(oldResultColumn);
                 // colMap entry is 0-based, columnId is 1-based.
-                newColumnReference.setType(oldResultColumn.getType());
+                newColumnReference.setType( dtd );
 
                 // Source of an insert, so nesting levels must be 0
                 newColumnReference.setNestingLevel(0);
@@ -1699,7 +1707,10 @@ public abstract class ResultSetNode extends QueryTreeNode{
                 // column descriptors into the result, we grab it from there.
                 // alternatively, we could do what the else clause does,
                 // and look it up in the DD again.
-                newResultColumn = new ResultColumn(oldResultColumn.getType(), newColumnReference, getContextManager());
+                newResultColumn = new ResultColumn(
+                        dtd,
+                        newColumnReference,
+                        getContextManager());
             }else{
                 newResultColumn=genNewRCForInsert(
                         target.targetTableDescriptor,

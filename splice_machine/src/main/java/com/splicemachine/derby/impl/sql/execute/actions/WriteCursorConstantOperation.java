@@ -86,6 +86,8 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
 	boolean singleRowSource;
     protected int[] pkColumns;
 
+	/** True if this is an action of a MERGE statement */
+	private boolean underMerge;
 
     // CONSTRUCTORS
 
@@ -114,6 +116,7 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
 	 *  @param baseRowReadMap	BaseRowReadMap[heapColId]->ReadRowColumnId. (0 based)
      *  @param streamStorableHeapColIds Null for non rep. (0 based)
 	 *  @param singleRowSource		Whether or not source is a single row source
+	 *  @param underMerge   True if this action is under a MERGE statement
 	 */
 	@SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
 	public	WriteCursorConstantOperation(
@@ -134,7 +137,8 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
 								FormatableBitSet				baseRowReadList,
 								int[]               baseRowReadMap,
 								int[]               streamStorableHeapColIds,
-								boolean				singleRowSource
+								boolean				singleRowSource,
+								boolean				underMerge
 								)
 	{
 		this.conglomId = conglomId;
@@ -156,6 +160,7 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
 		this.streamStorableHeapColIds = streamStorableHeapColIds;
 		this.singleRowSource = singleRowSource;
 		this.indexNames = indexNames;
+		this.underMerge = underMerge;
 		if (SanityManager.DEBUG)
 		{
 			if (fkInfo != null)
@@ -343,6 +348,7 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
                 pkColumns[i] = in.readInt();
             }
         }
+		underMerge = in.readBoolean();
 	}
 
 	/**
@@ -497,9 +503,13 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
                 out.writeInt(pkColumns[i]);
             }
         }
+		out.writeBoolean( underMerge );
 	}
 
 	// ACCESSORS
+
+	/** Return true if this is an action of a MERGE statement */
+	public  boolean underMerge() { return underMerge; }
 
 	/**
 	 * Get the conglomerate id for the changed heap.
