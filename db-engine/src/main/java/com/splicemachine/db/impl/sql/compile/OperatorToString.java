@@ -847,9 +847,11 @@ public class OperatorToString {
                         dvd instanceof SQLLongvarchar ||
                         dvd instanceof SQLClob) {
                         if (vars.buildExpressionTree)
-                            str = format("%s", cn.getValue().getString());
+                            str = cn.getValue().getString();
                         else
-                            str = format("\'%s\' ", cn.getValue().getString());                 
+                            str = format("\'%s\' ", replace( replace(
+                                    cn.getValue().getString(), "\\", "\\\\"),
+                                    "'", "\\'"));
                     }
                     else if (dvd instanceof SQLDate)
                         str = format("date(\'%s\') ", cn.getValue().getString());
@@ -1118,8 +1120,8 @@ public class OperatorToString {
         }
         int replLength = searchString.length();
         int increase = replacement.length() - replLength;
-        increase = (increase < 0 ? 0 : increase);
-        increase *= (max < 0 ? 16 : (max > 64 ? 64 : max));
+        increase = (Math.max(increase, 0));
+        increase *= (max < 0 ? 16 : (Math.min(max, 64)));
         StringBuilder buf = new StringBuilder(text.length() + increase);
         while (end != -1) {
             buf.append(text.substring(start, end)).append(replacement);
