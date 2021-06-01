@@ -30,6 +30,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
@@ -383,7 +384,8 @@ public class SpliceTableAdmin {
 
     private static long countTable(String schema, String table, String index) throws SQLException {
         String sql = String.format(
-                "select count(*) from \"%s\".\"%s\" --splice-properties index=%s", schema, table, index==null?"null":index);
+                "select count(*) from %s.%s --splice-properties index=%s", IdUtil.normalToDelimited(schema),
+                IdUtil.normalToDelimited(table), index==null ? "null" : index);
         Connection connection = SpliceAdmin.getDefaultConn();
         try(PreparedStatement ps = connection.prepareStatement(sql);
                 ResultSet rs = ps.executeQuery()) {
