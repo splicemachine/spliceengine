@@ -226,8 +226,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 deSiify(scan);
                 if (firstRowOfIndexPrefixIteration != null) {
                     try {
-                        scan.attachKeyPrefixFilter(firstRowOfIndexPrefixIteration.getColumn(1),
-                                                   tableVersion);
+                        attachKeyPrefixFilter(scan, firstRowOfIndexPrefixIteration.getColumn(1));
                     } catch (IOException e) {
                         throw StandardException.plainWrapException(e);
                     }
