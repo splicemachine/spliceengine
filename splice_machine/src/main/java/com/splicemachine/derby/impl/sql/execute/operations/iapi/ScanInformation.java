@@ -66,7 +66,7 @@ public interface ScanInformation<T> {
                      List<Pair<T, T>> keyRows, DataValueDescriptor scanKeyPrefix,
                      boolean sameStartStopScanKeyPrefix,
                      List<ExecRow> firstIndexColumnKeys,
-                     boolean SkipBuildOfFirstKeyColumn) throws StandardException;
+                     boolean skipBuildOfFirstKeyColumn) throws StandardException;
 
     Qualifier[][] getScanQualifiers() throws StandardException;
 

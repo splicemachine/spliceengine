@@ -14,9 +14,11 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.hbase.KeyPrefixProbingFilter;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -28,6 +30,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
 /**
  * @author Scott Fines
@@ -251,9 +255,13 @@ public class HScan implements DataScan {
     }
 
     @Override
-    public void attachKeyPrefixFilter(DataValueDescriptor firstColumn, String tableVersion) throws IOException {
+    public void attachKeyPrefixFilter(Encoding.SpliceEncodingKind firstKeyColumnEncodingKind) throws IOException {
         Filter secondaryFilter = scan.getFilter();
         scan.setFilter(null);
-        filter(new HFilterWrapper(new KeyPrefixProbingFilter(firstColumn, tableVersion, secondaryFilter)));
+        if (!(secondaryFilter instanceof MultiRowRangeFilter))
+            throw new IOException(StandardException.newException(LANG_INTERNAL_ERROR,
+                    "Expected KeyPrefixFilter's secondary filter to be a MultiRowRangeFilter."));
+        MultiRowRangeFilter multiRowRangeFilter = (MultiRowRangeFilter) secondaryFilter;
+        filter(new HFilterWrapper(new KeyPrefixProbingFilter(firstKeyColumnEncodingKind, multiRowRangeFilter)));
     }
 }

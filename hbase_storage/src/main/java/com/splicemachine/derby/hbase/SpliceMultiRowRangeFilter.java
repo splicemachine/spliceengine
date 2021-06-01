@@ -20,10 +20,12 @@
 package com.splicemachine.derby.hbase;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.storage.HScan;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.PrivateCellUtil;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.exceptions.DeserializationException;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
@@ -36,6 +38,26 @@ import java.util.Collections;
 import java.util.List;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
+
+    /**
+     * A custom {@link MultiRowRangeFilter} which implements {@link Filter#reset()}
+     *
+     * This HBase filter has the exact same behavior as MultiRowRangeFilter,
+     * except that it may be reset and reused over and over again.
+     * In the super class, once filterRowKey finds a rowkey passed the last
+     * range in the filter, it sets private field {@code done} to true, and
+     * all subsequent calls to {@link MultiRowRangeFilter#filterAllRemaining()}
+     * return true, causing the scan to terminate.
+     * The logic in MultiRowRangeFilter also sometimes returns true in
+     * {@code hasFoundFirstRange()} when private field {@code range} has
+     * not been set, so greater control over this logic was needed.
+     * The logic of {@link MultiRowRangeFilter#filterRowKey(Cell firstRowCell)} and
+     * {@code MultiRowRangeFilter#getNextRangeIndex(byte[] rowKey)} is copied
+     * into this class to allow slight modification and so fields may be reset
+     * back to their initial state.  The only main difference is that {@code filterRowkey}
+     * returns true when the iteration through ranges is complete as a signal
+     * to the caller that we are done.
+     */
 
 @SuppressFBWarnings(value="HE_EQUALS_NO_HASHCODE", justification="Intentional")
 public class SpliceMultiRowRangeFilter extends MultiRowRangeFilter {
