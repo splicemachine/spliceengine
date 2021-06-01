@@ -16,6 +16,7 @@ package com.splicemachine.storage;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.utils.Pair;
 
 import java.io.IOException;
@@ -69,5 +70,5 @@ public interface DataScan extends Attributable{
     void addRowkeyRangesFilter(List<Pair<byte[],byte[]>> rowkeyPairs,
                                boolean skipStartStopKeyAdjustment) throws IOException;
 
-    void attachKeyPrefixFilter(DataValueDescriptor firstColumn, String tableVersion) throws IOException;
+    void attachKeyPrefixFilter(Encoding.SpliceEncodingKind firstKeyColumnEncodingKind) throws IOException;
 }

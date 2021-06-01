@@ -16,22 +16,16 @@ package com.splicemachine.derby.hbase;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.access.client.SpliceKVComparator;
 import com.splicemachine.coprocessor.SpliceMessage;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
-import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.PrivateCellUtil;
 import org.apache.hadoop.hbase.exceptions.DeserializationException;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
-import org.apache.hadoop.hbase.shaded.protobuf.generated.FilterProtos;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.Writable;
 
@@ -43,21 +37,51 @@ import static com.splicemachine.encoding.MultiFieldDecoder.create;
 import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.INCLUDE;
 import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.SEEK_NEXT_USING_HINT;
 
+    /**
+     * A custom HBase {@link Filter} which finds all encoded first column
+     * values in the present rowkeys of a splice internal table, and applies a
+     * secondary {@link Filter} on the rowkeys, ignoring rowkey bytes belonging
+     * to the first column.
+     *
+     * In order to correctly skip over the first column's bytes in a rowkey,
+     * the class must be told the type of the first column, whether it is
+     * scalar, float, double, or other, as indicated in the
+     * {@link Encoding.SpliceEncodingKind firstKeyColumnEncodingKind} field
+     * of the constructor.  The only {@code secondaryFilter} currently
+     * supported is any instanceof {@link MultiRowRangeFilter}.
+     * The {@link KeyPrefixProbingFilter#currentReturnCode} value is only
+     * set to {@link ReturnCode.INCLUDE} when the first column bytes of
+     * the current rowkey match the first column value currently being
+     * probed.  In this case we use the {@code secondaryFilter} to determine
+     * the final return code which {@code filterCell()} should indicate
+     * back to HBase.  The only two return codes the KeyPrefixProbingFilter
+     * uses are:
+     *     {@link ReturnCode.INCLUDE} : indicates secondaryFilter should
+     *                                  determine the return code and cell hint
+     *     {@link ReturnCode.SEEK_NEXT_USING_HINT} : indicates the secondaryFilter
+     *                                               will not be used any further for
+     *                                               the current first column value.
+     *                                               The current first column bytes,
+     *                                               suffixed with a 0x01 byte in place
+     *                                               of the 0x00 separator byte will be
+     *                                               used to seek the next rowkey.
+     *
+     * @notes The usefulness of this filter comes from its use of the
+     *        SEEK_NEXT_USING_HINT return code, which signals to HBase
+     *        to seek forward in the filesystem (or memstore) for the
+     *        next Cell with rowkey greater than or equal to the rowkey
+     *        returned via {@link Filter#getNextCellHint}.
+     */
+
 public class KeyPrefixProbingFilter extends FilterBase implements Writable{
     @SuppressWarnings("unused")
+
     private static final long serialVersionUID=1l;
     private byte[] currentPrefix = new byte[0];
     private int currentPrefixLength = 0;
     private byte[] nextRowkeyHint = new byte[0];
     private int nextRowkeyHintLength = 0;
-
-    private DataValueDescriptor firstKeyColumnDVD;
-    private int typeFormatId;
-    private byte[] firstKeyColumnDVDAsByteArray;
-    private String tableVersion;
-    private TypeProvider typeProvider;
-    private DescriptorSerializer[] serializers;
-    private DescriptorSerializer   serializer;
+    private Encoding.SpliceEncodingKind firstKeyColumnEncodingKind;
     private ReturnCode currentReturnCode = ReturnCode.INCLUDE;
     private MultiFieldDecoder decoder = create();
     protected Filter secondaryFilter;
@@ -66,59 +90,24 @@ public class KeyPrefixProbingFilter extends FilterBase implements Writable{
         super();
     }
 
-    public KeyPrefixProbingFilter(DataValueDescriptor firstKeyColumnDVD, String tableVersion, Filter secondaryFilter){
+    public KeyPrefixProbingFilter(Encoding.SpliceEncodingKind firstKeyColumnEncodingKind, MultiRowRangeFilter secondaryFilter){
         this();
-        if (firstKeyColumnDVD == null)
-            throw new RuntimeException();
-        if (tableVersion == null)
-            throw new RuntimeException();
-        if (!(secondaryFilter instanceof MultiRowRangeFilter))
-            throw new RuntimeException();
-        MultiRowRangeFilter multiRowRangeFilter = (MultiRowRangeFilter)secondaryFilter;
+        this.firstKeyColumnEncodingKind = firstKeyColumnEncodingKind;
 
-        this.firstKeyColumnDVD = firstKeyColumnDVD.cloneValue(true);
-        this.typeFormatId      = this.firstKeyColumnDVD.getTypeFormatId();
-        this.tableVersion      = tableVersion;
         if (secondaryFilter instanceof SpliceMultiRowRangeFilter)
             this.secondaryFilter   = secondaryFilter;
         else
-            this.secondaryFilter = new SpliceMultiRowRangeFilter(new ArrayList<>(multiRowRangeFilter.getRowRanges()));
-
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        try {
-            ObjectOutputStream oos = new ObjectOutputStream(bos);
-            oos.writeObject(firstKeyColumnDVD);
-            oos.flush();
-        }
-        catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        firstKeyColumnDVDAsByteArray = bos.toByteArray();
-        populateSerializers();
+            this.secondaryFilter = new SpliceMultiRowRangeFilter(new ArrayList<>(secondaryFilter.getRowRanges()));
     }
 
-    public byte [] getFirstKeyColumnDVDAsByteArray() {
-        return firstKeyColumnDVDAsByteArray;
-    }
-
-    public String getTableVersion() {
-        return tableVersion;
-    }
-
-    @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "intentional")
-    private void populateSerializers() {
-        typeProvider = VersionedSerializers.typesForVersion(tableVersion);
-        DataValueDescriptor [] dvdArray = new DataValueDescriptor[1];
-        dvdArray[0] = firstKeyColumnDVD;
-        serializers = VersionedSerializers.forVersion(tableVersion,true).getSerializers(dvdArray);
-        serializer = serializers[0];
+    public Encoding.SpliceEncodingKind getFirstKeyColumnEncodingKind() {
+        return firstKeyColumnEncodingKind;
     }
 
     @Override
     public void write(DataOutput out) throws IOException{
-        out.writeInt(firstKeyColumnDVDAsByteArray.length);
-        out.write(firstKeyColumnDVDAsByteArray);
-        out.writeUTF(tableVersion);
+        out.writeLong(serialVersionUID);
+        out.writeInt(firstKeyColumnEncodingKind.ordinal());
         byte [] filterAsBytes = secondaryFilter.toByteArray();
         out.writeInt(filterAsBytes.length);
         out.write(filterAsBytes);
@@ -126,18 +115,8 @@ public class KeyPrefixProbingFilter extends FilterBase implements Writable{
 
     @Override
     public void readFields(DataInput in) throws IOException{
-        firstKeyColumnDVDAsByteArray=new byte[in.readInt()];
-        in.readFully(firstKeyColumnDVDAsByteArray);
-        try {
-            ByteArrayInputStream bis = new ByteArrayInputStream(firstKeyColumnDVDAsByteArray);
-            ObjectInput ois = new ObjectInputStream(bis);
-            firstKeyColumnDVD = (DataValueDescriptor) ois.readObject();
-            typeFormatId = firstKeyColumnDVD.getTypeFormatId();
-        }
-        catch (ClassNotFoundException e) {
-            throw new IOException(e);
-        }
-        tableVersion = in.readUTF();
+        in.readLong();
+        firstKeyColumnEncodingKind = Encoding.SpliceEncodingKind.values()[in.readInt()];
         byte [] filterAsBytes = new byte[in.readInt()];
         in.readFully(filterAsBytes);
         try {
@@ -146,7 +125,6 @@ public class KeyPrefixProbingFilter extends FilterBase implements Writable{
         catch (DeserializationException de) {
             throw new IOException(de);
         }
-        populateSerializers();
     }
 
     @Override
@@ -218,11 +196,11 @@ public class KeyPrefixProbingFilter extends FilterBase implements Writable{
     // decoder.set must be called before calling this function
     private int keyColumnByteLength() {
         int length;
-        if(typeProvider.isScalar(typeFormatId))
+        if (firstKeyColumnEncodingKind == Encoding.SpliceEncodingKind.SCALAR)
             length = decoder.skipLong();
-        else if(typeProvider.isFloat(typeFormatId))
+        else if (firstKeyColumnEncodingKind == Encoding.SpliceEncodingKind.FLOAT)
             length = decoder.skipFloat();
-        else if(typeProvider.isDouble(typeFormatId))
+        else if (firstKeyColumnEncodingKind == Encoding.SpliceEncodingKind.DOUBLE)
             length = decoder.skipDouble();
         else
             length = decoder.skip();
@@ -255,8 +233,7 @@ public class KeyPrefixProbingFilter extends FilterBase implements Writable{
     @Override
     public byte[] toByteArray() throws IOException {
         SpliceMessage.KeyPrefixProbingFilterMessage.Builder builder = SpliceMessage.KeyPrefixProbingFilterMessage.newBuilder();
-		builder.setFirstKeyColumnDVDAsByteArray(ZeroCopyLiteralByteString.wrap(firstKeyColumnDVDAsByteArray));
-		builder.setTableVersion(tableVersion);
+		builder.setFirstKeyColumnEncodingKind(firstKeyColumnEncodingKind.ordinal());
 		ByteString filterAsBytes = ByteString.copyFrom(secondaryFilter.toByteArray());
         builder.setSecondaryFilter(filterAsBytes);
         return builder.build().toByteArray();
@@ -278,14 +255,12 @@ public class KeyPrefixProbingFilter extends FilterBase implements Writable{
         }
 
         try {
-            ByteArrayInputStream bis = new ByteArrayInputStream(proto.getFirstKeyColumnDVDAsByteArray().toByteArray());
-            ObjectInput in = new ObjectInputStream(bis);
-            DataValueDescriptor dvd = (DataValueDescriptor) in.readObject();
-
+            Encoding.SpliceEncodingKind firstKeyColumnEncodingKind =
+                     Encoding.SpliceEncodingKind.values()[proto.getFirstKeyColumnEncodingKind()];
             MultiRowRangeFilter secondaryFilter =
                  MultiRowRangeFilter.parseFrom(proto.getSecondaryFilter().toByteArray());
 
-            return new KeyPrefixProbingFilter(dvd, proto.getTableVersion(), secondaryFilter);
+            return new KeyPrefixProbingFilter(firstKeyColumnEncodingKind, secondaryFilter);
         }
         catch (Exception e) {
             throw new DeserializationException(e);
@@ -297,9 +272,8 @@ public class KeyPrefixProbingFilter extends FilterBase implements Writable{
         if (!(o instanceof KeyPrefixProbingFilter)) return false;
 
         KeyPrefixProbingFilter other = (KeyPrefixProbingFilter)o;
-        return this.getTableVersion().equals(other.getTableVersion()) &&
-               Bytes.equals(this.getFirstKeyColumnDVDAsByteArray(),
-                            other.getFirstKeyColumnDVDAsByteArray())  &&
+        return this.getFirstKeyColumnEncodingKind() ==
+               other.getFirstKeyColumnEncodingKind()  &&
                this.secondaryFilter.equals(other.secondaryFilter);
     }
 
@@ -310,7 +284,7 @@ public class KeyPrefixProbingFilter extends FilterBase implements Writable{
 
     @Override
     public int hashCode() {
-        Object[] objectsToHash = { firstKeyColumnDVDAsByteArray, tableVersion, secondaryFilter };
+        Object[] objectsToHash = { firstKeyColumnEncodingKind.ordinal(), secondaryFilter };
         return Arrays.deepHashCode(objectsToHash);
     }
 }

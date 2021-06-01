@@ -22,6 +22,7 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.compile.ActivationClassBuilder;
 import com.splicemachine.db.impl.sql.compile.FromTable;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -30,6 +31,9 @@ import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunc
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
+import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
@@ -339,6 +343,22 @@ public class TableScanOperation extends ScanOperation{
         }
     }
 
+    protected void attachKeyPrefixFilter(DataScan dataScan, DataValueDescriptor firstColumn) throws IOException {
+        Encoding.SpliceEncodingKind firstKeyColumnEncodingKind;
+        TypeProvider typeProvider = VersionedSerializers.typesForVersion(tableVersion);
+        int typeFormatId = firstColumn.getTypeFormatId();
+        if(typeProvider.isScalar(typeFormatId))
+            firstKeyColumnEncodingKind = Encoding.SpliceEncodingKind.SCALAR;
+        else if(typeProvider.isFloat(typeFormatId))
+            firstKeyColumnEncodingKind = Encoding.SpliceEncodingKind.FLOAT;
+        else if(typeProvider.isDouble(typeFormatId))
+            firstKeyColumnEncodingKind = Encoding.SpliceEncodingKind.DOUBLE;
+        else
+            firstKeyColumnEncodingKind = Encoding.SpliceEncodingKind.OTHER;
+
+        dataScan.attachKeyPrefixFilter(firstKeyColumnEncodingKind);
+    }
+
     /**
      * @return the Table Scan Builder for creating the actual data set from a scan.
      */
@@ -353,7 +373,7 @@ public class TableScanOperation extends ScanOperation{
         DataScan dataScan = getNonSIScan();
         if (firstRowOfIndexPrefixIteration != null) {
             try {
-                dataScan.attachKeyPrefixFilter(firstRowOfIndexPrefixIteration.getColumn(1), tableVersion);
+                attachKeyPrefixFilter(dataScan, firstRowOfIndexPrefixIteration.getColumn(1));
             } catch (IOException e) {
                 throw StandardException.plainWrapException(e);
             }

@@ -33,9 +33,8 @@ message AllocateFilterMessage {
 }
 
 message KeyPrefixProbingFilterMessage {
-    required bytes  firstKeyColumnDVDAsByteArray = 1;
-    required string tableVersion = 2;
-    required bytes  secondaryFilter = 3;
+    required int32 firstKeyColumnEncodingKind = 1;
+    required bytes  secondaryFilter = 2;
 }
 
 message SuccessFilterMessage {

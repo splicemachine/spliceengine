@@ -16,6 +16,7 @@ package com.splicemachine.storage;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -150,7 +151,7 @@ public class MScan implements DataScan{
     }
 
     @Override
-    public void attachKeyPrefixFilter(DataValueDescriptor firstColumn, String tableVersion) throws IOException {
+    public void attachKeyPrefixFilter(Encoding.SpliceEncodingKind firstKeyColumnEncodingKind) throws IOException {
         // No implementation on mem platform for now.
         // If this function is getting called, it is an error condition.
         throw new IOException();
