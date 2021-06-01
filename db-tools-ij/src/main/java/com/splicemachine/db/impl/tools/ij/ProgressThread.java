@@ -46,6 +46,8 @@ public class ProgressThread extends Thread {
     public boolean smallJobs = false;
     int smallJobCompleted =0 ;
 
+    boolean firstRunningPrinted = false;
+
     // used in tests only
     public ProgressThread(Supplier<String> op, PrintStream outputStream) {
         progressInfoProvider = op;
@@ -84,6 +86,7 @@ public class ProgressThread extends Thread {
 
     public void updateProgress(ProgressInfo pi) {
         if(pi.isInvalid()) return;
+        printFirstRunning();
         startedProgress = true;
         int numCompleted = pi.getNumCompletedTasks();
         int numTasks = pi.getNumTasks();
@@ -142,20 +145,26 @@ public class ProgressThread extends Thread {
         }
     }
 
-    public void run() {
+    void printFirstRunning() {
+        if(firstRunningPrinted) return;
         outputStream.println(firstRunning);
-        while (true) {
+        firstRunningPrinted = true;
+    }
+
+    public void run() {
+        while(true) {
             String str = progressInfoProvider.get();
             updateProgress(str);
             try {
                 Thread.sleep(timeBetweenUpdates);
             } catch (InterruptedException e) {
-                if(!canceled) {
+                if(!canceled && firstRunningPrinted) {
                     finishCurrentProgressBar();
                     outputStream.print("\n");
                 }
                 return;
             }
+            printFirstRunning();
         }
     }
 

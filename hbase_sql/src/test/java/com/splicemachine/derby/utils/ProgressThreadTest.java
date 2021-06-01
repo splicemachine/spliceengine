@@ -66,7 +66,8 @@ public class ProgressThreadTest {
         ProgressInfo pi = new ProgressInfo("Hello,\nWorld!", 148, 22, 24, 89043, 390, 60);
         String s = pi.serializeToString();
         ProgressInfo p2 = ProgressInfo.deserializeFromString(s);
-        Assert.assertTrue( pi.equals(p2) );
+        Assert.assertTrue(pi.equals(p2));
+        Assert.assertEquals(pi.hashCode(), p2.hashCode());
         Assert.assertEquals(pi.getJobname(), "Hello,\nWorld!");
         Assert.assertEquals(pi.getJobNumber(), 148);
     }

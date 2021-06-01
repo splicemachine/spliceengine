@@ -14,8 +14,6 @@
 
 package com.splicemachine.db.shared;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 /**
  *  Information about the progress of a running operation.
  *  JOB: exactly ONE job running at each time
@@ -26,7 +24,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *  Since we're mostly executing Spark Tasks, this definition is taken from Spark:
  *  see https://queirozf.com/entries/apache-spark-architecture-overview-clusters-jobs-stages-tasks
  */
-@SuppressFBWarnings("HE_EQUALS_USE_HASHCODE") // won't use hashCode
 public class ProgressInfo {
     private String jobname;
     private int jobNumber;
@@ -77,6 +74,19 @@ public class ProgressInfo {
         this.numCompletedTasks = numCompletedTasks;
         this.numActiveTasks = numActiveTasks;
         this.numTasks = numTasks;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 31 * hash + jobname.hashCode();
+        hash = 31 * hash + Integer.hashCode(jobNumber);
+        hash = 31 * hash + Integer.hashCode(numCompletedStages);
+        hash = 31 * hash + Integer.hashCode(numStages);
+        hash = 31 * hash + Integer.hashCode(numCompletedTasks);
+        hash = 31 * hash + Integer.hashCode(numActiveTasks);
+        hash = 31 * hash + Integer.hashCode(numTasks);
+        return hash;
     }
 
     @Override

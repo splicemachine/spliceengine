@@ -70,9 +70,12 @@ public class SparkProgressListener extends SparkListener implements AutoCloseabl
         jobName = callSite + ": " + jobDesc;
     }
 
+    boolean isWatchedStageId(int stageId) {
+        return toWatch.stream().map(StageInfo::stageId).anyMatch(id -> id == stageId );
+    }
+
     void updateProgress(int updatedStageId) {
-        if( !toWatch.stream().map(StageInfo::stageId).anyMatch(id -> id == updatedStageId ) )
-            return;
+        if(!isWatchedStageId(updatedStageId)) return;
 
         for(StageData sd : JavaConverters.seqAsJavaListConverter(sparkContext.statusStore().activeStages()).asJava())
         {
@@ -85,6 +88,14 @@ public class SparkProgressListener extends SparkListener implements AutoCloseabl
         }
 
     }
+
+    @Override
+    public void onStageCompleted(SparkListenerStageCompleted stageCompleted) {
+        if(!isWatchedStageId(stageCompleted.stageInfo().stageId() )) return;
+        stagesCompleted++;
+    }
+
+
 
     @Override
     public void onTaskStart(SparkListenerTaskStart taskStart) {
