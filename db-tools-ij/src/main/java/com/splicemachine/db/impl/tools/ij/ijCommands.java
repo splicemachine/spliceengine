@@ -4,7 +4,6 @@ import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 import com.splicemachine.db.shared.common.sql.Utils;
 import com.splicemachine.db.tools.JDBCDisplayUtil;
 import com.splicemachine.db.impl.tools.ij.ijResultSetResult.ColumnParameters;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.*;
@@ -12,7 +11,6 @@ import java.sql.*;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
-import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,7 +28,6 @@ public class ijCommands {
             return rs.getString(2);
         }
     }
-    Supplier<Connection> connectionSupplier;
 
     static public int[] parseVersion(String v) {
         Pattern r = Pattern.compile("(\\d*)\\.(\\d*)\\.(\\d)*\\.(\\d*)(-.*)?");
