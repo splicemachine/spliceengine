@@ -16,7 +16,6 @@ package com.splicemachine.stream;
 
 import com.splicemachine.stream.handlers.OpenHandler;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelOption;
@@ -30,12 +29,16 @@ import java.net.InetSocketAddress;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * OlapStreamListener handles a communication from StreamLister to manage throttling if a client overloaded with
  * messages or paused consuming.
  */
 public class OlapStreamListener extends ChannelInboundHandlerAdapter implements Serializable {
+    private static final long serialVersionUID = 1l;
 
     private static final Logger LOG = Logger.getLogger(OlapStreamListener.class);
 
@@ -43,18 +46,28 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter implements 
     private UUID uuid;
     private String host;
     private int port;
-    private boolean clientConsuming;
+    volatile  private boolean clientConsuming;
+    final Lock lock = new ReentrantLock();
+    final Condition consumingCondition = lock.newCondition();
 
     public OlapStreamListener(String host, int port, UUID uuid) {
         this.active = new CountDownLatch(1);
         this.host = host;
         this.port = port;
         this.uuid = uuid;
-        this.clientConsuming = false;
+        this.clientConsuming = true;
     }
 
     public boolean isClientConsuming() {
         return clientConsuming;
+    }
+
+    public Lock getLock() {
+        return lock;
+    }
+
+    public Condition getCondition() {
+        return consumingCondition;
     }
 
     public void createChannelToStreamListener() {
@@ -70,12 +83,11 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter implements 
             bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
             bootstrap.handler(new OpenHandler(this));
 
-            ChannelFuture futureConnect = bootstrap.connect(socketAddr).sync();
+            bootstrap.connect(socketAddr).sync();
 
             active.await();
-            this.clientConsuming = true;
         } catch (Exception e) {
-
+            LOG.warn(String.format("Could not connect to StreamListener %s", uuid.toString()));
         }
     }
 
@@ -87,17 +99,23 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter implements 
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        if (msg instanceof StreamProtocol.PauseStream) {
-            if (clientConsuming) {
-                LOG.trace("Client is overloaded, asked for a pause: " + this.toString());
-                clientConsuming = false;
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        lock.lock();
+        try {
+            if (msg instanceof StreamProtocol.PauseStream) {
+                if (clientConsuming) {
+                    LOG.trace("Client is overloaded, asked for a pause: " + this);
+                    clientConsuming = false;
+                }
+            } else if (msg instanceof StreamProtocol.ContinueStream) {
+                if (!clientConsuming) {
+                    LOG.trace("Client is resuming to consume: " + this);
+                    clientConsuming = true;
+                    consumingCondition.signalAll();
+                }
             }
-        } else if (msg instanceof StreamProtocol.ContinueStream) {
-            if (!clientConsuming) {
-                LOG.trace("Client is resuming to consume: " + this.toString());
-                clientConsuming = true;
-            }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -109,6 +127,5 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter implements 
                 ", uuid=" + uuid.toString() +
                 ", clientConsuming=" + clientConsuming +
                 '}';
-
     }
 }

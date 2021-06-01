@@ -438,6 +438,10 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         }
     }
 
+    public Throwable getFailure() {
+        return failure;
+    }
+    
     private void manageStreaming() {
         if (!this.throttleEnabled)
             return;
