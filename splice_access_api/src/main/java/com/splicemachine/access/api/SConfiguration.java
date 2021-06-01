@@ -184,6 +184,7 @@ public interface SConfiguration {
     int getSparkResultStreamingBatches();
     int getSparkResultStreamingBatchSize();
     boolean getSparkResultStreamingThrottleEnabled();
+    boolean getSparkResultStreamingBackupEnabled();
 
     int getSparkSlowResultStreamingBatches();
     int getSparkSlowResultStreamingBatchSize();

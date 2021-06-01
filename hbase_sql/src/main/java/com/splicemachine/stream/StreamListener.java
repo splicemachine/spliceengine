@@ -22,10 +22,9 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.apache.log4j.Logger;
 
+import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.*;
 
 
 /**
@@ -38,9 +37,9 @@ import java.util.concurrent.ConcurrentMap;
 public class StreamListener<T> extends ChannelInboundHandlerAdapter implements Iterator<T> {
     private static final Logger LOG = Logger.getLogger(StreamListener.class);
     private static final int PARTITION_BUFFER_FACTOR = 3;
-    private static final Object SENTINEL = new Object();
-    private static final Object FAILURE = new Object();
-    private static final Object RETRY = new Object();
+    private static final String SENTINEL = "SENTINEL";
+    private static final String FAILURE = "FAILURE";
+    private static final String RETRY = "RETRY";
     private final int queueSize;
     private final int batchSize;
     private final int parallelPartitions;
@@ -63,6 +62,9 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     private Channel olapChannel;
     private volatile boolean paused = false;
     private boolean throttleEnabled;
+    private volatile Long lastReadTime = null;
+    private volatile boolean backupEnabled = false;
+    private MessageBackupHandler messageBackupHandler = null;
 
     StreamListener() {
         this(-1, 0);
@@ -73,21 +75,25 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     }
 
     public StreamListener(long limit, long offset, int batches, int batchSize) {
-        this(limit, offset, batches, batchSize, StreamableRDD.DEFAULT_PARALLEL_PARTITIONS, true);
+        this(limit, offset, batches, batchSize, StreamableRDD.DEFAULT_PARALLEL_PARTITIONS, true, true);
     }
-    public StreamListener(long limit, long offset, int batches, int batchSize, int parallelPartitions, boolean throttleEnabled) {
+
+    public StreamListener(long limit, long offset, int batches, int batchSize, int parallelPartitions,
+                          boolean throttleEnabled, boolean fileCacheEnabled) {
         this.offset = offset;
         this.limit = limit;
         this.batchSize = batchSize;
         this.queueSize = batches*batchSize;
         // start with this to force a channel advancement
         PartitionState first = new PartitionState(0, 0);
-        first.messages.add(SENTINEL);
+        addMessage(first, SENTINEL);
         first.initialized = true;
         this.partitionStateMap.put(-1, first);
         this.uuid = UUID.randomUUID();
         this.parallelPartitions = parallelPartitions;
         this.throttleEnabled = throttleEnabled;
+        if (fileCacheEnabled)
+            this.messageBackupHandler = new MessageBackupHandler(uuid, this);
     }
 
     public void setOlapChannel(Channel olapChannel) {
@@ -98,7 +104,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         // Initialize first partition
         PartitionState ps = partitionStateMap.computeIfAbsent(0, k -> new PartitionState(0, queueSize));
         if (failure != null) {
-            ps.messages.add(FAILURE);
+            addMessage(ps, FAILURE);
         }
         // This will block until some data is available
         advance();
@@ -124,10 +130,11 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         }
         if (msg instanceof StreamProtocol.RequestClose) {
             // We can't block here, we negotiate throughput with the server to guarantee it
-            state.messages.add(SENTINEL);
+            addMessage(state, SENTINEL);
             // Let server know it can close the connection
             ctx.writeAndFlush(new StreamProtocol.ConfirmClose());
             ctx.close().sync();
+            writeToBackupIfEnabled(state);
         } else if (msg instanceof StreamProtocol.ConfirmClose) {
             ctx.close().sync();
             partitionMap.remove(channel);
@@ -145,7 +152,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         } else {
             // Data or StreamProtocol.Skipped
             // We can't block here, we negotiate throughput with the server to guarantee it
-            state.messages.add(msg);
+            addMessage(state, msg);
         }
     }
 
@@ -167,6 +174,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             // The remote job failed, raise exception to caller
             Exceptions.throwAsRuntime(Exceptions.parseException(failure));
         }
+        lastReadTime = System.currentTimeMillis();
         return result;
     }
 
@@ -176,8 +184,9 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             while (next == null) {
                 PartitionState state = partitionStateMap.get(currentQueue);
                 // We take a message first to make sure we have a connection
-                Object msg = canBlock ? state.messages.take() : state.messages.remove();
-                if (msg == FAILURE) {
+                ArrayBlockingQueue<Object> messages = getMessages(state);
+                Object msg = canBlock ? messages.take() : messages.remove();
+                if (msg.equals(FAILURE)) {
                     // The olap job failed, return right away
                     currentResult = null;
                     return;
@@ -190,7 +199,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                     state.channel.writeAndFlush(new StreamProtocol.Skip(serverLimit, offset));
                 }
                 state.initialized = true;
-                if (msg == RETRY) {
+                if (msg.equals(RETRY)) {
                     // There was a retried task
                     long currentRead = state.readTotal;
                     long currentOffset = offset + currentRead;
@@ -199,7 +208,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                     // Skip all records already read from the previous run of the task
                     state.next.channel.writeAndFlush(new StreamProtocol.Skip(serverLimit, currentOffset));
                     state.next.initialized = true;
-                    state.messages.clear();
+                    messages.clear();
                     offset = currentOffset;
 
                     // Update maps with the new state/channel
@@ -208,7 +217,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                         LOG.trace("Retried task, currentRead " + currentRead + " offset " + offset +
                                 " currentOffset " + currentOffset + " serverLimit " + serverLimit + " state " + state);
                     }
-                } else if (msg == SENTINEL) {
+                } else if (msg.equals(SENTINEL)) {
                     // This queue is finished, start reading from the next queue
                     LOG.trace("Moving queues");
 
@@ -227,7 +236,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                     // Set the partitionState so we can block on the queue in case the connection hasn't opened yet
                     PartitionState ps = partitionStateMap.computeIfAbsent(currentQueue, k -> new PartitionState(currentQueue, queueSize));
                     if (failure != null) {
-                        ps.messages.add(FAILURE);
+                        addMessage(ps, FAILURE);
                     }
                 } else {
                     if (msg instanceof StreamProtocol.Skipped) {
@@ -296,11 +305,11 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         // create fake queue with finish message so the next call to next() returns null
         currentQueue = (int) numPartitions + 1;
         PartitionState ps = new PartitionState(currentQueue, 0);
-        ps.messages.add(SENTINEL);
+        addMessage(ps, SENTINEL);
         partitionStateMap.putIfAbsent(currentQueue, ps);
         ps = partitionStateMap.get(currentQueue);
         if (ps != null)
-            ps.messages.add(FAILURE); // just in case we are blocked in advance()
+            addMessage(ps, FAILURE);
         close();
     }
 
@@ -321,7 +330,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         ps = old != null ? old : ps;
 
         if (failure != null) {
-            ps.messages.add(FAILURE);
+            addMessage(ps, FAILURE);
         }
         Channel previousChannel = ps.channel;
         if (previousChannel != null) {
@@ -332,7 +341,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             partitionMap.put(channel, ps.next);
             partitionMap.remove(ps.channel); // don't accept more messages from this channel
             // this is a new connection from a retried task
-            ps.messages.add(RETRY);
+            addMessage(ps, RETRY);
         } else {
             partitionMap.put(channel, ps);
             ps.channel = channel;
@@ -368,6 +377,9 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         }
         if (olapChannel != null) {
             olapChannel.close();
+        }
+        if (this.messageBackupHandler != null) {
+            this.messageBackupHandler.close();
         }
         if (lastException != null) {
             throw new RuntimeException(lastException);
@@ -407,7 +419,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                 this.numPartitions = 0;
                 for (PartitionState state : partitionStateMap.values()) {
                     if (state != null) {
-                        state.messages.add(SENTINEL);
+                        addMessage(state, SENTINEL);
                     }
                 }
             }
@@ -421,7 +433,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         // Unblock iterator
         for (PartitionState state : partitionStateMap.values()) {
             if (state != null) {
-                state.messages.add(FAILURE);
+                addMessage(state, FAILURE);
             }
         }
     }
@@ -429,16 +441,24 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     private void manageStreaming() {
         if (!this.throttleEnabled)
             return;
-        if (partitionStateMap.size() >= parallelPartitions * PARTITION_BUFFER_FACTOR && !paused) {
-            if (LOG.isTraceEnabled())
-                LOG.trace(String.format("StreamListener has already %s partitions to process and could be overloaded, " +
-                    "pause streaming", partitionStateMap.size()));
-           pauseStreaming();
-        } else if (partitionStateMap.size() < parallelPartitions * PARTITION_BUFFER_FACTOR && paused) {
-            if (LOG.isTraceEnabled())
-                LOG.trace(String.format("StreamListener has already %s partitions to process and can continue to consume " +
-                    "stream messages", partitionStateMap.size()));
-           continueStreaming();
+        if (backupEnabled) {
+            if (paused) {
+                if (LOG.isTraceEnabled())
+                    LOG.trace(String.format("StreamListener %s enables the backup mode and can continue to consume stream messages", uuid.toString()));
+                continueStreaming();
+            }
+        } else {
+            if (partitionStateMap.size() >= parallelPartitions * PARTITION_BUFFER_FACTOR && !paused) {
+                if (LOG.isTraceEnabled())
+                    LOG.trace(String.format("StreamListener %s has already %s partitions to process and could be overloaded, " +
+                            "pause streaming", uuid.toString(), partitionStateMap.size()));
+                pauseStreaming();
+            } else if (partitionStateMap.size() < parallelPartitions * PARTITION_BUFFER_FACTOR && paused) {
+                if (LOG.isTraceEnabled())
+                    LOG.trace(String.format("StreamListener %s has already %s partitions to process and can continue to consume " +
+                            "stream messages", uuid.toString(), partitionStateMap.size()));
+                continueStreaming();
+            }
         }
     }
 
@@ -455,6 +475,115 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         }
         paused = false;
     }
+
+    private void backupPartitions() {
+        if (currentQueue > -1) {
+            for (int partitionToBackup = currentQueue + PARTITION_BUFFER_FACTOR; partitionToBackup < numPartitions; partitionToBackup++) {
+                if (partitionStateMap.containsKey(partitionToBackup)) {
+                    messageBackupHandler.submitBackupTask(new BackupPartitionTask(this, partitionToBackup));
+                }
+            }
+        }
+    }
+
+    void backupPartition(int partition) {
+        if (!isBackupEnabled()) { //The client started to consume again and backup mode is not used any more
+            return;
+        }
+        final PartitionState partitionState = partitionStateMap.get(partition);
+        if (partitionState != null) {
+            synchronized (partitionState) {
+                if (partitionState.storage == ResultStorage.MEMORY && partitionState.messages.contains(SENTINEL)) {
+                    if (LOG.isTraceEnabled())
+                        LOG.trace(String.format("Backing up partition %s(%d)", uuid.toString(), partition));
+                    partitionState.storage = ResultStorage.WRITING;
+                    try {
+                        messageBackupHandler.writeResults(partitionState.partition, partitionState.messages);
+                        partitionState.messages = null;
+                        partitionState.storage = ResultStorage.FILE;
+                    } catch (Exception e) {
+                        partitionState.storage = ResultStorage.MEMORY;
+                        LOG.error(String.format("Could not backup up a partition %s(%d)", uuid.toString(), partition));
+                    }
+                    partitionState.notifyAll();
+                }
+            }
+        }
+    }
+
+    void setBackupEnabled(boolean enabled) {
+        if (enabled && !this.backupEnabled) {
+            LOG.warn(String.format("Client is slow, backup mode is enabled for %s", this.uuid.toString()));
+            this.backupEnabled = true;
+            manageStreaming();
+            try {
+                this.backupPartitions();
+            } catch (Exception e) {
+                LOG.warn("Could not make a backup of partitions", e);
+            }
+        } else if (!enabled && this.backupEnabled) {
+            LOG.info(String.format("Client is consuming again, backup mode is disabled for %s", this.uuid.toString()));
+            this.backupEnabled = false;
+            manageStreaming();
+        }
+    }
+
+    boolean isBackupEnabled() {
+        return backupEnabled;
+    }
+
+    Long getLastReadTime() {
+        return lastReadTime;
+    }
+
+    private void writeToBackupIfEnabled(PartitionState state) {
+        if (this.backupEnabled && state.partition >= currentQueue + PARTITION_BUFFER_FACTOR) {
+            messageBackupHandler.submitBackupTask(new BackupPartitionTask(this, state.partition));
+        }
+    }
+
+    private void loadMessages(PartitionState partitionState) throws IOException {
+        if (partitionState.storage == ResultStorage.MEMORY)
+            return;
+        if (partitionState.storage != ResultStorage.FILE)
+            throw new RuntimeException(String.format("Could not load a message backup %s (%d) %s", uuid.toString(),
+                    partitionState.partition, partitionState.storage));
+        partitionState.messages = messageBackupHandler.readResults(partitionState.partition);
+        partitionState.storage = ResultStorage.MEMORY;
+    }
+
+    private void addMessage(PartitionState partitionState, Object message) {
+        synchronized (partitionState) {
+            try {
+                if (partitionState.storage != ResultStorage.MEMORY) {
+                    loadMessages(partitionState);
+                }
+                partitionState.messages.add(message);
+            } catch (Exception e) {
+                LOG.error(String.format("Could not restore messages for %s partition %d", uuid.toString(),
+                        partitionState.partition));
+                partitionState.messages = new ArrayBlockingQueue<>(queueSize + 4);
+                partitionState.messages.add(FAILURE);
+            }
+        }
+    }
+
+    private ArrayBlockingQueue<Object> getMessages(PartitionState partitionState) {
+        synchronized (partitionState) {
+            try {
+                if (partitionState.storage != ResultStorage.MEMORY) {
+                    loadMessages(partitionState);
+                }
+            } catch (Exception e) {
+                LOG.error(String.format("Could not restore messages for %s partition %d", uuid.toString(),
+                        partitionState.partition));
+                partitionState.messages = new ArrayBlockingQueue<>(queueSize + 4);
+                partitionState.messages.add(FAILURE);
+            }
+            return partitionState.messages;
+        }
+    }
+
 }
 
 class PartitionState {
@@ -465,10 +594,12 @@ class PartitionState {
     long readTotal;
     boolean initialized;
     volatile PartitionState next = null; // used when a task is retried after a failure
+    volatile ResultStorage storage;
 
     PartitionState(int partition, int queueSize) {
         this.partition = partition;
         this.messages = new ArrayBlockingQueue<>(queueSize + 4);  // Extra to account for out of band messages
+        this.storage = ResultStorage.MEMORY;
     }
 
     @Override
@@ -480,6 +611,7 @@ class PartitionState {
                 ", consumed=" + consumed +
                 ", initialized=" + initialized +
                 ", next=" + next +
+                ", storage=" + storage +
                 '}';
     }
 }

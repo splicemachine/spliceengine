@@ -193,6 +193,9 @@ public class OlapConfigurations implements ConfigurationDefault {
     public static final String SPARK_RESULT_STREAMING_THROTTLE_ENABLED = "spark.result.streaming.throttle.enabled";
     public static final boolean DEFAULT_SPARK_RESULT_STREAMING_THROTTLE_ENABLED = true;
 
+    public static final String SPARK_RESULT_STREAMING_BACKUP_ENABLED = "spark.result.streaming.backup.enabled";
+    public static final boolean DEFAULT_SPARK_RESULT_STREAMING_BACKUP_ENABLED = true;
+
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         builder.olapServerBindPort  = configurationSource.getInt(OLAP_SERVER_BIND_PORT, DEFAULT_OLAP_SERVER_BIND_PORT);
@@ -240,6 +243,7 @@ public class OlapConfigurations implements ConfigurationDefault {
         builder.sparkResultStreamingBatches = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCHES, DEFAULT_SPARK_RESULT_STREAMING_BATCHES);
         builder.sparkResultStreamingBatchSize = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCH_SIZE, DEFAULT_SPARK_RESULT_STREAMING_BATCH_SIZE);
         builder.sparkResultStreamingThrottleEnabled = configurationSource.getBoolean(SPARK_RESULT_STREAMING_THROTTLE_ENABLED, DEFAULT_SPARK_RESULT_STREAMING_THROTTLE_ENABLED);
+        builder.sparkResultStreamingBackupEnabled = configurationSource.getBoolean(SPARK_RESULT_STREAMING_BACKUP_ENABLED, DEFAULT_SPARK_RESULT_STREAMING_BACKUP_ENABLED);
         builder.sparkSlowResultStreamingBatches = configurationSource.getInt(SPARK_SLOW_RESULT_STREAMING_BATCHES, DEFAULT_SPARK_SLOW_RESULT_STREAMING_BATCHES);
         builder.sparkSlowResultStreamingBatchSize = configurationSource.getInt(SPARK_SLOW_RESULT_STREAMING_BATCH_SIZE, DEFAULT_SPARK_SLOW_RESULT_STREAMING_BATCH_SIZE);
 

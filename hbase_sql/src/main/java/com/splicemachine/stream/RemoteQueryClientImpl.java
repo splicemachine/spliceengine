@@ -104,7 +104,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             int parallelPartitions = getParallelPartitions(lcc);
 
             streamListener = new StreamListener(limit, offset, streamingBatches, streamingBatchSize, parallelPartitions,
-                    config.getSparkResultStreamingThrottleEnabled());
+                    config.getSparkResultStreamingThrottleEnabled(), config.getSparkResultStreamingBackupEnabled());
             StreamListenerServer server = getServer();
             server.register(streamListener);
             HostAndPort hostAndPort = server.getHostAndPort();
