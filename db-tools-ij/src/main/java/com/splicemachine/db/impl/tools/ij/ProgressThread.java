@@ -48,6 +48,10 @@ public class ProgressThread extends Thread {
 
     boolean firstRunningPrinted = false;
 
+    public String getFirstRunning() {
+        return firstRunning;
+    }
+
     // used in tests only
     public ProgressThread(Supplier<String> op, PrintStream outputStream) {
         progressInfoProvider = op;

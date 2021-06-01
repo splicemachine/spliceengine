@@ -78,44 +78,45 @@ public class ProgressThreadTest {
         PrintStream ps = new PrintStream(baos, true, utf8);
 
         ProgressThread p = new ProgressThread( null, ps );
+        String r = p.getFirstRunning() + "\n";
         p.updateProgress( new ProgressInfo("Preparing", 0, 0, 2, 0, 4, 100).toString() );
-        Assert.assertEquals( "Preparing (Job 1, Stage 1 of 2)\n", baos.toString());
+        Assert.assertEquals( r + "Preparing (Job 1, Stage 1 of 2)\n", baos.toString());
 
         p.updateProgress(new ProgressInfo("Preparing", 0, 0, 2, 20, 4, 100).toString() );
-        Assert.assertEquals( "Preparing (Job 1, Stage 1 of 2)\n[------------+------", baos.toString());
+        Assert.assertEquals( r + "Preparing (Job 1, Stage 1 of 2)\n[------------+------", baos.toString());
 
         p.updateProgress(new ProgressInfo("Preparing", 0, 0, 2, 40, 4, 100));
-        Assert.assertEquals("Preparing (Job 1, Stage 1 of 2)\n" +
+        Assert.assertEquals(r + "Preparing (Job 1, Stage 1 of 2)\n" +
                 "[------------+----------25%----------+--", baos.toString());
         p.updateProgress(new ProgressInfo("Preparing", 0, 0, 2, 60, 4, 100));
-        Assert.assertEquals("Preparing (Job 1, Stage 1 of 2)\n" +
+        Assert.assertEquals(r + "Preparing (Job 1, Stage 1 of 2)\n" +
                 "[------------+----------25%----------+-----------50%--------", baos.toString());
 
 
         // ignore if progress goes backward
         p.updateProgress(new ProgressInfo("Preparing", 0, 0, 2, 50, 4, 100));
-        Assert.assertEquals("Preparing (Job 1, Stage 1 of 2)\n" +
+        Assert.assertEquals(r + "Preparing (Job 1, Stage 1 of 2)\n" +
                 "[------------+----------25%----------+-----------50%--------", baos.toString());
 
         // ignore invalid information (
         p.updateProgress(new ProgressInfo("Preparing", 0, 0, 2, 90, -15, 100));
-        Assert.assertEquals("Preparing (Job 1, Stage 1 of 2)\n" +
+        Assert.assertEquals(r + "Preparing (Job 1, Stage 1 of 2)\n" +
                 "[------------+----------25%----------+-----------50%--------", baos.toString());
 
 
         p.updateProgress(new ProgressInfo("Preparing", 0, 0, 2, 80, 4, 100));
-        Assert.assertEquals("Preparing (Job 1, Stage 1 of 2)\n" +
+        Assert.assertEquals(r + "Preparing (Job 1, Stage 1 of 2)\n" +
                 "[------------+----------25%----------+-----------50%-----------+----------75%---", baos.toString());
 
 
         // progress 100%
         p.updateProgress(new ProgressInfo("Preparing", 0, 0, 2, 100, 4, 100));
-        Assert.assertEquals("Preparing (Job 1, Stage 1 of 2)\n" +
+        Assert.assertEquals(r + "Preparing (Job 1, Stage 1 of 2)\n" +
                 "[------------+----------25%----------+-----------50%-----------+----------75%-----------+-----------]", baos.toString());
 
         // don't overshoot progressbar
         p.updateProgress(new ProgressInfo("Preparing", 0, 0, 2, 120, 4, 100));
-        Assert.assertEquals("Preparing (Job 1, Stage 1 of 2)\n" +
+        Assert.assertEquals(r + "Preparing (Job 1, Stage 1 of 2)\n" +
                 "[------------+----------25%----------+-----------50%-----------+----------75%-----------+-----------]", baos.toString());
 
 
@@ -200,6 +201,7 @@ public class ProgressThreadTest {
         PrintStream ps = new PrintStream(baos, true, utf8);
 
         ProgressThread p = new ProgressThread( null, ps );
+        String r = p.getFirstRunning() + "\n";
 
         // intentionally skipping one job (e.g. job is finished so fast we didn't catch that
         p.updateProgress(new ProgressInfo("Step ONE", 0, 0, 1, 20, 4, 100));
@@ -208,7 +210,7 @@ public class ProgressThreadTest {
         p.updateProgress(new ProgressInfo("Step THREE", 3, 0, 1, 20, 4, 100));
         p.updateProgress(new ProgressInfo("Step THREE", 3, 0, 1, 100, 4, 100));
         Assert.assertEquals(
-                "Step ONE (Job 1, Stage 1 of 1)\n" +
+                r + "Step ONE (Job 1, Stage 1 of 1)\n" +
                 "[------------+----------25%----------+-----------50%-----------+----------75%-----------+-----------]\n" +
                 "Step TWO (Job 3, Stage 1 of 1)\n" +
                 "[------------+----------25%----------+-----------50%-----------+----------75%-----------+-----------]\n" +
