@@ -49,8 +49,7 @@ public class UpgradeUtils {
     public static void initializeConglomerateSITable(TransactionController tc) throws IOException {
         SIDriver driver = SIDriver.driver();
         int rowsRewritten = 0;
-
-        int batchSize = 100;
+        int batchSize = driver.getConfiguration().getMaxBufferEntries();
         List<DataPut> mutations = Lists.newArrayList();
         EntryDecoder entryDecoder = new EntryDecoder();
         TxnView txn = ((SpliceTransactionManager) tc).getActiveStateTxn();
@@ -77,7 +76,6 @@ public class UpgradeUtils {
                             encoder.reset();
                             encoder.encodeNextUnsorted(nextRaw);
                             put.addCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES, entryEncoder.encode());
-                            //destTable.put(put);
                             mutations.add(put);
                             rowsRewritten++;
                             if (rowsRewritten % batchSize == 0) {
