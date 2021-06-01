@@ -250,6 +250,6 @@ public class SpliceUDTIT extends SpliceUnitTest {
             methodWatcher);
 
         methodWatcher.execute("drop table t0");
-        methodWatcher.execute("drop table t1");
+        methodWatcher.execute("drop table t2");
     }
 }
