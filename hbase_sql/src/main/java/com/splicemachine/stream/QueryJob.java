@@ -131,20 +131,20 @@ public class QueryJob implements Callable<Void>{
                 if (lccFromContext != null) {
                     applicationJarsHash = lccFromContext.getApplicationJarsHashCode();
                     if (applicationJarsHash != 0 &&
-                        applicationJarsHash != initialApplicationJarsHash)
+                            applicationJarsHash != initialApplicationJarsHash)
                         SpliceSpark.setApplicationJarsHash(applicationJarsHash);
                 }
                 else {
                     applicationJarsHash = lcc.getApplicationJarsHashCode();
                     if (applicationJarsHash != 0 &&
-                        applicationJarsHash != initialApplicationJarsHash)
+                            applicationJarsHash != initialApplicationJarsHash)
                         SpliceSpark.setApplicationJarsHash(applicationJarsHash);
                 }
             }
-            context = dsp.createOperationContext(root);
-
-            try(SparkProgressListener counter = new SparkProgressListener(queryRequest.uuid.toString(), status) ) {
+            try(SparkProgressListener counter = new SparkProgressListener(queryRequest.uuid.toString(), status) )
+            {
                 dataset = root.getDataSet(dsp);
+                context = dsp.createOperationContext(root);
                 SparkDataSet<ExecRow> sparkDataSet = (SparkDataSet<ExecRow>) dataset
                         .map(new CloneFunction<>(context))
                         .map(new IdentityFunction<>(context)); // force materialization into Derby's format
