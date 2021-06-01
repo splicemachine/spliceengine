@@ -146,7 +146,8 @@ public abstract class DMLStatementNode extends StatementNode {
             accept(new ProjectionPruningVisitor());
 
         /* Perform subquery flattening if applicable. */
-        SubqueryFlattening.flatten(this);
+        if (!getCompilerContext().getDisableSubqueryFlattening())
+            SubqueryFlattening.flatten(this);
         /* it is possible that some where clause subquery will be converted to fromSubquery in preprocess(),
            so we need to compute the maximum possible number of tables that take into consideration
            of the where subqueries
