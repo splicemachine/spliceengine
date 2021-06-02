@@ -47,6 +47,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
+
 
 /**
  * The strategy for the four types of exists subqueries this class will flatten:
@@ -214,11 +216,13 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
 
         List<BinaryRelationalOperatorNode> correlatedSubqueryPredsC = new ArrayList<>();
         List<BinaryRelationalOperatorNode> correlatedSubqueryPredsD = new ArrayList<>();
+        List<BinaryRelationalOperatorNode> correlatedSubqueryPredsE = new ArrayList<>();
 
         /**
          * We do the following logic either for the SelectNode directly under the SubqueryNode or for each SelectNode
          * in a union.
          */
+        ColumnReference outerColumnReference = null;
         for (SelectNode sn : selectNodeList) {
 
             /* Clear these each time.  If the subquery is NOT a union we will only iterate once.  If the subquery is
@@ -226,6 +230,7 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
              * predicates of all union selects are symmetric). */
             correlatedSubqueryPredsC.clear();
             correlatedSubqueryPredsD.clear();
+            correlatedSubqueryPredsE.clear();
 
             /*
              * The following lines collect two types of correlated predicates from the subquery where clause while removing
@@ -234,6 +239,7 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
             ValueNode subqueryWhereClause = sn.getWhereClause();
             subqueryWhereClause = FlatteningUtils.findCorrelatedSubqueryPredicates(subqueryWhereClause, correlatedSubqueryPredsC, new CorrelatedBronPredicate(outerNestingLevel));
             subqueryWhereClause = FlatteningUtils.findCorrelatedSubqueryPredicates(subqueryWhereClause, correlatedSubqueryPredsD, new CorrelatedEqualityBronPredicate(outerNestingLevel));
+            subqueryWhereClause = FlatteningUtils.findCorrelatedSubqueryPredicates(subqueryWhereClause, correlatedSubqueryPredsE, new CorrelatedInequalityBronPredicate(outerNestingLevel));
             sn.setWhereClause(subqueryWhereClause);
             sn.setOriginalWhereClause(subqueryWhereClause);
 
@@ -244,7 +250,7 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
              * where exists (select 1 ... )].
              */
             sn.getResultColumns().getNodes().clear();
-            GroupByUtil.addGroupByNodes(sn, correlatedSubqueryPredsD);
+            outerColumnReference = GroupByUtil.addGroupByNodes(sn, correlatedSubqueryPredsD, correlatedSubqueryPredsE, originalNestingLevel, outerSelectNode);
 
         }
 
@@ -261,7 +267,8 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
                 subqueryNode.isEXISTS(),
                 unionNodeList.isEmpty() ? subqueryResultSet : unionNodeList.get(0),
                 subqueryNestingLevel,
-                correlatedSubqueryPredsD, nodeFactory, contextManager);
+                correlatedSubqueryPredsD,
+                outerColumnReference, nodeFactory, contextManager);
 
         /*
          * Replace subquery with True in outer query.
@@ -308,6 +315,7 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
                                          ResultSetNode subqueryResultSet,
                                          int subqueryNestingLevel,
                                          List<BinaryRelationalOperatorNode> correlatedSubqueryPredsD,
+                                         ColumnReference outerColumnReference,
                                          NodeFactory nodeFactory,
                                          ContextManager contextManager) throws StandardException {
 
@@ -370,7 +378,15 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
             /*
              * Left join outer tables with new FromSubquery.
              */
-            HalfOuterJoinNode outerJoinNode = nf.buildOuterJoinNode(outerSelectNode.getFromList(), fromSubquery, joinClause);
+            FromTable outerFromTable =
+                getFromTableContainingOuterColumnReference(outerSelectNode.getFromList(),
+                                                           outerColumnReference);
+            if (outerFromTable == null && outerSelectNode.getFromList().size() > 1) {
+                throw StandardException.newException(LANG_INTERNAL_ERROR,
+                     "Could not identify the outer table during NOT EXISTS correlated subquery flattening.");
+            }
+
+            HalfOuterJoinNode outerJoinNode = nf.buildOuterJoinNode(outerSelectNode.getFromList(), fromSubquery, joinClause, outerFromTable);
 
             /*
              * Clear the predicates in the case of NOT-EXISTS so that they are ONLY added to the new join clause and
@@ -381,10 +397,58 @@ public class ExistsSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
             /*
              * Insert the new FromSubquery into to origSelectNode's From list.
              */
-            outerSelectNode.getFromList().getNodes().clear();
+            // For cases with multiple items in the FROM clause, remove the appropriate
+            // table, otherwise just clear the FROM list.
+            if (outerFromTable == null) {
+                outerSelectNode.getFromList().getNodes().clear();
+            }
+            else {
+                int originalSize = outerSelectNode.getFromList().size();
+                outerSelectNode.getFromList().removeElement(outerFromTable);
+                if (outerSelectNode.getFromList().size() == originalSize)
+                    throw StandardException.newException(LANG_INTERNAL_ERROR,
+                         "Did not properly process NOT EXISTS correlated subquery flattening.");
+            }
+
             outerSelectNode.getFromList().addFromTable(outerJoinNode);
         }
         return fromSubquery;
+    }
+
+    private FromTable getFromTableContainingOuterColumnReference(FromList fromList, ColumnReference outerColumnReference) {
+        if (outerColumnReference == null)
+            return null;
+        int tableNumber = outerColumnReference.getTableNumber();
+        for (int i = 0; i < fromList.size(); i++) {
+            FromTable table = (FromTable)fromList.elementAt(i);
+            if (table.getTableNumber() == tableNumber)
+                return table;
+            if (table instanceof JoinNode) {
+                if (containsOuterTableNumber((JoinNode)table, tableNumber))
+                    return table;
+            }
+        }
+        return null;
+    }
+
+    boolean containsOuterTableNumber(JoinNode joinNode, int outerTableNumber) {
+        if (joinNode.getTableNumber() == outerTableNumber)
+            return true;
+        if (joinNode.getLeftResultSet() instanceof FromTable) {
+            FromTable leftFromTable = (FromTable)joinNode.getLeftResultSet();
+            if (leftFromTable.getTableNumber() == outerTableNumber)
+                return true;
+            if (leftFromTable instanceof HalfOuterJoinNode)
+                return containsOuterTableNumber((JoinNode)leftFromTable, outerTableNumber);
+        }
+        else if (joinNode.getRightResultSet() instanceof FromTable) {
+            FromTable rightFromTable = (FromTable)joinNode.getLeftResultSet();
+            if (rightFromTable.getTableNumber() == outerTableNumber)
+                return true;
+            if (rightFromTable instanceof JoinNode)
+                return containsOuterTableNumber((JoinNode)rightFromTable, outerTableNumber);
+        }
+        return false;
     }
 
     private String getSubqueryAlias() {

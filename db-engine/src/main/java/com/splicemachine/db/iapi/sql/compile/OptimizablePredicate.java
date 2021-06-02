@@ -204,4 +204,6 @@ public interface OptimizablePredicate
 	// of one of the OrNodes (OrNode chains are right-deep, with each left child being
 	// something other than an OrNode, if normalized properly).
 	List<OptimizablePredicateList> separateOredPredicates() throws StandardException;
+
+	boolean hasCorrelatedSubquery() throws StandardException;
 }
