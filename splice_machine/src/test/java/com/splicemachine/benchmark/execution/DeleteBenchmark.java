@@ -80,7 +80,7 @@ public class DeleteBenchmark extends ExecutionBenchmark {
         try {
             for (int i = 0; i < ExecutionBenchmark.NUM_EXECS; ++i) {
                 populateTables(testConnection, dataSize, batchSize, numTableColumns, insertParamStr, concurrency);
-                testStatement.executeUpdate("call SYSCS_UTIL.VACUUM()");
+                testStatement.execute("call SYSCS_UTIL.VACUUM()");
 
                 try (PreparedStatement query = testConnection.prepareStatement(sqlText)) {
                     for (int k = concurrency; k < concurrency + dataSize; k++) {

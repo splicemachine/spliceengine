@@ -68,22 +68,22 @@ public class InsertBenchmark extends ExecutionBenchmark {
         try {
             // warmup
             if (isBatch)
-                runBatchInserts(true, curSize.getAndAdd(dataSize));
+                runBatchInserts(NUM_WARMUP_RUNS, curSize.getAndAdd(dataSize), false);
             else
-                runInserts(true, curSize.getAndAdd(dataSize));
+                runInserts(NUM_WARMUP_RUNS, curSize.getAndAdd(dataSize), false);
 
             if (isBatch)
-                runBatchInserts(false, curSize.getAndAdd(dataSize));
+                runBatchInserts(NUM_EXECS, curSize.getAndAdd(dataSize), true);
             else
-                runInserts(false, curSize.getAndAdd(dataSize));
+                runInserts(NUM_EXECS, curSize.getAndAdd(dataSize), true);
         } catch (SQLException e) {
             LOG.error("Error occurs while initializing test connection", e);
         }
     }
 
-    private void runInserts(boolean warmup, int concurrency) throws SQLException {
+    private void runInserts(int runs, int concurrency, boolean collectStats) throws SQLException {
         try (PreparedStatement insert1 = testConnection.prepareStatement("INSERT INTO " + BASE_TABLE + insertParamStr)) {
-            for (int i = 0; i < ExecutionBenchmark.NUM_WARMUP_RUNS; ++i) {
+            for (int i = 0; i < runs; ++i) {
                 refreshTableState(testStatement, SCHEMA);
 
                 long start = System.currentTimeMillis();
@@ -95,7 +95,7 @@ public class InsertBenchmark extends ExecutionBenchmark {
                 }
                 long end = System.currentTimeMillis();
 
-                if (!warmup) {
+                if (!collectStats) {
                     updateStats(STAT_INSERT, dataSize, end - start);
                 }
             }
@@ -105,11 +105,11 @@ public class InsertBenchmark extends ExecutionBenchmark {
         }
     }
 
-    private void runBatchInserts(boolean warmup, int concurrency) throws SQLException {
+    private void runBatchInserts(int runs, int concurrency, boolean collectStats) throws SQLException {
         int batchSize = Math.min(dataSize, 1000);
 
         try (PreparedStatement insert1 = testConnection.prepareStatement("INSERT INTO " + BASE_TABLE + insertParamStr)) {
-            for (int t = 0; t < ExecutionBenchmark.NUM_WARMUP_RUNS; ++t) {
+            for (int t = 0; t < runs; ++t) {
                 refreshTableState(testStatement, SCHEMA);
 
                 for (int k = 0; k < dataSize / batchSize; ++k) {
@@ -123,7 +123,7 @@ public class InsertBenchmark extends ExecutionBenchmark {
                     int[] counts = insert1.executeBatch();
                     long end = System.currentTimeMillis();
 
-                    if (!warmup) {
+                    if (!collectStats) {
                         int count = 0;
                         for (int c : counts)
                             count += c;
