@@ -2597,18 +2597,19 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 .collect(Collectors.toMap(ColumnDescriptor::getStoragePosition, columnDescriptor -> columnDescriptor));
         ConstraintDescriptorList constraintDescriptorList = td.getDataDictionary().getConstraintDescriptors(td);
 
-        StringBuffer chkStr = new StringBuffer();
-        StringBuffer uniqueStr = new StringBuffer();
+
+        TreeMap<String, String> uniqueMap = new TreeMap<>();
         StringBuffer priKeys = new StringBuffer();
-        StringBuffer fkKeys = new StringBuffer();
+        TreeMap<String, String> fkMap = new TreeMap();
+        TreeMap<String, String> checkMap = new TreeMap<>();
         for (ConstraintDescriptor cd: constraintDescriptorList) {
             switch (cd.getConstraintType()) {
                 //Check
                 case DataDictionary.CHECK_CONSTRAINT:
                     if (!cd.isEnabled())
                         break;
-
-                    chkStr.append(", CONSTRAINT " + cd.getConstraintName() + " CHECK " + cd.getConstraintText());
+                    String name = cd.getConstraintName();
+                    checkMap.put(name, ", CONSTRAINT " + name + " CHECK " + cd.getConstraintText());
                     break;
                 case DataDictionary.PRIMARYKEY_CONSTRAINT:
                     int[] keyColumns = cd.getKeyColumns();
@@ -2626,13 +2627,20 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         break;
                     keyColumns = cd.getKeyColumns();
                     boolean uniqueFirstCol = true;
+                    StringBuffer uniqueStr = new StringBuffer();
+                    StringBuffer columnNames = new StringBuffer();
+                    String constraintName = cd.getConstraintName();
                     for (int index=0; index<keyColumns.length; index ++) {
                         String colName = columnDescriptorMap.get(keyColumns[index]).getColumnName();
-                        uniqueStr.append(uniqueFirstCol ? ", CONSTRAINT " + cd.getConstraintName() + " UNIQUE (\"" + colName + "\"": ",\"" + colName + "\"");
+                        uniqueStr.append(uniqueFirstCol ? ", CONSTRAINT " + constraintName + " UNIQUE (\"" + colName + "\"": ",\"" + colName + "\"");
+                        columnNames.append(uniqueFirstCol ? "\"" + colName + "\"": ",\"" + colName + "\"");
                         uniqueFirstCol = false;
+
                     }
-                    if (!uniqueFirstCol)
+                    if (!uniqueFirstCol) {
                         uniqueStr.append(")");
+                    }
+                    uniqueMap.put(columnNames.toString(), uniqueStr.toString());
                     break;
                 case DataDictionary.FOREIGNKEY_CONSTRAINT:
                     if (!separateFK) {
@@ -2657,7 +2665,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                             fkColNames.add("\"" + columnDescriptorMap.get(keyColumns[index]).getColumnName() + "\"");
                             referencedColNames.add("\"" + referencedTableCDM.get(referencedKeyColumns[index]).getColumnName() + "\"");
                         }
-                        fkKeys.append(", " + buildForeignKeyConstraint(fkName, refTblName, referencedColNames, fkColNames, updateType, deleteType));
+                        fkMap.put(buildColumnsFromList(fkColNames), ", " + buildForeignKeyConstraint(fkName, refTblName, referencedColNames, fkColNames, updateType, deleteType));
                     }
                     break;
                 default:
@@ -2665,6 +2673,21 @@ public class SpliceAdmin extends BaseAdminProcedures{
             }
         }
 
+        StringBuffer chkStr = new StringBuffer();
+        for (Map.Entry<String, String> entry : checkMap.entrySet()) {
+            String value = entry.getValue();
+            chkStr.append(value);
+        }
+        StringBuffer uniqueStr = new StringBuffer();
+            for(Map.Entry<String, String> entry : uniqueMap.entrySet()) {
+                String value = entry.getValue();
+                uniqueStr.append(value);
+            }
+        StringBuffer fkKeys = new StringBuffer();
+        for(Map.Entry<String, String> entry : fkMap.entrySet()) {
+            String value = entry.getValue();
+            fkKeys.append(value);
+        }
         return  chkStr.toString() + uniqueStr.toString() + priKeys.toString() + fkKeys.toString();
     }
 
