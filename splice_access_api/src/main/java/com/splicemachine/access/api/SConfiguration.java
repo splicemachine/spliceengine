@@ -188,6 +188,8 @@ public interface SConfiguration {
     int getSparkSlowResultStreamingBatches();
     int getSparkSlowResultStreamingBatchSize();
 
+    int getSparkResultStreamingThreads();
+
     double getBulkImportSampleFraction();
 
     String getAuthorizationScheme();
