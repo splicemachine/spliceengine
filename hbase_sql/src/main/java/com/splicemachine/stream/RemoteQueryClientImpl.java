@@ -125,7 +125,8 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             String session = hostname + ":" + localPort + "," + sessionId + opUuid;
 
             RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), uuid, host, port, session, userId, sql,
-                    streamingBatches, streamingBatchSize, parallelPartitions, shufflePartitionsProperty);
+                    streamingBatches, streamingBatchSize, parallelPartitions, shufflePartitionsProperty,
+                    config.getSparkResultStreamingThreads());
 
             String requestedQueue = (String) lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE);
             String queue = chooseQueue(activation, requestedQueue, config.getOlapServerIsolatedRoles());
