@@ -46,9 +46,9 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter implements 
     private UUID uuid;
     private String host;
     private int port;
-    volatile  private boolean clientConsuming;
-    final Lock lock = new ReentrantLock();
-    final Condition consumingCondition = lock.newCondition();
+    volatile private boolean clientConsuming;
+    private final transient Lock lock = new ReentrantLock();
+    private final transient Condition consumingCondition = lock.newCondition();
 
     public OlapStreamListener(String host, int port, UUID uuid) {
         this.active = new CountDownLatch(1);
