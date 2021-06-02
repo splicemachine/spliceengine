@@ -62,6 +62,7 @@ import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.compile.CursorNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.log4j.Logger;
 
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
@@ -81,6 +82,7 @@ import java.util.List;
  */
 @SuppressFBWarnings(value = "IS2_INCONSISTENT_SYNC", justification = "DB-10223")
 public class GenericPreparedStatement implements ExecPreparedStatement {
+    private static final Logger LOG = Logger.getLogger(GenericPreparedStatement.class);
 
     ///////////////////////////////////////////////
     //
@@ -372,8 +374,13 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
 
                     resultSet.open();
                 } catch (StandardException se) {
-                    if (resultSet != null) {
-                        resultSet.close();
+                    try {
+                        if (resultSet != null) {
+                            resultSet.close();
+                            resultSet = null;
+                        }
+                    } catch (Exception e) {
+                        LOG.error(e);
                     }
                     /* Can't handle recompiling SPS action recompile here */
                     if (!se.getMessageId().equals(SQLState.LANG_STATEMENT_NEEDS_RECOMPILE) || spsAction) {
@@ -409,8 +416,12 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
 
                 return resultSet;
             } catch (Throwable t) {
-                if (resultSet != null) {
-                    resultSet.close();
+                try {
+                    if (resultSet != null) {
+                        resultSet.close();
+                    }
+                } catch (Exception e) {
+                    LOG.error(e);
                 }
                 throw t;
             }
