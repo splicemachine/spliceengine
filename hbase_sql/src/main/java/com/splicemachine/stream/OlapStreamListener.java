@@ -24,7 +24,6 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import org.apache.log4j.Logger;
 import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import java.io.*;
 import java.net.InetSocketAddress;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -37,18 +36,16 @@ import java.util.concurrent.locks.ReentrantLock;
  * OlapStreamListener handles a communication from StreamLister to manage throttling if a client overloaded with
  * messages or paused consuming.
  */
-public class OlapStreamListener extends ChannelInboundHandlerAdapter implements Serializable {
-    private static final long serialVersionUID = 1L;
-
+public class OlapStreamListener extends ChannelInboundHandlerAdapter {
     private static final Logger LOG = Logger.getLogger(OlapStreamListener.class);
 
-    private transient CountDownLatch active;
-    private UUID uuid;
-    private String host;
-    private int port;
+    private final CountDownLatch active;
+    private final UUID uuid;
+    private final String host;
+    private final int port;
     volatile private boolean clientConsuming;
-    private final transient Lock lock;
-    private final transient Condition consumingCondition;
+    private final Lock lock;
+    private final Condition consumingCondition;
 
     public OlapStreamListener(String host, int port, UUID uuid) {
         this.active = new CountDownLatch(1);
