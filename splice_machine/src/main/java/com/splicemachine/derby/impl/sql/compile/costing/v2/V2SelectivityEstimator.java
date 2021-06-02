@@ -45,7 +45,7 @@ public class V2SelectivityEstimator implements SelectivityEstimator {
         double rightNonZeroCardinality = Math.max(1.0, rightColumnIndexSelectivity * rightRowCount);
 
         selectivity = ((1.0d - leftColumn.nullSelectivity()) * (1.0d - rightColumn.nullSelectivity())) /
-                Math.min(leftNonZeroCardinality, rightNonZeroCardinality);
+                Math.max(leftNonZeroCardinality, rightNonZeroCardinality);
         selectivity = selectivityJoinType.equals(SelectivityEstimator.SelectivityJoinType.INNER) ?
                 selectivity : 1.0d - selectivity;
         if (rightTable instanceof FromTable && ((FromTable) rightTable).getExistsTable()) {
