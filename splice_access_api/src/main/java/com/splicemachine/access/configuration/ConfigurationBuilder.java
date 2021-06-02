@@ -209,6 +209,7 @@ public class ConfigurationBuilder {
     public boolean sparkResultStreamingThrottleEnabled;
     public int sparkSlowResultStreamingBatchSize;
     public int sparkSlowResultStreamingBatches;
+    public int sparkResultStreamingThreads;
     public int olapCompactionMaximumWait;
     public int olapCompactionMaximumConcurrent;
     public double olapCompactionResolutionShare;
