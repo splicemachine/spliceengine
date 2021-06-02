@@ -1428,6 +1428,30 @@ public class IndexIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testFullScanViaExpressionBasedIndexWithExpressionSelected() throws Exception {
+        String tableName = "TEST_FULL_SCAN_SELECT_INDEX_EXPR";
+        String indexExpr = "timestampdiff(SQL_TSI_FRAC_SECOND, timestamp('1970-01-01 00:00:00'), t)";
+        methodWatcher.executeUpdate(format("create table %s (t TIMESTAMP NOT NULL)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('2020-01-01 01:01:01')", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %1$s_IDX ON %1$s (%2$s)", tableName, indexExpr));
+        methodWatcher.executeUpdate(format("insert into %s values ('2020-02-02 02:02:02')", tableName));
+
+        String query = format("select %1$s from %2$s --splice-properties index=%2$s_IDX\n", indexExpr, tableName);
+
+        rowContainsQuery(new int[]{2,3}, "explain " + query, methodWatcher, "ScrollInsensitive", "IndexScan[TEST_FULL_SCAN_SELECT_INDEX_EXPR_IDX");
+
+        String expected = "1          |\n" +
+                "---------------------\n" +
+                "1577840461000000000 |\n" +
+                "1580608922000000000 |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
     public void testScansStarStopKeyFromIndexExpressionPredicate() throws Exception {
         String tableName = "TEST_START_STOP_KEY_EXPR_INDEX";
         methodWatcher.executeUpdate(format("create table %s (c char(4), i int)", tableName));
@@ -1680,7 +1704,8 @@ public class IndexIT extends SpliceUnitTest{
         methodWatcher.executeUpdate("create table TEST_IN_LIST_RHS_2(b1 int, b2 int)");
         methodWatcher.executeUpdate("insert into TEST_IN_LIST_RHS_2 values(0,0),(3,30),(5,50)");
 
-        String query = "select b1, a2 from TEST_IN_LIST_RHS --splice-properties index=TEST_IN_LIST_RHS_IDX\n, " +
+        String query = "select b1, a2 from --splice-properties joinOrder=fixed\n" +
+                "TEST_IN_LIST_RHS --splice-properties index=TEST_IN_LIST_RHS_IDX\n, " +
                 "TEST_IN_LIST_RHS_2 where b1 in (1, a1 * 3)";
 
         String[] expectedOps = new String[]{
