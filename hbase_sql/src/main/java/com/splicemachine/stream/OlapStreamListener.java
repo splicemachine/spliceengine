@@ -38,7 +38,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * messages or paused consuming.
  */
 public class OlapStreamListener extends ChannelInboundHandlerAdapter implements Serializable {
-    private static final long serialVersionUID = 1l;
+    private static final long serialVersionUID = 1L;
 
     private static final Logger LOG = Logger.getLogger(OlapStreamListener.class);
 
@@ -47,8 +47,8 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter implements 
     private String host;
     private int port;
     volatile private boolean clientConsuming;
-    private final transient Lock lock = new ReentrantLock();
-    private final transient Condition consumingCondition = lock.newCondition();
+    private final transient Lock lock;
+    private final transient Condition consumingCondition;
 
     public OlapStreamListener(String host, int port, UUID uuid) {
         this.active = new CountDownLatch(1);
@@ -56,6 +56,8 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter implements 
         this.port = port;
         this.uuid = uuid;
         this.clientConsuming = true;
+        this.lock = new ReentrantLock();
+        this.consumingCondition = lock.newCondition();
     }
 
     public boolean isClientConsuming() {
@@ -99,7 +101,7 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter implements 
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
         lock.lock();
         try {
             if (msg instanceof StreamProtocol.PauseStream) {
