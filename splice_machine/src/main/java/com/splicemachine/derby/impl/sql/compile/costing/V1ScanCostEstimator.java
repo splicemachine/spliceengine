@@ -38,7 +38,16 @@ public class V1ScanCostEstimator extends AbstractScanCostEstimator {
      *
      * </pre>
      */
-    public V1ScanCostEstimator(Optimizable baseTable, ConglomerateDescriptor cd, StoreCostController scc, CostEstimate scanCost, ResultColumnList resultColumns, DataValueDescriptor[] scanRowTemplate, BitSet baseColumnsInScan, BitSet baseColumnsInLookup, boolean forUpdate, HashSet<Integer> usedNoStatsColumnIds) throws StandardException {
+    public V1ScanCostEstimator(Optimizable baseTable,
+                               ConglomerateDescriptor cd,
+                               StoreCostController scc,
+                               CostEstimate scanCost,
+                               ResultColumnList resultColumns,
+                               DataValueDescriptor[] scanRowTemplate,
+                               BitSet baseColumnsInScan,
+                               BitSet baseColumnsInLookup,
+                               boolean forUpdate,
+                               HashSet<Integer> usedNoStatsColumnIds) throws StandardException {
         super(baseTable, cd, scc, scanCost, resultColumns, scanRowTemplate, baseColumnsInScan, baseColumnsInLookup, forUpdate, usedNoStatsColumnIds);
     }
 
@@ -151,6 +160,14 @@ public class V1ScanCostEstimator extends AbstractScanCostEstimator {
         // IndexPrefixIteration is not currently parallel, so penalize by a factor of the parallelism.
         baseCost += (numFirstIndexColumnProbes*2*scc.getParallelism())*localLatency*(1+congAverageWidth/100d);
         baseCost += (totalRowCount*baseTableSelectivity*localLatency*(1+congAverageWidth/100d));
+        if (isIndexOnExpression && baseColumnsInLookup == null) {
+            // covering index on expression
+            // This is a trick to prefer a covering index on expressions over table scan. We have to
+            // do it this way because in current optimizer framework, best plan is decided in costing
+            // from tables. But an index expression may be evaluated later, for example, as a grouping
+            // expression or a select expression.
+            baseCost *= 0.9999;
+        }
         assert congAverageWidth >= 0 : "congAverageWidth cannot be negative -> " + congAverageWidth;
         assert baseCost >= 0 : "baseCost cannot be negative -> " + baseCost;
         scanCost.setFromBaseTableRows(Math.round(filterBaseTableSelectivity * totalRowCount));
