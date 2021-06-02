@@ -761,6 +761,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         if (triggeringResultSet != null)
         {
             triggeringResultSet.close();
+            triggeringResultSet = null;
         }
     }
 

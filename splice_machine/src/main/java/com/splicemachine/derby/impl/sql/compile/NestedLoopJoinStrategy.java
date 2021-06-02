@@ -63,14 +63,15 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         if (outerCost != null && outerCost.getJoinType() == JoinNode.FULLOUTERJOIN)
             return false;
 
-        if (isJoinWithTriggerRows(innerTable, optimizer))
+        if (hasTriggerRowsAsInnerTableOfJoin(innerTable, optimizer))
             return false;
 
         return innerTable.isMaterializable() || innerTable.supportsMultipleInstantiations();
     }
 
     // Nested loop join on Spark does not work correctly when using a common
-    // Dataset to access the trigger REFERENCING NEW/OLD TABLE rows:
+    // Dataset to access the trigger REFERENCING NEW/OLD TABLE rows as the
+    // inner table of the join:
     //         see useCommonDataSet in TriggerNewTransitionRows.
     // The compilation of a trigger is saved as a stored prepared statement in
     // the data dictionary, and reloaded/reused by each new triggering statement.
@@ -81,17 +82,12 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
     // OLTP-compiled trigger which uses nested loop join would need to be
     // recompiled as forced-OLAP, and avoid choosing nested loop join.
     // Therefore we must always avoid nested loop join for statement triggers
-    // with a REFERENCING clause, even if compiled for OLTP execution.
-    private boolean isJoinWithTriggerRows(Optimizable innerTable, Optimizer optimizer) {
+    // with a REFERENCING clause when the trigger VTI is the inner table of
+    // the join, even if compiled for OLTP execution.
+    private boolean hasTriggerRowsAsInnerTableOfJoin(Optimizable innerTable, Optimizer optimizer) {
         if (!isSingleTableScan(optimizer)) {
             if (innerTable.isTriggerVTI())
                 return true;
-            ResultSetNode outerTable = optimizer.getOuterTable();
-            if (outerTable instanceof Optimizable) {
-                Optimizable outerOptimizable = (Optimizable)outerTable;
-                if (outerOptimizable.isTriggerVTI())
-                    return true;
-            }
         }
         return false;
     }
