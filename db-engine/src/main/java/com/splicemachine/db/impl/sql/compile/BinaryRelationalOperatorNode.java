@@ -43,6 +43,7 @@ package com.splicemachine.db.impl.sql.compile;
  import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
  import com.splicemachine.db.iapi.store.access.ScanController;
  import com.splicemachine.db.iapi.store.access.StoreCostController;
+ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
  import com.splicemachine.db.iapi.types.DataValueDescriptor;
  import com.splicemachine.db.iapi.types.Orderable;
  import com.splicemachine.db.iapi.types.TypeId;
@@ -1178,10 +1179,17 @@ public class BinaryRelationalOperatorNode
                 getRightOperand() instanceof ConstantNode){
             ConstantNode leftOp=(ConstantNode)getLeftOperand();
             ConstantNode rightOp=(ConstantNode)getRightOperand();
-            DataValueDescriptor leftVal=leftOp.getValue();
-            DataValueDescriptor rightVal=rightOp.getValue();
 
-            if(leftVal != null && !leftVal.isNull() && rightVal != null && !rightVal.isNull()){
+            if (leftOp.isNull() || rightOp.isNull()) {
+                ValueNode newNull = new UntypedNullConstantNode(getContextManager());
+                newNull.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN));
+                return newNull;
+            }
+
+            DataValueDescriptor leftVal = leftOp.getValue();
+            DataValueDescriptor rightVal = rightOp.getValue();
+
+            if(leftVal != null && !leftVal.isNull() && rightVal != null && !rightVal.isNull()) {
                 int comp=leftVal.compare(rightVal);
                 switch(operatorType){
                     case EQUALS_RELOP:

@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.types.*;
 
 import java.lang.reflect.Modifier;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Objects;
 
@@ -983,7 +984,9 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 
         DataValueDescriptor lhs = ((ConstantNode) getLeftOperand()).getValue();
         if (lhs == null || lhs.isNull()) {
-            return this;
+            ValueNode newNull = new UntypedNullConstantNode(getContextManager());
+            newNull.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN));
+            return newNull;
         }
         boolean constantResult = false;
         for (int i = 0; i < getRightOperandList().size(); ++i) {
