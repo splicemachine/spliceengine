@@ -14,6 +14,7 @@
 
 package com.splicemachine.stream;
 
+import com.splicemachine.access.configuration.OlapConfigurations;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -22,7 +23,6 @@ import org.apache.log4j.Logger;
 import org.apache.spark.SimpleFutureAction;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.sql.internal.SQLConf;
 import scala.collection.JavaConversions;
 import scala.collection.Seq;
 import scala.concurrent.Await;
@@ -38,6 +38,9 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import static java.lang.Math.ceil;
+import static java.lang.Math.min;
+import static java.lang.Math.max;
 
 /**
  * Created by dgomezferro on 6/1/16.
@@ -45,7 +48,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class StreamableRDD<T> {
     private static final Logger LOG = Logger.getLogger(StreamableRDD.class);
     public static final int DEFAULT_PARALLEL_PARTITIONS = 4;
-    public static final int DEFAULT_PARALLEL_THREADS = 2;
+    public static final int MAX_PARALLEL_THREADS = 8;
 
     private static final ClassTag<String> tag = scala.reflect.ClassTag$.MODULE$.apply(String.class);
     private final int port;
@@ -60,6 +63,7 @@ public class StreamableRDD<T> {
     private final int parallelPartitions;
     private OlapStatus jobStatus;
     private OlapStreamListener olapStreamListener;
+    private final int executorThreads;
 
 
     StreamableRDD(JavaRDD<T> rdd, UUID uuid, String clientHost, int clientPort) {
@@ -67,18 +71,22 @@ public class StreamableRDD<T> {
     }
 
     public StreamableRDD(JavaRDD<T> rdd, OperationContext<?> context, UUID uuid, String clientHost, int clientPort, int batches, int batchSize) {
-        this(rdd, context, uuid, clientHost, clientPort, batches, batchSize, DEFAULT_PARALLEL_PARTITIONS);
+        this(rdd, context, uuid, clientHost, clientPort, batches, batchSize, DEFAULT_PARALLEL_PARTITIONS, OlapConfigurations.DEFAULT_SPARK_RESULT_STREAMING_THREADS);
     }
 
+
     public StreamableRDD(JavaRDD<T> rdd, OperationContext<?> context, UUID uuid, String clientHost, int clientPort,
-                         int batches, int batchSize, int parallelPartitions) {
+                         int batches, int batchSize, int parallelPartitions, int executorThreads) {
         this.rdd = rdd;
         this.context = context;
         this.uuid = uuid;
         this.host = clientHost;
         this.port = clientPort;
-        this.parallelPartitions = parallelPartitions % 2 == 0 ? parallelPartitions : parallelPartitions + 1;
-        this.executor = Executors.newFixedThreadPool(DEFAULT_PARALLEL_THREADS);
+        int defaultExecutorThreads = (int) max(min(ceil((float)parallelPartitions / 2), StreamableRDD.MAX_PARALLEL_THREADS),
+                OlapConfigurations.DEFAULT_SPARK_RESULT_STREAMING_THREADS);
+        this.executorThreads = max(defaultExecutorThreads, executorThreads);
+        this.parallelPartitions = this.executorThreads < parallelPartitions ? parallelPartitions : this.executorThreads;
+        this.executor = Executors.newFixedThreadPool(this.executorThreads);
         completionService = new ExecutorCompletionService<>(executor);
         this.clientBatchSize = batchSize;
         this.clientBatches = batches;
@@ -91,10 +99,8 @@ public class StreamableRDD<T> {
         try {
             final JavaRDD<String> streamed = rdd.mapPartitionsWithIndex(new ResultStreamer(context, uuid, host, port, rdd.getNumPartitions(), clientBatches, clientBatchSize), true);
             int numPartitions = streamed.getNumPartitions();
-            int partitionsBatchSize = parallelPartitions / 2;
-            int partitionBatches = numPartitions / partitionsBatchSize;
-            if (numPartitions % partitionsBatchSize > 0)
-                partitionBatches++;
+            int partitionsBatchSize = (int) ceil((float)parallelPartitions / executorThreads);
+            int partitionBatches = (int) ceil((float)numPartitions / partitionsBatchSize);
 
             if (LOG.isTraceEnabled())
                 LOG.trace("Num partitions " + numPartitions + " clientBatches " + partitionBatches);
@@ -111,7 +117,7 @@ public class StreamableRDD<T> {
                     throw new CancellationException(String.format("The olap job %s is no longer running, cancelling Spark job", this.uuid.toString()));
                 }
                 try {
-                    if (running < DEFAULT_PARALLEL_THREADS) {
+                    if (running < this.executorThreads) {
                         if (running == 0 && !olapStreamListener.isClientConsuming()) {
                             olapStreamListener.getLock().lock();
                             try {
@@ -128,7 +134,7 @@ public class StreamableRDD<T> {
                         }
                     }
 
-                    if ((running > 0 && (!olapStreamListener.isClientConsuming() || submitted == partitionBatches)) || running == DEFAULT_PARALLEL_THREADS) {
+                    if ((running > 0 && (!olapStreamListener.isClientConsuming() || submitted == partitionBatches)) || running == this.executorThreads) {
                         Future<Object> resultFuture = null;
                         resultFuture = completionService.poll(10, TimeUnit.SECONDS);
                         if (resultFuture == null) {
