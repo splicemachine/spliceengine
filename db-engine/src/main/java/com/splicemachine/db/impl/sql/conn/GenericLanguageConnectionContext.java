@@ -718,6 +718,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public String getCostModelName() {
+        return (String) sessionProperties.getProperty(SessionProperties.PROPERTYNAME.COSTMODEL);
+    }
+
+    @Override
     public long getMinPlanTimeout() {
         Long minPlanTimeout = (Long) sessionProperties.getProperty(
             SessionProperties.PROPERTYNAME.MINPLANTIMEOUT);
@@ -4134,13 +4139,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public CostModel getCostModel() {
-        String costModelName = getSessionProperties().getPropertyString(SessionProperties.PROPERTYNAME.COSTMODEL);
-        if(CostModelRegistry.exists(costModelName)) {
+    public CostModel getCostModel(String costModelName) {
+        if(costModelName != null && CostModelRegistry.exists(costModelName)) {
             return CostModelRegistry.getCostModel(costModelName);
-        } else {
-            return CostModelRegistry.getCostModel("v1");
         }
+        return null;
     }
 
     @Override

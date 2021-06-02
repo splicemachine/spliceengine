@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.Statement;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModelRegistry;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.depend.Dependency;
@@ -506,6 +507,7 @@ public class GenericStatement implements Statement{
 
         setSSQFlatteningForUpdateDisabled(lcc, cc);
         setVarcharDB2CompatibilityMode(lcc, cc);
+        setCostModelName(lcc, cc);
         return cc;
     }
 
@@ -835,6 +837,13 @@ public class GenericStatement implements Statement{
                 default:
                     cc.setFloatingPointNotation(CompilerContext.DEFAULT_FLOATING_POINT_NOTATION);
             }
+        }
+    }
+
+    private void setCostModelName(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String costModelString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.COST_MODEL);
+        if (costModelString != null && CostModelRegistry.exists(costModelString)) {
+            cc.setCostModelName(costModelString);
         }
     }
 

@@ -364,6 +364,16 @@ public class CompilerContextImpl extends ContextImpl
         ssqFlatteningForUpdateDisabled = onOff;
     }
 
+    @Override
+    public String getCostModelName() {
+        return costModelName;
+    }
+
+    @Override
+    public void setCostModelName(String costModelName) {
+        this.costModelName = costModelName;
+    }
+
     /**
      * Get the current next subquery number from this CompilerContext.
      *
@@ -1232,6 +1242,7 @@ public class CompilerContextImpl extends ContextImpl
     private       boolean                             disablePerParallelTaskJoinCosting            = DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING;
     private       boolean                             disablePrefixIteratorMode                    = DEFAULT_DISABLE_INDEX_PREFIX_ITERATION;
     private       boolean                             varcharDB2CompatibilityMode                  = DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE;
+    private       String                              costModelName                                = DEFAULT_COST_MODEL_NAME;
     /**
      * Saved execution time default schema, if we need to change it
      * temporarily.
