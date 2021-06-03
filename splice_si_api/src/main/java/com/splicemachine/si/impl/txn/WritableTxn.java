@@ -172,6 +172,7 @@ public class WritableTxn extends AbstractTxn{
         } else {
             state = State.COMMITTED;
         }
+        super.commit();
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"After commit: txn=%s,commitTimestamp=%s",this,commitTimestamp);
     }

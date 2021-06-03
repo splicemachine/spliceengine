@@ -489,7 +489,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             long txnId=getCurrentTransaction().getTxnId();
             sql=sql==null?this.toString():sql;
             String userId=activation.getLanguageConnectionContext().getCurrentUserId(activation);
-
             activation.getLanguageConnectionContext().setControlExecutionLimiter(EngineDriver.driver().processorFactory().getControlExecutionLimiter(activation));
             returnedRows = false;
             if (dsp.getType() == DataSetProcessor.Type.SPARK) { // Only do this for spark jobs
@@ -497,6 +496,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
                 dsp.setJobGroup(jobName, sql);
             }
             this.execRowIterator =getDataSet(dsp).toLocalIterator();
+            activation.getLanguageConnectionContext().setNumTriggers(getCurrentTransaction().getNumTriggers());
         } catch (ResubmitDistributedException e) {
             resubmitDistributed(e);
         }catch(Exception e){ // This catches all the iterator errors for things that are not lazy

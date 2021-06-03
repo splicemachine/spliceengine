@@ -144,6 +144,15 @@ public class SpliceAdmin extends BaseAdminProcedures {
         resultSet[0] = resultHelper.getResultSet();
     }
 
+    public static void SYSCS_GET_TRIGGER_EXEC(final ResultSet[] resultSet) throws SQLException {
+        LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
+        ResultHelper resultHelper = new ResultHelper();
+        ResultHelper.BigintColumn  col = resultHelper.addBigint("NUM_TRIGGERS", 9);
+        resultHelper.newRow();
+        col.set(lcc.getNumTriggers());
+        resultSet[0] = resultHelper.getResultSet();
+    }
+
     public static void SYSCS_GET_CACHED_STATEMENTS_LOCAL(final ResultSet[] resultSet) throws SQLException {
         LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
         assert lcc != null;

@@ -129,6 +129,26 @@ public class LazyTxnView implements TxnView {
     }
 
     @Override
+    public void setNumTriggers(int num) {
+
+    }
+
+    @Override
+    public int getNumTriggers() {
+        return 0;
+    }
+
+    @Override
+    public void incNumTriggers() {
+
+    }
+
+    @Override
+    public void addNumTriggers(int num) {
+
+    }
+
+    @Override
     public boolean allowsSubtransactions() {
         return false;
     }

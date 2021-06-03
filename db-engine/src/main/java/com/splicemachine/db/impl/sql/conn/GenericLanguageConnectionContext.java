@@ -556,6 +556,23 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      */
     private String sessionUser = null;
 
+    private int numTriggers = 0;
+
+    @Override
+    public void setNumTriggers(int num) {
+        numTriggers = num;
+    }
+
+    @Override
+    public int getNumTriggers() {
+        return numTriggers;
+    }
+
+    @Override
+    public void incNumTriggers() {
+        numTriggers += 1;
+    }
+
     @Override
     public void initialize() throws StandardException {
         interruptedException = null;

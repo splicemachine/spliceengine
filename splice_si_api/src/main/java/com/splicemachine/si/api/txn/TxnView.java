@@ -44,6 +44,11 @@ public interface TxnView extends Externalizable {
      */
     long getTxnId();
 
+    void setNumTriggers(int num);
+    int getNumTriggers();
+    void incNumTriggers();
+    void addNumTriggers(int num);
+
     boolean allowsSubtransactions();
 
     /**

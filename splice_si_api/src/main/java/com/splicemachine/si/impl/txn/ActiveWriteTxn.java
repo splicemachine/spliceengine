@@ -61,6 +61,26 @@ public class ActiveWriteTxn extends AbstractTxnView{
     }
 
     @Override
+    public void setNumTriggers(int num) {
+
+    }
+
+    @Override
+    public int getNumTriggers() {
+        return 0;
+    }
+
+    @Override
+    public void incNumTriggers() {
+
+    }
+
+    @Override
+    public void addNumTriggers(int num) {
+
+    }
+
+    @Override
     public long getCommitTimestamp(){
         return -1l;
     }

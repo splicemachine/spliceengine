@@ -26,6 +26,7 @@ import java.io.ObjectOutput;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -39,6 +40,7 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
     protected Set<Txn> children = ConcurrentHashMap.newKeySet();
     protected Txn parentReference;
     private boolean subtransactionsAllowed = true;
+    private AtomicInteger numTriggers;
 
     protected AbstractTxn(){
     }
@@ -56,6 +58,27 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
         if (getSubId() == 0) {
             counter = new AtomicLong(0);
         }
+        this.numTriggers = new AtomicInteger(0);
+    }
+
+    @Override
+    public void setNumTriggers(int num) {
+        numTriggers.set(num);
+    }
+
+    @Override
+    public int getNumTriggers() {
+        return numTriggers.get();
+    }
+
+    @Override
+    public void incNumTriggers() {
+        numTriggers.getAndIncrement();
+    }
+
+    @Override
+    public void addNumTriggers(int num) {
+        numTriggers.getAndAdd(num);
     }
 
     @Override
@@ -172,5 +195,11 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
     @Override
     public TaskId getTaskId() {
         return null;
+    }
+
+    @Override
+    public void commit() throws IOException{
+        if (parentReference != null)
+            parentReference.addNumTriggers(numTriggers.get());
     }
 }

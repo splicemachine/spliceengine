@@ -120,6 +120,10 @@ public interface LanguageConnectionContext extends Context {
     char LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_CHAR = '_';
     int LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_NUM_CHAR = 20;
 
+    void setNumTriggers(int num);
+    int getNumTriggers();
+    void incNumTriggers();
+
     /**
      * Initialize. For use after pushing the contexts that initialization needs.
      *

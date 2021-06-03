@@ -184,6 +184,7 @@ public class ReadOnlyTxn extends AbstractTxn{
                     shouldContinue=!state.compareAndSet(currState,State.COMMITTED);
             }
         }while(shouldContinue);
+        super.commit();
 
         if (ROOT_TRANSACTION.equals(parentTxn)) {
             tc.unregisterActiveTransaction(getBeginTimestamp());

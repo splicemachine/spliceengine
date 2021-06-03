@@ -321,6 +321,7 @@ public class TriggerHandler {
 
     public void fireBeforeRowTriggers(ExecRow row) throws StandardException {
         if (row != null && hasBeforeRow) {
+            txn.incNumTriggers();
             SingleRowCursorResultSet triggeringResultSet = new SingleRowCursorResultSet(resultDescription, row);
             List<Future<Void>> futures = triggerActivator.notifyRowEventConcurrent(beforeEvent, triggeringResultSet, null);
             for (Future<Void> f : futures) {
@@ -343,6 +344,7 @@ public class TriggerHandler {
     public void fireAfterRowTriggers(ExecRow row, Callable<Void> flushCallback) throws Exception {
         if (!hasAfterRow)
             return;
+        txn.incNumTriggers();
         pendingAfterRows.add(row.getClone());
         if (pendingAfterRows.size() == AFTER_ROW_BUFFER_SIZE) {
             firePendingAfterTriggers(flushCallback);
@@ -418,6 +420,7 @@ public class TriggerHandler {
 
     private void fireAfterRowTriggers(ExecRow row) throws StandardException {
         if (row != null && hasAfterRow) {
+            txn.incNumTriggers();
             SingleRowCursorResultSet triggeringResultSet = new SingleRowCursorResultSet(resultDescription, row);
             triggerActivator.notifyRowEvent(afterEvent, triggeringResultSet, null, hasStatementTriggerWithReferencingClause);
         }
@@ -425,6 +428,7 @@ public class TriggerHandler {
 
     private List<Future<Void>> fireAfterRowConcurrentTriggers(ExecRow row) throws StandardException {
         if (row != null && hasAfterRow) {
+            // cannot record trigger info in lcc as lcc is currently not shared among threads
             SingleRowCursorResultSet triggeringResultSet = new SingleRowCursorResultSet(resultDescription, row);
             return triggerActivator.notifyRowEventConcurrent(afterEvent, triggeringResultSet, null);
         }
@@ -434,6 +438,7 @@ public class TriggerHandler {
 
     public void fireBeforeStatementTriggers() throws StandardException {
         if (hasBeforeStatement) {
+            txn.incNumTriggers();
             CursorResultSet triggeringResultSet = triggerRowHolder == null ? null : triggerRowHolder.getResultSet();
             triggerActivator.notifyStatementEvent(beforeEvent, triggeringResultSet, hasStatementTriggerWithReferencingClause);
         }
@@ -441,6 +446,7 @@ public class TriggerHandler {
 
     public void fireAfterStatementTriggers() throws StandardException {
         if (hasAfterStatement) {
+            txn.incNumTriggers();
             CursorResultSet triggeringResultSet = triggerRowHolder == null ? null : triggerRowHolder.getResultSet();
             triggerActivator.notifyStatementEvent(afterEvent, triggeringResultSet, hasStatementTriggerWithReferencingClause);
         }
