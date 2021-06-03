@@ -13,6 +13,8 @@
 
 package com.splicemachine.db.shared.common.sql;
 
+import java.util.List;
+import java.util.stream.Collectors;
 import java.nio.charset.Charset;
 
 public class Utils {
@@ -28,8 +30,8 @@ public class Utils {
             return null;
         }
         return in.replace(Character.toString(escapeCharacter), Character.toString(escapeCharacter) + escapeCharacter)
-                 .replace("_", escapeCharacter + "_")
-                 .replace("%", escapeCharacter + "%");
+                .replace("_", escapeCharacter + "_")
+                .replace("%", escapeCharacter + "%");
     }
 
     public interface ProgressInterface {
