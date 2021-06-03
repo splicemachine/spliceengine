@@ -233,7 +233,8 @@ public class TriggerNewTransitionRows
                     false,   // rowIdKey
                     conglomerate,
                     null,
-                    null);
+                    null,
+                    false);
 
                     s.cacheRows(SCAN_CACHE_SIZE).batchCells(-1);
                     deSiify(s);

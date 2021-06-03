@@ -16,6 +16,7 @@
 package com.splicemachine.test;
 
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
+import com.splicemachine.homeless.TestUtils;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 
@@ -26,6 +27,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicLongArray;
+
+import static org.junit.Assert.fail;
 
 public class Benchmark {
 
@@ -222,6 +225,23 @@ public class Benchmark {
                 if (k < matchLines.size()) {
                     Assert.fail("fail to match the given strings");
                 }
+            }
+        }
+    }
+
+    /***
+     * Executes `query` using `conn` and verify the output contain `containedString`.
+     *
+     * @param containedString The string to search for in the query result.
+     */
+    public static void testQueryContains(Connection conn,
+                                         String query,
+                                         String containedString) throws Exception {
+        try (PreparedStatement ps = conn.prepareStatement(query)) {
+            try (ResultSet resultSet = ps.executeQuery()) {
+                String queryOutputString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(resultSet);
+            if (!queryOutputString.contains(containedString))
+                fail("ResultSet does not contain string: " + containedString + "\nResult set:\n"+queryOutputString);
             }
         }
     }
