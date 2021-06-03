@@ -88,7 +88,7 @@ import static com.splicemachine.derby.impl.sql.execute.operations.ScanOperation.
 public class TriggerNewTransitionRows
                    implements DatasetProvider, VTICosting, AutoCloseable {
 
-        private static final double DUMMY_ROWCOUNT_ESTIMATE = 1000;
+        private static final double DUMMY_ROWCOUNT_ESTIMATE = 1;
         private static final double DUMMY_COST_ESTIMATE = 1000;
 	private ResultSet resultSet;
 	private DataSet<ExecRow> sourceSet;
