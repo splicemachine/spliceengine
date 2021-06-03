@@ -303,6 +303,11 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
             return;
         }
 
+        double joinCostScaleFactor = 1.0d;
+        // Favor nested loop join for triggers that can utilize an index.
+        if (outerTableIsTriggerVTI(optimizer) && hasJoinPredicateWithIndexKeyLookup(predList))
+            joinCostScaleFactor = 0.1d;
+
         //set the base costs for the join
         innerCost.setBase(innerCost.cloneMe());
         double totalRowCount = outerCost.rowCount()*innerCost.rowCount();
@@ -317,9 +322,20 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
         double joinCost = nestedLoopJoinStrategyLocalCost(innerCost, outerCost, totalRowCount, optimizer.isForSpark());
         joinCost += nljOnSparkPenalty;
+        joinCost *= joinCostScaleFactor;
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerParallelTask(joinCost);
         innerCost.setSingleScanRowCount(innerCost.getEstimatedRowCount());
+    }
+
+    private boolean outerTableIsTriggerVTI(Optimizer optimizer) {
+        ResultSetNode outerTable = optimizer.getOuterTable();
+        if (outerTable instanceof Optimizable) {
+            Optimizable outerOptimizable = (Optimizable)outerTable;
+            if (outerOptimizable.isTriggerVTI())
+                return true;
+        }
+        return false;
     }
 
     // Nested loop join is most useful if it can be used to
