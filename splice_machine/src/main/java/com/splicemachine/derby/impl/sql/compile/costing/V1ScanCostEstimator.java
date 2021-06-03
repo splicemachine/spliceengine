@@ -137,9 +137,8 @@ public class V1ScanCostEstimator extends AbstractScanCostEstimator {
         double closeLatency = scc.getCloseLatency();
         double localLatency = scc.getLocalLatency();
         double remoteLatency = scc.getRemoteLatency();
-        // IndexPrefixIteration is not currently parallel, so penalize by a factor of the parallelism.
         double remoteCost = (openLatency + closeLatency) +
-                (numFirstIndexColumnProbes*2*scc.getParallelism())*remoteLatency*(1+colSizeFactor/1024d) +
+                (numFirstIndexColumnProbes*2)*remoteLatency*(1+colSizeFactor/1024d) +
                 totalRowCount*totalSelectivity*remoteLatency*(1+colSizeFactor/1024d); // Per Kb
 
         assert openLatency >= 0 : "openLatency cannot be negative -> " + openLatency;
@@ -157,8 +156,8 @@ public class V1ScanCostEstimator extends AbstractScanCostEstimator {
         double congAverageWidth = scc.getConglomerateAvgRowWidth();
         double baseCost = openLatency+closeLatency;
         assert numFirstIndexColumnProbes >= 0;
-        // IndexPrefixIteration is not currently parallel, so penalize by a factor of the parallelism.
-        baseCost += (numFirstIndexColumnProbes*2*scc.getParallelism())*localLatency*(1+congAverageWidth/100d);
+
+        baseCost += (numFirstIndexColumnProbes*2)*localLatency*(1+congAverageWidth/100d);
         baseCost += (totalRowCount*baseTableSelectivity*localLatency*(1+congAverageWidth/100d));
         if (isIndexOnExpression && baseColumnsInLookup == null) {
             // covering index on expression

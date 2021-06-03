@@ -5104,4 +5104,15 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         return null;
     }
 
+    public boolean hasLeadingIndexColumnStartOrStopKey() {
+        for (int i = 0; i < size(); i++) {
+            Predicate p = (Predicate) getOptPredicate(i);
+            if (p.isStartKey() || p.isStopKey()) {
+                if (p.getIndexPosition() == 0)
+                    return true;
+            }
+        }
+        return false;
+    }
+
 }
