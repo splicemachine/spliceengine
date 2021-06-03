@@ -446,7 +446,7 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
             try {
                 if (!latch.await(10, TimeUnit.SECONDS)) {
                     // Couldn't close gracefully, let's close abruptly
-                    byte[] token = getInterruptToken();
+                    byte[] token = getConnectionToken();
                     if (token != null) {
                         InterruptionToken it = new InterruptionToken(token);
                         ClientConnection sideConnection = getSideConnection();

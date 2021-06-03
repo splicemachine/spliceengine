@@ -31,6 +31,11 @@ public class Utils {
                  .replace("_", escapeCharacter + "_")
                  .replace("%", escapeCharacter + "%");
     }
+
+    public interface ProgressInterface {
+        String getProgress();
+    }
+
     /**
      * this also checks if the format is a valid fixed-size timestamp format
      * see also https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html
