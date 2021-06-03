@@ -290,14 +290,15 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
 
     @Override
     public DataScan getScan(TxnView txn) throws StandardException {
-        return getScan(txn, null, null, null, null, null, false, null);
+        return getScan(txn, null, null, null, null, null, false, null, false);
     }
 
     @Override
     public DataScan getScan(TxnView txn, ExecRow startKeyOverride, int[] keyDecodingMap, ExecRow stopKeyPrefix,
                             List<Pair<ExecRow, ExecRow>> keyRows, DataValueDescriptor scanKeyPrefix,
                             boolean sameStartStopScanKeyPrefix,
-                            List<ExecRow> firstIndexColumnKeys) throws StandardException {
+                            List<ExecRow> firstIndexColumnKeys,
+                            boolean skipBuildOfFirstKeyColumn) throws StandardException {
         boolean sameStartStop = startKeyOverride == null && sameStartStopPosition;
         ExecRow startPosition = getStartPosition();
         ExecRow stopPosition = sameStartStop ? startPosition : getStopPosition();
@@ -377,10 +378,12 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
                 rowIdKey,
                 conglomerate,
                 keyRows,
-                firstIndexColumnKeys);
+                firstIndexColumnKeys,
+                skipBuildOfFirstKeyColumn);
     }
 
-    public List<Pair<byte[],byte[]>> getStartStopKeys(TxnView txn, List<ExecRow> scanKeyPrefixes, int[] keyDecodingMap, DataValueDescriptor[] probeValues) throws StandardException {
+    public List<Pair<byte[],byte[]>> getStartStopKeys(TxnView txn, List<ExecRow> scanKeyPrefixes, int[] keyDecodingMap,
+                                                      DataValueDescriptor[] probeValues, boolean skipBuildOfFirstKeyColumn) throws StandardException {
         boolean sameStartStop = sameStartStopPosition;
         ExecRow startPosition;
         ExecRow stopPosition;
@@ -435,7 +438,8 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
                     tableVersion,
                     rowIdKey,
                     getResultRow(),
-                    scanKeyPrefix);
+                    scanKeyPrefix,
+                    skipBuildOfFirstKeyColumn);
                 startStopKeys.add(startStopKey);
             }
         }
@@ -489,7 +493,9 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
 
 
     @Override
-    public List<DataScan> getScans(TxnView txn, List<ExecRow> scanKeyPrefixes, Activation activation, int[] keyDecodingMap) throws StandardException {
+    public List<DataScan> getScans(TxnView txn, List<ExecRow> scanKeyPrefixes,
+                                   Activation activation, int[] keyDecodingMap,
+                                   boolean skipBuildOfFirstKeyColumn) throws StandardException {
         throw new RuntimeException("getScans is not supported");
     }
 
