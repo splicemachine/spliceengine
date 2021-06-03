@@ -4,11 +4,8 @@ import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.access.configuration.SIConfigurations;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.api.txn.TxnView;
@@ -17,6 +14,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+import splice.com.google.common.collect.Lists;
 
 import java.io.IOException;
 import java.util.List;
@@ -29,6 +27,8 @@ public class UpgradeUtils {
         SIDriver driver = SIDriver.driver();
         int rowsRewritten = 0;
 
+        int batchSize = driver.getConfiguration().getMaxBufferEntries();
+        List<DataPut> mutations = Lists.newArrayList();
         EntryDecoder entryDecoder = new EntryDecoder();
         TxnView txn = ((SpliceTransactionManager) tc).getActiveStateTxn();
         BitSet fields = new BitSet();
@@ -54,13 +54,26 @@ public class UpgradeUtils {
                             encoder.reset();
                             encoder.encodeNextUnsorted(nextRaw);
                             put.addCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES, entryEncoder.encode());
-                            destTable.put(put);
+                            mutations.add(put);
                             rowsRewritten++;
+                            if (rowsRewritten % batchSize == 0) {
+                                batchWrite(destTable, mutations);
+                            }
                         }
                     }
                 }
             }
+            if (mutations.size() > 0) {
+               batchWrite(destTable, mutations);
+            }
         }
         SpliceLogUtils.info(LOG, "Wrote %d rows to SPLICE_CONGLOMERATE_SI.", rowsRewritten);
+    }
+
+    public static void batchWrite(Partition table, List<DataPut> mutations) throws IOException {
+        DataPut[] puts = new DataPut[mutations.size()];
+        puts = mutations.toArray(puts);
+        table.writeBatch(puts);
+        mutations.clear();;
     }
 }
