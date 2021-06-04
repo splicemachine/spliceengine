@@ -918,7 +918,7 @@ public class OptimizerImpl implements Optimizer{
                         bestAP.setCostEstimate(fromTable.getTrulyTheBestAccessPath().getCostEstimate());
                     AccessPath currentAP = fromTable.getCurrentAccessPath();
                     CostEstimate costEstimate=fromTable.getCostEstimate(this);
-                    costEstimate.setCost(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
+                    costEstimate.setCost(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE);
                     currentAP.setCostEstimate(costEstimate);
                 }
                 assignedTableMap.or(optimizableResultSet.getReferencedTableMap());

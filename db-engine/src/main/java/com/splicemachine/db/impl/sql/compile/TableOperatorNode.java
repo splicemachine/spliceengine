@@ -784,8 +784,7 @@ public abstract class TableOperatorNode extends FromTable{
                                                     getDataDictionary(),
                                                     null,
                                                     getCompilerContext().getMaximalPossibleTableCount(),
-                                                    lcc,
-                                                    lcc.getCostModel());
+                                                    lcc);
 
             optimizer.prepForNextRound();
             optimizer.setAssignedTableMap(otherChildReferenceMap);

@@ -1254,7 +1254,7 @@ public class FromBaseTable extends FromTable {
 
         CostEstimate costEstimate=getCostEstimate(optimizer);
         currentAP.setCostEstimate(costEstimate);
-        costEstimate.setCost(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
+        costEstimate.setCost(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE);
 
         bestAP.setCostEstimate(fromTable.getCostEstimate());
         trulyBestAP.setCostEstimate(fromTable.getCostEstimate());

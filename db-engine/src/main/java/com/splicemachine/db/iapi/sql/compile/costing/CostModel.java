@@ -52,13 +52,16 @@ public interface CostModel {
                           CostEstimate costEstimate) throws StandardException;
 
     ScanCostEstimator getNewScanCostEstimator(Optimizable baseTable,
-                                              ConglomerateDescriptor cd,
-                                              StoreCostController scc,
-                                              CostEstimate scanCost,
-                                              ResultColumnList resultColumns,
-                                              DataValueDescriptor[] scanRowTemplate,
-                                              BitSet baseColumnsInScan,
-                                              BitSet baseColumnsInLookup,
-                                              boolean forUpdate,
-                                              HashSet<Integer> usedNoStatsColumnIds) throws StandardException;
+                                                     ConglomerateDescriptor cd,
+                                                     StoreCostController scc,
+                                                     CostEstimate scanCost,
+                                                     ResultColumnList resultColumns,
+                                                     DataValueDescriptor[] scanRowTemplate,
+                                                     BitSet baseColumnsInScan,
+                                                     BitSet baseColumnsInLookup,
+                                                     int indexLookupBatchRowCount,
+                                                     int indexLookupConcurrentBatchesCount,
+                                                     boolean forUpdate,
+                                                     boolean isOlap,
+                                                     HashSet<Integer> usedNoStatsColumnIds) throws StandardException;
 }

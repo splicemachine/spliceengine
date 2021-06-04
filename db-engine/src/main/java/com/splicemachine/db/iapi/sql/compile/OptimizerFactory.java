@@ -31,7 +31,6 @@
 
 package com.splicemachine.db.iapi.sql.compile;
 
-import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -70,12 +69,11 @@ public interface OptimizerFactory {
      * @throws StandardException Thrown on error
      */
     Optimizer getOptimizer(OptimizableList optimizableList,
-						   OptimizablePredicateList predicateList,
-						   DataDictionary dDictionary,
-						   RequiredRowOrdering requiredRowOrdering,
-						   int numTablesInQuery,
-                           LanguageConnectionContext lcc,
-                           CostModel costModel)
+                           OptimizablePredicateList predicateList,
+                           DataDictionary dDictionary,
+                           RequiredRowOrdering requiredRowOrdering,
+                           int numTablesInQuery,
+                           LanguageConnectionContext lcc)
             throws StandardException;
 
 
@@ -106,19 +104,19 @@ public interface OptimizerFactory {
 
     long getDetermineSparkRowThreshold();
 
-	/**
-	 * The maximum number of rows for which index lookup operation can
-	 * be fired as a batch. Controlled by splice.index.batchSize,
-	 * default value in SQLConfiguration.
-	 * @return  splice.index.batchSize value
-	 */
-	int getIndexBatchSize();
+    /**
+     * The maximum number of rows for which index lookup operation can
+     * be fired as a batch. Controlled by splice.index.batchSize,
+     * default value in SQLConfiguration.
+     * @return  splice.index.batchSize value
+     */
+    int getIndexBatchSize();
 
-	/**
-	 * The maximum number of index lookup batches that can run
-	 * concurrently. Controlled by splice.index.numConcurrentLookups,
-	 * default value in SQLConfiguration.
-	 * @return splice.index.numConcurrentLookups value
-	 */
-	int getIndexLookupBlocks();
+    /**
+     * The maximum number of index lookup batches that can run
+     * concurrently. Controlled by splice.index.numConcurrentLookups,
+     * default value in SQLConfiguration.
+     * @return splice.index.numConcurrentLookups value
+     */
+    int getIndexLookupBlocks();
 }
