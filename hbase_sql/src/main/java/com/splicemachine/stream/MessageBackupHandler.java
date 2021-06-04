@@ -14,7 +14,9 @@
 
 package com.splicemachine.stream;
 
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.log4j.Logger;
+import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import java.io.IOException;
 import java.util.Queue;
@@ -34,18 +36,16 @@ public class MessageBackupHandler {
     private UUID uuid;
     private HdfsStreamWriter hdfsStreamWriter;
     private ScheduledExecutorService timeoutMonitorExecutor;
-    private ExecutorService backupExecutor;
 
     public MessageBackupHandler(UUID uuid, StreamListener  streamListener) {
         this.uuid = uuid;
         this.hdfsStreamWriter = new HdfsStreamWriter(uuid);
-        this.timeoutMonitorExecutor = Executors.newSingleThreadScheduledExecutor();
+        this.timeoutMonitorExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setDaemon(true).setNameFormat("streamMessagesTimeout").build());
         this.timeoutMonitorExecutor.scheduleAtFixedRate(new ConsumptionTimeoutTask(streamListener, CONSUMPTION_TIMEOUT), 0, 1, TimeUnit.MINUTES);
-        this.backupExecutor = Executors.newFixedThreadPool(2);
     }
 
     public void submitBackupTask(BackupPartitionTask task) {
-        backupExecutor.submit(task);
+        SIDriver.driver().getExecutorService().submit(task);
     }
 
     public void writeResults(int partition, Queue<Object> queue) throws IOException {
@@ -63,9 +63,6 @@ public class MessageBackupHandler {
     public void close() {
         if (this.timeoutMonitorExecutor != null) {
             this.timeoutMonitorExecutor.shutdown();
-        }
-        if (this.backupExecutor != null) {
-            this.backupExecutor.shutdown();
         }
         if (this.hdfsStreamWriter != null) {
             this.hdfsStreamWriter.close();
