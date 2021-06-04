@@ -66,14 +66,23 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     private volatile boolean backupEnabled = false;
     private MessageBackupHandler messageBackupHandler = null;
 
+    /**
+     * A small constructor for the ITs with default parameters.
+     */
     StreamListener() {
         this(-1, 0);
     }
 
+    /**
+     * A small constructor for the ITs with default parameters.
+     */
     StreamListener(long limit, long offset) {
         this(limit, offset, 2, 512);
     }
 
+    /**
+     * A constructor for the ITs with default parameters.
+     */
     public StreamListener(long limit, long offset, int batches, int batchSize) {
         this(limit, offset, batches, batchSize, StreamableRDD.DEFAULT_PARALLEL_PARTITIONS, true, true);
     }
