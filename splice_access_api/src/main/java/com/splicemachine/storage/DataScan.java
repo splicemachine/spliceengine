@@ -14,6 +14,9 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.utils.Pair;
 
 import java.io.IOException;
@@ -64,6 +67,8 @@ public interface DataScan extends Attributable{
     // that that excludes rows not covered by any range.
     // Currently not supported on the mem platform, where attempting to add this
     // filter will throw an IOException.
-    void addRowkeyRangesFilter(List<Pair<byte[],byte[]>> rowkeyPairs) throws IOException;
+    void addRowkeyRangesFilter(List<Pair<byte[],byte[]>> rowkeyPairs,
+                               boolean skipStartStopKeyAdjustment) throws IOException;
 
+    void attachKeyPrefixFilter(Encoding.SpliceEncodingKind firstKeyColumnEncodingKind) throws IOException;
 }

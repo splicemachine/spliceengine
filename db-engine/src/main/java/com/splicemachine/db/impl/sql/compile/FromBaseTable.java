@@ -1401,6 +1401,7 @@ public class FromBaseTable extends FromTable {
             finalCostEstimate = firstPassCostEstimate = firstPassCostEstimate.cloneMe();
             AccessPath firstPassAccessPath = new AccessPathImpl(optimizer);
             firstPassAccessPath.copy(currentAccessPath);
+            currentAccessPath.setNumUnusedLeadingIndexFields(0);
             disableIndexPrefixIteration = true;
             CostEstimate secondPassCostEstimate =
                 estimateCostHelper(predList, cd, outerCost, optimizer, rowOrdering);
@@ -1416,10 +1417,13 @@ public class FromBaseTable extends FromTable {
 
     private void reduceEstimatedCosts(AccessPath accessPath) {
         accessPath.setCostEstimate(accessPath.getCostEstimate().cloneMe());
-
-        double costScaleFactor = 1e-9;
         CostEstimate estimate = accessPath.getCostEstimate();
 
+        reduceEstimatedCosts(estimate);
+    }
+
+    private void reduceEstimatedCosts(CostEstimate estimate) {
+        double costScaleFactor = 1e-9;
         estimate.setLocalCost(estimate.getLocalCost() * costScaleFactor);
         estimate.setRemoteCost(estimate.getRemoteCost() * costScaleFactor);
         estimate.setLocalCostPerParallelTask(estimate.getLocalCostPerParallelTask() * costScaleFactor);
@@ -1839,6 +1843,7 @@ public class FromBaseTable extends FromTable {
         boolean oldIsAntiJoin = outerCost.isAntiJoin();
         outerCost.setAntiJoin(isAntiJoin);
         currentJoinStrategy.estimateCost(this, baseTableRestrictionList, cd, outerCost, optimizer, costEstimate);
+        adjustCostsForHintedIndexPrefixIteration(costEstimate, baseTableRestrictionList, optimizer);
         outerCost.setAntiJoin(oldIsAntiJoin);
         tracer.trace(OptimizerFlag.COST_OF_N_SCANS,tableNumber,0,outerCost.rowCount(),costEstimate, correlationName);
 
@@ -1846,6 +1851,24 @@ public class FromBaseTable extends FromTable {
         currentJoinStrategy.putBasePredicates(predList, baseTableRestrictionList);
 
         return costEstimate;
+    }
+
+    // Make the cost of Index Prefix Iteration cheaper if the
+    // favorUnionedIndexScans session hint is used.
+    private void
+    adjustCostsForHintedIndexPrefixIteration(CostEstimate costEstimate, PredicateList predList, Optimizer optimizer) {
+        if (!getLanguageConnectionContext().favorIndexPrefixIteration())
+            return;
+
+        if (optimizer.getOuterTable() instanceof Optimizable) {
+            Optimizable opt = (Optimizable)optimizer.getOuterTable();
+            AccessPath ap = opt.getCurrentAccessPath();
+            if (ap.getNumUnusedLeadingIndexFields() > 0)
+                reduceEstimatedCosts(costEstimate);
+        }
+        else if (currentAccessPath.getNumUnusedLeadingIndexFields() > 0) {
+            reduceEstimatedCosts(costEstimate);
+        }
     }
 
     @Override
@@ -4689,32 +4712,6 @@ public class FromBaseTable extends FromTable {
                 "existsTable: " + existsTable + "<br/>" +
                 "dependencyMap: " + Objects.toString(dependencyMap) +
                 super.toHTMLString();
-    }
-
-    public void determineSpark() {
-        setDataSetProcessorType(getDataSetProcessorTypeForAccessPath(getTrulyTheBestAccessPath()));
-    }
-
-    /**
-     * Return the data set processor type for a given access path.
-     *
-     * @param accessPath the access path
-     */
-    public DataSetProcessorType getDataSetProcessorTypeForAccessPath(AccessPath accessPath) {
-        if (! dataSetProcessorType.isDefaultOltp()) {
-            // No need to assess cost
-            return dataSetProcessorType;
-        }
-        long sparkRowThreshold = getLanguageConnectionContext().getOptimizerFactory().getDetermineSparkRowThreshold();
-        // we need to check not only the number of row scanned, but also the number of output rows for the
-        // join result
-        assert dataSetProcessorType.isDefaultOltp();
-        if (accessPath != null &&
-                (accessPath.getCostEstimate().getScannedBaseTableRows() > sparkRowThreshold ||
-                 accessPath.getCostEstimate().getEstimatedRowCount() > sparkRowThreshold)) {
-                return DataSetProcessorType.COST_SUGGESTED_OLAP;
-        }
-        return dataSetProcessorType;
     }
 
     private boolean hasConstantPredicate(int tableNum, int colNum, OptimizablePredicateList predList) {

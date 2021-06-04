@@ -68,9 +68,9 @@ public class DistributedGetSchemaExternalJob extends DistributedJob implements E
                  CsvOptions csvOptions,
                  StructType nonPartitionColumns,
                  StructType partitionColumns) throws IOException {
-        Future<GetSchemaExternalResult> futureResult = EngineDriver.driver().getOlapClient().
-                submit(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs, mergeSchema, csvOptions,
-                        nonPartitionColumns, partitionColumns));
+        DistributedGetSchemaExternalJob job = new DistributedGetSchemaExternalJob(location, jobGroup, storedAs, mergeSchema, csvOptions,
+                nonPartitionColumns, partitionColumns);
+        Future<GetSchemaExternalResult> futureResult = EngineDriver.driver().getOlapClient().submit(job);
         GetSchemaExternalResult result = null;
         SConfiguration config = EngineDriver.driver().getConfiguration();
 
@@ -155,5 +155,10 @@ public class DistributedGetSchemaExternalJob extends DistributedJob implements E
     }
     public StructType getPartitionColumns() {
         return partitionColumns;
+    }
+
+    @Override
+    public void notify(String info) {
+        // we would have to message back but currently we don't have the running operation
     }
 }

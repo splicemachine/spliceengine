@@ -222,22 +222,7 @@ public class HalfOuterJoinNode extends JoinNode{
 		 * conditions only get pushed down 1 level.
 		 * We use the optimizer's logic for pushing down join clause here.
 		 */
-        // Walk joinPredicates backwards due to possible deletes
-        for(int index=joinPredicates.size()-1;index>=0;index--){
-            Predicate predicate;
-
-            predicate=joinPredicates.elementAt(index);
-            if(!predicate.getPushable()){
-                continue;
-            }
-
-            optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION,0,0,0.0,
-                                     "HalfOuterJoinNode pushing predicate right.",predicate);
-            getRightPredicateList().addPredicate(predicate);
-
-			/* Remove the matching predicate from the outer list */
-            joinPredicates.removeElementAt(index);
-        }
+        movePushablePredicatesToRhs();
 
 		/* Recurse down both sides of tree */
         PredicateList noPredicates = new PredicateList(getContextManager());

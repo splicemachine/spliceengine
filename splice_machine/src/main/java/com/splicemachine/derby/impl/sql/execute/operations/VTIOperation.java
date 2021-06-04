@@ -139,6 +139,11 @@ public class VTIOperation extends SpliceBaseOperation {
     private ResultSet fromTableDML_ResultSet = null;
     DataSet<ExecRow> sourceSet;
 
+    @Override
+    public String toString() {
+        return "VTIOperation (" + javaClassName + ")";
+    }
+
 
 	/**
 		Specified isolation level of SELECT (scan). If not set or

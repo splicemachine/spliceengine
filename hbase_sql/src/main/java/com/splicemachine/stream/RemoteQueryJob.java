@@ -14,18 +14,22 @@
 
 package com.splicemachine.stream;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.concurrent.Clock;
+import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.stream.ActivationHolder;
 
+import java.io.Serializable;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
 /**
  * Created by dgomezferro on 5/20/16.
  */
-public class RemoteQueryJob extends DistributedJob {
+public class RemoteQueryJob extends DistributedJob implements Serializable {
+    private static final long serialVersionUID = 8532788323865054161L;
     final UUID uuid;
     int rootResultSetNumber;
     ActivationHolder ah;
@@ -39,12 +43,13 @@ public class RemoteQueryJob extends DistributedJob {
     int parallelPartitions;
     Integer shufflePartitions;
     int streamingThrottleMaxWait;
+    transient RunningOperation runningOperation = null;
 
 
     public RemoteQueryJob(ActivationHolder ah, int rootResultSetNumber, UUID uuid, String host, int port,
                           String session, String userId, String sql,
-                          int streamingBatches, int streamingBatchSize, int parallelPartitions, Integer shufflePartitionsProperty,
-                          int streamingThrottleMaxWait) {
+                          int streamingBatches, int streamingBatchSize, int parallelPartitions,
+                          Integer shufflePartitionsProperty, int streamingThrottleMaxWait, UUID runningOperationUUID) {
         this.ah = ah;
         this.rootResultSetNumber = rootResultSetNumber;
         this.uuid = uuid;
@@ -58,6 +63,11 @@ public class RemoteQueryJob extends DistributedJob {
         this.parallelPartitions = parallelPartitions;
         this.shufflePartitions = shufflePartitionsProperty;
         this.streamingThrottleMaxWait = streamingThrottleMaxWait;
+
+        RunningOperation runningOperation = null;
+        if( runningOperationUUID != null )
+            runningOperation = EngineDriver.driver().getOperationManager().getRunningOperation(runningOperationUUID);
+        this.runningOperation = runningOperation;
     }
 
     @Override
@@ -68,5 +78,11 @@ public class RemoteQueryJob extends DistributedJob {
     @Override
     public String getName() {
         return "query-"+uuid;
+    }
+
+    @Override
+    public void notify(String str) {
+        if( runningOperation != null )
+            runningOperation.setProgressString(str);
     }
 }

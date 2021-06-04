@@ -43,6 +43,7 @@ package com.splicemachine.db.impl.sql.compile;
  import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
  import com.splicemachine.db.iapi.store.access.ScanController;
  import com.splicemachine.db.iapi.store.access.StoreCostController;
+ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
  import com.splicemachine.db.iapi.types.DataValueDescriptor;
  import com.splicemachine.db.iapi.types.Orderable;
  import com.splicemachine.db.iapi.types.TypeId;
@@ -884,7 +885,8 @@ public class BinaryRelationalOperatorNode
     }
 
     @Override
-    public boolean isQualifier(Optimizable optTable,boolean forPush) throws StandardException{
+    public boolean isQualifier(Optimizable optTable, ConglomerateDescriptor cd, boolean forPush)
+            throws StandardException {
         /* If this rel op is for an IN-list probe predicate then we never
          * treat it as a qualifer.  The reason is that if we treat it as
          * a qualifier then we could end up generating it as a qualifier,
@@ -897,10 +899,10 @@ public class BinaryRelationalOperatorNode
             return false;
 
         FromTable ft;
-        ValueNode otherSide=null;
-        ColumnReference cr;
-        boolean found=false;
-        boolean walkSubtree=true;
+        ValueNode otherSide = null;
+        ColumnReference cr = null;
+        boolean found = false;
+        boolean walkSubtree = true;
 
         ft=(FromTable)optTable;
 
@@ -943,7 +945,15 @@ public class BinaryRelationalOperatorNode
         ** Qualifier if the other side does not refer to the table we are
         ** optimizing.
         */
-        return !valNodeReferencesOptTable(otherSide,ft,forPush,true);
+        if (valNodeReferencesOptTable(otherSide, ft, forPush, true)) {
+            return false;
+        }
+
+        if (forPush && cd != null && cd.isIndex()) {
+            return isIndexColumn(cr, cd);
+        }
+
+        return true;
     }
 
     public boolean isQualifierForHashableJoin(Optimizable optTable,boolean forPush) throws StandardException{
@@ -1169,10 +1179,17 @@ public class BinaryRelationalOperatorNode
                 getRightOperand() instanceof ConstantNode){
             ConstantNode leftOp=(ConstantNode)getLeftOperand();
             ConstantNode rightOp=(ConstantNode)getRightOperand();
-            DataValueDescriptor leftVal=leftOp.getValue();
-            DataValueDescriptor rightVal=rightOp.getValue();
 
-            if(leftVal != null && !leftVal.isNull() && rightVal != null && !rightVal.isNull()){
+            if (leftOp.isNull() || rightOp.isNull()) {
+                ValueNode newNull = new UntypedNullConstantNode(getContextManager());
+                newNull.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN));
+                return newNull;
+            }
+
+            DataValueDescriptor leftVal = leftOp.getValue();
+            DataValueDescriptor rightVal = rightOp.getValue();
+
+            if(leftVal != null && !leftVal.isNull() && rightVal != null && !rightVal.isNull()) {
                 int comp=leftVal.compare(rightVal);
                 switch(operatorType){
                     case EQUALS_RELOP:

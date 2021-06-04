@@ -21,13 +21,18 @@ import com.splicemachine.test.Benchmark;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.sql.*;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Category(Benchmark.class)
+@RunWith(Parameterized.class)
 public class FeatureStoreBenchmark extends Benchmark {
 
     private static final Logger LOG = Logger.getLogger(FeatureStoreBenchmark.class);
@@ -304,7 +309,7 @@ public class FeatureStoreBenchmark extends Benchmark {
      *    Query execution times are collected to compute statistics provided by the general framework.
      */
 
-    private static void runQueries(TableConfig[] configs) {
+    private static void runQueriesOrig(TableConfig[] configs) {
         try (Connection conn = makeConnection()) {
             Random rnd = ThreadLocalRandom.current();
 
@@ -397,97 +402,215 @@ public class FeatureStoreBenchmark extends Benchmark {
         }
     }
 
+    /*
+     *    Benchmarks create a set of prebuilt queries that select from 1 to 9 of the feature set tables selecting 5 columns from each table.
+     *    In a table with 10 columns, select columns c2, c4, c6, c8, c10, with 100 columns: c20, c40, c60, c80, c100 and with 1000: c200, c400, c600, c800, c1000.
+     *
+     *    SELECT max(t1_c2), ... max(t2_c20), ... max(t3_c200), ... FROM (
+     *      SELECT T1.c1 t1_c1, ... cast(NULL as int) t2_c20, ..., cast(NULL as int) t3_c200, ... FROM T1 WHERE (T1.<primaryKey>, ...) = (<random value>, ...)
+     *      UNION ALL
+     *      SELECT cast(NULL as int) t1_c1, ... T2.c20 t2_c20, ... cast(NULL as int) t3_c200, ... FROM T2 WHERE (T2.<primaryKey>, ...) = (<random value>, ...)
+     *      ... )
+     *
+     *    Prepared queries are run from multiple concurrent connections for the specified number of operations per connection.
+     *    Query results are read and hashed for possible validation (not implemented).
+     *    Query execution times are collected to compute statistics provided by the general framework.
+     */
+
+    private static void runQueriesUnion(TableConfig[] configs) {
+        try (Connection conn = makeConnection()) {
+            Random rnd = ThreadLocalRandom.current();
+
+            // Prepare the query
+            int nColumns = 0;
+            StringBuilder sb = new StringBuilder();
+            sb.append("SELECT");
+            String delimiter = " ";
+            for (TableConfig config : configs) {
+                for (int col = 2; col <= 10; col += 2) {
+                    String colName = "C" + (col * config.numCols / 10);
+                    sb.append(delimiter);
+                    delimiter = ",";
+                    sb.append("MAX(")
+                      .append(config.tableName).append('_').append(colName)
+                      .append(")");
+                    nColumns += 1;
+                }
+            }
+            delimiter= " FROM (";
+            for (TableConfig config : configs) {
+                sb.append(delimiter);
+                delimiter = " UNION ALL ";
+
+                String delimiter2 = "SELECT ";
+                for (TableConfig config2 : configs) {
+                    for (int col = 2; col <= 10; col += 2) {
+                        String colName = "C" + (col * config2.numCols / 10);
+                        sb.append(delimiter2);
+                        delimiter2 = ",";
+                        if (config2 == config) {
+                            sb.append(config2.tableName).append(".").append(colName);
+                        }
+                        else {
+                            sb.append(" CAST(NULL AS INT) ");
+                        }
+                        sb.append(" ").append(config2.tableName).append("_").append(colName);
+                    }
+                }
+                sb.append(" FROM ").append(config.tableName);
+                sb.append(" WHERE ");
+                delimiter2 = "(";
+                for (int pk = 1; pk <= config.numPK; ++pk) {
+                    sb.append(delimiter2);
+                    delimiter2 = ",";
+                    sb.append(config.tableName).append(".P").append(pk);
+                }
+                sb.append(") = ");
+                delimiter2 = "(";
+                for (int pk = 0; pk < config.numPK; ++pk) {
+                    sb.append(delimiter2);
+                    delimiter2 = ",";
+                    sb.append('?');
+                }
+                sb.append(')');
+            }
+            sb.append(')');
+            PreparedStatement select = conn.prepareStatement(sb.toString());
+
+            for (int i = 0; i < operations; ++i) {
+                long start = System.currentTimeMillis();
+                try {
+                    int idx = 1;
+                    for (TableConfig config : configs) {
+                        long id = Math.abs(rnd.nextLong()) % config.numRows;
+                        int[] PK = new int[config.numPK];
+                        makePK(id, PK);
+                        for (int pk = 0; pk < config.numPK; ++pk) {
+                            select.setInt(idx++, PK[pk]);
+                        }
+                    }
+
+                    int rowCount = 0;
+                    try (ResultSet rs = select.executeQuery()) {
+                        while (rs.next()) {
+                            ++rowCount;
+                            long rowHash = 0;   //currently unused
+                            for (int c = 1; c <= nColumns; ++c) {
+                                Object obj = rs.getObject(c);
+                                if (obj != null) {
+                                    rowHash = (rowHash << 1) ^ (rowHash >>> 63) * 27L;
+                                    rowHash ^= (obj.hashCode() & 0xffffffffL);
+                                }
+                            }
+                        }
+                    }
+                    if (rowCount > 0) {
+                        updateStats(STAT_QUERIES, rowCount, System.currentTimeMillis() - start);
+                    }
+                    else {
+                        updateStats(STAT_ERROR);
+                    }
+                }
+                catch (SQLException ex) {
+                    LOG.error("ERROR", ex);
+                    updateStats(STAT_ERROR);
+                }
+            }
+        }
+        catch (Throwable t) {
+            LOG.error("Connection broken", t);
+            abort = true;
+        }
+    }
+
+    @Parameterized.Parameters
+    public static Collection testParams() {
+        return Arrays.asList(new Object[][] {{true}, {false}});
+    }
+
+    private boolean runOrig;
+
+    public FeatureStoreBenchmark(boolean orig) {
+        runOrig = orig;
+    }
+
     @Before
     public void reset() {
         abort = false;
     }
 
-    static String testTitle(TableConfig[] configs) {
+    private String testTitle(TableConfig[] configs) {
         StringBuilder sb = new StringBuilder("Query");
         for (TableConfig config : configs) {
             sb.append(' ').append(config.tableName);
         }
+        sb.append(runOrig ? " (orig)" : " (union)");
         return sb.toString();
+    }
+
+    private void runQueries(TableConfig[] tables) {
+        LOG.info(testTitle(tables));
+
+        long start = System.currentTimeMillis();
+        runBenchmark(connections, () -> {
+            if (runOrig) runQueriesOrig(tables);
+            else runQueriesUnion(tables);
+        });
+        long end = System.currentTimeMillis();
+        Assert.assertFalse(abort);
+
+        long throughput = getCountStats(STAT_QUERIES) * 1000L / (end - start);
+        LOG.info(STAT_QUERIES + " throughput: " + throughput + " ops/sec");
     }
 
     @Test
     public void queryT1() {
-        TableConfig[] tables = new TableConfig[] {T1};
-        LOG.info(testTitle(tables));
-        runBenchmark(connections, () -> runQueries(tables));
-        Assert.assertFalse(abort);
+        runQueries(new TableConfig[] {T1});
     }
 
     @Test
     public void queryT2() {
-        TableConfig[] tables = new TableConfig[] {T2};
-        LOG.info(testTitle(tables));
-        runBenchmark(connections, () -> runQueries(tables));
-        Assert.assertFalse(abort);
+        runQueries(new TableConfig[] {T2});
     }
 
     @Test
     public void queryT3() {
-        TableConfig[] tables = new TableConfig[] {T3};
-        LOG.info(testTitle(tables));
-        runBenchmark(connections, () -> runQueries(tables));
-        Assert.assertFalse(abort);
+        runQueries(new TableConfig[] {T3});
     }
 
     @Test
     public void queryT1T2T3() {
-        TableConfig[] tables = new TableConfig[] {T1, T2, T3};
-        LOG.info(testTitle(tables));
-        runBenchmark(connections, () -> runQueries(tables));
-        Assert.assertFalse(abort);
+        runQueries(new TableConfig[] {T1, T2, T3});
     }
 
     @Test
     public void queryT4T5T6() {
-        TableConfig[] tables = new TableConfig[] {T4, T5, T6};
-        LOG.info(testTitle(tables));
-        runBenchmark(connections, () -> runQueries(tables));
-        Assert.assertFalse(abort);
+        runQueries(new TableConfig[] {T4, T5, T6});
     }
 
     @Test
     public void queryT7T8T9() {
-        TableConfig[] tables = new TableConfig[] {T7, T8, T9};
-        LOG.info(testTitle(tables));
-        runBenchmark(connections, () -> runQueries(tables));
-        Assert.assertFalse(abort);
+        runQueries(new TableConfig[] {T7, T8, T9});
     }
 
     @Test
     public void queryT1T4T7() {
-        TableConfig[] tables = new TableConfig[] {T1, T4, T7};
-        LOG.info(testTitle(tables));
-        runBenchmark(connections, () -> runQueries(tables));
-        Assert.assertFalse(abort);
+        runQueries(new TableConfig[] {T1, T4, T7});
     }
 
     @Test
     public void queryT2T5T8() {
-        TableConfig[] tables = new TableConfig[] {T2, T5, T8};
-        LOG.info(testTitle(tables));
-        runBenchmark(connections, () -> runQueries(tables));
-        Assert.assertFalse(abort);
+        runQueries(new TableConfig[] {T2, T5, T8});
     }
 
     @Test
     public void queryT3T6T9() {
-        TableConfig[] tables = new TableConfig[] {T3, T6, T9};
-        LOG.info(testTitle(tables));
-        runBenchmark(connections, () -> runQueries(tables));
-        Assert.assertFalse(abort);
+        runQueries(new TableConfig[] {T3, T6, T9});
     }
 
     @Test
     public void queryAllTables() {
-        TableConfig[] tables = new TableConfig[] {T1, T2, T3, T4, T5, T6, T7, T8, T9};
-        LOG.info(testTitle(tables));
-        runBenchmark(connections, () -> runQueries(tables));
-        Assert.assertFalse(abort);
+        runQueries(new TableConfig[] {T1, T2, T3, T4, T5, T6, T7, T8, T9});
     }
 
 }

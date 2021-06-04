@@ -375,7 +375,7 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
                         "FOR EACH STATEMENT " +
                         "INSERT INTO FeatureTable (entity_key, last_update_ts, feature1, feature2) --splice-properties insertMode=UPSERT\n" +
                         "SELECT n.entity_key, n.asof_ts, n.feature1, n.feature2 " +
-                        "FROM NEWW n LEFT JOIN FeatureTable o --splice-properties joinStrategy=nestedloop\n" +
+                        "FROM NEWW n LEFT JOIN FeatureTable o \n" +
                         "ON n.entity_key = o.entity_key WHERE (o.last_update_ts IS NULL OR o.last_update_ts < n.asof_ts)"
         );
     }

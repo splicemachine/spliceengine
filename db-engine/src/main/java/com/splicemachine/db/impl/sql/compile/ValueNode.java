@@ -1096,7 +1096,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
      *
      * @return Whether or not this node represents a true constant.
      */
-    boolean isBooleanTrue()
+    public boolean isBooleanTrue()
     {
         return false;
     }
@@ -1106,7 +1106,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
      *
      * @return Whether or not this node represents a false constant.
      */
-    boolean isBooleanFalse()
+    public boolean isBooleanFalse()
     {
         return false;
     }

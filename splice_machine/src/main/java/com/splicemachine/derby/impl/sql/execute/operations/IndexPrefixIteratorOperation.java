@@ -21,9 +21,11 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowFunction;
 import com.splicemachine.derby.stream.function.driver.IndexPrefixIteratorFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -45,6 +47,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import static com.splicemachine.EngineDriver.isMemPlatform;
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
 /**
  *
@@ -217,14 +220,54 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
             TableScannerIterator tableScannerIterator = (TableScannerIterator) ds.toLocalIterator();
             registerCloseable(tableScannerIterator);
             // Most of the probing logic is in IndexPrefixIteratorFunction, as created below.
-            ds = ds.mapPartitions(new IndexPrefixIteratorFunction(operationContext, firstIndexColumnNumber), true);
-            keys = ds.collect();
+            if (isMemPlatform)
+                ds = ds.mapPartitions(new IndexPrefixIteratorFunction(operationContext, firstIndexColumnNumber), true);
+
+            // Only grab the first row for non-mem platforms.
+            // Use the new custom HBase filter in this case, which needs
+            // the DataValueDescriptor of the first index column to
+            // be passed to the constructor.
+            if (!isMemPlatform) {
+                ExecRow firstRow = null;
+                if (tableScannerIterator.hasNext())
+                    firstRow = tableScannerIterator.next();
+                closeFirstTableScanner(tableScannerIterator);
+                if (firstRow == null)
+                    return controlDSP.getEmpty();
+
+                int firstMappedIndexColumnNumber = baseColumnMap[firstIndexColumnNumber-1]+1;
+                ExecRow keyRow = new ValueRow(1);
+                keyRow.setColumn(1, firstRow.getColumn(firstMappedIndexColumnNumber));
+                keys = new ArrayList<>();
+                keys.add(keyRow);
+            }
+            else
+                keys = ds.collect();
 
             closeFirstTableScanner(tableScannerIterator);
 
             // IndexPrefixIteratorFunction has set scanKeyPrefix.
             // Future operations won't want this set, so reset it back to null.
             ((BaseActivation) getActivation()).setScanKeyPrefix(null);
+        }
+        if (!isMemPlatform && keys.size() > 0) {
+            ExecRow firstRow = keys.get(0);
+
+            if (!(sourceResultSet instanceof TableScanOperation))
+                throw StandardException.newException(LANG_INTERNAL_ERROR,
+                    "Attempt to apply index prefix iteration on something other than a table scan.");
+
+            TableScanOperation tableScan = (TableScanOperation) sourceResultSet;
+            tableScan.setFirstRowOfIndexPrefixIteration(firstRow);
+
+            // Give the source result set access to the prefix keys.
+            ((BaseActivation) sourceResultSet.getActivation()).setFirstIndexColumnKeys(keys);
+            ((BaseActivation) sourceResultSet.getActivation()).setSkipBuildOfFirstKeyColumn(true);
+            DataSet<ExecRow> dataSet = tableScan.getDataSet(dsp);
+            ((BaseActivation) sourceResultSet.getActivation()).setFirstIndexColumnKeys(null);
+            ((BaseActivation) sourceResultSet.getActivation()).setSkipBuildOfFirstKeyColumn(false);
+            tableScan.setFirstRowOfIndexPrefixIteration(null);
+            return dataSet;
         }
 
         DataSet<ExecRow> finalDS;
@@ -277,13 +320,10 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
     public ScanSetBuilder<ExecRow> createTableScannerBuilder() throws StandardException{
         TxnView txn = getCurrentTransaction();
 
-        // Always use control because each read only collects one row.
-        // We don't want the overhead of using spark for such small reads.
         if (controlDSP == null)
             controlDSP =
-                EngineDriver.driver().processorFactory().
-                    localProcessor(getOperation().getActivation(), this);
-
+            EngineDriver.driver().processorFactory().
+                                                    localProcessor(getOperation().getActivation(), this);
         DataScan dataScan = getNonSIScan();
 
         // No need for a large cache since we're
