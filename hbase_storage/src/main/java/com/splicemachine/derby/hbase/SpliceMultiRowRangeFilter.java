@@ -98,7 +98,12 @@ public class SpliceMultiRowRangeFilter extends MultiRowRangeFilter {
     public Cell getNextCellHint(Cell currentKV) {
         // skip to the next range's start row
         // #getComparisonData lets us avoid the `if (reversed)` branch
-        byte[] comparisonData = range.getComparisonData();
+        byte[] comparisonData;
+        if (reversed) {
+            comparisonData = range.getStopRow();
+        } else  {
+            comparisonData = range.getStartRow();
+        }
         return PrivateCellUtil.createFirstOnRow(comparisonData, 0, (short) comparisonData.length);
     }
 
@@ -236,7 +241,8 @@ public class SpliceMultiRowRangeFilter extends MultiRowRangeFilter {
             return insertionPosition;
           }
           // the row key equals one of the start keys, and the the range exclude the start key
-          if(ranges.get(index).isSearchRowInclusive() == false) {
+          // We do not support reverse scan, so we can check for start row inclusive here
+          if(!ranges.get(index).isStartRowInclusive()) {
             exclusive = true;
           }
           return index;
