@@ -134,7 +134,7 @@ public class FakeColumnStatisticsImpl extends ColumnStatisticsImpl implements Ex
 
     @Override
     public long selectivityExcludingValueIfSkewed(DataValueDescriptor value) {
-        return totalCount;
+        return rpv;
     }
 
     @Override

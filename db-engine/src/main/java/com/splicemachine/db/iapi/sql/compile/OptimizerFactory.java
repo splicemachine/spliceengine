@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.iapi.sql.compile;
 
+import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -73,7 +74,8 @@ public interface OptimizerFactory {
 						   DataDictionary dDictionary,
 						   RequiredRowOrdering requiredRowOrdering,
 						   int numTablesInQuery,
-						   LanguageConnectionContext lcc)
+                           LanguageConnectionContext lcc,
+                           CostModel costModel)
             throws StandardException;
 
 
@@ -102,7 +104,7 @@ public interface OptimizerFactory {
      */
     int getMaxMemoryPerTable();
 
-	long getDetermineSparkRowThreshold();
+    long getDetermineSparkRowThreshold();
 
 	/**
 	 * The maximum number of rows for which index lookup operation can

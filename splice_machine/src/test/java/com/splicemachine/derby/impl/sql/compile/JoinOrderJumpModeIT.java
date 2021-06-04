@@ -254,9 +254,9 @@ public class JoinOrderJumpModeIT extends SpliceUnitTest {
                 new String[] {"IndexLookup"},                                                 // 23
                 new String[] {"IndexScan[IDX_3", "scannedRows=1,outputRows=1"},               // 24
                 new String[] {"Join"},                                                        // 25
-                new String[] {"IndexScan[IDX_2", "scannedRows=34609,outputRows=34609"},       // 27
+                new String[] {"IndexScan[IDX_2", "scannedRows=1,outputRows=1"},               // 27
                 new String[] {"IndexLookup"},                                                 // 28
                 new String[] {"IndexScan[IDX_1", "scannedRows=1,outputRows=1"}                // 29
                 );
-    }
+        }
 }

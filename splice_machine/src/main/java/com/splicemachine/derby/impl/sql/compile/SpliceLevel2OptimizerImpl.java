@@ -171,7 +171,8 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
                                      int tableLockThreshold,
                                      RequiredRowOrdering requiredRowOrdering,
                                      int numTablesInQuery,
-                                     LanguageConnectionContext lcc) throws StandardException{
+                                     LanguageConnectionContext lcc,
+                                     CostModel costModel) throws StandardException{
         super(optimizableList,
               predicateList,
               dDictionary,
@@ -183,7 +184,7 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
               tableLockThreshold,
               requiredRowOrdering,
               numTablesInQuery,
-              lcc);
+              lcc, costModel);
         SConfiguration configuration=EngineDriver.driver().getConfiguration();
         this.minTimeout=configuration.getOptimizerPlanMinimumTimeout();
         this.maxTimeout=configuration.getOptimizerPlanMaximumTimeout();

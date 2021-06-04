@@ -93,6 +93,7 @@ public class FailuresSparkIT {
     @Test
     public void testPKViolationIsRolledback() throws Throwable {
         try(Statement s =methodWatcher.getOrCreateConnection().createStatement()) {
+            s.execute("delete from a");
             String sql = "insert into a (col1) select * from ( " +
                     "values (1) union all values (1) " +
                     "union all select * from a --splice-properties useSpark=true\n" +
@@ -129,15 +130,8 @@ public class FailuresSparkIT {
                     }
                     con1.rollback();
 
-                    // force WW conflict to rollfoward (by deleting) the previous write
-                    try {
-                        s2.executeUpdate("insert into a values 10");
-                        fail("Expected WW conflict");
-                    } catch (SQLException se) {
-                        assertEquals("SE014", se.getSQLState());
-                    }
-
-
+                    // insert a row to roll forward (by deleting) the previous write
+                    s2.executeUpdate("insert into a values 10");
                     con2.commit();
 
 

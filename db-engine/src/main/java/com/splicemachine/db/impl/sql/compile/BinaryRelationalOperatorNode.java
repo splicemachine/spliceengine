@@ -39,10 +39,12 @@ package com.splicemachine.db.impl.sql.compile;
  import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
  import com.splicemachine.db.iapi.sql.compile.Optimizable;
  import com.splicemachine.db.iapi.sql.compile.costing.SelectivityEstimator;
+ import com.splicemachine.db.iapi.sql.compile.Visitor;
  import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
  import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
  import com.splicemachine.db.iapi.store.access.ScanController;
  import com.splicemachine.db.iapi.store.access.StoreCostController;
+ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
  import com.splicemachine.db.iapi.types.DataValueDescriptor;
  import com.splicemachine.db.iapi.types.Orderable;
  import com.splicemachine.db.iapi.types.TypeId;
@@ -52,6 +54,7 @@ package com.splicemachine.db.impl.sql.compile;
  import java.util.HashSet;
  import java.util.List;
 
+ import static com.splicemachine.db.impl.sql.compile.ColumnReference.isBaseRowIdOrRowId;
  import static com.splicemachine.db.impl.sql.compile.SelectivityUtil.*;
 
  /**
@@ -94,6 +97,8 @@ public class BinaryRelationalOperatorNode
     private InListOperatorNode inListProbeSource=null;
 
     private HashSet<String> noStatsColumns;
+
+    public BinaryRelationalOperatorNode() { }
 
     public void init(Object leftOperand,Object rightOperand){
         String methodName="";
@@ -337,14 +342,12 @@ public class BinaryRelationalOperatorNode
             ** Is it the correct column?
             */
             cr=(ColumnReference)getLeftOperand();
-            if(cr.getColumnName().compareToIgnoreCase("ROWID")==0){
-                return getRightOperand();
-            }
             if(valNodeReferencesOptTable(cr,ft,false,walkSubtree)){
                 /*
                 ** The table is correct, how about the column position?
                 */
-                if(cr.getSource().getColumnPosition()==columnPosition){
+                if(cr.getSource().getColumnPosition()==columnPosition ||
+                   isBaseRowIdOrRowId(cr.getColumnName())){
                     /*
                     ** We've found the correct column -
                     ** return the other side
@@ -361,14 +364,13 @@ public class BinaryRelationalOperatorNode
             ** Is it the correct column?
             */
             cr=(ColumnReference)getRightOperand();
-            if(cr.getColumnName().compareToIgnoreCase("ROWID")==0){
-                return getLeftOperand();
-            }
             if(valNodeReferencesOptTable(cr,ft,false,walkSubtree)){
                 /*
                 ** The table is correct, how about the column position?
                 */
-                if(cr.getSource().getColumnPosition()==columnPosition){
+                if(cr.getSource().getColumnPosition()==columnPosition ||
+                   isBaseRowIdOrRowId(cr.getColumnName()))
+                {
                     /*
                     ** We've found the correct column -
                     ** return the other side
@@ -1178,10 +1180,17 @@ public class BinaryRelationalOperatorNode
                 getRightOperand() instanceof ConstantNode){
             ConstantNode leftOp=(ConstantNode)getLeftOperand();
             ConstantNode rightOp=(ConstantNode)getRightOperand();
-            DataValueDescriptor leftVal=leftOp.getValue();
-            DataValueDescriptor rightVal=rightOp.getValue();
 
-            if(leftVal != null && !leftVal.isNull() && rightVal != null && !rightVal.isNull()){
+            if (leftOp.isNull() || rightOp.isNull()) {
+                ValueNode newNull = new UntypedNullConstantNode(getContextManager());
+                newNull.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN));
+                return newNull;
+            }
+
+            DataValueDescriptor leftVal = leftOp.getValue();
+            DataValueDescriptor rightVal = rightOp.getValue();
+
+            if(leftVal != null && !leftVal.isNull() && rightVal != null && !rightVal.isNull()) {
                 int comp=leftVal.compare(rightVal);
                 switch(operatorType){
                     case EQUALS_RELOP:
@@ -2341,27 +2350,64 @@ public class BinaryRelationalOperatorNode
         boolean ret=false;
         if(getLeftOperand() instanceof ColumnReference){
             ColumnReference cr=(ColumnReference)getLeftOperand();
-            if(cr.getColumnName().compareToIgnoreCase("ROWID")==0){
+            if(isBaseRowIdOrRowId(cr.getColumnName())){
                 ret=true;
             }
         }else if(getRightOperand() instanceof ColumnReference){
             ColumnReference cr=(ColumnReference)getRightOperand();
-            if(cr.getColumnName().compareToIgnoreCase("ROWID")==0){
+            if(isBaseRowIdOrRowId(cr.getColumnName())){
                 ret=true;
             }
         }
         return ret;
     }
 
-     public int getOuterJoinLevel() {
+    public int getOuterJoinLevel() {
          return outerJoinLevel;
      }
 
-     public void setOuterJoinLevel(int level) {
+    public void setOuterJoinLevel(int level) {
          outerJoinLevel = level;
      }
 
-     public HashSet<String> getNoStatsColumns() {
+    public HashSet<String> getNoStatsColumns() {
         return noStatsColumns;
      }
+
+    public void copyFrom(BinaryRelationalOperatorNode other) throws StandardException
+    {
+        super.copyFrom(other);
+        this.operatorType = other.operatorType;
+        this.outerJoinLevel = other.outerJoinLevel;
+        this.inListProbeSource = other.inListProbeSource;
+        this.noStatsColumns = other.noStatsColumns;
+        // Skip copying btnVis, optBaseTables, valNodeBaseTables.
+        // Each operator should have their own unshared copy of these.
+    }
+
+    @Override
+    public ValueNode getClone() throws StandardException
+    {
+        BinaryRelationalOperatorNode brol = new BinaryRelationalOperatorNode();
+        brol.copyFrom(this);
+        return brol;
+    }
+
+    @Override
+    public boolean isCloneable()
+    {
+        // acceptChildren doesn't step into inListProbeSource,
+        // so if it's non-nil, we aren't cloneable.
+        return inListProbeSource == null;
+    }
+
+    /**
+     * Accept the visitor for all visitable children of this node.
+     *
+     * @param v the visitor
+     */
+    @Override
+    public void acceptChildren(Visitor v) throws StandardException {
+        super.acceptChildren(v);
+    }
 }

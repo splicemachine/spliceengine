@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.iapi.sql;
 
+import com.splicemachine.db.iapi.reference.Property;
+
 import java.util.Iterator;
 import java.util.ServiceLoader;
 
@@ -24,7 +26,7 @@ import java.util.ServiceLoader;
 public class PropertyManagerService{
     private static volatile PropertyManager propertyManager;
 
-    public static PropertyManager loadPropertyManager(){
+    public static PropertyManager loadPropertyManager() {
         PropertyManager pm = propertyManager;
         if(pm==null){
             pm = loadPropertyManagerSync();
@@ -32,7 +34,7 @@ public class PropertyManagerService{
         return pm;
     }
 
-    private static synchronized PropertyManager loadPropertyManagerSync(){
+    private static synchronized PropertyManager loadPropertyManagerSync() {
         PropertyManager pm = propertyManager;
         if(pm==null){
             ServiceLoader<PropertyManager> load=ServiceLoader.load(PropertyManager.class);
@@ -43,6 +45,7 @@ public class PropertyManagerService{
             //TODO -sf- initialize if needed
             if(iter.hasNext())
                 throw new IllegalStateException("Only one PropertyManager service is allowed!");
+            propertyManager.removeProperty(Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED);
         }
         return pm;
     }

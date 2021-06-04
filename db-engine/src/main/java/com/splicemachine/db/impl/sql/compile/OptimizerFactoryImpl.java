@@ -142,7 +142,8 @@ public class OptimizerFactoryImpl
 								  DataDictionary dDictionary,
 								  RequiredRowOrdering requiredRowOrdering,
 								  int numTablesInQuery,
-								  LanguageConnectionContext lcc)
+								  LanguageConnectionContext lcc,
+								  CostModel costModel)
 				throws StandardException
 	{
 		/* Get/set up the array of join strategies.
@@ -164,7 +165,8 @@ public class OptimizerFactoryImpl
 							dDictionary,
 							requiredRowOrdering,
 							numTablesInQuery,
-							lcc);
+							lcc,
+								costModel);
 	}
 
 	/**
@@ -197,7 +199,8 @@ public class OptimizerFactoryImpl
 										 DataDictionary dDictionary,
 										 RequiredRowOrdering requiredRowOrdering,
 										 int numTablesInQuery,
-										 LanguageConnectionContext lcc)
+										 LanguageConnectionContext lcc,
+										 CostModel costModel)
 				throws StandardException
 	{
 

@@ -43,6 +43,7 @@ import com.splicemachine.db.impl.ast.CollectingVisitor;
 import com.splicemachine.db.impl.ast.LimitOffsetVisitor;
 import com.splicemachine.db.impl.ast.SpliceDerbyVisitorAdapter;
 import com.splicemachine.db.impl.sql.compile.subquery.SubqueryFlattening;
+import org.apache.commons.lang3.tuple.Pair;
 import splice.com.google.common.base.Predicates;
 
 import java.util.*;
@@ -67,6 +68,10 @@ public abstract class DMLStatementNode extends StatementNode {
      */
     ResultSetNode resultSet;
 
+    /**
+     * If this is non-null, then force spark costing if true, and OLTP costing if false;
+     */
+    private Boolean useSparkOverride = null;
     /**
      * Initializer for a DMLStatementNode
      *
@@ -141,7 +146,8 @@ public abstract class DMLStatementNode extends StatementNode {
             accept(new ProjectionPruningVisitor());
 
         /* Perform subquery flattening if applicable. */
-        SubqueryFlattening.flatten(this);
+        if (!getCompilerContext().getDisableSubqueryFlattening())
+            SubqueryFlattening.flatten(this);
         /* it is possible that some where clause subquery will be converted to fromSubquery in preprocess(),
            so we need to compute the maximum possible number of tables that take into consideration
            of the where subqueries
@@ -164,7 +170,8 @@ public abstract class DMLStatementNode extends StatementNode {
         // SelectNodes have already been visited in SelectNode.java,
         // so handle all other nodes here we might have missed,
         // skipping over SelectNodes in the tree traversal.
-        accept(new ConstantExpressionVisitor(SelectNode.class));
+        if (!getCompilerContext().getDisableConstantFolding())
+            accept(new ConstantExpressionVisitor(SelectNode.class));
 
         // prune tree based on unsat condition
         accept(new TreePruningVisitor());
@@ -231,6 +238,7 @@ public abstract class DMLStatementNode extends StatementNode {
 
         if (shouldRunSpark(resultSet)) {
             cnv = new CollectNodesVisitor(FromTable.class);
+            cnv.skipBranchesAlreadyBoundAndOptimized();
             resultSet.accept(cnv);
             for (Object obj : cnv.getList()) {
                 FromTable ft = (FromTable) obj;
@@ -246,6 +254,8 @@ public abstract class DMLStatementNode extends StatementNode {
     }
 
     private boolean shouldRunControl(ResultSetNode resultSet) throws StandardException {
+        if (useSparkOverride != null)
+            return !useSparkOverride;
         DataSetProcessorType type = getCompilerContext().getDataSetProcessorType();
         CollectNodesVisitor cnv = new CollectNodesVisitor(FromTable.class);
         resultSet.accept(cnv);
@@ -259,6 +269,8 @@ public abstract class DMLStatementNode extends StatementNode {
     }
 
     private boolean shouldRunSpark(ResultSetNode resultSet) throws StandardException {
+        if (useSparkOverride != null)
+            return useSparkOverride;
         DataSetProcessorType type = getCompilerContext().getDataSetProcessorType();
         SparkExecutionType sparkExecType = getCompilerContext().getSparkExecutionType();
         if (!type.isOlap() && (type.isHinted() || type.isForced())) {
@@ -267,9 +279,7 @@ public abstract class DMLStatementNode extends StatementNode {
         CollectNodesVisitor cnv = new CollectNodesVisitor(FromTable.class);
         resultSet.accept(cnv);
         for (Object obj : cnv.getList()) {
-            if (obj instanceof FromBaseTable) {
-                ((FromBaseTable) obj).determineSpark();
-            }
+            ((FromTable) obj).determineSpark();
             type = type.combine(((FromTable) obj).getDataSetProcessorType());
             sparkExecType = sparkExecType.combine(((FromTable) obj).getSparkExecutionType());
         }
@@ -514,10 +524,17 @@ public abstract class DMLStatementNode extends StatementNode {
     }
 
     @Override
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
-        setDepth(depth);
-        tree.add(this);
+    public void buildTree(Collection<Pair<QueryTreeNode,Integer>> tree, int depth) throws StandardException {
+        addNodeToExplainTree(tree, this, depth);
         if (resultSet != null)
             resultSet.buildTree(tree, depth + 1);
+    }
+
+    public Boolean getUseSparkOverride() {
+        return useSparkOverride;
+    }
+
+    public void setUseSparkOverride(Boolean useSparkOverride) {
+        this.useSparkOverride = useSparkOverride;
     }
 }

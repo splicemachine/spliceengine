@@ -21,8 +21,6 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.sql.execute.actions.IndexConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.pipeline.ErrorState;
@@ -43,7 +41,7 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 3/4/14
  */
-public abstract class AbstractDropIndexConstantOperation extends IndexConstantOperation{
+public abstract class AbstractDropIndexConstantOperation extends IndexConstantOperation {
     private String fullIndexName;
     private long tableConglomerateId;
 
@@ -135,8 +133,7 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
          * Broadcast a message to invalidate the related plans.
          */
         List<TableDescriptor> tds = Collections.singletonList(td);
-        DDLMessage.DDLChange ddlChange = ProtoUtil.alterStats(userTxnManager.getActiveStateTxn().getTxnId(), tds);
-        userTxnManager.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+        notifyMetadataChange(userTxnManager, ProtoUtil.alterStats(userTxnManager.getActiveStateTxn().getTxnId(), tds));
     }
 
     public String getScopeName() {

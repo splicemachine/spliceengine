@@ -22,7 +22,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
-import com.splicemachine.derby.impl.sql.execute.operations.CrossJoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowWriter;
@@ -69,8 +68,6 @@ import java.io.OutputStream;
 import java.util.*;
 import java.util.concurrent.Future;
 import java.util.zip.GZIPOutputStream;
-
-import static org.apache.spark.api.java.StorageLevels.*;
 
 /**
  *
@@ -805,22 +802,21 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp,
-                                             int[] partitionBy,
+    public DataSet<ExecRow> writeParquetFile(int[] partitionBy,
                                              String location,
                                              String compression,
                                              OperationContext context) throws StandardException {
 
         return getNativeSparkDataSet( context )
-                .writeParquetFile(dsp, partitionBy, location, compression, context);
+                .writeParquetFile(partitionBy, location, compression, context);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
+    public DataSet<ExecRow> writeORCFile(int[] partitionBy, String location, String compression,
                                          OperationContext context) throws StandardException
     {
         return getNativeSparkDataSet( context )
-                .writeORCFile(baseColumnMap, partitionBy, location, compression, context);
+                .writeORCFile(partitionBy, location, compression, context);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -891,6 +887,11 @@ public class SparkDataSet<V> implements DataSet<V> {
              return new NativeSparkDataSet(this.rdd, "", operationContext);
          else
              return this;
+    }
+
+    @Override
+    public DataSet convertNativeSparkToSparkDataSet() {
+         return this;
     }
 
     @Override

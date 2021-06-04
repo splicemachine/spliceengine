@@ -55,6 +55,7 @@ import com.splicemachine.db.impl.sql.compile.subquery.aggregate.AggregateSubquer
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
 
+import java.sql.Types;
 import java.util.List;
 import java.util.Vector;
 import java.sql.SQLWarning;
@@ -177,11 +178,14 @@ public interface CompilerContext extends Context
     int AGGREGATE_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
     int CONDITIONAL_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
     int GROUP_BY_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
+    int DEFAULT_MAX_DERIVED_CNF_PREDICATES = 100;
+    int MAX_DERIVED_CNF_PREDICATES_MAX_VALUE = 10000;
     int DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES = 5000;
     int MAX_MULTICOLUMN_PROBE_VALUES_MAX_VALUE = 15000;
     boolean DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED = true;
     boolean DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST = true;
     boolean DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION = false;
+    boolean DEFAULT_DISABLE_CONSTANT_FOLDING = false;
     SparkVersion DEFAULT_SPLICE_SPARK_VERSION = new SimpleSparkVersion("2.2.0");
     NativeSparkModeType DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE = NativeSparkModeType.SYSTEM;
     boolean DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS = true;
@@ -189,11 +193,15 @@ public interface CompilerContext extends Context
     String DEFAULT_TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss.SSSSSSSSS";
     String DEFAULT_SECOND_FUNCTION_COMPATIBILITY_MODE = "splice";
     int DEFAULT_FLOATING_POINT_NOTATION = FloatingPointDataType.PLAIN;
+    int DEFAULT_COUNT_RETURN_TYPE = Types.BIGINT;
     boolean DEFAULT_OUTERJOIN_FLATTENING_DISABLED = false;
     boolean DEFAULT_SSQ_FLATTENING_FOR_UPDATE_DISABLED = false;
     NewMergeJoinExecutionType DEFAULT_SPLICE_NEW_MERGE_JOIN = NewMergeJoinExecutionType.SYSTEM;
     boolean DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING = false;
-    boolean DEFAULT_DISABLE_INDEX_PREFIX_ITERATION= false;
+    boolean DEFAULT_DISABLE_INDEX_PREFIX_ITERATION = false;
+    boolean DEFAULT_DISABLE_SUBQUERY_FLATTENING = false;
+    boolean DEFAULT_DISABLE_UNIONED_INDEX_SCANS = false;
+    boolean DEFAULT_FAVOR_UNIONED_INDEX_SCANS = false;
     boolean DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE = false;
     String DEFAULT_COST_MODEL_NAME = "v1";
 
@@ -702,6 +710,10 @@ public interface CompilerContext extends Context
 
     void setProjectionPruningEnabled(boolean onOff);
 
+    int getMaxDerivedCNFPredicates();
+
+    void setMaxDerivedCNFPredicates(int newValue);
+
     int getMaxMulticolumnProbeValues();
 
     void setMaxMulticolumnProbeValues(int newValue);
@@ -717,6 +729,8 @@ public interface CompilerContext extends Context
     void setDisablePredicateSimplification(boolean newValue);
 
     boolean getDisablePredicateSimplification();
+
+    boolean getDisableConstantFolding();
 
     void setSparkVersion(SparkVersion newValue);
 
@@ -742,6 +756,8 @@ public interface CompilerContext extends Context
 
     void setFloatingPointNotation(int floatingPointNotation);
 
+    void setCountReturnType(int countReturnType);
+
     void setCursorUntypedExpressionType(DataTypeDescriptor type);
 
     DataTypeDescriptor getCursorUntypedExpressionType();
@@ -751,6 +767,8 @@ public interface CompilerContext extends Context
     String getSecondFunctionCompatibilityMode();
 
     int getFloatingPointNotation();
+
+    int getCountReturnType();
 
     int getNextOJLevel();
 
@@ -773,6 +791,18 @@ public interface CompilerContext extends Context
     void setDisablePrefixIteratorMode(boolean newValue);
 
     boolean getDisablePrefixIteratorMode();
+
+    void setDisableSubqueryFlattening(boolean newValue);
+
+    boolean getDisableSubqueryFlattening();
+
+    void setDisableUnionedIndexScans(boolean newValue);
+
+    boolean getDisableUnionedIndexScans();
+
+    void setFavorUnionedIndexScans(boolean newValue);
+
+    boolean getFavorUnionedIndexScans();
 
     void setVarcharDB2CompatibilityMode(boolean newValue);
 

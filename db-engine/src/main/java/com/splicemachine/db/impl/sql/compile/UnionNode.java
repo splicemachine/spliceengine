@@ -212,6 +212,8 @@ public class UnionNode extends SetOperatorNode{
                                    OptimizablePredicateList predList,
                                    CostEstimate outerCost,
                                    RowOrdering rowOrdering) throws StandardException{
+        if (skipBindAndOptimize)
+            return costEstimate;
         /*
         ** RESOLVE: Most types of Optimizables only implement estimateCost(),
         ** and leave it up to optimizeIt() in FromTable to figure out the
@@ -257,9 +259,9 @@ public class UnionNode extends SetOperatorNode{
         // getNextDecoratedPermutation() method.
         updateBestPlanMap(ADD_PLAN,this);
 
-        leftResultSet=optimizeSource(optimizer, leftResultSet, getLeftOptPredicateList(), null, null);
+        leftResultSet=optimizeSource(optimizer, leftResultSet, getLeftOptPredicateList(), null, null, null);
 
-        rightResultSet=optimizeSource(optimizer, rightResultSet, getRightOptPredicateList(), null, null);
+        rightResultSet=optimizeSource(optimizer, rightResultSet, getRightOptPredicateList(), null, null, null);
 
         CostEstimate leftCost = leftResultSet.getCostEstimate();
         CostEstimate rightCost = rightResultSet.getCostEstimate();
@@ -516,6 +518,8 @@ public class UnionNode extends SetOperatorNode{
      */
     @Override
     public void bindExpressions(FromList fromListParam) throws StandardException{
+        if (skipBindAndOptimize)
+            return;
         super.bindExpressions(fromListParam);
 
         if (TriggerReferencingStruct.fromTableTriggerDescriptor.get() != null)

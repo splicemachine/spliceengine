@@ -53,6 +53,8 @@ import java.util.List;
 
 public class CurrentRowLocationNode extends ValueNode
 {
+    protected ResultSetNode    sourceResultSet;
+
     /**
      * Binding this expression means setting the result DataTypeServices.
      * In this case, the result type is always the same.
@@ -191,6 +193,17 @@ public class CurrentRowLocationNode extends ValueNode
                 C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
                 getContextManager());
         currentRowLocationNode.bindExpression(null, null, null);
+        currentRowLocationNode.sourceResultSet = sourceResultSet;
         return currentRowLocationNode;
     }
+
+    public ResultSetNode getSourceResultSet()
+    {
+        return sourceResultSet;
+    }
+
+    public void setSourceResultSet(ResultSetNode sourceResultSet) {
+        this.sourceResultSet = sourceResultSet;
+    }
+
 }

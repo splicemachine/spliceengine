@@ -54,7 +54,8 @@ public class SpliceLevel2OptimizerFactoryImpl extends OptimizerFactoryImpl {
                                   DataDictionary dDictionary,
                                   RequiredRowOrdering requiredRowOrdering,
                                   int numTablesInQuery,
-                                  LanguageConnectionContext lcc) throws StandardException {
+                                  LanguageConnectionContext lcc,
+                                  CostModel costModel) throws StandardException {
         /* Get/set up the array of join strategies.
          * See comment in boot().  If joinStrategySet
          * is null, then we may do needless allocations
@@ -80,7 +81,8 @@ public class SpliceLevel2OptimizerFactoryImpl extends OptimizerFactoryImpl {
                                 dDictionary,
                                 requiredRowOrdering,
                                 numTablesInQuery,
-                                lcc);
+                                lcc,
+                                costModel);
     }
 
 
@@ -90,7 +92,8 @@ public class SpliceLevel2OptimizerFactoryImpl extends OptimizerFactoryImpl {
             DataDictionary dDictionary,
             RequiredRowOrdering requiredRowOrdering,
             int numTablesInQuery,
-            LanguageConnectionContext lcc) throws StandardException {
+            LanguageConnectionContext lcc,
+            CostModel costModel) throws StandardException {
 
         return new SpliceLevel2OptimizerImpl(
                 optimizableList,
@@ -104,7 +107,8 @@ public class SpliceLevel2OptimizerFactoryImpl extends OptimizerFactoryImpl {
                 lcc.getLockEscalationThreshold(),
                 requiredRowOrdering,
                 numTablesInQuery,
-                lcc);
+                lcc,
+                costModel);
     }
 
     /**

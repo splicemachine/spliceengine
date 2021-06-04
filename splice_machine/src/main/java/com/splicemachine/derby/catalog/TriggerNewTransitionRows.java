@@ -31,6 +31,7 @@
 
 package com.splicemachine.derby.catalog;
 
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.db.Factory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
@@ -174,13 +175,16 @@ public class TriggerNewTransitionRows
                 tableVersion = triggerRowsHolder.getTableVersion();
                 templateRow = triggerRowsHolder.getExecRowDefinition();
             }
+            boolean needsTemporaryConglomerate = false;
+            if (triggerRowsHolder != null)
+                needsTemporaryConglomerate = triggerRowsHolder.needsTemporaryConglomerate();
 
             // Can the Dataset be reused?
-            boolean useCommonDataSet = op.isOlapServer() && sourceSet != null    &&
+            boolean useCommonDataSet = (op.isOlapServer() || SpliceClient.isClient()) &&
+                                          sourceSet != null    &&
                                           !(sourceSet instanceof ControlDataSet) &&
                                           !sourceSet.isNativeSpark()             &&
-                                          !tec.hasGeneratedColumn()              &&
-                                          !tec.hasSpecialFromTableTrigger();
+                                          !needsTemporaryConglomerate;
             boolean isSpark = triggerRowsHolder == null || triggerRowsHolder.isSpark();
             boolean isOldRows = this instanceof TriggerOldTransitionRows;
             DataSet<ExecRow> commonSourceSet = isOldRows ? oldRowsSourceSet : newRowsSourceSet;

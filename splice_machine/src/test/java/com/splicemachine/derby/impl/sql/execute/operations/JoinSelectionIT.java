@@ -510,7 +510,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
 
         fourthRowContainsQuery(
                 "explain select * from a, b where (a.i = b.i and a.j=1) or (a.i = b.i and a.j=2) or (b.j=1)",
-                "preds=[(((A.I[1:1] = B.I[2:1]) and ((A.J[1:2] = 1) and true)) or (((A.I[1:1] = B.I[2:1]) and ((A.J[1:2] = 2) and true)) or ((B.J[2:2] = 1) or false)))]", methodWatcher);
+                "preds=[((A.I[1:1] = B.I[2:1]) or ((A.J[1:2] = 2) or ((B.J[2:2] = 1) or false))),((A.J[1:2] = 1) or ((A.I[1:1] = B.I[2:1]) or ((B.J[2:2] = 1) or false))),((A.J[1:2] = 1) or ((A.J[1:2] = 2) or ((B.J[2:2] = 1) or false)))]", methodWatcher);
 
         thirdRowContainsQuery(
                 "explain select * from a, b where (a.i = b.i and a.j=1) or (a.i = b.i+1 and a.j=2)",
@@ -527,7 +527,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
 
         fourthRowContainsQuery(
                 "explain select * from a, b where (a.i = b.i and a.j=1) or (not(a.i = b.i) and a.j=2)",
-                "preds=[(((A.I[1:1] = B.I[2:1]) and ((A.J[1:2] = 1) and true)) or (((A.I[1:1] <> B.I[2:1]) and ((A.J[1:2] = 2) and true)) or false))]", methodWatcher);
+                "preds=[((A.I[1:1] = B.I[2:1]) or ((A.J[1:2] = 2) or false)),((A.J[1:2] = 1) or ((A.I[1:1] <> B.I[2:1]) or false))]", methodWatcher);
 
         // Negative test: Clause is not in a DNF form and not subject to optimization
         thirdRowContainsQuery(
@@ -536,7 +536,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
 
         fourthRowContainsQuery(
                 "explain select * from a, b where (a.i = b.i and a.j=1) or ((a.i = b.i or a.j=2) and a.i=1)",
-                "preds=[(((A.I[1:1] = B.I[2:1]) and ((A.J[1:2] = 1) and true)) or ((((A.I[1:1] = B.I[2:1]) or ((A.J[1:2] = 2) or false)) and ((A.I[1:1] = 1) and true)) or false))]", methodWatcher);
+                "preds=[((A.I[1:1] = B.I[2:1]) or ((A.I[1:1] = B.I[2:1]) or ((A.J[1:2] = 2) or false))),((A.I[1:1] = B.I[2:1]) or ((A.I[1:1] = 1) or false)),((A.J[1:2] = 1) or ((A.I[1:1] = B.I[2:1]) or ((A.J[1:2] = 2) or false)))]", methodWatcher);
 
     }
 
@@ -610,7 +610,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
 
         fourthRowContainsQuery(
                 "explain select * from a, b where (a.i = b.i and a.j=1) or (a.i = b.i and a.j=2) or (b.j=1)",
-                "preds=[(((A.I[1:1] = B.I[2:1]) and ((A.J[1:2] = 1) and true)) or (((A.I[1:1] = B.I[2:1]) and ((A.J[1:2] = 2) and true)) or ((B.J[2:2] = 1) or false)))]", methodWatcher);
+                "preds=[((A.I[1:1] = B.I[2:1]) or ((A.J[1:2] = 2) or ((B.J[2:2] = 1) or false))),((A.J[1:2] = 1) or ((A.I[1:1] = B.I[2:1]) or ((B.J[2:2] = 1) or false))),((A.J[1:2] = 1) or ((A.J[1:2] = 2) or ((B.J[2:2] = 1) or false)))]", methodWatcher);
 
         thirdRowContainsQuery(
                 "explain select * from a, b where ((a.i = b.i and a.j=1) or (a.i = b.i+1 and a.j=2)) and a.k=3",

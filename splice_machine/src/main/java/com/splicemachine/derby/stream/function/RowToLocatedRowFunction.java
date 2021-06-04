@@ -26,7 +26,7 @@ import org.apache.spark.api.java.function.Function;
 
 /**
  *
- * Allows a map to convert from RDD<ExecRow> to RDD<Row>
+ * Allows a map to convert from RDD<Row> to RDD<ExecRow>
  *
  */
 public class RowToLocatedRowFunction implements Function <Row, ExecRow>, Serializable, Externalizable {

@@ -51,215 +51,215 @@ import java.util.TreeMap;
  */
 public class DoubleBufferedSumAggregator extends SumAggregator{
 
-	private double[] buffer;
-	private int length;
-	private int position;
+    private double[] buffer;
+    private int length;
+    private int position;
 
-	private java.util.TreeMap<Integer, MutableDouble> sumTree;
-	private boolean isNull = true;
+    private java.util.TreeMap<Integer, MutableDouble> sumTree;
+    private boolean isNull = true;
     private int bufferSize;
 
-	public DoubleBufferedSumAggregator() {}
-	public DoubleBufferedSumAggregator(int bufferSize) {
-		this(bufferSize, null);
-	}
-	public DoubleBufferedSumAggregator(CatalogMessage.SystemAggregator agg) throws IOException, ClassNotFoundException {
-		init(agg);
-	}
+    public DoubleBufferedSumAggregator() {}
+    public DoubleBufferedSumAggregator(int bufferSize) {
+        this(bufferSize, null);
+    }
+    public DoubleBufferedSumAggregator(CatalogMessage.SystemAggregator agg) throws IOException, ClassNotFoundException {
+        init(agg);
+    }
 
-	public DoubleBufferedSumAggregator(int bufferSize, TreeMap<Integer, MutableDouble> tree) {
-		init(bufferSize, tree);
-	}
+    public DoubleBufferedSumAggregator(int bufferSize, TreeMap<Integer, MutableDouble> tree) {
+        init(bufferSize, tree);
+    }
 
-	private void init(int bufferSize, TreeMap<Integer, MutableDouble> tree) {
-		if (tree == null)
-			sumTree = new TreeMap<>();
-		else
-			sumTree = tree;
-		int s = 1;
-		while(s<bufferSize){
-			s<<=1;
-		}
-		buffer = new double[s];
-		this.length = s-1;
-		position = 0;
-		this.bufferSize = bufferSize;
-	}
+    private void init(int bufferSize, TreeMap<Integer, MutableDouble> tree) {
+        if (tree == null)
+            sumTree = new TreeMap<>();
+        else
+            sumTree = tree;
+        int s = 1;
+        while(s<bufferSize){
+            s<<=1;
+        }
+        buffer = new double[s];
+        this.length = s-1;
+        position = 0;
+        this.bufferSize = bufferSize;
+    }
 
-	@Override
-	protected void accumulate(DataValueDescriptor addend) throws StandardException {
-		buffer[position] = addend.getDouble();
-		incrementPosition();
-	}
+    @Override
+    protected void accumulate(DataValueDescriptor addend) throws StandardException {
+        buffer[position] = addend.getDouble();
+        incrementPosition();
+    }
 
-	public void addDirect(double l) throws StandardException {
-		buffer[position] = l;
-		incrementPosition();
-	}
+    public void addDirect(double l) throws StandardException {
+        buffer[position] = l;
+        incrementPosition();
+    }
 
-	@Override
-	public void merge(ExecAggregator addend) throws StandardException {
-		if(addend==null) return; //treat null entries as zero
-		//In Splice, we should never see a different type of an ExecAggregator
-		DoubleBufferedSumAggregator other = (DoubleBufferedSumAggregator)addend;
+    @Override
+    public void merge(ExecAggregator addend) throws StandardException {
+        if(addend==null) return; //treat null entries as zero
+        //In Splice, we should never see a different type of an ExecAggregator
+        DoubleBufferedSumAggregator other = (DoubleBufferedSumAggregator)addend;
 
-		MutableDouble item;
-		if (!other.sumTree.isEmpty())
-			isNull = false;
+        MutableDouble item;
+        if (!other.sumTree.isEmpty())
+            isNull = false;
 
-		for (Map.Entry<Integer, MutableDouble> s : other.sumTree.entrySet()) {
-			if ((item = sumTree.get(s.getKey())) != null)
-				item.setValue(s.getValue().doubleValue() + item.doubleValue());
-			else
-				sumTree.put(s.getKey(), new MutableDouble(s.getValue()));
-		}
+        for (Map.Entry<Integer, MutableDouble> s : other.sumTree.entrySet()) {
+            if ((item = sumTree.get(s.getKey())) != null)
+                item.setValue(s.getValue().doubleValue() + item.doubleValue());
+            else
+                sumTree.put(s.getKey(), new MutableDouble(s.getValue()));
+        }
 
-		for (int i = 0; i< other.position;i++) {
-			buffer[position] = other.buffer[i];
-			incrementPosition();
-		}
-	}
+        for (int i = 0; i< other.position;i++) {
+            buffer[position] = other.buffer[i];
+            incrementPosition();
+        }
+    }
 
-	@Override
-	protected void writeExternalOld(ObjectOutput out) throws IOException {
-		//Need to sum up all the intermediate values before serializing
-		if(position!=0){
-			try {
-				sum(position);
-			} catch (StandardException e) {
-				throw new IOException(e);
-			}
-			position=0;
-		}
-		out.writeBoolean(eliminatedNulls);
-		out.writeBoolean(isNull);
-		out.writeObject(sumTree);
-	}
+    @Override
+    protected void writeExternalOld(ObjectOutput out) throws IOException {
+        //Need to sum up all the intermediate values before serializing
+        if(position!=0){
+            try {
+                sum(position);
+            } catch (StandardException e) {
+                throw new IOException(e);
+            }
+            position=0;
+        }
+        out.writeBoolean(eliminatedNulls);
+        out.writeBoolean(isNull);
+        out.writeObject(sumTree);
+    }
 
-	@Override
-	protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
-		this.eliminatedNulls = in.readBoolean();
-		this.isNull = in.readBoolean();
-		this.sumTree = (TreeMap<Integer, MutableDouble>) in.readObject();
-	}
+    @Override
+    protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
+        this.eliminatedNulls = in.readBoolean();
+        this.isNull = in.readBoolean();
+        this.sumTree = (TreeMap<Integer, MutableDouble>) in.readObject();
+    }
 
-	@Override
-	protected CatalogMessage.SystemAggregator.Builder toProtobufBuilder() throws IOException {
-		//Need to sum up all the intermediate values before serializing
-		if(position!=0){
-			try {
-				sum(position);
-			} catch (StandardException e) {
-				throw new IOException(e);
-			}
-			position=0;
-		}
-		try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
-			 ObjectOutputStream os = new ObjectOutputStream(bos)) {
-			os.writeObject(sumTree);
-			os.flush();
-			byte[] bs = bos.toByteArray();
-			CatalogMessage.DoubleBufferedSumAggregator aggregator =
-					CatalogMessage.DoubleBufferedSumAggregator.newBuilder()
-							.setIsNull(isNull)
-							.setSumTree(ByteString.copyFrom(bs))
-							.setBufferSize(bufferSize)
-							.build();
-			CatalogMessage.SystemAggregator.Builder builder = super.toProtobufBuilder();
-			builder.setType(CatalogMessage.SystemAggregator.Type.DoubleBufferedSumAggregator)
-					.setExtension(CatalogMessage.DoubleBufferedSumAggregator.doubleBufferedSumAggregator, aggregator);
+    @Override
+    protected CatalogMessage.SystemAggregator.Builder toProtobufBuilder() throws IOException {
+        //Need to sum up all the intermediate values before serializing
+        if(position!=0){
+            try {
+                sum(position);
+            } catch (StandardException e) {
+                throw new IOException(e);
+            }
+            position=0;
+        }
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+             ObjectOutputStream os = new ObjectOutputStream(bos)) {
+            os.writeObject(sumTree);
+            os.flush();
+            byte[] bs = bos.toByteArray();
+            CatalogMessage.DoubleBufferedSumAggregator aggregator =
+                    CatalogMessage.DoubleBufferedSumAggregator.newBuilder()
+                            .setIsNull(isNull)
+                            .setSumTree(ByteString.copyFrom(bs))
+                            .setBufferSize(bufferSize)
+                            .build();
+            CatalogMessage.SystemAggregator.Builder builder = super.toProtobufBuilder();
+            builder.setType(CatalogMessage.SystemAggregator.Type.DoubleBufferedSumAggregator)
+                    .setExtension(CatalogMessage.DoubleBufferedSumAggregator.doubleBufferedSumAggregator, aggregator);
 
-			return builder;
-		}
-	}
+            return builder;
+        }
+    }
 
-	@Override
-	protected void init(CatalogMessage.SystemAggregator systemAggregator) throws IOException, ClassNotFoundException {
-		super.init(systemAggregator);
-		CatalogMessage.DoubleBufferedSumAggregator aggregator =
-				systemAggregator.getExtension(CatalogMessage.DoubleBufferedSumAggregator.doubleBufferedSumAggregator);
-		isNull = aggregator.getIsNull();
-		byte[] ba = aggregator.getSumTree().toByteArray();
-		try (ByteArrayInputStream bis = new ByteArrayInputStream(ba);
-			 ObjectInputStream ois = new ObjectInputStream(bis)) {
-			this.sumTree =	(TreeMap<Integer, MutableDouble>)ois.readObject();
-		}
-		init(aggregator.getBufferSize(), sumTree);
-	}
+    @Override
+    protected void init(CatalogMessage.SystemAggregator systemAggregator) throws IOException, ClassNotFoundException {
+        super.init(systemAggregator);
+        CatalogMessage.DoubleBufferedSumAggregator aggregator =
+                systemAggregator.getExtension(CatalogMessage.DoubleBufferedSumAggregator.doubleBufferedSumAggregator);
+        isNull = aggregator.getIsNull();
+        byte[] ba = aggregator.getSumTree().toByteArray();
+        try (ByteArrayInputStream bis = new ByteArrayInputStream(ba);
+             ObjectInputStream ois = new ObjectInputStream(bis)) {
+            this.sumTree =    (TreeMap<Integer, MutableDouble>)ois.readObject();
+        }
+        init(aggregator.getBufferSize(), sumTree);
+    }
 
-	@Override
-	public DataValueDescriptor getResult() throws StandardException {
-		if (value == null) {
-			value = new SQLDouble();
-		}
-		if(position!=0){
-			sum(position);
-			position=0;
-		}
-		if (sumTree.isEmpty())
-			value.setToNull();
-		else
-			value.setValue(collectFinalSum());
-		return value;
-	}
+    @Override
+    public DataValueDescriptor getResult() throws StandardException {
+        if (value == null) {
+            value = new SQLDouble();
+        }
+        if(position!=0){
+            sum(position);
+            position=0;
+        }
+        if (sumTree.isEmpty())
+            value.setToNull();
+        else
+            value.setValue(collectFinalSum());
+        return value;
+    }
 
-	private double collectFinalSum() throws StandardException {
-		double tempSum = 0.0d;
-		for (Map.Entry<Integer, MutableDouble> s : sumTree.entrySet()) {
-			tempSum += s.getValue().doubleValue();
-		}
-		tempSum = NumberDataType.normalizeDOUBLE(tempSum);
-		return tempSum;
-	}
+    private double collectFinalSum() throws StandardException {
+        double tempSum = 0.0d;
+        for (Map.Entry<Integer, MutableDouble> s : sumTree.entrySet()) {
+            tempSum += s.getValue().doubleValue();
+        }
+        tempSum = NumberDataType.normalizeDOUBLE(tempSum);
+        return tempSum;
+    }
 
-	public void init(double sum,boolean eliminatedNulls) throws StandardException {
-		if (sum != 0.0d)
-			addDirect(sum);
-		this.eliminatedNulls = eliminatedNulls;
-		this.isNull = false;
-	}
+    public void init(double sum,boolean eliminatedNulls) throws StandardException {
+        if (sum != 0.0d)
+            addDirect(sum);
+        this.eliminatedNulls = eliminatedNulls;
+        this.isNull = false;
+    }
 
-	@Override
-	public ExecAggregator newAggregator() {
-		return new DoubleBufferedSumAggregator(buffer.length);
-	}
+    @Override
+    public ExecAggregator newAggregator() {
+        return new DoubleBufferedSumAggregator(buffer.length);
+    }
 
-	private void sum(int bufferLength) throws StandardException {
-		for (int i=0;i<bufferLength;i++) {
-			// Want to combine the big numbers first, so make
-			// the key the negative of the exponent, as the
-			// iterator will traverse the nodes in ascending
-			// order of the keys.
-			int ix = -java.lang.Math.getExponent(buffer[i]);
-			MutableDouble entry = sumTree.get(ix);
-			if (entry == null)
-				sumTree.put(ix, new MutableDouble(buffer[i]));
-			else
-				entry.setValue(entry.doubleValue() + buffer[i]);
-		}
-		position = 0;
-	}
+    private void sum(int bufferLength) throws StandardException {
+        for (int i=0;i<bufferLength;i++) {
+            // Want to combine the big numbers first, so make
+            // the key the negative of the exponent, as the
+            // iterator will traverse the nodes in ascending
+            // order of the keys.
+            int ix = -java.lang.Math.getExponent(buffer[i]);
+            MutableDouble entry = sumTree.get(ix);
+            if (entry == null)
+                sumTree.put(ix, new MutableDouble(buffer[i]));
+            else
+                entry.setValue(entry.doubleValue() + buffer[i]);
+        }
+        position = 0;
+    }
 
-	private void incrementPosition() throws StandardException {
-		int newposition = (position+1) & length;
-		if(newposition==0){
-			sum(buffer.length);
-		}
-		position = newposition;
-		isNull = false;
-	}
+    private void incrementPosition() throws StandardException {
+        int newposition = (position+1) & length;
+        if(newposition==0){
+            sum(buffer.length);
+        }
+        position = newposition;
+        isNull = false;
+    }
 
-	public String toString() {
-		String bufferInfo = isNull ? null : (position < 25 && position > 0 ?
-				Arrays.toString(Arrays.copyOfRange(buffer, 0, position))
-				: String.format("%s buffered", position));
-		try {
-			return "DoubleBufferedSumAggregator: " + (isNull ? "NULL" :
-					String.format("{ sum=%s buffer=%s }", collectFinalSum(), bufferInfo));
-		}
-		catch (StandardException e) {
-			return "Overflow";
-		}
-	}
+    public String toString() {
+        String bufferInfo = isNull ? null : (position < 25 && position > 0 ?
+                Arrays.toString(Arrays.copyOfRange(buffer, 0, position))
+                : String.format("%s buffered", position));
+        try {
+            return "DoubleBufferedSumAggregator: " + (isNull ? "NULL" :
+                    String.format("{ sum=%s buffer=%s }", collectFinalSum(), bufferInfo));
+        }
+        catch (StandardException e) {
+            return "Overflow";
+        }
+    }
 
 }

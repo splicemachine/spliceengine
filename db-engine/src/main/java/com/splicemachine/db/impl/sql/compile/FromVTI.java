@@ -35,9 +35,8 @@ import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
@@ -61,6 +60,7 @@ import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.vti.*;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -98,6 +98,10 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
     private PredicateList restrictionList;
 
+    private boolean isTriggerInternalVTI;
+
+    private static String newTriggerRowsVTI = "com.splicemachine.derby.catalog.TriggerNewTransitionRows";
+    private static String oldTriggerRowsVTI = "com.splicemachine.derby.catalog.TriggerOldTransitionRows";
 
     /**
      Was a FOR UPDATE clause specified in a SELECT statement.
@@ -201,6 +205,18 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         ap.setMissingHashKeyOK(false);
         bestAp.setMissingHashKeyOK(false);
         bestSortAp.setMissingHashKeyOK(false);
+        ap.setUisPredicate(null);
+        bestAp.setUisPredicate(null);
+        bestSortAp.setUisPredicate(null);
+        ap.setUisRowIdPredicate(null);
+        bestAp.setUisRowIdPredicate(null);
+        bestSortAp.setUisRowIdPredicate(null);
+        ap.setUnionOfIndexes(null);
+        bestAp.setUnionOfIndexes(null);
+        bestSortAp.setUnionOfIndexes(null);
+        ap.setUisRowIdJoinBackToBaseTableResultSet(null);
+        bestAp.setUisRowIdJoinBackToBaseTableResultSet(null);
+        bestSortAp.setUisRowIdJoinBackToBaseTableResultSet(null);
         ap.setNumUnusedLeadingIndexFields(0);
         bestAp.setNumUnusedLeadingIndexFields(0);
         bestSortAp.setNumUnusedLeadingIndexFields(0);
@@ -251,6 +267,10 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
         this.methodCall = (MethodCallNode) invocation;
 
+        if (methodCall != null) {
+            isTriggerInternalVTI = newTriggerRowsVTI.equals(methodCall.getJavaClassName()) ||
+                                   oldTriggerRowsVTI.equals(methodCall.getJavaClassName());
+        }
         resultColumns = (ResultColumnList) derivedRCL;
         subqueryList = (SubqueryList) getNodeFactory().getNode(
                 C_NodeTypes.SUBQUERY_LIST,
@@ -297,15 +317,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                 estimatedCost = vtic.getEstimatedCostPerInstantiation(this);
                 estimatedRowCount = vtic.getEstimatedRowCount(this);
                 supportsMultipleInstantiations = vtic.supportsMultipleInstantiations(this);
-                costEstimate.setEstimatedCost(estimatedCost);
-                costEstimate.setRowCount(estimatedRowCount);
-                costEstimate.setSingleScanRowCount(estimatedRowCount);
-                costEstimate.setRawRowCount(estimatedRowCount);
-                costEstimate.setLocalCost(estimatedCost);
-                costEstimate.setRemoteCost(estimatedCost);
-                costEstimate.setLocalCostPerParallelTask(estimatedCost, costEstimate.getParallelism());
-                costEstimate.setRemoteCostPerParallelTask(estimatedCost, costEstimate.getParallelism());
-
+                updateCostEstimate();
             }
             catch (SQLException sqle)
             {
@@ -313,6 +325,11 @@ public class FromVTI extends FromTable implements VTIEnvironment {
             }
             vtiCosted = true;
         }
+        else {
+            // Copy the defaults into the CostEstimate.
+            updateCostEstimate();
+        }
+
 
         AccessPath currentAccessPath=getCurrentAccessPath();
         JoinStrategy currentJoinStrategy=currentAccessPath.getJoinStrategy();
@@ -324,6 +341,17 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         tracer.trace(OptimizerFlag.COST_OF_N_SCANS,tableNumber,0,outerCost.rowCount(),costEstimate, correlationName);
 
         return costEstimate;
+    }
+
+    private void updateCostEstimate() {
+        costEstimate.setEstimatedCost(estimatedCost);
+        costEstimate.setRowCount(estimatedRowCount);
+        costEstimate.setSingleScanRowCount(estimatedRowCount);
+        costEstimate.setRawRowCount(estimatedRowCount);
+        costEstimate.setLocalCost(estimatedCost);
+        costEstimate.setRemoteCost(estimatedCost);
+        costEstimate.setLocalCostPerParallelTask(estimatedCost, costEstimate.getParallelism());
+        costEstimate.setRemoteCostPerParallelTask(estimatedCost, costEstimate.getParallelism());
     }
 
     /**
@@ -1659,8 +1687,9 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
         mb.push(printExplainInformationForActivation());
 
-        boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
-                getLanguageConnectionContext(), Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
+        boolean quotedEmptyIsNull = !PropertyUtil.getCachedBoolean(
+                getLanguageConnectionContext(),
+                GlobalDBProperties.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
 
         mb.push(quotedEmptyIsNull);
 
@@ -2025,9 +2054,8 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         }
     }
 
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) {
-        setDepth(depth);
-        tree.add(this);
+    public void buildTree(Collection<Pair<QueryTreeNode,Integer>> tree, int depth) {
+        addNodeToExplainTree(tree, this, depth);
     }
 
     @Override
@@ -2072,4 +2100,6 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         this.tempTriggerName = triggerName;
     }
 
+    @Override
+    public boolean isTriggerVTI(){ return isTriggerInternalVTI; }
 }

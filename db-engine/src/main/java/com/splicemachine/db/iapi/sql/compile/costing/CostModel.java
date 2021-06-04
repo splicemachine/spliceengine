@@ -59,11 +59,6 @@ public interface CostModel {
                                               DataValueDescriptor[] scanRowTemplate,
                                               BitSet baseColumnsInScan,
                                               BitSet baseColumnsInLookup,
-                                              int indexLookupBatchRowCount,
-                                              int indexLookupConcurrentBatchesCount,
                                               boolean forUpdate,
-                                              boolean isOlap,
                                               HashSet<Integer> usedNoStatsColumnIds) throws StandardException;
-
-    String toString();
 }

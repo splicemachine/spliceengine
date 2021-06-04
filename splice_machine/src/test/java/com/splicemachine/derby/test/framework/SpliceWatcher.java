@@ -136,6 +136,10 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
             return this;
         }
 
+        public ConnectionBuilder autoCommit(boolean autoCommit) {
+            delegate.autoCommit(autoCommit);
+            return this;
+        }
         /**
          * Always creates a new connection, replacing this class's reference to the current connection, if any.
          */
@@ -453,11 +457,15 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
         }
     }
 
-    public void assertStrResult(String res, String query, Boolean sort) throws Exception {
-        try(ResultSet rs = executeQuery(query)) {
-            String out = sort ? TestUtils.FormattedResult.ResultFactory.toString(rs) :
+    public String executeToString(String sql, Boolean sort) throws Exception {
+        try(ResultSet rs = executeQuery(sql)) {
+            return sort ? TestUtils.FormattedResult.ResultFactory.toString(rs) :
                     TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-            Assert.assertEquals(res, out);
         }
+    }
+
+    public void assertStrResult(String res, String query, Boolean sort) throws Exception {
+        Assert.assertEquals( "failed asserting the results of sql\n" + query,
+                res, executeToString(query, sort));
     }
 }

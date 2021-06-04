@@ -35,8 +35,10 @@ import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataType;
+import scala.Tuple2;
 
 import java.io.Externalizable;
+import java.util.HashMap;
 import java.util.function.Function;
 
 /**
@@ -63,5 +65,14 @@ extends Externalizable
 
     // Is this a constant FALSE node?
     boolean isFalse();
+
+    // Transform any String columns into trimmed columns with new column names,
+    // and add the column names to the leftColMap and rightColMap (indicating if
+    // the left and/or right data frames need these new columns added, along
+    // with the column expression to add.
+    void transformToRTrimmedColumnExpression(Tuple2<String, String>[] leftColTypes,
+                                             Tuple2<String, String>[] rightColTypes,
+                                             HashMap<String, Column> leftColMap,
+                                             HashMap<String, Column> rightColMap);
 }
 

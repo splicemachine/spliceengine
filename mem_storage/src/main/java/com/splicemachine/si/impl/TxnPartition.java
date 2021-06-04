@@ -173,8 +173,8 @@ public class TxnPartition implements Partition{
     }
 
     @Override
-    public DataResult getLatest(byte[] key,DataResult previous) throws IOException{
-        return basePartition.getLatest(key,previous);
+    public DataResult getLatest(byte[] key,DataResult previous, Object obj) throws IOException{
+        return basePartition.getLatest(key,previous,obj);
     }
 
     @Override

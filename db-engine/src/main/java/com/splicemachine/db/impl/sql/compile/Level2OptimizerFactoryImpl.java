@@ -90,7 +90,8 @@ public class Level2OptimizerFactoryImpl
 			DataDictionary dDictionary,
 			RequiredRowOrdering requiredRowOrdering,
 			int numTablesInQuery,
-			LanguageConnectionContext lcc)
+			LanguageConnectionContext lcc,
+			CostModel costModel)
 				throws StandardException
 	{
 
@@ -106,7 +107,8 @@ public class Level2OptimizerFactoryImpl
 							lcc.getLockEscalationThreshold(),
 							requiredRowOrdering,
 							numTablesInQuery,
-							lcc);
+							lcc,
+							costModel);
 	}
 
 	/**
