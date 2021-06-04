@@ -66,10 +66,16 @@ public class StreamableRDD<T> {
     private final int executorThreads;
 
 
+    /**
+     * A small constructor for the ITs with default parameters.
+     */
     StreamableRDD(JavaRDD<T> rdd, UUID uuid, String clientHost, int clientPort) {
         this(rdd, null, uuid, clientHost, clientPort, 2, 512);
     }
 
+    /**
+     * A constructor for the ITs with default parameters.
+     */
     public StreamableRDD(JavaRDD<T> rdd, OperationContext<?> context, UUID uuid, String clientHost, int clientPort, int batches, int batchSize) {
         this(rdd, context, uuid, clientHost, clientPort, batches, batchSize, DEFAULT_PARALLEL_PARTITIONS, OlapConfigurations.DEFAULT_SPARK_RESULT_STREAMING_THREADS);
     }
