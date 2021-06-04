@@ -172,7 +172,9 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
         */
         dd.startWriting(lcc);
 
+
         SchemaDescriptor sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, schemaName);
+
 
         notifyMetadataChange(tc,ProtoUtil.createAlias(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId()));
 

@@ -103,7 +103,7 @@ public class SpliceCatalogUpgradeScripts{
         addUpgradeScript(baseVersion4, 1989, new UpgradeScriptToAddIndexColUseViewInSYSCAT(sdd, tc));
         addUpgradeScript(baseVersion4, 1992, new UpgradeScriptForTablePriorities(sdd, tc));
         addUpgradeScript(baseVersion4, BaseDataDictionary.SERDE_UPGRADE_SPRINT, new UpgradeStoredObjects(sdd, tc));
-        addUpgradeScript(baseVersion4, 2018, new UpgradeSnapshotTables(sdd, tc));
+        addUpgradeScript(baseVersion4, 2019, new UpgradeSnapshotTables(sdd, tc));
         // remember to add your script to SpliceCatalogUpgradeScriptsTest too, otherwise test fails
     }
 
