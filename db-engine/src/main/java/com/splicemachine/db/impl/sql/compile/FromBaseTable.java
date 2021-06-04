@@ -3240,6 +3240,12 @@ public class FromBaseTable extends FromTable {
             if (!acb.cb.existsField(type, name)) {
                 acb.newFieldDeclaration(Modifier.PRIVATE, type, name);
             }
+            else {
+                boolean doSomethingUseless = true;
+            }
+        }
+        else {
+            boolean doSomethingUseless = true;
         }
         /* If this table is the target of an update or a delete, then we must
          * wrap the Expression up in an assignment expression before
@@ -3254,6 +3260,11 @@ public class FromBaseTable extends FromTable {
          *                                        (call to the ResultSetFactory)
          */
         if((updateOrDelete==UPDATE) || (updateOrDelete==DELETE) || rowIdColumn!=null){
+            String type = ClassName.CursorResultSet;
+            String fieldName = acb.getRowLocationScanResultSetName();
+            if (!acb.cb.existsField(type, fieldName)) {
+                acb.newFieldDeclaration(Modifier.PRIVATE, type, fieldName);
+            }
             mb.cast(ClassName.CursorResultSet);
             mb.putField(acb.getRowLocationScanResultSetName(),ClassName.CursorResultSet);
             mb.cast(ClassName.NoPutResultSet);
