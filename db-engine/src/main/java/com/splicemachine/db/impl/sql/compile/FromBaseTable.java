@@ -1096,8 +1096,7 @@ public class FromBaseTable extends FromTable {
             finalResultColumns.addResultColumn(baseRowId2RC);
         }
 
-        SelectNode selectNode = (SelectNode) nodeFactory.getNode(
-                            C_NodeTypes.SELECT_NODE,
+        SelectNode selectNode = new SelectNode(
                             finalResultColumns,
                             null,         /* AGGREGATE list */
                             fromList,
@@ -1640,8 +1639,7 @@ public class FromBaseTable extends FromTable {
                return null;
        }
 
-       SelectNode selectNode = (SelectNode) getNodeFactory().getNode(
-                            C_NodeTypes.SELECT_NODE,
+       SelectNode selectNode = new SelectNode(
                             resultColumnList,
                             null,
                             fromList,

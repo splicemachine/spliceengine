@@ -9929,8 +9929,7 @@ tableExpression(ResultColumnList selectList) throws StandardException :
             n.replaceAggregatesWithColumnReferences(selectList, 0);
         }
 
-        selectNode = (SelectNode) nodeFactory.getNode(
-                            C_NodeTypes.SELECT_NODE,
+        selectNode = new SelectNode(
                             selectList,
                             null,         /* AGGREGATE list */
                             fromList,

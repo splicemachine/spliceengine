@@ -141,9 +141,7 @@ public class QueryRewriteVisitor extends AbstractSpliceVisitor {
 
         FromList fromList = new FromList(true, fromTable, cm);
 
-        SelectNode newSelectNode = (SelectNode) nodeFactory.getNode(
-                            C_NodeTypes.SELECT_NODE,
-                            resultColumns,
+        SelectNode newSelectNode = new SelectNode(resultColumns,
                             null,         /* AGGREGATE list */
                             fromList,
                             null,
