@@ -242,7 +242,7 @@ public class SpliceMultiRowRangeFilter extends MultiRowRangeFilter {
           }
           // the row key equals one of the start keys, and the the range exclude the start key
           // We do not support reverse scan, so we can check for start row inclusive here
-          if(!ranges.get(index).isStartRowInclusive() == false) {
+          if(!ranges.get(index).isStartRowInclusive()) {
             exclusive = true;
           }
           return index;
