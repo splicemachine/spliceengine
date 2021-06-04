@@ -18,7 +18,7 @@ import java.util.Properties;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.costing.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
 import com.splicemachine.db.iapi.sql.compile.OptimizableList;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;

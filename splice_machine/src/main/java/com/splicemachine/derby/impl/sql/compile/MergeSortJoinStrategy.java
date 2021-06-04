@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.costing.CostEstimate;
 import com.splicemachine.db.impl.sql.compile.HashableJoinStrategy;
 
 public class MergeSortJoinStrategy extends HashableJoinStrategy {
@@ -27,7 +28,7 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
 	public boolean feasible(Optimizable innerTable,
                             OptimizablePredicateList predList,
                             Optimizer optimizer,
-                            CostEstimate outerCost,boolean wasHinted,
+                            CostEstimate outerCost, boolean wasHinted,
                             boolean skipKeyCheck) throws StandardException {
         if (innerTable.indexFriendlyJoinsOnly())
             return false;

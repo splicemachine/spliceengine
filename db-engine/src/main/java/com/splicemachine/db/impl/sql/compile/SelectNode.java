@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.costing.CostEstimate;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -48,6 +49,7 @@ import com.splicemachine.db.impl.ast.CollectingVisitor;
 import com.splicemachine.db.impl.ast.ColumnCollectingVisitor;
 import com.splicemachine.db.impl.ast.LimitOffsetVisitor;
 import com.splicemachine.db.impl.ast.RepeatedPredicateVisitor;
+import com.splicemachine.db.impl.sql.compile.costing.CostEstimateImpl;
 import splice.com.google.common.base.Predicates;
 
 import java.sql.Types;

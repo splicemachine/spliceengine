@@ -34,7 +34,7 @@ package com.splicemachine.db.impl.ast;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import splice.com.google.common.base.Function;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.costing.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;

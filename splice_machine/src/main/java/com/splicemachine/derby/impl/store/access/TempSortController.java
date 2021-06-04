@@ -15,7 +15,7 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.costing.CostEstimate;
 import com.splicemachine.db.iapi.store.access.SortCostController;
 
 /**

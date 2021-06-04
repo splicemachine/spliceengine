@@ -15,7 +15,7 @@
 package com.splicemachine.derby.impl.sql.compile;
 
 import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.compile.costing.CostEstimate;
 import com.splicemachine.db.impl.sql.compile.FirstColumnOfIndexStats;
 import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.db.impl.sql.compile.Level2OptimizerImpl;
@@ -27,7 +27,7 @@ import java.text.DecimalFormat;
  * @author Scott Fines
  *         Date: 3/13/15
  */
-public class SimpleCostEstimate implements CostEstimate{
+public class SimpleCostEstimate implements CostEstimate {
     private static final String[] displayHeapUnits = {" B"," KB"," MB"," GB"," TB"};
     /**
      * Note: if you add a field to this class, make sure you also make changes to cloneMe() and setCost()

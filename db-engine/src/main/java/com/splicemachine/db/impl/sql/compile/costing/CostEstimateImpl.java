@@ -29,14 +29,16 @@
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package com.splicemachine.db.impl.sql.compile;
+package com.splicemachine.db.impl.sql.compile.costing;
 
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.costing.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
 import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.store.access.StoreCostResult;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.impl.sql.compile.FirstColumnOfIndexStats;
+import com.splicemachine.db.impl.sql.compile.JoinNode;
 
 public class CostEstimateImpl implements CostEstimate {
     public double	cost;

@@ -18,11 +18,8 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.impl.sql.compile.FromBaseTable;
+import com.splicemachine.db.iapi.sql.compile.costing.CostEstimate;
 import com.splicemachine.db.impl.sql.compile.HashableJoinStrategy;
-import com.splicemachine.db.impl.sql.compile.JoinNode;
-import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
 
 public class BroadcastJoinStrategy extends HashableJoinStrategy {
     public BroadcastJoinStrategy() { }

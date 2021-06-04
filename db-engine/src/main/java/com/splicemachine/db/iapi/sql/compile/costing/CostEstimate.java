@@ -29,8 +29,11 @@
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package com.splicemachine.db.iapi.sql.compile;
+package com.splicemachine.db.iapi.sql.compile.costing;
 
+import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
+import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.store.access.StoreCostResult;
 import com.splicemachine.db.impl.sql.compile.FirstColumnOfIndexStats;
 
