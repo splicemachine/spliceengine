@@ -81,7 +81,6 @@ public class TimestampIT extends SpliceUnitTest {
     public static void createDataSet() throws Exception {
         spliceClassWatcher.setAutoCommit(false);
         createSharedTables(spliceClassWatcher.getOrCreateConnection());
-        spliceClassWatcher.closeAll();
     }
 
     @After
@@ -898,7 +897,20 @@ public class TimestampIT extends SpliceUnitTest {
             "--------------------------------------\n" +
             "16:03:00 |1996-08-24 16:03:00.999999 |";
         String query = format("SELECT * FROM t6 --splice-properties useSpark=%s", useSpark);
+        //testQuery(query, expected, methodWatcher);
+        methodWatcher.executeUpdate("insert into t6 values ( TIME( '14:03:00'), TIMESTAMP( '0001-01-01 00:00:00.123456') )");
+        methodWatcher.executeUpdate("insert into t6 values ( TIME( '13:03:00'), TIMESTAMP( '9999-12-31 23:59:59.123456') )");
+        expected =
+            "FIPS1  |           FIPS2           |\n" +
+            "--------------------------------------\n" +
+            "13:03:00 |9999-12-31 23:59:59.123456 |\n" +
+            "14:03:00 |0001-01-01 00:00:00.123456 |\n" +
+            "16:03:00 |1996-08-24 16:03:00.999999 |";
         testQuery(query, expected, methodWatcher);
+
+        // Not allowed to specify more than 6 decimal digits in a timestamp.
+        testFail("XJ207", "insert into t6 values ( TIME( '13:03:00'), TIMESTAMP( '9999-12-31 23:59:59.1234567') )", methodWatcher);
+
         methodWatcher.executeUpdate("delete from t6");
     }
 
