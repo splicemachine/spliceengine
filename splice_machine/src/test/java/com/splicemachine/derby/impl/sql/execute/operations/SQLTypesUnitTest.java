@@ -118,14 +118,14 @@ public class SQLTypesUnitTest {
 
     @Test
     public void testTimestampParseJDBC() throws StandardException, IOException, ClassNotFoundException {
-        SQLTimestamp ts = new SQLTimestamp("1867-02-28 04:38:01.0426123", false, null);
+        SQLTimestamp ts = new SQLTimestamp("1867-02-28 04:38:01.042612", false, null);
         ts.setTimestampFormat("yyyy-MM-dd-HH.mm.ss.SSSSSSSSS");
-        Assert.assertEquals("1867-02-28-04.38.01.042612300", ts.toString());
+        Assert.assertEquals("1867-02-28-04.38.01.042612000", ts.toString());
 
     }
     @Test
     public void testTimestampParseIBM() throws StandardException, IOException, ClassNotFoundException {
-        SQLTimestamp ts = new SQLTimestamp("1867-02-28-04.38.01.0426123", false, null);
-        Assert.assertEquals("1867-02-28 04:38:01.042612300", ts.toString());
+        SQLTimestamp ts = new SQLTimestamp("1867-02-28-04.38.01.042612", false, null);
+        Assert.assertEquals("1867-02-28 04:38:01.042612000", ts.toString());
     }
 }

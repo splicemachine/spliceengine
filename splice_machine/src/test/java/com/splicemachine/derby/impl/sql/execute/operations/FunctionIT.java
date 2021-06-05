@@ -958,7 +958,7 @@ public class FunctionIT extends SpliceUnitTest {
         // Datetime
         scalarFunctionExpectSuccess("datetime1", true, "", "VARCHAR(10)", "2020-01-02");
         scalarFunctionExpectSuccess("datetime2", true, "", "VARCHAR(8)", "16:30:30");
-        scalarFunctionExpectSuccess("datetime3", true, "", "VARCHAR(29)", "2020-01-01 16:30:30.123456000");
+        scalarFunctionExpectSuccess("datetime3", true, "", "VARCHAR(26)", "2020-01-01 16:30:30.123456");
         scalarFunctionExpectSuccess("datetime1", true, "ISO", "VARCHAR(10)", "2020-01-02");
         scalarFunctionExpectSuccess("datetime2", true, "ISO", "VARCHAR(8)", "16.30.30");
         scalarFunctionExpectSuccess("datetime1", true, "JIS", "VARCHAR(10)", "2020-01-02");
@@ -970,7 +970,7 @@ public class FunctionIT extends SpliceUnitTest {
 
         scalarFunctionExpectSuccess("datetime1", false, "", "CHAR(10)", "2020-01-02");
         scalarFunctionExpectSuccess("datetime2", false, "", "CHAR(8)", "16:30:30");
-        scalarFunctionExpectSuccess("datetime3", false, "", "CHAR(29)", "2020-01-01 16:30:30.123456000");
+        scalarFunctionExpectSuccess("datetime3", false, "", "CHAR(26)", "2020-01-01 16:30:30.123456");
         scalarFunctionExpectSuccess("datetime1", false, "ISO", "CHAR(10)", "2020-01-02");
         scalarFunctionExpectSuccess("datetime2", false, "ISO", "CHAR(8)", "16.30.30");
         scalarFunctionExpectSuccess("datetime1", false, "JIS", "CHAR(10)", "2020-01-02");
@@ -1033,8 +1033,8 @@ public class FunctionIT extends SpliceUnitTest {
     public void testCastTimestampToCharTruncate() throws SQLException {
         String schemaName = FunctionIT.class.getSimpleName();
         try (TestConnection conn = methodWatcher.getOrCreateConnection()){
-            checkStringExpression("cast(timestamp('2154-11-28 18:46:52.123456789') as varchar(23))", "2154-11-28 18:46:52.123", conn);
-            checkStringExpression("cast(timestamp('2154-11-28 18:46:52.123456789') as char(23))", "2154-11-28 18:46:52.123", conn);
+            checkStringExpression("cast(timestamp('2154-11-28 18:46:52.123456') as varchar(23))", "2154-11-28 18:46:52.123", conn);
+            checkStringExpression("cast(timestamp('2154-11-28 18:46:52.123456') as char(23))", "2154-11-28 18:46:52.123", conn);
             checkStringExpression("cast(ts as varchar(4)) from " + schemaName + ".TMM", "1960", conn);
             checkStringExpression("cast(ts as char(4)) from " + schemaName + ".TMM", "1960", conn);
         }

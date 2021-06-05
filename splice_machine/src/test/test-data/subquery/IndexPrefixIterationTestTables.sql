@@ -35,13 +35,13 @@ create index Table1_Idx1 on Table1 (COL2, COL5, COL3, COL8, COL9);
 
 create index Table1_Idx2 on Table1 (COL2, COL3, COL5, COL9);
 
-insert into Table1 values ('a', 'ABCDE', timestamp('2010-12-31 15:59:59.3211111'), 'b', 'c', timestamp('1969-12-31 15:59:59.000001'), 'd', 'e', 'f', 'g');
+insert into Table1 values ('a', 'ABCDE', timestamp('2010-12-31 15:59:59.321111'), 'b', 'c', timestamp('1969-12-31 15:59:59.000001'), 'd', 'e', 'f', 'g');
 
 analyze table Table1;
 
-insert into t1 values(1,1,1,1,1,1,1, timestamp('2018-12-31 15:59:59.3211111'));
-insert into t1 values(1,1,1,1,1,1,1, timestamp('1969-12-31 15:59:59.3211111'));
-insert into t1 values(1,1,1,1,1,1,1, timestamp('1969-12-31 15:59:59.9999999'));
+insert into t1 values(1,1,1,1,1,1,1, timestamp('2018-12-31 15:59:59.321111'));
+insert into t1 values(1,1,1,1,1,1,1, timestamp('1969-12-31 15:59:59.321111'));
+insert into t1 values(1,1,1,1,1,1,1, timestamp('1969-12-31 15:59:59.999999'));
 insert into t1 values(1,1,1,1,1,1,1, timestamp('1969-12-31 15:59:59.000001'));
 insert into t1 values(2,1,1,1,1,1,1, timestamp('1969-12-31 15:59:59.001'));
 insert into t1 values(2,1,1,1,1,1,1, timestamp('1969-12-31 15:59:59.00'));
@@ -66,7 +66,7 @@ insert into t1 select a1+16,b1,c1+16,d1,e1,f1,g1, TIMESTAMPADD(SQL_TSI_MINUTE, 2
 insert into t1 select a1+32,b1,c1+32,d1,e1,f1,g1, TIMESTAMPADD(SQL_TSI_MINUTE, 2, h1) from t1;
 insert into t1 select a1+64,b1,c1+64,d1,e1,f1,g1, TIMESTAMPADD(SQL_TSI_MINUTE, 2, h1) from t1;
 
-insert into t1 values(-1,-1,-1,-1,-1,-1,-1, timestamp('2018-12-31 15:59:59.3211111'));
+insert into t1 values(-1,-1,-1,-1,-1,-1,-1, timestamp('2018-12-31 15:59:59.321111'));
 
 
 insert into t11 select * from t1;

@@ -589,7 +589,7 @@ public class ExportOperationIT {
                  .withTableName(tableName)
                  .withCreate("create table %s (a timestamp)")
                  .withInsert("insert into %s values(?)")
-                 .withRows(rows(row("2020-01-01 12:15:16.123456789"))).create())
+                 .withRows(rows(row("2020-01-01 12:15:16.123456"))).create())
         {
 
 
@@ -616,7 +616,7 @@ public class ExportOperationIT {
     @Test
     public void exportTimestampFormatDefault() throws Exception {
         exportTimestampFormat(false, null, "2020-01-01 12:15:16.123456",
-                "2020-01-01 12:15:16.123456000");
+                "2020-01-01 12:15:16.123456");
     }
 
     @Test

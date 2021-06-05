@@ -940,25 +940,23 @@ public class TimestampIT extends SpliceUnitTest {
     @Test
     public void testConfigurableTimestampPrecision() throws Exception {
         withFormat("yyyy-MM-dd HH:mm:ss"); shouldEqual("2020-11-30 19:11:12", "2020-11-30 19:11:12");
-        withFormat("yyyy-MM-dd HH:mm:ss"/*0*/); shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30 19:11:12");
+        withFormat("yyyy-MM-dd HH:mm:ss"/*0*/); shouldEqual("2020-11-30 19:11:12.123456", "2020-11-30 19:11:12");
         withFormat("yyyy-MM-dd HH:mm:ss.SSS"/*3*/); shouldEqual("2020-11-30 19:11:12", "2020-11-30 19:11:12.000");
-        withFormat("yyyy-MM-dd HH:mm:ss.SSS"/*3*/); shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30 19:11:12.123");
+        withFormat("yyyy-MM-dd HH:mm:ss.SSS"/*3*/); shouldEqual("2020-11-30 19:11:12.123456", "2020-11-30 19:11:12.123");
         withFormat("yyyy-MM-dd HH:mm:ss.SSSSSS"/*6*/); shouldEqual("2020-11-30 19:11:12", "2020-11-30 19:11:12.000000");
-        withFormat("yyyy-MM-dd HH:mm:ss.SSSSSS"/*6*/); shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30 19:11:12.123456");
-        withFormat("yyyy-MM-dd HH:mm:ss.SSSSSSSSS"/*9*/); shouldEqual("2020-11-30 19:11:12", "2020-11-30 19:11:12.000000000");
-        withFormat("yyyy-MM-dd HH:mm:ss.SSSSSSSSS"/*9*/); shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30 19:11:12.123456789");
+        withFormat("yyyy-MM-dd HH:mm:ss.SSSSSS"/*6*/); shouldEqual("2020-11-30 19:11:12.123456", "2020-11-30 19:11:12.123456");
 
-        withFormat("MM/dd/uuuu, hh:mm:ss.SS a"); shouldEqual("2020-11-30 19:11:12.123456789", "11/30/2020, 07:11:12.12 PM");
+        withFormat("MM/dd/uuuu, hh:mm:ss.SS a"); shouldEqual("2020-11-30 19:11:12.123456", "11/30/2020, 07:11:12.12 PM");
 
         withFormat("yyyy-MM-dd-HH.mm.ss.SSSSSSSS"/*8*/);
-        shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30-19.11.12.12345678");
+        shouldEqual("2020-11-30 19:11:12.123456", "2020-11-30-19.11.12.12345600");
 
         // test code in UserTypeConstantNode
         Assert.assertEquals("1700-12-31-23.59.58.99999900", methodWatcher.executeGetString( "values( char({ts'1700-12-31 23:59:58.999999'}) )", 1));
 
         // reset to default
         withFormat(CompilerContext.DEFAULT_TIMESTAMP_FORMAT);
-        Assert.assertEquals("1700-12-31 23:59:58.999999000", methodWatcher.executeGetString( "values( char({ts'1700-12-31 23:59:58.999999'}) )", 1));
+        Assert.assertEquals("1700-12-31 23:59:58.999999", methodWatcher.executeGetString( "values( char({ts'1700-12-31 23:59:58.999999'}) )", 1));
     }
 
     @Test
@@ -973,8 +971,8 @@ public class TimestampIT extends SpliceUnitTest {
                 methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.currentTimestampPrecision', '1' )");
                 bOK = "2020-12-06 21:50:13.1".length()
                         == methodWatcher.executeGetString("values current timestamp", 1).length();
-                methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.currentTimestampPrecision', '9' )");
-                bOK = bOK && "2020-12-06 21:50:13.123456789".length()
+                methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.currentTimestampPrecision', '6' )");
+                bOK = bOK && "2020-12-06 21:50:13.123456".length()
                         == methodWatcher.executeGetString("values current timestamp", 1).length();
 
                 if (bOK) return;
