@@ -25,7 +25,6 @@ import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
 import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
 import com.splicemachine.db.iapi.sql.compile.RequiredRowOrdering;
-import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.impl.sql.compile.OptimizerFactoryImpl;
@@ -80,7 +79,8 @@ public class SpliceLevel2OptimizerFactoryImpl extends OptimizerFactoryImpl {
                                 dDictionary,
                                 requiredRowOrdering,
                                 numTablesInQuery,
-                                lcc);
+                                lcc
+        );
     }
 
 
@@ -104,7 +104,8 @@ public class SpliceLevel2OptimizerFactoryImpl extends OptimizerFactoryImpl {
                 lcc.getLockEscalationThreshold(),
                 requiredRowOrdering,
                 numTablesInQuery,
-                lcc);
+                lcc
+        );
     }
 
     /**

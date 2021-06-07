@@ -173,11 +173,8 @@ public class AggregateNode extends UnaryOperatorNode {
             /*
              ** Parse time.
              */
-            generatedRef = (ColumnReference) getNodeFactory().getNode(
-                    C_NodeTypes.COLUMN_REFERENCE,
-                    generatedRC.getName(),
-                    null,
-                    getContextManager());
+            generatedRef = new ColumnReference(generatedRC.getName(),
+                    null,getContextManager());
 
             // RESOLVE - unknown nesting level, but not correlated, so nesting levels must be 0
             generatedRef.setSource(generatedRC);
@@ -344,7 +341,7 @@ public class AggregateNode extends UnaryOperatorNode {
              */
             dts = getOperand().getTypeServices();
 
-            /* Convert count(nonNullableColumn) to count(*)	*/
+            /* Convert count(nonNullableColumn) to count(*)    */
             if (uad instanceof CountAggregateDefinition &&
                     !dts.isNullable()) {
                 setOperator(aggregateName);
@@ -424,6 +421,8 @@ public class AggregateNode extends UnaryOperatorNode {
         checkAggregatorClassName(aggregatorClassName.toString());
 
         setType(resultType);
+
+        addSPSPropertyDependency();
 
         return this;
     }

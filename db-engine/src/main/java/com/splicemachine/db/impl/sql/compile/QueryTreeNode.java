@@ -69,6 +69,8 @@ import com.splicemachine.db.impl.sql.execute.GenericConstantActionFactory;
 import com.splicemachine.db.impl.sql.execute.GenericExecutionFactory;
 import com.splicemachine.db.impl.sql.execute.SPSPropertyRegistry;
 import org.apache.commons.lang3.SystemUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import splice.com.google.common.base.Predicates;
 import splice.com.google.common.base.Strings;
 
@@ -178,23 +180,6 @@ public abstract class QueryTreeNode implements Node, Visitable{
         if(SanityManager.DEBUG){
             SanityManager.GET_DEBUG_STREAM().print(outputString);
         }
-    }
-
-    public static TableName makeTableName
-            (
-                    NodeFactory nodeFactory,
-                    ContextManager contextManager,
-                    String schemaName,
-                    String flatName
-            )
-            throws StandardException{
-        return (TableName)nodeFactory.getNode
-                (
-                        C_NodeTypes.TABLE_NAME,
-                        schemaName,
-                        flatName,
-                        contextManager
-                );
     }
 
     /**
@@ -591,7 +576,13 @@ public abstract class QueryTreeNode implements Node, Visitable{
         final Visitable ret = visitor.stopTraversal() ? this : visitor.visit(this, parent);
 
         if(!childrenFirst && !skipChildren && !visitor.stopTraversal()){
-            acceptChildren(visitor);
+            if (visitor.visitChildrenOfNewParent()) {
+                if (ret != null) {
+                    ((QueryTreeNode) ret).acceptChildren(visitor);
+                }
+            }
+            else
+                acceptChildren(visitor);
         }
 
         return ret;
@@ -1019,7 +1010,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
     }
 
     public TableName makeTableName ( String schemaName, String flatName ) throws StandardException{
-        return makeTableName(getNodeFactory(),getContextManager(),schemaName,flatName);
+        return new TableName(schemaName, flatName, getContextManager());
     }
 
     public boolean isAtomic() throws StandardException{
@@ -1099,9 +1090,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
         if(!found)
             return null;
 
-        TableName tableName=new TableName();
-        tableName.init(nextSynonymSchema,nextSynonymTable);
-        return tableName;
+        return new TableName(nextSynonymSchema, nextSynonymTable, getContextManager());
     }
 
     /**
@@ -1746,7 +1735,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
         throw StandardException.newException(sqlState,fragmentType);
     }
 
-    protected void setDepth(int depth) {
+    public void setDepth(int depth) {
         this.depth = depth;
     }
 
@@ -1768,9 +1757,8 @@ public abstract class QueryTreeNode implements Node, Visitable{
 
     private static final String spaces="  ";
 
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
-        setDepth(depth);
-        tree.add(this);
+    public void buildTree(Collection<Pair<QueryTreeNode,Integer>> tree, int depth) throws StandardException {
+        addNodeToExplainTree(tree, this, depth);
     }
 
     public String printExplainInformation(boolean printHeader, DataSetProcessorType type, boolean fromPlanPrinter) throws StandardException {
@@ -2100,5 +2088,49 @@ public abstract class QueryTreeNode implements Node, Visitable{
 
     protected void addSPSPropertyDependency(final Node node) throws StandardException {
         SPSPropertyRegistry.checkAndAddDependency(node, getCompilerContext());
+    }
+
+    /**
+     * Return whether or not this expression tree is cloneable.
+     *
+     * @return boolean    Whether or not this expression tree is cloneable.
+     */
+    public boolean isCloneable()
+    {
+        return false;
+    }
+
+    /**
+     * Return a clone of this node.
+     *
+     * @return ValueNode    A clone of this node.
+     *
+     * @exception StandardException            Thrown on error
+     */
+    public ValueNode getClone() throws StandardException
+    {
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(false,
+                "getClone() not expected to be called for " +
+                getClass().getName());
+        }
+        return null;
+    }
+
+    public void copyFrom(OperatorNode other) throws StandardException
+    {
+        // Do not copy this.depth, it is instance-dependent.
+        this.isPrivilegeCollectionRequired = other.isPrivilegeCollectionRequired;
+        this.beginOffset = other.getBeginOffset();
+        this.endOffset = other.getEndOffset();
+        this.nodeType = other.getNodeType();
+        this.cm = other.getContextManager();
+        this.lcc = other.getLanguageConnectionContext();
+        this.constantActionFactory = other.getGenericConstantActionFactory();
+    }
+
+    protected void addNodeToExplainTree(Collection<Pair<QueryTreeNode,Integer>> tree, QueryTreeNode node, int depth) {
+        tree.add(new ImmutablePair<QueryTreeNode, Integer>(node, depth));
     }
 }

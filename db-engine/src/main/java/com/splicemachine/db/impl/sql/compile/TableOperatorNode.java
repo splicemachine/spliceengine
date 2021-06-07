@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.Collection;
 import java.util.Map;
@@ -314,6 +315,8 @@ public abstract class TableOperatorNode extends FromTable{
     }
 
     public ResultSetNode bindNonVTITables(DataDictionary dataDictionary,FromList fromListParam, boolean bindRightOnly)throws StandardException{
+        if (skipBindAndOptimize)
+            return this;
         if (!bindRightOnly)
             leftResultSet=leftResultSet.bindNonVTITables(dataDictionary,fromListParam);
         rightResultSet=rightResultSet.bindNonVTITables(dataDictionary,fromListParam);
@@ -341,6 +344,8 @@ public abstract class TableOperatorNode extends FromTable{
     }
 
     public ResultSetNode bindVTITables(FromList fromListParam, boolean bindRightOnly) throws StandardException{
+        if (skipBindAndOptimize)
+            return this;
         if (!bindRightOnly)
             leftResultSet=leftResultSet.bindVTITables(fromListParam);
         rightResultSet=rightResultSet.bindVTITables(fromListParam);
@@ -360,6 +365,8 @@ public abstract class TableOperatorNode extends FromTable{
     }
 
     public void bindExpressions(FromList fromListParam, boolean bindRightOnly) throws StandardException{
+        if (skipBindAndOptimize)
+            return;
         if (!bindRightOnly) {
             if (!(this instanceof UnionNode)) {
                 leftResultSet.rejectParameters();
@@ -394,6 +401,8 @@ public abstract class TableOperatorNode extends FromTable{
      */
     @Override
     public void bindExpressionsWithTables(FromList fromListParam) throws StandardException{
+        if (skipBindAndOptimize)
+            return;
         /*
         ** Parameters not allowed in select list of either side of a set operator,
         ** except when the set operator is for a table constructor.
@@ -422,6 +431,8 @@ public abstract class TableOperatorNode extends FromTable{
     }
 
     public void bindResultColumns(FromList fromListParam, boolean bindRightOnly) throws StandardException{
+        if (skipBindAndOptimize)
+            return;
         if (!bindRightOnly)
             leftResultSet.bindResultColumns(fromListParam);
         rightResultSet.bindResultColumns(fromListParam);
@@ -467,6 +478,8 @@ public abstract class TableOperatorNode extends FromTable{
                                   ResultColumnList targetColumnList,
                                   DMLStatementNode statement,
                                   FromList fromListParam) throws StandardException{
+        if (skipBindAndOptimize)
+            return;
         leftResultSet.bindResultColumns(targetTableDescriptor,
                 targetVTI,
                 targetColumnList,
@@ -525,6 +538,8 @@ public abstract class TableOperatorNode extends FromTable{
      */
     @Override
     public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException{
+        if (skipBindAndOptimize)
+            return this;
         /* DB-10817 note
          * For a non-flattenable join, set the non-flattenable flag to all nested joins.
          * This has nothing to do with flattening, but to build a PRN on top of each
@@ -605,14 +620,8 @@ public abstract class TableOperatorNode extends FromTable{
                                   boolean forSpark) throws StandardException{
         /* Get an optimizer, so we can get a cost structure */
         Optimizer optimizer = getOptimizer(
-                (FromList)getNodeFactory().getNode(
-                        C_NodeTypes.FROM_LIST,
-                        getNodeFactory().doJoinOrderOptimization(),
-                        this,
-                        getContextManager()),
-                predicateList,
-                dataDictionary,
-                null);
+                new FromList(getNodeFactory().doJoinOrderOptimization(), this, getContextManager()),
+                predicateList, dataDictionary, null);
         optimizer.setForSpark(forSpark);
 
         costEstimate=optimizer.newCostEstimate();
@@ -742,33 +751,34 @@ public abstract class TableOperatorNode extends FromTable{
     protected ResultSetNode optimizeSource(Optimizer optimizer,
                                            ResultSetNode sourceResultSet,
                                            PredicateList predList,
+                                           PredicateList nonPushablePredicates,
                                            JBitSet otherChildReferenceMap,
                                            CostEstimate outerCost) throws StandardException{
         ResultSetNode retval;
 
         if(sourceResultSet instanceof FromTable){
-            FromList optList=(FromList)getNodeFactory().getNode(
-                    C_NodeTypes.FROM_LIST,
-                    getNodeFactory().doJoinOrderOptimization(),
-                    sourceResultSet,
-                    getContextManager());
+            FromList optList = new FromList(getNodeFactory().doJoinOrderOptimization(),
+                    (FromTable) sourceResultSet, getContextManager());
 
             /* If there is no predicate list, create an empty one */
             if(predList==null)
-                predList=(PredicateList)getNodeFactory().getNode(
-                        C_NodeTypes.PREDICATE_LIST,
-                        getContextManager());
+                predList = new PredicateList(getContextManager());
 
             LanguageConnectionContext lcc=getLanguageConnectionContext();
             OptimizerFactory optimizerFactory=lcc.getOptimizerFactory();
+
+            boolean forSpark = optimizer != null ? optimizer.isForSpark() : false;
             optimizer=optimizerFactory.getOptimizer(optList,
                                                     predList,
                                                     getDataDictionary(),
                                                     null,
                                                     getCompilerContext().getMaximalPossibleTableCount(),
                                                     lcc);
+
             optimizer.prepForNextRound();
             optimizer.setAssignedTableMap(otherChildReferenceMap);
+            optimizer.setForSpark(forSpark);
+            optimizer.setNonPushablePredicates(nonPushablePredicates);
 
             if(sourceResultSet==leftResultSet){
                 leftOptimizer=optimizer;
@@ -850,9 +860,8 @@ public abstract class TableOperatorNode extends FromTable{
     }
 
     @Override
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
-        setDepth(depth);
-        tree.add(this);
+    public void buildTree(Collection<Pair<QueryTreeNode,Integer>> tree, int depth) throws StandardException {
+        addNodeToExplainTree(tree, this, depth);
         rightResultSet.buildTree(tree,depth+1);
         leftResultSet.buildTree(tree,depth+1);
     }

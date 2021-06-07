@@ -27,6 +27,8 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Created by dgomezferro on 12/07/2017.
@@ -35,6 +37,12 @@ public class OperationManagerImpl implements OperationManager {
     private static final Logger LOG = Logger.getLogger(OperationManagerImpl.class);
     private ConcurrentMap<UUID, RunningOperation> operations = new ConcurrentHashMap();
     private ConcurrentMap<String, RunningOperation> drdaOperations = new ConcurrentHashMap();
+
+    @Override
+    public RunningOperation getRunningOperation(UUID uuid)
+    {
+        return operations.get(uuid);
+    }
 
     public UUID registerOperation(SpliceOperation operation, Thread executingThread, Date submittedTime, DataSetProcessor.Type engine, String rdbIntTkn) {
         Random rnd = ThreadLocalRandom.current();
@@ -52,53 +60,35 @@ public class OperationManagerImpl implements OperationManager {
             drdaOperations.remove(ro.getRdbIntTkn());
     }
 
-    public List<Pair<UUID, RunningOperation>> runningOperations(String userId) {
-        List<Pair<UUID, RunningOperation>> result = new ArrayList<>(operations.size());
-        for (Map.Entry<UUID, RunningOperation> entry : operations.entrySet()) {
-            Activation activation = entry.getValue().getOperation().getActivation();
-            String runningUserId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
-            if (userId == null || userId.equals(runningUserId))
-                result.add(new Pair<>(entry.getKey(), entry.getValue()));
-        }
-        return result;
+    private <T> List<Pair<String, RunningOperation>> runningOperationsT(
+            String userId, String filterUuid, ConcurrentMap<T, RunningOperation> operations)
+    {
+        Stream<Map.Entry<T, RunningOperation>> stream = operations.entrySet().stream();
+        if(userId != null)
+            stream = stream.filter( entry -> entry.getValue().isFromUser(userId) );
+        if(filterUuid != null && !filterUuid.isEmpty())
+            stream = stream.filter( entry -> entry.getKey().toString().equals(filterUuid));
+        return stream.map( entry -> new Pair<>(entry.getKey().toString(), entry.getValue()))
+                .collect(Collectors.toList());
+    }
+
+    public List<Pair<String, RunningOperation>> runningOperations(String userId) {
+        return runningOperationsT(userId, null, operations);
+    }
+
+    public List<Pair<String, RunningOperation>> runningOperationsDRDA(String userId, String drdaToken) {
+        return runningOperationsT(userId, drdaToken, drdaOperations);
     }
 
     public boolean killDRDAOperation(String uuid, String userId) throws StandardException {
-        RunningOperation op = drdaOperations.get(uuid);
-        if (op == null)
-            return false;
-        Activation activation = op.getOperation().getActivation();
-        String databaseOwner = activation.getLanguageConnectionContext().getDataDictionary().getAuthorizationDatabaseOwner();
-        String runningUserId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
-        List<String> groupuserlist = activation.getLanguageConnectionContext().getCurrentGroupUser(activation);
-
-        if (!userId.equals(databaseOwner) && !userId.equals(runningUserId)) {
-            if (groupuserlist != null) {
-                if (!groupuserlist.contains(databaseOwner) && !groupuserlist.contains(runningUserId))
-                    throw StandardException.newException(SQLState.AUTH_NO_PERMISSION_FOR_KILLING_OPERATION, userId, uuid);
-            } else
-                throw StandardException.newException(SQLState.AUTH_NO_PERMISSION_FOR_KILLING_OPERATION, userId, uuid);
-        }
-
-        drdaOperations.remove(uuid);
-        operations.remove(op.getUuid());
-        
-        op.getOperation().kill();
-        op.getThread().interrupt();
-        ResultSet rs=activation.getResultSet();
-        if (rs!=null && !rs.isClosed()) {
-            try {
-                rs.close();
-            } catch (Exception e) {
-                LOG.warn("Exception while closing ResultSet, probably due to forcefully killing the operation", e);
-            }
-        }
-
-        return true;
+        return kill(drdaOperations.get(uuid), "DRDA " + uuid, userId);
     }
 
     public boolean killOperation(UUID uuid, String userId) throws StandardException {
-        RunningOperation op = operations.get(uuid);
+        return kill(operations.get(uuid), uuid.toString(), userId);
+    }
+
+    private boolean kill(RunningOperation op, String strUUID, String userId) throws StandardException {
         if (op == null)
             return false;
         Activation activation = op.getOperation().getActivation();
@@ -109,12 +99,13 @@ public class OperationManagerImpl implements OperationManager {
         if (!userId.equals(databaseOwner) && !userId.equals(runningUserId)) {
             if (groupuserlist != null) {
                 if (!groupuserlist.contains(databaseOwner) && !groupuserlist.contains(runningUserId))
-                    throw StandardException.newException(SQLState.AUTH_NO_PERMISSION_FOR_KILLING_OPERATION, userId, uuid.toString());
+                    throw StandardException.newException(SQLState.AUTH_NO_PERMISSION_FOR_KILLING_OPERATION, userId, strUUID);
             } else
-                throw StandardException.newException(SQLState.AUTH_NO_PERMISSION_FOR_KILLING_OPERATION, userId, uuid.toString());
+                throw StandardException.newException(SQLState.AUTH_NO_PERMISSION_FOR_KILLING_OPERATION, userId, strUUID);
         }
 
-        unregisterOperation(uuid);
+        unregisterOperation(op.getUuid());
+
         op.getOperation().kill();
         op.getThread().interrupt();
         ResultSet rs=activation.getResultSet();

@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.util.JBitSet;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.Collection;
 import java.util.Vector;
@@ -140,6 +141,8 @@ public abstract class SingleChildResultSetNode extends FromTable{
 
     @Override
     public void initAccessPaths(Optimizer optimizer){
+        if (skipBindAndOptimize)
+            return;
         super.initAccessPaths(optimizer);
         if(childResult instanceof Optimizable){
             ((Optimizable)childResult).initAccessPaths(optimizer);
@@ -148,6 +151,8 @@ public abstract class SingleChildResultSetNode extends FromTable{
 
     @Override
     public void resetAccessPaths() {
+        if (skipBindAndOptimize)
+            return;
         super.resetAccessPaths();
         if (childResult instanceof Optimizable) {
             ((Optimizable)childResult).resetAccessPaths();
@@ -379,14 +384,9 @@ public abstract class SingleChildResultSetNode extends FromTable{
                 outerRows,
                 forSpark);
 
-        Optimizer optimizer= getOptimizer(
-                (FromList)getNodeFactory().getNode(
-                        C_NodeTypes.FROM_LIST,
-                        getNodeFactory().doJoinOrderOptimization(),
+        Optimizer optimizer = getOptimizer(new FromList(getNodeFactory().doJoinOrderOptimization(),
                         getContextManager()),
-                predicates,
-                dataDictionary,
-                null);
+                predicates, dataDictionary, null);
         optimizer.setForSpark(forSpark);
         costEstimate=optimizer.newCostEstimate();
         costEstimate.setCost(childResult.getCostEstimate().getEstimatedCost(),
@@ -555,9 +555,25 @@ public abstract class SingleChildResultSetNode extends FromTable{
         return null;
     }
     @Override
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
-        setDepth(depth);
-        tree.add(this);
+    public void buildTree(Collection<Pair<QueryTreeNode,Integer>> tree, int depth) throws StandardException {
+        addNodeToExplainTree(tree, this, depth);
         childResult.buildTree(tree,depth+1);
+    }
+
+    @Override
+    public boolean isTriggerVTI() {
+        if (childResult instanceof FromTable)
+            return ((FromTable)childResult).isTriggerVTI();
+        return false;
+    }
+  
+    public boolean outerTableOnly() {
+        if (outerTableOnly)
+            return true;
+        if(childResult instanceof Optimizable){
+            return ((Optimizable)childResult).outerTableOnly();
+        }
+        else
+            return outerTableOnly;
     }
 }

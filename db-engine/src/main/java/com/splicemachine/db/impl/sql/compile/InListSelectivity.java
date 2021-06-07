@@ -67,7 +67,7 @@ public class InListSelectivity extends AbstractSelectivityHolder {
         this.useExtrapolation = isExtrapolationEnabled();
     }
     
-    private double multiplySelectivity(ValueNode vn, int columnNumber, double localSelectivity, boolean useExtrapolation) {
+    private double multiplySelectivity(ValueNode vn, int columnNumber, double localSelectivity, boolean useExtrapolation) throws StandardException {
         if (vn instanceof ConstantNode) {
             ConstantNode cn = (ConstantNode)vn;
             if (localSelectivity == -1.0d)
@@ -81,7 +81,7 @@ public class InListSelectivity extends AbstractSelectivityHolder {
         return localSelectivity;
     }
 
-    private double addSelectivity(ValueNode vn, int columnNumber, double localSelectivity, boolean useExtrapolation) {
+    private double addSelectivity(ValueNode vn, int columnNumber, double localSelectivity, boolean useExtrapolation) throws StandardException {
         double tempSel = -1.0d;
         if (vn instanceof ListValueNode) {
             ListValueNode lvn = (ListValueNode)vn;

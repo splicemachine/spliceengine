@@ -35,9 +35,9 @@ public class NLJOuterJoinFunction<Op extends SpliceOperation> extends NLJoinFunc
 
     @Override
     public Iterator<ExecRow> call(Iterator<ExecRow> from) throws Exception {
-        if (!initialized) {
+        if (!nljInitialized) {
             init(from);
-            initialized = true;
+            nljInitialized = true;
         }
 
         return new NestedLoopJoinIterator<>(this);

@@ -34,6 +34,8 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.Node;
+
 import java.util.List;
 
 public class AndNode extends BinaryLogicalOperatorNode{
@@ -93,18 +95,18 @@ public class AndNode extends BinaryLogicalOperatorNode{
                                 PredicateList outerPredicateList) throws StandardException{
         /* If the left child is an OR, then mark it as the 1st OR in
          * the list.  That will allow us to consider converting the OR
-		 * to an IN list when we preprocess the 1st OR in the list.
-		 */
+         * to an IN list when we preprocess the 1st OR in the list.
+         */
         if(getLeftOperand() instanceof OrNode){
             ((OrNode)getLeftOperand()).setFirstOr();
         }
         setLeftOperand(getLeftOperand().preprocess(numTables,
                 outerFromList,outerSubqueryList,
                 outerPredicateList));
-		/* We need to rerun the changeToCNF() phase if our left operand
-		 * is an AndNode.  This can happen due to a predicate transformation,
-		 * such as the ones for LIKE and BETWEEN, underneath us.
-		 */
+        /* We need to rerun the changeToCNF() phase if our left operand
+         * is an AndNode.  This can happen due to a predicate transformation,
+         * such as the ones for LIKE and BETWEEN, underneath us.
+         */
         if(getLeftOperand() instanceof AndNode){
             // OrNode Cannot be Transformed to an AndNode.
             // This allows us to always believe we are a top AndNode...
@@ -137,7 +139,7 @@ public class AndNode extends BinaryLogicalOperatorNode{
             return this;
         }
 
-		/* Convert the AndNode to an OrNode */
+        /* Convert the AndNode to an OrNode */
         ValueNode orNode;
 
         orNode=(ValueNode)getNodeFactory().getNode(C_NodeTypes.OR_NODE,getLeftOperand(),getRightOperand(),getContextManager());
@@ -211,19 +213,17 @@ public class AndNode extends BinaryLogicalOperatorNode{
     public ValueNode changeToCNF(boolean underTopAndNode) throws StandardException{
         AndNode curAnd=this;
 
-		/* Top chain will be a chain of Ands terminated by a non-AndNode.
-		 * (putAndsOnTop() has taken care of this. If the last node in
-		 * the chain is not a true BooleanConstantNode then we need to do the
-		 * transformation to make it so.
-		 */
+        /* Top chain will be a chain of Ands terminated by a non-AndNode.
+         * (putAndsOnTop() has taken care of this. If the last node in
+         * the chain is not a true BooleanConstantNode then we need to do the
+         * transformation to make it so.
+         */
 
-		/* Add the true BooleanConstantNode if not there yet */
-        if(!(getRightOperand() instanceof AndNode) && !(getRightOperand().isBooleanTrue())){
+        /* Add the true BooleanConstantNode if not there yet */
+        if (!(getRightOperand() instanceof AndNode) && !(getRightOperand().isBooleanTrue())) {
             BooleanConstantNode trueNode;
 
-            trueNode=(BooleanConstantNode)getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                    Boolean.TRUE,
-                    getContextManager());
+            trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
             curAnd.setRightOperand((ValueNode)getNodeFactory().getNode(C_NodeTypes.AND_NODE,
                     curAnd.getRightOperand(),
                     trueNode,
@@ -231,54 +231,132 @@ public class AndNode extends BinaryLogicalOperatorNode{
             ((AndNode)curAnd.getRightOperand()).postBindFixup();
         }
 
-		/* If leftOperand is an AndNode, then we modify the tree from:
-		 *
-		 *				this
-		 *			   /	\
-		 *			And2	Nodex
-		 *		   /	\		...
-		 *		left2	right2
-		 *
-		 *	to:
-		 *
-		 *						this
-		 *					   /	\
-		 *	left2.changeToCNF()		 And2
-		 *							/	\
-		 *		right2.changeToCNF()	  Nodex.changeToCNF()
-		 *
-		 *	NOTE: We could easily switch places between left2.changeToCNF() and 
-		 *  right2.changeToCNF().
-		 */
+        AndNode retval = this;
+        do {
+            normalize(false);
 
-		/* Pull up the AndNode chain to our left */
-        while(getLeftOperand() instanceof AndNode){
+            /* Finally, we continue to normalize the left and right subtrees. */
+            setLeftOperand(retval.getLeftOperand().changeToCNF(underTopAndNode));
+            setRightOperand(retval.getRightOperand().changeToCNF(underTopAndNode));
 
-			/* For "clarity", we first get the new and old operands */
-            ValueNode newLeft=((AndNode)getLeftOperand()).getLeftOperand();
-            AndNode oldLeft=(AndNode)getLeftOperand();
-            AndNode newRight=(AndNode)getLeftOperand();
-            ValueNode oldRight=getRightOperand();
+            if (retval.getLeftOperand() instanceof AndNode && isBooleanTrue(retval.getRightOperand()))
+                return retval.getLeftOperand();
 
-			/* We then twiddle the tree to match the above diagram */
-            setLeftOperand(newLeft);
-            setRightOperand(newRight);
-            newRight.setLeftOperand(oldLeft.getRightOperand());
-            newRight.setRightOperand(oldRight);
+            retval = normalize(true);
         }
+        while (retval.getLeftOperand() instanceof AndNode);
 
-		/* Finally, we continue to normalize the left and right subtrees. */
-        setLeftOperand(getLeftOperand().changeToCNF(underTopAndNode));
-        setRightOperand(getRightOperand().changeToCNF(underTopAndNode));
+        return retval;
+    }
 
+    /*
+     *  If both leftOperand and rightOperand are AndNodes and linkAnds is true,
+     *  then we modify the tree from:
+     *
+     *             this
+     *          /        \
+     *      And1          And3
+     *     /    \        /    \
+     * node1    And2   node3  true
+     *         /   \
+     *      node2   true
+     *
+     *   to:
+     *
+     *      And1
+     *     /    \
+     * node1    And2
+     *         /   \
+     *      node2   And3
+     *             /   \
+     *          node3  true
+     *
+     * ... and we return And1 to be used as the new parent node.
+     */
+    public AndNode linkAndNodes(AndNode left, AndNode right) throws StandardException {
+        ValueNode rightOperandOfLeft = left.getRightOperand();
+        AndNode lastAnd = findLastAndInChain(rightOperandOfLeft, left);
+        if (isBooleanTrue(lastAnd.getRightOperand())) {
+            lastAnd.setRightOperand(right);
+        }
+        else {
+            AndNode newAnd = newAndNode(lastAnd.getRightOperand(), true);
+            lastAnd.setRightOperand(newAnd);
+            newAnd.setRightOperand(right);
+        }
+        return left;
+    }
+
+    public AndNode normalize(boolean linkAnds) throws StandardException {
+
+        while(getLeftOperand() instanceof AndNode){
+            if ((getRightOperand() instanceof AndNode) && linkAnds) {
+                AndNode left = (AndNode)getLeftOperand();
+                AndNode right = (AndNode)getRightOperand();
+                return linkAndNodes(left, right);
+            }
+            else {
+                /* If leftOperand is an AndNode, then we modify the tree from:
+                 *
+                 *                this
+                 *               /    \
+                 *            And2    Nodex
+                 *           /    \        ...
+                 *        left2    right2
+                 *
+                 *    to:
+                 *
+                 *                        this
+                 *                       /    \
+                 *    left2.changeToCNF()         And2
+                 *                            /    \
+                 *        right2.changeToCNF()      Nodex.changeToCNF()
+                 *
+                 *    NOTE: We could easily switch places between left2.changeToCNF() and
+                 *  right2.changeToCNF().
+                 *
+                 */
+                /* Pull up the AndNode chain to our left */
+                /* For "clarity", we first get the new and old operands */
+                ValueNode newLeft = ((AndNode) getLeftOperand()).getLeftOperand();
+                AndNode oldLeft = (AndNode) getLeftOperand();
+                AndNode newRight = (AndNode) getLeftOperand();
+                ValueNode oldRight = getRightOperand();
+
+                /* We then twiddle the tree to match the above diagram */
+                setLeftOperand(newLeft);
+                setRightOperand(newRight);
+                newRight.setLeftOperand(oldLeft.getRightOperand());
+                newRight.setRightOperand(oldRight);
+                if (linkAnds)
+                    return this;
+            }
+        }
         return this;
+    }
+
+    private AndNode findLastAndInChain(ValueNode rightOperand, AndNode parent) {
+        if (!(rightOperand instanceof AndNode))
+            return parent;
+        else {
+            AndNode andNode = (AndNode) rightOperand;
+            return findLastAndInChain(andNode.getRightOperand(), andNode);
+        }
+    }
+
+    private boolean isBooleanTrue(ValueNode node) {
+        if (node instanceof BooleanConstantNode) {
+            BooleanConstantNode bcn = (BooleanConstantNode) node;
+            return bcn.isBooleanTrue();
+        }
+        return false;
     }
 
     /**
      * Verify that changeToCNF() did its job correctly.  Verify that:
      * o  AndNode  - rightOperand is not instanceof OrNode
      * leftOperand is not instanceof AndNode
-     * o  OrNode	- rightOperand is not instanceof AndNode
+     * o  OrNode    - rightOperand is not instanceof AndNode
      * leftOperand is not instanceof OrNode
      *
      * @return Boolean which reflects validity of the tree.
@@ -305,7 +383,7 @@ public class AndNode extends BinaryLogicalOperatorNode{
      *
      * @throws StandardException Thrown on error
      */
-    void postBindFixup() throws StandardException{
+    public void postBindFixup() throws StandardException{
         setType(resolveLogicalBinaryOperator(getLeftOperand().getTypeServices(),getRightOperand().getTypeServices()));
     }
 
@@ -325,5 +403,60 @@ public class AndNode extends BinaryLogicalOperatorNode{
             return inListOp1.isEquivalent(inListOp2);
         }
         return false;
+    }
+
+    public static AndNode newAndNode(ValueNode left, boolean doPostBindFixup) throws StandardException {
+        ValueNode trueNode=(ValueNode)left.getNodeFactory().getNode(
+                C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+                Boolean.TRUE,
+                left.getContextManager());
+        AndNode    andNode;
+        andNode = (AndNode) left.getNodeFactory().getNode(
+                                                    C_NodeTypes.AND_NODE,
+                                                    left,
+                                                    trueNode,
+                                                    left.getContextManager());
+        if (doPostBindFixup)
+            andNode.postBindFixup();
+        return andNode;
+    }
+
+    @Override
+    public boolean isCloneable()
+    {
+        return true;
+    }
+
+    @Override
+    public ValueNode getClone() throws StandardException
+    {
+        ValueNode left = getLeftOperand();
+        ValueNode right = getRightOperand();
+        AndNode    andNode;
+        andNode = (AndNode) left.getNodeFactory().getNode(
+                                                    C_NodeTypes.AND_NODE,
+                                                    left,
+                                                    right,
+                                                    left.getContextManager());
+        andNode.postBindFixup();
+        return andNode;
+    }
+
+    public AndNode shallowCloneANDChain() throws StandardException {
+        ValueNode node = this;
+        AndNode nextAndNode, currentAnd = null;
+        AndNode firstNode = null;
+        while (node instanceof AndNode) {
+            AndNode andNode = (AndNode) node;
+            nextAndNode = newAndNode(andNode.getLeftOperand(), true);
+            if (firstNode == null)
+                firstNode = nextAndNode;
+            else
+                currentAnd.setRightOperand(nextAndNode);
+
+            currentAnd = nextAndNode;
+            node = andNode.getRightOperand();
+        }
+        return firstNode;
     }
 }

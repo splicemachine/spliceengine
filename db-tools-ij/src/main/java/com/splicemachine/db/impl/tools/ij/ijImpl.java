@@ -2,6 +2,7 @@ package com.splicemachine.db.impl.tools.ij;
 
 import com.splicemachine.db.iapi.tools.i18n.LocalizedOutput;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
+import com.splicemachine.db.shared.common.sql.Utils;
 import com.splicemachine.db.tools.JDBCDisplayUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -24,6 +25,7 @@ public class ijImpl extends ijCommands {
     static final String DOUBLEQUOTES = "\"\"";
 
     boolean elapsedTime = true;
+    boolean showProgressBar = false;
 
     String urlCheck = null;
 
@@ -40,18 +42,31 @@ public class ijImpl extends ijCommands {
     Statement currentStatement = null;
     Object currentStatementLock = new Object();
 
-    public void cancelCurrentStatement(LocalizedOutput out) {
+    public boolean
+    cancelCurrentStatement(LocalizedOutput out) {
         synchronized (currentStatementLock) {
             try {
                 if(currentStatement != null)
                 {
                     out.println("\nCTRL+C -> Canceling Statement...\n");
                     currentStatement.cancel();
+                    return true;
+                }
+                else {
+                    return false;
                 }
             } catch (Exception e) {
                 out.println("Error Canceling Statement: " + e.toString());
+                return false;
             }
         }
+    }
+
+    public String getProgress(String command) throws SQLException {
+        com.splicemachine.db.shared.common.sql.Utils.ProgressInterface p;
+        p = ((com.splicemachine.db.shared.common.sql.Utils.ProgressInterface) currentStatement);
+        if (p == null) return "";
+        return p.getProgress();
     }
 
     ijImpl() {}
@@ -473,5 +488,68 @@ public class ijImpl extends ijCommands {
 
         return identifier;
     }
+
+    public ijResult connect(boolean simplifiedPath, String protocolIn,
+                            String userS, String passwordS, String connectionStr, String name) throws SQLException {
+        String sVal;
+        Properties connInfo = new Properties();
+
+        //If ij.dataSource property is set,use DataSource to get the connection
+        String dsName = util.getSystemProperty("ij.dataSource");
+        if (dsName != null){
+            //Check that t.image does not start with jdbc:
+            //If it starts with jdbc:, do not use DataSource to get connection
+            sVal = connectionStr;
+            if(!sVal.startsWith("jdbc:") ){
+                theConnection = util.getDataSourceConnection(dsName,userS,passwordS,sVal,false);
+                return addSession( theConnection, name );
+            }
+        }
+
+        if (simplifiedPath)
+            // url for the database W/O 'jdbc:protocol:', i.e. just a dbname
+            // For example,
+            //  CONNECT TO 'test'
+            // is equivalent to
+            //   CONNECT TO 'jdbc:splice:test'
+            sVal = "jdbc:splice:" + connectionStr;
+        else
+            sVal = connectionStr;
+
+        // add named protocol if it was specified
+        if (protocolIn != null) {
+            String protocol = (String)namedProtocols.get(protocolIn);
+            if (protocol == null) { throw ijException.noSuchProtocol(protocolIn); }
+            sVal = protocol + sVal;
+        }
+
+        // add protocol if no driver matches url
+        boolean noDriver = false;
+        // if we have a full URL, make sure it's loaded first
+        try {
+            if (sVal.startsWith("jdbc:"))
+                util.loadDriverIfKnown(sVal);
+        } catch (Exception e) {
+            // want to continue with the attempt
+        }
+        // By default perform extra checking on the URL attributes.
+        // This checking does not change the processing.
+        if (urlCheck == null || Boolean.valueOf(urlCheck).booleanValue()) {
+            URLCheck aCheck = new URLCheck(sVal);
+        }
+        if (!sVal.startsWith("jdbc:") && (protocolIn == null) && (protocol != null)) {
+            sVal = protocol + sVal;
+        }
+
+
+        // If no ATTRIBUTES on the connection get them from the
+        // defaults
+        connInfo = util.updateConnInfo(userS,passwordS, connInfo);
+
+
+        theConnection = DriverManager.getConnection(sVal,connInfo);
+        return addSession( theConnection, name );
+    }
+
 
 }

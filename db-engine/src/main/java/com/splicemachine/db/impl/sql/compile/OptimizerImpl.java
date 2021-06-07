@@ -200,6 +200,7 @@ public class OptimizerImpl implements Optimizer{
     boolean foundCompleteJoinPlan = false;
 
     private CostModel costModel;
+    private PredicateList nonPushablePredicateList;
 
     private ResultSetNode outerTableOfJoin;
 
@@ -284,6 +285,8 @@ public class OptimizerImpl implements Optimizer{
         this.bestRowOrdering=newRowOrdering();
 
         this.costModel = costModel;
+        // create empty list of non-pushable predicates.
+        this.nonPushablePredicateList = new PredicateList();
     }
 
     @Override
@@ -898,6 +901,30 @@ public class OptimizerImpl implements Optimizer{
                 }
             }
 
+            // If we want to re-use this Optimizable without re-planning it, return now.
+            // This is the case where nextOptimizable uses a Unioned Index Scans access path,
+            // and it is being joined with another table which itself might use a UIS access path.
+            // We want to set the join cost estimate to an uninitialized state and set assignedTableMap
+            // to include the proper tables, but we don't want to push any new predicates to this
+            // table because it has already been materialized into a sequence of statements that
+            // can't be modified.
+            ResultSetNode optimizableResultSet = (ResultSetNode) optimizableList.getOptimizable(nextOptimizable);
+            if (optimizableResultSet.skipBindAndOptimize) {
+                if (optimizableResultSet instanceof FromTable) {
+                    FromTable fromTable = (FromTable)optimizableResultSet;
+                    AccessPath bestAP = fromTable.getBestAccessPath();
+                    fromTable.startOptimizing(this,currentRowOrdering);
+                    if (nextOptimizable == proposedJoinOrder[0] )
+                        bestAP.setCostEstimate(fromTable.getTrulyTheBestAccessPath().getCostEstimate());
+                    AccessPath currentAP = fromTable.getCurrentAccessPath();
+                    CostEstimate costEstimate=fromTable.getCostEstimate(this);
+                    costEstimate.setCost(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE);
+                    currentAP.setCostEstimate(costEstimate);
+                }
+                assignedTableMap.or(optimizableResultSet.getReferencedTableMap());
+                return true;
+            }
+
             /* Re-init (clear out) the cost for the best access path
              * when placing a table.
              */
@@ -1090,9 +1117,12 @@ public class OptimizerImpl implements Optimizer{
                 *  our best if the previous best join permutation was not
                 *  a hinted join.
                 */
-                if((!foundABestPlan) || (currentCost.compare(bestCost)<0) || bestCost.isUninitialized() ||
+                if(!currentCost.isUninitialized() &&
+                   ((!foundABestPlan) || (currentCost.compare(bestCost)<0) ||
+                   (bestCost.isUninitialized() ||
                     (curOpt.getCurrentAccessPath().getJoinStrategy() == null &&
-                     !optimizableList.getOptimizable(bestCostOptimizableNumber).getTrulyTheBestAccessPath().isHintedJoinStrategy())){
+                     !optimizableList.getOptimizable(bestCostOptimizableNumber).
+                              getTrulyTheBestAccessPath().isHintedJoinStrategy())))){
                     rememberBestCost(currentCost, Optimizer.NORMAL_PLAN, proposedJoinOrder[joinPosition]);
 
                     // Since we just remembered all of the best plans,
@@ -1536,6 +1566,7 @@ public class OptimizerImpl implements Optimizer{
     @Override
     public int getLevel(){ return 1; }
 
+    @Override
     public CostEstimate getNewCostEstimate(double theCost, double theRowCount, double theSingleScanRowCount){
         return new CostEstimateImpl(theCost,theRowCount,theSingleScanRowCount);
     }
@@ -2459,7 +2490,7 @@ public class OptimizerImpl implements Optimizer{
                 bestAp.setLockMode(currentAccessPath.getLockMode());
                 bestAp.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
                 bestAp.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
-
+                bestAp.setUisFields(currentAccessPath);
                 optimizable.rememberJoinStrategyAsBest(bestAp);
             }
 
@@ -2479,7 +2510,7 @@ public class OptimizerImpl implements Optimizer{
             bestAp.setLockMode(currentAccessPath.getLockMode());
             bestAp.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
             bestAp.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
-
+            bestAp.setUisFields(currentAccessPath);
             optimizable.rememberJoinStrategyAsBest(bestAp);
             return;
         }
@@ -2496,7 +2527,7 @@ public class OptimizerImpl implements Optimizer{
             bestAp.setLockMode(currentAccessPath.getLockMode());
             bestAp.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
             bestAp.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
-
+            bestAp.setUisFields(currentAccessPath);
             optimizable.rememberJoinStrategyAsBest(bestAp);
 
             /*
@@ -2527,7 +2558,7 @@ public class OptimizerImpl implements Optimizer{
             bestAp.setLockMode(currentAccessPath.getLockMode());
             bestAp.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
             bestAp.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
-
+            bestAp.setUisFields(currentAccessPath);
             optimizable.rememberJoinStrategyAsBest(bestAp);
         }
 
@@ -2570,6 +2601,7 @@ public class OptimizerImpl implements Optimizer{
                 ap.setSpecialMaxScan(currentAccessPath.getSpecialMaxScan());
                 ap.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
                 ap.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
+                ap.setUisFields(currentAccessPath);
 
             /*
             ** It's a non-matching index scan either if there is no
@@ -2617,6 +2649,7 @@ public class OptimizerImpl implements Optimizer{
                             ap.setSpecialMaxScan(currentAccessPath.getSpecialMaxScan());
                             ap.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
                             ap.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
+                            ap.setUisFields(currentAccessPath);
 
                         /*
                         ** It's a non-matching index scan either if there is no
@@ -2865,5 +2898,44 @@ public class OptimizerImpl implements Optimizer{
         int propJoinOrder = proposedJoinOrder[joinPosition-1];
         ResultSetNode thisOpt = (ResultSetNode)optimizableList.getOptimizable(propJoinOrder);
         return thisOpt;
+    }
+
+    public OptimizablePredicateList getPredicateList() {
+        return predicateList;
+    }
+
+    @Override
+    public FromBaseTable getOuterBaseTable() throws StandardException {
+       FromTable outerTable = (FromTable) getOuterTable();
+       if (outerTable == null)
+           return null;
+
+       // Traverse to the named table.  A FromTable is expected
+       // to be named in order to do proper binding.
+       while (outerTable instanceof SingleChildResultSetNode) {
+           if (outerTable.getTableName() != null)
+               break;
+
+           SingleChildResultSetNode resultSetNode = (SingleChildResultSetNode) outerTable;
+           outerTable = (FromTable)resultSetNode.getChildResult();
+       }
+       FromBaseTable outerBaseTable = null;
+       if (outerTable instanceof FromBaseTable) {
+           outerBaseTable = (FromBaseTable) outerTable;
+       }
+       return outerBaseTable;
+    }
+
+
+    @Override
+    public void setNonPushablePredicates(PredicateList predicateList) {
+        if(predicateList != null) {
+            this.nonPushablePredicateList = predicateList;
+        }
+    }
+
+    @Override
+    public PredicateList getNonPushablePredicates() {
+        return nonPushablePredicateList;
     }
 }

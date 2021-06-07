@@ -167,48 +167,67 @@ public class ExportOperation extends SpliceBaseOperation {
         OperationContext<ExportOperation> operationContext = dsp.createOperationContext(this);
         dsp.prependSpliceExplainString(this.explainPlan);
         if (!dsp.isSparkExplain()) {
-            switch (exportParams.getFormat()) {
-                case "csv": {
-                    DataSetWriter writer = dataset.writeToDisk()
-                    .directory(exportParams.getDirectory())
-                    .exportFunction(new ExportFunction(operationContext))
-                    .build();
-                    if (LOG.isTraceEnabled())
-                        SpliceLogUtils.trace(LOG, "getDataSet(): writing");
-                    operationContext.pushScope();
-                    try {
-                        DataSet<ExecRow> resultDs = writer.write();
-                        if (LOG.isTraceEnabled())
-                            SpliceLogUtils.trace(LOG, "getDataSet(): done");
-                        return resultDs;
-                    } finally {
-                        operationContext.popScope();
-                    }
-                }
-                case "parquet": {
-                    OperationContext<?> writeContext = dsp.createOperationContext(this);
-                    long start = System.currentTimeMillis();
-                    String compression = null;
-                    if (exportParams.getCompression() == ExportFile.COMPRESSION.SNAPPY) {
-                        compression = "snappy";
-                    } else if (exportParams.getCompression() == ExportFile.COMPRESSION.NONE) {
-                        compression = "none";
-                    }
-
-                    dataset.writeParquetFile(dsp, new int[]{}, exportParams.getDirectory(), compression, writeContext);
-                    long end = System.currentTimeMillis();
-                    ValueRow vr = new ValueRow(2);
-                    vr.setColumn(1, new SQLLongint(writeContext.getRecordsWritten()));
-                    vr.setColumn(2, new SQLLongint(end - start));
-                    return dsp.singleRowDataSet(vr);
-
-                }
-                default:
-                    throw new RuntimeException("Unknown export format: " + exportParams.getFormat());
+            String format = exportParams.getFormat();
+            if(format.equalsIgnoreCase("csv")) {
+                return writeCsv(dataset, operationContext);
+            }
+            else {
+                return writeFileX(dsp, dataset, format);
             }
         }
         else
             return dataset;
+    }
+
+    private DataSet<ExecRow> writeFileX(DataSetProcessor dsp, DataSet<ExecRow> dataset,
+                                          String extension) throws StandardException
+    {
+        OperationContext<?> writeContext = dsp.createOperationContext(this);
+        long start = System.currentTimeMillis();
+        String compression = null;
+        if (exportParams.getCompression() == ExportFile.COMPRESSION.SNAPPY) {
+            compression = "snappy";
+        } else if (exportParams.getCompression() == ExportFile.COMPRESSION.NONE) {
+            compression = "none";
+        }
+
+        if(extension.equalsIgnoreCase("parquet")) {
+            dataset.writeParquetFile(new int[]{}, exportParams.getDirectory(),
+                    compression, writeContext);
+        }
+        else if(extension.equalsIgnoreCase("orc")) {
+            dataset.writeORCFile(new int[]{}, exportParams.getDirectory(),
+                    compression, writeContext);
+        }
+        else {
+            throw new RuntimeException("Unsupported export format " + extension);
+        }
+
+        long end = System.currentTimeMillis();
+        ValueRow vr = new ValueRow(2);
+        vr.setColumn(1, new SQLLongint(writeContext.getRecordsWritten()));
+        vr.setColumn(2, new SQLLongint(end - start));
+        return dsp.singleRowDataSet(vr);
+    }
+
+    private DataSet<ExecRow> writeCsv(DataSet<ExecRow> dataset,
+                                      OperationContext<ExportOperation> operationContext) throws StandardException
+    {
+        DataSetWriter writer = dataset.writeToDisk()
+            .directory(exportParams.getDirectory())
+            .exportFunction(new ExportFunction(operationContext))
+            .build();
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "getDataSet(): writing");
+        operationContext.pushScope();
+        try {
+            DataSet<ExecRow> resultDs = writer.write();
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "getDataSet(): done");
+            return resultDs;
+        } finally {
+            operationContext.popScope();
+        }
     }
 
     @Override

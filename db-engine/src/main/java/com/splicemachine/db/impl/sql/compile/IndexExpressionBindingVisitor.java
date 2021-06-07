@@ -38,7 +38,7 @@ import java.util.ArrayList;
 
 /**
  * Bind an index expression.
- * 
+ *
  */
 public class IndexExpressionBindingVisitor implements Visitor
 {
@@ -53,7 +53,7 @@ public class IndexExpressionBindingVisitor implements Visitor
         fromList = (FromList) nf.getNode(
                 C_NodeTypes.FROM_LIST,
                 nf.doJoinOrderOptimization(),
-                this.optTable,
+                this.optTable, // this should be a FromTable (see DB-12184)
                 lcc.getContextManager());
         subqList = new SubqueryList();
         aggrList = new ArrayList<AggregateNode>() {};
@@ -74,12 +74,12 @@ public class IndexExpressionBindingVisitor implements Visitor
         return node;
     }
 
-    public boolean stopTraversal() 
+    public boolean stopTraversal()
     {
         return false;
     }
 
-    public boolean skipChildren(Visitable node) 
+    public boolean skipChildren(Visitable node)
     {
         return false;
     }

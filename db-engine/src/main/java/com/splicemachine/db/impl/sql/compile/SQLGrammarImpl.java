@@ -20,6 +20,8 @@ import com.splicemachine.db.iapi.util.StringUtil;
 import org.python.antlr.op.Param;
 
 import java.sql.Types;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
 
@@ -522,9 +524,7 @@ class SQLGrammarImpl {
                                        Properties targetProperties, Vector parameterList)
             throws StandardException
     {
-        FromList   fromList = (FromList) nodeFactory.getNode(
-                C_NodeTypes.FROM_LIST,
-                getContextManager());
+        FromList fromList = new FromList(getContextManager());
 
         fromList.addFromTable(fromTable);
         SelectNode resultSet = new SelectNode(
@@ -554,9 +554,7 @@ class SQLGrammarImpl {
                                         ValueNode whereClause)
             throws StandardException
     {
-        FromList   fromList = (FromList) nodeFactory.getNode(
-                C_NodeTypes.FROM_LIST,
-                getContextManager());
+        FromList fromList = new FromList(getContextManager());
 
         fromList.addFromTable(fromTable);
 
@@ -587,9 +585,7 @@ class SQLGrammarImpl {
                                        ValueNode subQuery) /* inner source subquery for multi column syntax */
             throws StandardException
     {
-        FromList fromList = (FromList) nodeFactory.getNode(
-                C_NodeTypes.FROM_LIST,
-                getContextManager());
+        FromList fromList = new FromList(getContextManager());
         fromList.addFromTable(fromTable);
 
         // Don't flatten the subquery here but build it as a derived table. If we
@@ -598,6 +594,10 @@ class SQLGrammarImpl {
         // even more hacky code.
         // The derived table flattening logic in preprocess will be triggered to
         // flatten the subquery.
+        if (!(subQuery instanceof SubqueryNode)) {
+            throw StandardException.newException(SQLState.LANG_INVALID_UPDATE_STATEMENT,
+                                                 "Expecting RHS to be a subquery when LHS of set clause is a tuple");
+        }
         SubqueryNode subq = (SubqueryNode) subQuery;
         FromTable fromSubq = (FromTable) nodeFactory.getNode(
                 C_NodeTypes.FROM_SUBQUERY,
@@ -661,11 +661,8 @@ class SQLGrammarImpl {
                 innerResultColumn.setName(innerColumnName);
                 innerResultColumn.setNameGenerated(true);
             }
-            ValueNode colRef = (ValueNode) getNodeFactory().getNode(
-                    C_NodeTypes.COLUMN_REFERENCE,
-                    innerColumnName,
-                    ((FromTable)fromList.getNodes().get(1)).getTableName(),
-                    getContextManager());
+            ValueNode colRef = new ColumnReference(innerColumnName,
+                    ((FromTable)fromList.getNodes().get(1)).getTableName(), getContextManager());
             rc.setExpression(colRef);
         }
 
@@ -692,9 +689,7 @@ class SQLGrammarImpl {
     }
 
     SubqueryNode assembleUpdateSubquery(ResultColumnList setClause, FromList fromList) throws StandardException {
-        ResultColumnList innerRCL = (ResultColumnList) nodeFactory.getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        ResultColumnList innerRCL = new ResultColumnList(getContextManager());
 
         boolean generateName;
         for (int index = 0; index < setClause.size(); index++) {
@@ -1334,5 +1329,61 @@ class SQLGrammarImpl {
         ((CastNode) value).setForExternallyGeneratedCASTnode();
         ((CastNode) value).setForNullsInConditionalNode();
         return value;
+    }
+
+    void
+    validateParameters(boolean isExternal, String storageFormat, ValueNode terminationChar, ValueNode escapedByChar,
+                       ValueNode linesTerminatedByChar, ValueNode location, String compression,
+                       ResultColumnList partitionedResultColumns, TableElementList tableElementList)
+            throws StandardException
+    {
+        {
+            if (isExternal && partitionedResultColumns != null){
+                List<String> columnsPartitions = Arrays.asList(partitionedResultColumns.getColumnNames());
+
+                for(String columnPartititon : columnsPartitions){
+                    ColumnDefinitionNode definition = tableElementList.findColumnDefinition(columnPartititon);
+                    if(definition ==  null){
+                        throw StandardException.newException(SQLState.EXTERNAL_TABLES_PARTITIONS_REQUIRED, columnPartititon);
+                    }
+                }
+            }
+
+            if (isExternal && storageFormat == null)
+                throw StandardException.newException(
+                        SQLState.STORED_AS_REQUIRED_WITH_EXTERNAL_TABLES);
+            if (isExternal && location == null)
+                throw StandardException.newException(
+                        SQLState.LOCATION_REQUIRED_WITH_EXTERNAL_TABLES);
+
+            //COMPRESSION ERROR WITH TEXT
+            if(compression != "none" && storageFormat.equals("T")){
+                throw StandardException.newException(SQLState.COMPRESSION_NOT_ALLOWED_WITH_TEXT_FILE);
+            }
+
+            // PARQUET ERRORS
+            if (storageFormat != null && storageFormat.equals("P")) {
+                if (terminationChar !=null || escapedByChar !=null || linesTerminatedByChar != null)
+                    throw StandardException.newException(
+                            SQLState.ROW_FORMAT_NOT_ALLOWED_WITH_PARQUET);
+            }
+            // AVRO ERRORS
+            if (storageFormat != null && storageFormat.equals("A")) {
+                if (terminationChar !=null || escapedByChar !=null || linesTerminatedByChar != null)
+                    throw StandardException.newException(
+                            SQLState.ROW_FORMAT_NOT_ALLOWED_WITH_AVRO);
+            }
+            // ORC Errors
+            if (storageFormat != null && storageFormat.equals("O")) {
+                if (terminationChar !=null || escapedByChar !=null || linesTerminatedByChar != null)
+                    throw StandardException.newException(
+                            SQLState.ROW_FORMAT_NOT_ALLOWED_WITH_ORC);
+            }
+            // STORAGE OR LOCATION WITHOUT EXTERNAL
+            if ( (storageFormat != null || location !=null) && !isExternal)
+                throw StandardException.newException(
+                        SQLState.STORED_AS_OR_LOCATION_WITHOUT_EXTERNAL);
+
+        }
     }
 }

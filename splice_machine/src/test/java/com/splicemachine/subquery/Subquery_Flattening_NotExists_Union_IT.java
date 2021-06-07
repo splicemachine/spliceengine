@@ -141,6 +141,53 @@ public class Subquery_Flattening_NotExists_Union_IT {
     }
 
     @Test
+    public void union_correlated_inequality() throws Exception {
+        // union of empty tables
+        String sql = "select * from A where NOT exists(select 1 from EMPTY_TABLE where e1<=a1 union select 1 from EMPTY_TABLE where e1<=a1)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
+
+        // union of empty tables - each subquery selects different columns
+        sql = "select * from A where NOT exists(select e1 from EMPTY_TABLE where e1<=a1 union select e2 from EMPTY_TABLE where e1<=a1)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
+
+        // union of empty tables - each subquery selects multiple different columns
+        sql = "select * from A where NOT exists(select e1,e2 from EMPTY_TABLE where e1<=a1 union select e3,e4 from EMPTY_TABLE where e1<=a1)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
+
+        // union one non-empty first subquery
+        sql = "select * from A where NOT exists(select 1 from C where c1>=a1 union select 1 from EMPTY_TABLE where e1>=a1)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
+                "A1  | A2  |\n" +
+                "------------\n" +
+                " 12  | 120 |\n" +
+                " 12  | 120 |\n" +
+                " 13  |  0  |\n" +
+                " 13  |  1  |\n" +
+                "NULL |NULL |");
+
+        // union one non-empty second subquery
+        sql = "select * from A where NOT exists(select 1 from EMPTY_TABLE where e1>=a1 union select 1 from C where c1>=a1)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
+                "A1  | A2  |\n" +
+                "------------\n" +
+                " 12  | 120 |\n" +
+                " 12  | 120 |\n" +
+                " 13  |  0  |\n" +
+                " 13  |  1  |\n" +
+                "NULL |NULL |");
+
+        // union no non-empty
+        sql = "select * from A where NOT exists(select 1 from D where d1>=a1 union select 1 from C where c1>=a1)";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
+                "A1  | A2  |\n" +
+                "------------\n" +
+                " 13  |  0  |\n" +
+                " 13  |  1  |\n" +
+                "NULL |NULL |");
+
+    }
+
+    @Test
     public void union_correlated_lotsOfSubqueryPredicates() throws Exception {
         // union no non-empty
         String sql = "select * from A where NOT exists(" + "" +
@@ -220,6 +267,18 @@ public class Subquery_Flattening_NotExists_Union_IT {
                 "  9  | 90  |\n" +
                 "NULL |NULL |\n" +
                 "NULL |NULL |");
+
+        // Inequality
+        sql = "select * from B where NOT exists(" +
+                "select * from (select c1 r from C union select d1 r from D) foo where foo.r>=b1+3" +
+                ")";
+        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "" +
+                "B1  | B2  |\n" +
+                "------------\n" +
+                " 11  | 110 |\n" +
+                " 11  | 110 |\n" +
+                "NULL |NULL |\n" +
+                "NULL |NULL |");
     }
 
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -253,6 +312,27 @@ public class Subquery_Flattening_NotExists_Union_IT {
                 "  6  | 60  |\n" +
                 "  7  | 70  |\n" +
                 "NULL |NULL |");
+        // Inequality joins
+        // same table in each union select
+        sql = "select * from A where NOT exists(select 1 from D where d1>=a1+6 union select 1 from D where d2>=a2+4)";
+        assertUnorderedResult(conn(), sql, ONE_SUBQUERY_NODE, "" +
+                "A1  | A2  |\n" +
+                  "------------\n" +
+                  " 12  | 120 |\n" +
+                  " 12  | 120 |\n" +
+                  "NULL |NULL |");
+
+        // different table in each union select
+        sql = "select * from A where NOT exists(select 1 from C where c1>=a1+6 union select 1 from D where d1>=a2+4)";
+        assertUnorderedResult(conn(), sql, ONE_SUBQUERY_NODE, "" +
+                "A1  | A2  |\n" +
+                  "------------\n" +
+                  " 11  | 110 |\n" +
+                  " 12  | 120 |\n" +
+                  " 12  | 120 |\n" +
+                  "  6  | 60  |\n" +
+                  "  7  | 70  |\n" +
+                  "NULL |NULL |");
     }
 
 

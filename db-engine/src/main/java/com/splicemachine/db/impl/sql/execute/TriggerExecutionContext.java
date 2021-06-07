@@ -289,7 +289,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         // statements in a trigger's action statement is disallowed by the
         // parser. However, this runtime check is needed to prevent execution
         // of DDL statements by procedures within a trigger context.
-        if (constantAction instanceof DDLConstantAction) {
+        if (constantAction.isDdlAction()) {
             throw StandardException.newException(SQLState.LANG_NO_DDL_IN_TRIGGER, triggerd.getName(), constantAction.toString());
         }
 
@@ -761,6 +761,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         if (triggeringResultSet != null)
         {
             triggeringResultSet.close();
+            triggeringResultSet = null;
         }
     }
 
@@ -788,13 +789,14 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         return hasGeneratedColumn;
     }
 
-    public boolean needsTemporaryConglomerate() {
-        // TODO:  Can we detect when a DML statement and associated
-        //        triggers needs no temporary conglomerate?
-        //        The persisted Dataset may not always be accessible,
-        //        for example in a nested loop join iterator,
-        //        so currently we still need it.
-        return true;
-        //return hasGeneratedColumn || !fromSparkExecution;
+    public boolean needsTemporaryConglomerate(boolean nestedTrigger) {
+        // The following cases do not function properly using an in-memory Spark Dataset
+        // to hold the trigger rows.  Return true so we still use a temporary conglomerate
+        // for these cases.
+        return nestedTrigger || hasSpecialFromTableTrigger() || hasGeneratedColumn || !fromSparkExecution;
+    }
+
+    public boolean isFromSparkExecution() {
+        return fromSparkExecution;
     }
 }

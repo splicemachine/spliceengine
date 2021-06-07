@@ -73,7 +73,7 @@ public class HashTableNode extends SingleChildResultSetNode
 	 * @param searchPredicateList	Single table clauses
 	 * @param joinPredicateList		Multi table clauses
 	 * @param accessPath			The access path
-	 * @param costEstimate			The cost estimate
+	 * @param costEstimate			The cost estimateuisRowIdJoinBackToBaseTableResultSet
 	 * @param pSubqueryList			List of subqueries in RCL
 	 * @param rSubqueryList			List of subqueries in Predicate lists
 	 * @param hashKeyColumns		Hash key columns

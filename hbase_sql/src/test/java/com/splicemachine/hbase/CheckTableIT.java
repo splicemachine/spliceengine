@@ -210,6 +210,16 @@ public class CheckTableIT extends SpliceUnitTest {
                     .withCreate("create table T9863(i int)")
                     .withIndex("create unique index I9863 on T9863(I)")
                     .create();
+
+        new TableCreator(conn)
+                .withCreate("create table \"t\"(i int)")
+                .withIndex("create unique index ti on \"t\"(I)")
+                .withInsert("insert into \"t\"(i) values(?)")
+                .withRows(rows(
+                        row(1),
+                        row(2),
+                        row(3)))
+                .create();
     }
 
     @AfterClass
@@ -536,15 +546,25 @@ public class CheckTableIT extends SpliceUnitTest {
     @Test
     public void testForeignKeyUniqueIndex() throws Exception {
         spliceClassWatcher.execute("alter table I add CONSTRAINT fc FOREIGN KEY(j) REFERENCES H(i) ON UPDATE NO ACTION ON DELETE restrict");
-        ResultSet rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, I, getResourceDirectory(), I));
-        rs.next();
-        String s = rs.getString(1);
-        Assert.assertEquals(s, s, "No inconsistencies were found.");
+        String sql = String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, I, getResourceDirectory(), I);
+        try  (ResultSet rs = spliceClassWatcher.executeQuery(sql)) {
+            rs.next();
+            String s = rs.getString(1);
+            Assert.assertEquals(s, s, "No inconsistencies were found.");
+        }
+    }
+
+    @Test
+    public void testLowerCaseTable() throws Exception {
+        String sql = String.format("call syscs_util.check_table('%s', '\"t\"', null, 1, '%s/check-%s2.out')", SCHEMA_NAME, getResourceDirectory(), I);
+        try (ResultSet rs = spliceClassWatcher.executeQuery(sql)) {
+            rs.next();
+            String s = rs.getString(1);
+            Assert.assertEquals(s, s, "No inconsistencies were found.");
+        }
     }
     @Test
     public void negativeTests() throws Exception {
-
-
         try {
             spliceClassWatcher.execute(String.format("call syscs_util.check_table('%s', '%s', null, 1, null)", SCHEMA_NAME, A, getResourceDirectory(), A));
             fail("Should fail!");

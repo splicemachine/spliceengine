@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
@@ -143,6 +144,29 @@ public class ResultColumn extends ValueNode
     /* whether this result column comes from an expression-based index column */
     private ValueNode indexExpression = null;
 
+    public ResultColumn() {}
+    public ResultColumn(String rowLocationColumnName, CurrentRowLocationNode rowLocationNode,
+                        ContextManager contextManager) throws StandardException {
+        super(contextManager);
+        setNodeType(C_NodeTypes.RESULT_COLUMN);
+        init(rowLocationColumnName, rowLocationNode);
+    }
+
+    public ResultColumn(ColumnReference cr,
+                        ValueNode expression,
+                        ContextManager cm) {
+        super(cm);
+        setNodeType(C_NodeTypes.RESULT_COLUMN);
+        initFromColumnReference(expression, cr);
+    }
+
+    public ResultColumn(String columnName, ValueNode expression, ContextManager contextManager) {
+        super(contextManager);
+        setNodeType(C_NodeTypes.RESULT_COLUMN);
+        this.name = this.exposedName = columnName;
+        setExpression(expression);
+    }
+
     /**
      * Different types of initializer parameters indicate different
      * types of initialization. Parameters may be:
@@ -193,15 +217,7 @@ public class ResultColumn extends ValueNode
         else if (arg1 instanceof ColumnReference)
         {
             ColumnReference ref = (ColumnReference) arg1;
-
-            this.name = ref.getColumnName();
-            this.exposedName = ref.getColumnName();
-            /*
-                when we bind, we'll want to make sure
-                the reference has the right table name.
-             */
-            this.reference = ref;
-            setExpression( (ValueNode) arg2 );
+            initFromColumnReference( (ValueNode) arg2, ref);
         }
         else if (arg1 instanceof ColumnDescriptor)
         {
@@ -230,6 +246,18 @@ public class ResultColumn extends ValueNode
         if (expression != null &&
                 expression.isInstanceOf(C_NodeTypes.DEFAULT_NODE))
             defaultColumn = true;
+
+    }
+
+    private void initFromColumnReference(ValueNode valueNode, ColumnReference columnReference) {
+        this.name = columnReference.getColumnName();
+        this.exposedName = columnReference.getColumnName();
+        /*
+            when we bind, we'll want to make sure
+            the reference has the right table name.
+         */
+        this.reference = columnReference;
+        setExpression(valueNode);
     }
 
     /**
@@ -2180,12 +2208,8 @@ public class ResultColumn extends ValueNode
      * @return A column reference referring to this ResultColumn.
      */
     public ColumnReference getColumnReference(ValueNode originalExpr) throws StandardException {
-        ColumnReference cr = (ColumnReference) getNodeFactory().getNode(
-                C_NodeTypes.COLUMN_REFERENCE,
-                getColumnName(),
-                getTableNameObject(),
-                getContextManager()
-        );
+        ColumnReference cr = new ColumnReference(getColumnName(), getTableNameObject(),
+                getContextManager());
         cr.setSource(this);
         if (getTableNumber() >= 0) {
             cr.setTableNumber(getTableNumber());
@@ -2222,6 +2246,25 @@ public class ResultColumn extends ValueNode
             }
         }
         return this;
+    }
+
+    private static boolean immutableVirtualColumn(ResultColumn rc) {
+        if (rc == null)
+            return false;
+        if (rc.getExpression() instanceof VirtualColumnNode) {
+            VirtualColumnNode vc = (VirtualColumnNode)rc.getExpression();
+            return vc.immutable();
+        }
+        return false;
+    }
+
+    public boolean sourceResultSetForbidsColumnRemoval() {
+        if (immutableVirtualColumn(this))
+            return true;
+        if (!(getExpression() instanceof ColumnReference))
+            return false;
+        ColumnReference columnReference = (ColumnReference)getExpression();
+        return immutableVirtualColumn(columnReference.getSource());
     }
 }
 

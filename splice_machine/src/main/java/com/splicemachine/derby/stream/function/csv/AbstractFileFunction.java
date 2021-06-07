@@ -222,19 +222,26 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
                     case StoredFormatIds.SQL_TIME_ID:
                         if (timeFormat == null || value==null){
                             ((DateTimeDataValue)dvd).setValue(value,calendar);
-                        }else
+                        }
+                        else if(value.isEmpty()) {
+                            ((DateTimeDataValue)dvd).setValue((String) null,calendar);
+                        } else
                             dvd.setValue(SpliceDateFunctions.TO_TIME(value, timeFormat, timeFormatter), calendar);
                         break;
                     case StoredFormatIds.SQL_DATE_ID:
                         if (dateTimeFormat == null || value == null)
                             ((DateTimeDataValue)dvd).setValue(value,calendar);
-                        else
+                        else if(value.isEmpty()) {
+                            ((DateTimeDataValue)dvd).setValue((String) null,calendar);
+                        } else
                             dvd.setValue(TO_DATE(value, dateTimeFormat, dateFormatter),calendar);
                         break;
                     case StoredFormatIds.SQL_TIMESTAMP_ID:
                         if (timestampFormat == null || value==null)
                             ((DateTimeDataValue)dvd).setValue(value,calendar);
-                        else {
+                        else if(value.isEmpty()) {
+                            ((DateTimeDataValue)dvd).setValue((String) null,calendar);
+                        } else {
                             Timestamp ts = SpliceDateFunctions.TO_TIMESTAMP(value, timestampFormat, timestampFormatter);
                             if (convertTimestamps)
                                 ts = SQLTimestamp.convertTimeStamp(ts);

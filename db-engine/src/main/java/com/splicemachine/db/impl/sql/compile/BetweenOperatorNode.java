@@ -226,10 +226,7 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		NodeFactory nodeFactory = getNodeFactory();
 		ContextManager cm = getContextManager();
 
-		QueryTreeNode trueNode = (QueryTreeNode) nodeFactory.getNode(
-				C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-				Boolean.TRUE,
-				cm);
+		QueryTreeNode trueNode = new BooleanConstantNode(Boolean.TRUE,cm);
 
 		/* Create the AND <= */
 		BinaryComparisonOperatorNode lessEqual =

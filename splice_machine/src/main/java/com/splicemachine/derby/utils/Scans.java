@@ -282,8 +282,8 @@ public class Scans extends SpliceUtils {
 
                     // we just rely on key table positions
                     if (!isEmpty(keyDecodingMap) && keyDecodingMap[i] >= 0 && !isEmpty(keyTablePositionMap)) {
-                        DataValueDescriptor targetDesc = scannedRow.getColumn(keyTablePositionMap[keyDecodingMap[i]] + 1); // the maps are 0-based, get Column is 1-based
                         if (!rowIdKey) {
+                            DataValueDescriptor targetDesc = scannedRow.getColumn(keyTablePositionMap[keyDecodingMap[i]] + 1); // the maps are 0-based, get Column is 1-based
                             startKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(startDesc, targetDesc, dataValueFactory, true);
                         }
                     }
@@ -303,8 +303,8 @@ public class Scans extends SpliceUtils {
 
                     //  we just rely on key table positions
                     if (!isEmpty(keyDecodingMap) && !isEmpty(keyTablePositionMap)) {
-                        DataValueDescriptor targetDesc = scannedRow.getColumn(keyTablePositionMap[keyDecodingMap[i]] + 1);
                         if (!rowIdKey) {
+                            DataValueDescriptor targetDesc = scannedRow.getColumn(keyTablePositionMap[keyDecodingMap[i]] + 1);
                             stop[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc, targetDesc, dataValueFactory, false);
                         }
                     }
@@ -489,9 +489,8 @@ public class Scans extends SpliceUtils {
 
                     // we just rely on key table positions
                     if (!isEmpty(keyDecodingMap) && keyDecodingMap[i] >= 0 && !isEmpty(keyTablePositionMap)) {
-                        int targetColFormatId = columnTypes[keyTablePositionMap[keyDecodingMap[i]]];
-                        DataValueDescriptor targetDesc = templateRow.getColumn(keyTablePositionMap[keyDecodingMap[i]] + 1); // the maps are 0-based, get Column is 1-based
                         if (!rowIdKey) {
+                            DataValueDescriptor targetDesc = templateRow.getColumn(keyTablePositionMap[keyDecodingMap[i]] + 1); // the maps are 0-based, get Column is 1-based
                             startKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(startDesc, targetDesc, dataValueFactory, true);
                         }
                     }
@@ -521,9 +520,8 @@ public class Scans extends SpliceUtils {
 
                     //  we just rely on key table positions
                     if (!isEmpty(keyDecodingMap) && !isEmpty(keyTablePositionMap)) {
-                        int targetColFormatId = columnTypes[keyTablePositionMap[keyDecodingMap[i]]];
-                        DataValueDescriptor targetDesc = templateRow.getColumn(keyTablePositionMap[keyDecodingMap[i]] + 1); // the maps are 0-based, get Column is 1-based
                         if (!rowIdKey) {
+                            DataValueDescriptor targetDesc = templateRow.getColumn(keyTablePositionMap[keyDecodingMap[i]] + 1); // the maps are 0-based, get Column is 1-based
                             stop[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc, targetDesc, dataValueFactory, false);
                         }
                     }

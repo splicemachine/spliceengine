@@ -70,8 +70,10 @@ public class Benchmark {
 
         statsCnt.addAndGet(idx, increment);
         statsSum.addAndGet(idx, delta);
-        statsMin.accumulateAndGet(idx, delta, Math::min);
-        statsMax.accumulateAndGet(idx, delta, Math::max);
+        if (increment > 0) {
+            statsMin.accumulateAndGet(idx, delta / increment, Math::min);
+            statsMax.accumulateAndGet(idx, (delta + increment - 1) / increment, Math::max);
+        }
 
         long curTime = System.currentTimeMillis();
         long t = nextReport.get();
@@ -81,6 +83,16 @@ public class Benchmark {
                 throw new RuntimeException("Deadline has been reached");
             }
         }
+    }
+
+    public static long getCountStats(String stat) {
+        int idx = indexMap.getOrDefault(stat, -1);
+        return idx >= 0 ? statsCnt.get(idx) : 0;
+    }
+
+    public static long getSumStats(String stat) {
+        int idx = indexMap.getOrDefault(stat, -1);
+        return idx >= 0 ? statsSum.get(idx) : 0;
     }
 
     public static void reportStats() {
@@ -95,18 +107,19 @@ public class Benchmark {
             long min   = cumulative ? statsMin.get(idx) : statsMin.getAndSet(idx, Long.MAX_VALUE);
             long max   = cumulative ? statsMax.get(idx) : statsMax.getAndSet(idx, 0);
             if (count != 0) {
-                long avg = (time + count / 2) / count;
                 sb.append("\n\t").append(entry.getKey());
                 sb.append("\tops: ").append(count);
-                sb.append("\ttime(s): ").append(time / 1000);
-                sb.append("\tmin/avg/max(ms): [").append(min).append(" .. ").append(avg).append(" .. ").append(max).append("]");
+                if (time != 0) {
+                    long avg = (time + count / 2) / count;
+                    sb.append("\ttime(s): ").append(time / 1000);
+                    sb.append("\tmin/avg/max(ms): [").append(min).append(" .. ").append(avg).append(" .. ").append(max).append("]");
+                }
             }
         }
         LOG.info(sb.toString());
     }
 
     public static void resetStats() {
-        reportStats();
         nextReport.set(0);
         statsCnt = new AtomicLongArray(MAXSTATS);
         statsSum = new AtomicLongArray(MAXSTATS);
@@ -174,6 +187,8 @@ public class Benchmark {
      */
 
     public static void runBenchmark(int numThreads, Runnable runnable) {
+        resetStats();
+
         Thread[] threads = new Thread[numThreads];
         for (int i = 0; i < threads.length; ++i) {
             Thread thread = new Thread(runnable);
@@ -191,7 +206,9 @@ public class Benchmark {
         catch (InterruptedException ie) {
             LOG.error("Interrupted while waiting for threads to finish", ie);
         }
-        resetStats();
+
+        // Report final statistics
+        reportStats();
     }
 
     /***

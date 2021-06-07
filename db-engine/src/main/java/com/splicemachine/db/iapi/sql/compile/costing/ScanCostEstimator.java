@@ -14,6 +14,7 @@
 package com.splicemachine.db.iapi.sql.compile.costing;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.impl.sql.compile.Predicate;
 
 public interface ScanCostEstimator {
@@ -21,7 +22,7 @@ public interface ScanCostEstimator {
     /**
      * Add Predicate and keep track of the selectivity.
      */
-    void addPredicate(Predicate p, double defaultSelectivityFactor) throws StandardException;
+    void addPredicate(Predicate p, double defaultSelectivityFactor, Optimizer optimizer) throws StandardException;
 
     /**
      * Compute the Base Scan Cost by utilizing the passed in StoreCostController

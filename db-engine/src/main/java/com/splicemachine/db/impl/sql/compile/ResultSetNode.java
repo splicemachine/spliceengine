@@ -71,6 +71,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
     protected CostEstimate costEstimate;
     protected CostEstimate scratchCostEstimate;
     protected Optimizer optimizer;
+    protected boolean skipBindAndOptimize;
 
     // Final cost estimate for this result set node, which is the estimate
     // for this node with respect to the best join order for the top-level
@@ -183,7 +184,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
      */
     public CostEstimate getCostEstimate(){
         if(SanityManager.DEBUG){
-            if(costEstimate==null){
+            if(costEstimate==null && optimizer != null){
                 SanityManager.THROWASSERT(
                         "costEstimate is not expected to be null for "+
                                 getClass().getName());
@@ -263,6 +264,8 @@ public abstract class ResultSetNode extends QueryTreeNode{
      * @throws StandardException Thrown on error
      */
     public void bindExpressions(FromList fromListParam) throws StandardException{
+        if (skipBindAndOptimize)
+            return;
         if(SanityManager.DEBUG)
             SanityManager.ASSERT(false,
                     "bindExpressions() is not expected to be called for "+
@@ -279,6 +282,8 @@ public abstract class ResultSetNode extends QueryTreeNode{
      */
     public void bindExpressionsWithTables(FromList fromListParam)
             throws StandardException{
+        if (skipBindAndOptimize)
+            return;
         if(SanityManager.DEBUG)
             SanityManager.ASSERT(false,
                     "bindExpressionsWithTables() is not expected to be called for "+
@@ -297,6 +302,8 @@ public abstract class ResultSetNode extends QueryTreeNode{
 
     public void bindTargetExpressions(FromList fromListParam, boolean checkFromSubquery)
             throws StandardException{
+        if (skipBindAndOptimize)
+            return;
         if(SanityManager.DEBUG)
             SanityManager.ASSERT(false,
                     "bindTargetExpressions() is not expected to be called for "+
@@ -406,10 +413,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
             }
         }
 
-        booleanNode=(BooleanConstantNode)getNodeFactory().getNode(
-                C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                Boolean.TRUE,
-                getContextManager());
+        booleanNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
 
         resultColumn.setExpression(booleanNode);
         resultColumn.setType(booleanNode.getTypeServices());
@@ -431,10 +435,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
      */
     public FromList getFromList()
             throws StandardException{
-        return (FromList)getNodeFactory().getNode(
-                C_NodeTypes.FROM_LIST,
-                getNodeFactory().doJoinOrderOptimization(),
-                getContextManager());
+        return new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
     }
 
     /**
@@ -539,6 +540,8 @@ public abstract class ResultSetNode extends QueryTreeNode{
      */
 
     public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException{
+        if (skipBindAndOptimize)
+            return this;
         if(SanityManager.DEBUG)
             SanityManager.THROWASSERT(
                     "preprocess() not expected to be called for "+getClass().toString());
@@ -1190,6 +1193,31 @@ public abstract class ResultSetNode extends QueryTreeNode{
         return null;
     }
 
+    // shallowCopy is a special-purpose function that is not meant
+    // to copy all items in a ResultSetNode, but only those items
+    // that allow the copy to perform the same operations as the
+    // original after being bound and optimized.  Only add fields
+    // here if they are primitives that affect the behavior of the
+    // operations, or they are objects that are OK to be shared.
+    // The same applies to overridden subclass methods.
+    protected void shallowCopy(ResultSetNode other) throws StandardException {
+        /* Skip the following, which should not be shared.:
+            protected int resultSetNumber;
+            ResultColumnList resultColumns;
+        */
+
+        referencedTableMap   = other.referencedTableMap;
+        statementResultSet    = other.statementResultSet;
+        cursorTargetTable     = other.cursorTargetTable;
+        insertSource          = other.insertSource;
+        costEstimate          = other.costEstimate;
+        scratchCostEstimate   = other.scratchCostEstimate;
+        optimizer             = other.optimizer;
+        finalCostEstimate     = other.finalCostEstimate;
+        sat                   = other.sat;
+        containsSelfReference = other.containsSelfReference;
+    }
+
     /**
      * Set the type of each parameter in the result column list for this
      * table constructor.
@@ -1303,10 +1331,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
     ResultColumnList getRCLForInsert(InsertNode target,int[] colMap)
             throws StandardException{
         // our newResultCols are put into the bound form straight away.
-        ResultColumnList newResultCols=
-                (ResultColumnList)getNodeFactory().getNode(
-                        C_NodeTypes.RESULT_COLUMN_LIST,
-                        getContextManager());
+        ResultColumnList newResultCols = new ResultColumnList(getContextManager());
 
         /* Create a massaged version of the source RCL.
          * (Much simpler to build new list and then assign to source,
@@ -1656,10 +1681,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
             InsertNode target,int[] colMap)
             throws StandardException{
         // our newResultCols are put into the bound form straight away.
-        ResultColumnList newResultCols=
-                (ResultColumnList)getNodeFactory().getNode(
-                        C_NodeTypes.RESULT_COLUMN_LIST,
-                        getContextManager());
+        ResultColumnList newResultCols = new ResultColumnList(getContextManager());
 
         int numTargetColumns=target.resultColumnList.size();
 
@@ -1678,11 +1700,8 @@ public abstract class ResultSetNode extends QueryTreeNode{
                 oldResultColumn=
                         resultColumns.getResultColumn(colMap[index]+1);
 
-                newColumnReference=(ColumnReference)getNodeFactory().getNode(
-                        C_NodeTypes.COLUMN_REFERENCE,
-                        oldResultColumn.getName(),
-                        null,
-                        getContextManager());
+                newColumnReference= new ColumnReference(oldResultColumn.getName(),
+                        null, getContextManager());
                 /* The ColumnReference points to the source of the value */
                 newColumnReference.setSource(oldResultColumn);
                 // colMap entry is 0-based, columnId is 1-based.
@@ -1778,5 +1797,13 @@ public abstract class ResultSetNode extends QueryTreeNode{
 
     public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
         return true;
+    }
+
+    public void setSkipBindAndOptimize(boolean skipBindAndOptimize) {
+        this.skipBindAndOptimize = skipBindAndOptimize;
+    }
+
+    public boolean skipBindAndOptimize() {
+        return skipBindAndOptimize;
     }
 }

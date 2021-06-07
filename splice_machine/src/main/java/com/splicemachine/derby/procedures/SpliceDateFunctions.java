@@ -598,17 +598,27 @@ public class SpliceDateFunctions {
     /**
      * Implements the to_char function
      */
-    public static String TO_CHAR(Date source, String format) {
+    public static String TO_CHAR(Date source, String format) throws StandardException {
         if (source == null || format == null) return null;
 
+        try {
             SimpleDateFormat fmt = new SimpleDateFormat(format.toLowerCase().replaceAll("m", "M"));
             return fmt.format(source);
+        }
+        catch (IllegalArgumentException e) {
+            throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, "datetime");
+        }
 
     }
-    public static String TIMESTAMP_TO_CHAR(Timestamp stamp, String output) {
+    public static String TIMESTAMP_TO_CHAR(Timestamp stamp, String output) throws StandardException {
         if (stamp == null || output == null) return null;
-        SimpleDateFormat fmt = new SimpleDateFormat(output.toLowerCase().replaceAll("m", "M"));
-        return fmt.format(stamp);
+        try {
+            SimpleDateFormat fmt = new SimpleDateFormat(output.toLowerCase().replaceAll("m", "M"));
+            return fmt.format(stamp);
+        }
+        catch (IllegalArgumentException e) {
+            throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, "timestamp");
+        }
 
     }
     /**

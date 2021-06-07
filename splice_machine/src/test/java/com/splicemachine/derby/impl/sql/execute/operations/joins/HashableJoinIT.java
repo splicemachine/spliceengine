@@ -108,8 +108,8 @@ public class HashableJoinIT extends SpliceUnitTest {
                 "                    and L.c2 = D.c2" +
                 "                    and L.e = 'X'))", useSpark);
 
-        rowContainsQuery(new int[]{4, 6}, "explain " + sqlText, CM_V1, methodWatcher, "Subquery", useSpark ? "BroadcastJoin" : "NestedLoopJoin");
-        rowContainsQuery(new int[]{4, 6}, "explain " + sqlText, CM_V2, methodWatcher, "Subquery", "NestedLoopJoin");
+        rowContainsQuery(new int[]{11}, "explain " + sqlText, CM_V1, methodWatcher, "BroadcastJoin");
+        rowContainsQuery(new int[]{11}, "explain " + sqlText, CM_V2, methodWatcher, "BroadcastJoin");
 
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             assertFalse(rs.next());
@@ -132,7 +132,7 @@ public class HashableJoinIT extends SpliceUnitTest {
 
         rowContainsQuery(new int[]{4, 6}, "explain " + sqlText, methodWatcher,
                          new String[]{"ProjectRestrict", "preds=[((TB.F[3:5] <> L) or ((TB.PFNR[3:6] <> 12345678  ) or false))]"},
-                         new String[]{"IndexScan[XPFHSPF", "preds=[(TA.C1[5:1] = TB.C2[5:2]),(TB.HSP[3:4] = LE),(TB.S[3:2] = 3),(TB.Z[3:3] <> S)]"});
+                         new String[]{"IndexScan[XPFHSPF", "keys=[(TB.HSP[3:4] = LE)],preds=[(TA.C1[5:1] = TB.C2[5:2]),(TB.S[3:2] = 3),(TB.Z[3:3] <> S)]"});
 
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             assertFalse(rs.next());

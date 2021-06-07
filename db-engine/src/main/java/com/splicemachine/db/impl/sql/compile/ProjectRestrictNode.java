@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
@@ -50,6 +51,7 @@ import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import splice.com.google.common.base.Joiner;
 import splice.com.google.common.collect.Lists;
 
@@ -57,6 +59,7 @@ import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 import static java.lang.String.format;
 
 /**
@@ -590,9 +593,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
         /* Add the matching predicate to the restrictionList */
         if(restrictionList==null){
-            restrictionList=(PredicateList)getNodeFactory().getNode(
-                    C_NodeTypes.PREDICATE_LIST,
-                    getContextManager());
+            restrictionList = new PredicateList(getContextManager());;
         }
 
         restrictionList.addPredicate((Predicate)optimizablePredicate);
@@ -683,6 +684,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                 resultColumns.genVirtualColumnNodes(newPRNode, newPrRCList, false);
 
                 for (ColumnReference cr: rowIdReferenceList) {
+                    if (!(cr.getSource().getExpression() instanceof VirtualColumnNode))
+                        continue;
                     VirtualColumnNode virtualColumNode = (VirtualColumnNode)cr.getSource().getExpression();
                     cr.setSource(virtualColumNode.getSourceResultColumn() );
                 }
@@ -703,7 +706,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
          * be non-empty.  Multiple calls to modify the access path can
          * occur when there is a non-flattenable FromSubquery (or view).
          */
-        if(accessPathModified){
+        if(accessPathModified || skipBindAndOptimize){
             return this;
         }
 
@@ -931,9 +934,9 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
          * requalification list.
          */
         ContextManager ctxMgr=getContextManager();
-        PredicateList searchRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
-        PredicateList joinQualifierList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
-        PredicateList requalificationRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
+        PredicateList searchRestrictionList = new PredicateList(ctxMgr);
+        PredicateList joinQualifierList = new PredicateList(ctxMgr);
+        PredicateList requalificationRestrictionList = new PredicateList(ctxMgr);
         trulyTheBestAccessPath.getJoinStrategy().divideUpPredicateLists(this,
                 joinedTableSet,
                 restrictionList,
@@ -945,7 +948,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         /* Break out the non-qualifiers from HTN's join qualifier list and make that
          * the new restriction list for this PRN.
          */
-        restrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
+        restrictionList = new PredicateList(ctxMgr);
         /* For non-base table, we remove first 2 lists from requal list to avoid adding duplicates.
          */
         for(int i=0;i<searchRestrictionList.size();i++)
@@ -1122,6 +1125,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
      */
     @Override
     public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException{
+        if (skipBindAndOptimize)
+            return this;
         childResult=childResult.preprocess(numTables,gbl,fromList);
 
         /* Build the referenced table map */
@@ -1221,7 +1226,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
     @Override
     public ResultSetNode addNewPredicate(Predicate predicate) throws StandardException{
         if(restrictionList==null){
-            restrictionList=(PredicateList)getNodeFactory().getNode( C_NodeTypes.PREDICATE_LIST, getContextManager());
+            restrictionList = new PredicateList(getContextManager());
         }
         restrictionList.addPredicate(predicate);
         return this;
@@ -1280,14 +1285,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
          */
         childResult=childResult.optimize(dataDictionary, restrictionList, outerRows, forSpark);
 
-        Optimizer optimizer=getOptimizer(
-                (FromList)getNodeFactory().getNode(C_NodeTypes.FROM_LIST,
-                        getNodeFactory().doJoinOrderOptimization(),
-                        this,
-                        getContextManager()),
-                predicates,
-                dataDictionary,
-                null);
+        Optimizer optimizer = getOptimizer( new FromList(getNodeFactory().doJoinOrderOptimization(), this, getContextManager()),
+                predicates, dataDictionary, null);
         optimizer.setForSpark(forSpark);
 
         // RESOLVE: SHOULD FACTOR IN THE NON-OPTIMIZABLE PREDICATES THAT
@@ -1485,18 +1484,18 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         }
         if (subqueryNode != null) {
             subqueryText = subqueryNode.printExplainInformation(",");
-            subqueryText = subqueryText.substring(subqueryText.indexOf("->") + 2).trim();
+            subqueryText = subqueryText.substring(subqueryText.indexOf("->") + 1).trim();
             if (subqueryNode.getResultSet() instanceof ProjectRestrictNode) {
                 ProjectRestrictNode prn = (ProjectRestrictNode) subqueryNode.getResultSet();
                 String prnExplainText = prn.printExplainInformation(",");
-                prnExplainText = prnExplainText.substring(prnExplainText.indexOf("->") + 2).trim();
+                prnExplainText = prnExplainText.substring(prnExplainText.indexOf("->") + 1).trim();
                 subqueryText = subqueryText + "\n" + prnExplainText;
                 while (prn.getChildResult() instanceof ProjectRestrictNode)
                     prn = (ProjectRestrictNode) prn.getChildResult();
                 if (prn.getChildResult() instanceof FromTable) {
                     FromTable table = (FromTable) prn.getChildResult();
                     String tableExplainText = table.printExplainInformation(",");
-                    tableExplainText = tableExplainText.substring(tableExplainText.indexOf("->") + 2).trim();
+                    tableExplainText = tableExplainText.substring(tableExplainText.indexOf("->") + 1).trim();
                     subqueryText = subqueryText + "\n" + tableExplainText;
                 }
             }
@@ -1729,8 +1728,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         mb.push(cloneMapItem);
         mb.push(resultColumns.reusableResult());
         mb.push(doesProjection);
-        mb.push(costEstimate.rowCount());
-        mb.push(costEstimate.getEstimatedCost());
+        mb.push(getCostEstimate().rowCount());
+        mb.push(getCostEstimate().getEstimatedCost());
         mb.push(printExplainInformationForActivation());
 
         String filterPred = OperatorToString.opToSparkString(restriction);
@@ -1779,6 +1778,16 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         */
         if((restriction!=null) || (constantRestriction!=null) || (restrictionList!=null && !restrictionList.isEmpty())){
             return false;
+        }
+
+        // The source of a Unioned Index Scans result set may have a different number of columns
+        // projected than the base table.  Do not eliminate the projection for these cases because
+        // if we are the source of a JoinNode, the way joins build output rows requires the entire
+        // source row be copied into the merged row as-is.
+        FromBaseTable childBaseTable = childResult instanceof FromBaseTable ? (FromBaseTable) childResult : null;
+        if (childBaseTable != null && childBaseTable.getTrulyTheBestAccessPath() != null) {
+            if (childBaseTable.getTrulyTheBestAccessPath().getUisRowIdJoinBackToBaseTableResultSet() != null)
+                return false;
         }
 
         ResultColumnList childColumns=childResult.getResultColumns();
@@ -2056,11 +2065,10 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         sb.append(")");
         return sb.toString();
     }
-    @Override
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
+    public void buildTree(Collection<Pair<QueryTreeNode,Integer>> tree, int depth) throws StandardException {
         if (!nopProjectRestrict()) {
-            setDepth(depth);
-            tree.add(this);
+            addNodeToExplainTree(tree, this, depth);
+
             // look for subqueries in projection and restrictions, print if any
             for (SubqueryNode sub: RSUtils.collectExpressionNodes(this, SubqueryNode.class))
                 sub.buildTree(tree,depth+1);
@@ -2164,5 +2172,30 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             return false;
         FromTable child = (FromTable) childResult;
         return child.isTargetTable();
+    }
+
+    public void setSkipBindAndOptimize(boolean skipBindAndOptimize) {
+        this.skipBindAndOptimize = skipBindAndOptimize;
+    }
+
+    @Override
+    public String getExposedName() throws StandardException {
+        return correlationName;
+    }
+
+    @Override
+    protected void recordUisAccessPath(AccessPath ap) throws StandardException {
+        super.recordUisAccessPath(ap);
+        if (childResult instanceof FromTable) {
+            FromTable childFromTable = (FromTable)childResult;
+            childFromTable.recordUisAccessPath(ap);
+        }
+    }
+
+   @Override
+    public boolean skipBindAndOptimize() {
+        if (skipBindAndOptimize)
+            return true;
+        return childResult.skipBindAndOptimize();
     }
 }

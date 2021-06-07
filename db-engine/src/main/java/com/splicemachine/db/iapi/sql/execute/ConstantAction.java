@@ -39,12 +39,12 @@ import com.splicemachine.db.impl.sql.CatalogMessage;
 import java.io.IOException;
 
 /**
- *	This interface describes actions that are ALWAYS performed for a
- *	Statement at Execution time. For instance, it is used for DDL
- *	statements to describe what they should stuff into the catalogs.
- *	<p>
- *	An object satisfying this interface is put into the PreparedStatement
- *	and run at Execution time. Thus ConstantActions may be shared
+ *    This interface describes actions that are ALWAYS performed for a
+ *    Statement at Execution time. For instance, it is used for DDL
+ *    statements to describe what they should stuff into the catalogs.
+ *    <p>
+ *    An object satisfying this interface is put into the PreparedStatement
+ *    and run at Execution time. Thus ConstantActions may be shared
  *  across threads and must not store connection/thread specific
  *  information in any instance field.
  *
@@ -52,22 +52,24 @@ import java.io.IOException;
 
 public interface ConstantAction
 {
-	/**
-	 *	Run the ConstantAction.
-	 *
-	 * @param	activation	The execution environment for this constant action.
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	void	executeConstantAction(Activation activation)
-						throws StandardException;
+    /**
+     *    Run the ConstantAction.
+     *
+     * @param    activation    The execution environment for this constant action.
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    void executeConstantAction(Activation activation)
+                        throws StandardException;
 
-	default long getTargetConglomId() {
-		return 0L;
-	}
+    default long getTargetConglomId() {
+        return 0L;
+    }
 
-	default CatalogMessage.WriteCursorConstantOperation.Builder toProtobufBuilder() throws IOException {
-		String error = String.format("Class %s is not serializable", this.getClass().getName());
-		throw new RuntimeException(error);
-	}
+    default boolean isDdlAction() { return false; }
+
+    default CatalogMessage.WriteCursorConstantOperation.Builder toProtobufBuilder() throws IOException {
+        String error = String.format("Class %s is not serializable", this.getClass().getName());
+        throw new RuntimeException(error);
+    }
 }

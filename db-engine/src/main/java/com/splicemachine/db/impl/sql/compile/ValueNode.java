@@ -561,10 +561,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
         boolean                 nullableResult;
         NodeFactory                nodeFactory = getNodeFactory();
 
-        falseNode = (BooleanConstantNode) nodeFactory.getNode(
-                                    C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                                    Boolean.FALSE,
-                                    getContextManager());
+        falseNode = new BooleanConstantNode(Boolean.FALSE,getContextManager());
         equalsNode = (BinaryRelationalOperatorNode)
                             nodeFactory.getNode(
                                 C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
@@ -628,10 +625,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     {
         NodeFactory        nodeFactory = getNodeFactory();
 
-        QueryTreeNode trueNode = (QueryTreeNode) nodeFactory.getNode(
-                                        C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                                        Boolean.TRUE,
-                                        getContextManager());
+        QueryTreeNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
         AndNode andNode = (AndNode) nodeFactory.getNode(
                                         C_NodeTypes.AND_NODE,
                                         this,
@@ -808,34 +802,6 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
         ReferencedTablesVisitor rtv = new ReferencedTablesVisitor(new JBitSet(0));
         accept(rtv);
         return rtv.getTableMap();
-    }
-
-    /**
-     * Return whether or not this expression tree is cloneable.
-     *
-     * @return boolean    Whether or not this expression tree is cloneable.
-     */
-    public boolean isCloneable()
-    {
-        return false;
-    }
-
-    /**
-     * Return a clone of this node.
-     *
-     * @return ValueNode    A clone of this node.
-     *
-     * @exception StandardException            Thrown on error
-     */
-    public ValueNode getClone() throws StandardException
-    {
-        if (SanityManager.DEBUG)
-        {
-            SanityManager.ASSERT(false,
-                "getClone() not expected to be called for " +
-                getClass().getName());
-        }
-        return null;
     }
 
     /**
@@ -1120,7 +1086,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
      *
      * @return Whether or not this node represents a true constant.
      */
-    boolean isBooleanTrue()
+    public boolean isBooleanTrue()
     {
         return false;
     }
@@ -1130,7 +1096,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
      *
      * @return Whether or not this node represents a false constant.
      */
-    boolean isBooleanFalse()
+    public boolean isBooleanFalse()
     {
         return false;
     }
@@ -1659,4 +1625,11 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     protected static final double ALLOC_COST_FACTOR = 350;
 
     public double getBaseOperationCost() throws StandardException { return 0.0; }
+
+    public void copyFrom(OperatorNode other) throws StandardException
+    {
+        super.copyFrom(other);
+        this.dataTypeServices = other.dataTypeServices;
+        this.transformed = other.transformed;
+    }
 }

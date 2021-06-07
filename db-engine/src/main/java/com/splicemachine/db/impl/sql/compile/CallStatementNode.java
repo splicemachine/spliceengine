@@ -137,10 +137,7 @@ public class CallStatementNode extends DMLStatementNode {
 
 		getCompilerContext().pushCurrentPrivType(getPrivType());
 		methodCall = (JavaToSQLValueNode) methodCall.bindExpression(
-							(FromList) getNodeFactory().getNode(
-								C_NodeTypes.FROM_LIST,
-								getNodeFactory().doJoinOrderOptimization(),
-								getContextManager()), 
+							new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager()),
 							null,
 							null);
 
@@ -177,10 +174,7 @@ public class CallStatementNode extends DMLStatementNode {
 		/* Preprocess the method call tree */
 		methodCall = (JavaToSQLValueNode) methodCall.preprocess(
 								getCompilerContext().getNumTables(),
-								(FromList) getNodeFactory().getNode(
-									C_NodeTypes.FROM_LIST,
-									getNodeFactory().doJoinOrderOptimization(),
-									getContextManager()),
+								new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager()),
 								(SubqueryList) null,
 								(PredicateList) null);
 

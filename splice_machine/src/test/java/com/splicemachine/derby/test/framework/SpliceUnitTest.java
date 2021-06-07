@@ -454,6 +454,11 @@ public class SpliceUnitTest {
     }
 
     protected void testQueryContains(String sqlText, String containedString,
+                                     SpliceWatcher methodWatcher) throws Exception {
+        testQueryContains(sqlText, containedString, methodWatcher, true);
+    }
+
+    protected void testQueryContains(String sqlText, String containedString,
                                      SpliceWatcher methodWatcher,
                                      boolean caseInsensitive) throws Exception {
         ResultSet rs = null;
@@ -616,7 +621,8 @@ public class SpliceUnitTest {
             fail(failMsg);
         }
         catch (Exception e) {
-            boolean found = expectedErrors.contains(e.getMessage());
+            String msg = e.getMessage().split("\n")[0];
+            boolean found = expectedErrors.contains(msg);
             if (!found)
                 fail(format("\n + Unexpected error message: %s + \n", e.getMessage()));
         }
@@ -631,7 +637,8 @@ public class SpliceUnitTest {
             fail(failMsg);
         }
         catch (Exception e) {
-            boolean found = expectedErrors.contains(e.getMessage());
+            String msg = e.getMessage().split("\n")[0];
+            boolean found = expectedErrors.contains(msg);
             if (!found)
                 fail(format("\n + Unexpected error message: %s + \n", e.getMessage()));
         }
@@ -1325,6 +1332,26 @@ public class SpliceUnitTest {
         try(ResultSet rs = conn.query(sql)) {
             rs.next();
             Assert.assertEquals(expectedOutput, rs.getString(1));
+        }
+    }
+
+    protected void checkIntExpression(String input, int expectedOutput, TestConnection conn) throws SQLException {
+        String sql = addPotentiallyMissingSelect(input);
+        try(ResultSet rs = conn.query(sql)) {
+            rs.next();
+            Assert.assertEquals(expectedOutput, rs.getInt(1));
+        }
+    }
+
+    protected void checkIntExpression(String input, int expectedOutput, SpliceWatcher methodWatcher) throws SQLException {
+        checkIntExpression(input, expectedOutput, methodWatcher.getOrCreateConnection());
+    }
+
+    private String addPotentiallyMissingSelect(String input) {
+        if (!input.toLowerCase().startsWith("select")) {
+            return format("select %s", input);
+        } else {
+            return input;
         }
     }
 

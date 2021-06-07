@@ -33,6 +33,8 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.Context;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.compile.costing.CostModelRegistry;
@@ -83,15 +85,40 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
     /// @sa useAliases
     private boolean aliasesUsable = false;
 
+    public FromList() {}
+    public FromList(ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.FROM_LIST);
+    }
+
+    public FromList(Boolean optimizeJoinOrder, ContextManager contextManager) {
+        this(contextManager);
+        init2(optimizeJoinOrder);
+    }
+
+    public FromList(Boolean optimizeJoinOrder, FromTable fromTable, ContextManager contextManager) throws StandardException {
+        this(contextManager);
+        init2(optimizeJoinOrder, fromTable);
+    }
+
+    private void init2(Boolean optimizeJoinOrder) {
+        fixedJoinOrder=!((Boolean)optimizeJoinOrder);
+        isTransparent=false;
+        tableLimitForExhaustiveSearch = getLanguageConnectionContext().getTableLimitForExhaustiveSearch();
+        costModelName = getCostModelFromProperties();
+    }
+
+    private void init2(Boolean optimizeJoinOrder, FromTable fromTable) throws StandardException {
+        init(optimizeJoinOrder);
+        addFromTable(fromTable);
+    }
+
     /**
      * Initializer for a FromList
      */
     @Override
     public void init(Object optimizeJoinOrder){
-        fixedJoinOrder=!((Boolean)optimizeJoinOrder);
-        isTransparent=false;
-        tableLimitForExhaustiveSearch = getLanguageConnectionContext().getTableLimitForExhaustiveSearch();
-        costModelName = getCostModelFromProperties();
+        init2((Boolean) optimizeJoinOrder);
     }
 
     /**
@@ -101,9 +128,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
      */
     @Override
     public void init(Object optimizeJoinOrder,Object fromTable) throws StandardException{
-        init(optimizeJoinOrder);
-
-        addFromTable((FromTable)fromTable);
+        init2((Boolean) optimizeJoinOrder, (FromTable) fromTable);
     }
 
     /*
@@ -259,7 +284,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
      * @return The FromTable, if any, with the exposed name.
      * @throws StandardException Thrown on error
      */
-    protected FromTable getFromTableByName(String name,String schemaName,boolean exactMatch) throws StandardException{
+    public FromTable getFromTableByName(String name,String schemaName,boolean exactMatch) throws StandardException{
         int size=size();
         for(int index=0;index<size;index++){
             FromTable fromTable=(FromTable)elementAt(index);
@@ -269,6 +294,24 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
             if(result!=null){
                 return result;
             }
+        }
+        return null;
+    }
+
+    /**
+     * Find the FromTable with a given table number
+     *
+     * @param tableNumber       The table number to search for
+     * @return The FromTable, if any, with the specified table number
+     * @throws StandardException Thrown on error
+     */
+    public FromTable getFromTableByTableNumber(int tableNumber) {
+        int size=size();
+        for(int index=0;index<size;index++){
+            FromTable fromTable=(FromTable)elementAt(index);
+
+            if (tableNumber == fromTable.getTableNumber())
+                return fromTable;
         }
         return null;
     }
@@ -287,6 +330,17 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
             fromTable=(FromTable)elementAt(index);
             fromTable.isJoinColumnForRightOuterJoin(rc);
         }
+    }
+
+    public FromTable bindExtraTableAndAddToFromClause(FromTable fromTable) throws StandardException{
+        DataDictionary dataDictionary = this.getDataDictionary();
+
+        FromTable newNode=(FromTable)fromTable.bindNonVTITables(dataDictionary, this);
+        newNode=(FromTable)newNode.bindVTITables(this);
+        this.addFromTable(newNode);
+        if(fromTable.referencesSessionSchema())
+            referencesSessionSchema=true;
+        return newNode;
     }
 
     public void bindTables(DataDictionary dataDictionary, FromList fromListParam) throws StandardException{
@@ -749,7 +803,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
         // When left outer join is flattend, its ON clause condition could be released to the WHERE clause but
         // with an outerJoinLevel > 0. These predicates cannot be pushed to tables whose outerJoinLevel does not match.
         // As a simplification, we don't push predicates down whoe OuterJoinLevel is greater than 0.
-        PredicateList levelZeroPredicateList = (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
+        PredicateList levelZeroPredicateList = new PredicateList(getContextManager());
         for (int i = predicateList.size()-1; i >= 0 ; i--) {
             Predicate pred = predicateList.elementAt(i);
             if (pred.getOuterJoinLevel() == 0) {
@@ -1061,7 +1115,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
         ColumnReference additionalCR=null;
 
         PredicateList predicatesTemp;
-        predicatesTemp=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
+        predicatesTemp = new PredicateList(getContextManager());
         int wherePredicatesSize=wherePredicates.size();
         for(int index=0;index<wherePredicatesSize;index++)
             predicatesTemp.addPredicate(wherePredicates.elementAt(index));

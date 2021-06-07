@@ -69,11 +69,11 @@ public interface OptimizerFactory {
      * @throws StandardException Thrown on error
      */
     Optimizer getOptimizer(OptimizableList optimizableList,
-						   OptimizablePredicateList predicateList,
-						   DataDictionary dDictionary,
-						   RequiredRowOrdering requiredRowOrdering,
-						   int numTablesInQuery,
-						   LanguageConnectionContext lcc)
+                           OptimizablePredicateList predicateList,
+                           DataDictionary dDictionary,
+                           RequiredRowOrdering requiredRowOrdering,
+                           int numTablesInQuery,
+                           LanguageConnectionContext lcc)
             throws StandardException;
 
 
@@ -102,21 +102,21 @@ public interface OptimizerFactory {
      */
     int getMaxMemoryPerTable();
 
-	long getDetermineSparkRowThreshold();
+    long getDetermineSparkRowThreshold();
 
-	/**
-	 * The maximum number of rows for which index lookup operation can
-	 * be fired as a batch. Controlled by splice.index.batchSize,
-	 * default value in SQLConfiguration.
-	 * @return  splice.index.batchSize value
-	 */
-	int getIndexBatchSize();
+    /**
+     * The maximum number of rows for which index lookup operation can
+     * be fired as a batch. Controlled by splice.index.batchSize,
+     * default value in SQLConfiguration.
+     * @return  splice.index.batchSize value
+     */
+    int getIndexBatchSize();
 
-	/**
-	 * The maximum number of index lookup batches that can run
-	 * concurrently. Controlled by splice.index.numConcurrentLookups,
-	 * default value in SQLConfiguration.
-	 * @return splice.index.numConcurrentLookups value
-	 */
-	int getIndexLookupBlocks();
+    /**
+     * The maximum number of index lookup batches that can run
+     * concurrently. Controlled by splice.index.numConcurrentLookups,
+     * default value in SQLConfiguration.
+     * @return splice.index.numConcurrentLookups value
+     */
+    int getIndexLookupBlocks();
 }

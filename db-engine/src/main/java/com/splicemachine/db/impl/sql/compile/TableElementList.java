@@ -59,6 +59,7 @@ import splice.com.google.common.collect.Lists;
 import java.util.*;
 
 import static com.splicemachine.db.iapi.sql.compile.C_NodeTypes.TABLE_ELEMENT_LIST;
+import static com.splicemachine.db.impl.sql.compile.ColumnReference.checkForDerivedColNameInDDL;
 
 /**
  * A TableElementList represents the list of columns and other table elements
@@ -208,6 +209,7 @@ public class TableElementList extends QueryTreeNodeVector {
                 {
                     throw StandardException.newException(SQLState.LANG_LONG_DATA_TYPE_NOT_ALLOWED, cdn.getColumnName());
                 }
+                checkForDerivedColNameInDDL(cdn.getColumnName());
                 checkForDuplicateColumns(ddlStmt, columnHT, cdn.getColumnName());
                 cdn.checkUserType(td);
                 cdn.bindAndValidateDefault(dd, td);
@@ -695,10 +697,7 @@ public class TableElementList extends QueryTreeNodeVector {
              * copy it to the cdn.  Thus we can build the array of
              * column names for the referenced columns during generate().
              */
-            ResultColumnList refRCL =
-                        (ResultColumnList) getNodeFactory().getNode(
-                                                C_NodeTypes.RESULT_COLUMN_LIST,
-                                                getContextManager());
+            ResultColumnList refRCL = new ResultColumnList(getContextManager());
             rcl.copyReferencedColumnsToNewList(refRCL);
 
             /* A column check constraint can only refer to that column. If this is a

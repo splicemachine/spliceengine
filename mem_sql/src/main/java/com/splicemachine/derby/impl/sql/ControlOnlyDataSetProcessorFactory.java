@@ -34,10 +34,10 @@ import com.splicemachine.system.CsvOptions;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 
 import javax.annotation.Nullable;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import static com.splicemachine.db.impl.sql.compile.ExplainNode.SparkExplainKind.NONE;
 
@@ -93,7 +93,7 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
     public RemoteQueryClient getRemoteQueryClient(final SpliceBaseOperation operation) {
         return new RemoteQueryClient() {
             @Override
-            public void submit() throws StandardException {
+            public void submit(UUID runningOperationUUID) throws StandardException {
                 operation.openCore(createControlDataSetProcessor());
             }
 
@@ -110,6 +110,11 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
             @Override
             public void close() throws Exception {
                 // no-op
+            }
+
+            @Override
+            public Exception getException() throws InterruptedException {
+                return null;
             }
         };
     }
@@ -146,7 +151,7 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
         @Override
         public GetSchemaExternalResult getExternalFileSchema(String storedAs, String location, boolean mergeSchema,
                                                              CsvOptions csvOptions, StructType nonPartitionColumns,
-                                                             StructType partitionColumns) {
+                                                             StructType partitionColumns, OlapStatus jobStatus) {
             if (LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG, "DistributedWrapper#getExternalFileSchema()");
             //no-op

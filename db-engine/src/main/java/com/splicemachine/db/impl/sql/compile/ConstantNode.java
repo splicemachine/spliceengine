@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -99,6 +100,10 @@ public abstract class ConstantNode extends ValueNode
     ConstantNode()
     {
         super();
+    }
+
+    ConstantNode(ContextManager cm) {
+        super(cm);
     }
 
     /**

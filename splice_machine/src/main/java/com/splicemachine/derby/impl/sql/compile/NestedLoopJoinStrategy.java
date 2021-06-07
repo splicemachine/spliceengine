@@ -23,6 +23,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.sql.compile.*;
 
+
 public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 
     public NestedLoopJoinStrategy(){
@@ -35,6 +36,10 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
                             CostEstimate outerCost,
                             boolean wasHinted,
                             boolean skipKeyCheck) throws StandardException{
+
+        if (optimizer.getJoinPosition() > 0 && innerTable.outerTableOnly())
+            return false;
+
         /* Nested loop is feasible, except in the corner case
          * where innerTable is a VTI that cannot be materialized
          * (because it has a join column as a parameter) and
@@ -52,7 +57,33 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         if (outerCost != null && outerCost.getJoinType() == JoinNode.FULLOUTERJOIN)
             return false;
 
+        if (hasTriggerRowsAsInnerTableOfJoin(innerTable, optimizer))
+            return false;
+
         return innerTable.isMaterializable() || innerTable.supportsMultipleInstantiations();
+    }
+
+    // Nested loop join on Spark does not work correctly when using a common
+    // Dataset to access the trigger REFERENCING NEW/OLD TABLE rows as the
+    // inner table of the join:
+    //         see useCommonDataSet in TriggerNewTransitionRows.
+    // The compilation of a trigger is saved as a stored prepared statement in
+    // the data dictionary, and reloaded/reused by each new triggering statement.
+    // Even if the trigger is compiled to run in OLTP mode, if the triggering
+    // statement runs in OLAP, the trigger must run in OLAP too.  Since we
+    // cannot tell from the SPSDescriptor whether the trigger was compiled
+    // to run on OLTP or OLAP, we would not be able to detect when an
+    // OLTP-compiled trigger which uses nested loop join would need to be
+    // recompiled as forced-OLAP, and avoid choosing nested loop join.
+    // Therefore we must always avoid nested loop join for statement triggers
+    // with a REFERENCING clause when the trigger VTI is the inner table of
+    // the join, even if compiled for OLTP execution.
+    private boolean hasTriggerRowsAsInnerTableOfJoin(Optimizable innerTable, Optimizer optimizer) {
+        if (!isSingleTableScan(optimizer)) {
+            if (innerTable.isTriggerVTI())
+                return true;
+        }
+        return false;
     }
 
     @Override

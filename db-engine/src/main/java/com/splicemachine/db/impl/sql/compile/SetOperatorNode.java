@@ -51,7 +51,7 @@ import java.util.HashMap;
  *
  */
 
-abstract class SetOperatorNode extends TableOperatorNode
+public abstract class SetOperatorNode extends TableOperatorNode
 {
     /**
     ** Tells whether to eliminate duplicate rows.  all == TRUE means do
@@ -580,6 +580,8 @@ abstract class SetOperatorNode extends TableOperatorNode
     public void bindResultColumns(FromList fromListParam)
                     throws StandardException
     {
+        if (skipBindAndOptimize)
+            return;
         super.bindResultColumns(fromListParam);
 
         if (TriggerReferencingStruct.fromTableTriggerDescriptor.get() != null)
@@ -592,6 +594,8 @@ abstract class SetOperatorNode extends TableOperatorNode
     public void bindResultColumns(FromList fromListParam, boolean bindRightOnly)
             throws StandardException
     {
+        if (skipBindAndOptimize)
+            return;
         super.bindResultColumns(fromListParam, bindRightOnly);
 
         /* Now we build our RCL */
@@ -991,10 +995,7 @@ abstract class SetOperatorNode extends TableOperatorNode
     {
         // First create a FromList to hold this node (and only this node).
 
-        FromList fromList =
-            (FromList) getNodeFactory().getNode(
-                C_NodeTypes.FROM_LIST,
-                getContextManager());
+        FromList fromList = new FromList(getContextManager());
 
         fromList.addFromTable(this);
 
@@ -1016,10 +1017,7 @@ abstract class SetOperatorNode extends TableOperatorNode
 
         // Now create a ResultColumnList that simply holds the "*".
 
-        ResultColumnList rcl =
-            (ResultColumnList) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        ResultColumnList rcl = new ResultColumnList(getContextManager());
 
         ResultColumn allResultColumn =
             (ResultColumn) getNodeFactory().getNode(
@@ -1106,10 +1104,7 @@ abstract class SetOperatorNode extends TableOperatorNode
         throws StandardException
     {
         if (leftOptPredicates == null) {
-            leftOptPredicates =
-                (PredicateList) getNodeFactory().getNode(
-                    C_NodeTypes.PREDICATE_LIST,
-                    getContextManager());
+            leftOptPredicates = new PredicateList(getContextManager());
         }
 
         return leftOptPredicates;
@@ -1124,10 +1119,7 @@ abstract class SetOperatorNode extends TableOperatorNode
         throws StandardException
     {
         if (rightOptPredicates == null) {
-            rightOptPredicates =
-                (PredicateList) getNodeFactory().getNode(
-                    C_NodeTypes.PREDICATE_LIST,
-                    getContextManager());
+            rightOptPredicates = new PredicateList(getContextManager());
         }
 
         return rightOptPredicates;
@@ -1155,11 +1147,15 @@ abstract class SetOperatorNode extends TableOperatorNode
         for (int i=0; i<resultColumns.size(); i++) {
             ResultColumn rc = resultColumns.elementAt(i);
             if (rc.isReferenced()) {
-                leftResultSet.resultColumns.elementAt(i).setReferenced();
-                rightResultSet.resultColumns.elementAt(i).setReferenced();
+                leftResultSet.getResultColumns().elementAt(i).setReferenced();
+                rightResultSet.getResultColumns().elementAt(i).setReferenced();
             }
         }
 
         return this;
+    }
+
+    public boolean isAll() {
+        return all;
     }
 }

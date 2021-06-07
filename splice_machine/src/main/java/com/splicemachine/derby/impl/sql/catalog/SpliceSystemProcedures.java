@@ -308,68 +308,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .build();
         procedures.add(sessionInfo);
 
-
-        /*
-         * Procedure to get a list of running operations
-         */
-        Procedure runningOperations = Procedure.newBuilder().name("SYSCS_GET_RUNNING_OPERATIONS")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(runningOperations);
-
-        /*
-         * Procedure to get a list of running operations on the local server
-         */
-        Procedure runningOperationsLocal = Procedure.newBuilder().name("SYSCS_GET_RUNNING_OPERATIONS_LOCAL")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(runningOperationsLocal);
-
-
-        /*
-         * Procedure to kill an executing operation
-         */
-        Procedure killOperationLocal = Procedure.newBuilder().name("SYSCS_KILL_OPERATION_LOCAL")
-                .numOutputParams(0)
-                .varchar("uuid",128)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(killOperationLocal);
-
-        /*
-         * Procedure to kill an executing operation
-         */
-        Procedure killOperation = Procedure.newBuilder().name("SYSCS_KILL_OPERATION")
-                .numOutputParams(0)
-                .varchar("uuid",128)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(killOperation);
-
-        /*
-         * Procedure to kill an executing DRDA operation
-         */
-        Procedure killDrdaOperationLocal = Procedure.newBuilder().name("SYSCS_KILL_DRDA_OPERATION_LOCAL")
-                .numOutputParams(0)
-                .varchar("rdbIntTkn",512)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(killDrdaOperationLocal);
-
-        /*
-         * Procedure to kill an executing DRDA operation
-         */
-        Procedure killDrdaOperation = Procedure.newBuilder().name("SYSCS_KILL_DRDA_OPERATION")
-                .numOutputParams(0)
-                .varchar("rdbIntTkn",512)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(killDrdaOperation);
-
+        OperationProcedures.addProcedures(procedures);
 
         /*
          * Procedure to get oldest active transaction id
@@ -873,6 +812,42 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
                 .build();
         procedures.add(deleteRegion);
+
+        Procedure getRegionLocations = Procedure.newBuilder().name("GET_REGION_LOCATIONS")
+                .catalog("schemaName")
+                .catalog("objectName")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
+                .build();
+        procedures.add(getRegionLocations);
+
+        Procedure assignRegionToServer = Procedure.newBuilder().name("ASSIGN_TO_SERVER")
+                .catalog("schemaName")
+                .catalog("objectName")
+                .varchar("server", 32672)
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
+                .build();
+        procedures.add(assignRegionToServer);
+
+        Procedure  localizeIndexesForTable = Procedure.newBuilder().name("LOCALIZE_INDEXES_FOR_TABLE")
+                .catalog("schemaName")
+                .catalog("tableName")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
+                .build();
+        procedures.add(localizeIndexesForTable);
+
+        Procedure  localizeIndexesForSchema = Procedure.newBuilder().name("LOCALIZE_INDEXES_FOR_SCHEMA")
+                .catalog("schemaName")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(SpliceRegionAdmin.class.getCanonicalName())
+                .build();
+        procedures.add(localizeIndexesForSchema);
 
         Procedure invalidateLocalCache = Procedure.newBuilder().name("INVALIDATE_DICTIONARY_CACHE")
                 .numOutputParams(0)
