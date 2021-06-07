@@ -187,10 +187,7 @@ public class DeleteNode extends DMLModStatementNode
         getCompilerContext().pushCurrentPrivType( Authorizer.SELECT_PRIV);
         try
         {
-            FromList    fromList = (FromList) getNodeFactory().getNode(
-                                    C_NodeTypes.FROM_LIST,
-                                    getNodeFactory().doJoinOrderOptimization(),
-                                    getContextManager());
+            FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
             ResultColumn                rowLocationColumn = null;
             CurrentRowLocationNode        rowLocationNode;
             TableName                    cursorTargetTableName = null;
@@ -323,9 +320,7 @@ public class DeleteNode extends DMLModStatementNode
                 /* Generate the RowLocation column */
                 ResultColumn rowIdColumn = targetTable.getRowIdColumn();
                 if (rowIdColumn == null) {
-                    rowLocationNode = (CurrentRowLocationNode) getNodeFactory().getNode(
-                            C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
-                            getContextManager());
+                    rowLocationNode = new CurrentRowLocationNode(getContextManager());
                     rowIdColumn =
                             (ResultColumn) getNodeFactory().getNode(
                                     C_NodeTypes.RESULT_COLUMN,
@@ -344,11 +339,8 @@ public class DeleteNode extends DMLModStatementNode
                 }
 
                 if(!cursorDelete) {
-                    ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
-                            C_NodeTypes.COLUMN_REFERENCE,
-                            rowIdColumn.getName(),
-                            null,
-                            getContextManager());
+                    ColumnReference columnReference = new ColumnReference(rowIdColumn.getName(),
+                            null, getContextManager());
                     columnReference.setSource(rowIdColumn);
                     columnReference.setNestingLevel(targetTable.getLevel());
                     columnReference.setSourceLevel(targetTable.getLevel());
@@ -900,7 +892,7 @@ public class DeleteNode extends DMLModStatementNode
         tableName.init(schemaName , targetTableName);
 
         NodeFactory nodeFactory = getNodeFactory();
-        FromList   fromList = (FromList) nodeFactory.getNode(C_NodeTypes.FROM_LIST, getContextManager());
+        FromList   fromList = new FromList(getContextManager());
         FromTable fromTable = (FromTable) nodeFactory.getNode(
                                                     C_NodeTypes.FROM_BASE_TABLE,
                                                     tableName,
@@ -947,7 +939,7 @@ public class DeleteNode extends DMLModStatementNode
         tableName.init(schemaName , targetTableName);
 
         NodeFactory nodeFactory = getNodeFactory();
-        FromList   fromList = (FromList) nodeFactory.getNode(C_NodeTypes.FROM_LIST, getContextManager());
+        FromList  fromList = new FromList(getContextManager());
         FromTable fromTable = (FromTable) nodeFactory.getNode(
                                                     C_NodeTypes.FROM_BASE_TABLE,
                                                     tableName,
@@ -987,10 +979,7 @@ public class DeleteNode extends DMLModStatementNode
         ValueNode     valueNode;
 
         NodeFactory nodeFactory = getNodeFactory();
-        ResultColumnList    columnList = (ResultColumnList) nodeFactory.getNode(
-                                                C_NodeTypes.RESULT_COLUMN_LIST,
-                                                getContextManager());
-
+        ResultColumnList columnList = new ResultColumnList(getContextManager());
         valueNode =  (ValueNode) nodeFactory.getNode(C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
                                                              getContextManager());
         for(int index =0 ; index < cdl.size() ; index++)

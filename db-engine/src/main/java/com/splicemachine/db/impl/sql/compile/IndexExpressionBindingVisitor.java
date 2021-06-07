@@ -53,7 +53,7 @@ public class IndexExpressionBindingVisitor implements Visitor
         fromList = (FromList) nf.getNode(
                 C_NodeTypes.FROM_LIST,
                 nf.doJoinOrderOptimization(),
-                this.optTable,
+                this.optTable, // this should be a FromTable (see DB-12184)
                 lcc.getContextManager());
         subqList = new SubqueryList();
         aggrList = new ArrayList<AggregateNode>() {};

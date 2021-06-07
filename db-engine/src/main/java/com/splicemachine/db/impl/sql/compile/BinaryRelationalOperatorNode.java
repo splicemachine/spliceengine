@@ -1218,10 +1218,7 @@ public class BinaryRelationalOperatorNode
      * @return a node representing a Boolean constant
      */
     private ValueNode newBool(boolean b) throws StandardException{
-        return (ValueNode)getNodeFactory().getNode(
-                C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                b,
-                getContextManager());
+        return new BooleanConstantNode(b,getContextManager());
     }
 
     /**

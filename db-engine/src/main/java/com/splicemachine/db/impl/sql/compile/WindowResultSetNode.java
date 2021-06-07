@@ -328,8 +328,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         /*
         ** Get the new PR, put above this window result.
         */
-        ResultColumnList rclNew = (ResultColumnList) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,
-                                                                              getContextManager());
+        ResultColumnList rclNew = new ResultColumnList(getContextManager());
         int sz = resultColumns.size();
         for (int i = 0; i < sz; i++) {
             ResultColumn rc = resultColumns.elementAt(i);
@@ -358,14 +357,12 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         /*
         ** Reset the bottom RCL to be empty. We'll rebuild them when adding function columns.
         */
-        childResult.setResultColumns((ResultColumnList) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,
-                                                                                 getContextManager()));
+        childResult.setResultColumns(new ResultColumnList(getContextManager()));
 
         /*
          * Set the Windowing RCL to be empty. We'll rebuild them when adding function columns.
          */
-        resultColumns = (ResultColumnList) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,
-                                                                    getContextManager());
+        resultColumns = new ResultColumnList(getContextManager());
     }
 
     /**
@@ -837,8 +834,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             ** to generate a proper result description for input
             ** to this function if it is a user function.
             */
-            ResultColumnList udfRCL = (ResultColumnList) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,
-                                                                                    getContextManager());
+            ResultColumnList udfRCL = new ResultColumnList(getContextManager());
             udfRCL.addElement(fnResultRC);
 
             LanguageFactory lf = getLanguageConnectionContext().getLanguageFactory();
@@ -1016,14 +1012,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 predicates,
                 outerRows,
                 forSpark);
-        Optimizer optimizer = getOptimizer(
-                (FromList) getNodeFactory().getNode(
-                        C_NodeTypes.FROM_LIST,
-                        getNodeFactory().doJoinOrderOptimization(),
-                        getContextManager()),
-                predicates,
-                dataDictionary,
-                null);
+        Optimizer optimizer = getOptimizer( new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager()),
+                predicates, dataDictionary, null);
         optimizer.setForSpark(forSpark);
 
         // RESOLVE: NEED TO FACTOR IN COST OF SORTING AND FIGURE OUT HOW
@@ -1383,10 +1373,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         } else {
             // just create a CR to replace the expression. This needs to be a CR because the setters don't exist
             // on ValueNode
-            ColumnReference newCR = (ColumnReference) getNodeFactory().getNode(C_NodeTypes.COLUMN_REFERENCE,
-                                                                               expressionToReplace.getColumnName(),
-                                                                               null,
-                                                                               getContextManager());
+            ColumnReference newCR = new ColumnReference(expressionToReplace.getColumnName(),
+                                 null, getContextManager());
             newCR.setSource(sourceRC);
             newCR.setNestingLevel(this.getLevel());
             newCR.setSourceLevel(this.getLevel());
@@ -1465,10 +1453,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                                                  int sourceLevel, int nestingLevel) throws StandardException {
 
         // create the CR using sourceRC as the source and source name
-        ColumnReference columnRef = (ColumnReference) nodeFactory.getNode(C_NodeTypes.COLUMN_REFERENCE,
-                                                                          name,
-                                                                          null,
-                                                                          contextManager);
+        ColumnReference columnRef = new ColumnReference(name,null, contextManager);
         columnRef.setSource(sourceRC);
         columnRef.setNestingLevel(nestingLevel);
         columnRef.setSourceLevel(sourceLevel);

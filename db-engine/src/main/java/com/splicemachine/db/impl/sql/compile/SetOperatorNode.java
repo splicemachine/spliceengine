@@ -995,10 +995,7 @@ public abstract class SetOperatorNode extends TableOperatorNode
     {
         // First create a FromList to hold this node (and only this node).
 
-        FromList fromList =
-            (FromList) getNodeFactory().getNode(
-                C_NodeTypes.FROM_LIST,
-                getContextManager());
+        FromList fromList = new FromList(getContextManager());
 
         fromList.addFromTable(this);
 
@@ -1020,10 +1017,7 @@ public abstract class SetOperatorNode extends TableOperatorNode
 
         // Now create a ResultColumnList that simply holds the "*".
 
-        ResultColumnList rcl =
-            (ResultColumnList) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        ResultColumnList rcl = new ResultColumnList(getContextManager());
 
         ResultColumn allResultColumn =
             (ResultColumn) getNodeFactory().getNode(
@@ -1110,10 +1104,7 @@ public abstract class SetOperatorNode extends TableOperatorNode
         throws StandardException
     {
         if (leftOptPredicates == null) {
-            leftOptPredicates =
-                (PredicateList) getNodeFactory().getNode(
-                    C_NodeTypes.PREDICATE_LIST,
-                    getContextManager());
+            leftOptPredicates = new PredicateList(getContextManager());
         }
 
         return leftOptPredicates;
@@ -1128,10 +1119,7 @@ public abstract class SetOperatorNode extends TableOperatorNode
         throws StandardException
     {
         if (rightOptPredicates == null) {
-            rightOptPredicates =
-                (PredicateList) getNodeFactory().getNode(
-                    C_NodeTypes.PREDICATE_LIST,
-                    getContextManager());
+            rightOptPredicates = new PredicateList(getContextManager());
         }
 
         return rightOptPredicates;
