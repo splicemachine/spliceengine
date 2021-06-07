@@ -93,7 +93,7 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
             StringDataValue leftValue = (StringDataValue) leftOp.getValue();
             StringDataValue rightValue = (StringDataValue) rightOp.getValue();
 
-            StringDataValue resultValue = null;
+            StringDataValue resultValue;
             DataTypeDescriptor resultDTD = getTypeServices();
             if (resultDTD == null) {
                 TypeId resultTypeId =
@@ -106,6 +106,7 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
             else
                 resultValue = (StringDataValue) resultDTD.getNull();
 
+            assert resultValue != null;
             resultValue.concatenate(leftValue, rightValue, resultValue);
 
             return (ValueNode) getNodeFactory().getNode(

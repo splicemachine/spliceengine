@@ -74,6 +74,10 @@
     <Match>
         <Class name="~com\.splicemachine\.db\.impl\.tools\.ij\.TokenMgrError.*"/>
     </Match>
+    <Match>
+        <!-- generated code for parser -->
+        <Class name="~com\.splicemachine\.db\.impl\.sql\.misc.*"/>
+    </Match>
 
     <!-- SpliceConstants: our static fields in are intentionally not final -->
     <Match>

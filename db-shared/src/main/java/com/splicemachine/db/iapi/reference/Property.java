@@ -1289,5 +1289,13 @@ public interface Property {
      */
     String FAVOR_UNIONED_INDEX_SCANS =
             "splice.optimizer.favorUnionedIndexScans";
+
+    /**
+     * If true, the optimizer will not attempt subquery flattening.
+     * The default value is false.
+     */
+    String DISABLE_SUBQUERY_FLATTENING =
+            "splice.optimizer.disableSubqueryFlattening";
+
 }
 

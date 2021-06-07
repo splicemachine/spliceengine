@@ -223,9 +223,7 @@ public class AndNode extends BinaryLogicalOperatorNode{
         if (!(getRightOperand() instanceof AndNode) && !(getRightOperand().isBooleanTrue())) {
             BooleanConstantNode trueNode;
 
-            trueNode=(BooleanConstantNode)getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                    Boolean.TRUE,
-                    getContextManager());
+            trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
             curAnd.setRightOperand((ValueNode)getNodeFactory().getNode(C_NodeTypes.AND_NODE,
                     curAnd.getRightOperand(),
                     trueNode,

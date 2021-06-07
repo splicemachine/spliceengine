@@ -146,7 +146,8 @@ public abstract class DMLStatementNode extends StatementNode {
             accept(new ProjectionPruningVisitor());
 
         /* Perform subquery flattening if applicable. */
-        SubqueryFlattening.flatten(this);
+        if (!getCompilerContext().getDisableSubqueryFlattening())
+            SubqueryFlattening.flatten(this);
         /* it is possible that some where clause subquery will be converted to fromSubquery in preprocess(),
            so we need to compute the maximum possible number of tables that take into consideration
            of the where subqueries
@@ -278,9 +279,7 @@ public abstract class DMLStatementNode extends StatementNode {
         CollectNodesVisitor cnv = new CollectNodesVisitor(FromTable.class);
         resultSet.accept(cnv);
         for (Object obj : cnv.getList()) {
-            if (obj instanceof FromBaseTable) {
-                ((FromBaseTable) obj).determineSpark();
-            }
+            ((FromTable) obj).determineSpark();
             type = type.combine(((FromTable) obj).getDataSetProcessorType());
             sparkExecType = sparkExecType.combine(((FromTable) obj).getSparkExecutionType());
         }
@@ -364,23 +363,12 @@ public abstract class DMLStatementNode extends StatementNode {
          */
 
         resultSet = resultSet.bindNonVTITables(
-                dataDictionary,
-                (FromList) getNodeFactory().getNode(
-                        C_NodeTypes.FROM_LIST,
-                        getNodeFactory().doJoinOrderOptimization(),
-                        getContextManager()));
-        resultSet = resultSet.bindVTITables(
-                (FromList) getNodeFactory().getNode(
-                        C_NodeTypes.FROM_LIST,
-                        getNodeFactory().doJoinOrderOptimization(),
-                        getContextManager()));
+                dataDictionary, new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager()));
+        resultSet = resultSet.bindVTITables(new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager()));
     }
 
     protected void bindExpressions(boolean bindResultSet) throws StandardException {
-        FromList fromList = (FromList) getNodeFactory().getNode(
-                C_NodeTypes.FROM_LIST,
-                getNodeFactory().doJoinOrderOptimization(),
-                getContextManager());
+        FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
 
         /* Bind the expressions under the resultSet */
         if (bindResultSet) {
@@ -401,10 +389,7 @@ public abstract class DMLStatementNode extends StatementNode {
      */
 
     protected void bindExpressions() throws StandardException {
-        FromList fromList = (FromList) getNodeFactory().getNode(
-                C_NodeTypes.FROM_LIST,
-                getNodeFactory().doJoinOrderOptimization(),
-                getContextManager());
+        FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
 
         /* Bind the expressions under the resultSet */
         resultSet.bindExpressions(fromList);
@@ -417,10 +402,7 @@ public abstract class DMLStatementNode extends StatementNode {
     }
 
     protected void bindTargetExpressions() throws StandardException {
-        FromList fromList = (FromList) getNodeFactory().getNode(
-                C_NodeTypes.FROM_LIST,
-                getNodeFactory().doJoinOrderOptimization(),
-                getContextManager());
+        FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
 
         /* Bind the expressions under the resultSet */
         resultSet.bindTargetExpressions(fromList, false);
@@ -437,10 +419,7 @@ public abstract class DMLStatementNode extends StatementNode {
      * @throws StandardException Thrown on error
      */
     protected void bindExpressionsWithTables() throws StandardException {
-        FromList fromList = (FromList) getNodeFactory().getNode(
-                C_NodeTypes.FROM_LIST,
-                getNodeFactory().doJoinOrderOptimization(),
-                getContextManager());
+        FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
 
         /* Bind the expressions under the resultSet */
         resultSet.bindExpressionsWithTables(fromList);

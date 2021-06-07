@@ -159,8 +159,6 @@ extends BasicNoPutResultSetImpl
 			** If run time statistics tracing is turned on, then now is the
 			** time to dump out the information.
 			*/
-			LanguageConnectionContext lcc = getLanguageConnectionContext();
-
 			int staLength = (subqueryTrackingArray == null) ? 0 :
 								subqueryTrackingArray.length;
 
@@ -305,7 +303,6 @@ extends BasicNoPutResultSetImpl
 	public final void setCurrentRow(ExecRow row)
 	{
 		activation.setCurrentRow(row, resultSetNumber);
-		currentRow = row;
 	}
 
 	/**
@@ -314,7 +311,6 @@ extends BasicNoPutResultSetImpl
 	 */
 	public void clearCurrentRow()
 	{
-		currentRow = null;
 		activation.clearCurrentRow(resultSetNumber);
 	}
 

@@ -794,15 +794,16 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
             s.execute("drop trigger mytrig");
 
             // Nested loop join should be illegal on spark
-            // when the NEW TABLE or OLD TABLE is involved.
+            // when the NEW TABLE or OLD TABLE is the inner table.
             testFail("42Y69",
                      "CREATE TRIGGER mytrig\n" +
                         "   AFTER UPDATE OF a,b\n" +
                         "   ON t1\n" +
                         "   REFERENCING OLD TABLE AS OLD NEW TABLE AS NEW\n" +
                         "   FOR EACH STATEMENT\n" +
-                        "   INSERT INTO T2 SELECT NEW.A, NEW.B from NEW --splice-properties joinStrategy=nestedloop \n" +
-                        "   , T1 --splice-properties joinStrategy=nestedloop \n", s);
+                        "   INSERT INTO T2 SELECT NEW.A, NEW.B from --splice-properties joinOrder=fixed \n" +
+                        "   T1, " +
+                        "   NEW --splice-properties joinStrategy=nestedloop \n", s);
         }
     }
 

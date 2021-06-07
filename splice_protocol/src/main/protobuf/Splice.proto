@@ -32,6 +32,11 @@ message AllocateFilterMessage {
     optional bytes addressMatch = 1;
 }
 
+message KeyPrefixProbingFilterMessage {
+    required int32 firstKeyColumnEncodingKind = 1;
+    required bytes  secondaryFilter = 2;
+}
+
 message SuccessFilterMessage {
     repeated bytes failedTasks = 1;
 }

@@ -95,7 +95,23 @@ public final class NotNode extends UnaryLogicalOperatorNode
     /** @see ValueNode#evaluateConstantExpressions */
     @Override
     ValueNode evaluateConstantExpressions() throws StandardException {
-        return (getOperand() instanceof UntypedNullConstantNode) ? getOperand() : this;
+        if (getOperand() instanceof ConstantNode) {
+            ConstantNode op = (ConstantNode) getOperand();
+            if (op.isNull()) {
+                return getOperand();
+            } else if (op instanceof BooleanConstantNode) {
+                if (op.isBooleanTrue()) {
+                    return (ValueNode) getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+                            Boolean.FALSE,
+                            getContextManager());
+                } else {
+                    return (ValueNode) getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+                            Boolean.TRUE,
+                            getContextManager());
+                }
+            }
+        }
+        return this;
     }
 
     public void generateExpression(ExpressionClassBuilder acb,

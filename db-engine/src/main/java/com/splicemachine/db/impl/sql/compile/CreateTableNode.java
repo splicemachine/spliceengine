@@ -391,10 +391,7 @@ public class CreateTableNode extends DDLStatementNode
 
         if (queryExpression != null)
         {
-            FromList fromList = (FromList) getNodeFactory().getNode(
-                    C_NodeTypes.FROM_LIST,
-                    getNodeFactory().doJoinOrderOptimization(),
-                    getContextManager());
+            FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
 
             CompilerContext cc = getCompilerContext();
             ProviderList prevAPL = cc.getCurrentAuxiliaryProviderList();

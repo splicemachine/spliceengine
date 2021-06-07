@@ -14,6 +14,7 @@
 
 package com.splicemachine.access.client;
 
+import com.splicemachine.derby.hbase.KeyPrefixProbingFilter;
 import org.apache.hadoop.hbase.regionserver.*;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -271,7 +272,8 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 
     private KeyValueScanner getMemStoreScanner() throws IOException {
         Scan memScan = new Scan(scan);
-        if (!(scan.getFilter() instanceof MultiRowRangeFilter))   
+        if (!(scan.getFilter() instanceof MultiRowRangeFilter) &&
+            !(scan.getFilter() instanceof KeyPrefixProbingFilter))
             memScan.setFilter(null);   // Remove SamplingFilter if the scan has it
         memScan.setAsyncPrefetch(false); // async would keep buffering rows indefinitely
         memScan.setReadType(Scan.ReadType.PREAD);

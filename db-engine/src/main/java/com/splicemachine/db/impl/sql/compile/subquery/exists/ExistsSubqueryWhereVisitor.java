@@ -37,10 +37,7 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.impl.ast.CollectingVisitorBuilder;
 import com.splicemachine.db.impl.ast.ColumnUtils;
 import com.splicemachine.db.impl.sql.compile.*;
-import com.splicemachine.db.impl.sql.compile.subquery.CorrelatedBronPredicate;
-import com.splicemachine.db.impl.sql.compile.subquery.CorrelatedColumnPredicate;
-import com.splicemachine.db.impl.sql.compile.subquery.CorrelatedEqualityBronPredicate;
-import com.splicemachine.db.impl.sql.compile.subquery.FlatteningUtils;
+import com.splicemachine.db.impl.sql.compile.subquery.*;
 import org.apache.log4j.Logger;
 import splice.com.google.common.collect.Iterables;
 import splice.com.google.common.collect.Lists;
@@ -74,6 +71,8 @@ class ExistsSubqueryWhereVisitor implements Visitor {
     /* For EXISTS subqueries we can move this type of predicate up one level (but not for NOT EXISTS subqueries). */
     private final CorrelatedBronPredicate typeCPredicate;
 
+    private final CorrelatedInequalityBronPredicate typeEPredicate;
+
     private final boolean isNotExistsSubquery;
 
     /* If true indicates that we found something in the subquery where clause that cannot be flattened in any case. */
@@ -82,21 +81,28 @@ class ExistsSubqueryWhereVisitor implements Visitor {
     /* For UNION subqueries we only flatten if typeDCount = 1 and typeCCount = 0 */
     private int typeCCount;
 
-    private List<ColumnReference> typeDCorrelatedColumnReference = Lists.newArrayList();
+    private List<ColumnReference> correlatedColumnReferences = Lists.newArrayList();
 
     private int outerNestingLevel;
 
     private final CorrelatedColumnPredicate correlatedColumnPredicate;
 
+    private boolean multipleOuterTables;
+
+    private SelectNode outerSelectNode;
+
     /**
      * @param subqueryLevel       The level of the subquery we are considering flattening in the enclosing predicate
      * @param isNotExistsSubquery Are we looking at a NOT EXISTS subquery.
      */
-    public ExistsSubqueryWhereVisitor(int subqueryLevel, boolean isNotExistsSubquery) {
+    public ExistsSubqueryWhereVisitor(int subqueryLevel, boolean isNotExistsSubquery, SelectNode outerSelectNode) {
+        this.outerSelectNode     = outerSelectNode;
+        this.multipleOuterTables = outerSelectNode.getFromList().size() > 1;
         this.isNotExistsSubquery = isNotExistsSubquery;
         this.outerNestingLevel = subqueryLevel - 1;
         this.typeDPredicate = new CorrelatedEqualityBronPredicate(this.outerNestingLevel);
         this.typeCPredicate = new CorrelatedBronPredicate(this.outerNestingLevel);
+        this.typeEPredicate = new CorrelatedInequalityBronPredicate(this.outerNestingLevel);
         this.correlatedColumnPredicate = new CorrelatedColumnPredicate(this.outerNestingLevel);
     }
 
@@ -123,8 +129,17 @@ class ExistsSubqueryWhereVisitor implements Visitor {
              * CASE 2: a1 = b1; where one CR is at subquery level and one from outer query.
              */
             if (typeDPredicate.apply(bron)) {
-                typeDCorrelatedColumnReference.add(FlatteningUtils.findColumnReference(bron, outerNestingLevel ));
+                correlatedColumnReferences.add(FlatteningUtils.findColumnReference(bron, outerNestingLevel ));
                 return node;
+            }
+
+            if (typeEPredicate.apply(bron)) {
+                ColumnReference correlatedColumnReference = typeEPredicate.popCorrelatedColumn();
+                if (canLocateColumnInOuterSelect(correlatedColumnReference, outerSelectNode)) {
+                    // Columns from Type E predicates are processed in the same manner as those from Type D predicates
+                    correlatedColumnReferences.add(correlatedColumnReference);
+                    return node;
+                }
             }
 
             /*
@@ -142,6 +157,19 @@ class ExistsSubqueryWhereVisitor implements Visitor {
             }
         }
         return node;
+    }
+
+    private boolean canLocateColumnInOuterSelect(ColumnReference correlatedColumnReference, SelectNode outerSelectNode) throws StandardException {
+        String tableName = correlatedColumnReference.getTableName();
+        String schemaName = correlatedColumnReference.getSchemaName();
+        FromTable fromTable;
+        if (tableName == null || schemaName == null)
+            fromTable = outerSelectNode.getFromList().getFromTableByTableNumber(correlatedColumnReference.getTableNumber());
+        else
+            fromTable = outerSelectNode.getFromList().
+                             getFromTableByName(correlatedColumnReference.getTableName(),
+                                                correlatedColumnReference.getSchemaName(), true);
+        return fromTable != null;
     }
 
     @Override
@@ -162,11 +190,26 @@ class ExistsSubqueryWhereVisitor implements Visitor {
     }
 
     public boolean isFoundUnsupported() {
-        return foundUnsupported;
+        return foundUnsupported ||
+               illegalNotExists();
     }
 
-    public List<ColumnReference> getTypeDCorrelatedColumnReference() {
-        return typeDCorrelatedColumnReference;
+    private boolean illegalNotExists() {
+        if (isNotExistsSubquery && multipleOuterTables) {
+            if (correlatedColumnReferences.size() > 1) {
+                ColumnReference firstColumn = correlatedColumnReferences.get(0);
+                TableName tableName = firstColumn.getTableNameNode();
+                for (int i = 1; i < correlatedColumnReferences.size(); i++) {
+                    if (!correlatedColumnReferences.get(i).getTableNameNode().equals(tableName))
+                        return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public List<ColumnReference> getCorrelatedColumnReferences() {
+        return correlatedColumnReferences;
     }
 
     public int getTypeCCount() {

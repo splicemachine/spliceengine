@@ -424,29 +424,16 @@ public class CastNode extends ValueNode
         {
             case Types.BIT:
             case Types.BOOLEAN:
-                if (cleanCharValue.equals("TRUE"))
-                {
-                    return (ValueNode) getNodeFactory().getNode(
-                            C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                            Boolean.TRUE,
-                            getContextManager());
+                if (cleanCharValue.equals("TRUE")) {
+                    return new BooleanConstantNode(Boolean.TRUE,getContextManager());
                 }
-                else if (cleanCharValue.equals("FALSE"))
-                {
-                    return (ValueNode) getNodeFactory().getNode(
-                            C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                            Boolean.FALSE,
-                            getContextManager());
+                else if (cleanCharValue.equals("FALSE")) {
+                    return new BooleanConstantNode(Boolean.FALSE,getContextManager());
                 }
-                else if (cleanCharValue.equals("UNKNOWN"))
-                {
-                    return (ValueNode) getNodeFactory().getNode(
-                            C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                            null,
-                            getContextManager());
+                else if (cleanCharValue.equals("UNKNOWN")) {
+                    return new BooleanConstantNode(null, getContextManager());
                 }
-                else
-                {
+                else {
                     throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, "boolean");
                 }
 

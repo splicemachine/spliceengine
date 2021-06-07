@@ -214,6 +214,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 
     protected List<Pair<ExecRow, ExecRow>> keyRows;
     protected List<ExecRow> firstIndexColumnKeys;
+    private boolean skipBuildOfFirstKeyColumn = false;
 
     private long numRowsSeen = 0L;
     //
@@ -1728,6 +1729,14 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 
     public boolean getSameStartStopScanKeyPrefix() {
         return sameStartStopScanKeyPrefix;
+    }
+
+    public void setSkipBuildOfFirstKeyColumn(boolean skipBuildOfFirstKeyColumn) {
+        this.skipBuildOfFirstKeyColumn = skipBuildOfFirstKeyColumn;
+    }
+
+    public boolean getSkipBuildOfFirstKeyColumn() {
+        return skipBuildOfFirstKeyColumn;
     }
 
     public void setFirstIndexColumnKeys(List<ExecRow> firstIndexColumnKeys) {
