@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.iapi.sql.olap;
 
+import com.splicemachine.db.shared.ProgressInfo;
+
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -55,4 +57,7 @@ public interface OlapStatus{
     boolean isRunning();
 
     boolean wait(long time, TimeUnit unit) throws InterruptedException;
+
+    String getProgressString();
+    void setProgress(ProgressInfo info);
 }

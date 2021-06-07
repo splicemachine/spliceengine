@@ -182,23 +182,6 @@ public abstract class QueryTreeNode implements Node, Visitable{
         }
     }
 
-    public static TableName makeTableName
-            (
-                    NodeFactory nodeFactory,
-                    ContextManager contextManager,
-                    String schemaName,
-                    String flatName
-            )
-            throws StandardException{
-        return (TableName)nodeFactory.getNode
-                (
-                        C_NodeTypes.TABLE_NAME,
-                        schemaName,
-                        flatName,
-                        contextManager
-                );
-    }
-
     /**
      * Bind the parameters of OFFSET n ROWS and FETCH FIRST n ROWS ONLY, if
      * any.
@@ -1027,7 +1010,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
     }
 
     public TableName makeTableName ( String schemaName, String flatName ) throws StandardException{
-        return makeTableName(getNodeFactory(),getContextManager(),schemaName,flatName);
+        return new TableName(schemaName, flatName, getContextManager());
     }
 
     public boolean isAtomic() throws StandardException{
@@ -1107,9 +1090,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
         if(!found)
             return null;
 
-        TableName tableName=new TableName();
-        tableName.init(nextSynonymSchema,nextSynonymTable);
-        return tableName;
+        return new TableName(nextSynonymSchema, nextSynonymTable, getContextManager());
     }
 
     /**

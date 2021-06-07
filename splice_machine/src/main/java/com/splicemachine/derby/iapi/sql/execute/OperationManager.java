@@ -37,7 +37,7 @@ public interface OperationManager {
      */
     UUID registerOperation(SpliceOperation operation, Thread executingThread, Date submittedTime, DataSetProcessor.Type engine, String rdbIntTkn);
 
-
+    RunningOperation getRunningOperation(UUID uuid);
     /**
      * Unregister an operation that has been closed
      * @param uuid Unique identifier provided by the registerOperation() method
@@ -49,7 +49,8 @@ public interface OperationManager {
      * @param userId user for which we want the operations, or null for all operations
      * @return list of running operations for the given user
      */
-    List<Pair<UUID, RunningOperation>> runningOperations(String userId);
+    List<Pair<String, RunningOperation>> runningOperations(String userId);
+    List<Pair<String, RunningOperation>> runningOperationsDRDA(String userId, String drdaToken);
 
     /**
      * Kill a running operation. Only the user that started the operation might kill it. The database owner can kill any

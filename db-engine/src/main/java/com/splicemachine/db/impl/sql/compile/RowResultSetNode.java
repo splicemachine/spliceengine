@@ -185,7 +185,7 @@ public class RowResultSetNode extends FromTable {
     public void bindExpressions(FromList fromListParam) throws StandardException {
         int nestingLevel;
 
-        subqueries = (SubqueryList) getNodeFactory().getNode(C_NodeTypes.SUBQUERY_LIST, getContextManager());
+        subqueries = new SubqueryList(getContextManager());
 
         aggregateVector = new LinkedList<>();
 
@@ -373,15 +373,12 @@ public class RowResultSetNode extends FromTable {
 
     public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException {
 
-        SubqueryList subqueryList =
-          (SubqueryList) getNodeFactory().getNode( C_NodeTypes.SUBQUERY_LIST, getContextManager());
-        PredicateList predicateList = (PredicateList) getNodeFactory().getNode( C_NodeTypes.PREDICATE_LIST, getContextManager());
-                FromList localFromList = fromList == null ?
-            (FromList) getNodeFactory().getNode( C_NodeTypes.FROM_LIST,
-                             getNodeFactory().doJoinOrderOptimization(),
-                             getContextManager()) : fromList;
+        SubqueryList subqueryList = new SubqueryList(getContextManager());
+        PredicateList predicateList = new PredicateList(getContextManager());
+        FromList localFromList = fromList == null ?
+                new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager()) : fromList;
 
-                assignResultSetNumber();
+        assignResultSetNumber();
         resultColumns.preprocess(numTables, localFromList, subqueryList, predicateList);
 
         if (!subqueries.isEmpty()) {
@@ -441,9 +438,7 @@ public class RowResultSetNode extends FromTable {
         prRCList.genVirtualColumnNodes(this, resultColumns);
 
         /* Put the new predicate in a list */
-        predList = (PredicateList) getNodeFactory().getNode(
-                                        C_NodeTypes.PREDICATE_LIST,
-                                        getContextManager());
+        predList = new PredicateList(getContextManager());
         predList.addPredicate(predicate);
 
         /* Finally, we create the new ProjectRestrictNode */
@@ -575,13 +570,9 @@ public class RowResultSetNode extends FromTable {
         ** CostEstimate object, so we can represent the cost of this node.
         ** This seems like overkill, but it's just an object allocation...
         */
-        Optimizer optimizer = getOptimizer(
-                (FromList) getNodeFactory().getNode(C_NodeTypes.FROM_LIST,
-                        getNodeFactory().doJoinOrderOptimization(),
+        Optimizer optimizer = getOptimizer( new FromList(getNodeFactory().doJoinOrderOptimization(),
                         getContextManager()),
-                predicateList,
-                dataDictionary,
-                null);
+                predicateList, dataDictionary, null);
         optimizer.setForSpark(forSpark);
         // TODO JL: RESOLVE: THE COST SHOULD TAKE SUBQUERIES INTO ACCOUNT
         generateCostWhenNull(outerRows);

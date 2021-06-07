@@ -221,9 +221,7 @@ public final class CurrentOfNode extends FromTable {
         ** the result columns from preparedStatement and
         ** turn them into an RCL that we can run with.
         */
-        resultColumns = (ResultColumnList) getNodeFactory().getNode(
-                                            C_NodeTypes.RESULT_COLUMN_LIST,
-                                            getContextManager());
+        resultColumns = new ResultColumnList(getContextManager());
         ColumnDescriptorList cdl = td.getColumnDescriptorList();
         int                     cdlSize = cdl.size();
 
@@ -418,11 +416,7 @@ public final class CurrentOfNode extends FromTable {
                         throws StandardException {
         /* Get an optimizer so we can get a cost */
         Optimizer optimizer = getOptimizer(
-                                (FromList) getNodeFactory().getNode(
-                                    C_NodeTypes.FROM_LIST,
-                                    getNodeFactory().doJoinOrderOptimization(),
-                                    this,
-                                    getContextManager()),
+                                new FromList(getNodeFactory().doJoinOrderOptimization(), this, getContextManager()),
                                 predicateList,
                                 dataDictionary,
                                 (RequiredRowOrdering) null);

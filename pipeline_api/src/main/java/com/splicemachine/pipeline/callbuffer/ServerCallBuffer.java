@@ -32,6 +32,7 @@ import splice.com.google.common.collect.Lists;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 /**
  * This is a data structure to buffer HBase RPC calls to a specific region server.
@@ -46,6 +47,14 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
 
     private final PartitionServer server;
     private final Writer writer;
+
+    @Override
+    public String toString() {
+        String s = buffers.entrySet().stream()
+                .map( e -> e.getValue().partition().toString() + " => " + e.getValue().getBufferSize() + " entries")
+                .collect(Collectors.joining(", "));
+        return "ServerCallBuffer {KVPairSize=" + getKVPairSize() + ", buffers = " + s + "}";
+    }
 
     /**
      * Map of all the call buffers for each region on this region server.

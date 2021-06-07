@@ -363,23 +363,12 @@ public abstract class DMLStatementNode extends StatementNode {
          */
 
         resultSet = resultSet.bindNonVTITables(
-                dataDictionary,
-                (FromList) getNodeFactory().getNode(
-                        C_NodeTypes.FROM_LIST,
-                        getNodeFactory().doJoinOrderOptimization(),
-                        getContextManager()));
-        resultSet = resultSet.bindVTITables(
-                (FromList) getNodeFactory().getNode(
-                        C_NodeTypes.FROM_LIST,
-                        getNodeFactory().doJoinOrderOptimization(),
-                        getContextManager()));
+                dataDictionary, new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager()));
+        resultSet = resultSet.bindVTITables(new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager()));
     }
 
     protected void bindExpressions(boolean bindResultSet) throws StandardException {
-        FromList fromList = (FromList) getNodeFactory().getNode(
-                C_NodeTypes.FROM_LIST,
-                getNodeFactory().doJoinOrderOptimization(),
-                getContextManager());
+        FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
 
         /* Bind the expressions under the resultSet */
         if (bindResultSet) {
@@ -400,10 +389,7 @@ public abstract class DMLStatementNode extends StatementNode {
      */
 
     protected void bindExpressions() throws StandardException {
-        FromList fromList = (FromList) getNodeFactory().getNode(
-                C_NodeTypes.FROM_LIST,
-                getNodeFactory().doJoinOrderOptimization(),
-                getContextManager());
+        FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
 
         /* Bind the expressions under the resultSet */
         resultSet.bindExpressions(fromList);
@@ -416,10 +402,7 @@ public abstract class DMLStatementNode extends StatementNode {
     }
 
     protected void bindTargetExpressions() throws StandardException {
-        FromList fromList = (FromList) getNodeFactory().getNode(
-                C_NodeTypes.FROM_LIST,
-                getNodeFactory().doJoinOrderOptimization(),
-                getContextManager());
+        FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
 
         /* Bind the expressions under the resultSet */
         resultSet.bindTargetExpressions(fromList, false);
@@ -436,10 +419,7 @@ public abstract class DMLStatementNode extends StatementNode {
      * @throws StandardException Thrown on error
      */
     protected void bindExpressionsWithTables() throws StandardException {
-        FromList fromList = (FromList) getNodeFactory().getNode(
-                C_NodeTypes.FROM_LIST,
-                getNodeFactory().doJoinOrderOptimization(),
-                getContextManager());
+        FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
 
         /* Bind the expressions under the resultSet */
         resultSet.bindExpressionsWithTables(fromList);

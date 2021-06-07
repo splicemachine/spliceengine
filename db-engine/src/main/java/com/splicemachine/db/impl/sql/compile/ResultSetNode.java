@@ -413,10 +413,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
             }
         }
 
-        booleanNode=(BooleanConstantNode)getNodeFactory().getNode(
-                C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                Boolean.TRUE,
-                getContextManager());
+        booleanNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
 
         resultColumn.setExpression(booleanNode);
         resultColumn.setType(booleanNode.getTypeServices());
@@ -438,10 +435,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
      */
     public FromList getFromList()
             throws StandardException{
-        return (FromList)getNodeFactory().getNode(
-                C_NodeTypes.FROM_LIST,
-                getNodeFactory().doJoinOrderOptimization(),
-                getContextManager());
+        return new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
     }
 
     /**
@@ -1337,10 +1331,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
     ResultColumnList getRCLForInsert(InsertNode target,int[] colMap)
             throws StandardException{
         // our newResultCols are put into the bound form straight away.
-        ResultColumnList newResultCols=
-                (ResultColumnList)getNodeFactory().getNode(
-                        C_NodeTypes.RESULT_COLUMN_LIST,
-                        getContextManager());
+        ResultColumnList newResultCols = new ResultColumnList(getContextManager());
 
         /* Create a massaged version of the source RCL.
          * (Much simpler to build new list and then assign to source,
@@ -1690,10 +1681,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
             InsertNode target,int[] colMap)
             throws StandardException{
         // our newResultCols are put into the bound form straight away.
-        ResultColumnList newResultCols=
-                (ResultColumnList)getNodeFactory().getNode(
-                        C_NodeTypes.RESULT_COLUMN_LIST,
-                        getContextManager());
+        ResultColumnList newResultCols = new ResultColumnList(getContextManager());
 
         int numTargetColumns=target.resultColumnList.size();
 
@@ -1712,11 +1700,8 @@ public abstract class ResultSetNode extends QueryTreeNode{
                 oldResultColumn=
                         resultColumns.getResultColumn(colMap[index]+1);
 
-                newColumnReference=(ColumnReference)getNodeFactory().getNode(
-                        C_NodeTypes.COLUMN_REFERENCE,
-                        oldResultColumn.getName(),
-                        null,
-                        getContextManager());
+                newColumnReference= new ColumnReference(oldResultColumn.getName(),
+                        null, getContextManager());
                 /* The ColumnReference points to the source of the value */
                 newColumnReference.setSource(oldResultColumn);
                 // colMap entry is 0-based, columnId is 1-based.

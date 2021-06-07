@@ -1401,6 +1401,7 @@ public class FromBaseTable extends FromTable {
             finalCostEstimate = firstPassCostEstimate = firstPassCostEstimate.cloneMe();
             AccessPath firstPassAccessPath = new AccessPathImpl(optimizer);
             firstPassAccessPath.copy(currentAccessPath);
+            currentAccessPath.setNumUnusedLeadingIndexFields(0);
             disableIndexPrefixIteration = true;
             CostEstimate secondPassCostEstimate =
                 estimateCostHelper(predList, cd, outerCost, optimizer, rowOrdering);
@@ -1416,10 +1417,13 @@ public class FromBaseTable extends FromTable {
 
     private void reduceEstimatedCosts(AccessPath accessPath) {
         accessPath.setCostEstimate(accessPath.getCostEstimate().cloneMe());
-
-        double costScaleFactor = 1e-9;
         CostEstimate estimate = accessPath.getCostEstimate();
 
+        reduceEstimatedCosts(estimate);
+    }
+
+    private void reduceEstimatedCosts(CostEstimate estimate) {
+        double costScaleFactor = 1e-9;
         estimate.setLocalCost(estimate.getLocalCost() * costScaleFactor);
         estimate.setRemoteCost(estimate.getRemoteCost() * costScaleFactor);
         estimate.setLocalCostPerParallelTask(estimate.getLocalCostPerParallelTask() * costScaleFactor);
@@ -1842,6 +1846,7 @@ public class FromBaseTable extends FromTable {
         boolean oldIsAntiJoin = outerCost.isAntiJoin();
         outerCost.setAntiJoin(isAntiJoin);
         currentJoinStrategy.estimateCost(this, baseTableRestrictionList, cd, outerCost, optimizer, costEstimate);
+        adjustCostsForHintedIndexPrefixIteration(costEstimate, baseTableRestrictionList, optimizer);
         outerCost.setAntiJoin(oldIsAntiJoin);
         tracer.trace(OptimizerFlag.COST_OF_N_SCANS,tableNumber,0,outerCost.rowCount(),costEstimate, correlationName);
 
@@ -1849,6 +1854,24 @@ public class FromBaseTable extends FromTable {
         currentJoinStrategy.putBasePredicates(predList, baseTableRestrictionList);
 
         return costEstimate;
+    }
+
+    // Make the cost of Index Prefix Iteration cheaper if the
+    // favorUnionedIndexScans session hint is used.
+    private void
+    adjustCostsForHintedIndexPrefixIteration(CostEstimate costEstimate, PredicateList predList, Optimizer optimizer) {
+        if (!getLanguageConnectionContext().favorIndexPrefixIteration())
+            return;
+
+        if (optimizer.getOuterTable() instanceof Optimizable) {
+            Optimizable opt = (Optimizable)optimizer.getOuterTable();
+            AccessPath ap = opt.getCurrentAccessPath();
+            if (ap.getNumUnusedLeadingIndexFields() > 0)
+                reduceEstimatedCosts(costEstimate);
+        }
+        else if (currentAccessPath.getNumUnusedLeadingIndexFields() > 0) {
+            reduceEstimatedCosts(costEstimate);
+        }
     }
 
     @Override
@@ -2000,8 +2023,8 @@ public class FromBaseTable extends FromTable {
         ResultColumnList derivedRCL=resultColumns;
 
         // make sure there's a restriction list
-        restrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
-        baseTableRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+        restrictionList = new PredicateList(getContextManager());
+        baseTableRestrictionList = new PredicateList(getContextManager());
 
         CompilerContext compilerContext=getCompilerContext();
 
@@ -2416,21 +2439,11 @@ public class FromBaseTable extends FromTable {
                 return;
             }
 
-            ValueNode rowLocationNode=(ValueNode)getNodeFactory().getNode(
-                    C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
-                    getContextManager());
-
+            ValueNode rowLocationNode = new CurrentRowLocationNode(getContextManager());
             rowLocationNode.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
-                            false        /* Not nullable */
-                    )
-            );
+                                                            false /* Not nullable */ ));
 
-            rowIdColumn=(ResultColumn)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    colName,
-                    rowLocationNode,
-                    getContextManager());
-
+            rowIdColumn = new ResultColumn(colName, rowLocationNode, getContextManager());
             rowIdColumn.markGenerated();
         }
     }
@@ -2467,9 +2480,7 @@ public class FromBaseTable extends FromTable {
         if(exposedTableName.getSchemaName()==null && correlationName==null)
             exposedTableName.bind(this.getDataDictionary());
 
-        TableName temporaryTableName = (TableName) getNodeFactory().getNode(
-                                           C_NodeTypes.TABLE_NAME,
-                                           exposedTableName.getSchemaName(),
+        TableName temporaryTableName = new TableName(exposedTableName.getSchemaName(),
                                            getLanguageConnectionContext().mangleTableName(exposedTableName.getTableName()),
                                            exposedTableName.getContextManager());
         /*
@@ -2671,9 +2682,9 @@ public class FromBaseTable extends FromTable {
         ** best join strategy.
         */
         ContextManager ctxMgr=getContextManager();
-        storeRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
-        nonStoreRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
-        requalificationRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
+        storeRestrictionList = new PredicateList(ctxMgr);
+        nonStoreRestrictionList = new PredicateList(ctxMgr);
+        requalificationRestrictionList = new PredicateList(ctxMgr);
         trulyTheBestJoinStrategy.divideUpPredicateLists(
                 this,
                 joinedTableSet,
@@ -3021,10 +3032,7 @@ public class FromBaseTable extends FromTable {
             boolean cloneRCs)
             throws StandardException{
         IndexRowGenerator irg=idxCD.getIndexDescriptor();
-        ResultColumnList newCols =
-                (ResultColumnList) getNodeFactory().getNode(
-                        C_NodeTypes.RESULT_COLUMN_LIST,
-                        getContextManager());
+        ResultColumnList newCols = new ResultColumnList(getContextManager());
 
         if (irg.isOnExpression()) {
             assert !oldColumns.isEmpty();
@@ -3663,9 +3671,7 @@ public class FromBaseTable extends FromTable {
         exposedName=getExposedTableName();
 
         /* Add all of the columns in the table */
-        rcList=(ResultColumnList)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        rcList = new ResultColumnList(getContextManager());
         ColumnDescriptorList cdl=tableDescriptor.getColumnDescriptorList();
         int cdlSize=cdl.size();
 
@@ -3727,9 +3733,7 @@ public class FromBaseTable extends FromTable {
         exposedName=getExposedTableName();
 
         /* Add all of the columns in the table */
-        ResultColumnList newRcl=(ResultColumnList)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        ResultColumnList newRcl = new ResultColumnList(getContextManager());
         ColumnDescriptorList cdl=tableDescriptor.getColumnDescriptorList();
         int cdlSize=cdl.size();
 
@@ -3743,11 +3747,8 @@ public class FromBaseTable extends FromTable {
             }
 
             if((resultColumn=inputRcl.getResultColumn(position))==null){
-                valueNode=(ValueNode)getNodeFactory().getNode(
-                        C_NodeTypes.COLUMN_REFERENCE,
-                        cd.getColumnName(),
-                        exposedName,
-                        getContextManager());
+                valueNode = new ColumnReference(cd.getColumnName(),
+                        exposedName, getContextManager());
                 resultColumn=(ResultColumn)getNodeFactory().
                         getNode(
                                 C_NodeTypes.RESULT_COLUMN,
@@ -3887,9 +3888,7 @@ public class FromBaseTable extends FromTable {
             return false;
 
         if(trulyTheBestJoinStrategy.isHashJoin()){
-            pl=(PredicateList)getNodeFactory().getNode(
-                    C_NodeTypes.PREDICATE_LIST,
-                    getContextManager());
+            pl = new PredicateList(getContextManager());
             if(storeRestrictionList!=null){
                 pl.nondestructiveAppend(storeRestrictionList);
             }
@@ -4788,9 +4787,7 @@ public class FromBaseTable extends FromTable {
     }
 
     private PredicateList translateBetweenHelper(PredicateList predList) throws StandardException {
-        PredicateList newList = (PredicateList)getNodeFactory().getNode(
-                C_NodeTypes.PREDICATE_LIST,
-                getContextManager());
+        PredicateList newList = new PredicateList(getContextManager());
         boolean translated = false;
 
         for (int i = 0; i < predList.size(); i++) {
@@ -4814,10 +4811,7 @@ public class FromBaseTable extends FromTable {
                 }
                 newList.addOptPredicate(le);
 
-                BooleanConstantNode trueNode = (BooleanConstantNode)getNodeFactory().getNode(
-                        C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                        Boolean.TRUE,
-                        getContextManager());
+                BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
                 newAnd.setRightOperand(trueNode);
 
                 Predicate ge = (Predicate)getNodeFactory().getNode(

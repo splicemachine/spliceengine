@@ -104,8 +104,8 @@ public class OnceResultSet extends NoPutResultSetImpl
      * their values...
 	 *
 	 * @exception StandardException thrown if cursor finished.
-     */
-	public void	openCore() throws StandardException 
+	 */
+	public void openCore() throws StandardException
 	{
 		/* NOTE: We can't get code generation
 		 * to generate calls to reopenCore() for
@@ -132,8 +132,7 @@ public class OnceResultSet extends NoPutResultSetImpl
 		statementContext.setSubqueryResultSet(subqueryNumber, this, 
 											  activation.getNumSubqueries());
 
-		numOpens++;
-	    isOpen = true;
+		isOpen = true;
 		openTime += getElapsedMillis(beginTime);
 	}
 
@@ -151,7 +150,6 @@ public class OnceResultSet extends NoPutResultSetImpl
 	    	SanityManager.ASSERT(isOpen, "OnceResultSet already open");
 
         source.reopenCore();
-		numOpens++;
 
 		openTime += getElapsedMillis(beginTime);
 	}
@@ -242,7 +240,6 @@ public class OnceResultSet extends NoPutResultSetImpl
 	    }
 
 		setCurrentRow(result);
-		rowsSeen++;
 
 		nextTime += getElapsedMillis(beginTime);
 	    return result;
