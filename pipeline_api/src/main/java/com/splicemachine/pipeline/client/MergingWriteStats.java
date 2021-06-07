@@ -22,19 +22,19 @@ import com.splicemachine.pipeline.api.WriteStats;
  *         Date: 2/5/14
  */
 public class MergingWriteStats implements WriteStats {
-    private final Counter writtenCounter;
-    private final Counter retryCounter;
-    private final Counter thrownErrorsRows;
-    private final Counter retriedRows;
-    private final Counter partialRows;
-    private final Counter partialThrownErrorRows;
-    private final Counter partialRetriedRows;
-    private final Counter partialIgnoredRows;
-    private final Counter partialWrite;
-    private final Counter ignoredRows;
-    private final Counter catchThrownRows;
-    private final Counter catchRetriedRows;
-    private final Counter regionTooBusy;
+    public final Counter writtenCounter;
+    public final Counter retryCounter;
+    public final Counter thrownErrorsRows;
+    public final Counter retriedRows;
+    public final Counter partialRows;
+    public final Counter partialThrownErrorRows;
+    public final Counter partialRetriedRows;
+    public final Counter partialIgnoredRows;
+    public final Counter partialWrite;
+    public final Counter ignoredRows;
+    public final Counter catchThrownRows;
+    public final Counter catchRetriedRows;
+    public final Counter regionTooBusy;
 
     public MergingWriteStats(MetricFactory metricFactory) {
         this.writtenCounter = metricFactory.newCounter();

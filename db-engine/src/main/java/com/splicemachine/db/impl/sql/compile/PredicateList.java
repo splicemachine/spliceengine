@@ -75,6 +75,11 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
     public PredicateList(){
     }
 
+    public PredicateList(ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.PREDICATE_LIST);
+    }
+
     /*
      * OptimizableList interface
      */
@@ -594,7 +599,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 Integer position = isIndexUseful(pred, optTable, pushPreds, skipProbePreds, cd);
                 return position != null;
             } else {
-                return pred.getRelop().isQualifier(optTable, pushPreds);
+                return pred.getRelop().isQualifier(optTable, cd, pushPreds);
             }
         }
         return true;
@@ -668,7 +673,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
          * operator or b) it's not a qualifier, then it's not useful for
          * limiting the scan, so skip it.
          */
-        if(!isIn && !isBetween && ((relop==null) || (!isIndexOnExpr && !relop.isQualifier(optTable,pushPreds)))){
+        if(!isIn && !isBetween && ((relop==null) || (!isIndexOnExpr && !relop.isQualifier(optTable, cd, pushPreds)))){
             return null;
         }
 
@@ -1799,14 +1804,14 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
      * @param otherPL  ParameterList for non-qualifiers
      * @throws StandardException Thrown on error
      */
-    protected void transferNonQualifiers(Optimizable optTable,PredicateList otherPL) throws StandardException{
+    protected void transferNonQualifiers(Optimizable optTable, PredicateList otherPL) throws StandardException{
         //Walk list backwards since we can delete while traversing the list.
         for(int index=size()-1;index>=0;index--){
             Predicate pred=elementAt(index);
 
             // Transfer each non-qualifier
             //noinspection ConstantConditions
-            if(!pred.isRelationalOpPredicate() || !pred.getRelop().isQualifier(optTable,false)){
+            if(!pred.isRelationalOpPredicate() || !pred.getRelop().isQualifier(optTable, null, false)){
                 pred.clearScanFlags();
                 removeElementAt(index);
                 otherPL.addElement(pred);
@@ -2061,8 +2066,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         if(searchClause!=null){
             topAnd=(AndNode)searchClause;
             ContextManager contextManager = getContextManager();
-            BooleanConstantNode trueNode=(BooleanConstantNode)getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                    Boolean.TRUE,contextManager);
+            BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE,contextManager);
 
             AndNode firstAndInProbeSet = null;
             while(topAnd.getRightOperand() instanceof AndNode){
@@ -2303,11 +2307,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                         newRelop.bindComparisonOperator();
                         leftOperand = newRelop;
                     } else {
-                        BooleanConstantNode falseNode=(BooleanConstantNode)getNodeFactory().
-                                getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                                        Boolean.FALSE,
-                                        contextManager);
-                        leftOperand = falseNode;
+                        leftOperand = new BooleanConstantNode(Boolean.FALSE, contextManager);
                     }
                 }else{
                     // pushable inlist condition should have been represented as BinaryRelationalOperatorNode
@@ -2316,10 +2316,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 }
 
                 // Convert the predicate into CNF form
-                ValueNode trueNode=(ValueNode)getNodeFactory().getNode(
-                        C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                        Boolean.TRUE,
-                        contextManager);
+                ValueNode trueNode = new BooleanConstantNode(Boolean.TRUE,contextManager);
                 AndNode newAnd=(AndNode)getNodeFactory().getNode(
                         C_NodeTypes.AND_NODE,
                         leftOperand,
@@ -2808,10 +2805,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                                     getContextManager());
                     newEquals.bindComparisonOperator();
                                /* Create the AND */
-                    ValueNode trueNode=(ValueNode)getNodeFactory().getNode(
-                            C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                            Boolean.TRUE,
-                            getContextManager());
+                    ValueNode trueNode= new BooleanConstantNode(Boolean.TRUE,getContextManager());
                     AndNode newAnd=(AndNode)getNodeFactory().getNode(
                             C_NodeTypes.AND_NODE,
                             newEquals,
@@ -3048,10 +3042,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     }
 
                                /* Create the AND */
-                    ValueNode trueNode=(ValueNode)getNodeFactory().getNode(
-                            C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                            Boolean.TRUE,
-                            getContextManager());
+                    ValueNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
                     AndNode newAnd=(AndNode)getNodeFactory().getNode(
                             C_NodeTypes.AND_NODE,
                             roClone,
@@ -5102,6 +5093,17 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 return pred;
         }
         return null;
+    }
+
+    public boolean hasLeadingIndexColumnStartOrStopKey() {
+        for (int i = 0; i < size(); i++) {
+            Predicate p = (Predicate) getOptPredicate(i);
+            if (p.isStartKey() || p.isStopKey()) {
+                if (p.getIndexPosition() == 0)
+                    return true;
+            }
+        }
+        return false;
     }
 
 }

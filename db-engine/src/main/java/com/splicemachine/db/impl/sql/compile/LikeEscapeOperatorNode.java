@@ -654,11 +654,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
          */
 
         AndNode   newAnd   = null;
-        ValueNode trueNode = 
-            (ValueNode) getNodeFactory().getNode(
-                            C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                            Boolean.TRUE,
-                            getContextManager());
+        ValueNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
 
         /* Create the AND <, if lessThanString is non-null or 
          * leftOperand is a parameter.

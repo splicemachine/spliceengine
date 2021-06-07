@@ -256,11 +256,7 @@ public class FromSubquery extends FromTable
     public void bindExpressions(FromList fromListParam)
                     throws StandardException
     {
-        FromList            emptyFromList =
-                                (FromList) getNodeFactory().getNode(
-                                    C_NodeTypes.FROM_LIST,
-                                    getNodeFactory().doJoinOrderOptimization(),
-                                    getContextManager());
+        FromList            emptyFromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
         ResultColumnList    derivedRCL = resultColumns;
         ResultColumnList    subqueryRCL;
         FromList            nestedFromList;
@@ -723,9 +719,7 @@ public class FromSubquery extends FromTable
          */
         exposedName = makeTableName(null, correlationName);
 
-        rcList = (ResultColumnList) getNodeFactory().getNode(
-                                        C_NodeTypes.RESULT_COLUMN_LIST,
-                                        getContextManager());
+        rcList = new ResultColumnList(getContextManager());
 
         /* Build a new result column list based off of resultColumns.
          * NOTE: This method will capture any column renaming due to
@@ -758,10 +752,7 @@ public class FromSubquery extends FromTable
 
             tableName = exposedName;
 
-            valueNode = (ValueNode) getNodeFactory().getNode(
-                                            C_NodeTypes.COLUMN_REFERENCE,
-                                            columnName,
-                                            tableName,
+            valueNode = new ColumnReference(columnName,tableName,
                                             getContextManager());
             resultColumn = (ResultColumn) getNodeFactory().getNode(
                                             C_NodeTypes.RESULT_COLUMN,

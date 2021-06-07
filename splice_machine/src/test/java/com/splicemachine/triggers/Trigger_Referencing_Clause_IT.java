@@ -794,15 +794,16 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
             s.execute("drop trigger mytrig");
 
             // Nested loop join should be illegal on spark
-            // when the NEW TABLE or OLD TABLE is involved.
+            // when the NEW TABLE or OLD TABLE is the inner table.
             testFail("42Y69",
                      "CREATE TRIGGER mytrig\n" +
                         "   AFTER UPDATE OF a,b\n" +
                         "   ON t1\n" +
                         "   REFERENCING OLD TABLE AS OLD NEW TABLE AS NEW\n" +
                         "   FOR EACH STATEMENT\n" +
-                        "   INSERT INTO T2 SELECT NEW.A, NEW.B from NEW --splice-properties joinStrategy=nestedloop \n" +
-                        "   , T1 --splice-properties joinStrategy=nestedloop \n", s);
+                        "   INSERT INTO T2 SELECT NEW.A, NEW.B from --splice-properties joinOrder=fixed \n" +
+                        "   T1, " +
+                        "   NEW --splice-properties joinStrategy=nestedloop \n", s);
         }
     }
 
@@ -967,7 +968,7 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
         }
     }
 
-    // Cause trigger rows to go over 10000000, causing a
+    // Cause trigger rows to go over 1000000, causing a
     // rollback and switch to spark execution.
     @Test
     public void testNestedTriggersSwitchToSpark() throws Exception {
@@ -1014,10 +1015,7 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
             s.execute("insert into t1 select * from t1 --splice-properties useSpark=true\n");
             s.execute("insert into t1 select * from t1 --splice-properties useSpark=true\n");
             s.execute("insert into t1 select * from t1 --splice-properties useSpark=true\n");
-            s.execute("insert into t1 select * from t1 --splice-properties useSpark=true\n");  // 327680 rows
             s.execute("insert into t1 select * from t1 --splice-properties useSpark=true\n");
-            s.execute("insert into t1 select * from t1 --splice-properties useSpark=true\n");
-            s.execute("insert into t1 select * from t1 --splice-properties useSpark=true\n");  // 2621440 rows
 
 
             s.execute("CREATE TRIGGER mytrig\n" +
@@ -1051,9 +1049,9 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
             s.execute("insert into t2 select * from t1");
 
             String query = "select count(*) from t2";
-            String expected = "1    |\n" +
-                              "---------\n" +
-                              "2621440 |";
+            String expected = "1   |\n" +
+                              "--------\n" +
+                              "327680 |";
             testQuery(query, expected, s);
 
             query = "select count(*) from t3";
@@ -1061,8 +1059,8 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
 
             query = "select count(*) from t4";
             expected = "1    |\n" +
-                       "----------\n" +
-                       "15728640 |";
+            "---------\n" +
+            "1966080 |";
             testQuery(query, expected, s);
 
             query = "select count(*) from t5";

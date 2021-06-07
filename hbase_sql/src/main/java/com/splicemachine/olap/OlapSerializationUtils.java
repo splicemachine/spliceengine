@@ -16,7 +16,6 @@ package com.splicemachine.olap;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ZeroCopyLiteralByteString;
-import com.splicemachine.olap.OlapMessage;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 
 import java.io.*;
@@ -29,10 +28,10 @@ class OlapSerializationUtils{
 
     @SuppressWarnings("unchecked")
     public static <R extends Serializable> R decode(ByteString commandBytes) throws IOException{
-        InputStream is = commandBytes.newInput();
-        ObjectInputStream ois = new ObjectInputStream(is);
-        try{
-            return (R)ois.readObject(); //shouldn't be a problem with any IOExceptions
+
+        try (InputStream is = commandBytes.newInput();
+             ObjectInputStream ois = new ObjectInputStream(is)) {
+            return (R) ois.readObject(); //shouldn't be a problem with any IOExceptions
         }catch(ClassNotFoundException e){
             throw new IOException(e); //shouldn't happen
         }
@@ -68,10 +67,12 @@ class OlapSerializationUtils{
                     response.setType(OlapMessage.Response.Type.NOT_SUBMITTED);
                     OlapMessage.ProgressResponse pr=OlapMessage.ProgressResponse.newBuilder().setTickTimeMillis(tickTime).build();
                     response.setExtension(OlapMessage.ProgressResponse.response,pr);
+                    break;
                 case SUBMITTED:
                 case RUNNING:
                     response.setType(OlapMessage.Response.Type.IN_PROGRESS);
-                    OlapMessage.ProgressResponse build=OlapMessage.ProgressResponse.newBuilder().setTickTimeMillis(tickTime).build();
+                    OlapMessage.ProgressResponse build=OlapMessage.ProgressResponse.newBuilder().setTickTimeMillis(tickTime).
+                            setProgressStr(status.getProgressString()).build();
                     response.setExtension(OlapMessage.ProgressResponse.response,build);
                     break;
                 case CANCELED:

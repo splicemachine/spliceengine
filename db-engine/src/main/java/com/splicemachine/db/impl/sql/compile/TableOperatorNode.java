@@ -620,14 +620,8 @@ public abstract class TableOperatorNode extends FromTable{
                                   boolean forSpark) throws StandardException{
         /* Get an optimizer, so we can get a cost structure */
         Optimizer optimizer = getOptimizer(
-                (FromList)getNodeFactory().getNode(
-                        C_NodeTypes.FROM_LIST,
-                        getNodeFactory().doJoinOrderOptimization(),
-                        this,
-                        getContextManager()),
-                predicateList,
-                dataDictionary,
-                null);
+                new FromList(getNodeFactory().doJoinOrderOptimization(), this, getContextManager()),
+                predicateList, dataDictionary, null);
         optimizer.setForSpark(forSpark);
 
         costEstimate=optimizer.newCostEstimate();
@@ -757,25 +751,23 @@ public abstract class TableOperatorNode extends FromTable{
     protected ResultSetNode optimizeSource(Optimizer optimizer,
                                            ResultSetNode sourceResultSet,
                                            PredicateList predList,
+                                           PredicateList nonPushablePredicates,
                                            JBitSet otherChildReferenceMap,
                                            CostEstimate outerCost) throws StandardException{
         ResultSetNode retval;
 
         if(sourceResultSet instanceof FromTable){
-            FromList optList=(FromList)getNodeFactory().getNode(
-                    C_NodeTypes.FROM_LIST,
-                    getNodeFactory().doJoinOrderOptimization(),
-                    sourceResultSet,
-                    getContextManager());
+            FromList optList = new FromList(getNodeFactory().doJoinOrderOptimization(),
+                    (FromTable) sourceResultSet, getContextManager());
 
             /* If there is no predicate list, create an empty one */
             if(predList==null)
-                predList=(PredicateList)getNodeFactory().getNode(
-                        C_NodeTypes.PREDICATE_LIST,
-                        getContextManager());
+                predList = new PredicateList(getContextManager());
 
             LanguageConnectionContext lcc=getLanguageConnectionContext();
             OptimizerFactory optimizerFactory=lcc.getOptimizerFactory();
+
+            boolean forSpark = optimizer != null ? optimizer.isForSpark() : false;
             optimizer=optimizerFactory.getOptimizer(optList,
                                                     predList,
                                                     getDataDictionary(),
@@ -783,8 +775,11 @@ public abstract class TableOperatorNode extends FromTable{
                                                     getCompilerContext().getMaximalPossibleTableCount(),
                                                     lcc,
                                                     lcc.getCostModel());
+
             optimizer.prepForNextRound();
             optimizer.setAssignedTableMap(otherChildReferenceMap);
+            optimizer.setForSpark(forSpark);
+            optimizer.setNonPushablePredicates(nonPushablePredicates);
 
             if(sourceResultSet==leftResultSet){
                 leftOptimizer=optimizer;

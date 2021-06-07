@@ -19,8 +19,6 @@ import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.services.context.Context;
-import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultDescription;
@@ -93,8 +91,6 @@ public class TriggerHandler {
     private byte[] token;
     private boolean hasSpecialFromTableTrigger;
     private SPSDescriptor fromTableDmlSpsDescriptor;
-    boolean cleanup1Done = false;
-    boolean cleanup2Done = false;
     protected TriggerInfo triggerInfo;
 
     private Function<Function<LanguageConnectionContext,Void>, Callable> withContext;
@@ -213,6 +209,17 @@ public class TriggerHandler {
                 overflowToConglomThreshold = 0;
             }
 
+            // Single row batched updates and inserts may allocate the trigger
+            // row holder again and again, creating the row buffer multiple times
+            // causing memory pressure.  Try to reuse the row holder if possible:
+            if (triggerRowHolder != null) {
+                if (triggerRowHolder.canBeReused(this.isSpark, ConglomID)) {
+                    triggerRowHolder.setTxn(txn);
+                    triggerRowHolder.setTriggerExecutionContext(this.getTriggerExecutionContext());
+                    triggerRowHolder.setActivation(activation);
+                    return;
+                }
+            }
             triggerRowHolder =
                 new TriggerRowHolderImpl(activation, properties, writeInfo.getResultDescription(),
                                          overflowToConglomThreshold, switchToSparkThreshold,
@@ -305,19 +312,11 @@ public class TriggerHandler {
     }
 
     public void cleanup() throws StandardException {
-        // If an Exception is encountered, some resources may be closed more than
-        // once during unwinding of the call stack we want to make sure that
-        // full cleanup isn't indefinitely deferred, and isn't unnecessarily
-        // called multiple times, so add cleanup1Done and cleanup2Done
-        // flags to test if we've gotten here before.
-        if (triggerActivator != null && !cleanup1Done) {
-            cleanup1Done = true;
+        if (triggerActivator != null) {
             triggerActivator.cleanup(false);
         }
-        if (triggerRowHolder != null && !cleanup2Done) {
-            cleanup2Done = true;
+        if (triggerRowHolder != null)
             triggerRowHolder.close();
-        }
     }
 
     public void fireBeforeRowTriggers(ExecRow row) throws StandardException {

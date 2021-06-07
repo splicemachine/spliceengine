@@ -544,15 +544,33 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
 
         if (conglomCreated)
             dropConglomerate();
-        else
-        {
-             if (SanityManager.DEBUG) {
-                 SanityManager.ASSERT(CID == 0, "CID(" + CID + ")==0");
+        else {
+            if (SanityManager.DEBUG) {
+                SanityManager.ASSERT(CID == 0, "CID(" + CID + ")==0");
+            }
         }
-     }
-     state = STATE_UNINIT;
-     lastArraySlot = -1;
-     numRowsIn = 0;
+        state = STATE_UNINIT;
+        lastArraySlot = -1;
+        numRowsIn = 0;
+        writeCoordinator = null;
+        triggerTempPartition = null;
+        triggerTempTableWriteBuffer = null;
+        triggerTempTableflushCallback = null;
+        pipelineBufferCreated = false;
+        conglomCreated = false;
+    }
+
+    public boolean canBeReused(boolean isSpark, long conglomID) {
+        if (CID != conglomID)
+            return false;
+        if (this.isSpark != isSpark)
+            return false;
+        if (conglomCreated || pipelineBufferCreated)
+            return false;
+        if (numRowsIn != 0 || lastArraySlot != -1 || state != STATE_UNINIT)
+            return false;
+
+        return true;
     }
 
     public int getLastArraySlot() { return lastArraySlot; }

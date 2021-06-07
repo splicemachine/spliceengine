@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Describes the input token stream.
  */
@@ -72,6 +74,7 @@ public class Token {
    * token.  Otherwise, see below for a description of the contents of
    * this field.
    */
+  @SuppressFBWarnings("UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD")
   public Token next;
 
   /**
@@ -86,6 +89,7 @@ public class Token {
    * immediately follow it (without an intervening regular token).  If there
    * is no such token, this field is null.
    */
+  @SuppressFBWarnings("UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD")
   public Token specialToken;
 
   /**

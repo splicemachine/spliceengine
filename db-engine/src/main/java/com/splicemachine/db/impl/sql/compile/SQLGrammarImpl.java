@@ -524,9 +524,7 @@ class SQLGrammarImpl {
                                        Properties targetProperties, Vector parameterList)
             throws StandardException
     {
-        FromList   fromList = (FromList) nodeFactory.getNode(
-                C_NodeTypes.FROM_LIST,
-                getContextManager());
+        FromList fromList = new FromList(getContextManager());
 
         fromList.addFromTable(fromTable);
         SelectNode resultSet = new SelectNode(
@@ -556,9 +554,7 @@ class SQLGrammarImpl {
                                         ValueNode whereClause)
             throws StandardException
     {
-        FromList   fromList = (FromList) nodeFactory.getNode(
-                C_NodeTypes.FROM_LIST,
-                getContextManager());
+        FromList fromList = new FromList(getContextManager());
 
         fromList.addFromTable(fromTable);
 
@@ -589,9 +585,7 @@ class SQLGrammarImpl {
                                        ValueNode subQuery) /* inner source subquery for multi column syntax */
             throws StandardException
     {
-        FromList fromList = (FromList) nodeFactory.getNode(
-                C_NodeTypes.FROM_LIST,
-                getContextManager());
+        FromList fromList = new FromList(getContextManager());
         fromList.addFromTable(fromTable);
 
         // Don't flatten the subquery here but build it as a derived table. If we
@@ -667,11 +661,8 @@ class SQLGrammarImpl {
                 innerResultColumn.setName(innerColumnName);
                 innerResultColumn.setNameGenerated(true);
             }
-            ValueNode colRef = (ValueNode) getNodeFactory().getNode(
-                    C_NodeTypes.COLUMN_REFERENCE,
-                    innerColumnName,
-                    ((FromTable)fromList.getNodes().get(1)).getTableName(),
-                    getContextManager());
+            ValueNode colRef = new ColumnReference(innerColumnName,
+                    ((FromTable)fromList.getNodes().get(1)).getTableName(), getContextManager());
             rc.setExpression(colRef);
         }
 
@@ -698,9 +689,7 @@ class SQLGrammarImpl {
     }
 
     SubqueryNode assembleUpdateSubquery(ResultColumnList setClause, FromList fromList) throws StandardException {
-        ResultColumnList innerRCL = (ResultColumnList) nodeFactory.getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        ResultColumnList innerRCL = new ResultColumnList(getContextManager());
 
         boolean generateName;
         for (int index = 0; index < setClause.size(); index++) {
