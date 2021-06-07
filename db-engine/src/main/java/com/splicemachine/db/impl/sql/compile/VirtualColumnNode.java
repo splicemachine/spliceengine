@@ -261,7 +261,7 @@ public class VirtualColumnNode extends ValueNode
         /* If the source is marked as redundant, then continue down
          * the RC/VirtualColumnNode chain.
          */
-        //if (sourceColumn.isRedundant())
+        if (sourceColumn.isRedundant())
         {
             sourceColumn.getExpression().generateExpression(acb, mb);
             return;
