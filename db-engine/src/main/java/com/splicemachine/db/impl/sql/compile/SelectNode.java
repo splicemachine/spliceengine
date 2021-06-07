@@ -148,8 +148,8 @@ public class SelectNode extends ResultSetNode {
     @Override
     public boolean isParallelizable() {
         return isDistinct
-               || (selectAggregates != null && !selectAggregates.isEmpty())
-               || targetTable.isParallelizable();
+                || (selectAggregates != null && !selectAggregates.isEmpty())
+                || targetTable.isParallelizable();
     }
 
     @Override
@@ -162,7 +162,7 @@ public class SelectNode extends ResultSetNode {
     public SelectNode() {
     }
 
-    public SelectNode(ResultColumnList selectList,
+    public SelectNode(ResultColumnList selectColumnList,
                       Object aggregateVector,
                       FromList fromList,
                       ValueNode whereClause,
@@ -171,7 +171,8 @@ public class SelectNode extends ResultSetNode {
                       WindowList windowDefinitionList, ContextManager cm) throws StandardException {
         setContextManager(cm);
         setNodeType(C_NodeTypes.SELECT_NODE);
-        this.init(selectList, aggregateVector, fromList, whereClause, groupByList, havingClause, windowDefinitionList);
+        this.init(selectColumnList, aggregateVector, fromList, whereClause,
+                groupByList, havingClause, windowDefinitionList);
     }
 
     public void init(Object selectList,
@@ -181,7 +182,7 @@ public class SelectNode extends ResultSetNode {
                      Object groupByList,
                      Object havingClause,
                      Object windowDefinitionList)
-    throws StandardException {
+            throws StandardException {
         /* RESOLVE - remove aggregateList from constructor.
          * Consider adding selectAggregates and whereAggregates
          */
@@ -579,19 +580,19 @@ public class SelectNode extends ResultSetNode {
         // Nested SelectNodes will not be scanned by this Visitor.
         if (!getCompilerContext().getDisablePredicateSimplification()) {
             Visitor predSimplVisitor =
-            new PredicateSimplificationVisitor(fromListParam,
-            SelectNode.class);
+                    new PredicateSimplificationVisitor(fromListParam,
+                            SelectNode.class);
             if (whereClause != null)
                 whereClause = (ValueNode) whereClause.accept(predSimplVisitor);
             if (havingClause != null)
                 havingClause = (ValueNode) havingClause.accept(predSimplVisitor);
         }
 
-        if (whereClause instanceof ConstantNode && ((ConstantNode)whereClause).isNull()) {
+        if (whereClause instanceof ConstantNode && ((ConstantNode) whereClause).isNull()) {
             whereClause = new BooleanConstantNode(Boolean.FALSE, getContextManager());
         }
-        if (havingClause instanceof ConstantNode && ((ConstantNode)havingClause).isNull()) {
-            havingClause =  new BooleanConstantNode(Boolean.FALSE, getContextManager());
+        if (havingClause instanceof ConstantNode && ((ConstantNode) havingClause).isNull()) {
+            havingClause = new BooleanConstantNode(Boolean.FALSE, getContextManager());
         }
 
         whereAggregates = new LinkedList<>();
@@ -651,11 +652,11 @@ public class SelectNode extends ResultSetNode {
 
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(fromListParam.size() == fromListParamSize,
-            "fromListParam.size() = " + fromListParam.size() +
-            ", expected to be restored to " + fromListParamSize);
+                    "fromListParam.size() = " + fromListParam.size() +
+                            ", expected to be restored to " + fromListParamSize);
             SanityManager.ASSERT(fromList.size() == fromListSize,
-            "fromList.size() = " + fromList.size() +
-            ", expected to be restored to " + fromListSize);
+                    "fromList.size() = " + fromList.size() +
+                            ", expected to be restored to " + fromListSize);
         }
 
         /* If query is grouped, bind the group by list. */
@@ -722,7 +723,7 @@ public class SelectNode extends ResultSetNode {
      */
     @Override
     public void bindTargetExpressions(FromList fromListParam, boolean checkFromSubquery)
-    throws StandardException {
+            throws StandardException {
         if (checkFromSubquery) {
             /*
              * With a FromSubquery in the FromList we cannot bind target expressions
@@ -775,7 +776,7 @@ public class SelectNode extends ResultSetNode {
         // DERBY-4407: A derived table must have at least one column.
         if (resultColumns.isEmpty()) {
             throw StandardException.newException(
-            SQLState.LANG_EMPTY_COLUMN_LIST);
+                    SQLState.LANG_EMPTY_COLUMN_LIST);
         }
     }
 
@@ -871,7 +872,7 @@ public class SelectNode extends ResultSetNode {
     @Override
     public void rejectParameters() throws StandardException {
         super.rejectParameters();
-        if(fromList != null)
+        if (fromList != null)
             fromList.rejectParameters();
     }
 
@@ -1284,15 +1285,15 @@ public class SelectNode extends ResultSetNode {
         }
 
         prnRSN = (ResultSetNode) getNodeFactory().getNode(
-            C_NodeTypes.PROJECT_RESTRICT_NODE,
-            fromList.elementAt(0),    /* Child ResultSet */
-            resultColumns,        /* Projection */
-            whereClause,            /* Restriction */
-            wherePredicates,/* Restriction as PredicateList */
-            selectSubquerys,/* Subquerys in Projection */
-            whereSubquerys,    /* Subquerys in Restriction */
-            null,
-            getContextManager());
+                C_NodeTypes.PROJECT_RESTRICT_NODE,
+                fromList.elementAt(0),    /* Child ResultSet */
+                resultColumns,        /* Projection */
+                whereClause,            /* Restriction */
+                wherePredicates,/* Restriction as PredicateList */
+                selectSubquerys,/* Subquerys in Projection */
+                whereSubquerys,    /* Subquerys in Restriction */
+                null,
+                getContextManager());
 
         if (getCompilerContext().isProjectionPruningEnabled()) {
             int numPruned = prnRSN.getResultColumns().doProjection(false);
@@ -1337,7 +1338,7 @@ public class SelectNode extends ResultSetNode {
                 if (havingClause != null) {
                     for (ResultColumn childRC : childResultColumns) {
                         IndexExpressionReplacementVisitor ierv =
-                        new IndexExpressionReplacementVisitor(childRC, null);
+                                new IndexExpressionReplacementVisitor(childRC, null);
                         havingClause.accept(ierv);
                     }
                 }
@@ -1360,15 +1361,15 @@ public class SelectNode extends ResultSetNode {
                 aggs = havingAggregates;
             }
             GroupByNode gbn = (GroupByNode) getNodeFactory().getNode(
-                C_NodeTypes.GROUP_BY_NODE,
-                prnRSN,
-                groupByList,
-                aggs,
-                havingClause,
-                havingSubquerys,
-                null,
-                nestingLevel,
-                getContextManager());
+                    C_NodeTypes.GROUP_BY_NODE,
+                    prnRSN,
+                    groupByList,
+                    aggs,
+                    havingClause,
+                    havingSubquerys,
+                    null,
+                    nestingLevel,
+                    getContextManager());
             gbn.considerPostOptimizeOptimizations(originalWhereClause != null);
             // JL-TODO Interesting
             CostEstimate ce = gbn.estimateCost(null, null, optimizer.getOptimizedCost(), optimizer, null);
@@ -1383,13 +1384,13 @@ public class SelectNode extends ResultSetNode {
             // Now we add a window result set wrapped in a PRN on top of what we currently have.
             for (WindowNode windowDefinition : windowDefinitionList) {
                 WindowResultSetNode wrsn =
-                (WindowResultSetNode) getNodeFactory().getNode(
-                C_NodeTypes.WINDOW_RESULTSET_NODE,
-                prnRSN,
-                windowDefinition,
-                null,   // table properties
-                nestingLevel,
-                getContextManager());
+                        (WindowResultSetNode) getNodeFactory().getNode(
+                                C_NodeTypes.WINDOW_RESULTSET_NODE,
+                                prnRSN,
+                                windowDefinition,
+                                null,   // table properties
+                                nestingLevel,
+                                getContextManager());
 
                 prnRSN = wrsn.processWindowDefinition();
                 // TODO-JL NOT OPTIMAL
@@ -1450,11 +1451,11 @@ public class SelectNode extends ResultSetNode {
                  */
                 boolean inSortedOrder = isOrderedResult(resultColumns, prnRSN, !(orderByAndDistinctMerged));
                 prnRSN = (ResultSetNode) getNodeFactory().getNode(
-                C_NodeTypes.DISTINCT_NODE,
-                prnRSN,
-                inSortedOrder,
-                null,
-                getContextManager());
+                        C_NodeTypes.DISTINCT_NODE,
+                        prnRSN,
+                        inSortedOrder,
+                        null,
+                        getContextManager());
                 // TODO NOT-OPTIMAL
                 // Remember whether or not we can eliminate the sort.
                 eliminateSort = eliminateSort || inSortedOrder;
@@ -1469,13 +1470,13 @@ public class SelectNode extends ResultSetNode {
         if (orderByList != null) {
             // Need to remove sort reduction if you are aggregating (hash)
             if (orderByList.isSortNeeded()
-                || (((selectAggregates != null) && (!selectAggregates.isEmpty())) || (groupByList != null))) {
+                    || (((selectAggregates != null) && (!selectAggregates.isEmpty())) || (groupByList != null))) {
                 prnRSN = (ResultSetNode) getNodeFactory().getNode(
-                    C_NodeTypes.ORDER_BY_NODE,
-                    prnRSN,
-                    orderByList,
-                    null,
-                    getContextManager());
+                        C_NodeTypes.ORDER_BY_NODE,
+                        prnRSN,
+                        orderByList,
+                        null,
+                        getContextManager());
                 // TODO JL NOT OPTIMAL
 //                prnRSN.costEstimate=optimizer.getOptimizedCost().cloneMe();
             }
@@ -1499,15 +1500,15 @@ public class SelectNode extends ResultSetNode {
                 topList.removeOrderByColumns();
                 topList.genVirtualColumnNodes(prnRSN, newSelectList);
                 prnRSN = (ResultSetNode) getNodeFactory().getNode(
-                    C_NodeTypes.PROJECT_RESTRICT_NODE,
-                    prnRSN,
-                    topList,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    getContextManager());
+                        C_NodeTypes.PROJECT_RESTRICT_NODE,
+                        prnRSN,
+                        topList,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        getContextManager());
             }
         }
 
@@ -1541,15 +1542,15 @@ public class SelectNode extends ResultSetNode {
             topList.removeGeneratedGroupingColumns();
             topList.genVirtualColumnNodes(prnRSN, newSelectList);
             prnRSN = (ResultSetNode) getNodeFactory().getNode(
-                C_NodeTypes.PROJECT_RESTRICT_NODE,
-                prnRSN,
-                topList,
-                null,
-                null,
-                null,
-                null,
-                null,
-                getContextManager());
+                    C_NodeTypes.PROJECT_RESTRICT_NODE,
+                    prnRSN,
+                    topList,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    getContextManager());
         }
 
         if (!(orderByList != null && orderByList.isSortNeeded()) && orderByQuery) {
@@ -1601,13 +1602,13 @@ public class SelectNode extends ResultSetNode {
         topNode.setResultColumns(newSelectList);
         topList.genVirtualColumnNodes(topNode, newSelectList);
         return (ResultSetNode) getNodeFactory().getNode(
-            C_NodeTypes.ROW_COUNT_NODE,
-            topNode,
-            topList,
-            offset,
-            fetchFirst,
-            hasJDBClimitClause,
-            getContextManager());
+                C_NodeTypes.ROW_COUNT_NODE,
+                topNode,
+                topList,
+                offset,
+                fetchFirst,
+                hasJDBClimitClause,
+                getContextManager());
     }
 
     /**
@@ -1641,7 +1642,7 @@ public class SelectNode extends ResultSetNode {
             return false;
 
         if (!(fromList.elementAt(0) instanceof ProjectRestrictNode) ||
-            !(((ProjectRestrictNode) fromList.elementAt(0)).getChildResult() instanceof FromBaseTable))
+                !(((ProjectRestrictNode) fromList.elementAt(0)).getChildResult() instanceof FromBaseTable))
             return false;
 
         FromBaseTable table = (FromBaseTable) ((ProjectRestrictNode) fromList.elementAt(0)).getChildResult();
@@ -1765,7 +1766,7 @@ public class SelectNode extends ResultSetNode {
             }
         }
         if ((orderByList != null && orderByList.isSortNeeded()) &&
-            (((selectAggregates != null) && (!selectAggregates.isEmpty())) || (groupByList != null))) {
+                (((selectAggregates != null) && (!selectAggregates.isEmpty())) || (groupByList != null))) {
             // Preserve order by sort for aggregates with group by, otherwise
             // the optimizer will optimize away the sort.
             orderByList.setAlwaysSort();
@@ -1836,7 +1837,7 @@ public class SelectNode extends ResultSetNode {
 
         // Aggregation with no GROUP BY always outputs one row.
         if ((selectAggregates != null && !selectAggregates.isEmpty() ||
-             havingAggregates != null && !havingAggregates.isEmpty()) && hasNoGroupBy())
+                havingAggregates != null && !havingAggregates.isEmpty()) && hasNoGroupBy())
             optimizer.setSingleRow(true);
 
         while (optimizer.nextJoinOrder()) {
@@ -1900,7 +1901,8 @@ public class SelectNode extends ResultSetNode {
         ResultSetNode leftResultSet;
         ResultSetNode rightResultSet;
 
-        PredicateList predicateList = (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());;
+        PredicateList predicateList = (PredicateList) getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+        ;
         if (optimizer.getPredicateList() != null)
             optimizer.getPredicateList().copyPredicatesToOtherList(predicateList);
 
@@ -1930,9 +1932,9 @@ public class SelectNode extends ResultSetNode {
                     pred = (Predicate) wherePredicates.getOptPredicate(i);
                     if (pred.isScopedForPush()) {
                         SanityManager.THROWASSERT("Found scoped predicate " +
-                                                  pred.binaryRelOpColRefsToString() +
-                                                  " in WHERE list when no scoped predicates were" +
-                                                  " expected.");
+                                pred.binaryRelOpColRefsToString() +
+                                " in WHERE list when no scoped predicates were" +
+                                " expected.");
                     }
                 }
             }
@@ -2038,22 +2040,22 @@ public class SelectNode extends ResultSetNode {
             if (rightResultSet.getFromSSQ() || rightResultSet instanceof FromTable && ((FromTable) rightResultSet).getOuterJoinLevel() > 0) {
                 rightRCList.setNullability(true);
                 joinNode = (JoinNode) getNodeFactory().getNode(
-                C_NodeTypes.HALF_OUTER_JOIN_NODE,
-                leftResultSet,
-                rightResultSet,
-                null,                          // join clause
-                null,                                // using clause
-                Boolean.FALSE,                       // is right join
-                leftRCList,                          // RCL
-                null,                                // table props
-                getContextManager());
+                        C_NodeTypes.HALF_OUTER_JOIN_NODE,
+                        leftResultSet,
+                        rightResultSet,
+                        null,                          // join clause
+                        null,                                // using clause
+                        Boolean.FALSE,                       // is right join
+                        leftRCList,                          // RCL
+                        null,                                // table props
+                        getContextManager());
             } else {
                 joinNode = new JoinNode(leftResultSet, rightResultSet,
                         null, null, leftRCList, null,
                         //user supplied optimizer overrides
                         fromList.properties,
                         getContextManager()
-                        );
+                );
             }
             joinNode.setCostEstimate(rightResultSet.getCostEstimate());
 
@@ -2063,14 +2065,14 @@ public class SelectNode extends ResultSetNode {
             // We want the predicates to be applied as join predicates
             // instead of after the join.
             JBitSet referencedTableMap = joinNode.getReferencedTableMap();
-            for(int index=predicateList.size()-1;index>=0;index--){
-                Predicate predicate=predicateList.elementAt(index);
-                if(!predicate.getPushable()){
+            for (int index = predicateList.size() - 1; index >= 0; index--) {
+                Predicate predicate = predicateList.elementAt(index);
+                if (!predicate.getPushable()) {
                     continue;
                 }
-                JBitSet curBitSet=predicate.getReferencedSet();
+                JBitSet curBitSet = predicate.getReferencedSet();
                 /* Do we have a match? */
-                if(referencedTableMap.contains(curBitSet)){
+                if (referencedTableMap.contains(curBitSet)) {
                     /* Remap all of the ROWID ColumnReferences to point to the
                      * source ProjectRestrictNode on the right or left of the join.
                      */
@@ -2092,13 +2094,13 @@ public class SelectNode extends ResultSetNode {
                     ((FromTable) rightResultSet).setPostJoinPredicates(null);
                     if (postJoinPredicates.size() > 0) {
                         ((ProjectRestrictNode) newPRNode).getRestrictionList()
-                        .replaceIndexExpression(joinNode.getResultColumns());
+                                .replaceIndexExpression(joinNode.getResultColumns());
                     }
                 }
             }
 
             fromList.setElementAt(newPRNode,
-            0
+                    0
             );
 
             fromList.removeElementAt(1);
@@ -2134,8 +2136,8 @@ public class SelectNode extends ResultSetNode {
     @Override
     public boolean referencesTarget(String name, boolean baseTable) throws StandardException {
         return fromList.referencesTarget(name, baseTable)
-               || (selectSubquerys != null && selectSubquerys.referencesTarget(name, baseTable))
-               || (whereSubquerys != null && whereSubquerys.referencesTarget(name, baseTable));
+                || (selectSubquerys != null && selectSubquerys.referencesTarget(name, baseTable))
+                || (whereSubquerys != null && whereSubquerys.referencesTarget(name, baseTable));
     }
 
     /**
@@ -2172,8 +2174,8 @@ public class SelectNode extends ResultSetNode {
     @Override
     public boolean referencesSessionSchema() throws StandardException {
         return fromList.referencesSessionSchema()
-               || (selectSubquerys != null && selectSubquerys.referencesSessionSchema())
-               || (whereSubquerys != null && whereSubquerys.referencesSessionSchema());
+                || (selectSubquerys != null && selectSubquerys.referencesSessionSchema())
+                || (whereSubquerys != null && whereSubquerys.referencesSessionSchema());
 
     }
 
@@ -2185,8 +2187,8 @@ public class SelectNode extends ResultSetNode {
     @Override
     public boolean referencesTemporaryTable() {
         return fromList.referencesTemporaryTable()
-               || (selectSubquerys != null && selectSubquerys.referencesTemporaryTable())
-               || (whereSubquerys != null && whereSubquerys.referencesTemporaryTable());
+                || (selectSubquerys != null && selectSubquerys.referencesTemporaryTable())
+                || (whereSubquerys != null && whereSubquerys.referencesTemporaryTable());
     }
 
     /**
@@ -2366,7 +2368,7 @@ public class SelectNode extends ResultSetNode {
          *        we will think it is the default schema Beetle 4417
          */
         targetTableDescriptor = getTableDescriptor(targetTable.getBaseTableName(),
-        getSchemaDescriptor(((FromBaseTable) targetTable).getTableNameField().getSchemaName()));
+                getSchemaDescriptor(((FromBaseTable) targetTable).getTableNameField().getSchemaName()));
         assert targetTableDescriptor != null;
         if (targetTableDescriptor.getTableType() == TableDescriptor.SYSTEM_TABLE_TYPE) {
             if (SanityManager.DEBUG)
@@ -2420,7 +2422,7 @@ public class SelectNode extends ResultSetNode {
     @Override
     boolean subqueryReferencesTarget(String name, boolean baseTable) throws StandardException {
         return (selectSubquerys != null && selectSubquerys.referencesTarget(name, baseTable))
-               || (whereSubquerys != null && whereSubquerys.referencesTarget(name, baseTable));
+                || (whereSubquerys != null && whereSubquerys.referencesTarget(name, baseTable));
     }
 
     /**
@@ -2494,7 +2496,7 @@ public class SelectNode extends ResultSetNode {
     @Override
     boolean returnsAtMostOneRow() throws StandardException {
         return groupByList == null && selectAggregates != null && !selectAggregates.isEmpty() ||
-               LimitOffsetVisitor.fetchNumericValue(fetchFirst) == 1;
+                LimitOffsetVisitor.fetchNumericValue(fetchFirst) == 1;
     }
 
     /**
@@ -2717,7 +2719,7 @@ public class SelectNode extends ResultSetNode {
         //e.g., 1 row is returned for the following query:
         //select max(a1) from t1 where 1=0;
         if (selectAggregates != null && !selectAggregates.isEmpty() ||
-            havingAggregates != null && !havingAggregates.isEmpty()) {
+                havingAggregates != null && !havingAggregates.isEmpty()) {
             if (groupByList == null || groupByList.isEmpty()) {
                 sat = Satisfiability.NEITHER;
                 return false;
@@ -2821,7 +2823,7 @@ public class SelectNode extends ResultSetNode {
         }
 
         // Manufacture a RowResultSetNode
-        RowResultSetNode rowResultSetNode = (RowResultSetNode) nf.getNode( C_NodeTypes.ROW_RESULT_SET_NODE, rowRCL, null, cm);
+        RowResultSetNode rowResultSetNode = (RowResultSetNode) nf.getNode(C_NodeTypes.ROW_RESULT_SET_NODE, rowRCL, null, cm);
         FromList tmpFromList = new FromList(nf.doJoinOrderOptimization(), cm);
         rowResultSetNode.bindExpressions(tmpFromList);
         rowResultSetNode.setLevel(((FromTable) fromList.elementAt(0)).getLevel());
@@ -2848,15 +2850,15 @@ public class SelectNode extends ResultSetNode {
 
         // Add ProjectRestrictNode ontop with unsat condition
         ProjectRestrictNode newPRN = (ProjectRestrictNode) nf.getNode(
-            C_NodeTypes.PROJECT_RESTRICT_NODE,
-            rowResultSetNode,        /* Child ResultSet */
-            prRCL,    /* Projection */
-            null,            /* Restriction */
-            predList,            /* Restriction as PredicateList */
-            null,            /* Subquerys in Projection */
-            null,            /* Subquerys in Restriction */
-            null,          /* table properties */
-            getContextManager());
+                C_NodeTypes.PROJECT_RESTRICT_NODE,
+                rowResultSetNode,        /* Child ResultSet */
+                prRCL,    /* Projection */
+                null,            /* Restriction */
+                predList,            /* Restriction as PredicateList */
+                null,            /* Subquerys in Projection */
+                null,            /* Subquerys in Restriction */
+                null,          /* table properties */
+                getContextManager());
 
         newPRN.setLevel(rowResultSetNode.getLevel());
         // set referenced tableMap for the PRN
@@ -2877,9 +2879,9 @@ public class SelectNode extends ResultSetNode {
 
     public List<QueryTreeNode> collectReferencedColumns() throws StandardException {
         CollectingVisitor<QueryTreeNode> cnVisitor = new ColumnCollectingVisitor(
-        Predicates.or(Predicates.instanceOf(ColumnReference.class),
-        Predicates.instanceOf(VirtualColumnNode.class),
-        Predicates.instanceOf(OrderedColumn.class)));
+                Predicates.or(Predicates.instanceOf(ColumnReference.class),
+                        Predicates.instanceOf(VirtualColumnNode.class),
+                        Predicates.instanceOf(OrderedColumn.class)));
         // collect column references from different components
 
         if (whereClause != null)
@@ -2964,7 +2966,7 @@ public class SelectNode extends ResultSetNode {
         if (groupByList == null || groupByList.isEmpty())
             return true;
         if (groupByList.size() != 1 ||
-            !(groupByList.elementAt(0) instanceof GroupByColumn))
+                !(groupByList.elementAt(0) instanceof GroupByColumn))
             return false;
 
         GroupByColumn groupByColumn = (GroupByColumn) groupByList.elementAt(0);
@@ -3049,7 +3051,7 @@ public class SelectNode extends ResultSetNode {
     }
 
     public void setFetchFirst(ValueNode fetchFirst) {
-        this.fetchFirst=fetchFirst;
+        this.fetchFirst = fetchFirst;
     }
 
     public boolean hasWindowFunction() {
@@ -3064,5 +3066,19 @@ public class SelectNode extends ResultSetNode {
         if (havingAggregates != null && !havingAggregates.isEmpty())
             return true;
         return false;
+    }
+
+    @Override
+    public String toString2() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("SelectNode\n");
+        Node.append2(sb, "fromList", "  ", fromList);
+        Node.append2(sb, "resultColumns", "  ", resultColumns);
+        Node.append2(sb, "whereClause", "  ", whereClause);
+        Node.append2(sb, "groupByList", "  ", groupByList);
+        Node.append2(sb, "havingClause", "  ", havingClause);
+        Node.append2(sb, "windowDefList", "  ", windowDefinitionList);
+        Node.append2(sb, "orderByList", "  ", orderByList);
+        return sb.toString();
     }
 }

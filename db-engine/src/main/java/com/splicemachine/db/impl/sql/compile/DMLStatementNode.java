@@ -518,4 +518,12 @@ public abstract class DMLStatementNode extends StatementNode {
     public void setUseSparkOverride(Boolean useSparkOverride) {
         this.useSparkOverride = useSparkOverride;
     }
+
+    @Override
+    public String toString2() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("DMLStatementNode\n");
+        Node.append2(sb,"resultSet", "  ",resultSet);
+        return sb.toString();
+    }
 }

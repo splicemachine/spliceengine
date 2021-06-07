@@ -96,6 +96,8 @@ public interface Activation extends Dependent, AutoCloseable
      */
     void    reset() throws StandardException;
 
+    void setResultDescription(ResultDescription resultDescription);
+
     /**
      * JDBC requires that all select statements be converted into cursors,
      * and that the cursor name be settable for each execution of a select

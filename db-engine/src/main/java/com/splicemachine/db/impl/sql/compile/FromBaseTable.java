@@ -1974,13 +1974,16 @@ public class FromBaseTable extends FromTable {
     @Override
     public String toString(){
         if(SanityManager.DEBUG){
-            return  StringUtils.printN("tableName",       tableName)       + "\n" +
-                    StringUtils.printN("tableDescriptor", tableDescriptor) + "\n" +
-                    StringUtils.printN("updateOrDelete",  updateOrDelete)  + "\n" +
-                    StringUtils.printN("tableProperties", tableProperties) + "\n" +
-                    StringUtils.printN("existsTable",     existsTable)     + "\n" +
-                    StringUtils.printN("dependencyMap",   dependencyMap)   + "\n" +
-                    super.toString();
+            StringBuilder sb = new StringBuilder();
+            sb.append("FromBaseTable\n");
+            Node.append2(sb,"tableName", "  ",      tableName);
+            Node.append2(sb,"tableDescriptor", "  ",tableDescriptor);
+            Node.append2(sb,"updateOrDelete", "  ", updateOrDelete);
+            Node.append2(sb,"tableProperties", "  ",tableProperties);
+            Node.append2(sb,"existsTable", "  ",    existsTable);
+            Node.append2(sb,"dependencyMap", "  ",  dependencyMap);
+            //super.toString();
+            return sb.toString();
         }else{
             return "";
         }

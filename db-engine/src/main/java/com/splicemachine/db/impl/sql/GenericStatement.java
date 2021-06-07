@@ -64,7 +64,7 @@ import com.splicemachine.system.SparkVersion;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -1124,13 +1124,36 @@ public class GenericStatement implements Statement{
         return endTimestamp;
     }
 
+    public static String dumpNode(StatementNode qt) {
+        if(!SanityManager.DEBUG) return "";
+        StringWriter out    = new StringWriter();
+        PrintWriter  writer = new PrintWriter(out);
+        PrintWriter old = SanityManager.GET_DEBUG_STREAM();
+        SanityManager.SET_DEBUG_STREAM(writer);
+        qt.treePrint();
+        SanityManager.SET_DEBUG_STREAM(old);
+        return out.toString();
+    }
+
     private void dumpParseTree(LanguageConnectionContext lcc,StatementNode qt,boolean stopAfter) throws StandardException{
         if(SanityManager.DEBUG){
-            if(SanityManager.DEBUG_ON("DumpParseTree")){
+            //if(SanityManager.DEBUG_ON("DumpParseTree"))
+            {
+                File file = new File("/tmp/out");
+                file.getParentFile().mkdirs();
+
+                PrintWriter printWriter = null;
+                try {
+                    printWriter = new PrintWriter(file);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+                SanityManager.SET_DEBUG_STREAM(printWriter);
                 SanityManager.GET_DEBUG_STREAM().print("\n\n============PARSE===========\n\n");
                 qt.treePrint();
                 lcc.getPrintedObjectsMap().clear();
                 SanityManager.GET_DEBUG_STREAM().print("\n\n============END PARSE===========\n\n");
+                SanityManager.GET_DEBUG_STREAM().flush();
             }
 
             if(stopAfter && SanityManager.DEBUG_ON("StopAfterParsing")){
@@ -1143,7 +1166,8 @@ public class GenericStatement implements Statement{
 
     private void dumpBoundTree(LanguageConnectionContext lcc,StatementNode qt) throws StandardException{
         if(SanityManager.DEBUG){
-            if(SanityManager.DEBUG_ON("DumpBindTree")){
+//            if(SanityManager.DEBUG_ON("DumpBindTree"))
+            {
                 SanityManager.GET_DEBUG_STREAM().print(
                         "\n\n============BIND===========\n\n");
                 qt.treePrint();
@@ -1160,7 +1184,8 @@ public class GenericStatement implements Statement{
 
     private void dumpOptimizedTree(LanguageConnectionContext lcc,StatementNode qt,boolean stopAfter) throws StandardException{
         if(SanityManager.DEBUG){
-            if(SanityManager.DEBUG_ON("DumpOptimizedTree")){
+//            if(SanityManager.DEBUG_ON("DumpOptimizedTree"))
+            {
                 SanityManager.GET_DEBUG_STREAM().print("\n\n============OPTIMIZED===========\n\n");
                 qt.treePrint();
                 lcc.getPrintedObjectsMap().clear();

@@ -3753,10 +3753,10 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             {
                 ValueNode sourceExpr = rc.getExpression();
 
-                if ( sourceExpr instanceof VirtualColumnNode && ! ( ((VirtualColumnNode) sourceExpr).getCorrelated()) )
-                {
-                    continue;
-                }
+//                if ( sourceExpr instanceof VirtualColumnNode && ! ( ((VirtualColumnNode) sourceExpr).getCorrelated()) )
+//                {
+//                    continue;
+//                }
 
                 //DERBY-4631 - For INNER JOINs and LEFT OUTER
                 // JOINs, Derby retrieves the join column values

@@ -1400,8 +1400,10 @@ public abstract class MethodCallNode extends JavaValueNode
     @Override
     public int hashCode() {
         int result = getBaseHashCode();
-        result = 31 * result + javaClassName.hashCode();
-        result = 31 * result + methodName.hashCode();
+        if(javaClassName != null)
+            result = 31 * result + javaClassName.hashCode();
+        if(methodName != null)
+            result = 31 * result + methodName.hashCode();
         for (JavaValueNode methodParm : methodParms) {
             result = 31 * result + methodParm.hashCode();
         }

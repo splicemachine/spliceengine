@@ -145,7 +145,12 @@ final public class GenericActivationHolder implements Activation
         ac.reset();
     }
 
-        public long getRowsSeen() {
+    @Override
+    public void setResultDescription(ResultDescription resultDescription) {
+        ac.setResultDescription(resultDescription);
+    }
+
+    public long getRowsSeen() {
                 return ac.getRowsSeen();
         }
 

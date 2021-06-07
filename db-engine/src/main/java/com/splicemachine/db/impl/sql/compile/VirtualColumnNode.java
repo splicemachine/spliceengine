@@ -37,7 +37,10 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.Node;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.impl.ast.StringUtils;
 
 import java.util.Collections;
 import java.util.List;
@@ -54,6 +57,12 @@ import java.util.List;
 
 public class VirtualColumnNode extends ValueNode
 {
+    @Override
+    public void acceptChildren(Visitor v) throws StandardException {
+        sourceResultSet.acceptChildren(v);
+        sourceColumn.acceptChildren(v);
+    }
+
     /* A VirtualColumnNode contains a pointer to the immediate child result
      * that is materializing the virtual column and the ResultColumn
      * that represents that materialization.
@@ -115,6 +124,14 @@ public class VirtualColumnNode extends ValueNode
             printLabel(depth, "sourceResultSet: ");
             sourceResultSet.treePrint(depth + 1);
         }
+    }
+
+    public String toString2() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("VirtualColumnNode columnId = " + columnId + "\n");
+        Node.append2(sb, "sourceColumn", "  ", sourceColumn);
+        Node.append2(sb, "sourceResultSet", "  ", sourceResultSet);
+        return sb.toString();
     }
 
     /**
@@ -244,7 +261,7 @@ public class VirtualColumnNode extends ValueNode
         /* If the source is marked as redundant, then continue down
          * the RC/VirtualColumnNode chain.
          */
-        if (sourceColumn.isRedundant())
+        //if (sourceColumn.isRedundant())
         {
             sourceColumn.getExpression().generateExpression(acb, mb);
             return;
@@ -392,4 +409,6 @@ public class VirtualColumnNode extends ValueNode
         return new VirtualColumnNode(sourceResultSet, // source result set.
                 sourceColumn, columnId, getContextManager());
     }
+
+
 }

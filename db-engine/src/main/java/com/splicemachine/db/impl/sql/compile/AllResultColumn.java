@@ -101,4 +101,9 @@ public class AllResultColumn extends ResultColumn
     public TableName getTableNameObject() {
         return tableName;
     }
+
+    @Override
+    public String toString2() {
+		return "AllResultColumn (*) " + tableName;
+	}
 }
