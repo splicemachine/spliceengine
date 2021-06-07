@@ -302,12 +302,7 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
                             timespan.getUnit());
             }
             MethodCallNode methodNode = new StaticMethodCallNode(
-                    getNodeFactory().getNode(
-                            C_NodeTypes.TABLE_NAME,
-                            null,
-                            function,
-                            getContextManager()
-                    ),
+                    new TableName(null, function, getContextManager()),
                     null,
                     getContextManager()
             );

@@ -4,7 +4,6 @@ import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 import com.splicemachine.db.shared.common.sql.Utils;
 import com.splicemachine.db.tools.JDBCDisplayUtil;
 import com.splicemachine.db.impl.tools.ij.ijResultSetResult.ColumnParameters;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.*;

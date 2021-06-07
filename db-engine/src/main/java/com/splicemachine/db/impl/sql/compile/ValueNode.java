@@ -560,10 +560,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
         boolean                 nullableResult;
         NodeFactory                nodeFactory = getNodeFactory();
 
-        falseNode = (BooleanConstantNode) nodeFactory.getNode(
-                                    C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                                    Boolean.FALSE,
-                                    getContextManager());
+        falseNode = new BooleanConstantNode(Boolean.FALSE,getContextManager());
         equalsNode = (BinaryRelationalOperatorNode)
                             nodeFactory.getNode(
                                 C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
@@ -627,10 +624,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     {
         NodeFactory        nodeFactory = getNodeFactory();
 
-        QueryTreeNode trueNode = (QueryTreeNode) nodeFactory.getNode(
-                                        C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                                        Boolean.TRUE,
-                                        getContextManager());
+        QueryTreeNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
         AndNode andNode = (AndNode) nodeFactory.getNode(
                                         C_NodeTypes.AND_NODE,
                                         this,
@@ -1102,7 +1096,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
      *
      * @return Whether or not this node represents a true constant.
      */
-    boolean isBooleanTrue()
+    public boolean isBooleanTrue()
     {
         return false;
     }
@@ -1112,7 +1106,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
      *
      * @return Whether or not this node represents a false constant.
      */
-    boolean isBooleanFalse()
+    public boolean isBooleanFalse()
     {
         return false;
     }

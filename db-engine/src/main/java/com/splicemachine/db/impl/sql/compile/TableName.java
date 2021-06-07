@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -42,7 +44,6 @@ import com.splicemachine.db.iapi.util.IdUtil;
  * represent the names of other object types in addition to tables.
  *
  */
-
 public class TableName extends QueryTreeNode
 {
     /* Both schemaName and tableName can be null, however, if
@@ -51,6 +52,22 @@ public class TableName extends QueryTreeNode
     String    tableName;
     String    schemaName;
     private boolean hasSchema;
+
+
+    public TableName(Object schemaName, String tableName, Integer tokBeginOffset, Integer tokEndOffset, ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.TABLE_NAME);
+        init2(schemaName, tableName, tokBeginOffset, tokEndOffset);
+    }
+
+    public TableName(Object schemaName, String tableName, ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.TABLE_NAME);
+        init2(schemaName, tableName);
+    }
+
+    public TableName() {
+    }
 
     /**
      * Initializer for when you have both the table and schema names.
@@ -61,9 +78,7 @@ public class TableName extends QueryTreeNode
 
     public void init(Object schemaName, Object tableName)
     {
-        hasSchema = schemaName != null;
-        this.schemaName = (String) schemaName;
-        this.tableName = (String) tableName;
+        init2(schemaName, (String) tableName);
     }
 
     /**
@@ -76,17 +91,21 @@ public class TableName extends QueryTreeNode
      * @param tokEndOffset    end position of token for the table name
      *                    identifier from parser.  pass in -1 if unknown
      */
-    public void init
-    (
-        Object schemaName,
-        Object tableName,
-        Object    tokBeginOffset,
-        Object    tokEndOffset
-    )
+    public void init(Object schemaName, Object tableName, Object tokBeginOffset, Object tokEndOffset)
     {
-        init(schemaName, tableName);
-        this.setBeginOffset((Integer) tokBeginOffset);
-        this.setEndOffset((Integer) tokEndOffset);
+        init2(schemaName, (String)tableName, (Integer) tokBeginOffset, (Integer) tokEndOffset);
+    }
+
+    private void init2(Object schemaName, String tableName) {
+        this.hasSchema = schemaName != null;
+        this.schemaName = (String) schemaName;
+        this.tableName = tableName;
+    }
+
+    private void init2(Object schemaName, String tableName, Integer tokBeginOffset, Integer tokEndOffset) {
+        init2(schemaName, tableName);
+        setBeginOffset(tokBeginOffset);
+        setEndOffset(tokEndOffset);
     }
 
     /**

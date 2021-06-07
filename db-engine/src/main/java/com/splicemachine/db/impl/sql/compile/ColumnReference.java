@@ -35,6 +35,7 @@ import com.splicemachine.db.catalog.types.DefaultInfoImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
@@ -154,6 +155,23 @@ public class ColumnReference extends ValueNode {
        and has been remapped multiple times.
      */
     private java.util.ArrayList remaps;
+
+    public ColumnReference() {}
+
+    public ColumnReference(String columnName, TableName tableName, ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.COLUMN_REFERENCE);
+        init(columnName, tableName);
+    }
+
+    public ColumnReference(String columnName, TableName tableName, Integer tokBeginOffset, Integer tokEndOffset,
+                           ContextManager contextManager)
+    {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.COLUMN_REFERENCE);
+        init(columnName, tableName, tokBeginOffset, tokEndOffset);
+    }
+
 
     /**
      * Initializer.
@@ -447,12 +465,7 @@ public class ColumnReference extends ValueNode {
     public ValueNode getClone()
             throws StandardException
     {
-        ColumnReference newCR = (ColumnReference) getNodeFactory().getNode(
-                C_NodeTypes.COLUMN_REFERENCE,
-                columnName,
-                tableName,
-                getContextManager());
-
+        ColumnReference newCR = new ColumnReference(columnName, tableName, getContextManager());
         newCR.copyFields(this);
         return newCR;
     }
@@ -707,10 +720,7 @@ public class ColumnReference extends ValueNode {
         NodeFactory        nodeFactory = getNodeFactory();
         ValueNode        andNode;
 
-        trueNode = (BooleanConstantNode) nodeFactory.getNode(
-                C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                Boolean.TRUE,
-                getContextManager());
+        trueNode = new BooleanConstantNode(Boolean.TRUE, getContextManager());
         equalsNode = (BinaryComparisonOperatorNode)
                 nodeFactory.getNode(
                         C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,

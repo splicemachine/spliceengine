@@ -311,68 +311,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .build();
         procedures.add(sessionInfo);
 
-
-        /*
-         * Procedure to get a list of running operations
-         */
-        Procedure runningOperations = Procedure.newBuilder().name("SYSCS_GET_RUNNING_OPERATIONS")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(spliceAdminClass)
-                .build();
-        procedures.add(runningOperations);
-
-        /*
-         * Procedure to get a list of running operations on the local server
-         */
-        Procedure runningOperationsLocal = Procedure.newBuilder().name("SYSCS_GET_RUNNING_OPERATIONS_LOCAL")
-                .numOutputParams(0)
-                .numResultSets(1)
-                .ownerClass(spliceAdminClass)
-                .build();
-        procedures.add(runningOperationsLocal);
-
-
-        /*
-         * Procedure to kill an executing operation
-         */
-        Procedure killOperationLocal = Procedure.newBuilder().name("SYSCS_KILL_OPERATION_LOCAL")
-                .numOutputParams(0)
-                .varchar("uuid",128)
-                .ownerClass(spliceAdminClass)
-                .build();
-        procedures.add(killOperationLocal);
-
-        /*
-         * Procedure to kill an executing operation
-         */
-        Procedure killOperation = Procedure.newBuilder().name("SYSCS_KILL_OPERATION")
-                .numOutputParams(0)
-                .varchar("uuid",128)
-                .ownerClass(spliceAdminClass)
-                .build();
-        procedures.add(killOperation);
-
-        /*
-         * Procedure to kill an executing DRDA operation
-         */
-        Procedure killDrdaOperationLocal = Procedure.newBuilder().name("SYSCS_KILL_DRDA_OPERATION_LOCAL")
-                .numOutputParams(0)
-                .varchar("rdbIntTkn",512)
-                .ownerClass(spliceAdminClass)
-                .build();
-        procedures.add(killDrdaOperationLocal);
-
-        /*
-         * Procedure to kill an executing DRDA operation
-         */
-        Procedure killDrdaOperation = Procedure.newBuilder().name("SYSCS_KILL_DRDA_OPERATION")
-                .numOutputParams(0)
-                .varchar("rdbIntTkn",512)
-                .ownerClass(spliceAdminClass)
-                .build();
-        procedures.add(killDrdaOperation);
-
+        OperationProcedures.addProcedures(procedures);
 
         /*
          * Procedure to get oldest active transaction id

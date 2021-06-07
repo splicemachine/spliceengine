@@ -473,12 +473,7 @@ abstract class DDLStatementNode extends StatementNode
         if (tableName.getSchemaName() == null)
         { tableName.setSchemaName(getSchemaDescriptor().getSchemaName()); }
         
-        FromList fromList = (FromList) getNodeFactory().getNode
-            (
-             C_NodeTypes.FROM_LIST,
-             getNodeFactory().doJoinOrderOptimization(),
-             getContextManager()
-             );
+        FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
         FromBaseTable table = (FromBaseTable) getNodeFactory().getNode
             (
              C_NodeTypes.FROM_BASE_TABLE,
@@ -493,27 +488,12 @@ abstract class DDLStatementNode extends StatementNode
         {
             table.setTableNumber(0);
             fromList.addFromTable(table);
-            table.setResultColumns
-                ((ResultColumnList) getNodeFactory().getNode
-                 (
-                  C_NodeTypes.RESULT_COLUMN_LIST,
-                  getContextManager()
-                  )
-                 );
+            table.setResultColumns(new ResultColumnList(getContextManager()));
         }
         else // ALTER TABLE
         {
             fromList.addFromTable(table);
-            fromList.bindTables
-                (
-                 dd,
-                 (FromList) getNodeFactory().getNode
-                 (
-                  C_NodeTypes.FROM_LIST,
-                  getNodeFactory().doJoinOrderOptimization(),
-                  getContextManager()
-                  )
-                 );
+            fromList.bindTables(dd, new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager()));
         }
         
         tableElementList.appendNewColumnsToRCL(table);

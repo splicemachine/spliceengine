@@ -97,6 +97,9 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     // table number -> scan selectivity
     private HashMap<Integer, Double> scanSelectivityCache;
 
+    private boolean hasCorrelatedSubquery;
+    private boolean hasCorrelatedSubquerySet;
+
     public ReferencedColumnsMap getReferencedColumns() {
         return referencedColumns;
     }
@@ -133,6 +136,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         this.referencedSet=(JBitSet)referencedSet;
         scoped=false;
         matchIndexExpression=false;
+        hasCorrelatedSubquery = false;
+        hasCorrelatedSubquerySet = false;
     }
 
 	/*
@@ -573,10 +578,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
             IndexRowGenerator irg = cd == null ? null : cd.getIndexDescriptor();
             boolean isOnExpression = irg != null && irg.isOnExpression();
             if (isOnExpression) {
-                trueNode = (QueryTreeNode) getNodeFactory().getNode(
-                        C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                        Boolean.TRUE,
-                        getContextManager());
+                trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
                 tempAnd = (AndNode) getNodeFactory().getNode(
                         C_NodeTypes.AND_NODE,
                         trueNode,  // to be replaced later
@@ -604,7 +606,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
                             return false;
                         }
                     } else {
-                        if(!((RelationalOperator)or_node.getLeftOperand()).isQualifier(optTable, pushPreds)){
+                        if(!((RelationalOperator)or_node.getLeftOperand()).isQualifier(optTable, cd, pushPreds)){
                             // one of the terms is not a pushable Qualifier.
                             return false;
                         }
@@ -1072,9 +1074,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         // need to create an AndNode representing:
         //    <scoped_bin_rel_op> AND TRUE
         // First create the boolean constant for TRUE.
-        ValueNode trueNode=(ValueNode)getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                Boolean.TRUE,
-                getContextManager());
+        ValueNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
 
         // Create and bind a new AND node in CNF form,
         // i.e. "<newOpNode> AND TRUE".
@@ -1541,14 +1541,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     }
 
     public static Predicate generateUnsatPredicate(int numTables, NodeFactory nf, ContextManager cm) throws StandardException{
-        BooleanConstantNode trueNode=(BooleanConstantNode)nf.
-                getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                        Boolean.TRUE,
-                        cm);
-        BooleanConstantNode falseNode=(BooleanConstantNode)nf.
-                getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                        Boolean.FALSE,
-                        cm);
+        BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE,cm);
+        BooleanConstantNode falseNode = new BooleanConstantNode(Boolean.FALSE,cm);
         AndNode andNode = (AndNode)nf.
                 getNode(C_NodeTypes.AND_NODE,
                         falseNode,
@@ -1796,5 +1790,24 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
             getReferencedSet(),
             getContextManager());
         return newPred;
+    }
+
+    @Override
+    public boolean hasCorrelatedSubquery() throws StandardException {
+        if(hasCorrelatedSubquerySet) {
+            return hasCorrelatedSubquery;
+        }
+        hasCorrelatedSubquerySet = true;
+        CollectNodesVisitor visitor= new CollectNodesVisitor(SubqueryNode.class);
+        this.accept(visitor);
+        @SuppressWarnings("unchecked") List<SubqueryNode> subqueryNodes=visitor.getList();
+        for(SubqueryNode subqueryNode : subqueryNodes) {
+            if(subqueryNode.hasCorrelatedCRs()) {
+                hasCorrelatedSubquery = true;
+                return hasCorrelatedSubquery;
+            }
+        }
+        hasCorrelatedSubquery = false;
+        return hasCorrelatedSubquery;
     }
 }

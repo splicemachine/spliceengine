@@ -697,10 +697,7 @@ public class TableElementList extends QueryTreeNodeVector {
              * copy it to the cdn.  Thus we can build the array of
              * column names for the referenced columns during generate().
              */
-            ResultColumnList refRCL =
-                        (ResultColumnList) getNodeFactory().getNode(
-                                                C_NodeTypes.RESULT_COLUMN_LIST,
-                                                getContextManager());
+            ResultColumnList refRCL = new ResultColumnList(getContextManager());
             rcl.copyReferencedColumnsToNewList(refRCL);
 
             /* A column check constraint can only refer to that column. If this is a

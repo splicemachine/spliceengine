@@ -427,11 +427,8 @@ public class SubqueryNode extends ValueNode{
         }
         rc = setOperatorNode.getResultColumns().elementAt(columnPosition);
         rc.setName(columnName);
-        ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
-            C_NodeTypes.COLUMN_REFERENCE,
-            columnName,
-            null,
-            getContextManager());
+        ColumnReference columnReference =
+                new ColumnReference(columnName, null, getContextManager());
         rc.setExpression(columnReference);
     }
 
@@ -471,10 +468,7 @@ public class SubqueryNode extends ValueNode{
                                             null,  // derivedRCL,
                                             null,  // optionalTableClauses
                                             getContextManager());
-        FromList newFromList = (FromList) getNodeFactory().getNode(
-                C_NodeTypes.FROM_LIST,
-                getNodeFactory().doJoinOrderOptimization(),
-                getContextManager());
+        FromList newFromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
         newFromList.addFromTable(fromTable);
 
         ResultColumnList selectList = setOperatorNode.getResultColumns().copyListAndObjects();
@@ -488,10 +482,7 @@ public class SubqueryNode extends ValueNode{
             String exposedColName = dummyColName + index;
             rc.setName(exposedColName);
             updateColumnNamesInSetQuery(setOperatorNode, exposedColName, index);
-            ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
-                C_NodeTypes.COLUMN_REFERENCE,
-                exposedColName,
-                null,
+            ColumnReference columnReference = new ColumnReference(exposedColName, null,
                 getContextManager());
             rc.setExpression(columnReference);
         }
@@ -2169,10 +2160,7 @@ public class SubqueryNode extends ValueNode{
          * the new join condition.
          */
         if(leftOperand==null){
-            return (ValueNode)getNodeFactory().getNode(
-                    C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                    Boolean.TRUE,
-                    getContextManager());
+            return new BooleanConstantNode(Boolean.TRUE,getContextManager());
         }else{
             ValueNode rightOperand=getRightOperand();
             /* If the right operand is a CR, then we need to decrement
@@ -2484,10 +2472,7 @@ public class SubqueryNode extends ValueNode{
 
         if (leftNullable || rightNullable) {
             /* Create a normalized structure */
-            BooleanConstantNode falseNode = (BooleanConstantNode) getNodeFactory().getNode(
-                    C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                    Boolean.FALSE,
-                    getContextManager());
+            BooleanConstantNode falseNode = new BooleanConstantNode(Boolean.FALSE,getContextManager());
             OrNode newOr = (OrNode) getNodeFactory().getNode(
                     C_NodeTypes.OR_NODE,
                     newTop,
@@ -2712,11 +2697,8 @@ public class SubqueryNode extends ValueNode{
 
     /* Private methods on private variables */
     private BooleanConstantNode getTrueNode() throws StandardException{
-        if(trueNode==null){
-            trueNode=(BooleanConstantNode)getNodeFactory().getNode(
-                    C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                    Boolean.TRUE,
-                    getContextManager());
+        if(trueNode==null) {
+            trueNode = new BooleanConstantNode(Boolean.TRUE, getContextManager());
         }
         return trueNode;
     }
@@ -2994,10 +2976,7 @@ public class SubqueryNode extends ValueNode{
     }
 
     private ColumnReference toColRef(ResultColumn rc, int tableNumber) throws StandardException {
-        ColumnReference result = (ColumnReference) getNodeFactory().getNode(
-                C_NodeTypes.COLUMN_REFERENCE,
-                rc.getName(),
-                null,
+        ColumnReference result = new ColumnReference(rc.getName(), null,
                 ContextService.getService().getCurrentContextManager());
         result.setSource(rc);
         result.setTableNumber(tableNumber);

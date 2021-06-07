@@ -16,6 +16,7 @@ package com.splicemachine.stream;
 
 import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import splice.com.google.common.net.HostAndPort;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
@@ -42,7 +43,6 @@ import java.util.*;
 import java.util.concurrent.*;
 
 
-
 /**
  * Created by dgomezferro on 5/20/16.
  */
@@ -58,6 +58,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
     private StreamListener streamListener;
     private long offset = 0;
     private long limit = -1;
+    private CountDownLatch olapFutureCallbackInvoked = new CountDownLatch(1);
 
     public RemoteQueryClientImpl(SpliceBaseOperation root, String hostname) {
         this.root = root;
@@ -87,7 +88,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
     }
 
     @Override
-    public void submit() throws StandardException {
+    public void submit(UUID runningOperationUUID) throws StandardException {
         Activation activation = root.getActivation();
         ActivationHolder ah = new ActivationHolder(activation, root);
 
@@ -106,7 +107,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             HostAndPort hostAndPort = server.getHostAndPort();
             String host = hostAndPort.getHostText();
             int port = hostAndPort.getPort();
-            UUID uuid = streamListener.getUuid();
+            UUID streamListenerUuid = streamListener.getUuid();
 
             String sql = activation.getPreparedStatement().getSource();
             sql = sql == null ? root.toString() : sql;
@@ -122,8 +123,10 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             String session = hostname + ":" + localPort + "," + sessionId + opUuid;
             int parallelPartitions = getParallelPartitions(lcc);
 
-            RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), uuid, host, port, session, userId, sql,
-                    streamingBatches, streamingBatchSize, parallelPartitions, shufflePartitionsProperty, throttleMaxWait);
+            RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(),
+                    streamListenerUuid, host, port, session, userId, sql,
+                    streamingBatches, streamingBatchSize, parallelPartitions,
+                    shufflePartitionsProperty, throttleMaxWait, runningOperationUUID);
 
             String requestedQueue = (String) lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE);
             String queue = chooseQueue(activation, requestedQueue, config.getOlapServerIsolatedRoles());
@@ -148,6 +151,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
                         LOG.error("Unexpected exception, shouldn't happen", e);
                         streamListener.failed(e);
                     }
+                    olapFutureCallbackInvoked.countDown();
                 }
             }, MoreExecutors.sameThreadExecutor());
         } catch (IOException e) {
@@ -275,5 +279,11 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
         streamListener.stopAllStreams();
         if (olapFuture != null)
             olapFuture.cancel(false);
+    }
+
+    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED", justification = "intended")
+    public Exception getException() throws InterruptedException {
+        olapFutureCallbackInvoked.await(5, TimeUnit.SECONDS);
+        return (Exception) streamListener.getFailure();
     }
 }

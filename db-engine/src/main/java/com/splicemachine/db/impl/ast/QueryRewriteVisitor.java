@@ -140,16 +140,10 @@ public class QueryRewriteVisitor extends AbstractSpliceVisitor {
                         null,
                         numberOne,
                         cm);
-        ResultColumnList resultColumns = (ResultColumnList) nodeFactory.getNode(
-                                          C_NodeTypes.RESULT_COLUMN_LIST,
-                                          cm);
+        ResultColumnList resultColumns = new ResultColumnList(cm);
         resultColumns.addResultColumn(rc);
 
-        FromList fromList = (FromList) nodeFactory.getNode(
-                    C_NodeTypes.FROM_LIST,
-                    true,
-                    fromTable,
-                    cm);
+        FromList fromList = new FromList(true, fromTable, cm);
 
         SelectNode newSelectNode = (SelectNode) nodeFactory.getNode(
                             C_NodeTypes.SELECT_NODE,
@@ -204,10 +198,7 @@ public class QueryRewriteVisitor extends AbstractSpliceVisitor {
     }
 
     public static AndNode newAndNode(ValueNode left, boolean doPostBindFixup) throws StandardException {
-        ValueNode trueNode=(ValueNode)left.getNodeFactory().getNode(
-                C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                Boolean.TRUE,
-                left.getContextManager());
+        ValueNode trueNode = new BooleanConstantNode(Boolean.TRUE,left.getContextManager());
         AndNode    andNode;
         andNode = (AndNode) left.getNodeFactory().getNode(
                                                     C_NodeTypes.AND_NODE,

@@ -207,10 +207,7 @@ public class CursorNode extends DMLStatementNode{
 
         getCompilerContext().pushCurrentPrivType(getPrivType());
         try{
-            FromList fromList=(FromList)getNodeFactory().getNode(
-                    C_NodeTypes.FROM_LIST,
-                    getNodeFactory().doJoinOrderOptimization(),
-                    getContextManager());
+            FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
 
             /* Check for ? parameters directly under the ResultColums */
             DataTypeDescriptor untypedExpressionType = getCompilerContext().getCursorUntypedExpressionType();
@@ -737,9 +734,7 @@ public class CursorNode extends DMLStatementNode{
 
         if(targetColumnDescriptors!=null) return targetColumnDescriptors;
 
-        newList=(ResultColumnList)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        newList = new ResultColumnList(getContextManager());
         ResultColumnList rcl=updateTable.getResultColumns();
         int rclSize=rcl.size();
         for(int index=0;index<rclSize;index++){

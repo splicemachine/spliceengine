@@ -1605,20 +1605,25 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         List<byte[]> oldLocations = (new ArrayList<>(locations.keySet())).stream().map(e->Bytes.fromHex(e)).collect(Collectors.toList());
         Iterator<DataResult>  result = table.batchGet(null, oldLocations);
         List<DataDelete> deletes = Lists.newArrayList();
-        DataPut[] puts = new DataPut[locations.size()];
+        List<DataPut> puts = Lists.newArrayList();
         SIDriver driver = SIDriver.driver();
-        int i = 0;
         while (result.hasNext()) {
             DataResult dataResult = result.next();
             DataCell dataCell=dataResult.latestCell(SIConstants.DEFAULT_FAMILY_BYTES,SpliceSequence.autoIncrementValueQualifier);
-            DataDelete delete=driver.baseOperationFactory().newDelete(dataCell.key());
-            deletes.add(delete);
-            DataPut put = driver.baseOperationFactory().newPut(locations.get(Bytes.toHex(dataResult.key())));
-            put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SpliceSequence.autoIncrementValueQualifier, dataCell.value());
-            puts[i++] = put;
+            if(dataCell != null) {
+                DataDelete delete = driver.baseOperationFactory().newDelete(dataCell.key());
+                deletes.add(delete);
+                DataPut put = driver.baseOperationFactory().newPut(locations.get(Bytes.toHex(dataResult.key())));
+                put.addCell(SIConstants.DEFAULT_FAMILY_BYTES, SpliceSequence.autoIncrementValueQualifier, dataCell.value());
+                puts.add(put);
+            }
         }
-        table.delete(deletes);
-        table.writeBatch(puts);
+        if (puts.size() > 0) {
+            table.delete(deletes);
+            DataPut[] p = new DataPut[puts.size()];
+            p = puts.toArray(p);
+            table.writeBatch(p);
+        }
     }
 
     private void snapshotTable(TransactionController tc, int catalogNum) throws StandardException {

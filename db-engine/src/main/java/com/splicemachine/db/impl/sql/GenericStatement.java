@@ -477,11 +477,13 @@ public class GenericStatement implements Statement{
         setMulticolumnInlistProbeOnSparkEnabled(lcc, cc);
         setConvertMultiColumnDNFPredicatesToInList(lcc, cc);
         setDisablePredicateSimplification(lcc, cc);
+        setDisableConstantFolding(lcc, cc);
         setNativeSparkAggregationMode(lcc, cc);
         setAllowOverflowSensitiveNativeSparkExpressions(lcc, cc);
         setNewMergeJoin(lcc, cc);
         setDisableParallelTaskJoinCosting(lcc, cc);
         setDisablePrefixIteratorMode(lcc, cc);
+        setDisableSubqueryFlattening(lcc, cc);
         setDisableUnionedIndexScans(lcc, cc);
         setFavorUnionedIndexScans(lcc, cc);
         setCurrentTimestampPrecision(lcc, cc);
@@ -711,12 +713,16 @@ public class GenericStatement implements Statement{
         cc.setDisablePrefixIteratorMode(param);
     }
 
+    private void setDisableSubqueryFlattening(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        boolean param = getBooleanParam(lcc, Property.DISABLE_SUBQUERY_FLATTENING, CompilerContext.DEFAULT_DISABLE_SUBQUERY_FLATTENING);
+        cc.setDisableSubqueryFlattening(param);
+    }          
+
     private void setDisableParallelTaskJoinCosting(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
         boolean param = getBooleanParam(lcc, GlobalDBProperties.DISABLE_PARALLEL_TASKS_JOIN_COSTING,
                 CompilerContext.DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING);
         cc.setDisablePerParallelTaskJoinCosting(param);
     }
-
 
     private void setDisableUnionedIndexScans(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
         boolean param = getBooleanParam(lcc, Property.DISABLE_UNIONED_INDEX_SCANS, CompilerContext.DEFAULT_DISABLE_UNIONED_INDEX_SCANS);

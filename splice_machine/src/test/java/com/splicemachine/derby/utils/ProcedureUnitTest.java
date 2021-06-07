@@ -205,7 +205,11 @@ public class ProcedureUnitTest {
     public void testCheckSpliceSystemProcedures() {
         List<Procedure> proc = new ArrayList<>();
         SpliceSystemProcedures.createSysUtilProcedures(proc);
-        Assert.assertEquals(-1971755069, proc.stream().map( procedure -> procedure.getName() ).sorted()
+        // note: this value changes if you add new system procedures
+        // this is here to help in refactoring methods, move them around
+        // and be sure that there's still the same procedures afterwards
+        Assert.assertEquals(159, proc.stream().count());
+        Assert.assertEquals(1087238154, proc.stream().map( procedure -> procedure.getName() ).sorted()
                 .map( s -> s.hashCode()).reduce(0, (subtotal, element) -> subtotal + element).longValue() );
     }
 
