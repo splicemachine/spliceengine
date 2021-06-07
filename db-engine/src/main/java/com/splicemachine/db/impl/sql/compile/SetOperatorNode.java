@@ -1019,11 +1019,7 @@ public abstract class SetOperatorNode extends TableOperatorNode
 
         ResultColumnList rcl = new ResultColumnList(getContextManager());
 
-        ResultColumn allResultColumn =
-            (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.ALL_RESULT_COLUMN,
-                null,
-                getContextManager());
+        ResultColumn allResultColumn = new AllResultColumn(null, getContextManager());
 
         rcl.addResultColumn(allResultColumn);
 

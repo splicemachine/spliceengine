@@ -5259,10 +5259,7 @@ selectList() throws StandardException :
 {
     <ASTERISK>
     {
-        allResultColumn = (ResultColumn) nodeFactory.getNode(
-                                        C_NodeTypes.ALL_RESULT_COLUMN,
-                                        null,
-                                        getContextManager());
+        allResultColumn = new AllResultColumn(null, getContextManager());
         /* Add the new AllResultColumn to the end of the list */
         resultColumns.addResultColumn(allResultColumn);
         return resultColumns;
@@ -5310,10 +5307,7 @@ selectSublist(ResultColumnList resultColumns) throws StandardException :
     )
     tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) <PERIOD> <ASTERISK>
     {
-        allResultColumn = (ResultColumn) nodeFactory.getNode(
-                                        C_NodeTypes.ALL_RESULT_COLUMN,
-                                        tableName,
-                                        getContextManager());
+        allResultColumn = new AllResultColumn(tableName, getContextManager());
         /* Add the new AllResultColumn to the end of the list */
         resultColumns.addResultColumn(allResultColumn);
     }
@@ -16368,10 +16362,7 @@ void columnNameListOrAsterisk(ResultColumnList cl) throws StandardException :
 |
      <ASTERISK>
      {
-         allResultColumn = (ResultColumn) nodeFactory.getNode(
-                                            C_NodeTypes.ALL_RESULT_COLUMN,
-                                            null,
-                                            getContextManager());
+         allResultColumn = new AllResultColumn(null, getContextManager());
          cl.addResultColumn(allResultColumn);
      }
 }
