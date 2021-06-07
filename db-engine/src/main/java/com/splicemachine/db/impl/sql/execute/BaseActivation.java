@@ -324,6 +324,10 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
         throw se;
     }
 
+    public void setResultDescription(ResultDescription resultDescription) {
+        this.resultDescription = resultDescription;
+    }
+
     /**
         Link this activation with its PreparedStatement.
         It can be called with null to break the link with the

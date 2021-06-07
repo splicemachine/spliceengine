@@ -181,10 +181,7 @@ class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNode impleme
     public String toString2() {
         StringBuilder sb = new StringBuilder();
         sb.append("QueryTreeNodeVector" + "\n" );
-        for(int i=0; i<v.size(); i++) {
-            sb.append("  Node " + i + "\n");
-            Node.printList(sb, v, "  ");
-        }
+        Node.printList(sb, v, "  ");
         return sb.toString();
     }
 }

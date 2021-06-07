@@ -107,4 +107,9 @@ public class AllResultColumn extends ResultColumn
     public boolean equals(Object o){
         return this == o;
     }
+
+    @Override
+    public String toString2() {
+		return "AllResultColumn (*) " + tableName;
+	}
 }

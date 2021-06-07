@@ -1262,7 +1262,6 @@ public class EmbedStatement extends ConnectionChild implements EngineStatement {
 
 
                 if (resultsToWrap.returnsRows()) {
-
                     // The statement returns rows, so calling it with
                     // executeUpdate() is not allowed.
                     if (executeUpdate) {

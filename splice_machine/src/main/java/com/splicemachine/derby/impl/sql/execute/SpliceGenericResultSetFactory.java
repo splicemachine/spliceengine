@@ -2340,6 +2340,15 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
         }
     }
 
+    void bla() throws StandardException {
+        NoPutResultSet mergeResultSetField_0 = null;
+        getInsertResultSet(mergeResultSetField_0,
+                (GeneratedMethod)null, (GeneratedMethod)null, "INSERT",
+                (String)null, 0, false, false, 0.0D, 0.0D,
+                "4.0", "Insert(n=10,\ncom.splicemachine.db.impl.sql.compile.CostEstimateImpl@764315ae,\ntargetTable=A_DEST)",
+                (String)null, (String)null, (String)null, (String)null, (String)null, "none",
+                -1, (String)null, false, false, false, 0.0D, (String)null, (String)null);
+    }
     @Override
     public NoPutResultSet getInsertResultSet(NoPutResultSet source,
                                              GeneratedMethod generationClauses,

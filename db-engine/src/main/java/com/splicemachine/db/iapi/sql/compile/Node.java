@@ -180,11 +180,13 @@ public interface Node {
         sb.append(desc + ": " + (n == null ? "null" : n.toString2() ) );
     }
 
-    static void append2(StringBuilder sb, String desc, String indent, Node n) {
+    static void append2(StringBuilder sb, String desc, String indent, Object n) {
         if(n == null)
             sb.append(indent + desc + ": null\n");
+        else if(n instanceof Node)
+            sb.append(indent + desc + ":\n" + StringUtils.indent(((Node)n).toString2(), indent+indent));
         else
-            sb.append(indent + desc + ":\n" + StringUtils.indent(n.toString2(), indent+indent));
+            sb.append(indent + desc + ": " + StringUtils.indent2(n.toString(), indent+indent));
     }
 
     static <T extends Node> void printList(StringBuilder sb, List<T> v, String indent) {
