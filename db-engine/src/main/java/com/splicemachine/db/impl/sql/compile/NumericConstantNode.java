@@ -46,11 +46,23 @@ import java.sql.Types;
 public final class NumericConstantNode extends ConstantNode
 {
     public NumericConstantNode() {}
-    public NumericConstantNode(ContextManager cm, int nodeType, Object arg1) throws StandardException {
+
+    private NumericConstantNode(ContextManager cm, int nodeType) {
         setContextManager(cm);
         setNodeType(nodeType);
+    }
+
+    public NumericConstantNode(ContextManager cm, int nodeType, Object arg1) throws StandardException {
+        this(cm, nodeType);
         init(arg1);
     }
+
+    public NumericConstantNode(ContextManager cm, int nodeType, NumberDataValue numberDataValue, DataTypeDescriptor type) throws StandardException {
+        this(cm, nodeType);
+        this.setValue(numberDataValue);
+        this.setType(type);
+    }
+
     /**
      * Initializer for a typed null node
      *
@@ -80,7 +92,6 @@ public final class NumericConstantNode extends ConstantNode
             isNullable = Boolean.FALSE;
             valueInP = true;
         }
-
 
         switch (getNodeType())
         {

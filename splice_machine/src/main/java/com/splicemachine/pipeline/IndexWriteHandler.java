@@ -43,6 +43,7 @@ import static com.splicemachine.pipeline.writehandler.UpdateUtils.halveSet;
  *         Created on: 5/1/13
  */
 public class IndexWriteHandler extends RoutingWriteHandler{
+    // todo: IndexWriteHandler is the only usage of RoutingWriteHandler. Merge into one class
     private static final Logger LOG = Logger.getLogger(IndexWriteHandler.class);
     private final IndexTransformer transformer;
     private CallBuffer<KVPair> indexBuffer;
@@ -241,4 +242,9 @@ public class IndexWriteHandler extends RoutingWriteHandler{
         return true;
     }
 
+    @Override
+    public String toString() {
+        return "IndexWriteHandler { keepState = " + keepState + " expectedWrites = "
+                + expectedWrites + " transformer = " + transformer + "}";
+    }
 }

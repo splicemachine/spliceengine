@@ -224,5 +224,4 @@ class ConnectionEnv {
 			JDBCDisplayUtil.ShowException(out,t);
 		}
 	}
-
 }

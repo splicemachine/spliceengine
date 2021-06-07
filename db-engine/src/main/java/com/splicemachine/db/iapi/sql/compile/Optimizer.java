@@ -43,6 +43,7 @@ import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import com.splicemachine.db.impl.sql.compile.GroupByList;
 import com.splicemachine.db.impl.sql.compile.OrderByList;
 import com.splicemachine.db.impl.sql.compile.ResultSetNode;
+import com.splicemachine.db.impl.sql.compile.PredicateList;
 
 import java.util.List;
 
@@ -439,4 +440,12 @@ public interface Optimizer{
 
     FromBaseTable getOuterBaseTable() throws StandardException;
 
+
+    void setNonPushablePredicates(PredicateList predicateList);
+
+    /**
+     * Postcondition @return != null.
+     * @return the non-pushable predicate list
+     */
+    PredicateList getNonPushablePredicates();
 }

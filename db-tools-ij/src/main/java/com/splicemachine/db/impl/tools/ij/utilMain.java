@@ -95,6 +95,7 @@ public class utilMain implements java.security.PrivilegedAction {
     private boolean omitHeader = false;
     private String logFileName = null;
     private char terminator = StatementFinder.SEMICOLON;
+    ProgressThread progressThread = null;
 
     /**
      * Set up the test to run with 'numConnections' connections/users.
@@ -302,26 +303,6 @@ public class utilMain implements java.security.PrivilegedAction {
         cleanupGo(in);
     }
 
-
-    /**
-     * Support to run a script. Performs minimal setup
-     * to set the passed in connection into the existing
-     * ij setup, ConnectionEnv.
-     *
-     * @param conn
-     * @param in
-     */
-    public int goScript(Connection conn,
-                        LocalizedInput in) {
-        connEnv[0].addSession(conn, (String) null);
-        ijParser.setConnection(connEnv[0], (numConnections > 1));
-        supportIJProperties(connEnv[0]);
-
-        fileInput = initialFileInput = !in.isStandardInput();
-        commandGrabber[0].reInit(in);
-        return runScriptGuts();
-    }
-
     private void supportIJProperties(ConnectionEnv env) {
         //check if the property is set to not show select count and set the static variable
         //accordingly.
@@ -415,9 +396,15 @@ public class utilMain implements java.security.PrivilegedAction {
                         beginTime = System.currentTimeMillis();
                     }
 
-                    ijResult result = ijParser.ijStatement();
+                    ijResult result;
+                    progressThread = new ProgressThread(ijParser, command, System.out);
+                    if(ijParser.showProgressBar) {
+                        progressThread.start();
+                    }
+                    result = ijParser.ijStatement();
 
                     if (!(result instanceof ijShellConfigResult)) {
+                        progressThread.stopProgress();
                         displayResult(out, result, connEnv[currCE].getConnection());
 
                         // if something went wrong, an SQLException or ijException was thrown.
@@ -439,10 +426,11 @@ public class utilMain implements java.security.PrivilegedAction {
                 }
 
             } catch (ParseException e) {
-                scriptErrorCount += doCatch(command) ? 0 : 1;
+                scriptErrorCount += doCatch(command, progressThread) ? 0 : 1;
             } catch (TokenMgrError e) {
-                if (command != null)
-                    scriptErrorCount += doCatch(command) ? 0 : 1;
+                if (command != null) {
+                    scriptErrorCount += doCatch(command, progressThread) ? 0 : 1;
+                }
             } catch (SQLException e) {
                 scriptErrorCount++;
                 // SQL exception occurred in ij's actions; print and continue
@@ -457,6 +445,10 @@ public class utilMain implements java.security.PrivilegedAction {
                 scriptErrorCount++;
                 out.println(langUtil.getTextMessage("IJ_JavaErro0", e.toString()));
                 doTrace(e);
+            }
+            finally {
+                if(progressThread != null) progressThread.stopProgress();
+                progressThread = null;
             }
 
             /* Go to the next connection/user, if there is one */
@@ -586,7 +578,7 @@ public class utilMain implements java.security.PrivilegedAction {
      * catch processing on failed commands. This really ought to
      * be in ij somehow, but it was easier to catch in Main.
      */
-    private boolean doCatch(String command) {
+    private boolean doCatch(String command, ProgressThread progressThread) {
         // this retries the failed statement
         // as a JSQL statement; it uses the
         // ijParser since that maintains our
@@ -603,6 +595,9 @@ public class utilMain implements java.security.PrivilegedAction {
             }
 
             ijResult result = ijParser.executeImmediate(command);
+            if(progressThread != null)
+                progressThread.stopProgress();
+
             displayResult(out, result, connEnv[currCE].getConnection());
 
             /* Print the elapsed time if appropriate */

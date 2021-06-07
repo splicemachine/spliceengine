@@ -610,11 +610,7 @@ public class ColumnDefinitionNode extends TableElementNode
 
             // Tell the compiler context to only allow deterministic nodes
             cc.setReliability( CompilerContext.DEFAULT_RESTRICTION );
-            defaultTree = defaultTree.bindExpression(
-                            (FromList) getNodeFactory().getNode(
-                                C_NodeTypes.FROM_LIST,
-                                getNodeFactory().doJoinOrderOptimization(),
-                                getContextManager()),
+            defaultTree = defaultTree.bindExpression(new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager()),
                             (SubqueryList) null,
                             (Vector) null);
 

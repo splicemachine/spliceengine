@@ -114,6 +114,11 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
     public ResultColumnList(){
     }
 
+    public ResultColumnList(ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.RESULT_COLUMN_LIST);
+    }
+
     /**
      * Add a ResultColumn (at this point, ResultColumn or
      * AllResultColumn) to the list
@@ -1997,11 +2002,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         }
 
         /* Make a dummy TableName to be shared by all new CRs */
-        dummyTN=(TableName)getNodeFactory().getNode(
-                C_NodeTypes.TABLE_NAME,
-                null,
-                null,
-                getContextManager());
+        dummyTN = new TableName(null, null, getContextManager());
 
         int size=visibleSize();
         for(int index=0;index<size;index++){
@@ -2054,10 +2055,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                         cf);
             }
 
-            newCR=(ColumnReference)getNodeFactory().getNode(
-                    C_NodeTypes.COLUMN_REFERENCE,
-                    thisRC.getName(),
-                    dummyTN,
+            newCR = new ColumnReference(thisRC.getName(), dummyTN,
                     getContextManager());
             newCR.setType(resultType);
             /* Set the tableNumber and nesting levels in newCR.
@@ -2892,7 +2890,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         CurrentRowLocationNode rowLocationNode;
 
         /* Generate the RowLocation column */
-        rowLocationNode=(CurrentRowLocationNode)getNodeFactory().getNode(C_NodeTypes.CURRENT_ROW_LOCATION_NODE,getContextManager());
+        rowLocationNode = new CurrentRowLocationNode(getContextManager());
         rowLocationNode.bindExpression(null, null, null);
         rowLocationColumn=
                 (ResultColumn)getNodeFactory().getNode(

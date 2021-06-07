@@ -593,9 +593,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
         /* Add the matching predicate to the restrictionList */
         if(restrictionList==null){
-            restrictionList=(PredicateList)getNodeFactory().getNode(
-                    C_NodeTypes.PREDICATE_LIST,
-                    getContextManager());
+            restrictionList = new PredicateList(getContextManager());;
         }
 
         restrictionList.addPredicate((Predicate)optimizablePredicate);
@@ -936,9 +934,9 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
          * requalification list.
          */
         ContextManager ctxMgr=getContextManager();
-        PredicateList searchRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
-        PredicateList joinQualifierList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
-        PredicateList requalificationRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
+        PredicateList searchRestrictionList = new PredicateList(ctxMgr);
+        PredicateList joinQualifierList = new PredicateList(ctxMgr);
+        PredicateList requalificationRestrictionList = new PredicateList(ctxMgr);
         trulyTheBestAccessPath.getJoinStrategy().divideUpPredicateLists(this,
                 joinedTableSet,
                 restrictionList,
@@ -950,7 +948,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         /* Break out the non-qualifiers from HTN's join qualifier list and make that
          * the new restriction list for this PRN.
          */
-        restrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
+        restrictionList = new PredicateList(ctxMgr);
         /* For non-base table, we remove first 2 lists from requal list to avoid adding duplicates.
          */
         for(int i=0;i<searchRestrictionList.size();i++)
@@ -1228,7 +1226,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
     @Override
     public ResultSetNode addNewPredicate(Predicate predicate) throws StandardException{
         if(restrictionList==null){
-            restrictionList=(PredicateList)getNodeFactory().getNode( C_NodeTypes.PREDICATE_LIST, getContextManager());
+            restrictionList = new PredicateList(getContextManager());
         }
         restrictionList.addPredicate(predicate);
         return this;
@@ -1287,14 +1285,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
          */
         childResult=childResult.optimize(dataDictionary, restrictionList, outerRows, forSpark);
 
-        Optimizer optimizer=getOptimizer(
-                (FromList)getNodeFactory().getNode(C_NodeTypes.FROM_LIST,
-                        getNodeFactory().doJoinOrderOptimization(),
-                        this,
-                        getContextManager()),
-                predicates,
-                dataDictionary,
-                null);
+        Optimizer optimizer = getOptimizer( new FromList(getNodeFactory().doJoinOrderOptimization(), this, getContextManager()),
+                predicates, dataDictionary, null);
         optimizer.setForSpark(forSpark);
 
         // RESOLVE: SHOULD FACTOR IN THE NON-OPTIMIZABLE PREDICATES THAT
