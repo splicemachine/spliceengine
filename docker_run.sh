@@ -85,6 +85,7 @@ OUR_PORT_MAP="OFF"
 OUR_MAVEN_HOME="$HOME/.m2"
 OUR_SOURCE=$(pwd)
 OTHER_DOCKER_OPTIONS=""
+COMMAND_PREFIX=""
 
 while [ true ];
 do
@@ -100,6 +101,9 @@ do
 	elif [ $1 = "--setSource" ]; then
 		OUR_SOURCE=$2
 		shift 2
+	elif [ $1 = "--sqlshell" ]; then
+		COMMAND_PREFIX="/bin/bash docker/exec_and_sqlshell.sh"
+		shift 1
 	elif [ $1 = "---" ]; then
 		shift
 		break
@@ -124,14 +128,14 @@ CONFIG_SOURCE_MAPPING="-v ${OUR_SOURCE}:/home/splice/spliceengine/"
 
 # on linux: use current user
 # otherwise if the container writes to mounted volumes they will have owner root
-if [ "$OSTYPE" == "darwin"* ]; then
+if [ "$OSTYPE" = "darwin"* ]; then
 	CONFIG_USER_INFO="" # docker on macos writes per default as current user
 else
 	CONFIG_USER_INFO="--user $(id -u):$(id -g)"
 fi
 
 FULL_DOCKER_OPTIONS="${OTHER_DOCKER_OPTIONS} ${CONFIG_PORT_MAPPING} ${CONFIG_MAVEN_VOLUME} ${CONFIG_SOURCE_MAPPING} ${CONFIG_USER_INFO} \
--w /home/splice/spliceengine se-spliceengine-build $*"
+-w /home/splice/spliceengine se-spliceengine-build ${COMMAND_PREFIX} $*"
 
 echo
 echo "--- STARTING DOCKER WITH FOLLOWING OPTIONS ---"

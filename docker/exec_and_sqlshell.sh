@@ -1,2 +1,4 @@
 #!/bin/bash
-./start-splice-cluster $* && ./sqlshell.sh
+echo "$* && ./sqlshell.sh && /bin/bash"
+echo
+ $* && ./sqlshell.sh && /bin/bash
