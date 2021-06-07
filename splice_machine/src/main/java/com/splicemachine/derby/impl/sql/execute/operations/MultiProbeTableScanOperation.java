@@ -29,6 +29,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -206,6 +207,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
     }
 
     @Override
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Intentional")
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
@@ -215,7 +217,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             List<DataScan> scans =
                 scanInformation.getScans(getCurrentTransaction(),
                                          ((BaseActivation) activation).getFirstIndexColumnKeys(),
-                                         activation, getKeyDecodingMap());
+                                         activation, getKeyDecodingMap(),
+                                         firstRowOfIndexPrefixIteration != null);
             DataSet<ExecRow> dataSet = dsp.getEmpty();
             OperationContext<MultiProbeTableScanOperation> operationContext = dsp.<MultiProbeTableScanOperation>createOperationContext(this);
             dsp.prependSpliceExplainString(this.explainPlan);
@@ -223,6 +226,13 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             List<ScanSetBuilder<ExecRow>> datasets = new ArrayList<>(scans.size());
             for (DataScan scan : scans) {
                 deSiify(scan);
+                if (firstRowOfIndexPrefixIteration != null) {
+                    try {
+                        attachKeyPrefixFilter(scan, firstRowOfIndexPrefixIteration.getColumn(1));
+                    } catch (IOException e) {
+                        throw StandardException.plainWrapException(e);
+                    }
+                }
                 ScanSetBuilder<ExecRow> ssb = dsp.<MultiProbeTableScanOperation, ExecRow>newScanSet(this, tableName)
                         .tableDisplayName(tableDisplayName)
                         .activation(this.getActivation())

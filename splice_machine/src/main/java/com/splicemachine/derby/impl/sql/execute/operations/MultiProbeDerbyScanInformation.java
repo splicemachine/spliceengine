@@ -127,7 +127,9 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 	}
 
 	@Override
-    public List<DataScan> getScans(TxnView txn, List<ExecRow> scanKeyPrefixes, Activation activation, int[] keyDecodingMap) throws StandardException {
+    public List<DataScan> getScans(TxnView txn, List<ExecRow> scanKeyPrefixes,
+								   Activation activation, int[] keyDecodingMap,
+	                               boolean skipBuildOfFirstKeyColumn) throws StandardException {
         /*
          * We must build the proper scan here in pieces
          */
@@ -154,15 +156,16 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 				probeValue = probeValues[i];
 				scan = getScan(txn, null, keyDecodingMap, null, null,
 					           ((BaseActivation)activation).getScanKeyPrefix(),
-                               ((BaseActivation)activation).getSameStartStopScanKeyPrefix(), null);
+                               ((BaseActivation)activation).getSameStartStopScanKeyPrefix(), null, false);
 				scans.add(scan);
 			}
 		}
 		else{
 			probeValue = null;
 			List<Pair<byte[],byte[]>> startStopKeys =
-				getStartStopKeys(txn, scanKeyPrefixes, keyDecodingMap, probeValues);
-
+				getStartStopKeys(txn, scanKeyPrefixes,
+				                 keyDecodingMap, probeValues,
+				                 skipBuildOfFirstKeyColumn);
 
 			String javaCmd = System.getProperty("sun.java.command");
 			boolean isOlapServer = javaCmd != null && javaCmd.startsWith("com.splicemachine.olap.OlapServerMaster");
@@ -179,11 +182,11 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 				probeValue = null;
 				endIndex = (i+probesPerThread) <= startStopKeys.size() ? i+probesPerThread : startStopKeys.size();
 				List<Pair<byte[],byte[]>> keys = startStopKeys.subList(i, endIndex);
-				scan = getScan(txn, null, keyDecodingMap, null, null, null, false, null);
+				scan = getScan(txn, null, keyDecodingMap, null, null, null, false, null, false);
 				try {
-				scan.addRowkeyRangesFilter(keys);
+				    scan.addRowkeyRangesFilter(keys, skipBuildOfFirstKeyColumn);
 				} catch (IOException e) {
-				throw StandardException.newException(DATA_UNEXPECTED_EXCEPTION, e);
+				    throw StandardException.newException(DATA_UNEXPECTED_EXCEPTION, e);
 				}
 				if (keys == null)
 					throw StandardException.newException(LANG_INTERNAL_ERROR,

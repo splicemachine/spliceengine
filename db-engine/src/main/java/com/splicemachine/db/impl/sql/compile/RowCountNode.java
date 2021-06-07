@@ -110,15 +110,8 @@ public final class RowCountNode extends SingleChildResultSetNode{
                 outerRows,
                 forSpark);
 
-        Optimizer optimizer=
-                getOptimizer(
-                        (FromList)getNodeFactory().getNode(
-                                C_NodeTypes.FROM_LIST,
-                                getNodeFactory().doJoinOrderOptimization(),
-                                getContextManager()),
-                        predicates,
-                        dataDictionary,
-                        null);
+        Optimizer optimizer = getOptimizer(new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager()),
+                        predicates, dataDictionary, null);
         optimizer.setForSpark(forSpark);
         costEstimate=optimizer.newCostEstimate();
         fixCost();

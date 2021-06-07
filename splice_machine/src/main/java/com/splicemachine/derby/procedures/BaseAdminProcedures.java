@@ -188,10 +188,16 @@ public abstract class BaseAdminProcedures {
         void accept(T t, T2 t2, T3 t3) throws E;
     }
 
-    public static void executeOnAllServers(ConsumeWithException<HostAndPort, Connection, SQLException> function) throws SQLException {
-        List<HostAndPort> servers = getServers();
+    public static List<HostAndPort> getServerList() throws SQLException {
+        try {
+            return EngineDriver.driver().getServiceDiscovery().listServers();
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+    }
 
-        for (HostAndPort server : servers) {
+    public static void executeOnAllServers(ConsumeWithException<HostAndPort, Connection, SQLException> function) throws SQLException {
+        for (HostAndPort server : getServerList() ) {
             try (Connection connection = RemoteUser.getConnection(server.toString())) {
                 function.accept(server, connection);
             }

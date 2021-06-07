@@ -427,6 +427,32 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return false;
     }
 
+    public void determineSpark() {
+        setDataSetProcessorType(getDataSetProcessorTypeForAccessPath(getTrulyTheBestAccessPath()));
+    }
+
+    /**
+     * Return the data set processor type for a given access path.
+     *
+     * @param accessPath the access path
+     */
+    public DataSetProcessorType getDataSetProcessorTypeForAccessPath(AccessPath accessPath) {
+        if (! dataSetProcessorType.isDefaultOltp()) {
+            // No need to assess cost
+            return dataSetProcessorType;
+        }
+        long sparkRowThreshold = getLanguageConnectionContext().getOptimizerFactory().getDetermineSparkRowThreshold();
+        // we need to check not only the number of row scanned, but also the number of output rows for the
+        // join result
+        assert dataSetProcessorType.isDefaultOltp();
+        if (accessPath != null &&
+                (accessPath.getCostEstimate().getScannedBaseTableRows() > sparkRowThreshold ||
+                        accessPath.getCostEstimate().getEstimatedRowCount() > sparkRowThreshold)) {
+            return DataSetProcessorType.COST_SUGGESTED_OLAP;
+        }
+        return dataSetProcessorType;
+    }
+
     @Override
     public Properties getProperties(){
         return tableProperties;
@@ -1020,7 +1046,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             exposedName=makeTableName(null,correlationName);
         }
 
-        rcList=(ResultColumnList)getNodeFactory().getNode( C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
+        rcList = new ResultColumnList(getContextManager());
 
         /* Build a new result column list based off of resultColumns.
          * NOTE: This method will capture any column renaming due to
@@ -1520,9 +1546,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             return 2;
         }
 
-        ResultColumnList defaultRow = (ResultColumnList)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        ResultColumnList defaultRow = new ResultColumnList(getContextManager());
         FormatableBitSet defaultValueMap = buildDefaultRow(defaultRow);
         defaultRow.generate(acb, mb);
         int defaultValueItem=acb.addItem(defaultValueMap);

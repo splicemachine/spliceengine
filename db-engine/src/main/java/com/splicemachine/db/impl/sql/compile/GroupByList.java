@@ -95,10 +95,7 @@ public class GroupByList extends OrderedColumnList{
     public void bindGroupByColumns(SelectNode select,List<AggregateNode> aggregateVector) throws StandardException{
         FromList fromList=select.getFromList();
 
-        SubqueryList dummySubqueryList=
-                (SubqueryList)getNodeFactory().getNode(
-                        C_NodeTypes.SUBQUERY_LIST,
-                        getContextManager());
+        SubqueryList dummySubqueryList = new SubqueryList(getContextManager());
         int size=size();
 
 		/* Only 32677 columns allowed in GROUP BY clause */

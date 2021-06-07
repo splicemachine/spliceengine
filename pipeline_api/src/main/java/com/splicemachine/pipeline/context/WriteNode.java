@@ -15,6 +15,7 @@
 package com.splicemachine.pipeline.context;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import com.splicemachine.access.api.ServerControl;
@@ -146,7 +147,7 @@ public class WriteNode implements WriteContext {
 
     @Override
     public String toString() {
-        return "WriteNode { pipelineWriteContext=" + pipelineWriteContext.toString() + " }";
+        return "WriteNode { handler=" + (handler == null ? "null" : handler.toString()) + " }";
     }
 
     @Override
@@ -177,5 +178,12 @@ public class WriteNode implements WriteContext {
     @Override
     public PipelineExceptionFactory exceptionFactory(){
         return pipelineWriteContext.exceptionFactory();
+    }
+
+    @Override
+    public void addChildren(List<WriteNode> nodes) {
+        nodes.add(this);
+        if(next != null)
+            next.addChildren(nodes);
     }
 }

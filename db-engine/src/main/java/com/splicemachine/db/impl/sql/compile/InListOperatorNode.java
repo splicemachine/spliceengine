@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.types.*;
 
 import java.lang.reflect.Modifier;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Objects;
 
@@ -415,10 +416,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                 // of the columns in a multicolumn IN list.
                 if (!isSingleLeftOperand()) {
                     NodeFactory nodeFactory = getNodeFactory();
-                    QueryTreeNode trueNode = (QueryTreeNode) nodeFactory.getNode(
-                        C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                        Boolean.TRUE,
-                        getContextManager());
+                    QueryTreeNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
                     ValueNode temp;
                     temp = (AndNode) nodeFactory.getNode(
                         C_NodeTypes.AND_NODE,
@@ -983,7 +981,9 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 
         DataValueDescriptor lhs = ((ConstantNode) getLeftOperand()).getValue();
         if (lhs == null || lhs.isNull()) {
-            return this;
+            ValueNode newNull = new UntypedNullConstantNode(getContextManager());
+            newNull.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN));
+            return newNull;
         }
         boolean constantResult = false;
         for (int i = 0; i < getRightOperandList().size(); ++i) {

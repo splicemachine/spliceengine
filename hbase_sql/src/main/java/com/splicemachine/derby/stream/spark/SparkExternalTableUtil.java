@@ -306,7 +306,7 @@ public class SparkExternalTableUtil {
                                                 String location, boolean mergeSchema) throws StandardException {
         String storeAs = "a";
         StructType dataSchema =dsp.getExternalFileSchema(storeAs, location, mergeSchema, null,
-                null, null).getFullSchema();
+                null, null, null).getFullSchema();
         tableSchema =  supportAvroDateType(tableSchema, storeAs);
         if (dataSchema != null) {
             SparkExternalTableUtil.checkSchemaAvro(tableSchema, dataSchema, partitionColumnMap, location);

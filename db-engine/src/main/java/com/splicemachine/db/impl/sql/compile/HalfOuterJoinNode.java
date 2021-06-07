@@ -222,25 +222,10 @@ public class HalfOuterJoinNode extends JoinNode{
 		 * conditions only get pushed down 1 level.
 		 * We use the optimizer's logic for pushing down join clause here.
 		 */
-        // Walk joinPredicates backwards due to possible deletes
-        for(int index=joinPredicates.size()-1;index>=0;index--){
-            Predicate predicate;
-
-            predicate=joinPredicates.elementAt(index);
-            if(!predicate.getPushable()){
-                continue;
-            }
-
-            optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION,0,0,0.0,
-                                     "HalfOuterJoinNode pushing predicate right.",predicate);
-            getRightPredicateList().addPredicate(predicate);
-
-			/* Remove the matching predicate from the outer list */
-            joinPredicates.removeElementAt(index);
-        }
+        movePushablePredicatesToRhs();
 
 		/* Recurse down both sides of tree */
-        PredicateList noPredicates= (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
+        PredicateList noPredicates = new PredicateList(getContextManager());
         leftFromTable.pushExpressions(getLeftPredicateList());
         rightFromTable.pushExpressions(noPredicates);
     }
@@ -436,10 +421,7 @@ public class HalfOuterJoinNode extends JoinNode{
                 // ((HalfOuterJoinNode)logicalRightResultSet).transformed =
                 //     local_transformed;
 
-                FromList localFromList=(FromList)getNodeFactory().getNode(
-                        C_NodeTypes.FROM_LIST,
-                        getNodeFactory().doJoinOrderOptimization(),
-                        getContextManager());
+                FromList localFromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
 
                 // switch OJ nodes: by handling the current OJ node
                 leftResultSet=logicalRightResultSet;
@@ -575,9 +557,7 @@ public class HalfOuterJoinNode extends JoinNode{
     public boolean LOJ_bindResultColumns(boolean anyChange) throws StandardException{
         if(anyChange){
             this.resultColumns=null;
-            FromList localFromList=(FromList)getNodeFactory().getNode(C_NodeTypes.FROM_LIST,
-                    getNodeFactory().doJoinOrderOptimization(),
-                    getContextManager());
+            FromList localFromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
             this.bindResultColumns(localFromList);
         }
         return anyChange;
@@ -898,10 +878,7 @@ public class HalfOuterJoinNode extends JoinNode{
 		 * since there is no exposed name. (And even if there was,
 		 * we could care less about unique exposed name checking here.)
 		 */
-        FromList fromList=(FromList)getNodeFactory().getNode(
-                C_NodeTypes.FROM_LIST,
-                getNodeFactory().doJoinOrderOptimization(),
-                getContextManager());
+        FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
         fromList.addElement(leftResultSet);
         fromList.addElement(rightResultSet);
 

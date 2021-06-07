@@ -236,18 +236,16 @@ public class IntersectOrExceptNode extends SetOperatorNode
                           throws StandardException
     {
         leftResultSet = optimizeSource(
-                            optimizer,
-                            leftResultSet,
-                            (PredicateList) null,
-                            null,
-                            null);
+                optimizer,
+                leftResultSet,
+                null, null,
+                null, null);
 
         rightResultSet = optimizeSource(
-                            optimizer,
-                            rightResultSet,
-                            (PredicateList) null,
-                            null,
-                            null);
+                optimizer,
+                rightResultSet,
+                null, null,
+                null, null);
 
         CostEstimate costEstimate = getCostEstimate(optimizer);
         CostEstimate leftCostEstimate = leftResultSet.getCostEstimate();
