@@ -43,7 +43,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.drda.RemoteUser;
 import com.splicemachine.db.impl.jdbc.*;
-import com.splicemachine.db.impl.jdbc.ResultSetBuilder.RowBuilder;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.GenericActivationHolder;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
@@ -421,17 +420,12 @@ public class SpliceAdmin extends BaseAdminProcedures {
         boolean matchName=(configRoot!=null && !configRoot.isEmpty());
         int hostIdx=0;
         String hostName;
-        ResultSetBuilder rsBuilder;
-        RowBuilder rowBuilder;
 
         try{
-            rsBuilder=new ResultSetBuilder();
-            rsBuilder.getColumnBuilder()
-                    .addColumn("HOST_NAME",Types.VARCHAR,32)
-                    .addColumn("CONFIG_NAME",Types.VARCHAR,128)
-                    .addColumn("CONFIG_VALUE",Types.VARCHAR,128);
-
-            rowBuilder=rsBuilder.getRowBuilder();
+            ResultHelper res = new ResultHelper();
+            ResultHelper.VarcharColumn colHostname = res.addVarchar("HOST_NAME", 32);
+            ResultHelper.VarcharColumn colConfigName = res.addVarchar("CONFIG_NAME", 32);
+            ResultHelper.VarcharColumn colConfigValue = res.addVarchar("CONFIG_VALUE", 32);
             // We arbitrarily pick DatabaseVersion MBean even though
             // we do not fetch anything from it. We just use it as our
             // mechanism for our region server context.
@@ -450,15 +444,15 @@ public class SpliceAdmin extends BaseAdminProcedures {
                 // Iterate through sorted configs and add to result set
                 Set<Entry<String, String>> configSet=configMap.entrySet();
                 for(Entry<String, String> configEntry : configSet){
-                    rowBuilder.getDvd(0).setValue(hostName);
-                    rowBuilder.getDvd(1).setValue(configEntry.getKey());
-                    rowBuilder.getDvd(2).setValue(configEntry.getValue());
-                    rowBuilder.addRow();
+                    res.newRow();
+                    colHostname.set(hostName);
+                    colConfigName.set(configEntry.getKey());
+                    colConfigValue.set(configEntry.getValue());
                 }
                 hostIdx++;
             }
 
-            resultSet[0]=rsBuilder.buildResultSet((EmbedConnection)getDefaultConn());
+            resultSet[0] = res.getResultSet();
 
             configMap.clear();
 
@@ -1050,35 +1044,24 @@ public class SpliceAdmin extends BaseAdminProcedures {
     @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
     public static void SYSCS_GET_GLOBAL_DATABASE_PROPERTY(final String key,final ResultSet[] resultSet) throws SQLException{
 
-        List<ExecRow> rows = new ArrayList<>();
+        ResultHelper res = new ResultHelper();
+        ResultHelper.VarcharColumn colHostname = res.addVarchar("HOST_NAME", 120);
+        ResultHelper.VarcharColumn colProperty = res.addVarchar("PROPERTY_VALUE", 120);
+
         executeOnAllServers( (server, connection) -> {
                 try (PreparedStatement ps = connection.prepareStatement("values SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY(?)")) {
                     ps.setString(1, key);
                     try (ResultSet rs = ps.executeQuery()) {
                         while (rs.next()) {
-                            ExecRow row = new ValueRow(2);
-                            row.setColumn(1, new SQLVarchar(server.toString()));
-                            row.setColumn(2, new SQLVarchar(rs.getString(1)));
-                            rows.add(row);
+                            res.newRow();
+                            colHostname.set((server.toString()));
+                            colProperty.set(rs.getString(1));
                         }
                     }
                 }
             } );
 
-        GenericColumnDescriptor[] descriptors = {
-                new GenericColumnDescriptor("HOST_NAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
-                new GenericColumnDescriptor("PROPERTY_VALUE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
-        };
-
-        EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, descriptors, lastActivation);
-        try {
-            resultsToWrap.openCore();
-        } catch (StandardException se) {
-            throw PublicAPI.wrapStandardException(se);
-        }
-        resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+        resultSet[0] = res.getResultSet();
     }
 
     public static void SYSCS_SET_GLOBAL_DATABASE_PROPERTY(final String key, final String value,
@@ -1435,251 +1418,23 @@ public class SpliceAdmin extends BaseAdminProcedures {
         }
     }
 
-    /**
-     * Take a snapshot of a schema
-     * @param schemaName
-     * @param snapshotName
-     * @throws Exception
-     */
-    public static void SNAPSHOT_SCHEMA(String schemaName, String snapshotName) throws Exception
-    {
-        ensureSnapshot(snapshotName, false);
-        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-        TransactionController tc  = lcc.getTransactionExecute();
-        DataDictionary dd = lcc.getDataDictionary();
-
-        schemaName = EngineUtils.validateSchema(schemaName);
-        EngineUtils.checkSchemaVisibility(schemaName);
-
-        dd.startWriting(lcc);
-
-
-        List<String> snapshotList = Lists.newArrayList();
-        try
-        {
-            ResultSet rs = getTablesForSnapshot(schemaName, null);
-            snapshot(rs, snapshotName, schemaName, dd, tc, snapshotList);
-        }
-        catch (Exception e)
-        {
-            deleteSnapshots(snapshotList);
-            throw e;
-        }
-    }
-
-    public static void SNAPSHOT_TABLE(String schemaName, String tableName, String snapshotName) throws Exception
-    {
-        ensureSnapshot(snapshotName, false);
-        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-        TransactionController tc  = lcc.getTransactionExecute();
-        DataDictionary dd = lcc.getDataDictionary();
-
-        schemaName = EngineUtils.validateSchema(schemaName);
-        tableName = EngineUtils.validateTable(tableName);
-        EngineUtils.checkSchemaVisibility(schemaName);
-
-        EngineUtils.checkSchemaVisibility(schemaName);
-
-        TableDescriptor td = DataDictionaryUtils.getTableDescriptor(lcc, schemaName, tableName);
-        if (td.isExternal())
-            throw StandardException.newException(SQLState.SNAPSHOT_EXTERNAL_TABLE_UNSUPPORTED, tableName);
-        if (td.isTemporary())
-            throw StandardException.newException(LANG_NOT_ALLOWED_FOR_TEMP_TABLE, tableName);
-
-        List<String> snapshotList = Lists.newArrayList();
-        try {
-            dd.startWriting(lcc);
-
-            ResultSet rs = getTablesForSnapshot(schemaName, td.getName());
-            snapshot(rs, snapshotName, schemaName, dd, tc, snapshotList);
-        }
-        catch (Exception e)
-        {
-            deleteSnapshots(snapshotList);
-            throw e;
-        }
-    }
-
-    /**
-     * delete a snapshot
-     * @param snapshotName
-     * @throws Exception
-     */
-    public static void DELETE_SNAPSHOT(String snapshotName) throws Exception
-    {
-        ensureSnapshot(snapshotName, true);
-        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-        TransactionController tc  = lcc.getTransactionExecute();
-        DataDictionary dd = lcc.getDataDictionary();
-        dd.startWriting(lcc);
-
-        PartitionAdmin admin=SIDriver.driver().getTableFactory().getAdmin();
-        Connection connection = getDefaultConn();
-        EmbedDatabaseMetaData dmd = (EmbedDatabaseMetaData)connection.getMetaData();
-        try (ResultSet rs = dmd.checkSnapshotExists(snapshotName)) {
-
-            while (rs.next()) {
-                long conglomerateNumber = rs.getLong(3);
-                String sname = snapshotName + "_" + conglomerateNumber;
-                if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.debug(LOG, "deleting snapshot %s for table %d", sname, conglomerateNumber);
-                }
-                admin.deleteSnapshot(sname);
-                dd.deleteSnapshot(snapshotName, conglomerateNumber, tc);
-
-                if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.debug(LOG, "deleted snapshot %s for table %d", sname, conglomerateNumber);
-                }
-            }
-        }
-    }
-
-    /**
-     * restore a snapshot
-     * @param snapshotName
-     * @throws Exception
-     */
-    public static void RESTORE_SNAPSHOT(String snapshotName) throws Exception
-    {
-        ensureSnapshot(snapshotName, true);
-        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-        TransactionController tc  = lcc.getTransactionExecute();
-        DataDictionary dd = lcc.getDataDictionary();
-        dd.startWriting(lcc);
-
-        PartitionAdmin admin=SIDriver.driver().getTableFactory().getAdmin();
-        Connection connection = getDefaultConn();
-        EmbedDatabaseMetaData dmd = (EmbedDatabaseMetaData)connection.getMetaData();
-        try (ResultSet rs = dmd.checkSnapshotExists(snapshotName)) {
-
-            while (rs.next()) {
-                String schemaName = rs.getString(1);
-                String objectName = rs.getString(2);
-                long conglomerateNumber = rs.getLong(3);
-                DateTime creationTime = new DateTime(rs.getTimestamp(4));
-                DateTime lastRestoreTime = new DateTime(System.currentTimeMillis());
-                String sname = snapshotName + "_" + conglomerateNumber;
-
-                if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.debug(LOG, "restoring snapshot %s for table %d", sname, conglomerateNumber);
-                }
-
-                admin.disableTable(Long.toString(conglomerateNumber));
-                admin.restoreSnapshot(sname);
-                admin.enableTable(Long.toString(conglomerateNumber));
-                dd.deleteSnapshot(snapshotName, conglomerateNumber, tc);
-                SnapshotDescriptor descriptor = new SnapshotDescriptor(snapshotName, schemaName, objectName,
-                        conglomerateNumber, creationTime, lastRestoreTime);
-                dd.addSnapshot(descriptor, tc);
-                if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.debug(LOG, "restored snapshot %s for table %d", sname, conglomerateNumber);
-                }
-            }
-        }
-    }
-
-    private static ResultSet getTablesForSnapshot(String schemaName, String tableName) throws Exception
-    {
-        EmbedConnection defaultConn=(EmbedConnection)getDefaultConn();
-        EmbedDatabaseMetaData dmd = (EmbedDatabaseMetaData)defaultConn.getMetaData();
-        ResultSet rs = dmd.getTablesForSnaphot(schemaName, tableName);
-        return rs;
-    }
-
-    private static void snapshot(ResultSet rs, String snapshotName, String schemaName,
-                                 DataDictionary dd, TransactionController tc, List<String> snapshotList) throws Exception
-    {
-        PartitionAdmin admin=SIDriver.driver().getTableFactory().getAdmin();
-        while(rs.next())
-        {
-            String objectName = rs.getString(1);
-            long conglomerateNumber = rs.getLong(2);
-            String sname = snapshotName + "_" + conglomerateNumber;
-            DateTime creationTime = new DateTime(System.currentTimeMillis());
-            if (LOG.isDebugEnabled())
-            {
-                SpliceLogUtils.debug(LOG, "creating snapshot %s", sname);
-            }
-            SnapshotDescriptor descriptor =
-                    new SnapshotDescriptor(snapshotName, schemaName, objectName, conglomerateNumber,creationTime, null);
-            admin.snapshot(sname, Long.toString(conglomerateNumber));
-            dd.addSnapshot(descriptor, tc);
-            snapshotList.add(sname);
-            if (LOG.isDebugEnabled())
-            {
-                SpliceLogUtils.debug(LOG, "created snapshot %s", sname);
-            }
-        }
-    }
-
-    private static void ensureSnapshot(String snapshotName, boolean exists) throws StandardException
-    {
-
-        if (!snapshotName.matches("[a-zA-Z_0-9][a-zA-Z_0-9-.]*")) {
-            throw StandardException.newException(SQLState.SNAPSHOT_NAME_ILLEGAL,snapshotName);
-        }
-        int count = 0;
-        try {
-            Connection connection = getDefaultConn();
-            EmbedDatabaseMetaData dmd = (EmbedDatabaseMetaData)connection.getMetaData();
-            try (ResultSet rs = dmd.checkSnapshotExists(snapshotName)) {
-                if (rs.next()) {
-                    count++;
-                }
-            }
-        }
-        catch (SQLException e)
-        {
-            throw StandardException.plainWrapException(e);
-        }
-
-        if (exists && count == 0)
-        {
-            throw StandardException.newException(SQLState.SNAPSHOT_NOT_EXISTS, snapshotName);
-        }
-        else if (!exists && count > 0)
-        {
-            throw StandardException.newException(SQLState.SNAPSHOT_EXISTS, snapshotName);
-        }
-    }
-
-    private static void deleteSnapshots(List<String> snapshotList) throws IOException
-    {
-        PartitionAdmin admin=SIDriver.driver().getTableFactory().getAdmin();
-        for (String snapshot : snapshotList)
-        {
-            admin.deleteSnapshot(snapshot);
-        }
-    }
-
     public static void SYSCS_GET_SESSION_INFO(final ResultSet[] resultSet) throws SQLException{
         EmbedConnection conn = (EmbedConnection)getDefaultConn();
         LanguageConnectionContext lcc = conn.getLanguageConnection();
-        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-
-        int sessionNumber = lcc.getInstanceNumber();
 
         SConfiguration config=EngineDriver.driver().getConfiguration();
         String hostname = NetworkUtils.getHostname(config);
         int port = config.getNetworkBindPort();
+        int sessionNumber = lcc.getInstanceNumber();
 
-        List<ExecRow> rows = new ArrayList<>(1);
-        ExecRow row = new ValueRow(2);
-        row.setColumn(1, new SQLVarchar(hostname + ":" + port));
-        row.setColumn(2, new SQLInteger(sessionNumber));
-        rows.add(row);
+        ResultHelper res = new ResultHelper();
+        ResultHelper.VarcharColumn colHostname = res.addVarchar("HOSTNAME", 120);
+        ResultHelper.IntegerColumn colSession = res.addInteger("SESSION");
+        res.newRow();
+        colHostname.set(hostname + ":" + port);
+        colSession.set(sessionNumber);
 
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, new GenericColumnDescriptor[]{
-                new GenericColumnDescriptor("HOSTNAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
-                new GenericColumnDescriptor("SESSION", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
-        },
-                lastActivation);
-        try {
-            resultsToWrap.openCore();
-        } catch (StandardException se) {
-            throw PublicAPI.wrapStandardException(se);
-        }
-        resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+        resultSet[0] = res.getResultSet();
     }
 
     public static void SYSCS_GET_OLDEST_ACTIVE_TRANSACTION(ResultSet[] resultSet) throws SQLException{

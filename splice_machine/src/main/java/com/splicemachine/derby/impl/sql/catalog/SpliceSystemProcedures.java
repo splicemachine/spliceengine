@@ -688,40 +688,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .build();
         procedures.add(minRetentionPeriod);
 
-        Procedure snapshotSchema = Procedure.newBuilder().name("SNAPSHOT_SCHEMA")
-                .varchar("schemaName", 128)
-                .varchar("snapshotName", 128)
-                .numOutputParams(0)
-                .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(snapshotSchema);
-
-        Procedure snapshotTable = Procedure.newBuilder().name("SNAPSHOT_TABLE")
-                .varchar("schemaName", 128)
-                .varchar("tableName", 128)
-                .varchar("snapshotName", 128)
-                .numOutputParams(0)
-                .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(snapshotTable);
-
-        Procedure deleteSnapshot = Procedure.newBuilder().name("DELETE_SNAPSHOT")
-                .varchar("snapshotName", 128)
-                .numOutputParams(0)
-                .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(deleteSnapshot);
-
-        Procedure restoreSnapshot = Procedure.newBuilder().name("RESTORE_SNAPSHOT")
-                .varchar("snapshotName", 128)
-                .numOutputParams(0)
-                .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                .build();
-        procedures.add(restoreSnapshot);
+        SnapshotProcedures.addProcedures(procedures);
 
         Procedure getEncodedRegionName = Procedure.newBuilder().name("GET_ENCODED_REGION_NAME")
                 .catalog("schemaName")
