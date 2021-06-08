@@ -142,6 +142,22 @@ public class MergeNodeIT
                 " 5 |55 | 5 |");
     }
 
+    // delete
+
+    @Ignore // fails Nullpointer Except
+    @Test
+    public void testSimpleDelete() throws Exception {
+        test(   "(1, 11, 111), (4, 44, 444)", // src
+                "(1, 10, 3), (2, 20, 3)", // dest
+
+                "merge into T_dest using T_src on (T_dest.i = T_src.i) " +
+                        "when matched then DELETE",
+
+                "I | J | K |\n" +
+                "------------\n" +
+                " 2 |20 | 3 |");
+    }
+
 
     public void checkGrammar(String sql) {
         try
