@@ -503,6 +503,10 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             BaseDataDictionary.READ_NEW_FORMAT = false;
             BaseDataDictionary.WRITE_NEW_FORMAT = false;
         }
+        else {
+            BaseDataDictionary.READ_NEW_FORMAT = true;
+            BaseDataDictionary.WRITE_NEW_FORMAT = true;
+        }
         super.loadDictionaryTables(tc,startParams);
 
         // Check splice data dictionary version to decide if upgrade is necessary
