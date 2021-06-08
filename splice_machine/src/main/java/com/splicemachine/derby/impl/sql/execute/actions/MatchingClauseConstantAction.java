@@ -136,48 +136,43 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
         if ( thenRows == null ) { return; }
 
         CursorResultSet sourceRS = thenRows.getResultSet();
-
         sourceRS.open();
-        ExecRow row = sourceRS.getNextRow();
+        while(sourceRS.getNextRow() != null) {
+            ExecRow row = sourceRS.getCurrentRow();
 
-        RowOperation ro = new RowOperation(activation, row, true, 0, 0, 0 );
-        ro.getActivation().setResultDescription( _thenColumnSignature ); // this is weird, but needed because result description was taken from HOJN
+            RowOperation ro = new RowOperation(activation, row, true, 0, 0, 0);
+            ro.getActivation().setResultDescription(_thenColumnSignature); // this is weird, but needed because result description was taken from HOJN
 
-        GeneratedMethod actionGM = ((BaseActivation) activation).getMethod( _actionMethodName );
-
-        //
-        // Push the action-specific ConstantAction rather than the Merge statement's
-        // ConstantAction. The INSERT/UPDATE/DELETE expects the default ConstantAction
-        // to be appropriate to it.
-        //
-        try {
-            activation.pushConstantAction( _thenAction );
-
+            //
+            // Push the action-specific ConstantAction rather than the Merge statement's
+            // ConstantAction. The INSERT/UPDATE/DELETE expects the default ConstantAction
+            // to be appropriate to it.
+            //
             try {
-                //
-                // Poke the temporary table into the variable which will be pushed as
-                // an argument to the INSERT/UPDATE/DELETE action.
-                //
-                Field resultSetField = activation.getClass().getField( _resultSetFieldName );
-                resultSetField.set( activation, ro );
+                activation.pushConstantAction(_thenAction);
 
-                Activation  cursorActivation = sourceRS.getActivation();
+                try {
+                    //
+                    // Poke the temporary table into the variable which will be pushed as
+                    // an argument to the INSERT/UPDATE/DELETE action.
+                    //
+                    Field resultSetField = activation.getClass().getField(_resultSetFieldName);
+                    resultSetField.set(activation, ro);
 
-                //
-                // Now execute the generated method which creates an InsertResultSet,
-                // UpdateResultSet, or DeleteResultSet.
-                //
-                Method actionMethod = activation.getClass().getMethod( _actionMethodName );
-                _actionRS = (ResultSet) actionMethod.invoke( activation, null );
+                    //
+                    // Now execute the generated method which creates an InsertResultSet,
+                    // UpdateResultSet, or DeleteResultSet.
+                    //
+                    Method actionMethod = activation.getClass().getMethod(_actionMethodName);
+                    _actionRS = (ResultSet) actionMethod.invoke(activation, null);
+                } catch (Exception e) {
+                    throw StandardException.plainWrapException(e);
+                }
+                // this is where the INSERT/UPDATE/DELETE is processed
+                _actionRS.open();
+            } finally {
+                activation.popConstantAction();
             }
-            catch (Exception e) { throw StandardException.plainWrapException( e ); }
-
-            // this is where the INSERT/UPDATE/DELETE is processed
-            _actionRS.open();
-        }
-        finally
-        {
-            activation.popConstantAction();
         }
     }
 
