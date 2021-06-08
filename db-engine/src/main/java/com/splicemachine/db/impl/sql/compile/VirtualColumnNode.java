@@ -59,8 +59,8 @@ public class VirtualColumnNode extends ValueNode
 {
     @Override
     public void acceptChildren(Visitor v) throws StandardException {
-        sourceResultSet.acceptChildren(v);
-        sourceColumn.acceptChildren(v);
+//        sourceResultSet.acceptChildren(v);
+//        sourceColumn.acceptChildren(v);
     }
 
     /* A VirtualColumnNode contains a pointer to the immediate child result
