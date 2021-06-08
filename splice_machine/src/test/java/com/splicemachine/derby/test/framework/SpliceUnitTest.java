@@ -1075,6 +1075,10 @@ public class SpliceUnitTest {
     }
 
     public static void assertFailed(Connection connection, String sql, String errorState) {
+       assertFailed(connection, sql, errorState, null);
+    }
+
+    public static void assertFailed(Connection connection, String sql, String errorState, String msg) {
         try(Statement s = connection.createStatement())
         {
             s.execute(sql);
@@ -1083,6 +1087,8 @@ public class SpliceUnitTest {
             assertTrue("Incorrect error type: " + e.getClass().getName(), e instanceof SQLException);
             SQLException se = (SQLException) e;
             assertTrue("Incorrect error state: " + se.getSQLState() + ", expected: " + errorState,  errorState.startsWith( se.getSQLState()));
+            if(msg != null)
+                assertEquals(msg, e.getMessage().split("\n")[0]);
         }
     }
 
