@@ -34,14 +34,14 @@ package com.splicemachine.db.impl.ast;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.ResultSetNode;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 /**
  * User: pjt
  * Date: 7/24/13
  */
 public class AssignRSNVisitor extends AbstractSpliceVisitor {
-    private static Logger LOG = Logger.getLogger(AssignRSNVisitor.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(AssignRSNVisitor.class);
 
     @Override
     public Visitable defaultVisit(Visitable node) throws StandardException {

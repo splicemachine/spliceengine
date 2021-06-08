@@ -40,7 +40,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.si.api.txn.TxnView;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
@@ -51,7 +51,7 @@ import static com.splicemachine.db.impl.sql.compile.ExplainNode.SparkExplainKind
 
 
 public class ProjectRestrictOperation extends SpliceBaseOperation {
-    private static Logger                            LOG                           = Logger.getLogger(ProjectRestrictOperation.class);
+    private static Logger                            LOG                           = org.apache.logging.log4j.LogManager.getLogger(ProjectRestrictOperation.class);
     private static int                               PROJECT_RESTRICT_OPERATION_V2 = 2;
     protected      String                            restrictionMethodName;
     protected      String                            projectionMethodName;

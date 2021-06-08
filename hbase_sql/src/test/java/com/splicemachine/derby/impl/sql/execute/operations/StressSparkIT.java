@@ -25,7 +25,7 @@ import com.splicemachine.test.SlowTest;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -49,7 +49,7 @@ import static org.junit.Assert.assertTrue;
 @Category({SlowTest.class, SerialTest.class})
 @RunWith(Parameterized.class)
 public class StressSparkIT {
-    private static Logger LOG=Logger.getLogger(StressSparkIT.class);
+    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(StressSparkIT.class);
 
     public static final String CLASS_NAME = StressSparkIT.class.getSimpleName().toUpperCase();
 

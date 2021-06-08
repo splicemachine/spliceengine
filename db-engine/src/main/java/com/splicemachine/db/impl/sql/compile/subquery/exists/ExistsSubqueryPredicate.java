@@ -34,7 +34,7 @@ package com.splicemachine.db.impl.sql.compile.subquery.exists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.subquery.FlatteningUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.util.List;
 
@@ -43,7 +43,7 @@ import java.util.List;
  */
 class ExistsSubqueryPredicate implements splice.com.google.common.base.Predicate<SubqueryNode> {
 
-    private static Logger LOG = Logger.getLogger(ExistsSubqueryPredicate.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ExistsSubqueryPredicate.class);
 
     private SelectNode outerSelectNode;
 

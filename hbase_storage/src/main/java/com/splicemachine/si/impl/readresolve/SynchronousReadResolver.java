@@ -33,7 +33,7 @@ import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.exceptions.ConnectionClosingException;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 
@@ -45,7 +45,7 @@ import java.io.IOException;
  */
 @ThreadSafe
 public class SynchronousReadResolver implements KeyedReadResolver{
-    private static final Logger LOG=Logger.getLogger(SynchronousReadResolver.class);
+    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SynchronousReadResolver.class);
 
     //don't instantiate me, I'm a singleton!
     private SynchronousReadResolver(){

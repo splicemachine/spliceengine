@@ -35,7 +35,7 @@ import org.apache.hadoop.hbase.protobuf.generated.ClusterStatusProtos;
 import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.util.Pair;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.base.Throwables;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionAdmin;
@@ -58,7 +58,7 @@ import org.apache.hadoop.hbase.ipc.CoprocessorRpcUtils.BlockingRpcCallback;
  *         Date: 19/03/2014
  */
 public class HBaseRegionLoads implements PartitionLoadWatcher{
-    private static final Logger LOG = Logger.getLogger(HBaseRegionLoads.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(HBaseRegionLoads.class);
     // Periodic updating
     private static final AtomicBoolean started = new AtomicBoolean(false);
     // The cache is a map from tablename to map of regionname to RegionLoad

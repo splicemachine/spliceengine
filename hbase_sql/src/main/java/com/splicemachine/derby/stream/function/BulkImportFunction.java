@@ -32,7 +32,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles;
 import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.spark.api.java.function.VoidFunction;
 
 import java.io.Externalizable;
@@ -49,7 +49,7 @@ import java.util.Map;
  * Created by dgomezferro on 5/17/17.
  */
 public class BulkImportFunction implements VoidFunction<Iterator<BulkImportPartition>>, Externalizable {
-    private static final Logger LOG = Logger.getLogger(BulkImportFunction.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(BulkImportFunction.class);
     private Map<Long, List<BulkImportPartition>> partitionMap;
     private byte[] token;
 

@@ -23,7 +23,7 @@ import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -35,7 +35,7 @@ import java.sql.SQLException;
 
 @Ignore
 public class SpliceMemstoreKeyValueScannerIT extends BaseMRIOTest{
-    private static final Logger LOG = Logger.getLogger(SpliceMemstoreKeyValueScannerIT.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceMemstoreKeyValueScannerIT.class);
     protected static String SCHEMA_NAME=SpliceMemstoreKeyValueScannerIT.class.getSimpleName();
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);

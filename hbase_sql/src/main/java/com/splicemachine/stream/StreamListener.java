@@ -20,7 +20,8 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -36,7 +37,7 @@ import java.util.concurrent.ConcurrentMap;
  */
 @ChannelHandler.Sharable
 public class StreamListener<T> extends ChannelInboundHandlerAdapter implements Iterator<T> {
-    private static final Logger LOG = Logger.getLogger(StreamListener.class);
+    private static final Logger LOG = LogManager.getLogger(StreamListener.class);
     private static final int PARTITION_BUFFER_FACTOR = 3;
     private static final Object SENTINEL = new Object();
     private static final Object FAILURE = new Object();

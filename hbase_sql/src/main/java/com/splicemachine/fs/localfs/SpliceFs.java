@@ -17,7 +17,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.AbstractFileSystem;
 import org.apache.hadoop.fs.ChecksumFs;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.net.URI;
@@ -30,7 +30,7 @@ import java.net.URISyntaxException;
  *
  */
 public class SpliceFs extends ChecksumFs {
-    private static Logger LOG=Logger.getLogger(SpliceFs.class);
+    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SpliceFs.class);
 
     SpliceFs(final Configuration conf) throws IOException, URISyntaxException {
             super(new RawSpliceFs(conf));

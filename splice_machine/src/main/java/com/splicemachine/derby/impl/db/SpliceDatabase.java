@@ -66,8 +66,8 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.Logger;
 
 import javax.security.auth.login.Configuration;
 import java.io.InputStream;
@@ -78,7 +78,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SpliceDatabase extends BasicDatabase{
 
-    private static Logger LOG=Logger.getLogger(SpliceDatabase.class);
+    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SpliceDatabase.class);
     private AtomicBoolean registered = new AtomicBoolean(false);
 
     @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification = "intentional")

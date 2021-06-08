@@ -26,7 +26,7 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -35,7 +35,7 @@ import java.sql.ResultSet;
 
 public class CallStatementOperation extends NoRowsOperation {
 	private static final String NAME = CallStatementOperation.class.getSimpleName().replaceAll("Operation","");
-    private static final Logger LOG = Logger.getLogger(CallStatementOperation.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(CallStatementOperation.class);
 	private String methodName;
 	private SpliceMethod<Object> methodCall;
 	String origClassName = null;

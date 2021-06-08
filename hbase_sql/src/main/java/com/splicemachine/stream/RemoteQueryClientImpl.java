@@ -35,7 +35,7 @@ import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.RemoteQueryClient;
 import com.splicemachine.si.constants.SIConstants;
 import io.netty.channel.ChannelHandler;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.util.concurrent.ListenableFuture;
 import splice.com.google.common.util.concurrent.MoreExecutors;
 import java.io.IOException;
@@ -48,7 +48,7 @@ import java.util.concurrent.*;
  */
 @ChannelHandler.Sharable
 public class RemoteQueryClientImpl implements RemoteQueryClient {
-    private static final Logger LOG = Logger.getLogger(RemoteQueryClientImpl.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(RemoteQueryClientImpl.class);
 
     private static StreamListenerServer server;
 

@@ -43,7 +43,7 @@ import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.impl.sql.compile.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.base.Function;
 import splice.com.google.common.base.Predicates;
 import splice.com.google.common.collect.Collections2;
@@ -76,7 +76,7 @@ import java.util.*;
 
 public class JoinConditionVisitor extends AbstractSpliceVisitor {
 
-    private static Logger LOG = Logger.getLogger(JoinConditionVisitor.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(JoinConditionVisitor.class);
     private LongLongHashMap joinChainMap;
 
     private void initializeMap(QueryTreeNode v)  throws StandardException {

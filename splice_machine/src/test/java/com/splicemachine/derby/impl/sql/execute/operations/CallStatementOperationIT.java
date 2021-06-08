@@ -23,7 +23,7 @@ import java.util.*;
 
 import com.splicemachine.test.SlowTest;
 import org.apache.commons.dbutils.DbUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -42,7 +42,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 public class CallStatementOperationIT extends SpliceUnitTest {
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = CallStatementOperationIT.class.getSimpleName().toUpperCase();
-	private static Logger LOG = Logger.getLogger(CallStatementOperationIT.class);
+	private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(CallStatementOperationIT.class);
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("TEST1",CLASS_NAME,"(a int)");
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 

@@ -59,7 +59,7 @@ import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.sql.SQLException;
@@ -73,7 +73,7 @@ import java.util.concurrent.TimeUnit;
  *
  */
 public class DDLUtils {
-    private static final Logger LOG = Logger.getLogger(DDLUtils.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(DDLUtils.class);
 
     public static DDLMessage.DDLChange performMetadataChange(DDLMessage.DDLChange ddlChange) throws StandardException {
         if (LOG.isDebugEnabled())

@@ -32,7 +32,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.api.txn.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.collect.Lists;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -45,8 +45,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *         Created on: 8/8/13
  */
 public class BulkWriteAction implements Callable<WriteStats>{
-    private static final Logger LOG=Logger.getLogger(BulkWriteAction.class);
-    private static final Logger RETRY_LOG=Logger.getLogger(BulkWriteAction.class.getName()+".retries");
+    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(BulkWriteAction.class);
+    private static final Logger RETRY_LOG=org.apache.logging.log4j.LogManager.getLogger(BulkWriteAction.class.getName()+".retries");
     private static final AtomicLong idGen=new AtomicLong(0L);
     private MergingWriteStats stats;
     private BulkWrites bulkWrites;

@@ -23,7 +23,8 @@ import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.RoutingWriteHandler;
 import com.splicemachine.primitives.Bytes;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import static com.splicemachine.storage.util.UpdateUtils.deleteFromWrite;
@@ -36,7 +37,8 @@ import static com.splicemachine.storage.util.UpdateUtils.updateFromWrite;
  *         Created on: 5/1/13
  */
 public class IndexWriteHandler extends RoutingWriteHandler{
-    private static final Logger LOG = Logger.getLogger(IndexWriteHandler.class);
+    private static final Logger LOG = LogManager.getLogger(IndexWriteHandler.class);
+    // todo: IndexWriteHandler is the only usage of RoutingWriteHandler. Merge into one class
     private final IndexTransformer transformer;
     private CallBuffer<KVPair> indexBuffer;
     private final int expectedWrites;

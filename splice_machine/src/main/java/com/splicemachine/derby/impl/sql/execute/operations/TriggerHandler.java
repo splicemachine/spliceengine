@@ -255,7 +255,7 @@ public class TriggerHandler {
                                 // cannot elevate.
                                 ah.newTxnResource();
                                 newLCC = ah.getLCC();
-                                newLCC.pushStatementContext(true, oldLCC.isReadOnly(),
+                                newLCC.pushStatementContext(true, false,
                                        oldLCC.getOrigStmtTxt(), null, false, 0L);
                                 f.apply(ah.getLCC());
                             } catch (Exception e) {

@@ -27,7 +27,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import com.splicemachine.SqlExceptionFactory;
@@ -43,7 +43,7 @@ import com.splicemachine.si.api.txn.TxnSupplier;
  */
 public class AsynchronousDDLWatcher implements DDLWatcher,CommunicationListener{
 
-    private static final Logger LOG = Logger.getLogger(AsynchronousDDLWatcher.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(AsynchronousDDLWatcher.class);
 
 
     private Set<DDLListener> ddlListeners =new CopyOnWriteArraySet<>();

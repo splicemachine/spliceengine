@@ -32,11 +32,11 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import com.splicemachine.mrio.api.mapreduce.SpliceTableOutputCommitter;
 
 public class SMOutputFormat extends OutputFormat<RowLocation,ExecRow> implements Configurable {
-    protected static final Logger LOG = Logger.getLogger(SMOutputFormat.class);
+    protected static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SMOutputFormat.class);
 	protected Configuration conf;
 	protected SMSQLUtil util;
 

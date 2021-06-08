@@ -21,7 +21,7 @@ import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.dbutils.BasicRowProcessor;
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.runner.Description;
 import splice.com.google.common.collect.Lists;
 
@@ -36,7 +36,7 @@ import static org.junit.Assert.assertEquals;
 
 @SuppressFBWarnings("SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE") // intentional
 public class TestUtils {
-    private static final Logger LOG = Logger.getLogger(TestUtils.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(TestUtils.class);
 
     public static long baseTableConglomerateId(Connection conn, String schema, String table) throws SQLException{
         schema = schema.toUpperCase();

@@ -17,7 +17,7 @@ package com.splicemachine.derby.test;
 import com.splicemachine.db.shared.common.sql.Utils;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -35,7 +35,7 @@ public class DatabaseMetaDataTestIT {
     // use the same code path we want to test which defeats the purpose of the test itself. Therefore we add this class with
     // custom drop-if-exists logic that doesn't access the code paths we want to test.
     static class SpliceProcedureWatcherWithCustomDrop extends SpliceProcedureWatcher {
-        private static final Logger LOG = Logger.getLogger(SpliceProcedureWatcherWithCustomDrop.class);
+        private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceProcedureWatcherWithCustomDrop.class);
         public SpliceProcedureWatcherWithCustomDrop(String procedureName, String schemaName, String createString) {
             super(procedureName, schemaName, createString);
         }

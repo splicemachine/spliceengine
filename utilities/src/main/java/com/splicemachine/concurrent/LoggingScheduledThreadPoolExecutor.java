@@ -14,7 +14,7 @@
 
 package com.splicemachine.concurrent;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.util.concurrent.*;
 
@@ -32,7 +32,7 @@ import java.util.concurrent.*;
  */
 class LoggingScheduledThreadPoolExecutor extends ScheduledThreadPoolExecutor {
 
-    private static final Logger LOG = Logger.getLogger(LoggingScheduledThreadPoolExecutor.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(LoggingScheduledThreadPoolExecutor.class);
 
     LoggingScheduledThreadPoolExecutor(int corePoolSize, ThreadFactory threadFactory) {
         super(corePoolSize, threadFactory);

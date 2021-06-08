@@ -21,7 +21,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -34,7 +34,7 @@ import java.io.OutputStream;
 public class SpliceTestDfsPlatform {
     public static int DEFAULT_NODE_COUNT = 1;
 
-    private static final Logger LOG = Logger.getLogger(SpliceTestDfsPlatform.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceTestDfsPlatform.class);
 
     private MiniDFSCluster dfsCluster = null;
     private Configuration conf = null;

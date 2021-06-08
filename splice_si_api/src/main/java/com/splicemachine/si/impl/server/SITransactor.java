@@ -43,7 +43,7 @@ import com.splicemachine.storage.util.UpdateUtils;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.collect.Collections2;
 import splice.com.google.common.collect.Lists;
 import splice.com.google.common.collect.Maps;
@@ -58,7 +58,7 @@ import java.util.concurrent.locks.Lock;
  */
 @SuppressWarnings("unchecked")
 public class SITransactor implements Transactor{
-    private static final Logger LOG=Logger.getLogger(SITransactor.class);
+    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SITransactor.class);
     private final OperationFactory opFactory;
     private final OperationStatusFactory operationStatusLib;
     private final ExceptionFactory exceptionLib;

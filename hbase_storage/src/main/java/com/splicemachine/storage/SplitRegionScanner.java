@@ -38,7 +38,7 @@ import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /*
@@ -47,7 +47,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  * 
  */
 public class SplitRegionScanner implements RegionScanner {
-    protected static final Logger LOG = Logger.getLogger(SplitRegionScanner.class);
+    protected static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SplitRegionScanner.class);
     private final int maxRetries;
     protected List<RegionScanner> regionScanners = new ArrayList<>(2);
     protected RegionScanner currentScanner;

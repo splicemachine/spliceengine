@@ -36,7 +36,7 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -55,7 +55,7 @@ import static org.junit.Assert.assertEquals;
  * Created by yxia on 10/26/18.
  */
 public class SelectForUpdateIT extends SpliceUnitTest {
-    private static Logger LOG = Logger.getLogger(SelectForUpdateIT.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SelectForUpdateIT.class);
     public static final String CLASS_NAME = SelectForUpdateIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);

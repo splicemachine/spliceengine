@@ -22,7 +22,7 @@ import org.apache.hadoop.hbase.shaded.protobuf.generated.ReplicationProtos;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 import org.apache.hbase.thirdparty.com.google.protobuf.CodedOutputStream;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
 import java.io.ByteArrayOutputStream;
@@ -38,7 +38,7 @@ import java.util.Properties;
 @SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "intentional")
 public class ReplicationUtils {
 
-    private static final Logger LOG = Logger.getLogger(ReplicationUtils.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ReplicationUtils.class);
 
     public static final byte[] MASTER_CLUSTER_STATUS_DOWN = com.splicemachine.primitives.Bytes.toBytes(0);
     public static final byte[] MASTER_CLUSTER_STATUS_UP = com.splicemachine.primitives.Bytes.toBytes(1);

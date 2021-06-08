@@ -17,7 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import org.apache.ivy.plugins.repository.ssh.AbstractSshBasedRepository;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -36,7 +36,7 @@ import java.sql.SQLException;
  * Created on: 6/25/13
  */
 public class ViewIT { 
-    private static final Logger LOG = Logger.getLogger(ViewIT.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ViewIT.class);
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 

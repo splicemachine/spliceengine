@@ -51,7 +51,7 @@ import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.deploy.SparkHadoopUtil;
@@ -87,7 +87,7 @@ import static com.splicemachine.access.configuration.HBaseConfiguration.MAX_EXEC
  * Created by dgomezferro on 29/08/2017.
  */
 public class OlapServerMaster {
-    private static final Logger LOG = Logger.getLogger(OlapServerMaster.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(OlapServerMaster.class);
     private final AtomicBoolean end = new AtomicBoolean(false);
     private final int port;
     private final String queueName;

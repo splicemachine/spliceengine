@@ -17,7 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.impl.job.fk.FkJobSubmitter;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -43,7 +43,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  */
 public class DropConstraintConstantOperation extends ConstraintConstantOperation {
 
-    private static final Logger LOG = Logger.getLogger(DropConstraintConstantOperation.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(DropConstraintConstantOperation.class);
 
     private final boolean cascade;
 	private final String constraintSchemaName;

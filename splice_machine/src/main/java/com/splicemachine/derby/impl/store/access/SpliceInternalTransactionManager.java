@@ -18,14 +18,15 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.daemon.Serviceable;
 import com.splicemachine.db.iapi.store.raw.Transaction;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /* A special type of SpliceTransactionManager only used to track the hierarchy
  * of internal transactions, and should not be used from committing transactions
  * or setting or releasing savepoints.
  */
 public class SpliceInternalTransactionManager extends SpliceTransactionManager {
-    private static Logger LOG = Logger
+    private static Logger LOG = LogManager
             .getLogger(SpliceInternalTransactionManager.class);
 
     /**************************************************************************

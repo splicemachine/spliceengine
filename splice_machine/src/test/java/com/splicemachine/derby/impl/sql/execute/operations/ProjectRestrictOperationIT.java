@@ -20,7 +20,7 @@ import splice.com.google.common.base.Joiner;
 import splice.com.google.common.collect.Lists;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -44,7 +44,7 @@ import static org.junit.Assert.assertEquals;
  */
 public class ProjectRestrictOperationIT extends SpliceUnitTest{
     private static final int MIN_DECIMAL_DIVIDE_SCALE=4;
-    private static Logger LOG=Logger.getLogger(ProjectRestrictOperationIT.class);
+    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(ProjectRestrictOperationIT.class);
     public static final String CLASS_NAME=ProjectRestrictOperationIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher=new SpliceWatcher(CLASS_NAME);
     public static final String TABLE_NAME="A";

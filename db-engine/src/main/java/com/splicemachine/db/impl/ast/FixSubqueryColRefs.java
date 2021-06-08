@@ -36,7 +36,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.*;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.collect.Iterables;
 import splice.com.google.common.collect.Lists;
 import java.util.HashMap;
@@ -49,7 +49,7 @@ import java.util.Map;
  */
 public class FixSubqueryColRefs extends AbstractSpliceVisitor {
 
-    private static final Logger LOG = Logger.getLogger(FixSubqueryColRefs.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(FixSubqueryColRefs.class);
 
     private Map<Integer,List<SubqueryNode>> correlatedSubQs;
 

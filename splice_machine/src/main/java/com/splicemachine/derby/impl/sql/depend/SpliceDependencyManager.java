@@ -26,10 +26,10 @@ import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 public class SpliceDependencyManager extends BasicDependencyManager {
-    private static final Logger LOG = Logger.getLogger(SpliceDependencyManager.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceDependencyManager.class);
     
 	public SpliceDependencyManager(DataDictionary dd) {
 		super(dd);

@@ -33,7 +33,7 @@ import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcUtils;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.base.Throwables;
 import splice.com.google.common.collect.Sets;
 
@@ -43,7 +43,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class HBasePlatformUtils{
-    private static final Logger LOG = Logger.getLogger(HBasePlatformUtils.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(HBasePlatformUtils.class);
 
 
     public static boolean scannerEndReached(ScannerContext scannerContext) {

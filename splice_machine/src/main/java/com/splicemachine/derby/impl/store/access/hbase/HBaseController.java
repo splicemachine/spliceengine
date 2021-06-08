@@ -29,7 +29,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.storage.DataPut;
 import com.splicemachine.storage.Partition;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,7 +38,7 @@ import java.util.List;
 
 
 public class HBaseController extends SpliceController{
-    protected static final Logger LOG=Logger.getLogger(HBaseController.class);
+    protected static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(HBaseController.class);
 
     public HBaseController(OpenSpliceConglomerate openSpliceConglomerate,
                            Transaction trans,

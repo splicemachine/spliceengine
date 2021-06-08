@@ -20,7 +20,7 @@ import com.splicemachine.concurrent.ConcurrentTicker;
 import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.concurrent.TickingClock;
 import com.splicemachine.derby.test.framework.*;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;

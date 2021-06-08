@@ -21,7 +21,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.si.impl.driver.SIDriver;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 
@@ -29,7 +29,7 @@ import java.io.IOException;
  * Created by jyuan on 2/12/19.
  */
 public class UpgradeScriptForReplication extends UpgradeScriptBase {
-    private static final Logger LOG = Logger.getLogger(UpgradeScriptForReplication.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(UpgradeScriptForReplication.class);
     public UpgradeScriptForReplication(SpliceDataDictionary sdd, TransactionController tc) {
         super(sdd, tc);
     }

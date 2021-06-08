@@ -19,7 +19,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUserWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -39,7 +39,7 @@ import static org.junit.Assert.assertEquals;
  */
 public class CreateSchemaIT {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    private static final Logger LOG = Logger.getLogger(CreateSchemaIT.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(CreateSchemaIT.class);
 
     protected static SpliceSchemaWatcher sullivan1SchemaWatcher = new SpliceSchemaWatcher("SULLIVAN1");
     protected static SpliceSchemaWatcher sullivanSchemaWatcher = new SpliceSchemaWatcher("SULLIVAN");

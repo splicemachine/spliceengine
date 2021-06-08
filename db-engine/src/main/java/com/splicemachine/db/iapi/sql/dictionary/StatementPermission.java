@@ -42,7 +42,8 @@ import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.shared.common.reference.AuditEventType;
 import com.splicemachine.utils.StringUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,7 +67,7 @@ public abstract class StatementPermission {
     public static final int AUTHORIZED = 1;
     public static final int NONE = 2;
 
-    private static final Logger AUDITLOG=Logger.getLogger("splice-audit");
+    private static final Logger AUDITLOG=LogManager.getLogger("splice-audit");
 
     /**
      * Restrict implementations to this package to reduce

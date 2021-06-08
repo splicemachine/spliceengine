@@ -37,7 +37,7 @@ import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.hbase.util.Pair;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
 import splice.com.google.common.collect.Lists;
@@ -54,7 +54,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * Created by jyuan on 2/18/16.
  */
 public class BackupEndpointObserver extends BackupMessage.BackupCoprocessorService implements RegionCoprocessor, RegionObserver {
-    private static final Logger LOG=Logger.getLogger(BackupEndpointObserver.class);
+    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(BackupEndpointObserver.class);
 
     private AtomicBoolean isSplitting;
     private AtomicBoolean isCompacting;

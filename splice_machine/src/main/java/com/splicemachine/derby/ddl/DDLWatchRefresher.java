@@ -29,7 +29,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.txn.LazyTxnView;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.util.*;
@@ -44,7 +44,7 @@ import static com.splicemachine.ddl.DDLMessage.DDLChangeType.ENTER_RESTORE_MODE;
  *         Date: 9/7/15
  */
 public class DDLWatchRefresher{
-    private static final Logger LOG=Logger.getLogger(DDLWatchRefresher.class);
+    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(DDLWatchRefresher.class);
     private final Set<String> seenDDLChanges;
     private final Set<String> changeTimeouts;
     private final Map<String, DDLChange> currentDDLChanges;

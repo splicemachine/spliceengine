@@ -32,7 +32,11 @@
 package com.splicemachine.db.impl.sql.execute;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.loader.GeneratedClass;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
@@ -46,8 +50,19 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLBoolean;
+import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.impl.sql.GenericPreparedStatement;
+import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.db.impl.sql.compile.ExecSPSNode;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -338,6 +353,22 @@ public abstract class GenericTriggerExecutor {
             actionPSList.set(index, ps);
             spsActionActivationList.set(index, spsActivation);
         }
+         if (ps instanceof GenericStorablePreparedStatement) {
+             GenericStorablePreparedStatement gsps = (GenericStorablePreparedStatement)ps;
+             dumpClassFile(gsps);
+         }
+
+    }
+    private void dumpClassFile(GenericStorablePreparedStatement ps) throws StandardException {
+        if(SanityManager.DEBUG && SanityManager.DEBUG_ON("DumpClassFile")){
+            String systemHome = (String) AccessController.doPrivileged(new PrivilegedAction() {
+                public Object run() {
+                    return System.getProperty(Property.SYSTEM_HOME_PROPERTY, ".");
+                }
+            });
+        GeneratedClass gc = ps.getActivationClass();
+        new ExecSPSNode.DumpGClass(ps,gc.getName()).writeClassFile(systemHome, false, null);
+        }
     }
 
     /**
@@ -380,5 +411,13 @@ public abstract class GenericTriggerExecutor {
                 executeSPS(getAction(i), i);
             }
         }
+    }
+
+    public void setLanguageConnectionContext(LanguageConnectionContext lcc) {
+        this.lcc = lcc;
+    }
+
+    public void setTriggerExecutionContext(TriggerExecutionContext tec) {
+        this.tec = tec;
     }
 } 

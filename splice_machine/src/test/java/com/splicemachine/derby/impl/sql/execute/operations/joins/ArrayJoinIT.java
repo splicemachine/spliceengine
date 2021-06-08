@@ -31,7 +31,7 @@ import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SlowTest;
 import com.splicemachine.utils.Pair;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -72,7 +72,7 @@ import static org.junit.Assert.assertEquals;
 @RunWith(Parameterized.class)
 public class ArrayJoinIT extends SpliceUnitTest {
 
-    private static Logger LOG = Logger.getLogger(ArrayJoinIT.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ArrayJoinIT.class);
 
     public static final String SCHEMA = ArrayJoinIT.class.getSimpleName().toUpperCase();
     public static final String TABLE_NAME_1 = "A";

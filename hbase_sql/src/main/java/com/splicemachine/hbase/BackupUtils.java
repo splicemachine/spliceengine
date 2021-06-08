@@ -35,7 +35,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionFileSystem;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 
@@ -47,7 +47,7 @@ import java.util.List;
  * Created by jyuan on 8/10/16.
  */
 public class BackupUtils {
-    private static final Logger LOG=Logger.getLogger(BackupUtils.class);
+    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(BackupUtils.class);
 
 
 

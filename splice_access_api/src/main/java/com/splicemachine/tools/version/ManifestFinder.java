@@ -14,7 +14,7 @@
 
 package com.splicemachine.tools.version;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.io.Closeables;
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,7 +33,7 @@ import java.util.jar.Manifest;
  */
 class ManifestFinder {
 
-    private static final Logger LOG = Logger.getLogger(ManifestFinder.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ManifestFinder.class);
 
     /* Find it in a path/file that contains this string. */
     private final List<String> spliceJarFilePatterns;

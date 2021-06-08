@@ -28,7 +28,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.spark.api.java.JavaFutureAction;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -45,7 +45,7 @@ import java.util.concurrent.ExecutionException;
  */
 public class SparkTableChecker implements TableChecker {
 
-    protected static final Logger LOG=Logger.getLogger(SparkTableChecker.class);
+    protected static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SparkTableChecker.class);
 
     private long baseTableCount = 0;
     private long indexCount = 0;

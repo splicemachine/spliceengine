@@ -18,7 +18,7 @@ package com.splicemachine.si.impl.server;
 import com.splicemachine.si.api.txn.TxnView;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.util.*;
@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * SICompactionState.
  */
 public abstract class AbstractSICompactionScanner implements InternalScanner {
-    private static final Logger LOG = Logger.getLogger(AbstractSICompactionScanner.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(AbstractSICompactionScanner.class);
     private final SICompactionState compactionState;
     private final InternalScanner delegate;
     private final BlockingQueue<Entry> queue;

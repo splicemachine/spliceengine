@@ -31,7 +31,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import java.util.*;
 
@@ -42,7 +42,7 @@ import static com.splicemachine.db.iapi.sql.compile.CompilerContext.NewMergeJoin
  *         Date: 18/11/2013
  */
 public class MergeJoinOperation extends JoinOperation {
-    private static final Logger LOG = Logger.getLogger(MergeJoinOperation.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(MergeJoinOperation.class);
     private int leftHashKeyItem;
     private int rightHashKeyItem;
     private int rightHashKeyToBaseTableMapItem;

@@ -16,7 +16,7 @@ package com.splicemachine.test;
 
 import java.io.File;
 import java.io.IOException;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.zookeeper.server.DatadirCleanupManager;
 import org.apache.zookeeper.server.ServerCnxnFactory;
 import org.apache.zookeeper.server.ZKDatabase;
@@ -27,7 +27,7 @@ import org.apache.zookeeper.server.quorum.QuorumPeerConfig;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class SpliceZoo implements Runnable {
-	private static final Logger LOG = Logger.getLogger(SpliceZoo.class);
+	private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceZoo.class);
 	protected QuorumPeerConfig config;
 	protected QuorumPeer peer;
 	public SpliceZoo(QuorumPeerConfig config, int number) throws IOException {

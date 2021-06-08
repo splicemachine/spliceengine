@@ -20,7 +20,7 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import io.netty.channel.ChannelHandlerContext;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -32,7 +32,7 @@ import java.util.concurrent.ThreadFactory;
  *         Date: 4/1/16
  */
 class OlapRequestHandler extends AbstractOlapHandler{
-    private static final Logger LOG =Logger.getLogger(OlapRequestHandler.class);
+    private static final Logger LOG =org.apache.logging.log4j.LogManager.getLogger(OlapRequestHandler.class);
 
     private final ExecutorService executionPool;
     private final Clock clock;

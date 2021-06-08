@@ -22,7 +22,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 
@@ -30,7 +30,7 @@ import java.io.IOException;
  * Created by yxia on 12/1/19.
  */
 public class MergeSortFullOuterJoinOperation extends MergeSortJoinOperation {
-    private static Logger LOG = Logger.getLogger(MergeSortFullOuterJoinOperation.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(MergeSortFullOuterJoinOperation.class);
     protected String leftEmptyRowFunMethodName;
     protected SpliceMethod<ExecRow> leftEmptyRowFun;
     protected ExecRow leftEmptyRow;

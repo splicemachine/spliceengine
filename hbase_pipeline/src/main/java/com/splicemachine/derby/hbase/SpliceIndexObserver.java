@@ -53,7 +53,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.hadoop.hbase.wal.WALEdit;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.base.Function;
 
 import javax.annotation.Nullable;
@@ -68,7 +68,7 @@ import java.util.Optional;
  *         Created on: 2/28/13
  */
 public class SpliceIndexObserver implements RegionObserver, RegionCoprocessor {
-    private static final Logger LOG = Logger.getLogger(SpliceIndexObserver.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceIndexObserver.class);
 
     private long conglomId=-1L;
     private TransactionalRegion region;

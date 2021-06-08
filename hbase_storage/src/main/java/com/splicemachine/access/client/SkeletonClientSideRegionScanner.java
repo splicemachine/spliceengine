@@ -33,7 +33,7 @@ import org.apache.hadoop.hbase.client.TableDescriptor;
 import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.FSUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.util.*;
@@ -44,7 +44,7 @@ import java.util.*;
  */
 public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
     private boolean isClosed = false;
-    private static final Logger LOG = Logger.getLogger(SkeletonClientSideRegionScanner.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SkeletonClientSideRegionScanner.class);
     private HRegion region;
     private RegionScanner scanner;
     private Configuration conf;

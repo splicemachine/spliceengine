@@ -20,7 +20,7 @@ import splice.com.google.common.collect.Sets;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -40,7 +40,7 @@ import static org.junit.Assert.fail;
  *         Date: 26/11/2013
  */
 public class MergeJoinIT extends SpliceUnitTest {
-    private static Logger LOG = Logger.getLogger(MergeJoinIT.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(MergeJoinIT.class);
 
     public static final String CLASS_NAME = MergeJoinIT.class.getSimpleName();
 

@@ -18,12 +18,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import org.apache.commons.dbutils.DbUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 
 public abstract class AbstractSpliceFunctionWatcher extends TestWatcher {
-    private static final Logger LOG = Logger.getLogger(AbstractSpliceFunctionWatcher.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(AbstractSpliceFunctionWatcher.class);
     protected String functionName;
     protected String schemaName;
     protected String createString;

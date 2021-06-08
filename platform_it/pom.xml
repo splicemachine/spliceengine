@@ -783,6 +783,9 @@
                                 <argument>
                                     -Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties
                                 </argument>
+                                <argument>
+                                    -Dlog4j2.configurationFile=${basedir}/src/main/resources/info-log4j2.properties
+                                </argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
                                 <argument>-Djava.io.tmpdir=${tmpDir}</argument>
@@ -855,6 +858,9 @@
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>
                                     -Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties
+                                </argument>
+                                <argument>
+                                    -Dlog4j2.configurationFile=${basedir}/src/main/resources/info-log4j2.properties
                                 </argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
@@ -977,6 +983,7 @@
                                 <argument>-Dhadoop.metrics.init.mode=STANDBY</argument>
                                 <argument>-Djava.security.krb5.conf=${project.build.directory}/krb5.conf</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
+                                <argument>-Dlog4j2.configurationFile=${log4j2.config.uri}</argument>
                                 <argument>-XX:MinHeapFreeRatio=10</argument>
                                 <argument>-XX:MaxHeapFreeRatio=30</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
@@ -1060,6 +1067,7 @@
                                 <argument>-Dsplice.spark.executor.extraJavaOptions=
                                     ${hbase.rootdir}
                                     -Dlog4j.configuration=${log4j.config.uri}
+                                    -Dlog4j2.configurationFile=${log4j2.config.uri}
                                     -Dhdp.version=2.6.3
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
@@ -1075,6 +1083,7 @@
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                     ${hbase.rootdir}
                                     -Dlog4j.configuration=${log4j.config.uri}
+                                    -Dlog4j2.configurationFile=${log4j2.config.uri}
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4025
                                     -Dsplice.olapServerOnStandAlone=true
                                     -enableassertions
@@ -1103,7 +1112,8 @@
                                 <argument>60030</argument>
                                 <argument>1527</argument>
                                 <argument>${failTasksRandomly}</argument>
-                                <argument>${olap.log4j.config.uri}</argument>
+                                <argument>-Dlog4j.configuration=${olap.log4j.config.uri}</argument>
+                                <argument>-Dlog4j2.configurationFile=${olap.log4j2.config.uri}</argument>
                                 <argument>${secure}</argument>
                                 <argument>${durability}</argument>
                             </arguments>
@@ -1148,6 +1158,7 @@
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Djava.security.krb5.conf=${project.build.directory}/krb5.conf</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
+                                <argument>-Dlog4j2.configurationFile=${log4j2.config.uri}</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
@@ -1371,6 +1382,7 @@
                                 <classpath/>
                                 <argument>-Xdebug</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
+                                <argument>-Dlog4j2.configurationFile=${log4j2.config.uri}</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
@@ -1509,6 +1521,7 @@
                                 <argument>-XX:+FlightRecorder</argument> -->
                                 <argument>${jacocoAgent}</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
+                                <argument>-Dlog4j2.configurationFile=${log4j2.config.uri}</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
@@ -1575,6 +1588,7 @@
                                 <argument>-Dsplice.spark.executor.extraJavaOptions=
                                     ${hbase.rootdir}
                                     -Dlog4j.configuration=${log4j.config.uri}
+                                    -Dlog4j2.configurationFile=${log4j2.config.uri}
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020
                                     -enableassertions
                                     ${jacocoAgent}
@@ -1617,7 +1631,8 @@
                                 <argument>60030</argument>
                                 <argument>1527</argument>
                                 <argument>${failTasksRandomly}</argument>
-                                <argument>${olap.log4j.config.uri}</argument>
+                                <argument>-Dlog4j.configuration=${olap.log4j.config.uri}</argument>
+                                <argument>-Dlog4j2.configurationFile=${olap.log4j2.config.uri}</argument>
                             </arguments>
                         </configuration>
                     </plugin>

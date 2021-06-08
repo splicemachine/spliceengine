@@ -19,7 +19,7 @@ import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SlowTest;
 import com.splicemachine.utils.Pair;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -41,7 +41,7 @@ import static com.splicemachine.homeless.TestUtils.o;
 
 public class InnerJoinIT extends SpliceUnitTest{
 
-    private static Logger LOG=Logger.getLogger(InnerJoinIT.class);
+    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(InnerJoinIT.class);
     private static final Map<String, String> tableMap=Maps.newHashMap();
 
     public static final String CLASS_NAME=InnerJoinIT.class.getSimpleName().toUpperCase()+"_2";

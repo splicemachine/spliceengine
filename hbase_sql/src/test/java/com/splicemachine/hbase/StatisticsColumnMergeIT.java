@@ -25,7 +25,7 @@ import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -47,7 +47,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 @Category(value = {SlowTest.class})
 public class StatisticsColumnMergeIT extends SpliceUnitTest{
 
-    private static Logger LOG = Logger.getLogger(StatisticsColumnMergeIT.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(StatisticsColumnMergeIT.class);
     public static final String CLASS_NAME = StatisticsColumnMergeIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);

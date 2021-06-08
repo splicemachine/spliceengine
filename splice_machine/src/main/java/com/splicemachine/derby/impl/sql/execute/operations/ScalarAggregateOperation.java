@@ -27,7 +27,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 
 /**
@@ -38,7 +38,7 @@ import java.io.IOException;
 public class ScalarAggregateOperation extends GenericAggregateOperation {
 
     public static final long serialVersionUID = 1l;
-    private static Logger LOG = Logger.getLogger(ScalarAggregateOperation.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ScalarAggregateOperation.class);
     protected boolean isInSortedOrder;
     protected boolean singleInputRow;
     protected static final String NAME = ScalarAggregateOperation.class.getSimpleName().replaceAll("Operation","");

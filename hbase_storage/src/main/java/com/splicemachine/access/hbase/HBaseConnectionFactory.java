@@ -25,7 +25,7 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.regionserver.BloomType;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
@@ -46,7 +46,7 @@ import static com.splicemachine.si.constants.SIConstants.TRANSACTION_TABLE_BUCKE
  */
 @ThreadSafe
 public class HBaseConnectionFactory{
-    private static final Logger LOG=Logger.getLogger(HBaseConnectionFactory.class);
+    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(HBaseConnectionFactory.class);
     private static volatile HBaseConnectionFactory INSTANCE;
     private final Connection connection;
     private final Connection noRetryConnection;

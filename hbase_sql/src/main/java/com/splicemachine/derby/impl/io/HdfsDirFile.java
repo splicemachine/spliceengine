@@ -26,7 +26,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -40,7 +40,7 @@ import com.splicemachine.db.io.StorageRandomAccessFile;
  * @author dwinters
  */
 class HdfsDirFile implements StorageFile {
-	private static final Logger LOG = Logger.getLogger(HdfsDirFile.class);
+	private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(HdfsDirFile.class);
 	private String path;
 	private FileSystem fileSystem;
 

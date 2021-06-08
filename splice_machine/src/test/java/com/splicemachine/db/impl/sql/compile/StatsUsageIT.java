@@ -18,7 +18,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test_tools.TableCreator;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -33,7 +33,7 @@ import static com.splicemachine.test_tools.Rows.rows;
  */
 
 public class StatsUsageIT extends SpliceUnitTest {
-    private static Logger LOG = Logger.getLogger(StatsUsageIT.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(StatsUsageIT.class);
     public static final String CLASS_NAME = StatsUsageIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);

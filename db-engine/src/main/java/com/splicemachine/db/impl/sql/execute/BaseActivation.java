@@ -80,7 +80,7 @@ import java.util.*;
 @SuppressFBWarnings(value = {"UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD"},
         justification = "not used fields could be referenced by generated code")
 public abstract class BaseActivation implements CursorActivation, GeneratedByteCode {
-//    private static final Logger LOG = Logger.getLogger(BaseActivation.class);
+//    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(BaseActivation.class);
     private    LanguageConnectionContext    lcc;
     protected ContextManager            cm;
     protected DataValueFactory dvf;

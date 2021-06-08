@@ -29,7 +29,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.datasketches.quantiles.ItemsSketch;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import scala.Tuple2;
 
 import java.io.IOException;
@@ -41,7 +41,7 @@ import java.util.Map;
  * Created by jyuan on 10/9/18.
  */
 public class BulkLoadUtils {
-    protected static final Logger LOG=Logger.getLogger(BulkLoadUtils.class);
+    protected static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(BulkLoadUtils.class);
     /**
      * Calculate cut points according to statistics. Number of cut points is decided by max region size.
      * @param statistics

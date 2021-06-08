@@ -17,11 +17,11 @@ package com.splicemachine.derby.stream.iterator.merge;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.collect.PeekingIterator;
 
 public class MergeInnerJoinIterator extends AbstractMergeJoinIterator {
-    private static final Logger LOG = Logger.getLogger(MergeInnerJoinIterator.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(MergeInnerJoinIterator.class);
     /**
      * MergeJoinRows constructor. Note that keys for left & right sides
      * are the join keys on which each side is sorted (not all of the

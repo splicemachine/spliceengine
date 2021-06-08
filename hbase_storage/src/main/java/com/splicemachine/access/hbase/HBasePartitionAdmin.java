@@ -53,7 +53,7 @@ import org.apache.hadoop.hbase.security.access.Permission;
 import org.apache.hadoop.hbase.security.access.UserPermission;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.AdminProtos;
 import org.apache.hadoop.hbase.util.HBaseFsckRepair;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.base.Function;
 import org.apache.hadoop.hbase.*;
 import splice.com.google.common.collect.Collections2;
@@ -76,7 +76,7 @@ import org.apache.hadoop.hbase.client.ColumnFamilyDescriptorBuilder.ModifyableCo
  */
 public class HBasePartitionAdmin implements PartitionAdmin{
 
-    private static final Logger LOG = Logger.getLogger(HBasePartitionAdmin.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(HBasePartitionAdmin.class);
     private final Admin admin;
     private final Clock timeKeeper;
     private final HBaseTableInfoFactory tableInfoFactory;

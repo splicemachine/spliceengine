@@ -278,6 +278,18 @@
                             <key>com.splicemachine.enableLegacyAsserts</key>
                             <value>true</value>
                         </systemProperty>
+                        <systemProperty>
+                            <key>log4j.configuration</key>
+                            <value>file://${basedir}/src/main/resources/log4j.properties</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <key>log4j2.configurationFile</key>
+                            <value>${basedir}/src/main/resources/log4j2.properties</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <key>Log4jContextSelector</key>
+                            <value>org.apache.logging.log4j.core.async.AsyncLoggerContextSelector</value>
+                        </systemProperty>
                         <!-- Uncomment the following to dump activation class files for mem platform to the mem_sql directory.
                            <systemProperty>
                                <key>splice.debug.dumpClassFile</key>
@@ -307,6 +319,8 @@
                                     <jvmarg value="-XX:+CMSClassUnloadingEnabled"/>
                                     <jvmarg value="${jacocoAgent}"/>
                                     <sysproperty key="log4j.configuration" value="file://${basedir}/src/main/resources/log4j.properties"/>
+                                    <sysproperty key="log4j2.configurationFile" value="${basedir}/src/main/resources/log4j2.properties"/>
+                                    <sysproperty key="Log4jContextSelector" value="org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"/>
                                     <sysproperty key="com.sun.management.jmxremote.ssl" value="false"/>
                                     <sysproperty key="com.sun.management.jmxremote.authenticate" value="false"/>
                                     <sysproperty key="com.sun.management.jmxremote.port" value="10102"/>

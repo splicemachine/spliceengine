@@ -136,6 +136,7 @@
                                 <argument>${secure}</argument>
                                 <argument>${nodeCount}</argument>
                                 <argument>-Dlog4j.configurationFile=${log4j.config.uri}</argument>
+                                <argument>-Dlog4j2.configurationFile=${log4j2.config.uri}</argument>
                             </arguments>
                             <workingDirectory>${project.build.directory}/../../platform_it/</workingDirectory>
                         </configuration>

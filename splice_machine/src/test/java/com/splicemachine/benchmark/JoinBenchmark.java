@@ -17,7 +17,7 @@ package com.splicemachine.benchmark;
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.test.Benchmark;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -39,7 +39,7 @@ import static org.junit.Assert.assertTrue;
 @RunWith(Parameterized.class)
 public class JoinBenchmark extends Benchmark {
 
-    private static final Logger LOG = Logger.getLogger(JoinBenchmark.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(JoinBenchmark.class);
 
     private static final String SCHEMA = JoinBenchmark.class.getSimpleName();
     private static final String LEFT_TABLE = "LEFT_TABLE";

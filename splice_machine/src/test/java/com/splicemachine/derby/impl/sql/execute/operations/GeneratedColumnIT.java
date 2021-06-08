@@ -22,7 +22,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test_dao.TableDAO;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -54,7 +54,7 @@ import static org.junit.Assert.fail;
  */
 public class GeneratedColumnIT {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    private static final Logger LOG = Logger.getLogger(GeneratedColumnIT.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(GeneratedColumnIT.class);
     private static final String CLASS_NAME = GeneratedColumnIT.class.getSimpleName().toUpperCase();
 
     protected  static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);

@@ -14,7 +14,7 @@
 
 package com.splicemachine.benchmark;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.test.Benchmark;
@@ -30,7 +30,7 @@ import static org.junit.Assert.assertEquals;
 @Category(Benchmark.class)
 public class TriggerBenchmark extends Benchmark {
 
-    private static final Logger LOG = Logger.getLogger(TriggerBenchmark.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(TriggerBenchmark.class);
 
     private static final String SCHEMA = TriggerBenchmark.class.getSimpleName();
     private static final String TRIGGER_TABLE = "TRIGGERS";

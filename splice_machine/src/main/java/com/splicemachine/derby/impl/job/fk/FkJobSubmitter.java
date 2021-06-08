@@ -26,7 +26,7 @@ import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.TxnView;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.collect.ImmutableList;
 
 import java.util.List;
@@ -39,7 +39,7 @@ import java.util.List;
  */
 public class FkJobSubmitter {
 
-    private static final Logger LOG = Logger.getLogger(FkJobSubmitter.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(FkJobSubmitter.class);
 
     private final DataDictionary dataDictionary;
     private final SpliceTransactionManager transactionManager;

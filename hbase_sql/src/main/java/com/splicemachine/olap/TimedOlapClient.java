@@ -19,7 +19,7 @@ import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.constants.SIConstants;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.util.concurrent.ListenableFuture;
 
 import javax.annotation.Nonnull;
@@ -37,7 +37,7 @@ import java.util.concurrent.TimeoutException;
  */
 public class TimedOlapClient implements OlapClient{
 
-    protected static final Logger LOG = Logger.getLogger(TimedOlapClient.class);
+    protected static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(TimedOlapClient.class);
 
     private final int timeoutMillis;
     /** Map queue name to network layer */

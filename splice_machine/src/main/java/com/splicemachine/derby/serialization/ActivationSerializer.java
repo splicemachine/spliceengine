@@ -36,7 +36,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.db.impl.sql.execute.IndexRow;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import java.io.*;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -51,7 +51,7 @@ import java.util.Map;
  */
 public class ActivationSerializer extends Serializer<ActivationHolder> {
 
-    private static final Logger LOG = Logger.getLogger(ActivationSerializer.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ActivationSerializer.class);
 
     @Override
     public void write(Kryo kryo, Output output, ActivationHolder source) {

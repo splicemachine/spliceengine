@@ -28,7 +28,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import scala.util.Either;
 
 import java.io.IOException;
@@ -37,7 +37,7 @@ import java.io.IOException;
  * Created by jleach on 5/18/15.
  */
 public class SMRecordWriter extends RecordWriter<RowLocation,Either<Exception, ExecRow>> {
-    private static Logger LOG = Logger.getLogger(SMRecordWriter.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SMRecordWriter.class);
     private boolean initialized = false;
     private TableWriter tableWriter;
     private OutputCommitter outputCommitter;

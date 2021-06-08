@@ -39,7 +39,7 @@ import com.splicemachine.db.iapi.sql.compile.CompilationPhase;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.cache.Cache;
 import splice.com.google.common.cache.CacheBuilder;
 import java.lang.reflect.InvocationTargetException;
@@ -55,7 +55,7 @@ import java.util.concurrent.ExecutionException;
  * Date: 7/9/13
  */
 public class SpliceDerbyVisitorAdapter implements ASTVisitor {
-    private static final Logger LOG = Logger.getLogger(SpliceDerbyVisitorAdapter.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceDerbyVisitorAdapter.class);
 
     ISpliceVisitor v;
 

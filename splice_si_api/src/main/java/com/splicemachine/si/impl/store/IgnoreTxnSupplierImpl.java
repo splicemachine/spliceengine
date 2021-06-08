@@ -22,7 +22,7 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.Pair;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -36,7 +36,7 @@ import java.util.function.BiPredicate;
  * Created by jyuan on 10/30/17.
  */
 public class IgnoreTxnSupplierImpl implements IgnoreTxnSupplier {
-    private static final Logger LOG = Logger.getLogger(IgnoreTxnSupplier.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(IgnoreTxnSupplier.class);
     private volatile Set<Pair<Long, Long>> cache;
     private EntryDecoder entryDecoder;
     final private PartitionFactory partitionFactory;

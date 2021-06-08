@@ -31,7 +31,7 @@ import org.apache.hadoop.hbase.exceptions.ConnectionClosingException;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcUtils.BlockingRpcCallback;
 
 import java.io.IOException;
@@ -91,7 +91,7 @@ public class BulkWriteChannelInvoker {
             SpliceMessage.BulkWriteResponse bulkWriteResponse = doneCallback.get();
             byte[] bytes = bulkWriteResponse.getBytes().toByteArray();
             if(bytes==null || bytes.length<=0){
-                Logger logger=Logger.getLogger(BulkWriteChannelInvoker.class);
+                Logger logger=org.apache.logging.log4j.LogManager.getLogger(BulkWriteChannelInvoker.class);
                 logger.error("zero-length bytes returned with a null error for encodedString: "+write.getBulkWrites().iterator().next().getEncodedStringName());
             }
 

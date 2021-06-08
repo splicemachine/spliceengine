@@ -22,14 +22,14 @@ import com.splicemachine.derby.stream.function.IteratorUtils;
 import com.splicemachine.derby.stream.iapi.IterableJoinFunction;
 import com.splicemachine.derby.stream.utils.StreamLogUtils;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
 import java.util.Iterator;
 
 @NotThreadSafe
 public class NestedLoopJoinIterator<Op extends SpliceOperation> implements Iterator<ExecRow>, Iterable<ExecRow> {
-    private static Logger LOG = Logger.getLogger(NestedLoopJoinIterator.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(NestedLoopJoinIterator.class);
     private boolean populated;
     protected ExecRow populatedRow;
     protected IterableJoinFunction iterableJoinFunction;

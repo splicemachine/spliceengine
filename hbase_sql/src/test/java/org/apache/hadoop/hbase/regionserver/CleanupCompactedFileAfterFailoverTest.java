@@ -37,7 +37,7 @@ import org.apache.hadoop.hbase.regionserver.compactions.CompactionPolicy;
 import org.apache.hadoop.hbase.regionserver.compactions.Compactor;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.JVMClusterUtil;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -52,7 +52,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class CleanupCompactedFileAfterFailoverTest {
-    private static final Logger LOG = Logger.getLogger(CleanupCompactedFileAfterFailoverTest.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(CleanupCompactedFileAfterFailoverTest.class);
 
     private static HBaseTestingUtility TEST_UTIL;
     private static Admin admin;

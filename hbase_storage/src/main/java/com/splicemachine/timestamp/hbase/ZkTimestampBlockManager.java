@@ -19,7 +19,7 @@ import com.splicemachine.timestamp.api.TimestampBlockManager;
 import com.splicemachine.timestamp.api.TimestampIOException;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 
@@ -29,7 +29,7 @@ import org.apache.zookeeper.data.Stat;
  * Created by jleach on 12/9/15.
  */
 public class ZkTimestampBlockManager implements TimestampBlockManager{
-    private static final Logger LOG = Logger.getLogger(ZkTimestampBlockManager.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ZkTimestampBlockManager.class);
 
     private final RecoverableZooKeeper rzk;
     private final String blockNode;

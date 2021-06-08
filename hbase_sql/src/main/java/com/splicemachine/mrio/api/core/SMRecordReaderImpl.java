@@ -45,7 +45,7 @@ import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.spark.TaskContext;
 import org.apache.spark.util.TaskFailureListener;
 
@@ -53,7 +53,7 @@ import java.io.IOException;
 import java.util.*;
 
 public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> implements TaskFailureListener {
-    protected static final Logger LOG = Logger.getLogger(SMRecordReaderImpl.class);
+    protected static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SMRecordReaderImpl.class);
 	protected Table htable;
 	protected HRegion hregion;
 	protected Configuration config;

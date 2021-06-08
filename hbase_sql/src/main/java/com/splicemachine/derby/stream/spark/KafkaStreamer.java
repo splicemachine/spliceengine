@@ -23,7 +23,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.spark.TaskContext;
 import org.apache.spark.api.java.function.Function2;
 
@@ -41,7 +41,7 @@ import java.util.UUID;
  * Created by dgomezferro on 5/25/16.
  */
 public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterator<String>>, Serializable, Externalizable {
-    private static final Logger LOG = Logger.getLogger(KafkaStreamer.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(KafkaStreamer.class);
 
     private int numPartitions;
     private String bootstrapServers;

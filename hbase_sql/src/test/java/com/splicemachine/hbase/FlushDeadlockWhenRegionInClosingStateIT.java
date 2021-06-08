@@ -25,7 +25,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -35,7 +35,7 @@ import org.junit.rules.TestRule;
 
 @Category(value = {SerialTest.class})
 public class FlushDeadlockWhenRegionInClosingStateIT extends SpliceUnitTest {
-    private static final Logger LOG = Logger.getLogger(FlushDeadlockWhenRegionInClosingStateIT.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(FlushDeadlockWhenRegionInClosingStateIT.class);
     private static final String SCHEMA = FlushDeadlockWhenRegionInClosingStateIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
     private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);

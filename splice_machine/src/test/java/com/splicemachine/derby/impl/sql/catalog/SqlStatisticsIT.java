@@ -16,7 +16,7 @@ package com.splicemachine.derby.impl.sql.catalog;
 
 import com.splicemachine.derby.test.framework.*;
 import org.apache.commons.dbutils.DbUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -36,7 +36,7 @@ import java.sql.ResultSet;
  */
 public class SqlStatisticsIT extends SpliceUnitTest {
     public static final String CLASS_NAME = SqlStatisticsIT.class.getSimpleName().toUpperCase();
-	private static Logger LOG = Logger.getLogger(SqlStatisticsIT.class);
+	private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SqlStatisticsIT.class);
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);

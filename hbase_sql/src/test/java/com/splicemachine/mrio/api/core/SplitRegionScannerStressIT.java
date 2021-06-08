@@ -34,7 +34,7 @@ import com.splicemachine.test_tools.TableCreator;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -51,7 +51,7 @@ import java.util.Random;
  */
 @Category({SlowTest.class, SerialTest.class})
 public class SplitRegionScannerStressIT extends BaseMRIOTest {
-    private static final Logger LOG = Logger.getLogger(SplitRegionScannerStressIT.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SplitRegionScannerStressIT.class);
 
     public static final String CLASS_NAME = SplitRegionScannerStressIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);

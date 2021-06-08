@@ -23,7 +23,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.txn.PastTxn;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Deque;
@@ -31,7 +31,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 
 public class PastTransactionImpl extends TransactionImpl {
-    private static Logger LOG=Logger.getLogger(PastTransactionImpl.class);
+    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(PastTransactionImpl.class);
     Txn txn;
 
     public PastTransactionImpl(String transName, long transactionId){

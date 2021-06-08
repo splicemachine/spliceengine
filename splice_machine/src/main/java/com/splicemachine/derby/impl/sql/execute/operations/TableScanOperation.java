@@ -40,7 +40,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -55,7 +55,7 @@ import java.util.List;
  */
 public class TableScanOperation extends ScanOperation{
     private static final long serialVersionUID=3l;
-    private static Logger LOG=Logger.getLogger(TableScanOperation.class);
+    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(TableScanOperation.class);
     protected int indexColItem;
     public String userSuppliedOptimizerOverrides;
     public int rowsPerRead;

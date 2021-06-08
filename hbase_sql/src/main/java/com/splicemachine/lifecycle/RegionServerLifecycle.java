@@ -28,7 +28,7 @@ import org.apache.hadoop.hbase.ipc.CallTimeoutException;
 import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.ipc.RemoteException;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
 import java.io.IOException;
@@ -41,7 +41,7 @@ import java.util.concurrent.TimeUnit;
  *         Date: 1/6/16
  */
 public class RegionServerLifecycle implements DistributedDerbyStartup{
-    private static final Logger LOG = Logger.getLogger(RegionServerLifecycle.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(RegionServerLifecycle.class);
 
     private final Clock clock;
     private final HBaseConnectionFactory connectionFactory;

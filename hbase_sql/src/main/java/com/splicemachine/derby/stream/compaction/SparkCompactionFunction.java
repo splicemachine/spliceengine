@@ -38,7 +38,7 @@ import org.apache.hadoop.hbase.client.TableDescriptorBuilder;
 import org.apache.hadoop.hbase.exceptions.DeserializationException;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.util.FSUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import scala.Tuple2;
 
 import java.io.Externalizable;
@@ -59,7 +59,7 @@ import java.util.Set;
 public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperation,Iterator<Tuple2<Integer,Iterator>>,String> implements Externalizable {
     private static final long serialVersionUID = 1337182949469662224L;
 
-    private static final Logger LOG = Logger.getLogger(SparkCompactionFunction.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SparkCompactionFunction.class);
 
     private long smallestReadPoint;
     private byte[] namespace;

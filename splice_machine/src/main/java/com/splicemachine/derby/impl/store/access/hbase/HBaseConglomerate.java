@@ -43,7 +43,7 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.spark.sql.types.StructField;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -58,7 +58,7 @@ import java.util.stream.Collectors;
  **/
 public class HBaseConglomerate extends SpliceConglomerate{
     public static final long serialVersionUID=5l;
-    private static final Logger LOG=Logger.getLogger(HBaseConglomerate.class);
+    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(HBaseConglomerate.class);
     private volatile Future future;
 
     public HBaseConglomerate(){

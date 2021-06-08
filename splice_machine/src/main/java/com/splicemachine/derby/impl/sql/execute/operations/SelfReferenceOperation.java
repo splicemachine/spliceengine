@@ -24,7 +24,7 @@ import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
@@ -35,7 +35,7 @@ import java.util.List;
  * Created by yxia on 3/21/19.
  */
 public class SelfReferenceOperation extends SpliceBaseOperation {
-    private static Logger LOG = Logger.getLogger(SelfReferenceOperation.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SelfReferenceOperation.class);
     protected static final String NAME = SelfReferenceOperation.class.getSimpleName().replaceAll("Operation","");
     private SpliceOperation recursiveUnionReference = null;
     protected SpliceMethod<ExecRow> rowMethod;

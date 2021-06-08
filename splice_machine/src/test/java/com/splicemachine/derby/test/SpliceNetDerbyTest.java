@@ -23,13 +23,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.Ignore;
 
 
 @Ignore
 public class SpliceNetDerbyTest {
-	private static final Logger LOG = Logger.getLogger(SpliceNetDerbyTest.class);
+	private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceNetDerbyTest.class);
     protected static String framework = "client";
     protected static String driver = "com.splicemachine.db.jdbc.ClientDriver";
     protected static String protocol = "jdbc:splice://localhost:1527/";

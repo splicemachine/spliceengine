@@ -36,7 +36,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.base.Splitter;
 
 import java.io.BufferedReader;
@@ -59,7 +59,7 @@ import java.util.List;
  */
 @SuppressFBWarnings(value = {"OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE","OS_OPEN_STREAM","RV_RETURN_VALUE_IGNORED"}, justification = "DB-9844")
 public class TableSplit{
-    private static final Logger LOG = Logger.getLogger(TableSplit.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(TableSplit.class);
 
     public static void SYSCS_SPLIT_TABLE_OR_INDEX(String schemaName,
                                                   String tableName,

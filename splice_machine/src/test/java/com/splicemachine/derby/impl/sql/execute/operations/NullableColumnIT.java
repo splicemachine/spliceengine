@@ -22,7 +22,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import org.junit.Assert;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,7 +40,7 @@ import java.util.Set;
  *         Created on: 2/19/13
  */
 public class NullableColumnIT extends SpliceUnitTest { 
-    private static final Logger LOG = Logger.getLogger(NullableColumnIT.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(NullableColumnIT.class);
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = NullableColumnIT.class.getSimpleName().toUpperCase();
 	public static final String TABLE_NAME_1 = "A";

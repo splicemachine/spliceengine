@@ -38,7 +38,7 @@ import com.splicemachine.hbase.RegionServerLifecycleObserver;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stream.RemoteQueryClientImpl;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nullable;
 
@@ -49,7 +49,7 @@ import javax.annotation.Nullable;
 public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFactory{
     private final SIDriver driver;
 
-    private static final Logger LOG = Logger.getLogger(CostChoosingDataSetProcessorFactory.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(CostChoosingDataSetProcessorFactory.class);
     private final String hostname;
 
     public CostChoosingDataSetProcessorFactory(){

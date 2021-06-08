@@ -24,7 +24,7 @@ import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.TableDescriptor;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.wal.WAL;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.collect.ImmutableList;
 
 import java.io.IOException;
@@ -36,7 +36,7 @@ import java.util.Set;
  * Created by jyuan on 5/13/19.
  */
 public class SpliceHRegion extends HRegion {
-    private static final Logger LOG = Logger.getLogger(SpliceHRegion.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceHRegion.class);
 
     public SpliceHRegion(final Path tableDir, final WAL wal, final FileSystem fs,
                          final Configuration confParam, final RegionInfo regionInfo,

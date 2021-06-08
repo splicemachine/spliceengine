@@ -50,10 +50,13 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.regionserver.BloomType;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.appender.ConsoleAppender;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
+import org.apache.logging.log4j.core.layout.PatternLayout;
+import org.apache.logging.log4j.core.layout.SimpleLayout;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -266,18 +269,20 @@ public class HBaseSITestEnv implements SITestEnv{
     }
 
     private void configureLogging(Level baseLevel){
-        Logger.getRootLogger().setLevel(baseLevel);
-        Logger.getRootLogger().addAppender(new ConsoleAppender(new SimpleLayout()));
-        Logger.getLogger("org.apache.hadoop.conf").setLevel(Level.WARN);
-        Logger.getLogger("org.apache.hadoop.hdfs").setLevel(baseLevel);
-        Logger.getLogger("org.apache.hadoop.http").setLevel(baseLevel);
-        Logger.getLogger("org.apache.hadoop.metrics2").setLevel(baseLevel);
-        Logger.getLogger("org.apache.hadoop.net").setLevel(baseLevel);
-        Logger.getLogger("org.apache.hadoop.ipc").setLevel(baseLevel);
-        Logger.getLogger("org.apache.hadoop.util").setLevel(baseLevel);
-        Logger.getLogger("org.apache.hadoop.hbase").setLevel(baseLevel);
-        Logger.getLogger("BlockStateChange").setLevel(baseLevel);
-        Logger.getLogger("org.mortbay.log").setLevel(baseLevel);
-        Logger.getLogger("org.apache.zookeeper").setLevel(baseLevel);
+        PatternLayout.Builder builder = PatternLayout.newBuilder();
+        builder.withPattern("%level - %m%n");
+        Configurator.setLevel(LogManager.getRootLogger().getName(), baseLevel);
+        LogManager.getRootLogger().addAppender(new ConsoleAppender(builder.build()));
+        Configurator.setLevel("org.apache.hadoop.conf", Level.WARN);
+        Configurator.setLevel("org.apache.hadoop.hdfs", baseLevel);
+        Configurator.setLevel("org.apache.hadoop.http", baseLevel);
+        Configurator.setLevel("org.apache.hadoop.metrics2", baseLevel);
+        Configurator.setLevel("org.apache.hadoop.net", baseLevel);
+        Configurator.setLevel("org.apache.hadoop.ipc", baseLevel);
+        Configurator.setLevel("org.apache.hadoop.util", baseLevel);
+        Configurator.setLevel("org.apache.hadoop.hbase", baseLevel);
+        Configurator.setLevel("BlockStateChange", baseLevel);
+        Configurator.setLevel("org.mortbay.log", baseLevel);
+        Configurator.setLevel("org.apache.zookeeper", baseLevel);
     }
 }

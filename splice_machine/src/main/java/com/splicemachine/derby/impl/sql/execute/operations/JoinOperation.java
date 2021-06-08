@@ -30,7 +30,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.iapi.Restriction;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
@@ -85,7 +85,7 @@ import java.util.List;
 public abstract class JoinOperation extends SpliceBaseOperation {
 		private static final long serialVersionUID = 2l;
 
-		private static Logger LOG = Logger.getLogger(JoinOperation.class);
+		private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(JoinOperation.class);
 		protected int leftNumCols;
 		protected int rightNumCols;
 		public boolean oneRowRightSide;

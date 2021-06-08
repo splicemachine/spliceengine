@@ -24,7 +24,7 @@ import com.splicemachine.derby.stream.spark.SparkUtils
 import com.splicemachine.derby.vti.SpliceDatasetVTI
 import com.splicemachine.derby.vti.SpliceRDDVTI
 import com.splicemachine.tools.EmbedConnectionMaker
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.Logger
 import org.apache.spark.SerializableWritable
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
@@ -51,7 +51,7 @@ import scala.collection.JavaConverters._
 
 @SerialVersionUID(20200513221L)
 private object Holder extends Serializable {
-  @transient lazy val log = Logger.getLogger(getClass.getName)
+  @transient lazy val log = org.apache.logging.log4j.LogManager.getLogger(getClass.getName)
 }
 
 /**

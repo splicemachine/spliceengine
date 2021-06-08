@@ -25,7 +25,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -40,7 +40,7 @@ import java.util.*;
  */
 public class SpliceReplicationSinkChore extends ScheduledChore {
 
-    private static final Logger LOG = Logger.getLogger(SpliceReplicationSinkChore.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceReplicationSinkChore.class);
     Connection connection;
     private Map<String, Pair<Long,Long>> replicationProgress = new HashMap<>();
     private TableName masterSnapshotTable;

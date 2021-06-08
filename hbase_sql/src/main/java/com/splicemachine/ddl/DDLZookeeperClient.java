@@ -21,7 +21,7 @@ import com.splicemachine.hbase.RegionServerLifecycleObserver;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
@@ -38,7 +38,7 @@ import java.util.List;
  */
 class DDLZookeeperClient {
 
-    private static final Logger LOG = Logger.getLogger(DDLZookeeperClient.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(DDLZookeeperClient.class);
 
     final String changePath;
 

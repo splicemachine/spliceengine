@@ -35,7 +35,7 @@ import org.apache.hadoop.hbase.shaded.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.ClientProtos;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.HBaseProtos;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.base.Function;
 import splice.com.google.common.collect.ImmutableList;
 import splice.com.google.common.collect.Iterables;
@@ -58,7 +58,7 @@ import java.util.concurrent.locks.Lock;
  */
 @NotThreadSafe
 public class AdapterPartition extends SkeletonHBaseClientPartition{
-    protected static final Logger LOG = Logger.getLogger(AdapterPartition.class);
+    protected static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(AdapterPartition.class);
     // If we ever have an ACL violation, we must use the proxy for all remaining calls
     private volatile static boolean useProxy = false;
 

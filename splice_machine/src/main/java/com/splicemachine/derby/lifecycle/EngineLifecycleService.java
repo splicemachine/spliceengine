@@ -22,7 +22,7 @@ import java.util.Properties;
 
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.SqlEnvironment;
@@ -57,7 +57,7 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
     public static final ThreadLocal<Boolean> isCreate = new ThreadLocal<>();
     public static final ThreadLocal<Boolean> toUpgrade = new ThreadLocal<>();
 
-    private static final Logger LOG=Logger.getLogger(EngineLifecycleService.class);
+    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(EngineLifecycleService.class);
     private final DistributedDerbyStartup startup;
     private final SConfiguration configuration;
     private final Properties dbProperties = new Properties();

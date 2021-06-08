@@ -38,7 +38,7 @@ import com.splicemachine.db.impl.ast.ColumnUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.subquery.CorrelationLevelPredicate;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.collect.Lists;
 import java.util.List;
 import static splice.com.google.common.collect.Iterables.any;
@@ -107,7 +107,7 @@ import static splice.com.google.common.collect.Iterables.filter;
  */
 class AggregateSubqueryWhereVisitor implements Visitor {
 
-    private static Logger LOG = Logger.getLogger(AggregateSubqueryWhereVisitor.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(AggregateSubqueryWhereVisitor.class);
 
     /* The level of the subquery we are considering flattening in the enclosing predicate */
     private final int subqueryLevel;

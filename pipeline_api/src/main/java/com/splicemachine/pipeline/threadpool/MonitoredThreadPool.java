@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.util.concurrent.ListenableFuture;
 import splice.com.google.common.util.concurrent.ListeningExecutorService;
 import splice.com.google.common.util.concurrent.MoreExecutors;
@@ -37,7 +37,7 @@ import com.splicemachine.access.api.ServerStoppedException;
  * Created on: 6/3/13
  */
 public class MonitoredThreadPool implements ThreadPoolStatus {
-    private static final Logger LOG = Logger.getLogger(MonitoredThreadPool.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(MonitoredThreadPool.class);
     private final ListeningExecutorService listeningService;
     private final ThreadPoolExecutor writerPool;
 

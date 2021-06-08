@@ -30,7 +30,7 @@ import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.FSUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -44,7 +44,7 @@ import java.util.List;
 
 @Ignore
 public class ClientSideRegionScannerIT extends BaseMRIOTest{
-    private static final Logger LOG=Logger.getLogger(ClientSideRegionScannerIT.class);
+    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(ClientSideRegionScannerIT.class);
     protected static String SCHEMA_NAME=ClientSideRegionScannerIT.class.getSimpleName();
     protected static SpliceWatcher spliceClassWatcher=new SpliceWatcher();
     protected static SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(SCHEMA_NAME);

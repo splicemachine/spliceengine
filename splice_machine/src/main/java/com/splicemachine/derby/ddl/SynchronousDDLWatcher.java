@@ -20,7 +20,7 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.api.SConfiguration;
@@ -35,7 +35,7 @@ import com.splicemachine.si.api.txn.TxnSupplier;
  *         Date: 1/15/16
  */
 public class SynchronousDDLWatcher implements DDLWatcher, CommunicationListener{
-    private static final Logger LOG=Logger.getLogger(AsynchronousDDLWatcher.class);
+    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(AsynchronousDDLWatcher.class);
 
 
     private final Set<DDLListener> ddlListeners=new CopyOnWriteArraySet<>();

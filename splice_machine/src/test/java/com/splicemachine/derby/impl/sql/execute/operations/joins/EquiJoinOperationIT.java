@@ -20,7 +20,7 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.db.client.am.SqlException;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.junit.*;
@@ -40,7 +40,7 @@ import java.util.*;
 @Ignore
 public class EquiJoinOperationIT {
 
-    private static Logger LOG = Logger.getLogger(EquiJoinOperationIT.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(EquiJoinOperationIT.class);
 
     public static final String CLASS_NAME = EquiJoinOperationIT.class.getSimpleName().toUpperCase();
 

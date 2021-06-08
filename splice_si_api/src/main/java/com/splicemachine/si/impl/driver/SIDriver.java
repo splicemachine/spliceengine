@@ -52,7 +52,7 @@ import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.GreenLight;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -62,7 +62,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public class SIDriver {
-    private static final Logger LOG = Logger.getLogger("splice.uncaught");
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger("splice.uncaught");
 
     static {
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {

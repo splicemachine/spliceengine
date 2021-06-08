@@ -29,13 +29,13 @@ import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 public class DeleteOperation extends DMLWriteOperation {
-	private static final Logger LOG = Logger.getLogger(DeleteOperation.class);
+	private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(DeleteOperation.class);
     private boolean cursorDelete;
     protected static final String NAME = DeleteOperation.class.getSimpleName().replaceAll("Operation","");
     protected String bulkDeleteDirectory;

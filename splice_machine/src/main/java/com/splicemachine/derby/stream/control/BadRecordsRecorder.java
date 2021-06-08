@@ -22,7 +22,7 @@ import java.io.ObjectOutput;
 import java.io.OutputStream;
 import java.nio.file.StandardOpenOption;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.io.Closeables;
 
 import com.splicemachine.access.api.DistributedFileSystem;
@@ -44,7 +44,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  * Note that, when running import as a series of spark tasks, each task will have an instance of this class.
  */
 public class BadRecordsRecorder implements Externalizable, Closeable {
-    private static final Logger LOG = Logger.getLogger(BadRecordsRecorder.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(BadRecordsRecorder.class);
     private static final String BAD_EXTENSION = ".bad";
 
     private String inputFilePath;

@@ -17,7 +17,7 @@ package com.splicemachine.test;
 
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.homeless.TestUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 
 import java.sql.*;
@@ -32,7 +32,7 @@ import static org.junit.Assert.fail;
 
 public class Benchmark {
 
-    public static final Logger LOG = Logger.getLogger(Benchmark.class);
+    public static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(Benchmark.class);
 
     /*
      *    Statistics

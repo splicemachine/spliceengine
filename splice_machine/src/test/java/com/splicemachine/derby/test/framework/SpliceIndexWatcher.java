@@ -19,7 +19,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import org.apache.commons.dbutils.DbUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 /**
@@ -27,7 +27,7 @@ import org.junit.runner.Description;
  *
  */
 public class SpliceIndexWatcher extends TestWatcher {
-    private static final Logger LOG = Logger.getLogger(SpliceIndexWatcher.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceIndexWatcher.class);
     protected String tableName;
     protected String tableSchemaName;
     protected String createString;

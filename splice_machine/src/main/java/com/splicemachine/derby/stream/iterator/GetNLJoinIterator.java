@@ -70,7 +70,7 @@ public abstract class GetNLJoinIterator implements AutoCloseable, Callable<Pair<
                                 oldLCC = lcc;
                                 ah.newTxnResource();
                                 newLCC = ah.getLCC();
-                                newLCC.pushStatementContext(true, oldLCC.isReadOnly(),
+                                newLCC.pushStatementContext(true, false,
                                        oldLCC.getOrigStmtTxt(), null, false, 0L);
                                 newLCC.pushTriggerExecutionContext(tec);
                             } catch (Exception e) {

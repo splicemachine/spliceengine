@@ -15,7 +15,7 @@
 package com.splicemachine.timestamp.impl;
 
 import com.splicemachine.timestamp.api.TimestampIOException;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Semaphore;
@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class TimestampQueue implements Runnable {
-    private static final Logger LOG = Logger.getLogger(TimestampQueue.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(TimestampQueue.class);
     private final int id;
     private final int timeoutMillis;
 

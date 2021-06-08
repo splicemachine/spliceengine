@@ -26,14 +26,14 @@ import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
 import org.apache.hadoop.hbase.regionserver.ScannerContext;
 import org.apache.hadoop.hbase.regionserver.HStore;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
 public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner{
-    protected static final Logger LOG=Logger.getLogger(MemstoreKeyValueScanner.class);
+    protected static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(MemstoreKeyValueScanner.class);
     protected ResultScanner resultScanner;
     protected Result currentResult;
     protected KeyValue peakKeyValue;

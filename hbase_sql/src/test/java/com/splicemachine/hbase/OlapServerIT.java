@@ -19,7 +19,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.SerialTest;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -34,7 +34,7 @@ import static org.junit.Assert.assertTrue;
 
 @Category({SerialTest.class})
 public class OlapServerIT extends SpliceUnitTest {
-    private static final Logger LOG = Logger.getLogger(OlapServerIT.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(OlapServerIT.class);
 
     private static final String SCHEMA = OlapServerIT.class.getSimpleName().toUpperCase();
     @ClassRule

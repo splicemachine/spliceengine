@@ -50,7 +50,7 @@ import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.cache.CacheBuilder;
 import splice.com.google.common.cache.RemovalListener;
 import splice.com.google.common.cache.RemovalNotification;
@@ -69,7 +69,7 @@ import java.util.concurrent.ExecutionException;
  *
  */
 public class DataDictionaryCache {
-    private static Logger LOG = Logger.getLogger(DataDictionaryCache.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(DataDictionaryCache.class);
     private ManagedCache<UUID,TableDescriptor> oidTdCache;
     private ManagedCache<TableKey,TableDescriptor> nameTdCache;
     private ManagedCache<TableKey,SPSDescriptor> spsNameCache;

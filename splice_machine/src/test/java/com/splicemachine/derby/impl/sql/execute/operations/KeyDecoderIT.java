@@ -20,7 +20,7 @@ import java.sql.Timestamp;
 import java.util.Iterator;
 
 import splice.com.google.common.collect.TreeMultiset;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -40,7 +40,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
  */
 
 public class KeyDecoderIT extends SpliceUnitTest {
-    private static final Logger LOG = Logger.getLogger(KeyDecoderIT.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(KeyDecoderIT.class);
     private static final String SCHEMA_NAME = KeyDecoderIT.class.getSimpleName().toUpperCase();
     private static final String TABLE1 = "APOLLO_MV_MINUTE";
     private static final String TABLE2 = "T";

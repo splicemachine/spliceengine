@@ -17,7 +17,7 @@ package com.splicemachine.timestamp.impl;
 import java.util.Random;
 import com.splicemachine.timestamp.api.TimestampHostProvider;
 import com.splicemachine.timestamp.api.TimestampIOException;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Accepts concurrent requests for new transactional timestamps and

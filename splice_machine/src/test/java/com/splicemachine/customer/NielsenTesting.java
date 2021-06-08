@@ -23,7 +23,7 @@ import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.Properties;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 public class NielsenTesting {
 

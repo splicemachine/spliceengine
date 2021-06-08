@@ -16,10 +16,10 @@ package com.splicemachine.mrio.api.hive;
 
 import org.apache.hadoop.hive.ql.hooks.ExecuteWithHookContext;
 import org.apache.hadoop.hive.ql.hooks.HookContext;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 public class PostExecHook implements ExecuteWithHookContext {
-    private static Logger Log = Logger.getLogger(PostExecHook.class.getName());
+    private static Logger Log = org.apache.logging.log4j.LogManager.getLogger(PostExecHook.class.getName());
 
     @Override
     public void run(HookContext hookContext) throws Exception {

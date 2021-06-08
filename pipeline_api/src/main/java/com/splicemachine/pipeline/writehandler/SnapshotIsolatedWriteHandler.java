@@ -21,10 +21,10 @@ import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.si.impl.DDLFilter;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 public class SnapshotIsolatedWriteHandler implements WriteHandler {
-    private static final Logger LOG = Logger.getLogger(SnapshotIsolatedWriteHandler.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SnapshotIsolatedWriteHandler.class);
 
     private WriteHandler delegate;
     private DDLFilter ddlFilter;

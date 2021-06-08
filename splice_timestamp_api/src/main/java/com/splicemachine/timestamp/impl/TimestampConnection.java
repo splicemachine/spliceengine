@@ -36,7 +36,7 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.codec.protobuf.ProtobufDecoder;
 import io.netty.handler.codec.protobuf.ProtobufEncoder;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import javax.management.InstanceAlreadyExistsException;
@@ -63,7 +63,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class TimestampConnection extends TimestampBaseHandler<TimestampMessage.TimestampResponse> implements TimestampClientStatistics {
 
 
-    private static final Logger LOG = Logger.getLogger(TimestampConnection.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(TimestampConnection.class);
 
     private static final short CLIENT_COUNTER_INIT = 100; // actual value doesn't matter
 

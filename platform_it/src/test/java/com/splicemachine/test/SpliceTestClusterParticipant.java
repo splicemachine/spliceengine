@@ -17,7 +17,7 @@ package com.splicemachine.test;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import com.splicemachine.access.configuration.SQLConfiguration;
 
@@ -33,7 +33,7 @@ import java.security.PrivilegedExceptionAction;
  */
 public class SpliceTestClusterParticipant {
 
-    private static final Logger LOG = Logger.getLogger(SpliceTestClusterParticipant.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceTestClusterParticipant.class);
 
     private static final int REGION_SERVER_PORT = 60020;
     private static final int REGION_SERVER_WEB_PORT = 60030;

@@ -32,7 +32,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.Pair;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -51,7 +51,7 @@ import static com.splicemachine.db.shared.common.reference.SQLState.PARAMETER_CA
  *         Created: 1/24/13 10:50 AM
  */
 public class Scans extends SpliceUtils {
-    private static Logger LOG = Logger.getLogger(Scans.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(Scans.class);
     private Scans() {
     } //can't construct me
 

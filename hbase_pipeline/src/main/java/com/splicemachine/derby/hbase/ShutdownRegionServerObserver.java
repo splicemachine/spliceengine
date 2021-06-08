@@ -26,7 +26,7 @@ import org.apache.hadoop.hbase.coprocessor.RegionServerObserver;
 import org.apache.hadoop.hbase.protobuf.generated.AdminProtos;
 import org.apache.hadoop.hbase.regionserver.Region;
 import org.apache.hadoop.hbase.replication.ReplicationEndpoint;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import java.util.List;
 
@@ -46,7 +46,7 @@ import java.util.List;
  */
 public class ShutdownRegionServerObserver implements RegionServerObserver {
 
-    private static final Logger LOG = Logger.getLogger(ShutdownRegionServerObserver.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ShutdownRegionServerObserver.class);
 
     @Override
     public void preStopRegionServer(ObserverContext<RegionServerCoprocessorEnvironment> env) throws IOException {

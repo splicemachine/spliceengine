@@ -22,14 +22,14 @@ import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 import com.splicemachine.si.impl.driver.SIDriver;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import java.util.*;
 
 /**
  * Created by jyuan on 10/14/14.
  */
 public class SpliceCatalogUpgradeScripts{
-    protected static final Logger LOG=Logger.getLogger(SpliceCatalogUpgradeScripts.class);
+    protected static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SpliceCatalogUpgradeScripts.class);
 
     SpliceDataDictionary sdd;
     TransactionController tc;

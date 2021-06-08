@@ -4,7 +4,7 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.nativeio.NativeIO;
 import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.util.StringTokenizer;
@@ -15,7 +15,7 @@ import java.util.StringTokenizer;
  *
  */
 public class SpliceFileStatus extends FileStatus {
-    private static Logger LOG=Logger.getLogger(SpliceFileStatus.class);
+    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SpliceFileStatus.class);
 
     FileStatus fileStatus;
 

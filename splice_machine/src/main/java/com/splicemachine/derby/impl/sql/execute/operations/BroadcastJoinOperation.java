@@ -32,7 +32,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 
@@ -99,7 +99,7 @@ import java.io.IOException;
 
 public class BroadcastJoinOperation extends JoinOperation{
     private static final long serialVersionUID=2l;
-    private static Logger LOG=Logger.getLogger(BroadcastJoinOperation.class);
+    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(BroadcastJoinOperation.class);
     protected int leftHashKeyItem;
     protected int[] leftHashKeys;
     protected int rightHashKeyItem;

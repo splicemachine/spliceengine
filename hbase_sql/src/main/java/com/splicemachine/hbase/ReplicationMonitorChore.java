@@ -30,7 +30,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 import org.apache.hbase.thirdparty.com.google.protobuf.CodedOutputStream;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.zookeeper.*;
 
 import java.io.BufferedReader;
@@ -49,7 +49,7 @@ import java.util.Map;
  * Created by jyuan on 9/30/19.
  */
 public class ReplicationMonitorChore extends ScheduledChore {
-    private static final Logger LOG = Logger.getLogger(ReplicationMonitorChore.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ReplicationMonitorChore.class);
 
     // cluster key for active cluster. A cluster key contains zookeeper quorum and hbase znode path
     private String masterCluster;

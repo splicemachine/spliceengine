@@ -28,7 +28,7 @@ import org.apache.hadoop.hbase.regionserver.FlushLifeCycleTracker;
 import org.apache.hadoop.hbase.regionserver.HStore;
 import org.apache.hadoop.hbase.regionserver.MemStoreSnapshot;
 import org.apache.hadoop.hbase.regionserver.throttle.ThroughputController;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
@@ -37,7 +37,7 @@ import java.util.List;
  * We use this class to pass the PurgeConfig down the stack to flush logic in SIObserver.
  */
 public class SpliceDefaultFlusher extends DefaultStoreFlusher {
-    private static final Logger LOG = Logger.getLogger(SpliceDefaultFlusher.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceDefaultFlusher.class);
 
     public SpliceDefaultFlusher(Configuration conf, HStore store) throws IOException {
         super(conf, store);

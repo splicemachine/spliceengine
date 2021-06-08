@@ -45,7 +45,7 @@ import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.pipeline.ErrorState;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,7 +55,7 @@ import java.util.List;
  * Date: 9/3/14
  */
 public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
-    private static final Logger LOG = Logger.getLogger(ModifyColumnConstantOperation.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ModifyColumnConstantOperation.class);
 
     /**
      * Make the AlterAction for an ALTER TABLE statement.

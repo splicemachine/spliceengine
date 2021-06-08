@@ -14,6 +14,11 @@
 
 package com.splicemachine.olap;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.Configurator;
+import org.apache.logging.log4j.core.config.LoggerConfig;
 import splice.com.google.common.net.HostAndPort;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.concurrent.Clock;
@@ -22,8 +27,8 @@ import com.splicemachine.derby.iapi.sql.olap.AbstractOlapResult;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.Logger;
 import org.junit.*;
 
 import java.io.IOException;
@@ -44,17 +49,23 @@ import static org.junit.Assert.assertTrue;
  */
 @SuppressWarnings("unused")
 public class OlapClientTest {
-    private static final Logger LOG = Logger.getLogger(OlapClientTest.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(OlapClientTest.class);
 
     private static OlapServer olapServer;
     private static OlapClient olapClient;
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        Logger.getLogger(MappedJobRegistry.class).setLevel(Level.INFO);
-        Logger.getLogger(OlapPipelineFactory.class).setLevel(Level.INFO);
-        Logger.getLogger("splice.config").setLevel(Level.WARN);
-        Logger.getLogger(OlapRequestHandler.class).setLevel(Level.WARN);
+
+        Configurator.setLevel(MappedJobRegistry.class.getName(), Level.INFO);
+        Configurator.setLevel(OlapPipelineFactory.class.getName(), Level.INFO);
+        Configurator.setLevel("splice.config", Level.WARN);
+        Configurator.setLevel(OlapRequestHandler.class.getName(), Level.WARN);
+
+        org.apache.logging.log4j.LogManager.getLogger(MappedJobRegistry.class);
+        org.apache.logging.log4j.LogManager.getLogger(OlapPipelineFactory.class);
+        org.apache.logging.log4j.LogManager.getLogger("splice.config");
+        org.apache.logging.log4j.LogManager.getLogger(OlapRequestHandler.class);
         setupServer();
     }
 
@@ -374,7 +385,7 @@ public class OlapClientTest {
     }
 
     private static class DumbDistributedJob extends DistributedJob{
-        private static final Logger LOG = Logger.getLogger(DumbDistributedJob.class);
+        private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(DumbDistributedJob.class);
         int order;
         int sleep;
 

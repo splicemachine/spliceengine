@@ -25,11 +25,11 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.codec.protobuf.ProtobufDecoder;
 import io.netty.handler.codec.protobuf.ProtobufEncoder;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 public class OlapPipelineFactory extends ChannelInitializer {
 
-    private static final Logger LOG = Logger.getLogger(OlapPipelineFactory.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(OlapPipelineFactory.class);
 
     private final ChannelInboundHandler submitHandler;
     private final ChannelInboundHandler cancelHandler;

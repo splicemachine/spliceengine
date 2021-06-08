@@ -59,7 +59,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.spark.sql.Row;
 import splice.com.google.common.base.Strings;
 
@@ -77,7 +77,7 @@ import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEven
  */
 public abstract class DMLWriteOperation extends SpliceBaseOperation {
     private static final long serialVersionUID=2l;
-    private static final Logger LOG=Logger.getLogger(DMLWriteOperation.class);
+    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(DMLWriteOperation.class);
     protected SpliceOperation source;
     protected long heapConglom;
     protected DataDictionary dd;

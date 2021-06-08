@@ -46,7 +46,7 @@ import com.splicemachine.system.CsvOptions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import splice.com.google.common.base.Charsets;
@@ -79,7 +79,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     private String statusDirectory;
     private String importFileName;
 
-    private static final Logger LOG=Logger.getLogger(ControlDataSetProcessor.class);
+    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(ControlDataSetProcessor.class);
 
     protected final TxnSupplier txnSupplier;
     protected final Transactor transactory;

@@ -15,7 +15,7 @@
 package com.splicemachine.pipeline;
 
 import java.io.IOException;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import com.splicemachine.pipeline.utils.PipelineCompressor;
 import com.splicemachine.compression.SpliceSnappy;
@@ -25,7 +25,7 @@ import com.splicemachine.compression.SpliceSnappy;
  *         Date: 12/29/15
  */
 public class SnappyPipelineCompressor implements PipelineCompressor{
-    private static final Logger LOG=Logger.getLogger(SnappyPipelineCompressor.class);
+    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SnappyPipelineCompressor.class);
 
     private final PipelineCompressor delegate;
 

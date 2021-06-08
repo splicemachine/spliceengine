@@ -26,7 +26,7 @@ import com.splicemachine.si.api.txn.lifecycle.TxnPartition;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -75,7 +75,7 @@ import java.util.concurrent.TimeUnit;
  */
 
 public class TransactionResolver{
-    private static final Logger LOG = Logger.getLogger(TransactionResolver.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(TransactionResolver.class);
     @ThreadSafe private final TxnSupplier txnSupplier;
     private final RingBuffer<TxnResolveEvent> ringBuffer;
     private final Disruptor<TxnResolveEvent> disruptor;

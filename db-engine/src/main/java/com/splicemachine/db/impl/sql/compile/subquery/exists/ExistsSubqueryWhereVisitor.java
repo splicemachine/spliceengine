@@ -38,7 +38,7 @@ import com.splicemachine.db.impl.ast.CollectingVisitorBuilder;
 import com.splicemachine.db.impl.ast.ColumnUtils;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.subquery.*;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.collect.Iterables;
 import splice.com.google.common.collect.Lists;
 
@@ -64,7 +64,7 @@ import java.util.List;
  */
 class ExistsSubqueryWhereVisitor implements Visitor {
 
-    private static Logger LOG = Logger.getLogger(ExistsSubqueryWhereVisitor.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ExistsSubqueryWhereVisitor.class);
 
     /* We flatten exists subqueries with either type of BRON */
     private final CorrelatedEqualityBronPredicate typeDPredicate;

@@ -31,7 +31,7 @@ import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.actions.*;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.util.Arrays;
 import java.util.List;
@@ -42,7 +42,7 @@ import java.util.Properties;
  *         Created on: 3/1/13
  */
 public abstract class SpliceGenericConstantActionFactory extends GenericConstantActionFactory{
-    private static Logger LOG=Logger.getLogger(SpliceGenericConstantActionFactory.class);
+    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SpliceGenericConstantActionFactory.class);
 
     @Override
     public ConstantAction getCreateConstraintConstantAction(String constraintName,

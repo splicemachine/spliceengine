@@ -25,12 +25,12 @@ import com.splicemachine.pipeline.api.WriteResponse;
 import com.splicemachine.pipeline.client.BulkWriteResult;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.util.concurrent.ExecutionException;
 
 public abstract class BaseWriteConfiguration implements WriteConfiguration {
-    private static final Logger LOG = Logger.getLogger(BaseWriteConfiguration.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(BaseWriteConfiguration.class);
 
     protected final PipelineExceptionFactory exceptionFactory;
     protected RecordingContext recordingContext;

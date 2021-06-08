@@ -17,11 +17,11 @@ package com.splicemachine.derby.logging;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 
 	public class DerbyOutputLoggerWriter extends PrintWriter {
-		private static Logger LOG = Logger.getLogger(DerbyOutputLoggerWriter.class);
+		private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(DerbyOutputLoggerWriter.class);
 		public DerbyOutputLoggerWriter() {
 			super( new InternalCategoryWriter(LOG), true );
 		}

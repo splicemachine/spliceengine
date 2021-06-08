@@ -15,7 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 import splice.com.google.common.collect.*;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.HashMap;

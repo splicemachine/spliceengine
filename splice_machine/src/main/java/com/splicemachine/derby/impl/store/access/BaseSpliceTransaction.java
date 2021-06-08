@@ -28,7 +28,7 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 
@@ -37,7 +37,7 @@ import java.io.IOException;
  *         Date: 8/19/14
  */
 public abstract class BaseSpliceTransaction<T extends BaseTransaction> implements Transaction{
-    private static Logger LOG=Logger.getLogger(BaseSpliceTransaction.class);
+    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(BaseSpliceTransaction.class);
     CompatibilitySpace compatibilitySpace;
     SpliceTransactionFactory spliceTransactionFactory;
     DataValueFactory dataValueFactory;

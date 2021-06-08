@@ -31,7 +31,7 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 
 /**
@@ -41,7 +41,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
  *
  */
 public class AnyOperation extends SpliceBaseOperation {
-	private static Logger LOG = Logger.getLogger(AnyOperation.class);
+	private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(AnyOperation.class);
     protected static final String NAME = AnyOperation.class.getSimpleName().replaceAll("Operation","");
 	@Override
 	public String getName() {

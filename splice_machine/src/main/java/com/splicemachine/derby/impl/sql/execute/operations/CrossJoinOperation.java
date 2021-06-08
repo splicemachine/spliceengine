@@ -27,7 +27,7 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.primitives.Bytes;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.spark.api.java.JavaRDD;
 
 import java.io.IOException;
@@ -35,7 +35,7 @@ import java.io.IOException;
 
 public class CrossJoinOperation extends JoinOperation{
     private static final long serialVersionUID=2l;
-    private static Logger LOG=Logger.getLogger(CrossJoinOperation.class);
+    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(CrossJoinOperation.class);
     protected int leftHashKeyItem;
     protected int[] leftHashKeys;
     protected int rightHashKeyItem;

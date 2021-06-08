@@ -24,7 +24,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
 import com.splicemachine.db.iapi.types.DataValueFactory;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 /**
  * A view-only representation of a Derby transaction.
@@ -39,7 +39,7 @@ import org.apache.log4j.Logger;
  * Date: 8/14/14
  */
 public class SpliceTransactionView extends BaseSpliceTransaction<TransactionViewImpl> {
-    private static Logger LOG = Logger.getLogger(SpliceTransaction.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceTransaction.class);
 
     public SpliceTransactionView(CompatibilitySpace compatibilitySpace,
     						 SpliceTransactionFactory spliceTransactionFactory,

@@ -38,7 +38,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.ast.CollectingVisitor;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.compile.*;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import java.util.List;
 
 /**
@@ -46,7 +46,7 @@ import java.util.List;
  */
 class AggregateSubqueryPredicate implements splice.com.google.common.base.Predicate<SubqueryNode> {
 
-    private static Logger LOG = Logger.getLogger(AggregateSubqueryPredicate.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(AggregateSubqueryPredicate.class);
 
     @Override
     public boolean apply(SubqueryNode subqueryNode) {

@@ -40,7 +40,7 @@ import org.apache.hadoop.io.Text
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hadoop.security.token.Token
 import org.apache.hadoop.hbase.util.Bytes
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.Logger
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
@@ -49,7 +49,7 @@ import scala.collection.JavaConverters._
 
 @SerialVersionUID(20200513241L)
 private object Holder extends Serializable {
-  @transient lazy val log = Logger.getLogger(getClass.getName)
+  @transient lazy val log = org.apache.logging.log4j.LogManager.getLogger(getClass.getName)
 }
 /**
   *

@@ -31,12 +31,12 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
-    protected static final Logger LOG = Logger.getLogger(SMInputFormat.class);
+    protected static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SMInputFormat.class);
     protected SMSQLUtil util;
     protected SMRecordReaderImpl rr;
     protected boolean spark;

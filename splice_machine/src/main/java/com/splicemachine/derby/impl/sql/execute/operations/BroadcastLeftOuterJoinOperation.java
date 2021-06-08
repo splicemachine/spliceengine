@@ -23,12 +23,12 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 
 public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
-	private static Logger LOG = Logger.getLogger(BroadcastLeftOuterJoinOperation.class);
+	private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(BroadcastLeftOuterJoinOperation.class);
 	protected SpliceMethod<ExecRow> rightEmptyRowFun;
 	protected ExecRow rightEmptyRow;
 

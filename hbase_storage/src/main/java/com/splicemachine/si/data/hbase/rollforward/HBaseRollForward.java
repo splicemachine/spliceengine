@@ -24,7 +24,7 @@ import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.ByteSlice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import java.io.IOException;
@@ -36,7 +36,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.LongAdder;
 
 public class HBaseRollForward implements RollForward {
-    private static final Logger LOG = Logger.getLogger(HBaseRollForward.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(HBaseRollForward.class);
 
     private final ArrayBlockingQueue<RFEvent> firstQueue;
     private final ArrayBlockingQueue<RFEvent> secondQueue;

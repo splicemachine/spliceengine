@@ -26,7 +26,7 @@ import com.splicemachine.utils.Pair;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -48,7 +48,7 @@ import java.util.Random;
  * Created: 1/31/13 9:17 AM
  */
 public class TimeTableScanIT extends SpliceUnitTest { 
-	private static final Logger LOG = Logger.getLogger(TimeTableScanIT.class);
+	private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(TimeTableScanIT.class);
 
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = TimeTableScanIT.class.getSimpleName().toUpperCase();

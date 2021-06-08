@@ -19,7 +19,7 @@ import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.ProtobufUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -32,7 +32,7 @@ import static com.splicemachine.db.impl.sql.compile.SelectivityUtil.DEFAULT_RANG
  * Created by yxia on 11/7/19.
  */
 public class FakeColumnStatisticsImpl extends ColumnStatisticsImpl implements Externalizable {
-    private static Logger LOG=Logger.getLogger(FakeColumnStatisticsImpl.class);
+    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(FakeColumnStatisticsImpl.class);
     private long nullCount;
     private long totalCount;
     private long cardinality;

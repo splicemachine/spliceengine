@@ -55,7 +55,7 @@ import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.shared.common.reference.AuditEventType;
 import com.splicemachine.utils.StringUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import com.splicemachine.utils.StringUtils;
 
 import java.security.AccessController;
@@ -84,7 +84,7 @@ public class SystemProcedures{
     private final static String DRIVER_TYPE_OPTION="DATATYPE";
     private final static String ODBC_DRIVER_OPTION="'ODBC'";
 
-    private static final Logger AUDITLOG =Logger.getLogger("splice-audit");
+    private static final Logger AUDITLOG =org.apache.logging.log4j.LogManager.getLogger("splice-audit");
 
     // This token delimiter value is used to separate the tokens for multiple 
     // error messages.  This is used in DRDAConnThread

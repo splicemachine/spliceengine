@@ -22,8 +22,9 @@ import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.utils.Pair;
-import org.apache.commons.codec.language.bm.Lang;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,7 +37,7 @@ import java.util.stream.Stream;
  * Created by dgomezferro on 12/07/2017.
  */
 public class OperationManagerImpl implements OperationManager {
-    private static final Logger LOG = Logger.getLogger(OperationManagerImpl.class);
+    private static final Logger LOG = LogManager.getLogger(OperationManagerImpl.class);
     private ConcurrentMap<UUID, RunningOperation> operations = new ConcurrentHashMap();
     private ConcurrentMap<String, RunningOperation> drdaOperations = new ConcurrentHashMap();
 

@@ -39,7 +39,7 @@ import com.splicemachine.storage.DataScan;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.lang.SerializationUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -50,7 +50,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class SMSQLUtil  {
-    static final Logger LOG = Logger.getLogger(SMSQLUtil.class);
+    static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SMSQLUtil.class);
     private Connection connect = null;
     private static SMSQLUtil sqlUtil = null;
     private String connStr = null;

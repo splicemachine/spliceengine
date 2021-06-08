@@ -40,7 +40,7 @@ import io.netty.handler.codec.protobuf.ProtobufDecoder;
 import io.netty.handler.codec.protobuf.ProtobufEncoder;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.util.concurrent.ExecutionList;
 import splice.com.google.common.util.concurrent.ListenableFuture;
 import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -63,7 +63,7 @@ import java.util.concurrent.locks.ReentrantLock;
  *         Date: 4/4/16
  */
 public class AsyncOlapNIOLayer implements JobExecutor{
-    private static final Logger LOG=Logger.getLogger(AsyncOlapNIOLayer.class);
+    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(AsyncOlapNIOLayer.class);
 
     private final int maxRetries;
     private ChannelPool channelPool;

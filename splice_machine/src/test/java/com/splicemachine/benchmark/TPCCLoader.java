@@ -2,7 +2,7 @@ package com.splicemachine.benchmark;
 
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.test.Benchmark;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.sql.*;
 import java.util.Random;
@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class TPCCLoader {
 
-    private static final Logger LOG = Logger.getLogger(TPCCLoader.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(TPCCLoader.class);
 
     public static final String TABLE_WAREHOUSE = "WAREHOUSE";
     public static final String TABLE_CUSTOMER = "CUSTOMER";

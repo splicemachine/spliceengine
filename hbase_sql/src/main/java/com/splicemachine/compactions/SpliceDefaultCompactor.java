@@ -59,7 +59,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.spark.TaskContext;
 
 import java.io.IOException;
@@ -83,7 +83,7 @@ import static org.apache.hadoop.hbase.regionserver.ScanType.COMPACT_RETAIN_DELET
  *
  */
 public class SpliceDefaultCompactor extends DefaultCompactor {
-    private static final Logger LOG = Logger.getLogger(SpliceDefaultCompactor.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceDefaultCompactor.class);
     private long smallestReadPoint;
     private String conglomId;
     private String tableDisplayName;

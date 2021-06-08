@@ -20,14 +20,14 @@ import java.util.List;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.utils.SpliceLogUtils;
 import splice.com.google.common.base.Strings;
 
 public abstract class NoRowsOperation extends SpliceBaseOperation {
-	private static Logger LOG = Logger.getLogger(NoRowsOperation.class);
+	private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(NoRowsOperation.class);
 
 	public NoRowsOperation() {
 	}

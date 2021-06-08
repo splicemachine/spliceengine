@@ -25,7 +25,7 @@ import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.pipeline.constraint.NoOpConstraintChecker;
 import com.splicemachine.si.impl.driver.SIDriver;
 import splice.com.google.common.base.Function;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.collect.Lists;
 
 import com.splicemachine.access.api.PartitionFactory;
@@ -56,7 +56,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  *         Created on: 4/30/13
  */
 class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<TransactionalRegion> {
-    private static final Logger LOG = Logger.getLogger(LocalWriteContextFactory.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(LocalWriteContextFactory.class);
 
     private final long startupLockBackoffPeriod;
     private final PipelineExceptionFactory pipelineExceptionFactory;

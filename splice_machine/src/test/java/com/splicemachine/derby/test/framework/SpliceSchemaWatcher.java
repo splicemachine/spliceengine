@@ -15,7 +15,7 @@
 package com.splicemachine.derby.test.framework;
 
 import com.splicemachine.test_dao.SchemaDAO;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 
@@ -27,7 +27,7 @@ import java.util.concurrent.Semaphore;
 
 public class SpliceSchemaWatcher extends TestWatcher {
 
-    private static final Logger LOG = Logger.getLogger(SpliceSchemaWatcher.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceSchemaWatcher.class);
 
     private enum CleanupMode {UNDEF, NONE, SYNC, ASYNC};
 

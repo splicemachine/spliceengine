@@ -41,7 +41,8 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -52,7 +53,7 @@ import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNA
 
 public class SpliceTransactionManager implements XATransactionController,
         TransactionManager {
-    private static Logger LOG = Logger
+    private static Logger LOG = LogManager
             .getLogger(SpliceTransactionManager.class);
     /**
      * The corresponding raw store transaction.

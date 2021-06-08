@@ -67,7 +67,7 @@ import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang.ArrayUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.sql.Types;
@@ -81,7 +81,7 @@ import java.util.stream.Collectors;
  */
 public class SpliceDataDictionary extends DataDictionaryImpl{
 
-    protected static final Logger LOG=Logger.getLogger(SpliceDataDictionary.class);
+    protected static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SpliceDataDictionary.class);
     private volatile TabInfoImpl pkTable=null;
     private volatile TabInfoImpl backupTable=null;
     private volatile TabInfoImpl backupItemsTable=null;

@@ -33,7 +33,7 @@ import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -48,7 +48,7 @@ import java.util.List;
  */
 public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperation {
 
-    private static final Logger LOG = Logger.getLogger(CreateTriggerConstantOperation.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(CreateTriggerConstantOperation.class);
 
     private final String triggerName;
     private final String triggerSchemaName;

@@ -46,7 +46,8 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.PartitionLoad;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.primitives.Ints;
 
 import java.io.IOException;
@@ -58,7 +59,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public abstract class IndexConstantOperation extends DDLSingleTableConstantOperation {
-    private static final Logger LOG = Logger.getLogger(IndexConstantOperation.class);
+    private static final Logger LOG = LogManager.getLogger(IndexConstantOperation.class);
     public String indexName;
     public String tableName;
     public String schemaName;

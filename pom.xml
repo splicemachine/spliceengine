@@ -61,7 +61,9 @@
         <skipUT>false</skipUT>
         <!-- run chaos monkey -->
         <log4j.config.uri>file:${basedir}/src/main/resources/info-log4j.properties</log4j.config.uri>
-        <olap.log4j.config.uri>file:${basedir}/src/main/resources/olap-log4j.properties</olap.log4j.config.uri>
+        <log4j2.config.uri>file:${basedir}/src/main/resources/info-log4j2.properties</log4j2.config.uri>
+        <olap.log4j.config.uri>file:${basedir}/src/main/resources/olap-log4j2.properties</olap.log4j.config.uri>
+        <olap.log4j2.config.uri>file:${basedir}/src/main/resources/olap-log4j2.properties</olap.log4j2.config.uri>
         <skip.integration.tests>true</skip.integration.tests>
         <obfuscate.si/>
         <obfuscate.si.tag/>
@@ -226,7 +228,7 @@
             <dependency>
                 <groupId>com.lmax</groupId>
                 <artifactId>disruptor</artifactId>
-                <version>3.3.0</version>
+                <version>3.4.4</version>
             </dependency>
             <dependency>
                 <groupId>com.yammer.metrics</groupId>

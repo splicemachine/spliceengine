@@ -35,7 +35,7 @@ import org.apache.hadoop.yarn.server.nodemanager.NodeManager;
 import org.apache.hadoop.yarn.server.resourcemanager.ResourceManager;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.ResourceScheduler;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fifo.FifoScheduler;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.aws.com.amazonaws.auth.AWSCredentials;
 import splice.aws.com.amazonaws.auth.AWSCredentialsProvider;
 import splice.aws.com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
@@ -48,7 +48,7 @@ public class SpliceTestYarnPlatform {
     public static final int DEFAULT_HEARTBEAT_INTERVAL = 100;
     public static int DEFAULT_NODE_COUNT = 1;
 
-    private static final Logger LOG = Logger.getLogger(SpliceTestYarnPlatform.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceTestYarnPlatform.class);
 
     private URL yarnSiteConfigURL = null;
     private CompositeService yarnCluster = null;

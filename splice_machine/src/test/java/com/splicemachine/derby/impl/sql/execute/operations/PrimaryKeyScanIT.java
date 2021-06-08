@@ -18,7 +18,7 @@ import splice.com.google.common.collect.Lists;
 import splice.com.google.common.collect.Maps;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.utils.Pair;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;

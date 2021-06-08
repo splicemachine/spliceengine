@@ -17,7 +17,7 @@ package com.splicemachine.spark.splicemachine
 
 import java.io.{IOException, ObjectOutputStream}
 
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.Logger
 import org.apache.spark._
 import org.apache.spark.rdd.RDD
 
@@ -67,5 +67,5 @@ private[spark] class ShuffledPartition[T: ClassTag](
 
 
 object LogHolder extends Serializable {
-  @transient lazy val log = Logger.getLogger(getClass.getName)
+  @transient lazy val log = org.apache.logging.log4j.LogManager.getLogger(getClass.getName)
 }

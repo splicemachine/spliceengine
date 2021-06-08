@@ -25,7 +25,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.derby.procedures.SpliceAdmin;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -36,7 +36,7 @@ import java.sql.SQLException;
  */
 public class ExternalTableSystemProcedures {
 
-    private static Logger LOG = Logger.getLogger(ExternalTableSystemProcedures.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ExternalTableSystemProcedures.class);
 
     /**
      * This will refresh the schema of th external file. This is useful when some modify the file

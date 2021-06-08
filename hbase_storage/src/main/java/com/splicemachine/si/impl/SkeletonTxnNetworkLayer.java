@@ -23,7 +23,7 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import com.splicemachine.ipc.SpliceRpcController;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,7 +35,7 @@ import org.apache.hadoop.hbase.ipc.CoprocessorRpcUtils.BlockingRpcCallback;
  *         Date: 12/22/15
  */
 public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
-    private static Logger LOG=Logger.getLogger(SkeletonTxnNetworkLayer.class);
+    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SkeletonTxnNetworkLayer.class);
     @Override
     public void beginTransaction(byte[] rowKey,TxnMessage.TxnInfo txnInfo) throws IOException{
         TxnMessage.TxnLifecycleService service=getLifecycleService(rowKey);

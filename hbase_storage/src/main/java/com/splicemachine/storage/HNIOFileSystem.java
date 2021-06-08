@@ -24,7 +24,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.permission.FsAction;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -42,7 +42,7 @@ public class HNIOFileSystem extends DistributedFileSystem{
     private final org.apache.hadoop.fs.FileSystem fs;
     private final boolean isDistributedFS;
     private final ExceptionFactory exceptionFactory;
-    private static Logger LOG=Logger.getLogger(HNIOFileSystem.class);
+    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(HNIOFileSystem.class);
 
     public HNIOFileSystem(org.apache.hadoop.fs.FileSystem fs,ExceptionFactory ef){
         this.fs=fs;

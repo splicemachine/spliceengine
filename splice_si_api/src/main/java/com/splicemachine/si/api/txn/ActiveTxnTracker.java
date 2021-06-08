@@ -15,13 +15,13 @@
 
 package com.splicemachine.si.api.txn;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class ActiveTxnTracker {
-    private static final Logger LOG = Logger.getLogger(ActiveTxnTracker.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ActiveTxnTracker.class);
 
     private ConcurrentMap<Long, Boolean> activeTxns = new ConcurrentHashMap(1024);
 

@@ -32,7 +32,7 @@ import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.kryo.KryoPool;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -46,7 +46,7 @@ import java.io.ObjectOutput;
  */
 public class SpliceObserverInstructions implements Externalizable{
     private static final long serialVersionUID=4l;
-    private static Logger LOG=Logger.getLogger(SpliceObserverInstructions.class);
+    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SpliceObserverInstructions.class);
     protected GenericStorablePreparedStatement statement;
     private ActivationContext activationContext;
     protected SchemaDescriptor defaultSchemaDescriptor;

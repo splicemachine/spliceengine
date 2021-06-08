@@ -29,12 +29,12 @@ import com.splicemachine.db.impl.jdbc.authentication.BasicAuthenticationServiceI
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class CreateRoleConstantOperation extends DDLConstantOperation {
-    private static final Logger LOG = Logger.getLogger(CreateRoleConstantOperation.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(CreateRoleConstantOperation.class);
 
     private String roleName;
     /**

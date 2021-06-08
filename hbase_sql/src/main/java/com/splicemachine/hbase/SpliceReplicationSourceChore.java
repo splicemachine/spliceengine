@@ -25,7 +25,7 @@ import org.apache.hadoop.hbase.wal.WALFactory;
 import org.apache.hadoop.hbase.wal.WALKey;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import splice.com.google.common.collect.Lists;
@@ -41,7 +41,7 @@ import java.util.concurrent.*;
  */
 public class SpliceReplicationSourceChore extends ScheduledChore {
 
-    private static final Logger LOG = Logger.getLogger(SpliceReplicationSourceChore.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceReplicationSourceChore.class);
 
     final static byte[] cf = SIConstants.DEFAULT_FAMILY_BYTES;
 

@@ -5,14 +5,14 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Arrays;
 
 public class TxnTimeTraveler {
-    private static final Logger LOG=Logger.getLogger(TxnTimeTraveler.class);
+    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(TxnTimeTraveler.class);
 
     private TxnFinder txnFinder;
 

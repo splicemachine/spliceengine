@@ -33,7 +33,7 @@ import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import java.io.OutputStream;
 import java.nio.file.StandardOpenOption;
 import java.util.Iterator;
@@ -47,7 +47,7 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
     private final String path;
     private final SpliceFunction2<? extends SpliceOperation, OutputStream, Iterator<V>, Integer> exportFunction;
     private final DataSet<V> dataSet;
-    private static final Logger LOG = Logger.getLogger(ControlExportDataSetWriter.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ControlExportDataSetWriter.class);
 
     public ControlExportDataSetWriter(String path,
                                       SpliceFunction2<? extends SpliceOperation, OutputStream, Iterator<V>, Integer> exportFunction,

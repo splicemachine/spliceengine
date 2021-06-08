@@ -53,7 +53,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.io.DynamicByteArrayOutputStream;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.compression.SpliceSnappy;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 /**
 	The DDMWriter is used to write DRDA protocol.   The DRDA Protocol is
@@ -63,7 +63,7 @@ import org.apache.log4j.Logger;
 */
 class DDMWriter
 {
-	private static final Logger LOG = Logger.getLogger(DDMWriter.class);
+	private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(DDMWriter.class);
 
 	// number of nesting levels for collections.  We need to mark the length
 	// location of the collection so that we can update it as we add more stuff

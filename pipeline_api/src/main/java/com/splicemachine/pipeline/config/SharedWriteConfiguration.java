@@ -28,7 +28,7 @@ import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.pipeline.client.BulkWriteResult;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.utils.Pair;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class SharedWriteConfiguration extends BaseWriteConfiguration {
 
-    private static final Logger LOG = Logger.getLogger(SharedWriteConfiguration.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SharedWriteConfiguration.class);
 
     private final List<Pair<WriteContext, ObjectObjectHashMap<KVPair, KVPair>>> sharedMainMutationList = new CopyOnWriteArrayList<>();
     private final AtomicInteger completedCount = new AtomicInteger(0);

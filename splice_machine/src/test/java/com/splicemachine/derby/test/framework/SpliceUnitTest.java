@@ -18,7 +18,7 @@ import com.splicemachine.derby.utils.test.DecoderIT;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.utils.Pair;
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.runner.Description;
@@ -1196,7 +1196,7 @@ public class SpliceUnitTest {
     public static void waitForStaleTransactions(SpliceWatcher methodWatcher, String name, int numSeconds,
                                                 boolean failOnError)
     {
-        Logger LOG = Logger.getLogger("SpliceUnitTest");
+        Logger LOG = org.apache.logging.log4j.LogManager.getLogger("SpliceUnitTest");
         try {
             long oldest1 = getOldestActiveTransaction(methodWatcher);
             LOG.info("checking for stale transactions");

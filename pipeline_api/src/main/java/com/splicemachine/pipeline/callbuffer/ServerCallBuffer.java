@@ -26,7 +26,7 @@ import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.collect.Lists;
 
 import java.util.*;
@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
  */
 class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
 
-    private static final Logger LOG = Logger.getLogger(ServerCallBuffer.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ServerCallBuffer.class);
 
     private final PartitionServer server;
     private final Writer writer;

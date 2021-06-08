@@ -18,7 +18,7 @@ import com.splicemachine.timestamp.api.TimestampIOException;
 import com.splicemachine.timestamp.impl.BatchedTimestampClient;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
@@ -38,7 +38,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  */
 public class ZkTimestampSource implements TimestampSource {
 
-    private static final Logger LOG = Logger.getLogger(ZkTimestampSource.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ZkTimestampSource.class);
 
     private RecoverableZooKeeper _rzk;
     private volatile TimestampClient _tc = null;

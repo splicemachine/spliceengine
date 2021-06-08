@@ -17,8 +17,10 @@ package com.splicemachine.ck.command;
 import com.splicemachine.ck.ConnectionSingleton;
 import com.splicemachine.ck.Utils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
@@ -32,7 +34,7 @@ import java.util.Scanner;
 class RootCommand {
     @SuppressFBWarnings("DM_DEFAULT_ENCODING") // intentional
     public static void main(String... args) {
-        Logger.getRootLogger().setLevel(Level.OFF);
+        Configurator.setLevel(LogManager.getRootLogger().getName(), Level.OFF);
         ConnectionSingleton c = new ConnectionSingleton();
 
         int exitCode = 0;

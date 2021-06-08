@@ -18,7 +18,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 
 import org.apache.commons.dbutils.DbUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -35,7 +35,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
  */
 public class EmbeddedCallStatementOperationIT extends SpliceUnitTest {
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    private static final Logger LOG = Logger.getLogger(EmbeddedCallStatementOperationIT.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(EmbeddedCallStatementOperationIT.class);
 	@ClassRule public static TestRule chain = RuleChain.outerRule(spliceClassWatcher);
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 

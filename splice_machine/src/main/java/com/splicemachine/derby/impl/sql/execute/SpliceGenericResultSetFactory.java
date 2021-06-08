@@ -34,10 +34,10 @@ import com.splicemachine.derby.impl.sql.execute.operations.export.ExportKafkaOpe
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 public class SpliceGenericResultSetFactory implements ResultSetFactory {
-    private static Logger LOG = Logger.getLogger(SpliceGenericResultSetFactory.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceGenericResultSetFactory.class);
 
     public SpliceGenericResultSetFactory() {
         super();

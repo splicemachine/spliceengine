@@ -7,7 +7,7 @@ import com.splicemachine.db.jdbc.ClientDriver;
 import com.splicemachine.primitives.Bytes;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import javax.sql.DataSource;
@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
  * Created by jleach on 4/11/17.
  */
 public class SpliceClient {
-    private static final Logger LOG = Logger.getLogger(SpliceClient.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceClient.class);
 
     public enum Mode {
         MASTER,

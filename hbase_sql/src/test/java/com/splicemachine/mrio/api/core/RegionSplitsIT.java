@@ -23,7 +23,7 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.task.JobContextImpl;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,7 +40,7 @@ import static org.junit.Assert.assertTrue;
  *         Date: 4/30/19
  */
 public class RegionSplitsIT extends SpliceUnitTest {
-    private static final Logger LOG = Logger.getLogger(RegionSplitsIT.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(RegionSplitsIT.class);
     private static final String SCHEMA_NAME = RegionSplitsIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
     private static final String TABLE1_NAME = "TAB1";

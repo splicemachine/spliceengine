@@ -14,18 +14,45 @@
 
 package com.splicemachine.utils.logging;
 
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
-import org.apache.log4j.spi.LoggingEvent;
 import com.splicemachine.utils.StringUtils;
 
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.Layout;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.Node;
+import org.apache.logging.log4j.core.config.plugins.Plugin;
+import org.apache.logging.log4j.core.config.plugins.PluginBuilderFactory;
+import org.apache.logging.log4j.core.layout.*;
+import org.apache.logging.log4j.core.pattern.RegexReplacement;
+import org.apache.logging.log4j.util.PropertiesUtil;
+import org.apache.logging.log4j.util.StringBuilders;
+
+import java.nio.charset.Charset;
 import java.util.regex.Pattern;
 
-public class MaskPatternLayout extends PatternLayout {
+@Plugin(name = "MaskPatternLayout", category = Node.CATEGORY, elementType = Layout.ELEMENT_TYPE, printObject = true)
+public final class MaskPatternLayout extends AbstractStringLayout {
 
+    private PatternLayout patternLayout;
+    private Encoder<StringBuilder> textEncoder;
     private String maskString = "********";
     private Pattern maskPattern = null;
-    private Logger logger = Logger.getLogger(this.getClass());
+    private Logger logger = org.apache.logging.log4j.LogManager.getLogger(this.getClass());
+    protected static final int DEFAULT_STRING_BUILDER_SIZE = 1024;
+
+    protected static final int MAX_STRING_BUILDER_SIZE = Math.max(DEFAULT_STRING_BUILDER_SIZE,
+            size("log4j.layoutStringBuilder.maxSize", 2 * 1024));
+
+    private MaskPatternLayout(PatternLayout patternLayout) {
+        super(patternLayout.getConfiguration(), patternLayout.getCharset(),
+              patternLayout.getHeaderSerializer(), patternLayout.getFooterSerializer());
+        this.patternLayout = patternLayout;
+    }
+
+    private static int size(final String property, final int defaultValue) {
+        return PropertiesUtil.getProperties().getIntegerProperty(property, defaultValue);
+    }
 
     public String getMaskPattern() {
         return maskPattern.toString();
@@ -52,22 +79,113 @@ public class MaskPatternLayout extends PatternLayout {
         return StringUtils.maskMessage(message,maskPattern,maskString);
     }
 
-    @Override
-    public String format(LoggingEvent event) {
-        if (maskPattern == null || !(event.getMessage() instanceof String)) {
-            return super.format(event);
+    protected Encoder<StringBuilder> getStringBuilderEncoder() {
+        if (textEncoder == null) {
+            textEncoder = new StringBuilderEncoder(patternLayout.getCharset());
         }
+        return textEncoder;
+    }
 
-        String message = event.getRenderedMessage();
-        String maskedMessage = maskMessage(message, maskPattern, maskString);
-        Throwable throwable = event.getThrowableInformation() != null ?
-                event.getThrowableInformation().getThrowable() : null;
-        LoggingEvent maskedEvent = new LoggingEvent(event.fqnOfCategoryClass,
-                    Logger.getLogger(event.getLoggerName()), event.timeStamp,
-                    event.getLevel(), maskedMessage, throwable);
-        return super.format(maskedEvent);
+    private StringBuilder toText(final AbstractStringLayout.Serializer2 serializer, final LogEvent event,
+                                 final StringBuilder destination) {
+        return serializer.toSerializable(event, destination);
+    }
+
+    protected static void trimToMaxSize(final StringBuilder stringBuilder) {
+        StringBuilders.trimToMaxSize(stringBuilder, MAX_STRING_BUILDER_SIZE);
+    }
+
+    @Override
+    public void encode(final LogEvent event, final ByteBufferDestination destination) {
+        if (!(getEventSerializer() instanceof AbstractStringLayout.Serializer2)) {
+            super.encode(event, destination);
+            return;
+        }
+        final StringBuilder text = toText((AbstractStringLayout.Serializer2) getEventSerializer(), event, getStringBuilder());
+        final Encoder<StringBuilder> encoder = getStringBuilderEncoder();
+        String maskedMessage = maskMessage(text.toString(), maskPattern, maskString);
+        final StringBuilder maskedStringBuilder = new StringBuilder();
+        maskedStringBuilder.append(maskedMessage);
+        encoder.encode(maskedStringBuilder, destination);
+        trimToMaxSize(maskedStringBuilder);
     }
 
 
+    @PluginBuilderFactory
+    public static MaskPatternLayout.Builder newBuilder() {
+        return new MaskPatternLayout.Builder();
+    }
 
+    public AbstractStringLayout.Serializer getEventSerializer() {
+        return patternLayout.getEventSerializer();
+    }
+
+    @Override
+    public String toSerializable(final LogEvent event) {
+        return patternLayout.toSerializable(event);
+    }
+
+    public static class Builder implements org.apache.logging.log4j.core.util.Builder<MaskPatternLayout> {
+        private PatternLayout.Builder builder;
+
+        private Builder() {
+            builder = PatternLayout.newBuilder();
+        }
+
+        public MaskPatternLayout.Builder withPattern(final String pattern) {
+            builder.withPattern(pattern);
+            return this;
+        }
+
+        public MaskPatternLayout.Builder withPatternSelector(final PatternSelector patternSelector) {
+            builder.withPatternSelector(patternSelector);
+            return this;
+        }
+
+        public MaskPatternLayout.Builder withConfiguration(final Configuration configuration) {
+            builder.withConfiguration(configuration);
+            return this;
+        }
+
+        public MaskPatternLayout.Builder withRegexReplacement(final RegexReplacement regexReplacement) {
+            builder.withRegexReplacement(regexReplacement);
+            return this;
+        }
+
+        public MaskPatternLayout.Builder withCharset(final Charset charset) {
+            builder.withCharset(charset);
+            return this;
+        }
+
+        public MaskPatternLayout.Builder withAlwaysWriteExceptions(final boolean alwaysWriteExceptions) {
+            builder.withAlwaysWriteExceptions(alwaysWriteExceptions);
+            return this;
+        }
+
+        public MaskPatternLayout.Builder withDisableAnsi(final boolean disableAnsi) {
+            builder.withDisableAnsi(disableAnsi);
+            return this;
+        }
+
+        public MaskPatternLayout.Builder withNoConsoleNoAnsi(final boolean noConsoleNoAnsi) {
+            builder.withNoConsoleNoAnsi(noConsoleNoAnsi);
+            return this;
+        }
+
+        public MaskPatternLayout.Builder withHeader(final String header) {
+            builder.withHeader(header);
+            return this;
+        }
+
+        public MaskPatternLayout.Builder withFooter(final String footer) {
+            builder.withFooter(footer);
+            return this;
+        }
+
+        public MaskPatternLayout build() {
+            PatternLayout patternLayout = builder.build();
+
+            return new MaskPatternLayout(patternLayout);
+        }
+    }
 }

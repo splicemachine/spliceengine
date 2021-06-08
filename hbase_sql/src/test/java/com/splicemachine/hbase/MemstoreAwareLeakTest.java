@@ -35,7 +35,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionServer;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.JVMClusterUtil;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -49,7 +49,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class MemstoreAwareLeakTest {
-    private static final Logger LOG = Logger.getLogger(MemstoreAwareLeakTest.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(MemstoreAwareLeakTest.class);
 
     private static HBaseTestingUtility TEST_UTIL;
     private static Admin admin;

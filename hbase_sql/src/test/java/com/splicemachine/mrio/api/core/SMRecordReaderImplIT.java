@@ -28,7 +28,7 @@ import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -43,7 +43,7 @@ import com.splicemachine.mrio.MRConstants;
 
 @Ignore
 public class SMRecordReaderImplIT extends BaseMRIOTest {
-  private static final Logger LOG = Logger.getLogger(SMRecordReaderImplIT.class);
+  private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SMRecordReaderImplIT.class);
   protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
   protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SMRecordReaderImplIT.class.getSimpleName());
   protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A", SMRecordReaderImplIT.class.getSimpleName(), "(col1 int, col2 varchar(56), primary key (col1))");

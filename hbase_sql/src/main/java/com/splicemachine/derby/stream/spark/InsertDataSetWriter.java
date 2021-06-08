@@ -40,7 +40,7 @@ import com.splicemachine.derby.stream.utils.BulkLoadUtils;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -63,7 +63,7 @@ import scala.Tuple2;
  *         Date: 1/25/16
  */
 public class InsertDataSetWriter<K,V> implements DataSetWriter{
-    private static final Logger LOG=Logger.getLogger(InsertDataSetWriter.class);
+    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(InsertDataSetWriter.class);
     private int[] updateCounts;
     private DataSet dataSet;
     private JavaPairRDD<K, V> rdd;

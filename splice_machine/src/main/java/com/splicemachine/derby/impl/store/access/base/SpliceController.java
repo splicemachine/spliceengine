@@ -42,7 +42,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -52,7 +52,7 @@ import java.util.List;
 import java.util.Properties;
 
 public abstract class SpliceController implements ConglomerateController{
-    protected static final Logger LOG=Logger.getLogger(SpliceController.class);
+    protected static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SpliceController.class);
     protected OpenSpliceConglomerate openSpliceConglomerate;
     private PartitionFactory partitionFactory;
     protected BaseSpliceTransaction trans;

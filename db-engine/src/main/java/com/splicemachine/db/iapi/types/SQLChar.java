@@ -51,7 +51,7 @@ import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.iapi.util.UTF8Util;
 import org.apache.datasketches.theta.UpdateSketch;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -98,7 +98,7 @@ import java.util.stream.Collector;
 
 public class SQLChar extends DataType implements StringDataValue, StreamStorable {
 
-    private static Logger logger = Logger.getLogger(SQLChar.class);
+    private static Logger logger = org.apache.logging.log4j.LogManager.getLogger(SQLChar.class);
     /**************************************************************************
      * static fields of the class
      **************************************************************************

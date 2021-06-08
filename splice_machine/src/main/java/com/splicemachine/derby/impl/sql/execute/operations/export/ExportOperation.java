@@ -32,7 +32,7 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.*;
@@ -53,7 +53,7 @@ public class ExportOperation extends SpliceBaseOperation {
     private ExecRow currentTemplate;
 
     protected static final String NAME = ExportOperation.class.getSimpleName().replaceAll("Operation","");
-    private static final Logger LOG = Logger.getLogger(ExportOperation.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ExportOperation.class);
 
 	@Override
 	public String getName() {

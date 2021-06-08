@@ -15,7 +15,7 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellComparator;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.KeyValueUtil;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.util.*;
@@ -40,7 +40,7 @@ class SICompactionStateMutate {
         }
     }
 
-    private static final Logger LOG = Logger.getLogger(SICompactionStateMutate.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SICompactionStateMutate.class);
     private final PurgeConfig purgeConfig;
     private Cell maxTombstone = null;
     private Cell lastSeenAntiTombstone = null;

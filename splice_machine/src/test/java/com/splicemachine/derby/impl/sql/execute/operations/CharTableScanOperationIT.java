@@ -19,7 +19,7 @@ import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -43,7 +43,7 @@ import java.util.List;
  * Date: 3/4/14
  */
 public class CharTableScanOperationIT {
-		private static Logger LOG = Logger.getLogger(CharTableScanOperationIT.class);
+		private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(CharTableScanOperationIT.class);
 		protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 		public static final String CLASS_NAME = CharTableScanOperationIT.class.getSimpleName().toUpperCase();
 		protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);

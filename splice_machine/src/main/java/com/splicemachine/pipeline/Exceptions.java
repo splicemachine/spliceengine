@@ -17,7 +17,7 @@ package com.splicemachine.pipeline;
 import com.splicemachine.db.client.am.SqlException;
 import com.splicemachine.db.client.am.Sqlca;
 import com.splicemachine.db.iapi.reference.SQLState;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.base.Throwables;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
@@ -33,7 +33,7 @@ import java.sql.SQLException;
  */
 public class Exceptions {
 
-    private static final Logger LOG = Logger.getLogger(Exceptions.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(Exceptions.class);
 
     private Exceptions(){} //can't make me
 

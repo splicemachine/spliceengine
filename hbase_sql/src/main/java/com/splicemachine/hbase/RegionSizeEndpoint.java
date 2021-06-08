@@ -24,7 +24,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.*;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.collect.Lists;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessor;
 
@@ -37,7 +37,7 @@ import java.util.List;
  *         Date: 1/26/16
  */
 public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorService implements RegionCoprocessor{
-    private static final Logger LOG=Logger.getLogger(RegionSizeEndpoint.class);
+    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(RegionSizeEndpoint.class);
     private HRegion region;
     private String hostName;
 

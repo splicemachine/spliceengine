@@ -29,7 +29,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.spark.TaskContext;
 import org.apache.spark.TaskKilledException;
 
@@ -42,7 +42,7 @@ public class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperatio
     private String topicName;
     private String bootstrapServers;
 
-    private static final Logger LOG = Logger.getLogger(KafkaReadFunction.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(KafkaReadFunction.class);
 
     public KafkaReadFunction() {}
 

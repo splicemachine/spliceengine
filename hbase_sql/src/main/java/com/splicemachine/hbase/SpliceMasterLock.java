@@ -16,7 +16,7 @@
 package com.splicemachine.hbase;
 
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -29,7 +29,7 @@ import java.util.concurrent.Semaphore;
  * Created by dgomezferro on 25/08/2017.
  */
 public class SpliceMasterLock implements Watcher {
-    private static final Logger LOG = Logger.getLogger(SpliceMasterLock.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceMasterLock.class);
 
     private final String path;
     private final String parent;

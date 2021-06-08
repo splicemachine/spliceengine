@@ -27,7 +27,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 
@@ -35,7 +35,7 @@ import java.io.IOException;
  * Created by yxia on 12/3/19.
  */
 public class BroadcastFullOuterJoinOperation extends BroadcastJoinOperation {
-    private static Logger LOG = Logger.getLogger(BroadcastFullOuterJoinOperation.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(BroadcastFullOuterJoinOperation.class);
     protected SpliceMethod<ExecRow> rightEmptyRowFun;
     protected ExecRow rightEmptyRow;
     protected String leftEmptyRowFunMethodName;

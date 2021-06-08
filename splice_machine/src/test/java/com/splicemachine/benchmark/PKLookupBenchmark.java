@@ -17,7 +17,7 @@ package com.splicemachine.benchmark;
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.test.Benchmark;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -30,7 +30,7 @@ import java.util.concurrent.ThreadLocalRandom;
 @Category(Benchmark.class)
 public class PKLookupBenchmark extends Benchmark{
 
-    private static final Logger LOG = Logger.getLogger(PKLookupBenchmark.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(PKLookupBenchmark.class);
 
     private static final int DEFAULT_CONNECTIONS = 10;
     private static final int DEFAULT_OPS = 10000;

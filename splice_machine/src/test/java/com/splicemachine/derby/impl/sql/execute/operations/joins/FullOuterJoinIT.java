@@ -21,7 +21,7 @@ import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.subquery.SubqueryITUtil;
 import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test_tools.TableCreator;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -47,7 +47,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 @RunWith(Parameterized.class)
 @Category(LongerThanTwoMinutes.class)
 public class FullOuterJoinIT extends SpliceUnitTest {
-    private static Logger LOG = Logger.getLogger(FullOuterJoinIT.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(FullOuterJoinIT.class);
     public static final String CLASS_NAME = FullOuterJoinIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);

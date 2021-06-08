@@ -60,7 +60,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
@@ -94,7 +94,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     private static final Joiner CSV_JOINER = Joiner.on(",").skipNulls();
     private static final String TEMP_DIR_PREFIX = "_temp";
 
-    private static final Logger LOG = Logger.getLogger(SparkDataSetProcessor.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SparkDataSetProcessor.class);
 
     SparkExplain explain = new SparkExplain();
     public boolean accumulators;

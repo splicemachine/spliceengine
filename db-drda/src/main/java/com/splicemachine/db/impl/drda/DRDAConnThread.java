@@ -78,8 +78,8 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.StringUtils;
 import com.sun.security.jgss.GSSUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.Logger;
 
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSCredential;
@@ -95,9 +95,9 @@ import org.ietf.jgss.Oid;
  */
 class DRDAConnThread extends Thread {
 
-    private static final Logger AUDITLOG =Logger.getLogger("splice-audit");
+    private static final Logger AUDITLOG =org.apache.logging.log4j.LogManager.getLogger("splice-audit");
 
-    private static final Logger LOG = Logger.getLogger(DRDAConnThread.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(DRDAConnThread.class);
 
     private static final Pattern PARSE_TIMESTAMP_PATTERN =
             Pattern.compile("[-.]");

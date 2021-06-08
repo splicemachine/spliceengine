@@ -24,14 +24,14 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.Pair;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.base.Strings;
 
 /**
  * Created by yxia on 3/22/19.
  */
 public class RecursiveUnionOperation extends UnionOperation {
-    private static Logger LOG = Logger.getLogger(RecursiveUnionOperation.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(RecursiveUnionOperation.class);
     private DataSet rightDS;
     protected static final String NAME = RecursiveUnionOperation.class.getSimpleName().replaceAll("Operation","");
     private int iterationLimit;

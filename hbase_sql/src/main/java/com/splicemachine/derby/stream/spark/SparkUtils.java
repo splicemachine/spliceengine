@@ -28,7 +28,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.si.impl.driver.SIDriver;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaRDDLike;
@@ -48,7 +48,7 @@ import java.util.stream.Collectors;
 import static org.apache.spark.sql.functions.*;
 
 public class SparkUtils {
-    public static final Logger LOG = Logger.getLogger(SparkUtils.class);
+    public static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SparkUtils.class);
 
     private static final int DEFAULT_PARTITIONS = 20;
 

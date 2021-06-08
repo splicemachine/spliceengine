@@ -30,7 +30,7 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.utils.EngineUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 
@@ -45,7 +45,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
     private static final long serialVersionUID = 1l;
     private int orderItem;
     private int[] keyColumns;
-    private static final Logger LOG = Logger.getLogger(DistinctScalarAggregateOperation.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(DistinctScalarAggregateOperation.class);
     protected static final String NAME = DistinctScalarAggregateOperation.class.getSimpleName().replaceAll("Operation", "");
 
     @Override

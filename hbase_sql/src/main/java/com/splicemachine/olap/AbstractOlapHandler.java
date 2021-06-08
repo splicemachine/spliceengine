@@ -21,7 +21,7 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 
@@ -40,7 +40,7 @@ public abstract class AbstractOlapHandler extends SimpleChannelInboundHandler<Ol
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        Logger.getLogger(this.getClass()).warn("Unexpected error caught in Olap pipeline: ",cause);
+        org.apache.logging.log4j.LogManager.getLogger(this.getClass()).warn("Unexpected error caught in Olap pipeline: ",cause);
         Channel c = ctx.channel();
         ChannelFuture futureResponse = c.write(OlapSerializationUtils.buildError(cause));
         futureResponse.addListener(new ChannelFutureListener(){

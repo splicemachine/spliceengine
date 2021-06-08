@@ -21,7 +21,7 @@ import com.splicemachine.db.shared.ProgressInfo;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import scala.concurrent.duration.FiniteDuration;
 
 import java.util.concurrent.ArrayBlockingQueue;
@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE") // todo: results.offer return ignored, is that correct?
 public class OlapJobStatus implements OlapStatus{
-    private static final Logger LOG = Logger.getLogger(OlapJobStatus.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(OlapJobStatus.class);
 
     private final FailureDetector failureDetector;
     private final long tickTime;

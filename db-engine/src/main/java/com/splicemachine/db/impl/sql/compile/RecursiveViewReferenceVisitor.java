@@ -35,7 +35,7 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Created by yxia on 3/20/19.
@@ -73,7 +73,7 @@ import org.apache.log4j.Logger;
  *  SelectNode as containsSelfReference=true.
  */
 public class RecursiveViewReferenceVisitor implements Visitor {
-    private static Logger LOG = Logger.getLogger(RecursiveViewReferenceVisitor.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(RecursiveViewReferenceVisitor.class);
     private TableName recursiveViewName;
     private ResultSetNode subquery;
     private ResultSetNode recursiveRoot;

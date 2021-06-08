@@ -22,7 +22,7 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import splice.com.google.common.collect.Lists;
 
 import java.io.IOException;
@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class TransactionsWatcher {
-    private static final Logger LOG = Logger.getLogger(TransactionsWatcher.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(TransactionsWatcher.class);
     private static final AtomicBoolean started = new AtomicBoolean(false);
     private static AtomicLong lowWatermarkTransaction = new AtomicLong(-1);
 

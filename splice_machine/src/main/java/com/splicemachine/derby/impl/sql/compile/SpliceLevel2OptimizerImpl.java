@@ -18,9 +18,8 @@ import java.util.List;
 
 import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.Priority;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.Logger;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
@@ -126,13 +125,13 @@ import com.splicemachine.derby.impl.store.access.TempSortController;
  *
  */
 public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
-    private static final Logger TRACE_LOGGER=Logger.getLogger(SpliceLevel2OptimizerImpl.class);
+    private static final Logger TRACE_LOGGER=org.apache.logging.log4j.LogManager.getLogger(SpliceLevel2OptimizerImpl.class);
     private final OptimizerTrace tracer = new Level2OptimizerTrace(null,this){
         @Override
         @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT",justification = "Intentional")
         public void trace(TraceLevel level, String traceString){
 
-            Priority prio = Level.INFO;
+            Level prio = Level.INFO;
             switch(level){
                 case TRACE:
                     prio =  Level.TRACE;

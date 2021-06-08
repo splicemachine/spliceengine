@@ -432,7 +432,7 @@ public interface MethodBuilder {
 	/**
 		Call a method. The instance (receiver or reference) for non-static methods
 		must be pushed by the caller. The instance (for non-static) and the arguments
-		are popped of the stack, and the return value (if any) is pushed onto the stack.
+		aassre popped of the stack, and the return value (if any) is pushed onto the stack.
 		<BR>
 		The type needs to be one of:
 		<UL>

@@ -38,7 +38,7 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.PrefixFilter;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -57,7 +57,7 @@ import java.util.NoSuchElementException;
  *         Date: 6/19/14
  */
 public class RegionTxnStore implements TxnPartition{
-    private static final Logger LOG=Logger.getLogger(RegionTxnStore.class);
+    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(RegionTxnStore.class);
 
     private final TxnDecoder newTransactionDecoder=V2TxnDecoder.INSTANCE;
     private final TransactionResolver resolver;

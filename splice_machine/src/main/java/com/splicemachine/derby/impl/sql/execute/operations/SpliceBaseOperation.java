@@ -56,7 +56,7 @@ import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
@@ -73,8 +73,8 @@ import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNA
 
 public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed, Externalizable{
     private static final long serialVersionUID=4l;
-    private static Logger LOG=Logger.getLogger(SpliceBaseOperation.class);
-    private static Logger LOG_CLOSE=Logger.getLogger(SpliceBaseOperation.class.getName()+".close");
+    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SpliceBaseOperation.class);
+    private static Logger LOG_CLOSE=org.apache.logging.log4j.LogManager.getLogger(SpliceBaseOperation.class.getName()+".close");
     protected Iterator<ExecRow> execRowIterator;
     protected Activation activation;
     protected String explainPlan="";
@@ -236,7 +236,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         if (uuid != null) {
             EngineDriver.driver().getOperationManager().unregisterOperation(uuid);
             if (isOpen) {
-                logExecutionEnd();
+                logExecutionEnd();  // msirek-temp
             }
         }
         try{
@@ -328,7 +328,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation, this);
             String intTkn = activation.getLanguageConnectionContext().getRdbIntTkn();
             uuid = EngineDriver.driver().getOperationManager().registerOperation(this, Thread.currentThread(),new Date(), dsp.getType(), intTkn);
-            logExecutionStart(dsp);
+            logExecutionStart(dsp);  // msirek-temp
             openCore();
         } catch (Exception e) {
             EngineDriver.driver().getOperationManager().unregisterOperation(uuid);

@@ -36,7 +36,7 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.fs.permission.FsPermission
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hadoop.hbase.util.Bytes
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.Logger
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
@@ -45,7 +45,7 @@ import scala.collection.JavaConverters._
 
 @SerialVersionUID(20200513211L)
 object Holder extends Serializable {
-  @transient lazy val log = Logger.getLogger(getClass.getName)
+  @transient lazy val log = org.apache.logging.log4j.LogManager.getLogger(getClass.getName)
 }
 @SerialVersionUID(20200513212L)
 @SuppressFBWarnings(value = Array("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD"), justification = "Need to set SpliceClient.connectionString")

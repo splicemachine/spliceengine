@@ -1484,6 +1484,8 @@ public class SubqueryNode extends ValueNode{
                 ((ProjectRestrictNode)resultSet).setChildResult(materialSubNode);
 
                 // add materialize...() call to execute() method
+                executeMB.getField(subRS);
+                executeMB.conditionalIfNull();
                 subNode.generate(acb, executeMB);
                 executeMB.setField(subRS);
 
@@ -1492,10 +1494,11 @@ public class SubqueryNode extends ValueNode{
                 executeMB.push(resultSetNumber);
                 executeMB.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, "materializeResultSetIfPossible",ClassName.NoPutResultSet,2);
                 executeMB.setField(subRS);
+                executeMB.completeConditional();
             }
 
-            executeMB.pushNull(ClassName.NoPutResultSet);
-            executeMB.setField(rsFieldLF);
+//            executeMB.pushNull(ClassName.NoPutResultSet);
+//            executeMB.setField(rsFieldLF);  // msirek-temp
 
             // now we fill in the body of the conditional
             mb.getField(rsFieldLF);

@@ -24,7 +24,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -41,7 +41,7 @@ public class ExportFile {
     private final DistributedFileSystem fileSystem;
     private final ExportParams exportParams;
     private final byte[] taskId;
-    private static Logger LOG=Logger.getLogger(ExportFile.class);
+    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(ExportFile.class);
 
     public static enum COMPRESSION {
         BZ2, GZ, SNAPPY, NONE

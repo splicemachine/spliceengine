@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.DDLConfiguration;
@@ -38,7 +38,7 @@ import com.splicemachine.pipeline.Exceptions;
  */
 public class AsynchronousDDLController implements DDLController, CommunicationListener {
 
-    private static final Logger LOG = Logger.getLogger(AsynchronousDDLController.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(AsynchronousDDLController.class);
 
     // timeout to refresh the info, in case some server is dead or a new server came up
     private final long refreshInterval;

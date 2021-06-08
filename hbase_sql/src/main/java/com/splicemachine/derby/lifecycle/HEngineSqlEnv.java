@@ -51,14 +51,14 @@ import com.splicemachine.olap.TimedOlapClient;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.uuid.Snowflake;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 /**
  * @author Scott Fines
  *         Date: 1/27/16
  */
 public class HEngineSqlEnv extends EngineSqlEnvironment{
-    private static final Logger LOG = Logger.getLogger(HEngineSqlEnv.class);
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(HEngineSqlEnv.class);
 
     // MAX_EXECUTOR_CORES is calculated the first time someone runs a query.
     // numNodes is written to zookeeper by OlapServerMaster, so we have

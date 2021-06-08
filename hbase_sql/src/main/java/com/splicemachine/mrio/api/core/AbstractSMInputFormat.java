@@ -45,7 +45,7 @@ import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.util.*;
@@ -58,7 +58,7 @@ import static java.lang.String.format;
  * Created by dgomezferro on 11/30/15.
  */
 public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> implements Configurable {
-    protected static final Logger LOG = Logger.getLogger(AbstractSMInputFormat.class);
+    protected static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(AbstractSMInputFormat.class);
     private static int MAX_RETRIES = 30;
     private static int PARTITION_LOAD_REFRESH_THRESHOLD = 8;
     protected Configuration conf;

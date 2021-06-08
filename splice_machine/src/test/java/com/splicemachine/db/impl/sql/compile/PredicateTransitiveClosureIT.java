@@ -6,7 +6,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -22,7 +22,7 @@ import static org.junit.Assert.assertEquals;
  * Created by yxia on 1/14/20.
  */
 public class PredicateTransitiveClosureIT extends SpliceUnitTest {
-    private static Logger LOG = Logger.getLogger(PredicateTransitiveClosureIT.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(PredicateTransitiveClosureIT.class);
     public static final String CLASS_NAME = PredicateTransitiveClosureIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);

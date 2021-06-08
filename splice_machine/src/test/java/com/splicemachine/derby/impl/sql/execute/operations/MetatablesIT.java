@@ -16,7 +16,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import org.junit.Assert;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.junit.Rule;
 import org.junit.Test;
 import java.sql.ResultSet;
@@ -26,7 +26,7 @@ import java.sql.ResultSet;
  *         Created on: 2/23/13
  */
 public class MetatablesIT { 
-    private static final Logger LOG = Logger.getLogger(MetatablesIT.class);	
+    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(MetatablesIT.class);	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     @Test

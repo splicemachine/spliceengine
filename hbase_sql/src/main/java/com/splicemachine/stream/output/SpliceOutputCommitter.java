@@ -23,7 +23,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.JobStatus;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.apache.spark.TaskContext;
 
 import java.io.IOException;
@@ -34,7 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  */
 public class SpliceOutputCommitter extends OutputCommitter {
-    private static Logger LOG = Logger.getLogger(SpliceOutputCommitter.class);
+    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceOutputCommitter.class);
     protected TxnView parentTxn;
     protected byte[] destinationTable;
     public static ThreadLocal<TxnView> currentTxn = new ThreadLocal<>();
