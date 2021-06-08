@@ -3619,7 +3619,7 @@ public class FromBaseTable extends FromTable {
      * @throws StandardException Thrown on error
      * @return TableName The exposed name of this table.
      */
-    private TableName getExposedTableName() throws StandardException{
+    TableName getExposedTableName() throws StandardException{
         if(correlationName!=null)
             return makeTableName(null,correlationName);
         else
