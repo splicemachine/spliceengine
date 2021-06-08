@@ -158,6 +158,7 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
     // Generate timestamps between ts0 inclusive and ts1 exclusive
     private static void populateStagingTable(long ts0, long ts1) {
         try (Connection conn = makeConnection()) {
+            conn.setAutoCommit(false);
             PreparedStatement insert = conn.prepareStatement("INSERT INTO FeatureStaging VALUES (?, ?, ?, ?, ?)");
             Random rnd = ThreadLocalRandom.current();
             int maxDay = (int)((ts1 - ts0 + DAYMS - 1) / DAYMS);
@@ -192,6 +193,7 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
                     updateStats(STAT_CREATE, count, end - start);
                 }
             }
+            conn.commit();
         }
         catch (Throwable t) {
             LOG.error("Connection broken", t);
@@ -201,7 +203,7 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
 
     private void populateStagingTable() throws SQLException {
         testStatement.execute("TRUNCATE TABLE FeatureStaging");
-        long nextTimestamp = curTimestamp + 60 * DAYMS;
+        long nextTimestamp = curTimestamp + updates * 2 * DAYMS;
         taskId.set(0);
         runBenchmark(connections, () -> populateStagingTable(curTimestamp, nextTimestamp));
         curTimestamp = nextTimestamp;
@@ -209,14 +211,14 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
 
     public void insertAndUpdateFromBatches() {
         try (Connection conn = makeConnection()) {
-            try (Statement statement = conn.createStatement()) {
+            try (PreparedStatement statement = conn.prepareStatement(
+                    "INSERT INTO FeatureTable --splice-properties insertMode=UPSERT\n" +
+                            "SELECT entity_key, ts, feature1, feature2 " +
+                            "FROM FeatureStaging WHERE update_order=?")) {
                 for (int update = 1; update <= updates; ++update) {
                     long start = System.currentTimeMillis();
-                    int count = statement.executeUpdate(
-                        String.format("INSERT INTO FeatureTable --splice-properties insertMode=UPSERT\n" +
-                                        "SELECT entity_key, ts, feature1, feature2 " +
-                                        "FROM FeatureStaging WHERE update_order=%d", update)
-                    );
+                    statement.setInt(1, update);
+                    int count = statement.executeUpdate();
                     long end = System.currentTimeMillis();
                     updateStats(STAT_UPDATE, count, end - start);
                 }
@@ -351,7 +353,7 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
         try {
             createFeatureTableTriggers();
 
-            long nextTimestamp = curTimestamp + 60 * DAYMS;
+            long nextTimestamp = curTimestamp + updates * 2 * DAYMS;
             long start = System.currentTimeMillis();
             runBenchmark(connections, () -> insertAndUpdateConcurrently(curTimestamp, nextTimestamp));
             long end = System.currentTimeMillis();
@@ -479,7 +481,7 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
         try {
             createHistoryTableTriggers();
 
-            long nextTimestamp = curTimestamp + 60 * DAYMS;
+            long nextTimestamp = curTimestamp + updates * 2 * DAYMS;
             long start = System.currentTimeMillis();
             runBenchmark(connections, () -> insertAndUpdateConcurrently2(curTimestamp, nextTimestamp));
             long end = System.currentTimeMillis();
