@@ -93,7 +93,7 @@ public class MergeNodeIT
                  " 4 |44 | 5 |");
     }
 
-    @Ignore // fails
+    //@Ignore // fails
     @Test
     public void testSimpleInsertTwoRows() throws Exception {
         test(   "(1, 11, 111), (4, 44, 444), (5, 55, 555)", // src
