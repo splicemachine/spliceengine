@@ -3755,6 +3755,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             {
                 ValueNode sourceExpr = rc.getExpression();
 
+                // todo
 //                if ( sourceExpr instanceof VirtualColumnNode && ! ( ((VirtualColumnNode) sourceExpr).getCorrelated()) )
 //                {
 //                    continue;
