@@ -237,15 +237,15 @@ public class SpliceUDTIT extends SpliceUnitTest {
 
         testFail("SELECT MAX(agg0) " +
                 "FROM (SELECT MAX(T2.C0)  as agg0 FROM T0 LEFT OUTER JOIN T2 ON ((T0.C1)!=(T2.C0)) and 1 = thrownpe(1)" +
-                "WHERE T0.C0 " +
+                "WHERE T0.C0 and 1 = thrownpe(1)" +
                 "UNION ALL " +
                 "SELECT MAX(T2.C0)  as agg0 " +
-                "FROM T0 LEFT OUTER JOIN T2 ON ((T0.C1)!=(T2.C0)) " +
-                "WHERE NOT (T0.C0) " +
+                "FROM T0 LEFT OUTER JOIN T2 ON ((T0.C1)!=(T2.C0)) and 1 = thrownpe(1) " +
+                "WHERE NOT (T0.C0) and 1 = thrownpe(1)" +
                 "UNION ALL " +
                 "SELECT MAX(T2.C0)  as agg0 " +
-                "FROM T0 LEFT OUTER JOIN T2 ON ((T0.C1)!=(T2.C0)) " +
-                "WHERE (T0.C0) IS NULL) as asdf",
+                "FROM T0 LEFT OUTER JOIN T2 ON ((T0.C1)!=(T2.C0)) and 1 = thrownpe(1)" +
+                "WHERE (T0.C0) IS NULL and 1 = thrownpe(1)) as asdf",
                 Collections.singletonList("Splice Engine exception: unexpected exception"),
             methodWatcher);
 
