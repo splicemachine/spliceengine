@@ -148,7 +148,6 @@ public class MergeNodeIT
 
     // delete
 
-    //@Ignore // fails Nullpointer Except
     @Test
     public void testSimpleDelete() throws Exception {
         test(   "(1, 11, 111), (4, 44, 444)", // src

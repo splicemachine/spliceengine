@@ -384,8 +384,11 @@ public class MergeNode extends DMLStatementNode
     private void    addTargetRowLocation( ResultColumnList selectList )
             throws StandardException
     {
-          if(selectList.elementAt(selectList.size()-1).getExpression().getColumnName().equals(UpdateNode.COLUMNNAME))
-              return;
+        if(selectList.size() > 0) {
+            String lastColName = selectList.elementAt(selectList.size() - 1).getExpression().getColumnName();
+            if (lastColName.equals(UpdateNode.COLUMNNAME) || lastColName.equals(DeleteNode.COLUMNNAME))
+                return;
+        }
         // tell the target table to generate a row location column
         _targetTable.setRowLocationColumnName( TARGET_ROW_LOCATION_NAME );
 
