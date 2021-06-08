@@ -527,11 +527,18 @@ public final class UpdateNode extends DMLModStatementNode
 
         changedColumnIds = getChangedColumnIds(resultSet.getResultColumns());
 
+        //
+        // Trigger transition tables are implemented as VTIs. This short-circuits some
+        // necessary steps if the source table of a MERGE statement is a trigger
+        // transition table. The following boolean is meant to prevent that short-circuiting.
+        //
+        boolean needBaseColumns = (targetVTI == null) || inMatchingClause();
+
         /*
         ** We need to add in all the columns that are needed
         ** by the constraints on this table.
         */
-        if (!allColumns && targetVTI == null)
+        if (!allColumns && needBaseColumns)
         {
             getCompilerContext().pushCurrentPrivType( Authorizer.NULL_PRIV);
             try
@@ -573,7 +580,7 @@ public final class UpdateNode extends DMLModStatementNode
             }
         }
 
-        if (targetVTI == null)
+        if (needBaseColumns)
         {
             /*
             ** Construct an empty heap row for use in our constant action.
@@ -688,7 +695,7 @@ public final class UpdateNode extends DMLModStatementNode
             }
         }
 
-        if( null != targetVTI)
+        if( null != targetVTI && !inMatchingClause() )
         {
             deferred = VTIDeferModPolicy.deferIt( DeferModification.UPDATE_STATEMENT,
                                                   targetVTI,
@@ -782,7 +789,7 @@ public final class UpdateNode extends DMLModStatementNode
         ** Updates are also deferred if they update a column in the index
         ** used to scan the table being updated.
         */
-        if (! deferred )
+        if ( !deferred && !inMatchingClause() )
         {
             /**
              * When the underneath SelectNode is unsatisfiable, we rewrite it to
@@ -818,7 +825,8 @@ public final class UpdateNode extends DMLModStatementNode
                         deferred, changedColumnIds);
         }
 
-        int lockMode = resultSet.updateTargetLockMode();
+        int lockMode = inMatchingClause() ?
+                TransactionController.MODE_RECORD : resultSet.updateTargetLockMode();
         long heapConglomId = targetTableDescriptor.getHeapConglomerateId();
         TransactionController tc =
             getLanguageConnectionContext().getTransactionCompile();
@@ -949,7 +957,16 @@ public final class UpdateNode extends DMLModStatementNode
         */
 
         acb.pushGetResultSetFactoryExpression(mb);
-        resultSet.generate(acb, mb); // arg 1
+
+        // arg 1
+        if ( inMatchingClause() )
+        {
+            matchingClause.generateResultSetField( acb, mb );
+        }
+        else
+        {
+            resultSet.generate( acb, mb );
+        }
 
         if( null != targetVTI)
         {

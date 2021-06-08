@@ -555,7 +555,8 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
     public ValueNode bindColumnReference(ColumnReference columnReference) throws StandardException{
         boolean columnNameMatch=false;
         boolean tableNameMatch=false;
-        FromTable fromTable;
+        FromTable fromTable = null;
+        FromTable matchingTable = null;
         int currentLevel;
         int previousLevel=-1;
         int matchingIndex = -1;
@@ -590,7 +591,6 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
             if(index == 0 && isBaseRowIdOrRowId(columnReference.columnName)) continue;
 
             ResultColumn resultColumn=fromTable.getMatchingColumn(columnReference);
-
             if(resultColumn!=null){
                 if(columnNameMatch) {
                     ambiguousColumnMatch = true;
@@ -624,7 +624,11 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
             columnReference.setSourceLevel(fromTable.getLevel());
 
             if (fromTable.isPrivilegeCollectionRequired())
+            {
                 getCompilerContext().addRequiredColumnPriv(matchingRC.getTableColumnDescriptor());
+            }
+
+            matchingTable = fromTable;
         } else {
             // not found in normal table, check if it is an alias?
             ValueNode node = getAlias(columnReference);
@@ -637,6 +641,21 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
         }
 
         addSPSPropertyDependency(columnReference);
+
+        // fill in the table name
+        if ( (matchingTable != null) && (matchingRC != null) && (columnReference.getTableName() == null) )
+        {
+            TableName   crtn = matchingTable.getTableName();
+            if ( matchingTable instanceof FromBaseTable )
+            {
+                FromBaseTable   fbt = (FromBaseTable) matchingTable;
+                if ( fbt.getExposedTableName() !=  null )
+                {
+                    crtn = fbt.getExposedTableName();
+                }
+            }
+            columnReference.setTableNameNode( crtn );
+        }
 
         return columnReference;
     }

@@ -208,6 +208,46 @@ public class NormalizeOperation extends SpliceBaseOperation{
         }
     }
 
+    /**
+     * Normalize a column.  For now, this means calling constructors through
+     * the type services to normalize a type to itself.  For example,
+     * if you're putting a char(30) value into a char(15) column, it
+     * calls a SQLChar constructor with the char(30) value, and the
+     * constructor truncates the value and makes sure that no non-blank
+     * characters are truncated.
+     *
+     *
+     * @param dtd Data type to coerce to
+     * @param sourceRow row holding the source column
+     * @param sourceColumnPosition position of column in row
+     * @param resultCol where to stuff the coerced value
+     * @param desc Additional metadata for error reporting if necessary
+     *
+     * @exception StandardException thrown on failure
+     */
+    public  static  DataValueDescriptor normalizeColumn
+    (DataTypeDescriptor dtd, ExecRow sourceRow, int sourceColumnPosition, DataValueDescriptor resultCol, ResultDescription desc )
+            throws StandardException
+    {
+        DataValueDescriptor sourceCol = sourceRow.getColumn( sourceColumnPosition );
+
+        try {
+            DataValueDescriptor returnValue = dtd.normalize( sourceCol, resultCol );
+
+            return returnValue;
+        } catch (StandardException se) {
+            // Catch illegal null insert and add column info
+            if (se.getMessageId().startsWith(SQLState.LANG_NULL_INTO_NON_NULL))
+            {
+                ResultColumnDescriptor columnDescriptor = desc.getColumnDescriptor( sourceColumnPosition );
+                throw StandardException.newException
+                        (SQLState.LANG_NULL_INTO_NON_NULL, columnDescriptor.getName());
+            }
+            //just rethrow if not LANG_NULL_INTO_NON_NULL
+            throw se;
+        }
+    }
+
     private DataValueDescriptor getCachedDesgination(int col) throws StandardException{
         int index=col-1;
         if(cachedDestinations[index]==null){
