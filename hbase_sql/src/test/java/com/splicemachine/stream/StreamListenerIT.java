@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
-@Category({LongerThanTwoMinutes.class, SlowTest.class, SerialTest.class})
+@Category({LongerThanTwoMinutes.class, SerialTest.class})
 public class StreamListenerIT {
 
     private static final String CLASS_NAME = StreamListenerIT.class.getSimpleName().toUpperCase();
