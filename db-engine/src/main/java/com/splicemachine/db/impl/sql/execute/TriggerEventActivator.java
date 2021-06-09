@@ -33,8 +33,6 @@ package com.splicemachine.db.impl.sql.execute;
 
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
@@ -453,5 +451,22 @@ public class TriggerEventActivator {
         if (tec == null)
             return false;
         return tec.hasGeneratedColumn();
+    }
+
+    public TriggerDescriptor[] getTriggerDescriptorsByEvent (TriggerEvent event, boolean isRowEvent, boolean concurrent) {
+        if (isRowEvent) {
+            List<TriggerDescriptor> temp;
+            if (concurrent)
+                temp = rowConcurrentExecutorsMap.get(event);
+            else
+                temp = rowExecutorsMap.get(event);
+            return temp.toArray(new TriggerDescriptor[0]);
+        }
+        List<GenericTriggerExecutor> temp = statementExecutorsMap.get(event);
+        TriggerDescriptor[] result = new TriggerDescriptor[temp.size()];
+        for (int i = 0; i < temp.size(); i++) {
+            result[i] = temp.get(i).getTriggerd();
+        }
+        return result;
     }
 }

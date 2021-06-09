@@ -14,6 +14,8 @@
 
 package com.splicemachine.si.impl.txn;
 
+import com.splicemachine.db.iapi.sql.dictionary.DisplayedTriggerInfo;
+import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.ConflictType;
 import com.splicemachine.si.api.txn.TaskId;
@@ -27,7 +29,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.UUID;
 
 /**
  * @author Scott Fines
@@ -129,6 +133,16 @@ public class LazyTxnView implements TxnView {
     }
 
     @Override
+    public void setCurrentQueryId(UUID id) {
+
+    }
+
+    @Override
+    public UUID getCurrentQueryId() {
+        return null;
+    }
+
+    @Override
     public void setNumTriggers(int num) {
 
     }
@@ -139,12 +153,22 @@ public class LazyTxnView implements TxnView {
     }
 
     @Override
-    public void incNumTriggers() {
+    public void incNumTriggers(TriggerDescriptor[] tds) {
 
     }
 
     @Override
-    public void addNumTriggers(int num) {
+    public void addNumTriggers(int num, ArrayList<DisplayedTriggerInfo> triggerInfos) {
+
+    }
+
+    @Override
+    public ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo() {
+        return null;
+    }
+
+    @Override
+    public void initTxnTriggers(TriggerDescriptor[] tds) {
 
     }
 

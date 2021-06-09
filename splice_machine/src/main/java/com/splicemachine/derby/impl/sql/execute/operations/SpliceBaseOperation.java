@@ -487,6 +487,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             if (!(this instanceof ExplainOperation || activation.isMaterialized()))
                 activation.materialize();
             long txnId=getCurrentTransaction().getTxnId();
+
+            // initialize displayed trigger info
+            getCurrentTransaction().setCurrentQueryId(uuid);
+            if (getTriggerHandler() != null) {
+//                activation.getLanguageConnectionContext().initTxnTriggers(getTriggerHandler().triggerInfo.getTriggerDescriptors());
+                getCurrentTransaction().initTxnTriggers(getTriggerHandler().triggerInfo.getTriggerDescriptors());
+            }
+
             sql=sql==null?this.toString():sql;
             String userId=activation.getLanguageConnectionContext().getCurrentUserId(activation);
             activation.getLanguageConnectionContext().setControlExecutionLimiter(EngineDriver.driver().processorFactory().getControlExecutionLimiter(activation));
@@ -497,6 +505,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             }
             this.execRowIterator =getDataSet(dsp).toLocalIterator();
             activation.getLanguageConnectionContext().setNumTriggers(getCurrentTransaction().getNumTriggers());
+            activation.getLanguageConnectionContext().setDisplayedTriggerInfo(getCurrentTransaction().getDisplayedTriggerInfo());
+//          activation.getLanguageConnectionContext().addDisplayedTriggerInfo(getCurrentTransaction().getDisplayedTriggerInfo());
         } catch (ResubmitDistributedException e) {
             resubmitDistributed(e);
         }catch(Exception e){ // This catches all the iterator errors for things that are not lazy

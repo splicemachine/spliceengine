@@ -321,7 +321,6 @@ public class TriggerHandler {
 
     public void fireBeforeRowTriggers(ExecRow row) throws StandardException {
         if (row != null && hasBeforeRow) {
-            txn.incNumTriggers();
             SingleRowCursorResultSet triggeringResultSet = new SingleRowCursorResultSet(resultDescription, row);
             List<Future<Void>> futures = triggerActivator.notifyRowEventConcurrent(beforeEvent, triggeringResultSet, null);
             for (Future<Void> f : futures) {
@@ -338,17 +337,18 @@ public class TriggerHandler {
                 }
             }
             triggerActivator.notifyRowEvent(beforeEvent, triggeringResultSet, null, hasStatementTriggerWithReferencingClause);
+            txn.incNumTriggers(triggerActivator.getTriggerDescriptorsByEvent(beforeEvent, true, false));
         }
     }
 
     public void fireAfterRowTriggers(ExecRow row, Callable<Void> flushCallback) throws Exception {
         if (!hasAfterRow)
             return;
-        txn.incNumTriggers();
         pendingAfterRows.add(row.getClone());
         if (pendingAfterRows.size() == AFTER_ROW_BUFFER_SIZE) {
             firePendingAfterTriggers(flushCallback);
         }
+//        txn.incNumTriggers(triggerActivator.getTriggerDescriptorsByEvent(beforeEvent, true));
     }
 
     public void firePendingAfterTriggers(Callable<Void> flushCallback) throws Exception {
@@ -420,9 +420,9 @@ public class TriggerHandler {
 
     private void fireAfterRowTriggers(ExecRow row) throws StandardException {
         if (row != null && hasAfterRow) {
-            txn.incNumTriggers();
             SingleRowCursorResultSet triggeringResultSet = new SingleRowCursorResultSet(resultDescription, row);
             triggerActivator.notifyRowEvent(afterEvent, triggeringResultSet, null, hasStatementTriggerWithReferencingClause);
+            txn.incNumTriggers(triggerActivator.getTriggerDescriptorsByEvent(afterEvent, true, false));
         }
     }
 
@@ -438,17 +438,17 @@ public class TriggerHandler {
 
     public void fireBeforeStatementTriggers() throws StandardException {
         if (hasBeforeStatement) {
-            txn.incNumTriggers();
             CursorResultSet triggeringResultSet = triggerRowHolder == null ? null : triggerRowHolder.getResultSet();
             triggerActivator.notifyStatementEvent(beforeEvent, triggeringResultSet, hasStatementTriggerWithReferencingClause);
+            txn.incNumTriggers(triggerActivator.getTriggerDescriptorsByEvent(beforeEvent, false, false));
         }
     }
 
     public void fireAfterStatementTriggers() throws StandardException {
         if (hasAfterStatement) {
-            txn.incNumTriggers();
             CursorResultSet triggeringResultSet = triggerRowHolder == null ? null : triggerRowHolder.getResultSet();
             triggerActivator.notifyStatementEvent(afterEvent, triggeringResultSet, hasStatementTriggerWithReferencingClause);
+            txn.incNumTriggers(triggerActivator.getTriggerDescriptorsByEvent(afterEvent, false, false));
         }
     }
 

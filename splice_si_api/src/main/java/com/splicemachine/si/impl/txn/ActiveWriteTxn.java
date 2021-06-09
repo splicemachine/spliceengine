@@ -14,6 +14,8 @@
 
 package com.splicemachine.si.impl.txn;
 
+import com.splicemachine.db.iapi.sql.dictionary.DisplayedTriggerInfo;
+import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
@@ -21,6 +23,8 @@ import com.splicemachine.si.api.txn.TxnView;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.UUID;
 
 /**
  * @author Scott Fines
@@ -58,26 +62,6 @@ public class ActiveWriteTxn extends AbstractTxnView{
     @Override
     public TaskId getTaskId() {
         return taskId;
-    }
-
-    @Override
-    public void setNumTriggers(int num) {
-
-    }
-
-    @Override
-    public int getNumTriggers() {
-        return 0;
-    }
-
-    @Override
-    public void incNumTriggers() {
-
-    }
-
-    @Override
-    public void addNumTriggers(int num) {
-
     }
 
     @Override

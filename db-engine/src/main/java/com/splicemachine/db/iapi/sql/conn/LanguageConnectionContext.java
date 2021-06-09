@@ -46,10 +46,7 @@ import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import com.splicemachine.db.iapi.sql.depend.Provider;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.CursorActivation;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
@@ -65,6 +62,7 @@ import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.utils.SparkSQLUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -121,8 +119,11 @@ public interface LanguageConnectionContext extends Context {
     int LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_NUM_CHAR = 20;
 
     void setNumTriggers(int num);
+    void setDisplayedTriggerInfo(ArrayList<DisplayedTriggerInfo> triggerInfos);
     int getNumTriggers();
+    ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo();
     void incNumTriggers();
+    void addDisplayedTriggerInfo(ArrayList<DisplayedTriggerInfo> triggerInfos);
 
     /**
      * Initialize. For use after pushing the contexts that initialization needs.

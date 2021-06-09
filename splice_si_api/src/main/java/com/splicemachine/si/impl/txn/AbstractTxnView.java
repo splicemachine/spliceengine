@@ -14,6 +14,8 @@
 
 package com.splicemachine.si.impl.txn;
 
+import com.splicemachine.db.iapi.sql.dictionary.DisplayedTriggerInfo;
+import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.si.api.txn.ConflictType;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
@@ -24,8 +26,10 @@ import com.splicemachine.utils.ByteSlice;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.UUID;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
@@ -106,6 +110,46 @@ public abstract class AbstractTxnView implements TxnView {
     @Override
     public boolean allowsWrites() {
         return false;
+    }
+
+    @Override
+    public void setCurrentQueryId(java.util.UUID id) {
+
+    }
+
+    @Override
+    public UUID getCurrentQueryId() {
+        return null;
+    }
+
+    @Override
+    public void setNumTriggers(int num) {
+
+    }
+
+    @Override
+    public int getNumTriggers() {
+        return 0;
+    }
+
+    @Override
+    public void incNumTriggers(TriggerDescriptor[] tds) {
+
+    }
+
+    @Override
+    public void addNumTriggers(int num, ArrayList<DisplayedTriggerInfo> triggerInfos) {
+
+    }
+
+    @Override
+    public ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo() {
+        return null;
+    }
+
+    @Override
+    public void initTxnTriggers(TriggerDescriptor[] tds) {
+
     }
 
     @Override

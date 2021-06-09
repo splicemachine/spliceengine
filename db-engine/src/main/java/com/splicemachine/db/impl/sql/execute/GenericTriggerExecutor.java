@@ -381,4 +381,6 @@ public abstract class GenericTriggerExecutor {
             }
         }
     }
+
+    public TriggerDescriptor getTriggerd() { return triggerd; }
 } 

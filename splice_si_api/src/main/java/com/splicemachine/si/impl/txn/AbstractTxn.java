@@ -15,6 +15,8 @@
 package com.splicemachine.si.impl.txn;
 
 import com.carrotsearch.hppc.LongHashSet;
+import com.splicemachine.db.iapi.sql.dictionary.DisplayedTriggerInfo;
+import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
@@ -23,8 +25,10 @@ import com.splicemachine.si.constants.SIConstants;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -41,6 +45,10 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
     protected Txn parentReference;
     private boolean subtransactionsAllowed = true;
     private AtomicInteger numTriggers;
+    private ArrayList<DisplayedTriggerInfo> triggerInfos = new ArrayList<>();
+    private java.util.UUID currentQueryId;
+    private HashMap<com.splicemachine.db.catalog.UUID, DisplayedTriggerInfo> triggerIdToTriggerInfoMap = new HashMap<>();
+    private HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap = new HashMap<>();
 
     protected AbstractTxn(){
     }
@@ -72,14 +80,54 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
     }
 
     @Override
-    public void incNumTriggers() {
-        numTriggers.getAndIncrement();
+    public void setCurrentQueryId(UUID id) {
+        currentQueryId = id;
+    }
+    public java.util.UUID getCurrentQueryId() {
+        return currentQueryId;
     }
 
     @Override
-    public void addNumTriggers(int num) {
-        numTriggers.getAndAdd(num);
+    public void incNumTriggers(TriggerDescriptor[] tds) {
+        if (parentReference.getCurrentQueryId() == null) {
+            return; // maybe should throw an error here
+        }
+        AbstractTxn parent = (AbstractTxn) parentReference;
+
+        for (TriggerDescriptor td : tds) {
+//            if(parentReference == null)
+//                triggerInfos.add(new DisplayedTriggerInfo(td.getUUID(), td.getName(), txnId, currentQueryId));
+//            else
+//                triggerInfos.add(new DisplayedTriggerInfo(td.getUUID(), td.getName(), txnId, currentQueryId, parentReference.getTxnId(), parentReference.getCurrentQueryId()));
+
+            parent.triggerIdToTriggerInfoMap.get(td.getUUID()).setTxnId(txnId);
+            parent.triggerIdToTriggerInfoMap.get(td.getUUID()).setQueryId(currentQueryId);
+            parent.queryIdToTriggerInfoMap.put(currentQueryId, triggerIdToTriggerInfoMap.get(td.getUUID()));
+        }
     }
+
+    @Override
+    public ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo() {
+        ArrayList<DisplayedTriggerInfo> result = new ArrayList<>();
+        result.addAll(triggerIdToTriggerInfoMap.values());
+        result.addAll(triggerInfos);
+        return result;
+    }
+
+    @Override
+    public void addNumTriggers(int num, ArrayList<DisplayedTriggerInfo> triggerInfos) {
+        numTriggers.getAndAdd(num);
+        this.triggerInfos.addAll(triggerInfos);
+    }
+
+    @Override
+    public void initTxnTriggers(TriggerDescriptor[] tds) {
+        for (TriggerDescriptor td : tds) {
+            numTriggers.getAndIncrement();
+            triggerIdToTriggerInfoMap.put(td.getUUID(), new DisplayedTriggerInfo(td.getUUID(), td.getName(), -1, null, txnId, currentQueryId));
+        }
+    }
+
 
     @Override
     public void readExternal(ObjectInput input) throws IOException, ClassNotFoundException{
@@ -199,7 +247,9 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
 
     @Override
     public void commit() throws IOException{
-        if (parentReference != null)
-            parentReference.addNumTriggers(numTriggers.get());
+        triggerInfos.addAll(triggerIdToTriggerInfoMap.values());
+        if (parentReference != null) {
+            parentReference.addNumTriggers(numTriggers.get(), triggerInfos);
+        }
     }
 }

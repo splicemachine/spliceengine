@@ -153,7 +153,7 @@ public class TriggerInfo implements Formatable {
     }
 
 
-    TriggerDescriptor[] getTriggerDescriptors() {
+    public TriggerDescriptor[] getTriggerDescriptors() {
         return triggerDescriptors;
     }
 
