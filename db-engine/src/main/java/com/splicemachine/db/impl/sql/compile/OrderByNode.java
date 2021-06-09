@@ -172,6 +172,10 @@ public class OrderByNode extends SingleChildResultSetNode {
                 .append("OrderBy").append("(")
                 .append("n=").append(getResultSetNumber());
         sb.append(attrDelim).append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
+        String logicalProfileStr = getLogicalProfileString();
+        if (logicalProfileStr.length() > 0) {
+            sb.append(attrDelim).append("logicalProfile=[").append(logicalProfileStr).append("]");
+        }
         sb = sb.append(")");
         return sb.toString();
     }

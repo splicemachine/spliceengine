@@ -96,7 +96,7 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
 
     // resultColumns from the base table
     // at this point, this seems to be always full column list because no access path is chosen
-    private final ResultColumnList resultColumns;
+    protected final ResultColumnList resultColumns;
 
     // base columns returned from scanning phase
     protected final BitSet baseColumnsInScan;
@@ -165,10 +165,10 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
                                      DataValueDescriptor[] scanRowTemplate,
                                      BitSet baseColumnsInScan,
                                      BitSet baseColumnsInLookup,
-                            int indexLookupBatchRowCount,
-                            int indexLookupConcurrentBatchesCount,
+                                     int indexLookupBatchRowCount,
+                                     int indexLookupConcurrentBatchesCount,
                                      boolean forUpdate,
-                            boolean isOlap,
+                                     boolean isOlap,
                                      HashSet<Integer> usedNoStatsColumnIds) throws StandardException {
         this.baseTable=baseTable;
         this.cd = cd;
@@ -350,13 +350,9 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
         }
     }
 
-    /**
-     * Computing the total selectivity.  All conglomerates need to have the same total selectivity.
-     */
-    public static double computeTotalSelectivity(List<SelectivityHolder>[] scanSelectivityHolder,
-                                                 List<SelectivityHolder>[] topSelectivityHolder) throws StandardException {
-        double totalSelectivity = 1.0d;
-        List<SelectivityHolder> holders = new ArrayList();
+    protected static List<SelectivityHolder> mergeSelectivityHolderLists(List<SelectivityHolder>[] scanSelectivityHolder,
+                                                                         List<SelectivityHolder>[] topSelectivityHolder) {
+        List<SelectivityHolder> holders = new ArrayList<>();
         for (List<SelectivityHolder> aSelectivityHolder : scanSelectivityHolder) {
             if (aSelectivityHolder != null)
                 holders.addAll(aSelectivityHolder);
@@ -365,8 +361,29 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
             if (aSelectivityHolder != null)
                 holders.addAll(aSelectivityHolder);
         }
+        return holders;
+    }
+
+    /**
+     * Computing the total selectivity.  All conglomerates need to have the same total selectivity.
+     */
+    public static double computeTotalSelectivity(List<SelectivityHolder>[] scanSelectivityHolder,
+                                                 List<SelectivityHolder>[] topSelectivityHolder) throws StandardException {
+        double totalSelectivity = 1.0d;
+
+        List<SelectivityHolder> holders = mergeSelectivityHolderLists(scanSelectivityHolder, topSelectivityHolder);
         Collections.sort(holders);
         return computeSelectivity(totalSelectivity,holders);
+    }
+
+    public static double computeTotalSelectivity(List<SelectivityHolder>[] scanSelectivityHolder,
+                                                 List<SelectivityHolder>[] topSelectivityHolder,
+                                                 ResultColumnList resultColumns) throws StandardException {
+        double totalSelectivity = 1.0d;
+
+        List<SelectivityHolder> holders = mergeSelectivityHolderLists(scanSelectivityHolder, topSelectivityHolder);
+        Collections.sort(holders);
+        return computeSelectivity(totalSelectivity, holders, resultColumns);
     }
 
 
@@ -420,6 +437,20 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
             // Do not include join predicates unless join strategy is nested loop.
             if (holder.shouldApplySelectivity()) {
                 selectivity = computeSqrtLevel(selectivity, level, holder);
+                level++;
+            }
+        }
+        return selectivity;
+    }
+
+    public static double computeSelectivity(double selectivity, List<SelectivityHolder> holders,
+                                            ResultColumnList resultColumns) throws StandardException {
+        int level = 0;
+        for (int i = 0; i< holders.size();i++) {
+            // Do not include join predicates unless join strategy is nested loop.
+            if (holders.get(i).shouldApplySelectivity()) {
+                selectivity = computeSqrtLevel(selectivity, level, holders.get(i));
+                resultColumns.updateLogicalProfiles(holders.get(i));
                 level++;
             }
         }

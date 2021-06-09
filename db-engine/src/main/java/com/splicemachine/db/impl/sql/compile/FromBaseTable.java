@@ -4633,6 +4633,10 @@ public class FromBaseTable extends FromTable {
         List<String> qualifiers = Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
         if (qualifiers != null && !qualifiers.isEmpty())
             sb.append(attrDelim).append("preds=[").append(Joiner.on(",").skipNulls().join(qualifiers)).append("]");
+        String logicalProfileStr = getLogicalProfileString();
+        if (logicalProfileStr.length() > 0) {
+            sb.append(attrDelim).append("logicalProfile=[").append(logicalProfileStr).append("]");
+        }
         sb.append(")");
         return sb.toString();
     }

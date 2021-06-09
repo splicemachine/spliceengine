@@ -82,6 +82,9 @@ public final class RowCountNode extends SingleChildResultSetNode{
         this.offset=(ValueNode)offset;
         this.fetchFirst=(ValueNode)fetchFirst;
         this.hasJDBClimitClause=(hasJDBClimitClause!=null) && (Boolean)hasJDBClimitClause;
+        if (this.fetchFirst != null && this.fetchFirst instanceof NumericConstantNode) {
+            resultColumns.limitDistinctCounts(((NumericConstantNode) fetchFirst).getValue().getDouble());
+        }
     }
 
 
@@ -247,6 +250,10 @@ public final class RowCountNode extends SingleChildResultSetNode{
                 }
                 if (fetchFirst != null && fetchFirst instanceof NumericConstantNode) {
                     sb.append(attrDelim).append("fetchFirst=").append( ((NumericConstantNode)fetchFirst).getValue());
+                }
+                String logicalProfileStr = getLogicalProfileString();
+                if (logicalProfileStr.length() > 0) {
+                    sb.append(attrDelim).append("logicalProfile=[").append(logicalProfileStr).append("]");
                 }
                 sb.append(")");
         return sb.toString();

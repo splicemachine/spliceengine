@@ -325,6 +325,7 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
             costEstimate.setEstimatedRowCount(currentOffset+currentFetchFirst);
             costEstimate.setRemoteCost(scaleFactor*costEstimate.getRemoteCost());
             costEstimate.setRemoteCostPerParallelTask(costEstimate.remoteCost(), costEstimate.getParallelism());
+            rsn.getResultColumns().limitDistinctCounts(currentFetchFirst);
         }
     }
 
@@ -362,6 +363,7 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
                 costEstimate.setScannedBaseTableRows(costEstimate.getScannedBaseTableRows()*scaleFactor);
                 costEstimate.setEstimatedCost(costEstimate.getEstimatedCost()*scaleFactor);
                 costEstimate.setRemoteCostPerParallelTask(costEstimate.remoteCost(), costEstimate.getParallelism());
+                rsn.getResultColumns().limitDistinctCounts(currentFetchFirst);
         }
     }
 

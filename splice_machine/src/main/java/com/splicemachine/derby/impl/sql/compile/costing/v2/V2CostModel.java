@@ -81,6 +81,6 @@ public class V2CostModel implements CostModel {
 
     @Override
     public String toString() {
-        return "v2";
+        return CostModel.V2;
     }
 }

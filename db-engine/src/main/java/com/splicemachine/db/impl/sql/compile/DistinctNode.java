@@ -52,6 +52,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.impl.sql.compile.costing.LogicalColumnProfile;
 
 import java.util.*;
 
@@ -181,13 +182,13 @@ public class DistinctNode extends SingleChildResultSetNode
         double outputHeapSize = 0d;
 
         ResultColumnList rcl = childResult.getResultColumns();
-        double selectivity = 0d;
+        List<Double> cardinalityList = new ArrayList<>();
         for (int i = 1; i <= rcl.size(); ++i) {
             ResultColumn resultColumn = rcl.getResultColumn(i);
-            selectivity += resultColumn.nonZeroCardinality((long) rc) / rc;
+            cardinalityList.add((double) resultColumn.nonZeroCardinality((long) rc));
         }
 
-        double tableCardinality = Math.min(1, selectivity) * rc;
+        double tableCardinality = Math.max(Math.round(LogicalColumnProfile.groupDistinctCount(rc, cardinalityList)), 1);
 
         sortCost = tableCardinality * remoteCostPerRow;
         outputHeapSize = tableCardinality * outputHeapSizePerRow;
@@ -202,6 +203,7 @@ public class DistinctNode extends SingleChildResultSetNode
         costEstimate.setRowCount(tableCardinality);
         costEstimate.setRawRowCount(tableCardinality);
         costEstimate.setEstimatedHeapSize((long)outputHeapSize);
+        resultColumns.limitDistinctCounts(tableCardinality);
 
         return costEstimate;
     }
@@ -361,6 +363,10 @@ public class DistinctNode extends SingleChildResultSetNode
                 .append("Distinct").append("(")
                 .append("n=").append(getResultSetNumber());
         sb.append(attrDelim).append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
+        String logicalProfileStr = getLogicalProfileString();
+        if (logicalProfileStr.length() > 0) {
+            sb.append(attrDelim).append("logicalProfile=[").append(logicalProfileStr).append("]");
+        }
         sb = sb.append(")");
         return sb.toString();
     }

@@ -1495,6 +1495,12 @@ public class ColumnReference extends ValueNode {
         if (!replacesIndexExpression) {
             if (source == null || source.getTableColumnDescriptor() == null)
                 return 0;
+            // Use logical profile only for conglomerates that are not indexes on expressions.
+            // We have no way to propagate index expression columns' statistics in cost
+            // estimation phase in current single-tree framework.
+            if (source.getLogicalProfile() != null) {
+                return Math.max(Math.round(source.getLogicalProfile().getDistinctCount()), 1);
+            }
         }
         return getStoreCostController().cardinality(replacesIndexExpression, getColumnPositionForStatistics());
     }

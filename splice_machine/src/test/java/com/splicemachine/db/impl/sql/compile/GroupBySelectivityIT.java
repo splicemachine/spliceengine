@@ -106,6 +106,7 @@ public class GroupBySelectivityIT extends SpliceUnitTest {
      */
     @Test
     public void testGroupByCardinalityMultiplication() throws Exception {
+        // v1 cost model
         secondRowContainsQuery("explain select count(*), c1,c2 from ts_low_cardinality group by c1,c2", "outputRows=10", methodWatcher);
         secondRowContainsQuery("explain select count(*), c1,c3 from ts_low_cardinality group by c1,c3", "outputRows=10", methodWatcher);
         secondRowContainsQuery("explain select count(*), c1,c4 from ts_low_cardinality group by c1,c4", "outputRows=2", methodWatcher);
@@ -117,6 +118,28 @@ public class GroupBySelectivityIT extends SpliceUnitTest {
                 "outputRows=6", "IndexScan[TS_LOW_CARDINALITY_EXPR_IX_2");   // 16 rows
         rowContainsQuery(new int[]{2,6}, "explain select count(*), upper(c2), timestampadd(SQL_TSI_DAY, 2, c3) from ts_low_cardinality --splice-properties index=ts_low_cardinality_expr_ix_2\n group by upper(c2), timestampadd(SQL_TSI_DAY, 2, c3)", methodWatcher,
                 "outputRows=10", "IndexScan[TS_LOW_CARDINALITY_EXPR_IX_2");  // 26 rows
+
+        // v2 cost model
+        secondRowContainsQuery("explain select count(*), c1,c2 from --splice-properties costModel='v2'\n ts_low_cardinality group by c1,c2", "outputRows=25", methodWatcher);
+        secondRowContainsQuery("explain select count(*), c1,c3 from --splice-properties costModel='v2'\n ts_low_cardinality group by c1,c3", "outputRows=25", methodWatcher);
+        secondRowContainsQuery("explain select count(*), c1,c4 from --splice-properties costModel='v2'\n ts_low_cardinality group by c1,c4", "outputRows=5", methodWatcher);
+        secondRowContainsQuery("explain select count(*), c4,c2 from --splice-properties costModel='v2'\n ts_low_cardinality group by c4,c2", "outputRows=5", methodWatcher);
+
+        rowContainsQuery(new int[]{2,6}, "explain select count(*), mod(c1,3), upper(c2) from --splice-properties costModel='v2'\n" +
+                                 "ts_low_cardinality --splice-properties index=ts_low_cardinality_expr_ix_2\n" +
+                                 "group by mod(c1,3), upper(c2)",
+                         methodWatcher,
+                         "outputRows=15", "IndexScan[TS_LOW_CARDINALITY_EXPR_IX_2");   // 16 rows
+        rowContainsQuery(new int[]{2,6}, "explain select count(*), mod(c1,3), timestampadd(SQL_TSI_DAY, 2, c3) from --splice-properties costModel='v2'\n" +
+                                 "ts_low_cardinality --splice-properties index=ts_low_cardinality_expr_ix_2\n" +
+                                 "group by mod(c1,3), timestampadd(SQL_TSI_DAY, 2, c3)",
+                         methodWatcher,
+                         "outputRows=15", "IndexScan[TS_LOW_CARDINALITY_EXPR_IX_2");   // 16 rows
+        rowContainsQuery(new int[]{2,6}, "explain select count(*), upper(c2), timestampadd(SQL_TSI_DAY, 2, c3) from --splice-properties costModel='v2'\n" +
+                                 "ts_low_cardinality --splice-properties index=ts_low_cardinality_expr_ix_2\n" +
+                                 "group by upper(c2), timestampadd(SQL_TSI_DAY, 2, c3)",
+                         methodWatcher,
+                         "outputRows=25", "IndexScan[TS_LOW_CARDINALITY_EXPR_IX_2");  // 26 rows
     }
 
     /**

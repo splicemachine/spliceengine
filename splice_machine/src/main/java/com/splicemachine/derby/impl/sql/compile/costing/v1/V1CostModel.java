@@ -16,10 +16,7 @@ package com.splicemachine.derby.impl.sql.compile.costing.v1;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.compile.costing.CostEstimate;
-import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
-import com.splicemachine.db.iapi.sql.compile.costing.ScanCostEstimator;
-import com.splicemachine.db.iapi.sql.compile.costing.SelectivityEstimator;
+import com.splicemachine.db.iapi.sql.compile.costing.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -81,6 +78,6 @@ public class V1CostModel implements CostModel {
 
     @Override
     public String toString() {
-        return "v1";
+        return CostModel.V1;
     }
 }

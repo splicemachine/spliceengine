@@ -1785,6 +1785,20 @@ public abstract class ResultSetNode extends QueryTreeNode{
         return outString;
     }
 
+    protected String getLogicalProfileString() throws StandardException {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < resultColumns.size(); ++i) {
+            ResultColumn rc = resultColumns.elementAt(i);
+            if (rc.getLogicalProfile() != null) {
+                if (result.length() > 0) {
+                    result.append(",");
+                }
+                result.append(rc.getLogicalProfile().getString());
+            }
+        }
+        return result.toString();
+    }
+
     public void setContainsSelfReference(boolean value) {
         containsSelfReference = value;
     }

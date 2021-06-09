@@ -16,9 +16,13 @@ package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.costing.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModelRegistry;
 import com.splicemachine.db.iapi.store.access.AggregateCostController;
 import com.splicemachine.db.impl.sql.compile.GroupByList;
 import com.splicemachine.db.impl.sql.compile.OrderedColumn;
+import com.splicemachine.db.impl.sql.compile.costing.LogicalColumnProfile;
+import com.splicemachine.derby.impl.sql.compile.costing.v1.V1CostModel;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,7 +55,7 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
     @Override
     public CostEstimate estimateAggregateCost(CostEstimate baseCost) throws StandardException{
         double outputRows = 1;
-        List<Long> cardinalityList = new ArrayList<>();
+        List<Double> cardinalityList = new ArrayList<>();
 
         // cost of evaluating all expressions in grouping list
         double exprEvalCostPerRow = 0.0;
@@ -62,12 +66,15 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
          */
         for(OrderedColumn oc:groupingList) {
             long returnedRows = oc.nonZeroCardinality((long) baseCost.rowCount());
-            cardinalityList.add(returnedRows);
+            cardinalityList.add((double)returnedRows);
             exprEvalCostPerRow += oc.getColumnExpression().getBaseOperationCost();
         }
-        Collections.sort(cardinalityList);
 
-        outputRows = computeCardinality(cardinalityList);
+        String costModel = "v1";
+        if (baseCost.getOptimizer() != null) {
+            costModel = baseCost.getOptimizer().getCostModel().toString();
+        }
+        outputRows = computeCardinality(costModel, baseCost.rowCount(), cardinalityList);
         /*
          * If the baseCost claims it's not returning any rows, or our cardinality
          * fraction is too aggressive, we may think that we don't need to do anything. This
@@ -109,22 +116,29 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
         return newEstimate;
     }
 
-    /* Usually, exponential backoff is applied on selectivity of predicates. But here, it is applied
-     * on cardinality. It feels contradicts with the idea to apply exponential backoff because the
-     * more predicates we have, the smaller final output will be. It feels buggy.
-     */
-    private long computeCardinality(List<Long> cardinalityList) {
-        long cardinality = 1;
-        for (int i = 0; i < cardinalityList.size(); ++i) {
-            long c = cardinalityList.get(i);
-            for (int j = 0; j < i; ++j) {
-                c = (long)Math.sqrt(c);
-            }
-            if (c > 0) {
-                cardinality *= c;
+    private long computeCardinality(String costModel, double inputRowCount, List<Double> cardinalityList) {
+        switch (costModel) {
+            case CostModel.V2:
+                return Math.max(Math.round(LogicalColumnProfile.groupDistinctCount(inputRowCount, cardinalityList)), 1);
+            case CostModel.V1:
+            default: {
+                /* Usually, exponential backoff is applied on selectivity of predicates. But here, it is applied
+                 * on cardinality. It feels contradicts with the idea to apply exponential backoff because the
+                 * more predicates we have, the smaller final output will be. It feels buggy.
+                 */
+                Collections.sort(cardinalityList);
+                long cardinality = 1;
+                for (int i = 0; i < cardinalityList.size(); ++i) {
+                    long c = (long) cardinalityList.get(i).doubleValue();
+                    for (int j = 0; j < i; ++j) {
+                        c = (long) Math.sqrt(c);
+                    }
+                    if (c > 0) {
+                        cardinality *= c;
+                    }
+                }
+                return cardinality;
             }
         }
-
-        return cardinality;
     }
 }

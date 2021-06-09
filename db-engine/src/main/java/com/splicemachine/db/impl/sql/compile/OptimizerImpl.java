@@ -1445,6 +1445,9 @@ public class OptimizerImpl implements Optimizer{
 
     @Override
     public CostEstimate getOptimizedCost(){
+        if (bestCost.getOptimizer() == null) {
+            bestCost.setOptimizer(this);
+        }
         return bestCost;
     }
 

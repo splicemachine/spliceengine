@@ -3989,12 +3989,48 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
     // Does this list of columns have any referenced columns?
     public boolean hasReferencedColumn() {
-        for(int index=0;index<size();index++){
-            ResultColumn rc=elementAt(index);
+        for (int index = 0; index < size(); index++) {
+            ResultColumn rc = elementAt(index);
             if (rc.isReferenced())
                 return true;
         }
         return false;
+    }
+
+    public void updateLogicalProfiles(SelectivityHolder holder) throws StandardException {
+        for(int i = 0; i < size(); i++) {
+            ResultColumn rc = elementAt(i);
+            if (rc.getColumnPosition() == holder.getColNum()) {
+                rc.updateLogicalProfile(holder);
+                break;
+            }
+        }
+    }
+
+    public void updateDistinctCounts(double inputRowCount, double outputRowCount) {
+        for(int i = 0; i < size(); i++) {
+            ResultColumn rc = elementAt(i);
+            rc.updateDistinctCount(inputRowCount, outputRowCount);
+        }
+    }
+
+    public void limitDistinctCounts(double upperBound) {
+        for(int i = 0; i < size(); i++) {
+            ResultColumn rc = elementAt(i);
+            rc.limitDistinctCount(upperBound);
+        }
+    }
+
+    public void cloneLogicalProfilesFromChild() {
+        for (int i = 0; i < size(); i++) {
+            ResultColumn rc = elementAt(i);
+            if (rc.getLogicalProfile() == null && rc.getExpression() != null) {
+                ResultColumn sourceRc = rc.getExpression().getSourceResultColumn();
+                if (sourceRc != null && sourceRc.getLogicalProfile() != null) {
+                    rc.setLogicalProfile(sourceRc.getLogicalProfile().clone());
+                }
+            }
+        }
     }
 
 }

@@ -117,7 +117,11 @@ public class ScrollInsensitiveResultSetNode  extends SingleChildResultSetNode
         sb = sb.append(spaceToLevel())
                 .append("ScrollInsensitive").append("(")
                 .append("n=").append(getResultSetNumber());
-            sb.append(attrDelim).append(getFinalCostEstimate(false).prettyScrollInsensitiveString(attrDelim));
+        sb.append(attrDelim).append(getFinalCostEstimate(false).prettyScrollInsensitiveString(attrDelim));
+        String logicalProfileStr = getLogicalProfileString();
+        if (logicalProfileStr.length() > 0) {
+            sb.append(attrDelim).append("logicalProfile=[").append(logicalProfileStr).append("]");
+        }
         sb = sb.append(")");
         return sb.toString();
     }

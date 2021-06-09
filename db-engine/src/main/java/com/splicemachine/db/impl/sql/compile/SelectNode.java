@@ -1374,7 +1374,9 @@ public class SelectNode extends ResultSetNode {
             // JL-TODO Interesting
             CostEstimate ce = gbn.estimateCost(null, null, optimizer.getOptimizedCost(), optimizer, null);
             gbn.assignCostEstimate(ce);
+            gbn.getResultColumns().limitDistinctCounts(ce.rowCount());
             prnRSN = gbn.getParent();
+            prnRSN.getResultColumns().limitDistinctCounts(ce.rowCount());
             eliminateSort = gbn.getIsInSortedOrder();
         }
 

@@ -149,6 +149,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
         if (childResult instanceof ResultSetNode && ((ResultSetNode) childResult).getContainsSelfReference())
             containsSelfReference = true;
+
+        resultColumns.cloneLogicalProfilesFromChild();
     }
 
     /*
@@ -355,6 +357,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             optimizer.considerCost(this,restrictionList,getCostEstimate(),outerCost);
         }
 
+        resultColumns.cloneLogicalProfilesFromChild();
         return costEstimate;
     }
 
@@ -2062,6 +2065,10 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
         if(qualifiers!=null && !qualifiers.isEmpty()) //add
             sb.append(attrDelim).append("preds=[").append(Joiner.on(",").skipNulls().join(qualifiers)).append("]");
+        String logicalProfileStr = getLogicalProfileString();
+        if (logicalProfileStr.length() > 0) {
+            sb.append(attrDelim).append("logicalProfile=[").append(logicalProfileStr).append("]");
+        }
         sb.append(")");
         return sb.toString();
     }

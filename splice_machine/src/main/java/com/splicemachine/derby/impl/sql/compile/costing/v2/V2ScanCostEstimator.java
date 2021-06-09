@@ -21,7 +21,9 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.db.impl.sql.compile.costing.LogicalColumnProfile;
 
+import javax.xml.crypto.Data;
 import java.util.BitSet;
 import java.util.HashSet;
 
@@ -57,6 +59,27 @@ public class V2ScanCostEstimator extends AbstractScanCostEstimator {
                                boolean isOlap, HashSet<Integer> usedNoStatsColumnIds) throws StandardException {
         super(baseTable, cd, scc, scanCost, resultColumns, scanRowTemplate, baseColumnsInScan, baseColumnsInLookup,
               indexLookupBatchRowCount, indexLookupConcurrentBatchesCount, forUpdate, isOlap, usedNoStatsColumnIds);
+
+        for (int i = 0; i < resultColumns.size(); i++) {
+            ResultColumn rc = resultColumns.elementAt(i);
+            int columnPosition = rc.getColumnPosition();
+            // At this point, resultColumns are always base table columns. In case of an index on expressions,
+            // resultColumns are modified after best plan is chosen. Thus, set fromExprIndex always to false.
+            long cardinality = scc.cardinality(false, columnPosition);
+            DataValueDescriptor minValue = scc.minValue(false, columnPosition);
+            DataValueDescriptor maxValue = scc.maxValue(false, columnPosition);
+            if (cardinality > 0 && minValue != null && maxValue != null) {
+                // We need to test all three values because
+                // 1. cardinality can be zero if statistics are collected when the table is empty;
+                // 2. minValue and maxValue can be null if statistics are collected when the table is empty;
+                // 3. minValue and maxValue can be null if column statistics is disabled for this column.
+                rc.setLogicalProfile(new LogicalColumnProfile(rc, cardinality, minValue, maxValue));
+            } else {
+                // If RC has a logical profile from previous access path, reset it because for current access
+                // path, there is no valid statistics.
+                rc.setLogicalProfile(null);
+            }
+        }
     }
 
     /**
@@ -114,7 +137,7 @@ public class V2ScanCostEstimator extends AbstractScanCostEstimator {
         double baseTableSelectivity = computePhaseSelectivity(scanSelectivityHolder, topSelectivityHolder, QualifierPhase.BASE);
         double filterBaseTableSelectivity = computePhaseSelectivity(scanSelectivityHolder, topSelectivityHolder,QualifierPhase.BASE,QualifierPhase.FILTER_BASE);
         double projectionSelectivity = computePhaseSelectivity(scanSelectivityHolder, topSelectivityHolder,QualifierPhase.FILTER_PROJECTION);
-        double totalSelectivity = computeTotalSelectivity(scanSelectivityHolder, topSelectivityHolder);
+        double totalSelectivity = computeTotalSelectivity(scanSelectivityHolder, topSelectivityHolder, resultColumns);
 
         assert filterBaseTableSelectivity >= 0 && filterBaseTableSelectivity <= 1.0:"filterBaseTableSelectivity Out of Bounds -> " + filterBaseTableSelectivity;
         assert baseTableSelectivity >= 0 && baseTableSelectivity <= 1.0:"baseTableSelectivity Out of Bounds -> " + baseTableSelectivity;
@@ -259,6 +282,7 @@ public class V2ScanCostEstimator extends AbstractScanCostEstimator {
         scanCost.setParallelism(parallelism);
         scanCost.setLocalCostPerParallelTask((baseCost + lookupCost + projectionCost), parallelism);
         scanCost.setRemoteCostPerParallelTask(scanCost.remoteCost(), parallelism);
+        resultColumns.updateDistinctCounts(totalRowCount, outputRowCount);
 
         if (LOG.isTraceEnabled()) {
             LOG.trace(String.format("%n" +

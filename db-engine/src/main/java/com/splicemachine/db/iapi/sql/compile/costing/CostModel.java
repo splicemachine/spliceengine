@@ -28,6 +28,8 @@ import java.util.HashSet;
  * it returns the corresponding cost.
  */
 public interface CostModel {
+    String V1 = "v1";
+    String V2 = "v2";
 
     /**
      * Get the estimated cost of a specific join strategy.

@@ -48,9 +48,9 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.db.impl.sql.compile.costing.LogicalColumnProfile;
 import org.apache.spark.sql.types.StructField;
 
-import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
 
@@ -143,6 +143,8 @@ public class ResultColumn extends ValueNode
 
     /* whether this result column comes from an expression-based index column */
     private ValueNode indexExpression = null;
+
+    private LogicalColumnProfile logicalProfile = null;
 
     public ResultColumn() {}
     public ResultColumn(String rowLocationColumnName, CurrentRowLocationNode rowLocationNode,
@@ -1699,6 +1701,9 @@ public class ResultColumn extends ValueNode
 
         newResultColumn.fromLeftChild = this.fromLeftChild;
         newResultColumn.indexExpression = this.indexExpression;
+        if (logicalProfile != null) {
+            newResultColumn.setLogicalProfile(logicalProfile.clone());
+        }
         return newResultColumn;
     }
 
@@ -2069,6 +2074,9 @@ public class ResultColumn extends ValueNode
      * @throws StandardException
      */
     public long cardinality() throws StandardException {
+        if (this.logicalProfile != null) {
+            return Math.max(Math.round(this.logicalProfile.getDistinctCount()), 1);
+        }
         if (this.getTableColumnDescriptor() ==null) // Temporary JL
             return 0;
         ConglomerateDescriptor cd = this.getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
@@ -2263,8 +2271,34 @@ public class ResultColumn extends ValueNode
             return true;
         if (!(getExpression() instanceof ColumnReference))
             return false;
-        ColumnReference columnReference = (ColumnReference)getExpression();
+        ColumnReference columnReference = (ColumnReference) getExpression();
         return immutableVirtualColumn(columnReference.getSource());
+    }
+
+    public void setLogicalProfile(LogicalColumnProfile logicalProfile) {
+        this.logicalProfile = logicalProfile;
+    }
+
+    public LogicalColumnProfile getLogicalProfile() {
+        return logicalProfile;
+    }
+
+    public void updateLogicalProfile(SelectivityHolder holder) throws StandardException {
+        if (logicalProfile != null) {
+            logicalProfile.select(holder);
+        }
+    }
+
+    public void updateDistinctCount(double inputRowCount, double outputRowCount) {
+        if (logicalProfile != null) {
+            logicalProfile.updateDistinctCount(inputRowCount, outputRowCount);
+        }
+    }
+
+    public void limitDistinctCount(double upperBound) {
+        if (logicalProfile != null) {
+            logicalProfile.limitDistinctCount(upperBound);
+        }
     }
 }
 
