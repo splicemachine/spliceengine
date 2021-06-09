@@ -67,10 +67,12 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 	protected static final int		SYSCONGLOMERATES_INDEX1_ID = 0;
 	protected static final int		SYSCONGLOMERATES_INDEX2_ID = 1;
 	protected static final int		SYSCONGLOMERATES_INDEX3_ID = 2;
+    public static final int           SYSCONGLOMERATES_INDEX4_ID = 3;
 
     private	static	final	boolean[]	uniqueness = {
 		                                               false,
 													   true,
+                                                       false,
 													   false
 	                                                 };
 
@@ -78,7 +80,8 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 	{
 		{SYSCONGLOMERATES_CONGLOMERATEID},
 		{SYSCONGLOMERATES_CONGLOMERATENAME, SYSCONGLOMERATES_SCHEMAID},
-		{SYSCONGLOMERATES_TABLEID}
+        {SYSCONGLOMERATES_TABLEID},
+        {SYSCONGLOMERATES_CONGLOMERATENUMBER}
 	};
 
 	private	static	final	String[]	uuids =
@@ -88,13 +91,14 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 		,"80000012-00d0-fd77-3ed8-000a0a0b1900"	// SYSCONGLOMERATES_INDEX1
 		,"80000014-00d0-fd77-3ed8-000a0a0b1900"	// SYSCONGLOMERATES_INDEX2
 		,"80000016-00d0-fd77-3ed8-000a0a0b1900"	// SYSCONGLOMERATES_INDEX3
+        ,"80000017-00d0-fd77-3ed8-000a0a0b1900"    // SYSCONGLOMERATES_INDEX4
 	};
 
 	SYSCONGLOMERATESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
 	{
 		super(uuidf,ef,dvf, dd);
-		initInfo(SYSCONGLOMERATES_COLUMN_COUNT, 
-				 TABLENAME_STRING, indexColumnPositions, 
+		initInfo(SYSCONGLOMERATES_COLUMN_COUNT,
+				 TABLENAME_STRING, indexColumnPositions,
 				 uniqueness, uuids );
 	}
 
@@ -131,7 +135,7 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 			conglomerate = (ConglomerateDescriptor)td;
 
 			/* Sometimes the SchemaDescriptor is non-null and sometimes it
-			 * is null.  (We can't just rely on getting the schema id from 
+			 * is null.  (We can't just rely on getting the schema id from
 			 * the ConglomerateDescriptor because it can be null when
 			 * we are creating a new conglomerate.
 			 */
@@ -140,11 +144,11 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 				if (!(parent instanceof SchemaDescriptor))
 					throw new RuntimeException("Unexpected TupleDescriptor " + parent.getClass().getName());
 				SchemaDescriptor sd = (SchemaDescriptor)parent;
-				schemaID = sd.getUUID().toString();	
+				schemaID = sd.getUUID().toString();
 			}
 			else
 			{
-				schemaID = conglomerate.getSchemaID().toString();	
+				schemaID = conglomerate.getSchemaID().toString();
 			}
 			tabID = conglomerate.getTableID().toString();
 			conglomNumber = conglomerate.getConglomerateNumber();
@@ -172,7 +176,7 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 		/* 3rd column is CONGLOMERATENUMBER (long) */
 		row.setColumn(3, new SQLLongint(conglomNumber));
 
-		/* 4th column is CONGLOMERATENAME (varchar(128)) 
+		/* 4th column is CONGLOMERATENAME (varchar(128))
 		** If null, use the tableid so we always
 		** have a unique column
 		*/
@@ -207,7 +211,7 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 	{
 		return makeRow(null, null);
 	}
-	
+
 	///////////////////////////////////////////////////////////////////////////
 	//
 	//	ABSTRACT METHODS TO BE IMPLEMENTED BY CHILDREN OF CatalogRowFactory
@@ -233,7 +237,7 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 	{
 		if (SanityManager.DEBUG)
 		SanityManager.ASSERT(
-			row.nColumns() == SYSCONGLOMERATES_COLUMN_COUNT, 
+			row.nColumns() == SYSCONGLOMERATES_COLUMN_COUNT,
 			"Wrong number of columns for a SYSCONGLOMERATES row");
 
 		DataDescriptorGenerator	ddg = dd.getDataDescriptorGenerator();
@@ -302,7 +306,7 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 
 	/**
 	 * Get the conglomerate's UUID of the row.
-	 * 
+	 *
 	 * @param row	The row from sysconglomerates
 	 *
 	 * @return UUID	The conglomerates UUID
@@ -323,7 +327,7 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 
 	/**
 	 * Get the table's UUID from the row.
-	 * 
+	 *
 	 * @param row	The row from sysconglomerates
 	 *
 	 * @return UUID	The table's UUID
@@ -344,7 +348,7 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 
 	/**
 	 * Get the schema's UUID from the row.
-	 * 
+	 *
 	 * @param row	The row from sysconglomerates
 	 *
 	 * @return UUID	The schema's UUID
@@ -365,7 +369,7 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 
 	/**
 	 * Get the conglomerate's name of the row.
-	 * 
+	 *
 	 * @param row	The row from sysconglomerates
 	 *
 	 * @return String	The conglomerates name
@@ -388,7 +392,7 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 	 *
 	 * @return array of SystemColumn suitable for making this catalog.
 	 */
-    	        
+
 	public SystemColumn[]	buildColumnList()
         throws StandardException
 	{
