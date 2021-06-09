@@ -68,10 +68,12 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
     protected static final int        SYSCONGLOMERATES_INDEX1_ID = 0;
     protected static final int        SYSCONGLOMERATES_INDEX2_ID = 1;
     protected static final int        SYSCONGLOMERATES_INDEX3_ID = 2;
+    public static final int           SYSCONGLOMERATES_INDEX4_ID = 3;
 
     private    static    final    boolean[]    uniqueness = {
                                                        false,
                                                        true,
+                                                       false,
                                                        false
                                                      };
 
@@ -79,7 +81,8 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
     {
         {SYSCONGLOMERATES_CONGLOMERATEID},
         {SYSCONGLOMERATES_CONGLOMERATENAME, SYSCONGLOMERATES_SCHEMAID},
-        {SYSCONGLOMERATES_TABLEID}
+        {SYSCONGLOMERATES_TABLEID},
+        {SYSCONGLOMERATES_CONGLOMERATENUMBER}
     };
 
     private    static    final    String[]    uuids =
@@ -89,6 +92,7 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
         ,"80000012-00d0-fd77-3ed8-000a0a0b1900"    // SYSCONGLOMERATES_INDEX1
         ,"80000014-00d0-fd77-3ed8-000a0a0b1900"    // SYSCONGLOMERATES_INDEX2
         ,"80000016-00d0-fd77-3ed8-000a0a0b1900"    // SYSCONGLOMERATES_INDEX3
+        ,"80000017-00d0-fd77-3ed8-000a0a0b1900"    // SYSCONGLOMERATES_INDEX4
     };
 
     SYSCONGLOMERATESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
