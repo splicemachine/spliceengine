@@ -17,24 +17,19 @@ package com.splicemachine.pipeline;
 import java.io.IOException;
 
 import com.carrotsearch.hppc.BitSet;
-import com.carrotsearch.hppc.BitSetIterator;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
-import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.RoutingWriteHandler;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.storage.index.BitIndexing;
-import com.splicemachine.utils.ByteSlice;
+import com.splicemachine.storage.DataCell;
+import com.splicemachine.storage.DataResult;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import static com.splicemachine.pipeline.writehandler.UpdateUtils.deleteFromUpdate;
 import static com.splicemachine.pipeline.writehandler.UpdateUtils.getBaseUpdateMutation;
-import static com.splicemachine.pipeline.writehandler.UpdateUtils.halveSet;
 
 /**
  * Intercepts UPDATE/UPSERT/INSERT/DELETE mutations to a base table and sends corresponding mutations to the index table.
@@ -89,7 +84,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
     protected boolean isHandledMutationType(KVPair.Type type) {
         return type == KVPair.Type.DELETE || type == KVPair.Type.CANCEL ||
             type == KVPair.Type.UPDATE || type == KVPair.Type.INSERT ||
-            type == KVPair.Type.UPSERT;
+            type == KVPair.Type.UPSERT || type == KVPair.Type.BLIND_UPDATE;
     }
 
     @Override
@@ -110,6 +105,9 @@ public class IndexWriteHandler extends RoutingWriteHandler{
                     return createIndexRecord(mutation, ctx, delete);
                 }
                 return true; // No index columns modifies ignore...
+            case BLIND_UPDATE:
+                delete = deleteIndexRecord(mutation, ctx, false);
+                return createIndexRecord(mutation, ctx, delete);
             case UPSERT:
                 delete = deleteIndexRecord(mutation, ctx, false);
                 return createIndexRecord(mutation, ctx,delete);
@@ -150,7 +148,13 @@ public class IndexWriteHandler extends RoutingWriteHandler{
     private boolean createIndexRecord(KVPair mutation, WriteContext ctx,KVPair deleteMutation) {
         try {
             boolean add=true;
-            KVPair newIndex = transformer.translate(mutation);
+            KVPair newIndex;
+            if(mutation.getType() == KVPair.Type.BLIND_UPDATE) {
+                KVPair amended = transformer.amendBlindUpdate(mutation, ctx,indexedColumns);
+                newIndex = transformer.translate(amended);
+            } else {
+                newIndex = transformer.translate(mutation);
+            }
             if (newIndex == null)
                 return true;
             newIndex.setType(KVPair.Type.INSERT);

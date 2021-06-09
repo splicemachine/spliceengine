@@ -31,6 +31,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Statement;
+import java.util.Arrays;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -58,11 +61,12 @@ public class ForeignKeyActionIT {
     @Before
     public void deleteTables() throws Exception {
         conn = methodWatcher.getOrCreateConnection();
-        conn.setAutoCommit(false);
+        conn.setAutoCommit(true);
         new TableDAO(conn).drop(SCHEMA, "SNGC2", "SNGC1", "SNC", "SNP", "RP", "RC",
                                         "T3", "T2", "T4", "T1", "DHC10", "DHC9", "DHC8", "DHC7", "DHC6", "DHC5", "DHC4", "DHC3", "DHC2", "DHC1",
                                         "FC", "FP", "SRT2", "GC2", "GC1", "CC", "CP", "C1I", "C2I", "PI","SRT", "LC", "YAC", "AC", "AP", "C2", "C", "P",
-                                        "cc1", "cc2", "cc3", "cc4", "cc6", "cc7");
+                                        "cc1", "cc2", "cc3", "cc4", "cc6", "cc7",
+                                        "PSN", "CSN1", "CSN2");
     }
 
     @After
@@ -689,13 +693,57 @@ public class ForeignKeyActionIT {
         }
     }
 
+    @Test
+    public void onDeleteSetNullChildIndexUpdatedCorrectly() throws Exception {
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("create table psn(col1 int primary key, col2 int)");
+            s.executeUpdate("create table csn1(col1 int, col2 int references psn(col1) on delete set null)");
+            s.executeUpdate("create index isn11 on csn1(col1, col2)");
+            s.executeUpdate("create index isn12 on csn1(col2)");
+            s.executeUpdate("create table csn2(col1 int references psn(col1) on delete set null, col2 int )");
+            s.executeUpdate("create index isn21 on csn2(col1, col2)");
+            s.executeUpdate("create index isn22 on csn2(col2)");
+
+            s.executeUpdate("insert into psn values (1,1)");
+            s.executeUpdate("insert into csn1 values (10, 1)");
+            s.executeUpdate("insert into csn1 values (20, 1)");
+            s.executeUpdate("insert into csn2 values (1, 30)");
+            s.executeUpdate("insert into csn2 values (1, 40)");
+
+            s.executeUpdate("delete from psn");
+
+            Integer[][] expectedResult = new Integer[][]{{10, null}, {20, null}};
+            queryShouldContain("select * from csn1 order by col1 asc", expectedResult);
+            queryShouldContain("select * from csn1 --splice-properties index=isn11\norder by col1 asc", expectedResult);
+            queryShouldContain("select * from csn1 --splice-properties index=isn12\norder by col1 asc", expectedResult);
+
+            expectedResult = new Integer[][]{{null, 30}, {null, 40}};
+            queryShouldContain("select * from csn2 order by col2 asc", expectedResult);
+            queryShouldContain("select * from csn2 --splice-properties index=isn11\norder by col1 asc", expectedResult);
+            queryShouldContain("select * from csn2 --splice-properties index=isn12\norder by col1 asc", expectedResult);
+        }
+    }
+
+    ///// helper functions.
+
     private void shouldContain(String child, int[][] rows) throws SQLException {
+        queryShouldContain(String.format("select * from %s order by col1 asc", child),
+                           Stream.of(rows)
+                                 .map(array -> IntStream.of(array).boxed().toArray(Integer[]::new))
+                                 .toArray(Integer[][]::new));
+    }
+
+    private void queryShouldContain(String query, Integer[][] rows) throws SQLException {
         try(Statement s = conn.createStatement()) {
-            ResultSet rs = s.executeQuery(String.format("select * from %s order by col1 asc", child));
-            for(int[] row : rows) {
+            ResultSet rs = s.executeQuery(query);
+            for(Integer[] row : rows) {
                 Assert.assertTrue(rs.next());
                 for(int i = 0; i < row.length; ++i) {
-                    Assert.assertEquals(row[i], rs.getInt(i+1));
+                    if(row[i] == null) {
+                        rs.getInt(i+1); Assert.assertTrue(rs.wasNull());
+                    } else {
+                        Assert.assertEquals((int)row[i], rs.getInt(i+1));
+                    }
                 }
             }
             Assert.assertFalse(rs.next());
