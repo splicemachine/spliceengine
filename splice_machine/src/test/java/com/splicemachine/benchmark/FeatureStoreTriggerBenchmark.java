@@ -209,6 +209,8 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
         taskId.set(0);
         runBenchmark(connections, () -> populateStagingTable(curTimestamp, nextTimestamp));
         curTimestamp = nextTimestamp;
+
+        testStatement.execute("ANALYZE TABLE FeatureStaging");
     }
 
     public void insertAndUpdateFromBatches() {
