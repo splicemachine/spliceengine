@@ -133,4 +133,40 @@ public class EntryEncoderTest {
         Assert.assertTrue("expected: "+ correct+", actual: "+ next,correct.compareTo(next)==0);
 
     }
+
+    @Test
+    public void testEncoderMeld() throws Exception {
+        BitSet fromBits = new BitSet(3);
+        fromBits.set(1);
+        BitSet fromScalarBits = new BitSet();
+        fromScalarBits.set(1);
+        EntryEncoder fromEncoder = EntryEncoder.create(defaultPool,3, fromBits, fromScalarBits, null, null);
+        fromEncoder.getEntryEncoder().encodeNext(42);
+        EntryDecoder fromDecoder = new EntryDecoder();
+        fromDecoder.set(fromEncoder.encode());
+
+        BitSet toBits = new BitSet(3);
+        toBits.set(0);
+        toBits.set(1);
+        toBits.set(2);
+        BitSet toScalarBits = new BitSet();
+        toScalarBits.set(0);
+        toScalarBits.set(1);
+        toScalarBits.set(2);
+        EntryEncoder toEncoder = EntryEncoder.create(defaultPool,3, toBits, toScalarBits, null, null);
+        toEncoder.getEntryEncoder().encodeNext(100).encodeNext(200).encodeNext(300);
+        EntryDecoder toDecoder = new EntryDecoder();
+        toDecoder.set(toEncoder.encode());
+
+        EntryEncoder resultEncoder = EntryEncoder.create(defaultPool, toEncoder.getBitIndex());
+
+        Utils.meld(toDecoder, fromDecoder, resultEncoder);
+
+        EntryDecoder resultDecoder = new EntryDecoder();
+        resultDecoder.set(resultEncoder.encode());
+        MultiFieldDecoder resultMultiFieldDecoder = resultDecoder.getEntryDecoder();
+        Assert.assertEquals(100, resultMultiFieldDecoder.decodeNextInt());
+        Assert.assertEquals(42, resultMultiFieldDecoder.decodeNextInt());
+        Assert.assertEquals(200, resultMultiFieldDecoder.decodeNextInt());
+    }
 }

@@ -31,7 +31,13 @@ public class KVPair implements Comparable<KVPair> {
         EMPTY_COLUMN((byte)0x04),
         UPSERT((byte)0x05),
         /* For import process to cancel out an inserted row that violates a unique constraint */
-        CANCEL((byte)0x08);
+        CANCEL((byte)0x08),
+        /* Very similar to UPDATE, however it hints the index handler to perform a base table lookup
+        * if necessary to reconstruct the missing index columns, this could happen e.g. when deleting
+        * a row from a parent table causes an indirect update of its child table(s), in this situation
+        * we do not have upfront the old data of the updated child table(s) row(s) and we need to perform
+        * a base table lookup to construct each one of them. */
+        BLIND_UPDATE((byte)0x09);
 
         private final byte typeCode;
 
@@ -49,7 +55,7 @@ public class KVPair implements Comparable<KVPair> {
         }
 
         public boolean isUpdateOrUpsert() {
-            return UPDATE.equals(this) || UPSERT.equals(this);
+            return UPDATE.equals(this) || UPSERT.equals(this) || BLIND_UPDATE.equals(this) ;
         }
     }
 
