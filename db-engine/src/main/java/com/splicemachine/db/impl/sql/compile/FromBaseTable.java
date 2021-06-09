@@ -3248,12 +3248,6 @@ public class FromBaseTable extends FromTable {
             if (!acb.cb.existsField(type, name)) {
                 acb.newFieldDeclaration(Modifier.PRIVATE, type, name);
             }
-            else {
-                boolean doSomethingUseless = true;
-            }
-        }
-        else {
-            boolean doSomethingUseless = true;
         }
         /* If this table is the target of an update or a delete, then we must
          * wrap the Expression up in an assignment expression before
