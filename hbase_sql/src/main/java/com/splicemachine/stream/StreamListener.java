@@ -133,9 +133,10 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             partitionMap.remove(channel);
         } else if (msg instanceof StreamProtocol.InitOlapStream) {
             //Main handler is in StreamListenerServer, but if InitOlapStream message
-            //comes later, than Init message and channel is redirected to the StreamListener
-            // already
-            LOG.trace("Received " + msg + " from " + channel);
+            //comes later, then Init message and channel is redirected to the StreamListener
+            //already
+            if (LOG.isTraceEnabled())
+                LOG.trace("Received " + msg + " from " + channel);
             if (this.olapChannel != null) {
                 StreamProtocol.InitOlapStream init = (StreamProtocol.InitOlapStream) msg;
                 if (this.uuid.equals(init.uuid)) {
@@ -210,7 +211,8 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                     }
                 } else if (msg == SENTINEL) {
                     // This queue is finished, start reading from the next queue
-                    LOG.trace("Moving queues");
+                    if (LOG.isTraceEnabled())
+                        LOG.trace("Moving queues");
 
                     clearCurrentQueue();
 
@@ -433,31 +435,39 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     private void manageStreaming() {
         if (!this.throttleEnabled)
             return;
-        if (partitionStateMap.size() >= parallelPartitions * PARTITION_BUFFER_FACTOR && !paused) {
-            if (LOG.isTraceEnabled())
-                LOG.trace(String.format("StreamListener has already %s partitions to process and could be overloaded, " +
-                    "pause streaming", partitionStateMap.size()));
+        if (partitionStateMap.size() >= parallelPartitions * PARTITION_BUFFER_FACTOR) {
            pauseStreaming();
-        } else if (partitionStateMap.size() < parallelPartitions * PARTITION_BUFFER_FACTOR && paused) {
-            if (LOG.isTraceEnabled())
-                LOG.trace(String.format("StreamListener has already %s partitions to process and can continue to consume " +
-                    "stream messages", partitionStateMap.size()));
+        } else if (partitionStateMap.size() < parallelPartitions * PARTITION_BUFFER_FACTOR) {
            continueStreaming();
         }
     }
 
     private void pauseStreaming() {
-        if (olapChannel != null) {
-            olapChannel.writeAndFlush(new StreamProtocol.PauseStream());
+        if (olapChannel != null && !paused) {
+            synchronized (olapChannel) {
+                if (!paused) {
+                    if (LOG.isTraceEnabled())
+                        LOG.trace(String.format("StreamListener has already %s partitions to process and could be overloaded, " +
+                                "pause streaming", partitionStateMap.size()));
+                    olapChannel.writeAndFlush(new StreamProtocol.PauseStream());
+                    paused = true;
+                }
+            }
         }
-        paused = true;
     }
 
     private void continueStreaming() {
-        if (olapChannel != null) {
-            olapChannel.writeAndFlush(new StreamProtocol.ContinueStream());
+        if (olapChannel != null && paused) {
+            synchronized (olapChannel) {
+                if (paused) {
+                    if (LOG.isTraceEnabled())
+                        LOG.trace(String.format("StreamListener has already %s partitions to process and can continue to consume " +
+                                "stream messages", partitionStateMap.size()));
+                    olapChannel.writeAndFlush(new StreamProtocol.ContinueStream());
+                    paused = false;
+                }
+            }
         }
-        paused = false;
     }
 }
 
