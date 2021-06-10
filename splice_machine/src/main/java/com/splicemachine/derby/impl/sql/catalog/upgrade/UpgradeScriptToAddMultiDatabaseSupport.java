@@ -32,24 +32,6 @@ public class UpgradeScriptToAddMultiDatabaseSupport extends UpgradeScriptBase {
     protected void upgradeSystemTables() throws StandardException {
         sdd.createSysDatabasesTableAndAddDatabaseIdColumnsToSysTables(tc, startParams);
 
-        // Refresh views
-        sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSSCHEMASVIEW");
-        sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSALLROLES");
-        sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSTABLESVIEW");
-        sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSCOLPERMSVIEW");
-        sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSPERMSVIEW");
-        sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSROUTINEPERMSVIEW");
-        sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSSCHEMAPERMSVIEW");
-        sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSTABLEPERMSVIEW");
-        sdd.createOrUpdateSystemView(tc, "SYSIBM", "SYSCOLUMNS");
-        sdd.createOrUpdateSystemView(tc, "SYSIBM", "SYSTABLES");
-
-        // Add new views
-        sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSSEQUENCESVIEW");
-        sdd.createOrUpdateSystemView(tc, "SYSVW", "SYSDATABASESVIEW");
-
-        sdd.updateMetadataSPSes(tc);
-
         SpliceLogUtils.info(LOG, "Catalog upgraded to multidb compliance");
     }
 }
