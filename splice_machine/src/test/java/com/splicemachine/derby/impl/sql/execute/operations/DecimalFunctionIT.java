@@ -289,7 +289,7 @@ public class DecimalFunctionIT extends SpliceUnitTest {
 
     @Test
     public void createFromTimestamp() throws Exception {
-        check("(cast ('2020-11-11 11:11:11.1234' as timestamp))", "20201111111111.123400000");
+        check("(cast ('2020-11-11 11:11:11.1234' as timestamp))", "20201111111111.123400");
         check("(cast ('2020-11-11 11:11:11.123456' as timestamp), 14)", "20201111111111");
         check("(cast ('2020-11-11 11:11:11.123456' as timestamp), 18, 4)", "20201111111111.1234");
         check("(cast ('2020-11-11 11:11:11.19999' as timestamp), 15, 1)", "20201111111111.1");

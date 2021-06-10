@@ -743,8 +743,8 @@ public class GenericStatement implements Statement{
                 currentTimestampPrecision = Integer.parseInt(currentTimestampPrecisionString);
             if (currentTimestampPrecision < 0)
                 currentTimestampPrecision = 0;
-            if (currentTimestampPrecision > 9)
-                currentTimestampPrecision = 9;
+            if (currentTimestampPrecision > 6)
+                currentTimestampPrecision = 6;
         } catch (Exception e) {
             // If the property value failed to convert to a boolean, don't throw an error,
             // just use the default setting.
