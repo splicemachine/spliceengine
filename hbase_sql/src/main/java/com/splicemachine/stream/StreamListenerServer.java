@@ -118,7 +118,8 @@ public class StreamListenerServer<T> extends ChannelInboundHandlerAdapter {
         if (msg instanceof StreamProtocol.Init) {
             StreamProtocol.Init init = (StreamProtocol.Init) msg;
 
-            LOG.trace("Received " + msg + " from " + channel);
+            if (LOG.isTraceEnabled())
+                LOG.trace("Received " + msg + " from " + channel);
             UUID uuid = init.uuid;
             int numPartitions = init.numPartitions;
             int partition = init.partition;
@@ -143,7 +144,8 @@ public class StreamListenerServer<T> extends ChannelInboundHandlerAdapter {
             ctx.pipeline().remove(this);
         } else if (msg instanceof StreamProtocol.InitOlapStream) {
             StreamProtocol.InitOlapStream init = (StreamProtocol.InitOlapStream) msg;
-            LOG.trace("Received " + msg + " from " + channel);
+            if (LOG.isTraceEnabled())
+                LOG.trace("Received " + msg + " from " + channel);
             UUID uuid = init.uuid;
             final StreamListener<T> listener = listenersMap.get(uuid);
             if (listener != null) {
