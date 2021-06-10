@@ -31,6 +31,7 @@ import scala.reflect.ClassTag;
 import scala.runtime.AbstractFunction0;
 import scala.runtime.AbstractFunction2;
 import scala.runtime.BoxedUnit;
+import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,14 +57,14 @@ public class StreamableRDD<T> {
     private final String host;
     private final JavaRDD<T> rdd;
     private final ExecutorCompletionService<Object> completionService;
-    private final ExecutorService executor;
+    private final ExecutorService streamingExecutor;
     private final int clientBatches;
     private final UUID uuid;
     private final OperationContext<?> context;
     private final int parallelPartitions;
     private OlapStatus jobStatus;
     private OlapStreamListener olapStreamListener;
-    private final int executorThreads;
+    private final int streamerThreads;
 
 
     /**
@@ -82,18 +83,20 @@ public class StreamableRDD<T> {
 
 
     public StreamableRDD(JavaRDD<T> rdd, OperationContext<?> context, UUID uuid, String clientHost, int clientPort,
-                         int batches, int batchSize, int parallelPartitions, int executorThreads) {
+                         int batches, int batchSize, int parallelPartitions, int streamerThreads) {
         this.rdd = rdd;
         this.context = context;
         this.uuid = uuid;
         this.host = clientHost;
         this.port = clientPort;
-        int defaultExecutorThreads = (int) max(min(ceil((float)parallelPartitions / 2), StreamableRDD.MAX_PARALLEL_THREADS),
+        int defaultStreamerThreads = (int) max(min(ceil((float)parallelPartitions / 2), StreamableRDD.MAX_PARALLEL_THREADS),
                 OlapConfigurations.DEFAULT_SPARK_RESULT_STREAMING_THREADS);
-        this.executorThreads = max(defaultExecutorThreads, executorThreads);
-        this.parallelPartitions = this.executorThreads < parallelPartitions ? parallelPartitions : this.executorThreads;
-        this.executor = Executors.newFixedThreadPool(this.executorThreads);
-        completionService = new ExecutorCompletionService<>(executor);
+        this.streamerThreads = max(defaultStreamerThreads, streamerThreads);
+        this.parallelPartitions = this.streamerThreads < parallelPartitions ? parallelPartitions : this.streamerThreads;
+        this.streamingExecutor = Executors.newFixedThreadPool(this.streamerThreads,
+                new ThreadFactoryBuilder().setDaemon(true).setNameFormat("StreamableRDD-streamer-thread-pool-%d")
+                        .build());
+        completionService = new ExecutorCompletionService<>(streamingExecutor);
         this.clientBatchSize = batchSize;
         this.clientBatches = batches;
         this.olapStreamListener = new OlapStreamListener(host, port, uuid);
@@ -105,7 +108,7 @@ public class StreamableRDD<T> {
         try {
             final JavaRDD<String> streamed = rdd.mapPartitionsWithIndex(new ResultStreamer(context, uuid, host, port, rdd.getNumPartitions(), clientBatches, clientBatchSize), true);
             int numPartitions = streamed.getNumPartitions();
-            int partitionsBatchSize = (int) ceil((float)parallelPartitions / executorThreads);
+            int partitionsBatchSize = (int) ceil((float)parallelPartitions / streamerThreads);
             int partitionBatches = (int) ceil((float)numPartitions / partitionsBatchSize);
 
             if (LOG.isTraceEnabled())
@@ -123,7 +126,7 @@ public class StreamableRDD<T> {
                     throw new CancellationException(String.format("The olap job %s is no longer running, cancelling Spark job", this.uuid.toString()));
                 }
                 try {
-                    if (running < this.executorThreads) {
+                    if (running < this.streamerThreads) {
                         if (running == 0 && !olapStreamListener.isClientConsuming()) {
                             olapStreamListener.getLock().lock();
                             try {
@@ -140,7 +143,7 @@ public class StreamableRDD<T> {
                         }
                     }
 
-                    if ((running > 0 && (!olapStreamListener.isClientConsuming() || submitted == partitionBatches)) || running == this.executorThreads) {
+                    if ((running > 0 && (!olapStreamListener.isClientConsuming() || submitted == partitionBatches)) || running == this.streamerThreads) {
                         Future<Object> resultFuture = null;
                         resultFuture = completionService.poll(10, TimeUnit.SECONDS);
                         if (resultFuture == null) {
@@ -161,7 +164,7 @@ public class StreamableRDD<T> {
                 }
             }
         } finally {
-            executor.shutdown();
+            streamingExecutor.shutdown();
         }
 
         if (error != null) {
