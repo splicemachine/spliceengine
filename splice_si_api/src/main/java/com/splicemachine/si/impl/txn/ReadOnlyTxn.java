@@ -40,6 +40,7 @@ public class ReadOnlyTxn extends AbstractTxn{
     private final boolean additive;
     private final ExceptionFactory exceptionFactory;
     private final TaskId taskId;
+    private static final String simpleName = ReadOnlyTxn.class.getSimpleName();
 
     public static Txn create(long txnId,IsolationLevel isolationLevel,TxnLifecycleManager tc,ExceptionFactory exceptionFactory){
         return new ReadOnlyTxn(txnId,txnId,isolationLevel,Txn.ROOT_TRANSACTION,tc,exceptionFactory,false);
@@ -231,4 +232,7 @@ public class ReadOnlyTxn extends AbstractTxn{
         if(newParentTxn==parentTxn) return;
         this.parentTxn=newParentTxn;
     }
+
+    @Override
+    public String getSimpleName() { return simpleName; }
 }

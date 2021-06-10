@@ -44,6 +44,7 @@ public class LazyTxnView implements TxnView {
     private final boolean additive;
     private final Txn.IsolationLevel isolationLevel;
     private volatile boolean inFinalState = false; //set to true if/when the lookup reveals the transaction is in the final state
+    private static final String simpleName = LazyTxnView.class.getSimpleName();
 
     public LazyTxnView(long txnId, TxnSupplier store,ExceptionFactory exceptionFactory) {
         this.txnId = txnId;
@@ -254,6 +255,9 @@ public class LazyTxnView implements TxnView {
 	public void writeExternal(ObjectOutput out) throws IOException {
         throw new UnsupportedOperationException();
 	}
+
+    @Override
+    public String getSimpleName() { return simpleName; }
 
 
     /* ****************************************************************************************************************/

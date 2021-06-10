@@ -50,6 +50,7 @@ public class WritableTxn extends AbstractTxn{
     private Set<byte[]> tableWrites=new CopyOnWriteArraySet<>();
     private TaskId taskId;
     private ExceptionFactory exceptionFactory;
+    private static final String simpleName = WritableTxn.class.getSimpleName();
 
     public WritableTxn(){
 
@@ -275,4 +276,7 @@ public class WritableTxn extends AbstractTxn{
     public TaskId getTaskId() {
         return taskId;
     }
+
+    @Override
+    public String getSimpleName() { return simpleName; }
 }

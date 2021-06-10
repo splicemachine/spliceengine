@@ -382,6 +382,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private SparkSQLUtils sparkSQLUtils;
     private boolean hasJoinStrategyHint;
     private boolean compilingStoredPreparedStatement;
+    private MessageDigest messageDigest;
 
     /* constructor */
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Intentional")
@@ -4057,14 +4058,37 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         }
     }
 
+    private static final String START_EXECUTING = "Start executing query. ";
+    private static final String UUID_STRING = ", uuid=";
+    private static final String ENGINE_STRING = ", engine=";
+    private static final String COMMA = ", ";
+    private static final String PARAMS_COUNT_STRING = ", paramsCount=";
+    private static final String PARAMS_STRING = ", params=[ ";
+    private static final String SESSION_PROPERTIES_STRING = " ], sessionProperties=[ ";
+    private static final String RIGHT_SQUARE_BRACKET = " ]";
+
     @Override
     public void logStartExecuting(String uuid, String engine, String stmt, ExecPreparedStatement ps,
                                   ParameterValueSet pvs) {
         if (stmtLogger.isInfoEnabled()) {
-            stmtLogger.info(String.format(
-                "Start executing query. %s, uuid=%s, engine=%s, %s, paramsCount=%d, params=[ %s ], sessionProperties=[ %s ]",
-                getLogHeader(), uuid, engine, formatLogStmt(stmt),
-                pvs.getParameterCount(), pvs.toString(), ps.getSessionPropertyValues()));
+            StringBuilder logStringBuilder = new StringBuilder();
+            logStringBuilder.append(START_EXECUTING);
+            logStringBuilder.append(getLogHeader());
+            logStringBuilder.append(UUID_STRING);
+            logStringBuilder.append(uuid);
+            logStringBuilder.append(ENGINE_STRING);
+            logStringBuilder.append(engine);
+            logStringBuilder.append(COMMA);
+            logStringBuilder.append(formatLogStmt(stmt));
+            logStringBuilder.append(PARAMS_COUNT_STRING);
+            logStringBuilder.append(pvs.getParameterCount());
+            logStringBuilder.append(PARAMS_STRING);
+            logStringBuilder.append(pvs.toString());
+            logStringBuilder.append(SESSION_PROPERTIES_STRING);
+            logStringBuilder.append(ps.getSessionPropertyValues());
+            logStringBuilder.append(RIGHT_SQUARE_BRACKET);
+
+            stmtLogger.info(logStringBuilder.toString());
         }
     }
 
@@ -4078,25 +4102,55 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         }
     }
 
+    private static final String END_EXECUTING = "End executing query. ";
+    private static final String TIME_SPENT_STRING = ", timeSpent=";
+    private static final String MODIFIED_ROWS_STRING = "ms, modifiedRows=";
+    private static final String BAD_RECORDS_STRING = ", badRecords=";
+
     @Override
-    public void logEndExecuting(String uuid, long modifiedRows, long badRecords, long
-        nanoTimeSpent) {
+    public void logEndExecuting(String uuid, long modifiedRows, long badRecords, long nanoTimeSpent) {
         if (stmtLogger.isInfoEnabled()) {
-            stmtLogger.info(String.format("End executing query. %s, uuid=%s, timeSpent=%dms, " +
-                    "modifiedRows=%d, badRecords=%d",
-                getLogHeader(), uuid, nanoTimeSpent / 1000000, modifiedRows, badRecords));
+            StringBuilder logStringBuilder = new StringBuilder();
+            logStringBuilder.append(END_EXECUTING);
+            logStringBuilder.append(getLogHeader());
+            logStringBuilder.append(UUID_STRING);
+            logStringBuilder.append(uuid);
+
+            logStringBuilder.append(TIME_SPENT_STRING);
+            logStringBuilder.append(nanoTimeSpent / 1000000);
+            logStringBuilder.append(MODIFIED_ROWS_STRING);
+            logStringBuilder.append(modifiedRows);
+            logStringBuilder.append(BAD_RECORDS_STRING);
+            logStringBuilder.append(badRecords);
+
+            stmtLogger.info(logStringBuilder.toString());
         }
     }
 
+    private static final String XID = "XID=";
+    private static final String SESSION_ID = ", SessionID=";
+    private static final String DATABASE = ", Database=";
+    private static final String DRDAID = ", DRDAID=";
+    private static final String USERID = ", UserID=";
+
     private String getLogHeader() {
-        return String.format(
-            "XID=%s, SessionID=%s, Database=%s, DRDAID=%s, UserID=%s",
-            getTransactionExecute().getTransactionIdString(),
-            getInstanceNumber(),
-                getCurrentDatabase().getDatabaseName(),
-            getDrdaID(),
-            getSessionUserId());
+        StringBuilder logHeaderStringBuilder = new StringBuilder();
+        logHeaderStringBuilder.append(XID);
+        logHeaderStringBuilder.append(getTransactionExecute().getTransactionIdString());
+        logHeaderStringBuilder.append(SESSION_ID);
+        logHeaderStringBuilder.append(getInstanceNumber());
+        logHeaderStringBuilder.append(DATABASE);
+        logHeaderStringBuilder.append(getCurrentDatabase().getDatabaseName());
+        logHeaderStringBuilder.append(DRDAID);
+        logHeaderStringBuilder.append(getDrdaID());
+        logHeaderStringBuilder.append(USERID);
+        logHeaderStringBuilder.append(getSessionUserId());
+
+        return logHeaderStringBuilder.toString();
     }
+
+    private static final String SQLHASH_STRING = "sqlHash=";
+    private static final String STATEMENT_STRING = ", statement=[ ";
 
     private String formatLogStmt(String statement) {
         if (statement == null) {
@@ -4109,10 +4163,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             }
             String hash = "";
             try {
-                MessageDigest md = MessageDigest.getInstance("MD5");
-                md.reset();
-                md.update(statement.getBytes("UTF-8"));
-                hash = new BigInteger(1, md.digest()).toString(16);
+                if (messageDigest == null)
+                    messageDigest = MessageDigest.getInstance("MD5");
+                messageDigest.reset();
+                messageDigest.update(statement.getBytes("UTF-8"));
+                hash = new BigInteger(1, messageDigest.digest()).toString(16);
             } catch (UnsupportedEncodingException | NoSuchAlgorithmException e) {
                 stmtLogger.error("Cannot encode statement " + statement, e);
             }
@@ -4120,7 +4175,14 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             if (maxStatementLogLen >= 0 && maxStatementLogLen < statement.length()) {
                 subStatement = statement.substring(0, maxStatementLogLen) + " ... ";
             }
-            String result = String.format("sqlHash=%s, statement=[ %s ]", hash, subStatement);
+            StringBuilder resultStringBuilder = new StringBuilder();
+            resultStringBuilder.append(SQLHASH_STRING);
+            resultStringBuilder.append(hash);
+            resultStringBuilder.append(STATEMENT_STRING);
+            resultStringBuilder.append(subStatement);
+            resultStringBuilder.append(RIGHT_SQUARE_BRACKET);
+
+            String result = resultStringBuilder.toString();
             lastLogStmt = statement;
             lastLogStmtFormat = result;
             return result;

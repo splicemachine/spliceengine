@@ -128,9 +128,20 @@ public class SpliceTransaction extends BaseSpliceTransaction<TransactionImpl> {
         return getTxn();
     }
 
+    private static final String SPLICE_TRANSACTION = "SpliceTransaction[";
+    private static final String COMMA = ",";
+    private static final String RIGHT_SQUARE_BRACKET = "]";
+
     @Override
     public String toString(){
-        return "SpliceTransaction["+transaction.getTransactionStatusAsString()+","+getTxn()+"]";
+        StringBuilder spliceTransactionStringBuilder = new StringBuilder();
+        spliceTransactionStringBuilder.append(SPLICE_TRANSACTION);
+        spliceTransactionStringBuilder.append(transaction.getTransactionStatusAsString());
+        spliceTransactionStringBuilder.append(COMMA);
+        spliceTransactionStringBuilder.append(getTxn());
+        spliceTransactionStringBuilder.append(RIGHT_SQUARE_BRACKET);
+
+        return spliceTransactionStringBuilder.toString();
     }
 
     public boolean allowsWrites(){

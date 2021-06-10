@@ -324,11 +324,11 @@ public class TransactionImpl extends BaseTransaction {
      */
     public String getTransactionStatusAsString(){
         if(state==IDLE)
-            return "IDLE";
+            return IDLE_STRING;
         else if(state==ACTIVE)
-            return "ACTIVE";
+            return ACTIVE_STRING;
         else
-            return "CLOSED";
+            return CLOSED_STRING;
     }
 
     /**

@@ -48,6 +48,7 @@ public class InheritingTxnView extends AbstractTxnView{
     private final Iterator<ByteSlice> destinationTables;
     private final long lastKaTime;
     private final TaskId taskId;
+    private static final String simpleName = InheritingTxnView.class.getSimpleName();
 
     @SuppressFBWarnings("SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION")
     public InheritingTxnView(TxnView parentTxn,
@@ -203,4 +204,7 @@ public class InheritingTxnView extends AbstractTxnView{
     public TaskId getTaskId() {
         return taskId;
     }
+
+    @Override
+    public String getSimpleName() { return simpleName; }
 }

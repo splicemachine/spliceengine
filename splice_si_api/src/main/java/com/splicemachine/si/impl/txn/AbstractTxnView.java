@@ -39,6 +39,7 @@ public abstract class AbstractTxnView implements TxnView {
     protected long txnId;
     private long beginTimestamp;
     protected Txn.IsolationLevel isolationLevel;
+    private static final String simpleName = AbstractTxnView.class.getSimpleName();
 
     public AbstractTxnView() {
     	
@@ -384,12 +385,21 @@ public abstract class AbstractTxnView implements TxnView {
         this.isolationLevel = isolationLevel;
     }
 
+    private static final String LEFT_PARAM = "(";
+    private static final String RIGHT_PARAM = "(";
+    private static final String COMMA = ",";
+
     @Override
     public String toString(){
-    	return String.format("%s(%s,%s)",
-    			getClass().getSimpleName(),
-    			txnId,
-    			getState());
+        StringBuilder txnStringBuilder = new StringBuilder();
+        txnStringBuilder.append(getSimpleName());
+        txnStringBuilder.append(LEFT_PARAM);
+        txnStringBuilder.append(txnId);
+        txnStringBuilder.append(COMMA);
+        txnStringBuilder.append(getState());
+        txnStringBuilder.append(RIGHT_PARAM);
+
+    	return txnStringBuilder.toString();
     }
 
     public int getSubId() {
@@ -405,4 +415,7 @@ public abstract class AbstractTxnView implements TxnView {
     public TaskId getTaskId() {
         return null;
     }
+
+    @Override
+    public String getSimpleName() { return simpleName; }
 }

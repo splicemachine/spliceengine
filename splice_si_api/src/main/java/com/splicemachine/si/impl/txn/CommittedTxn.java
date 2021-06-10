@@ -29,8 +29,13 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * Date: 6/23/14
  */
 public class CommittedTxn extends InheritingTxnView {
+	    private static final String simpleName = CommittedTxn.class.getSimpleName();
+
 		@SuppressFBWarnings("SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION")
 		public CommittedTxn(long beginTimestamp, long endTimestamp){
 			super(Txn.ROOT_TRANSACTION,beginTimestamp,beginTimestamp,Txn.ROOT_TRANSACTION.getIsolationLevel(),false,false,false,false,endTimestamp,endTimestamp, Txn.State.COMMITTED);
 		}
+
+		@Override
+		public String getSimpleName() { return simpleName; }
 }

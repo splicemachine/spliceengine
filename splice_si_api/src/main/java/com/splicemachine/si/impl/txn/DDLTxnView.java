@@ -41,6 +41,7 @@ import java.util.Iterator;
 public class DDLTxnView extends AbstractTxnView {
     private TxnView txn;
     private long demarcationPoint;
+    private static final String simpleName = DDLTxnView.class.getSimpleName();
 
     @Deprecated//"Serializability constructor: DO NOT USE"
     public DDLTxnView(){ }
@@ -196,4 +197,7 @@ public class DDLTxnView extends AbstractTxnView {
     public String toString() {
         return "DDL" + txn;
     }
+
+    @Override
+    public String getSimpleName() { return simpleName; }
 }

@@ -36,6 +36,10 @@ public abstract class BaseTransaction implements Transaction {
     public static final int IDLE=1;
     public static final int ACTIVE=2;
 
+    public static final String CLOSED_STRING = "CLOSED";
+    public static final String IDLE_STRING   = "IDLE";
+    public static final String ACTIVE_STRING = "ACTIVE";
+
     public void setTransactionName(String s){
         this.transName=s;
     }

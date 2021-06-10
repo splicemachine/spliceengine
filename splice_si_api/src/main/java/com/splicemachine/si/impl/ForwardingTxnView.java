@@ -77,4 +77,7 @@ public abstract class ForwardingTxnView extends AbstractTxn {
     public TaskId getTaskId() {
         return delegate.getTaskId();
     }
+
+    @Override
+    public String getSimpleName() { return delegate.getSimpleName(); }
 }

@@ -23,6 +23,8 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import java.io.IOException;
 
 public class PastTxn extends AbstractTxn {
+    private static final String simpleName = PastTxn.class.getSimpleName();
+
     public PastTxn() {
     }
 
@@ -75,4 +77,7 @@ public class PastTxn extends AbstractTxn {
     public TxnView getParentTxnView() {
         return Txn.ROOT_TRANSACTION;
     }
+
+    @Override
+    public String getSimpleName() { return simpleName; }
 }
