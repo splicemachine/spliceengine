@@ -7,6 +7,6 @@ COPY entrypoint.sh /usr/local/bin/se-entrypoint.sh
 RUN chmod +x /usr/local/bin/se-entrypoint.sh
 ENTRYPOINT [ "/usr/local/bin/se-entrypoint.sh" ]
 
-RUN adduser splice
+RUN adduser --disabled-password --gecos '' splice
 USER splice
 COPY bashrc.sh /home/splice/.bashrc
