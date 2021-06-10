@@ -13,6 +13,7 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.storage.index.BitIndex;
@@ -20,20 +21,47 @@ import com.splicemachine.storage.index.BitIndex;
 import java.nio.ByteBuffer;
 
 public class Utils {
+
+    /**
+     * Melds, or merges, entries of an {@link EntryDecoder} into another {@link EntryDecoder}
+     * writing the result into an {@link EntryEncoder}.
+     *
+     * @param to the target decoder that we want to merge the columns into.
+     * @param from the decoder containing columns we want to meld.
+     * @param encoder an inout parameter that holds the results of melding.
+     *
+     * Example:
+     *    to = { {INTEGER, 42}, {STRING, "foo"}, {Byte, 0x14}, {FLOAT, 3.14} }
+     *    from = < {{STRING, "bar"}, {FLOAT, 6.28}}, set columns are {1,3}  >
+     *    encoder = { {INTEGER, 42}, {STRING, "bar"}, {Byte, 0x14}, {FLOAT, 6.28} }
+     */
     public static void meld(EntryDecoder to, EntryDecoder from, EntryEncoder encoder) {
+        if (SanityManager.DEBUG) {
+            SanityManager.ASSERT(to != null);
+            SanityManager.ASSERT(from != null);
+            SanityManager.ASSERT(encoder != null);
+        }
+
         BitIndex toBitIndex = to.getCurrentIndex();
         BitIndex fromBitIndex = from.getCurrentIndex();
         MultiFieldDecoder toDecoder = to.getEntryDecoder();
         MultiFieldDecoder fromDecoder = from.getEntryDecoder();
         MultiFieldEncoder multiFieldEncoder = encoder.getEntryEncoder();
-        int i = 0;
         int length = Integer.max(toBitIndex.length(), fromBitIndex.length());
-        for (i = 0; i < length; ++i) {
+        for (int i = 0; i < length; ++i) {
+            ByteBuffer buffer = null;
             if(fromBitIndex.isSet(i)) {
-                ByteBuffer buffer = from.nextAsBuffer(fromDecoder, i).slice();
-                multiFieldEncoder.setRawBytes(buffer.array(), buffer.arrayOffset(), buffer.limit());
+                buffer = from.nextAsBuffer(fromDecoder, i);
+                if(toBitIndex.isSet(i)) {
+                    to.seekForward(toDecoder,i);
+                }
             } else if(toBitIndex.isSet(i)) {
-                ByteBuffer buffer = to.nextAsBuffer(toDecoder, i).slice();
+                buffer = to.nextAsBuffer(toDecoder, i);
+            }
+            if(buffer == null) {
+                multiFieldEncoder.encodeEmpty();
+            } else {
+                buffer = buffer.slice();
                 multiFieldEncoder.setRawBytes(buffer.array(), buffer.arrayOffset(), buffer.limit());
             }
         }
