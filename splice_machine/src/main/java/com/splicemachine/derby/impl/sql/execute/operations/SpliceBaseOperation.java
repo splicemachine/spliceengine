@@ -505,7 +505,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             this.execRowIterator =getDataSet(dsp).toLocalIterator();
             activation.getLanguageConnectionContext().setNumTriggers(getCurrentTransaction().getNumTriggers());
             activation.getLanguageConnectionContext().setDisplayedTriggerInfo(getCurrentTransaction().getDisplayedTriggerInfo());
-//          activation.getLanguageConnectionContext().addDisplayedTriggerInfo(getCurrentTransaction().getDisplayedTriggerInfo());
         } catch (ResubmitDistributedException e) {
             resubmitDistributed(e);
         }catch(Exception e){ // This catches all the iterator errors for things that are not lazy
@@ -618,8 +617,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     private void logExecutionEnd() {
+        long timeSpent = System.nanoTime() - startTime;
+        try {
+            if (getTriggerHandler() != null)
+                activation.getLanguageConnectionContext().setElapsedTimeByQuery(timeSpent, uuid);
+        } catch (Exception ignored) {}
+
         activation.getLanguageConnectionContext().logEndExecuting(uuid.toString(),
-                modifiedRowCount[0], badRecords, System.nanoTime() - startTime);
+                modifiedRowCount[0], badRecords, timeSpent);
     }
 
     protected void computeModifiedRows() throws StandardException {

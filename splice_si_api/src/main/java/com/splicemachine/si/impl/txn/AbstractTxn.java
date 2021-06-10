@@ -48,7 +48,6 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
     private ArrayList<DisplayedTriggerInfo> triggerInfos = new ArrayList<>();
     private java.util.UUID currentQueryId;
     private HashMap<com.splicemachine.db.catalog.UUID, DisplayedTriggerInfo> triggerIdToTriggerInfoMap = new HashMap<>();
-    private HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap = new HashMap<>();
 
     protected AbstractTxn(){
     }
@@ -98,16 +97,10 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
         } else {
             parent = (AbstractTxn) parentReference;
         }
-        
-        for (TriggerDescriptor td : tds) {
-//            if(parentReference == null)
-//                triggerInfos.add(new DisplayedTriggerInfo(td.getUUID(), td.getName(), txnId, currentQueryId));
-//            else
-//                triggerInfos.add(new DisplayedTriggerInfo(td.getUUID(), td.getName(), txnId, currentQueryId, parentReference.getTxnId(), parentReference.getCurrentQueryId()));
 
+        for (TriggerDescriptor td : tds) {
             parent.triggerIdToTriggerInfoMap.get(td.getUUID()).setTxnId(txnId);
             parent.triggerIdToTriggerInfoMap.get(td.getUUID()).setQueryId(currentQueryId);
-            parent.queryIdToTriggerInfoMap.put(currentQueryId, triggerIdToTriggerInfoMap.get(td.getUUID()));
         }
     }
 

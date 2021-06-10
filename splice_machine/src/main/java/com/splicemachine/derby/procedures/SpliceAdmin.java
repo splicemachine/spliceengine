@@ -155,6 +155,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
         ResultHelper.VarcharColumn  colQueryId          = res.addVarchar("queryId", 36);
         ResultHelper.VarcharColumn  colParentQueryId    = res.addVarchar("parentQueryId", 36);
         ResultHelper.BigintColumn   colTxnId            = res.addBigint("txnId", 9);
+        ResultHelper.BigintColumn   colTimeSpent           = res.addBigint("timeSpent", 9);
 //        ResultHelper.BigintColumn   colParentTxnId      = res.addBigint("parentTxnId", 9);
 
         if(lcc.getDisplayedTriggerInfo() != null) {
@@ -169,6 +170,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
                     colQueryId.set( info.getQueryId().toString() );
                 if(info.getParentQueryId() != null)
                     colParentQueryId.set( info.getParentQueryId().toString() );
+                colTimeSpent.set( info.getElapsedTime() );
             }
         }
 

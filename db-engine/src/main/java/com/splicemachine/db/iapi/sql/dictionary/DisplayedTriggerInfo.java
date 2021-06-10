@@ -6,10 +6,10 @@ public class DisplayedTriggerInfo {
     private UUID id;
     private String name;
     private long txnId;
-    private long parentTxnId = -1;
+    private long parentTxnId = -1; // currently not displayed
     private java.util.UUID queryId;
-
     private java.util.UUID parentQueryId;
+    private long elapsedTime = -1;
 
     public DisplayedTriggerInfo(UUID id, String name, long txnId, java.util.UUID queryId) {
         this.id = id;
@@ -55,5 +55,13 @@ public class DisplayedTriggerInfo {
 
     public void setTxnId(long txnId) {
         this.txnId = txnId;
+    }
+
+    public void setElapsedTime(long elapsedTime) {
+        this.elapsedTime = elapsedTime;
+    }
+
+    public long getElapsedTime() {
+        return elapsedTime;
     }
 }

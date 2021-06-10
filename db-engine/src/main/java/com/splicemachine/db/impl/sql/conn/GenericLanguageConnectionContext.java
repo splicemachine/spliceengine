@@ -559,6 +559,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private int numTriggers = 0;
 
     private ArrayList<DisplayedTriggerInfo> triggerInfos;
+    private HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap = new HashMap<>();
 
     @Override
     public void setNumTriggers(int num) {
@@ -591,6 +592,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         this.triggerInfos.addAll(triggerInfos);
     }
 
+    @Override
+    public void setElapsedTimeByQuery(long elapsedTime, java.util.UUID queryId) {
+        queryIdToTriggerInfoMap.get(queryId).setElapsedTime(elapsedTime);
+    }
     @Override
     public void initialize() throws StandardException {
         interruptedException = null;
