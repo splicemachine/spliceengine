@@ -60,7 +60,7 @@ public class ForeignKeyActionIT {
     @Before
     public void deleteTables() throws Exception {
         conn = methodWatcher.getOrCreateConnection();
-        conn.setAutoCommit(true);
+        conn.setAutoCommit(false);
         new TableDAO(conn).drop(SCHEMA, "SNGC2", "SNGC1", "SNC", "SNP", "RP", "RC",
                                         "T3", "T2", "T4", "T1", "DHC10", "DHC9", "DHC8", "DHC7", "DHC6", "DHC5", "DHC4", "DHC3", "DHC2", "DHC1",
                                         "FC", "FP", "SRT2", "GC2", "GC1", "CC", "CP", "C1I", "C2I", "PI","SRT", "LC", "YAC", "AC", "AP", "C2", "C", "P",
