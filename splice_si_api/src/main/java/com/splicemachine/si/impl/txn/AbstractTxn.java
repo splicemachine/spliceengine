@@ -89,11 +89,16 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
 
     @Override
     public void incNumTriggers(TriggerDescriptor[] tds) {
+        AbstractTxn parent;
         if (parentReference == null || parentReference.getCurrentQueryId() == null) {
-            return; // maybe should throw an error here
+            parent = (AbstractTxn) getParentTxnView();
+            if (parent.getCurrentQueryId() == null) {
+                return; // maybe should throw an error here
+            }
+        } else {
+            parent = (AbstractTxn) parentReference;
         }
-        AbstractTxn parent = (AbstractTxn) parentReference;
-
+        
         for (TriggerDescriptor td : tds) {
 //            if(parentReference == null)
 //                triggerInfos.add(new DisplayedTriggerInfo(td.getUUID(), td.getName(), txnId, currentQueryId));
