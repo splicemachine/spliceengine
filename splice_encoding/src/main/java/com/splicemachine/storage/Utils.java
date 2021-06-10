@@ -55,14 +55,20 @@ public class Utils {
                 if(toBitIndex.isSet(i)) {
                     to.seekForward(toDecoder,i);
                 }
+                if(buffer == null) {
+                    multiFieldEncoder.encodeEmpty();
+                } else {
+                    buffer = buffer.slice();
+                    multiFieldEncoder.setRawBytes(buffer.array(), buffer.arrayOffset(), buffer.limit());
+                }
             } else if(toBitIndex.isSet(i)) {
                 buffer = to.nextAsBuffer(toDecoder, i);
-            }
-            if(buffer == null) {
-                multiFieldEncoder.encodeEmpty();
-            } else {
-                buffer = buffer.slice();
-                multiFieldEncoder.setRawBytes(buffer.array(), buffer.arrayOffset(), buffer.limit());
+                if(buffer == null) {
+                    multiFieldEncoder.encodeEmpty();
+                } else {
+                    buffer = buffer.slice();
+                    multiFieldEncoder.setRawBytes(buffer.array(), buffer.arrayOffset(), buffer.limit());
+                }
             }
         }
     }

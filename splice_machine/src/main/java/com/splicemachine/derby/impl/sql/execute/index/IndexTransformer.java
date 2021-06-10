@@ -278,8 +278,8 @@ public class IndexTransformer {
         if(result!=null && !result.isEmpty() && result.userData() != null){
             DataCell resultValue = result.userData();
             EntryDecoder decoder = getSrcValueDecoder();
-            decoder.set(resultValue.valueArray(),resultValue.valueOffset(),resultValue.valueLength());
-            EntryDecoder mutationdecoder = getSrcValueDecoder();
+            decoder.set(result.userData().value());
+            EntryDecoder mutationdecoder = new EntryDecoder();
             mutationdecoder.set(mutation.getValue());
             EntryEncoder resultEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(), decoder.getCurrentIndex());
             Utils.meld(decoder, mutationdecoder, resultEncoder);
