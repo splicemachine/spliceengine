@@ -33,7 +33,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * OlapStreamListener handles a communication from StreamLister to manage throttling if a client overloaded with
+ * OlapStreamListener handles a communication from StreamListener to manage throttling if a client overloaded with
  * messages or paused consuming.
  */
 public class OlapStreamListener extends ChannelInboundHandlerAdapter {
@@ -57,6 +57,13 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter {
         this.consumingCondition = lock.newCondition();
     }
 
+    /**
+     * in {@link #clientConsuming} the client consuming state from StreamListener is stored. If the state is changed on StreamListener,
+     * it sends StreamProtocol.PauseStream or StreamProtocol.ContinueStream message and clientConsuming is updated, see
+     * {@link #channelRead}.
+     *
+     * @return consuming state
+     */
     public boolean isClientConsuming() {
         return clientConsuming;
     }
@@ -65,6 +72,12 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter {
         return lock;
     }
 
+    /**
+     * {@link #consumingCondition} is used to inform a class, that uses OlapStreamListener e.g. StreamableRDD,
+     * that the state has changed to repeat a loop checking for other conditions.
+     *
+     * @return lock condition
+     */
     public Condition getCondition() {
         return consumingCondition;
     }
@@ -112,6 +125,8 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter {
                     clientConsuming = true;
                     consumingCondition.signalAll();
                 }
+            } else {
+                LOG.warn(String.format("Unknown message type %s", msg.getClass()));
             }
         } finally {
             lock.unlock();
