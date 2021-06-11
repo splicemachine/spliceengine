@@ -125,7 +125,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
             boolean add=true;
             KVPair newIndex;
             if(mutation.getType() == KVPair.Type.BLIND_UPDATE) {
-                KVPair amended = transformer.amendBlindUpdate(mutation, ctx,indexedColumns);
+                KVPair amended = transformer.amendBlindUpdate(mutation, ctx, transformer.getBaseResult());
                 newIndex = transformer.translate(amended);
             } else {
                 newIndex = transformer.translate(mutation);
