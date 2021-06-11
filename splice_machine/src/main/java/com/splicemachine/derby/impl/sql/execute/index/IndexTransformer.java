@@ -33,7 +33,6 @@ import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.ExecRowAccumulator;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.marshall.EntryDataHash;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
@@ -60,8 +59,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static splice.com.google.common.base.Preconditions.checkArgument;
-
 /**
  * Builds an index table KVPair given a base table KVPair.
  *
@@ -86,22 +83,23 @@ import static splice.com.google.common.base.Preconditions.checkArgument;
  */
 @NotThreadSafe
 public class IndexTransformer {
-    private TypeProvider typeProvider;
+    private final TypeProvider typeProvider;
     private MultiFieldDecoder srcKeyDecoder;
     private EntryDecoder srcValueDecoder;
+    private EntryDecoder blindUpdateMutationDecoder;
     private ByteEntryAccumulator indexKeyAccumulator;
     private EntryEncoder indexValueEncoder;
-    private DDLMessage.Index index;
-    private DDLMessage.Table table;
-    private int [] mainColToIndexPosMap;  // 0-based
-    private BitSet indexedCols;   // 0-based
-    private BitSet nonPkIndexedCols; // 0-based
-    private byte[] indexConglomBytes;
-    private int[] indexFormatIds;
+    private final DDLMessage.Index index;
+    private final DDLMessage.Table table;
+    private final int [] mainColToIndexPosMap;  // 0-based
+    private final BitSet indexedCols;   // 0-based
+    private final BitSet nonPkIndexedCols; // 0-based
+    private final byte[] indexConglomBytes;
+    private final int[] indexFormatIds;
     private DescriptorSerializer[] indexRowSerializers;
     private DescriptorSerializer[] baseRowSerializers;
-    private boolean excludeNulls;
-    private boolean excludeDefaultValues;
+    private final boolean excludeNulls;
+    private final boolean excludeDefaultValues;
     private DataValueDescriptor defaultValue;
     private ValueRow defaultValuesExecRow;
     private ExecRowAccumulator execRowAccumulator;
@@ -116,7 +114,6 @@ public class IndexTransformer {
     public IndexTransformer(DDLMessage.TentativeIndex tentativeIndex) throws StandardException {
         index = tentativeIndex.getIndex();
         table = tentativeIndex.getTable();
-        checkArgument(!index.getUniqueWithDuplicateNulls() || index.getUniqueWithDuplicateNulls(), "isUniqueWithDuplicateNulls only for use with unique indexes");
         excludeNulls = index.getExcludeNulls();
         excludeDefaultValues = index.getExcludeDefaults();
         this.typeProvider = VersionedSerializers.typesForVersion(table.getTableVersion());
@@ -182,25 +179,28 @@ public class IndexTransformer {
             throws IOException, StandardException
     {
         // do a Get() on all the indexed columns of the base table
-        DataResult result =fetchBaseRow(mutation,ctx,indexedColumns);
-        if(result==null || result.isEmpty()){
-            // we can't find the old row, may have been deleted already
-            return null;
-        }
-
-        DataCell resultValue = result.userData();
-        if(resultValue==null){
-            // we can't find the old row, may have been deleted already
-            return null;
-        }
-
+        DataResult result = fetchBaseRow(mutation,ctx,indexedColumns);
         // transform the results into an index row (as if we were inserting it) but create a delete for it
-
-        KVPair toTransform = new KVPair(
-                resultValue.keyArray(),resultValue.keyOffset(),resultValue.keyLength(),
-                resultValue.valueArray(),resultValue.valueOffset(),resultValue.valueLength(),KVPair.Type.DELETE);
-        return translate(toTransform);
+        KVPair kvPair = toKVPair(result);
+        return translate(kvPair);
     }
+
+     private KVPair toKVPair(final DataResult result) {
+         if (result == null || result.isEmpty()) {
+             // we can't find the old row, may have been deleted already
+             return null;
+         }
+
+         DataCell resultValue = result.userData();
+         if (resultValue == null) {
+             // we can't find the old row, may have been deleted already
+             return null;
+         }
+
+         return new KVPair(
+                 resultValue.keyArray(), resultValue.keyOffset(), resultValue.keyLength(),
+                 resultValue.valueArray(), resultValue.valueOffset(), resultValue.valueLength(), KVPair.Type.DELETE);
+     }
 
     public KVPair encodeSystemTableIndex(ExecRow execRow) throws StandardException, IOException {
 
@@ -223,9 +223,8 @@ public class IndexTransformer {
         byte[] key = DerbyBytesUtil.generateIndexKey(dvds, order,tableVersion,false);
 
         if(entryEncoder==null){
-            int[] validCols= EngineUtils.bitSetToMap(null);
             DescriptorSerializer[] serializers=VersionedSerializers.forVersion(tableVersion,true).getSerializers(execRow);
-            entryEncoder=new EntryDataHash(validCols,null,serializers);
+            entryEncoder=new EntryDataHash(null,null,serializers);
         }
         ValueRow rowToEncode=new ValueRow(execRow.getRowArray().length);
         rowToEncode.setRowArray(execRow.getRowArray());
@@ -236,7 +235,7 @@ public class IndexTransformer {
 
     public KVPair writeDirectIndex(ExecRow execRow) throws IOException, StandardException {
         assert execRow != null: "ExecRow passed in is null";
-        getIndexRowSerializers(execRow);
+        setIndexRowSerializers(execRow);
         EntryAccumulator keyAccumulator = getKeyAccumulator();
         keyAccumulator.reset();
         ignore = false;
@@ -279,22 +278,28 @@ public class IndexTransformer {
         return new KVPair(indexRowKey, indexValue, KVPair.Type.INSERT);
     }
 
-    public KVPair amendBlindUpdate(KVPair mutation, WriteContext ctx, BitSet indexedColumns) throws IOException {
-        DataResult result = fetchBaseRow(mutation, ctx, indexedColumns);
-        if(result!=null && !result.isEmpty() && result.userData() != null){
-            DataCell resultValue = result.userData();
-            EntryDecoder decoder = getSrcValueDecoder();
-            decoder.set(result.userData().value());
-            EntryDecoder mutationdecoder = new EntryDecoder();
-            mutationdecoder.set(mutation.getValue());
-            EntryEncoder resultEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(), decoder.getCurrentIndex());
-            Utils.meld(decoder, mutationdecoder, resultEncoder);
-            byte[] value = resultEncoder.encode();
-            return new KVPair(
-                    resultValue.keyArray(),resultValue.keyOffset(),resultValue.keyLength(),
-                    value,0,value.length,mutation.getType());
+    public KVPair amendBlindUpdate(KVPair mutation, WriteContext ctx, DataResult baseResult) throws IOException {
+        if (baseResult == null || baseResult.isEmpty()) {
+            // we can't find the old row, may have been deleted already
+            return null;
         }
-        return mutation;
+
+        DataCell baseResultValue = baseResult.userData();
+        if (baseResultValue == null) {
+            // we can't find the old row, may have been deleted already
+            return null;
+        }
+
+        EntryDecoder decoder = getSrcValueDecoder();
+        decoder.set(baseResult.userData().value());
+        EntryDecoder mutationDecoder = getBlindUpdateMutationDecoder();
+        mutationDecoder.set(mutation.getValue());
+        EntryEncoder baseResultEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(), decoder.getCurrentIndex());
+        Utils.meld(decoder, mutationDecoder, baseResultEncoder);
+        byte[] value = baseResultEncoder.encode();
+        return new KVPair(
+                baseResultValue.keyArray(), baseResultValue.keyOffset(), baseResultValue.keyLength(),
+                value, 0, value.length, mutation.getType());
     }
 
     /**
@@ -493,9 +498,6 @@ public class IndexTransformer {
     /**
      * Do we need to update the index, i.e. did all of the values change?
      * If the write doesn't modify all indexed columns it means the original update doesn't affect the index
-     *
-     * @param mutation
-     * @return
      */
     public boolean areIndexKeysModified(KVPair mutation) {
         EntryDecoder newPutDecoder = new EntryDecoder();
@@ -702,25 +704,36 @@ public class IndexTransformer {
         return srcValueDecoder;
     }
 
-    private DescriptorSerializer[] getIndexRowSerializers(ExecRow execRow) {
-        if (indexRowSerializers ==null)
-            indexRowSerializers = VersionedSerializers.forVersion(table.getTableVersion(),true).getSerializers(execRow);
-        return indexRowSerializers;
+    private EntryDecoder getBlindUpdateMutationDecoder() {
+        if (blindUpdateMutationDecoder == null)
+            blindUpdateMutationDecoder = new EntryDecoder();
+        return blindUpdateMutationDecoder;
     }
 
+    private void setIndexRowSerializers(ExecRow execRow) {
+        if (indexRowSerializers ==null) {
+            indexRowSerializers = VersionedSerializers.forVersion(table.getTableVersion(), true).getSerializers(execRow);
+        }
+    }
 
-    public DataResult fetchBaseRow(KVPair mutation,WriteContext ctx,BitSet indexedColumns) throws IOException{
-        baseGet =SIDriver.driver().getOperationFactory().newDataGet(ctx.getTxn(),mutation.getRowKey(),baseGet);
+    private DataResult fetchBaseRow(KVPair mutation,WriteContext ctx,BitSet indexedColumns) throws IOException {
+        baseGet = SIDriver.driver().getOperationFactory().newDataGet(ctx.getTxn(), mutation.getRowKey(), baseGet);
 
         EntryPredicateFilter epf;
-        if(indexedColumns!=null && !indexedColumns.isEmpty()){
+        if (indexedColumns != null && !indexedColumns.isEmpty()) {
             epf = new EntryPredicateFilter(indexedColumns);
-        }else epf = EntryPredicateFilter.emptyPredicate();
+        } else {
+            epf = EntryPredicateFilter.emptyPredicate();
+        }
 
-        TransactionalRegion region=ctx.txnRegion();
-        TxnFilter txnFilter=region.packedFilter(ctx.getTxn(),epf,false);
+        TransactionalRegion region = ctx.txnRegion();
+        TxnFilter txnFilter = region.packedFilter(ctx.getTxn(), epf, false);
         baseGet.setFilter(txnFilter);
-        baseResult =ctx.getRegion().get(baseGet,baseResult);
+        baseResult = ctx.getRegion().get(baseGet, baseResult);
+        return baseResult;
+    }
+
+    public DataResult getBaseResult() {
         return baseResult;
     }
 

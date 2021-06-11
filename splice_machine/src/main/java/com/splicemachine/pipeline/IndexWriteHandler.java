@@ -23,8 +23,6 @@ import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.RoutingWriteHandler;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.storage.DataCell;
-import com.splicemachine.storage.DataResult;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -153,7 +151,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
             boolean add=true;
             KVPair newIndex;
             if(mutation.getType() == KVPair.Type.BLIND_UPDATE) {
-                KVPair amended = transformer.amendBlindUpdate(mutation, ctx,indexedColumns);
+                KVPair amended = transformer.amendBlindUpdate(mutation, ctx, transformer.getBaseResult());
                 newIndex = transformer.translate(amended);
             } else {
                 newIndex = transformer.translate(mutation);
