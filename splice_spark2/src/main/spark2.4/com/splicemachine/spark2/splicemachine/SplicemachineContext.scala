@@ -288,7 +288,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   private[this] def getJdbcOptionsInWrite(schemaTableName: String): JdbcOptionsInWrite =
     new JdbcOptionsInWrite( Map(
       JDBCOptions.JDBC_URL -> url,
-      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName
+      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName,
+      JDBCOptions.JDBC_DRIVER_CLASS -> "com.splicemachine.db.jdbc.ClientDriver40"
     ))
 
   /**
@@ -651,12 +652,13 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   ): Array[String] = {
     sendDataTimestamp = System.currentTimeMillis
     rdd.rdd.mapPartitionsWithIndex(
-      (partition, itrRow) => {
+      (partition, itrRow) => this.synchronized {
         val id = topicName.substring(0,5)+":"+partition.toString
-        trace(s"$id SMC.sendData p== $partition ${itrRow.nonEmpty}")
+        val nonEmpty = itrRow.nonEmpty
+        trace(s"$id SMC.sendData p== $partition ${nonEmpty}")
 
         var msgCount = 0
-        if( itrRow.nonEmpty ) {
+        if( nonEmpty ) {
           val taskContext = TaskContext.get
           val itr = if (taskContext != null && taskContext.attemptNumber > 0) {
             // Recover from previous task failure

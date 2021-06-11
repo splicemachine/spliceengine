@@ -285,7 +285,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   private[this] def getJdbcOptionsInWrite(schemaTableName: String): JdbcOptionsInWrite =
     new JdbcOptionsInWrite( Map(
       JDBCOptions.JDBC_URL -> url,
-      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName
+      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName,
+      JDBCOptions.JDBC_DRIVER_CLASS -> "com.splicemachine.db.jdbc.ClientDriver40"
     ))
 
   /**
@@ -551,11 +552,12 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   var insertSql: String => String = _
   
   /* Sets up insertSql to be used by insert_streaming */
-  def setTable(schemaTableName: String, schema: StructType): Unit = {
+  def setTable(schemaTableName: String, schema: StructType, upsert: Boolean = false): Unit = {
     val colList = columnList(schema) + fmColList
     val schStr = schemaStringWithoutNullable(schema, url)
+    val upsertProp = if(upsert) { "--splice-properties insertMode=UPSERT" } else { "" }
     // Line break at the end of the first line and before select is required, other line breaks aren't required
-    insertSql = (topicName: String) => s"""insert into $schemaTableName ($colList)
+    insertSql = (topicName: String) => s"""insert into $schemaTableName ($colList) $upsertProp
                                        select $colList from 
       new com.splicemachine.derby.vti.KafkaVTI('$topicName') 
       as SpliceDatasetVTI ($schStr$fmSchemaStr)"""
@@ -594,11 +596,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     kafkaTopics.create()
   }
   
-  def sendData_streaming(dataFrame: DataFrame, topicName: String): (Seq[RowForKafka], Long, Array[String]) = {
+  def sendData_streaming(dataFrame: DataFrame, topicName: String, kafkaRecovery: Boolean = false): (Seq[RowForKafka], Long, Array[String]) = {
     insAccum.reset
     lastRowsToSend.reset
     debug("SMC.sds sendData")
-    val ptnInfo = sendData(topicName, dataFrame.rdd, dataFrame.schema, true)
+    val ptnInfo = sendData(topicName, dataFrame.rdd, dataFrame.schema, true, kafkaRecovery)
 
     val rows = lastRowsToSend.value.asScala
     trace(s"SMC.sds last rows ${rows.mkString("\n")}")
@@ -644,18 +646,20 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     topicName: String, 
     rdd: JavaRDD[Row], 
     schema: StructType,
-    accumulateLastRows: Boolean = false
+    accumulateLastRows: Boolean = false,
+    kafkaRecovery: Boolean = false
   ): Array[String] = {
     sendDataTimestamp = System.currentTimeMillis
     rdd.rdd.mapPartitionsWithIndex(
-      (partition, itrRow) => {
+      (partition, itrRow) => this.synchronized {
         val id = topicName.substring(0,5)+":"+partition.toString
-        trace(s"$id SMC.sendData p== $partition ${itrRow.nonEmpty}")
+        val nonEmpty = itrRow.nonEmpty
+        trace(s"$id SMC.sendData p== $partition ${nonEmpty}")
 
         var msgCount = 0
-        if( itrRow.nonEmpty ) {
+        if( nonEmpty ) {
           val taskContext = TaskContext.get
-          val itr = if (taskContext != null && taskContext.attemptNumber > 0) {
+          val itr = if (kafkaRecovery || (taskContext != null && taskContext.attemptNumber > 0)) {
             // Recover from previous task failure
             // Be sure the iterator is advanced past the items previously published to Kafka
 
