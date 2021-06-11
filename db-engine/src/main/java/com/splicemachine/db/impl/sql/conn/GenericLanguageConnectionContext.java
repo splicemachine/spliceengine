@@ -4004,7 +4004,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void logStartCompiling(String statement) {
         if (stmtLogger.isInfoEnabled()) {
             stmtLogger.info(String.format("Begin compiling prepared statement. %s, %s",
-                getLogHeader(), formatLogStmt(statement)));
+                getLogHeader(), formatLogStmt(statement, null)));
         }
     }
 
@@ -4012,7 +4012,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void logEndCompiling(String statement, long nanoTimeSpent) {
         if (stmtLogger.isInfoEnabled()) {
             stmtLogger.info(String.format("End compiling prepared statement. %s, timeSpent=%dms, %s",
-                getLogHeader(), nanoTimeSpent / 1000000, formatLogStmt(statement)));
+                getLogHeader(), nanoTimeSpent / 1000000, formatLogStmt(statement, null)));
         }
     }
 
@@ -4020,7 +4020,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void logErrorCompiling(String statement, Throwable t, long nanoTimeSpent) {
         if (stmtLogger.isEnabled(Level.WARN)) {
             stmtLogger.warn(String.format("Error compiling prepared statement. %s, timeSpent=%dms, %s",
-                getLogHeader(), nanoTimeSpent / 1000000, formatLogStmt(statement)), t);
+                getLogHeader(), nanoTimeSpent / 1000000, formatLogStmt(statement, null)), t);
         }
     }
 
@@ -4042,7 +4042,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void logStartFetching(String uuid, String statement) {
         if (stmtLogger.isInfoEnabled()) {
             stmtLogger.info(String.format("Start fetching from the result set. %s, uuid=%s, %s",
-                getLogHeader(), uuid, formatLogStmt(statement)));
+                getLogHeader(), uuid, formatLogStmt(statement, null)));
         }
     }
 
@@ -4050,7 +4050,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void logEndFetching(String uuid, String statement, long fetchedRows) {
         if (stmtLogger.isInfoEnabled()) {
             stmtLogger.info(String.format("End fetching from the result set. %s, uuid=%s, fetchedRows=%d, %s",
-                getLogHeader(), uuid, fetchedRows, formatLogStmt(statement)));
+                getLogHeader(), uuid, fetchedRows, formatLogStmt(statement, null)));
         }
     }
 
@@ -4065,7 +4065,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public void logStartExecuting(String uuid, String engine, String stmt, ExecPreparedStatement ps,
-                                  ParameterValueSet pvs) {
+                                  ParameterValueSet pvs, Activation activation) {
         if (stmtLogger.isInfoEnabled()) {
             StringBuilder logStringBuilder = new StringBuilder();
             logStringBuilder.append(START_EXECUTING);
@@ -4075,7 +4075,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             logStringBuilder.append(ENGINE_STRING);
             logStringBuilder.append(engine);
             logStringBuilder.append(COMMA);
-            logStringBuilder.append(formatLogStmt(stmt));
+            logStringBuilder.append(formatLogStmt(stmt, activation));
             logStringBuilder.append(PARAMS_COUNT_STRING);
             logStringBuilder.append(pvs.getParameterCount());
             logStringBuilder.append(PARAMS_STRING);
@@ -4148,13 +4148,22 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private static final String SQLHASH_STRING = "sqlHash=";
     private static final String STATEMENT_STRING = ", statement=[ ";
 
-    private String formatLogStmt(String statement) {
+    private String formatLogStmt(String statement, Activation activation) {
         if (statement == null) {
             return "sqlHash=null, statement=null";
         }
-        synchronized (this) {
+        boolean hasBaseActivation = (activation instanceof BaseActivation);
+        Object synchronizationObject = hasBaseActivation ? activation : this;
+        synchronized (synchronizationObject) {
             // cache formatted statement log
-            if (statement.equals(lastLogStmt)) {
+            BaseActivation baseActivation = null;
+            if (hasBaseActivation) {
+                baseActivation = (BaseActivation) activation;
+                if (statement.equals(baseActivation.getLastLogStmt())) {
+                    return baseActivation.getLastLogStmtFormat();
+                }
+            }
+            else if (statement.equals(lastLogStmt)) {
                 return lastLogStmtFormat;
             }
             String hash = "";
@@ -4179,6 +4188,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             resultStringBuilder.append(RIGHT_SQUARE_BRACKET);
 
             String result = resultStringBuilder.toString();
+            if (baseActivation != null) {
+                baseActivation.setLastLogStmt(statement);
+                baseActivation.setLastLogStmtFormat(lastLogStmtFormat);
+            }
             lastLogStmt = statement;
             lastLogStmtFormat = result;
             return result;

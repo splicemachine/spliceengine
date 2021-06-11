@@ -217,6 +217,10 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
     private boolean skipBuildOfFirstKeyColumn = false;
 
     private long numRowsSeen = 0L;
+
+    private String lastLogStmt;
+    private String lastLogStmtFormat;
+
     //
     // constructors
     //
@@ -1834,4 +1838,20 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	    isRowTrigger = newValue;
 	}
 
+
+    public String getLastLogStmt() {
+        return lastLogStmt;
+    }
+
+    public void setLastLogStmt(String lastLogStmt) {
+        this.lastLogStmt = lastLogStmt;
+    }
+
+    public String getLastLogStmtFormat() {
+        return lastLogStmtFormat;
+    }
+
+    public void setLastLogStmtFormat(String lastLogStmtFormat) {
+        this.lastLogStmtFormat = lastLogStmtFormat;
+    }
 }

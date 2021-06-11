@@ -604,7 +604,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         activation.getLanguageConnectionContext().logStartExecuting(
                 uuid.toString(), dsp.getType().toString(), stmtForLogging,
                 ps,
-                activation.getParameterValueSet()
+                activation.getParameterValueSet(),
+                activation
         );
     }
 
