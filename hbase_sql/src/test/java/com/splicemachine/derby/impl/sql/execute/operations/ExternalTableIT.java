@@ -1581,7 +1581,6 @@ public class ExternalTableIT extends SpliceUnitTest {
     }
 
     // rather slow test (20s)
-    @Ignore // DB-11151 int array fail on Spark3.0
     @Test
     public void testWriteReadArrays() throws Exception {
         for( String fileFormat : fileFormats) {
