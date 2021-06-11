@@ -24,6 +24,16 @@
     </parent>
     <dependencies>
         <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-yarn-server-tests</artifactId>
             <version>${hadoop.version}</version>
@@ -135,7 +145,6 @@
                                 <argument>${project.build.directory}/../../platform_it/target/classes</argument>
                                 <argument>${secure}</argument>
                                 <argument>${nodeCount}</argument>
-                                <argument>-Dlog4j.configurationFile=${log4j.config.uri}</argument>
                                 <argument>-Dlog4j2.configurationFile=${log4j2.config.uri}</argument>
                             </arguments>
                             <workingDirectory>${project.build.directory}/../../platform_it/</workingDirectory>

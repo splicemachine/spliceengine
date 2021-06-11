@@ -20,7 +20,7 @@ if [[ -n "${LOG4J_PROP_PATH}" ]]; then
     # Allow users to set their own log file if debug required
     LOG4J_PATH="${1}"
 else
-    LOG4J_PATH="file:${ROOT_DIR}/lib/info-log4j.properties"
+    LOG4J_PATH="file:${ROOT_DIR}/lib/info-log4j2.properties"
 fi
 
 # set up isolated classpath.
@@ -29,7 +29,7 @@ CLASSPATH="${DEV_CP}:${ROOT_DIR}/lib/*"
 
 if [[ ${UNAME} == CYGWIN* ]]; then
     CLASSPATH=$(cygpath --path --windows "${ROOT_DIR}/lib/*")
-    LOG4J_PATH="file:///$(cygpath --path --windows ${ROOT_DIR}/lib/info-log4j.properties)"
+    LOG4J_PATH="file:///$(cygpath --path --windows ${ROOT_DIR}/lib/info-log4j2.properties)"
 fi
 export CLASSPATH
 

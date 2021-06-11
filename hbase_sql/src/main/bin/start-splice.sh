@@ -73,7 +73,7 @@ CP="${ROOT_DIR}/lib":"${ROOT_DIR}/lib/*"
 ZOO_DIR="${ROOT_DIR}"/db/zookeeper
 HBASE_ROOT_DIR_URI="file://${ROOT_DIR}/db/hbase"
 
-LOG4J_PATH="file:${ROOT_DIR}/lib/info-log4j.properties"
+LOG4J_PATH="file:${ROOT_DIR}/lib/info-log4j2.properties"
 if [[ "${DEBUG}" = true ]]; then
     LOG4J_PATH="file:${ROOT_DIR}/lib/hbase-log4j.properties"
     export SPLICE_SYS_ARGS="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000"
@@ -102,7 +102,7 @@ if [[ ${UNAME} == CYGWIN* ]]; then
 	CP=$(cygpath --path --windows "${ROOT_DIR}/lib":"${ROOT_DIR}/lib/*")
 	ZOO_DIR=$(cygpath --path --windows "${ROOT_DIR}/db/zookeeper")
     HBASE_ROOT_DIR_URI="CYGWIN"
-	LOG4J_PATH="file:///$(cygpath --path --windows ${ROOT_DIR}/lib/info-log4j.properties)"
+	LOG4J_PATH="file:///$(cygpath --path --windows ${ROOT_DIR}/lib/info-log4j2.properties)"
     if [[ -n "${DEBUG}" && "${DEBUG}" -eq "-debug" ]]; then
 		LOG4J_PATH="file:///$(cygpath --path --windows ${ROOT_DIR}/lib/hbase-log4j.properties)"
 		export SPLICE_SYS_ARGS="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000"

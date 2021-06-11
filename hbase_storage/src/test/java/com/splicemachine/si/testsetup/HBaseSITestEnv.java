@@ -51,16 +51,25 @@ import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.regionserver.BloomType;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.Filter;
+import org.apache.logging.log4j.core.Layout;
+import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.ConsoleAppender;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.async.AsyncLogger;
+import org.apache.logging.log4j.core.async.AsyncLoggerConfig;
+import org.apache.logging.log4j.core.config.AppenderRef;
 import org.apache.logging.log4j.core.config.Configurator;
+import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.apache.logging.log4j.core.layout.PatternLayout;
-import org.apache.logging.log4j.core.layout.SimpleLayout;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
+
+import static org.apache.logging.log4j.core.async.AsyncLoggerConfig.createLogger;
 
 /**
  * @author Scott Fines
@@ -268,11 +277,39 @@ public class HBaseSITestEnv implements SITestEnv{
         return siEnv;
     }
 
+    private void createLogger(String loggerName, Level level, AppenderRef[] refs,
+                              org.apache.logging.log4j.core.config.Configuration config, Appender appender) {
+        LoggerConfig loggerConfig = AsyncLoggerConfig.createLogger(false, level, loggerName, "true", refs, null, config, null);
+        loggerConfig.addAppender(appender, null, null);
+        config.addLogger(loggerName, loggerConfig);
+    }
+
     private void configureLogging(Level baseLevel){
-        PatternLayout.Builder builder = PatternLayout.newBuilder();
-        builder.withPattern("%level - %m%n");
+        final LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
+        final org.apache.logging.log4j.core.config.Configuration config = ctx.getConfiguration();
+        final Layout layout = PatternLayout.createDefaultLayout(config);
+        ConsoleAppender consoleAppender = ConsoleAppender.createDefaultAppenderForLayout(layout);
+        consoleAppender.start();
+        config.addAppender(consoleAppender);
         Configurator.setLevel(LogManager.getRootLogger().getName(), baseLevel);
-        LogManager.getRootLogger().addAppender(new ConsoleAppender(builder.build()));
+        LoggerConfig rootLoggerCfg = config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME);
+        rootLoggerCfg.addAppender(consoleAppender, null, null);
+
+//        AppenderRef ref = AppenderRef.createAppenderRef("Console", null, null);
+//        AppenderRef[] refs = new AppenderRef[] {ref};
+//        createLogger("org.apache.hadoop.conf", Level.WARN, refs, config, consoleAppender);
+//        createLogger("org.apache.hadoop.hdfs", baseLevel, refs, config, consoleAppender);
+//        createLogger("org.apache.hadoop.http", baseLevel, refs, config, consoleAppender);
+//        createLogger("org.apache.hadoop.metrics2", baseLevel, refs, config, consoleAppender);
+//        createLogger("org.apache.hadoop.net", baseLevel, refs, config, consoleAppender);
+//        createLogger("org.apache.hadoop.ipc", baseLevel, refs, config, consoleAppender);
+//        createLogger("org.apache.hadoop.conf", baseLevel, refs, config, consoleAppender);
+//        createLogger("org.apache.hadoop.util", baseLevel, refs, config, consoleAppender);
+//        createLogger("org.apache.hadoop.hbase", baseLevel, refs, config, consoleAppender);
+//        createLogger("BlockStateChange", baseLevel, refs, config, consoleAppender);
+//        createLogger("org.apache.hadoop.hbase", baseLevel, refs, config, consoleAppender);
+//        createLogger("BlockStateChange", baseLevel, refs, config, consoleAppender);
+
         Configurator.setLevel("org.apache.hadoop.conf", Level.WARN);
         Configurator.setLevel("org.apache.hadoop.hdfs", baseLevel);
         Configurator.setLevel("org.apache.hadoop.http", baseLevel);
@@ -284,5 +321,6 @@ public class HBaseSITestEnv implements SITestEnv{
         Configurator.setLevel("BlockStateChange", baseLevel);
         Configurator.setLevel("org.mortbay.log", baseLevel);
         Configurator.setLevel("org.apache.zookeeper", baseLevel);
+        ctx.updateLoggers();
     }
 }

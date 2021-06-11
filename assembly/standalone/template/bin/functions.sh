@@ -33,7 +33,7 @@ _startSplice() {
   export CLASSPATH
 
     SYS_ARGS="-Xdebug \
--Dlog4j.configuration=$LOG4J_PATH \
+-Dlog4j.configurationFile=$LOG4J_PATH \
 -Dspark.yarn.jars=$ROOT_DIR/lib,$ROOT_DIR/lib/* \
 -Djava.net.preferIPv4Stack=true \
 -Djava.awt.headless=true \
@@ -92,7 +92,7 @@ _startSplice() {
 
 SYS_ARGS2="-Dsplice.spark.executor.extraJavaOptions=-Dhbase.rootdir=$HBASE_ROOT_DIR_URI/hbase
 -XX:MaxPermSize=128m
--Dlog4j.configuration=$LOG4J_PATH
+-Dlog4j.configurationFile=$LOG4J_PATH
 -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020
 -enableassertions"
 
@@ -120,7 +120,7 @@ _startZoo() {
     CLASSPATH="${5}"
 
     export CLASSPATH
-    LOG4J_CONFIG="-Dlog4j.configuration=$LOG4J_FILE"
+    LOG4J_CONFIG="-Dlog4j.configurationFile=$LOG4J_FILE"
 
     SYS_ARGS=" -Xmx1g -Xms1g -Dzookeeper.sasl.client=false -Djava.awt.headless=true ${LOG4J_CONFIG} -Djava.net.preferIPv4Stack=true"
 
@@ -145,7 +145,7 @@ _startKafka() {
     LOGFILE="${3}"
     LOG4J_FILE="${4}"
 
-    SYS_ARGS1=" -Djava.awt.headless=true -Dlog4j.configuration=${LOG4J_FILE} -Djava.net.preferIPv4Stack=true -Dzookeeper.sasl.client=false"
+    SYS_ARGS1=" -Djava.awt.headless=true -Dlog4j.configurationFile=${LOG4J_FILE} -Djava.net.preferIPv4Stack=true -Dzookeeper.sasl.client=false"
     SYS_ARGS2=" -Xmx1g -Xms1g -XX:MaxPermSize=256M -XX:+CMSClassUnloadingEnabled "
 
     export CLASSPATH

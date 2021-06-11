@@ -134,7 +134,7 @@ TAR structure:
 			<directory>target/classes</directory>
 			<outputDirectory>splicemachine/lib</outputDirectory>
 			<includes>
-				<include>info-log4j.properties</include>
+				<include>info-log4j2.properties</include>
 				<include>hbase-log4j.properties</include>
 			</includes>
 		</fileSet>

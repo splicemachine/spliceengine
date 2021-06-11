@@ -51,7 +51,7 @@ class BasicHeaderPrintWriter
 	implements HeaderPrintWriter
 {
 	private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger("splice-derby");
-	private static final Logger LOG_STATEMENT = org.apache.logging.log4j.LogManager.getLogger("splice-derby.statement");
+	private static final Logger LOG_STATEMENT = org.apache.logging.log4j.LogManager.getLogger("splice.statement");
 
 	private final PrintWriterGetHeader headerGetter;
 	private final String name;

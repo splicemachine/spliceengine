@@ -352,7 +352,7 @@ public class OlapServerSubmitter implements Runnable {
 
         SConfiguration config = SIDriver.driver().getConfiguration();
         String log4jConfig = config.getOlapLog4jConfig();
-        String log4jDefault = LogManager.DEFAULT_CONFIGURATION_FILE;
+        String log4jDefault = "log4j.properties";
         URI log4jURI = null;
         if (log4jConfig != null) {
             File log4jFile = new File(new URI(log4jConfig).getPath());

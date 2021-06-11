@@ -25,7 +25,7 @@ fi
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 source ${BASE_DIR}/bin/functions.sh
 
-LOG4J_FILE="file://${BASE_DIR}/conf/info-log4j.properties"
+LOG4J_FILE="file://${BASE_DIR}/conf/info-log4j2.properties"
 
 CLASSPATH="${BASE_DIR}/lib/*"
 export CLASSPATH
