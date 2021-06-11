@@ -20,6 +20,7 @@ import com.splicemachine.utils.ByteSlice;
 
 import java.io.Externalizable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.UUID;
 
@@ -54,7 +55,7 @@ public interface TxnView extends Externalizable {
     void setNumTriggers(int num);
     int getNumTriggers();
     void incNumTriggers(TriggerDescriptor[] tds);
-    void addNumTriggers(int num, ArrayList<DisplayedTriggerInfo> triggerInfos);
+    void addNumTriggers(int num, HashMap<com.splicemachine.db.catalog.UUID, DisplayedTriggerInfo> triggerInfoMap);
     ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo();
     void initTxnTriggers(TriggerDescriptor[] tds);
 

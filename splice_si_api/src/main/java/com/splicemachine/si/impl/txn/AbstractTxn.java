@@ -45,7 +45,6 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
     protected Txn parentReference;
     private boolean subtransactionsAllowed = true;
     private AtomicInteger numTriggers;
-    private ArrayList<DisplayedTriggerInfo> triggerInfos = new ArrayList<>();
     private java.util.UUID currentQueryId;
     private HashMap<com.splicemachine.db.catalog.UUID, DisplayedTriggerInfo> triggerIdToTriggerInfoMap = new HashMap<>();
 
@@ -82,21 +81,33 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
     public void setCurrentQueryId(UUID id) {
         currentQueryId = id;
     }
+
+    @Override
     public java.util.UUID getCurrentQueryId() {
         return currentQueryId;
     }
 
-    @Override
-    public void incNumTriggers(TriggerDescriptor[] tds) {
+    public AbstractTxn getParentForTrigger() {
         AbstractTxn parent;
         if (parentReference == null || parentReference.getCurrentQueryId() == null) {
-            parent = (AbstractTxn) getParentTxnView();
-            if (parent.getCurrentQueryId() == null) {
-                return; // maybe should throw an error here
+            try {
+                parent = (AbstractTxn) getParentTxnView();
+                if (parent.getCurrentQueryId() == null) {
+                    return null; // maybe should throw an error here
+                }
+            } catch (Exception ignore) {
+                return null;
             }
         } else {
             parent = (AbstractTxn) parentReference;
         }
+        return parent;
+    }
+    @Override
+    public void incNumTriggers(TriggerDescriptor[] tds) {
+        AbstractTxn parent = getParentForTrigger();
+        if (parent == null)
+            return;
 
         for (TriggerDescriptor td : tds) {
             parent.triggerIdToTriggerInfoMap.get(td.getUUID()).setTxnId(txnId);
@@ -108,14 +119,13 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
     public ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo() {
         ArrayList<DisplayedTriggerInfo> result = new ArrayList<>();
         result.addAll(triggerIdToTriggerInfoMap.values());
-        result.addAll(triggerInfos);
         return result;
     }
 
     @Override
-    public void addNumTriggers(int num, ArrayList<DisplayedTriggerInfo> triggerInfos) {
+    public void addNumTriggers(int num, HashMap<com.splicemachine.db.catalog.UUID, DisplayedTriggerInfo> triggerInfoMap) {
         numTriggers.getAndAdd(num);
-        this.triggerInfos.addAll(triggerInfos);
+        this.triggerIdToTriggerInfoMap.putAll(triggerInfoMap);
     }
 
     @Override
@@ -245,9 +255,9 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
 
     @Override
     public void commit() throws IOException{
-        triggerInfos.addAll(triggerIdToTriggerInfoMap.values());
-        if (parentReference != null) {
-            parentReference.addNumTriggers(numTriggers.get(), triggerInfos);
+        AbstractTxn parent = getParentForTrigger();
+        if (parent != null) {
+            parent.addNumTriggers(numTriggers.get(), triggerIdToTriggerInfoMap);
         }
     }
 }

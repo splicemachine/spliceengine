@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.UUID;
 
@@ -158,7 +159,7 @@ public class LazyTxnView implements TxnView {
     }
 
     @Override
-    public void addNumTriggers(int num, ArrayList<DisplayedTriggerInfo> triggerInfos) {
+    public void addNumTriggers(int num, HashMap<com.splicemachine.db.catalog.UUID, DisplayedTriggerInfo> triggerInfoMap) {
 
     }
 
