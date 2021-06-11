@@ -157,7 +157,8 @@ public class JoinSelectivityNoIndexesIT extends SpliceUnitTest {
                 .withCreate("create table js2 (c2 int)")
                 .withInsert("insert into js2 values(?)")
                 .withRows(rows(
-                        row(2)))
+                        row(2),
+                        row(3)))
                 .create();
 
         for (int i = 1, stride = 10; i <= 13; ++i, stride *= 2) {

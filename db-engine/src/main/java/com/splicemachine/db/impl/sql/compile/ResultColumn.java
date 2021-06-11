@@ -53,6 +53,7 @@ import org.apache.spark.sql.types.StructField;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Stack;
 
 /**
  * A ResultColumn represents a result column in a SELECT, INSERT, or UPDATE
@@ -144,7 +145,7 @@ public class ResultColumn extends ValueNode
     /* whether this result column comes from an expression-based index column */
     private ValueNode indexExpression = null;
 
-    private LogicalColumnProfile logicalProfile = null;
+    private Stack<LogicalColumnProfile> logicalProfile = null;
 
     public ResultColumn() {}
     public ResultColumn(String rowLocationColumnName, CurrentRowLocationNode rowLocationNode,
@@ -1702,7 +1703,9 @@ public class ResultColumn extends ValueNode
         newResultColumn.fromLeftChild = this.fromLeftChild;
         newResultColumn.indexExpression = this.indexExpression;
         if (logicalProfile != null) {
-            newResultColumn.setLogicalProfile(logicalProfile.clone());
+            for (LogicalColumnProfile lcp : logicalProfile) {
+                newResultColumn.pushLogicalProfile(lcp.clone());
+            }
         }
         return newResultColumn;
     }
@@ -2074,8 +2077,8 @@ public class ResultColumn extends ValueNode
      * @throws StandardException
      */
     public long cardinality() throws StandardException {
-        if (this.logicalProfile != null) {
-            return Math.max(Math.round(this.logicalProfile.getDistinctCount()), 1);
+        if (getLogicalProfile() != null) {
+            return Math.max(Math.round(getLogicalProfile().getDistinctCount()), 1);
         }
         if (this.getTableColumnDescriptor() ==null) // Temporary JL
             return 0;
@@ -2276,28 +2279,46 @@ public class ResultColumn extends ValueNode
     }
 
     public void setLogicalProfile(LogicalColumnProfile logicalProfile) {
-        this.logicalProfile = logicalProfile;
+        this.logicalProfile = new Stack<>();
+        this.logicalProfile.push(logicalProfile);
     }
 
     public LogicalColumnProfile getLogicalProfile() {
-        return logicalProfile;
+        if (logicalProfile == null || logicalProfile.isEmpty()) {
+            return null;
+        }
+        return logicalProfile.peek();
     }
 
     public void updateLogicalProfile(SelectivityHolder holder) throws StandardException {
-        if (logicalProfile != null) {
-            logicalProfile.select(holder);
+        if (logicalProfile != null && !logicalProfile.isEmpty()) {
+            logicalProfile.peek().select(holder);
         }
     }
 
     public void updateDistinctCount(double inputRowCount, double outputRowCount) {
-        if (logicalProfile != null) {
-            logicalProfile.updateDistinctCount(inputRowCount, outputRowCount);
+        if (logicalProfile != null && !logicalProfile.isEmpty()) {
+            logicalProfile.peek().updateDistinctCount(inputRowCount, outputRowCount);
         }
     }
 
     public void limitDistinctCount(double upperBound) {
-        if (logicalProfile != null) {
-            logicalProfile.limitDistinctCount(upperBound);
+        if (logicalProfile != null && !logicalProfile.isEmpty()) {
+            logicalProfile.peek().limitDistinctCount(upperBound);
+        }
+    }
+
+    public void pushLogicalProfile(LogicalColumnProfile lcp) {
+        if (logicalProfile == null) {
+            setLogicalProfile(lcp);
+        } else {
+            logicalProfile.push(lcp);
+        }
+    }
+
+    public void popLogicalProfile() {
+        if (logicalProfile != null && !logicalProfile.isEmpty()) {
+            logicalProfile.pop();
         }
     }
 }

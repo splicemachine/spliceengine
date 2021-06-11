@@ -37,12 +37,8 @@ public class V2SelectivityEstimator implements SelectivityEstimator {
                                        ColumnReference rightColumn,
                                        SelectivityJoinType selectivityJoinType) throws StandardException {
         double selectivity = 0.0d;
-        // For the join, cardinality of LHS and RHS are not necessarily the raw numbers from column
-        // statistics. We should apply them on LHS and RHS output row counts proportionally.
-        double leftColumnIndexSelectivity = leftColumn.nonZeroCardinality(leftRowCount) / leftColumn.rowCountEstimate();
-        double rightColumnIndexSelectivity = rightColumn.nonZeroCardinality(rightRowCount) / rightColumn.rowCountEstimate();
-        double leftNonZeroCardinality = Math.max(1.0, leftColumnIndexSelectivity * leftRowCount);
-        double rightNonZeroCardinality = Math.max(1.0, rightColumnIndexSelectivity * rightRowCount);
+        double leftNonZeroCardinality = Math.max(1.0, leftColumn.nonZeroCardinality(leftRowCount));
+        double rightNonZeroCardinality = Math.max(1.0, rightColumn.nonZeroCardinality(rightRowCount));
 
         selectivity = ((1.0d - leftColumn.nullSelectivity()) * (1.0d - rightColumn.nullSelectivity())) /
                 Math.max(leftNonZeroCardinality, rightNonZeroCardinality);

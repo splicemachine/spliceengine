@@ -49,6 +49,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.sql.compile.costing.LogicalColumnProfile;
 
 import java.util.Collections;
 import java.util.List;
@@ -1498,8 +1499,9 @@ public class ColumnReference extends ValueNode {
             // Use logical profile only for conglomerates that are not indexes on expressions.
             // We have no way to propagate index expression columns' statistics in cost
             // estimation phase in current single-tree framework.
-            if (source.getLogicalProfile() != null) {
-                return Math.max(Math.round(source.getLogicalProfile().getDistinctCount()), 1);
+            LogicalColumnProfile lcp = getLogicalProfile();
+            if (lcp != null) {
+                return Math.max(Math.round(lcp.getDistinctCount()), 1);
             }
         }
         return getStoreCostController().cardinality(replacesIndexExpression, getColumnPositionForStatistics());
@@ -1675,5 +1677,33 @@ public class ColumnReference extends ValueNode {
     {
         if (isBaseRowIdOrRowId(colName))
             throw StandardException.newException(SQLState.LANG_DERIVED_COLUMN_NAME_USE, colName);
+    }
+
+    public LogicalColumnProfile getLogicalProfile() {
+        // Check origSource first because column reference may be remapped. origSource
+        // is the top most result column this column refers to. If it has a logical
+        // profile, that logical profile should contain the most up-to-date numbers.
+        if (origSource != null && origSource.getLogicalProfile() != null) {
+            return origSource.getLogicalProfile();
+        } else if (source != null) {
+            return source.getLogicalProfile();
+        }
+        return null;
+    }
+
+    public void pushLogicalProfile(LogicalColumnProfile lcp) {
+        if (origSource != null) {
+            origSource.pushLogicalProfile(lcp);
+        } else if (source != null) {
+            source.pushLogicalProfile(lcp);
+        }
+    }
+
+    public void popLogicalProfile() {
+        if (origSource != null) {
+            origSource.popLogicalProfile();
+        } else if (source != null) {
+            source.popLogicalProfile();
+        }
     }
 }

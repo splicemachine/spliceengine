@@ -16,12 +16,12 @@ package com.splicemachine.derby.impl.sql.compile;
 
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.compile.costing.CostEstimate;
-import com.splicemachine.db.impl.sql.compile.FirstColumnOfIndexStats;
-import com.splicemachine.db.impl.sql.compile.JoinNode;
-import com.splicemachine.db.impl.sql.compile.Level2OptimizerImpl;
-import com.splicemachine.db.impl.sql.compile.PredicateList;
+import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.db.impl.sql.compile.costing.LogicalColumnProfile;
 
 import java.text.DecimalFormat;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author Scott Fines
@@ -70,6 +70,8 @@ public class SimpleCostEstimate implements CostEstimate {
     // and it's relevant only for current tuple
     private double joinRowCount = -1.0d;
 
+    private Map<ColumnReference, LogicalColumnProfile> joinResultLogicalProfiles;
+
     public SimpleCostEstimate(){ }
 
     public SimpleCostEstimate(double theCost,double theRowCount,double theSingleScanRowCount){
@@ -86,6 +88,7 @@ public class SimpleCostEstimate implements CostEstimate {
         setLocalCostPerParallelTask(localCost, getParallelism());
         setRemoteCostPerParallelTask(remoteCost, getParallelism());
         this.joinRowCount = -1.0d;
+        this.joinResultLogicalProfiles = new HashMap<>();
     }
 
     @Override
@@ -157,6 +160,7 @@ public class SimpleCostEstimate implements CostEstimate {
         this.accumulatedMemory = other.getAccumulatedMemory();
         this.setSingleRow(other.isSingleRow());
         this.setJoinSelectionCardinality(other.getJoinSelectionCardinality());
+        this.joinResultLogicalProfiles = other.getJoinResultLogicalProfiles();
     }
 
     @Override
@@ -687,6 +691,20 @@ public class SimpleCostEstimate implements CostEstimate {
     @Override
     public double getRawRowCount() {
         return rawRowCount >= 0 ? rawRowCount : numRows;
+    }
+
+    @Override
+    public Map<ColumnReference, LogicalColumnProfile> getJoinResultLogicalProfiles() {
+        return joinResultLogicalProfiles;
+    }
+
+    @Override
+    public void addJoinResultLogicalProfile(ColumnReference cr, LogicalColumnProfile lcp) {
+        if (joinResultLogicalProfiles == null) {
+            joinResultLogicalProfiles = new HashMap<>();
+        }
+        joinResultLogicalProfiles.put(cr, lcp);
+        cr.pushLogicalProfile(lcp);
     }
 
 }

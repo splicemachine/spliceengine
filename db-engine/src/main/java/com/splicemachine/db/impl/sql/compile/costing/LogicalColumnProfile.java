@@ -124,19 +124,18 @@ public class LogicalColumnProfile implements Cloneable {
      * @param joinType One of LogicalColumnProfile.JoinType.
      * @param other    The logical profile of the other column referenced in the same
      *                 join predicate.
+     * @return A new logical profile for this column in the result relation.
      */
-    public void equiJoin(JoinType joinType, LogicalColumnProfile other) throws StandardException {
+    public LogicalColumnProfile equiJoin(JoinType joinType, LogicalColumnProfile other) throws StandardException {
         switch (joinType) {
             case SELF:
-                break;
+                return this.clone();
             case INNER:
             case SEMI:
             default:
-                distinctCount = Math.min(distinctCount, other.getDistinctCount());
-                distinctCountUpdated = true;
-                minValue = max(minValue, other.getMaxValue());
-                maxValue = min(maxValue, other.getMaxValue());
-                break;
+                return new LogicalColumnProfile(resultColumn, Math.min(distinctCount, other.getDistinctCount()),
+                                                max(minValue, other.getMaxValue()),
+                                                min(maxValue, other.getMaxValue()));
         }
     }
 

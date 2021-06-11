@@ -35,7 +35,12 @@ import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
 import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.store.access.StoreCostResult;
+import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.FirstColumnOfIndexStats;
+import com.splicemachine.db.impl.sql.compile.ResultColumn;
+import com.splicemachine.db.impl.sql.compile.costing.LogicalColumnProfile;
+
+import java.util.Map;
 
 /**
  * A CostEstimate represents the cost of getting a ResultSet, along with the
@@ -338,4 +343,8 @@ public interface CostEstimate extends StoreCostResult {
     void setRawRowCount(double rawRowCount);
 
     double getRawRowCount();
+
+    Map<ColumnReference, LogicalColumnProfile> getJoinResultLogicalProfiles();
+
+    void addJoinResultLogicalProfile(ColumnReference cr, LogicalColumnProfile lcp);
 }
