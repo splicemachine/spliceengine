@@ -256,6 +256,7 @@ TOKEN [IGNORE_CASE] :
 | <USER: "user">
 | <USING: "using">
 | <VERSION: "version">
+| <VIEW: "view">
 | <VIEWS: "views">
 | <WAIT: "wait">
 | <WITH: "with">
@@ -1027,9 +1028,7 @@ throws SQLException
         return
         showTables(schema, types);
     }
-|   <CREATE> <TABLE> ( i = caIdentifierForSysProcs() ( <PERIOD> i2 = caIdentifierForSysProcs() )?
-
-
+|   <CREATE> ( t=<TABLE> | v = <VIEW>) ( i = caIdentifierForSysProcs() ( <PERIOD> i2 = caIdentifierForSysProcs() )?
         {
             if (i2 == null) {
                 schema = null;
@@ -1042,7 +1041,7 @@ throws SQLException
                 schema = util.getSelectedSchema(theConnection);
             }
             return
-            showCreateTable(schema, tblname);
+            showCreateTable(schema, tblname, v != null);
         }
     | s=<STRING>
         {
@@ -1063,7 +1062,7 @@ throws SQLException
             if (schema == null) {
                 schema = util.getSelectedSchema(theConnection);
             }
-            return showCreateTable(schema, tblname);
+            return showCreateTable(schema, tblname, v != null);
         })
 | <INDEXES>
         [ (<IN> schema=caIdentifier()) |
@@ -3130,6 +3129,7 @@ keyword() :
 | tok = <USER>
 | tok = <USING>
 | tok = <VERSION>
+| tok = <VIEW>
 | tok = <VIEWS>
 | tok = <WAIT>
 | tok = <WITH>

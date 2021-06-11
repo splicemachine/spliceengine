@@ -2927,6 +2927,13 @@ Guide.
             </msg>
 
             <msg>
+                <name>42Z03</name>
+                <text>'{0}' is not allowed on '{1}' because it is not a view.</text>
+                <arg>statement</arg>
+                <arg>viewName</arg>
+            </msg>
+
+            <msg>
                 <name>42Z07</name>
                 <text>Aggregates are not permitted in the ON clause.</text>
             </msg>

@@ -442,13 +442,14 @@ public class ijCommands {
      * Outputs the DDL of given table.
      */
     @SuppressFBWarnings("SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE") // intentional
-    public ijResult showCreateTable(String schema, String table) throws SQLException {
+    public ijResult showCreateTable(String schema, String table, boolean isView) throws SQLException {
         ResultSet rs = null;
         try {
             haveConnection();
+
+            String procedureName = "SYSCS_UTIL.SHOW_CREATE_" + (isView ? "VIEW" : "TABLE");
             Statement stmt = theConnection.createStatement();
-            rs = stmt.executeQuery("CALL SYSCS_UTIL.SHOW_CREATE_TABLE(\'" +
-                    schema + "\'," + "\'" + table + "\')" );
+            rs = stmt.executeQuery("CALL " + procedureName + "(\'" + schema + "\'," + "\'" + table + "\')" );
             int[] displayColumns = new int[] { 1 };
             int[] columnWidths = new int[] { 0 };
             return new ijResultSetResult(rs, displayColumns, columnWidths);

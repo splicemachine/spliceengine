@@ -8,9 +8,11 @@ import com.splicemachine.db.impl.tools.ij.ijCommands;
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.io.IOUtils;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -57,6 +59,8 @@ public class SqlshellIT {
 
         execute("CREATE INDEX idx1 ON TX2(ABC);\n", zeroRowsUpdated);
         execute("CREATE INDEX id_1 ON T_2(COL_1);\n", zeroRowsUpdated);
+
+        execute("CREATE VIEW V_2(BLA) AS SELECT DEF FROM ABC;\n", zeroRowsUpdated);
     }
 
     @AfterClass
@@ -153,6 +157,23 @@ public class SqlshellIT {
                         "T_2                           |COL_1                         |1         |§\n" +
                         "\n" +
                         "1 row selected\n") );
+    }
+
+    @Test
+    public void testShowView() {
+        execute("show create view VX1;\n",
+                 "DDL\n" +
+                         "---\n" +
+                         "CREATE VIEW VX1 AS SELECT * FROM ABC;\n" +
+                         "\n" +
+                         "1 row selected\n");
+
+        execute("show create view V_2;\n",
+                "DDL\n" +
+                        "---\n" +
+                        "CREATE VIEW V_2(BLA) AS SELECT DEF FROM ABC;\n" +
+                        "\n" +
+                        "1 row selected\n");
     }
 
     @Test
