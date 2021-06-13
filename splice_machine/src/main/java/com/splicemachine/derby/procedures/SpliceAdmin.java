@@ -158,20 +158,18 @@ public class SpliceAdmin extends BaseAdminProcedures {
         ResultHelper.BigintColumn   colTimeSpent           = res.addBigint("timeSpent", 9);
 //        ResultHelper.BigintColumn   colParentTxnId      = res.addBigint("parentTxnId", 9);
 
-        if(lcc.getDisplayedTriggerInfo() != null) {
-            for(DisplayedTriggerInfo info : lcc.getDisplayedTriggerInfo()){
-                res.newRow();
-                colTriggerId.set( info.getId().toString() );
-                colTriggerName.set( info.getName() );
-                colTxnId.set( info.getTxnId() );
+        for(DisplayedTriggerInfo info : lcc.getDisplayedTriggerInfo()){
+            res.newRow();
+            colTriggerId.set( info.getId().toString() );
+            colTriggerName.set( info.getName() );
+            colTxnId.set( info.getTxnId() );
 //                if(info.getParentTxnId() != -1)
 //                    colParentTxnId.set( info.getParentTxnId() );
-                if(info.getQueryId() != null)
-                    colQueryId.set( info.getQueryId().toString() );
-                if(info.getParentQueryId() != null)
-                    colParentQueryId.set( info.getParentQueryId().toString() );
-                colTimeSpent.set( info.getElapsedTime() );
-            }
+            if(info.getQueryId() != null)
+                colQueryId.set( info.getQueryId().toString() );
+            if(info.getParentQueryId() != null)
+                colParentQueryId.set( info.getParentQueryId().toString() );
+            colTimeSpent.set( info.getElapsedTime() );
         }
 
         resultSet[0] = res.getResultSet();

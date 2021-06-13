@@ -117,9 +117,7 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
 
     @Override
     public ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo() {
-        ArrayList<DisplayedTriggerInfo> result = new ArrayList<>();
-        result.addAll(triggerIdToTriggerInfoMap.values());
-        return result;
+        return new ArrayList<>(triggerIdToTriggerInfoMap.values());
     }
 
     @Override

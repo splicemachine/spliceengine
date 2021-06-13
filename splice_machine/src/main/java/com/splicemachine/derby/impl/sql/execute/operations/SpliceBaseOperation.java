@@ -503,7 +503,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
                 dsp.setJobGroup(jobName, sql);
             }
             this.execRowIterator =getDataSet(dsp).toLocalIterator();
-            activation.getLanguageConnectionContext().setNumTriggers(getCurrentTransaction().getNumTriggers());
             activation.getLanguageConnectionContext().setDisplayedTriggerInfo(getCurrentTransaction().getDisplayedTriggerInfo());
         } catch (ResubmitDistributedException e) {
             resubmitDistributed(e);
@@ -619,8 +618,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     private void logExecutionEnd() {
         long timeSpent = System.nanoTime() - startTime;
         try {
-            if (getTriggerHandler() != null)
-                activation.getLanguageConnectionContext().setElapsedTimeByQuery(timeSpent, uuid);
+            activation.getLanguageConnectionContext().setElapsedTimeByQuery(timeSpent, uuid);
         } catch (Exception ignored) {}
 
         activation.getLanguageConnectionContext().logEndExecuting(uuid.toString(),

@@ -539,7 +539,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
         String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(this, MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
         ignoreCommentOptEnabled = Boolean.valueOf(ignoreCommentOptEnabledStr);
-        this.triggerInfos = new ArrayList<>();
     }
 
     private void setSessionFromConnectionProperty(Properties connectionProperties, String connectionPropName, SessionProperties.PROPERTYNAME sessionPropName) {
@@ -555,46 +554,26 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * session.
      */
     private String sessionUser = null;
-
-    private int numTriggers = 0;
-
-    private ArrayList<DisplayedTriggerInfo> triggerInfos;
-    private HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap = new HashMap<>();
-
-    @Override
-    public void setNumTriggers(int num) {
-        numTriggers = num;
-    }
+    private ArrayList<DisplayedTriggerInfo> triggerInfos = new ArrayList<>();
+    private HashMap<java.util.UUID, Long> queryTimeMap = new HashMap<>();
 
     @Override
     public void setDisplayedTriggerInfo(ArrayList<DisplayedTriggerInfo> triggerInfos) {
-        if (triggerInfos != null)
-            this.triggerInfos = new ArrayList<>(triggerInfos);
-    }
-
-    @Override
-    public int getNumTriggers() {
-        return numTriggers;
+        this.triggerInfos = triggerInfos;
+        for (DisplayedTriggerInfo dti : this.triggerInfos) {
+            dti.setElapsedTime(this.queryTimeMap.get(dti.getQueryId()));
+        }
     }
 
     @Override
     public ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo() {
+        queryTimeMap = new HashMap<>();
         return triggerInfos;
     }
 
     @Override
-    public void incNumTriggers() {
-        numTriggers += 1;
-    }
-
-    @Override
-    public void addDisplayedTriggerInfo(ArrayList<DisplayedTriggerInfo> triggerInfos) {
-        this.triggerInfos.addAll(triggerInfos);
-    }
-
-    @Override
     public void setElapsedTimeByQuery(long elapsedTime, java.util.UUID queryId) {
-        queryIdToTriggerInfoMap.get(queryId).setElapsedTime(elapsedTime);
+        queryTimeMap.put(queryId, elapsedTime);
     }
     @Override
     public void initialize() throws StandardException {

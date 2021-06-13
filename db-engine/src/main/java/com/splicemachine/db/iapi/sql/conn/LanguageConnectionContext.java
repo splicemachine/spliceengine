@@ -118,12 +118,8 @@ public interface LanguageConnectionContext extends Context {
     char LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_CHAR = '_';
     int LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_NUM_CHAR = 20;
 
-    void setNumTriggers(int num);
     void setDisplayedTriggerInfo(ArrayList<DisplayedTriggerInfo> triggerInfos);
-    int getNumTriggers();
     ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo();
-    void incNumTriggers();
-    void addDisplayedTriggerInfo(ArrayList<DisplayedTriggerInfo> triggerInfos);
     void setElapsedTimeByQuery(long elapsedTime, java.util.UUID queryId);
 
     /**
