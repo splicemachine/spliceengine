@@ -69,7 +69,7 @@ public class MergeNodeIT
 
     void test(String src, String dest, String sql, String res) throws Exception {
         try {
-            createTables(src, dest );
+            createTables(src, dest);
             methodWatcher.execute(sql);
             methodWatcher.assertStrResult( res, "select * from T_dest", true);
         }
@@ -144,7 +144,7 @@ public class MergeNodeIT
 
     // delete
 
-    @Ignore // fails Nullpointer Except
+    //@Ignore // fails Nullpointer Except
     @Test
     public void testSimpleDelete() throws Exception {
         test(   "(1, 11, 111), (4, 44, 444)", // src
@@ -155,6 +155,21 @@ public class MergeNodeIT
 
                 "I | J | K |\n" +
                 "------------\n" +
+                " 2 |20 | 3 |");
+    }
+
+    //@Ignore // fails Nullpointer Except
+    @Test
+    public void testSimpleUpdate() throws Exception {
+        test(   "(1, 11, 111), (4, 44, 444)", // src
+                "(1, 10, 3), (2, 20, 3)", // dest
+
+                "merge into T_dest using T_src on (T_dest.i = T_src.i) " +
+                        "when matched then UPDATE SET T_dest.j = T_src.j",
+
+                "I | J | K |\n" +
+                "------------\n" +
+                " 1 |11 | 3 |\n" +
                 " 2 |20 | 3 |");
     }
 

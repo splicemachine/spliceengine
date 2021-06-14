@@ -649,7 +649,8 @@ public final class UpdateNode extends DMLModStatementNode
         }
 
         /* Append to the ResultColumnList */
-        resultColumnList.addResultColumn(rowLocationColumn);
+        //if(!inMatchingClause())
+            resultColumnList.addResultColumn(rowLocationColumn);
 
         /* Bind untyped nulls directly under the result columns */
         resultSet.
