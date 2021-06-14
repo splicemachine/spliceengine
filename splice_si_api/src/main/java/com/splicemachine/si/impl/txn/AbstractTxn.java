@@ -68,16 +68,6 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
     }
 
     @Override
-    public void setNumTriggers(int num) {
-        numTriggers.set(num);
-    }
-
-    @Override
-    public int getNumTriggers() {
-        return numTriggers.get();
-    }
-
-    @Override
     public void setCurrentQueryId(UUID id) {
         currentQueryId = id;
     }
@@ -104,7 +94,7 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
         return parent;
     }
     @Override
-    public void incNumTriggers(TriggerDescriptor[] tds) {
+    public void recordQueryInfoForTriggerInfo(TriggerDescriptor[] tds) {
         AbstractTxn parent = getParentForTrigger();
         if (parent == null)
             return;
@@ -121,15 +111,13 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
     }
 
     @Override
-    public void addNumTriggers(int num, HashMap<com.splicemachine.db.catalog.UUID, DisplayedTriggerInfo> triggerInfoMap) {
-        numTriggers.getAndAdd(num);
+    public void addTriggerInfoFromChild(HashMap<com.splicemachine.db.catalog.UUID, DisplayedTriggerInfo> triggerInfoMap) {
         this.triggerIdToTriggerInfoMap.putAll(triggerInfoMap);
     }
 
     @Override
-    public void initTxnTriggers(TriggerDescriptor[] tds) {
+    public void initTriggerInfo(TriggerDescriptor[] tds) {
         for (TriggerDescriptor td : tds) {
-            numTriggers.getAndIncrement();
             triggerIdToTriggerInfoMap.put(td.getUUID(), new DisplayedTriggerInfo(td.getUUID(), td.getName(), -1, null, currentQueryId));
         }
     }
@@ -255,7 +243,7 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
     public void commit() throws IOException{
         AbstractTxn parent = getParentForTrigger();
         if (parent != null) {
-            parent.addNumTriggers(numTriggers.get(), triggerIdToTriggerInfoMap);
+            parent.addTriggerInfoFromChild(triggerIdToTriggerInfoMap);
         }
     }
 }

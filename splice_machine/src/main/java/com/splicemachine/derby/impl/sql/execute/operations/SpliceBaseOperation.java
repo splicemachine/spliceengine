@@ -491,7 +491,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
             // initialize displayed trigger info
             if (getTriggerHandler() != null) {
-                getCurrentTransaction().initTxnTriggers(getTriggerHandler().triggerInfo.getTriggerDescriptors());
+                getCurrentTransaction().initTriggerInfo(getTriggerHandler().triggerInfo.getTriggerDescriptors());
             }
 
             sql=sql==null?this.toString():sql;

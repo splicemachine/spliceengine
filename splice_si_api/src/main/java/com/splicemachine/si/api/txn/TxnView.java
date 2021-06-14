@@ -52,12 +52,10 @@ public interface TxnView extends Externalizable {
 
     void setCurrentQueryId(java.util.UUID id);
     UUID getCurrentQueryId();
-    void setNumTriggers(int num);
-    int getNumTriggers();
-    void incNumTriggers(TriggerDescriptor[] tds);
-    void addNumTriggers(int num, HashMap<com.splicemachine.db.catalog.UUID, DisplayedTriggerInfo> triggerInfoMap);
+    void recordQueryInfoForTriggerInfo(TriggerDescriptor[] tds);
+    void addTriggerInfoFromChild(HashMap<com.splicemachine.db.catalog.UUID, DisplayedTriggerInfo> triggerInfoMap);
     ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo();
-    void initTxnTriggers(TriggerDescriptor[] tds);
+    void initTriggerInfo(TriggerDescriptor[] tds);
 
     boolean allowsSubtransactions();
 

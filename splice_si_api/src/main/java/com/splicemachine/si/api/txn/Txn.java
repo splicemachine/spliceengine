@@ -225,16 +225,10 @@ public interface Txn extends TxnView{
         }
 
         @Override
-        public void setNumTriggers(int num) {}
+        public void recordQueryInfoForTriggerInfo(TriggerDescriptor[] tds) {}
 
         @Override
-        public int getNumTriggers() { return 0; }
-
-        @Override
-        public void incNumTriggers(TriggerDescriptor[] tds) {}
-
-        @Override
-        public void addNumTriggers(int num, HashMap<com.splicemachine.db.catalog.UUID, DisplayedTriggerInfo> triggerInfoMap) {}
+        public void addTriggerInfoFromChild(HashMap<com.splicemachine.db.catalog.UUID, DisplayedTriggerInfo> triggerInfoMap) {}
 
         @Override
         public ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo() {
@@ -242,7 +236,7 @@ public interface Txn extends TxnView{
         }
 
         @Override
-        public void initTxnTriggers(TriggerDescriptor[] tds) {
+        public void initTriggerInfo(TriggerDescriptor[] tds) {
 
         }
     };
