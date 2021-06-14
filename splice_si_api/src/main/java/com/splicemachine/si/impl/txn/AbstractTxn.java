@@ -130,7 +130,7 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
     public void initTxnTriggers(TriggerDescriptor[] tds) {
         for (TriggerDescriptor td : tds) {
             numTriggers.getAndIncrement();
-            triggerIdToTriggerInfoMap.put(td.getUUID(), new DisplayedTriggerInfo(td.getUUID(), td.getName(), -1, null, txnId, currentQueryId));
+            triggerIdToTriggerInfoMap.put(td.getUUID(), new DisplayedTriggerInfo(td.getUUID(), td.getName(), -1, null, currentQueryId));
         }
     }
 
