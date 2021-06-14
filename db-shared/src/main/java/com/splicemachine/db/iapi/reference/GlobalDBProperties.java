@@ -136,4 +136,9 @@ public class GlobalDBProperties {
             new PropertyType("splice.execution.newMergeJoin",
                     "use new merge join. possible values: on, off, forced",
                     new Validator.MultipleOptions(new String[]{"on", "off", "forced"}));
+
+    public static PropertyType COST_MODEL =
+            new PropertyType("costModel",
+                             "cost model version, usable versions are v1 and v2",
+                             new Validator.MultipleOptions(new String[]{"v1", "v2"}));
 }

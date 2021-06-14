@@ -78,4 +78,24 @@ public class GlobalDatabasePropertyIT extends SpliceUnitTest {
             setProperty("derby.database.selectivityEstimationIncludingSkewedDefault", "NULL");
         }
     }
+
+    @Test
+    public void testCostModel() throws Exception {
+        String getPropertyQuery = "call syscs_util.syscs_get_global_database_property('costModel')";
+        String testQuery = "explain select * from sys.systables";
+        try (TestConnection conn = methodWatcher.getOrCreateConnection()) {
+            setProperty("costModel", "v2");
+            try (Statement s = conn.createStatement();
+                ResultSet rs = s.executeQuery(getPropertyQuery)) {
+                while (rs.next()) {
+                    String result = rs.getString("PROPERTY_VALUE");
+                    Assert.assertTrue(result.compareToIgnoreCase("v2") == 0);
+                }
+            }
+            rowContainsQuery(3, testQuery, "costModel=v2", methodWatcher);
+        } finally {
+            setProperty("costModel", "NULL");
+            rowContainsQuery(3, testQuery, "costModel=v1", methodWatcher);
+        }
+    }
 }
