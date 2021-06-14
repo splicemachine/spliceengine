@@ -977,10 +977,6 @@ public class MatchingClauseNode extends QueryTreeNode {
             throws StandardException
     {
         if ( isDeleteClause() ) { bindDeleteThenColumns( selectList ); }
-        else if ( isUpdateClause() )
-        {
-            throw StandardException.newException( SQLState.NOT_IMPLEMENTED, "MERGE" );
-        }
     }
 
     /**
