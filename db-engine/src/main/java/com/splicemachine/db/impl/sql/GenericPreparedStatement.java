@@ -347,7 +347,9 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
                 // to execute.  That exception will be caught by the executeSPS()
                 // method of the GenericTriggerExecutor class, and at that time
                 // the SPS action will be recompiled correctly.
+                boolean oldNeedsSavePoint = needsSavepoint;
                 rePrepare(lccToUse);
+                needsSavepoint = oldNeedsSavePoint;
             }
 
             StatementContext statementContext = lccToUse.pushStatementContext(

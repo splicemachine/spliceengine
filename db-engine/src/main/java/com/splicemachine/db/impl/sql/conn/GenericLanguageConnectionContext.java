@@ -166,6 +166,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private ManagedCache<UUID, SPSDescriptor> spsCache = null;
     private SPSDescriptor createTriggerSPSDescriptor;
     private long activeStateTxId = -1;
+    private boolean cloningData;
+
 
     /**
      * The transaction to use within this language connection context.  It may
@@ -4233,4 +4235,13 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         return activeStateTxId;
     }
 
+    @Override
+    public boolean isCloningData() {
+        return cloningData;
+    }
+
+    @Override
+    public void setCloningData(boolean cloningData) {
+        this.cloningData = cloningData;
+    }
 }

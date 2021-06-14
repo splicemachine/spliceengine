@@ -39,17 +39,18 @@ public class SpliceDependencyManager extends BasicDependencyManager {
 
 	@Override
   public void copyDependencies(Dependent copyFrom, Dependent copyTo, boolean persistentOnly, ContextManager cm, TransactionController tc) throws StandardException {
-      if (LOG.isTraceEnabled())
-          SpliceLogUtils.trace(LOG, "copyDependencies copyFrom=%s,copyTo=%s,persistentOnly=%s, contextManager=%s, transactionController=%s",copyFrom,copyTo,persistentOnly,cm,tc);
-      LanguageConnectionContext lcc = getLanguageConnectionContext(cm);
-      // tc == null means do it in the user transaction
-      TransactionController tcToUse = (tc == null) ? lcc.getTransactionExecute() : tc;
-      BaseSpliceTransaction usrTxn = ((SpliceTransactionManager)tcToUse).getRawTransaction();
-      assert usrTxn instanceof SpliceTransaction: "Programmer error: cannot elevate a non-SpliceTransaction";
-      SpliceTransaction txn = (SpliceTransaction)usrTxn;
-      if(!txn.allowsWrites())
-          txn.elevate(Bytes.toBytes(copyTo.getObjectName()));
-      super.copyDependencies(copyFrom, copyTo, persistentOnly, cm, tc);
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "copyDependencies copyFrom=%s,copyTo=%s,persistentOnly=%s, contextManager=%s, transactionController=%s",copyFrom,copyTo,persistentOnly,cm,tc);
+        LanguageConnectionContext lcc = getLanguageConnectionContext(cm);
+        // tc == null means do it in the user transaction
+        TransactionController tcToUse = (tc == null) ? lcc.getTransactionExecute() : tc;
+        BaseSpliceTransaction usrTxn = ((SpliceTransactionManager)tcToUse).getRawTransaction();
+        if (usrTxn instanceof SpliceTransaction) {
+            SpliceTransaction txn = (SpliceTransaction) usrTxn;
+            if (!txn.allowsWrites())
+                txn.elevate(Bytes.toBytes(copyTo.getObjectName()));
+        }
+        super.copyDependencies(copyFrom, copyTo, persistentOnly, cm, tc);
   }
 
     @Override

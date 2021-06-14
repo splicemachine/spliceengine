@@ -1532,4 +1532,7 @@ public interface LanguageConnectionContext extends Context {
 
     long getActiveStateTxId();
 
+    boolean isCloningData();
+
+    void setCloningData(boolean cloningData);
 }
