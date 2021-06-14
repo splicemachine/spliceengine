@@ -85,8 +85,10 @@ public class FkJobSubmitter {
         DDLChange ddlChange = ProtoUtil.createTentativeFKConstraint((ForeignKeyConstraintDescriptor) foreignKeyConstraintDescriptor, activeStateTxn.getTxnId(),
                 referencedConglomerateId, referencedTableName, referencedTableVersion, backingIndexFormatIds, backingIndexConglomerateIds,
                 ddlChangeType.equals(DDLChangeType.DROP_FOREIGN_KEY) ? DDLMessage.DDLChangeType.DROP_FOREIGN_KEY : DDLMessage.DDLChangeType.ADD_FOREIGN_KEY, foreignKeyConstraintDescriptor.getTableDescriptor(), lcc);
-        TransactionController tc = lcc.getTransactionExecute();
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange)); // Enroll in 2PC
+        if (!lcc.isCloningData()) {
+            TransactionController tc = lcc.getTransactionExecute();
+            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange)); // Enroll in 2PC
+        }
     }
 
 }
