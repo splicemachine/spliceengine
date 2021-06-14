@@ -22,6 +22,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.iapi.types.SQLRef;
 import com.splicemachine.db.impl.sql.compile.MatchingClauseNode;
 import com.splicemachine.db.impl.sql.execute.TemporaryRowHolderImpl;
 import com.splicemachine.derby.impl.sql.execute.actions.MatchingClauseConstantAction;
@@ -192,7 +193,7 @@ public class MergeOperation extends NoRowsOperation
                 if ( !rlColumn.isNull() )
                 {
                     matched = true;
-                    baseRowLocation = (RowLocation) rlColumn; //.getObject(); // todo what is this
+                    //baseRowLocation = (RowLocation)((SQLRef) rlColumn).getObject(); //.getObject(); // todo what is this
                 }
             }
 

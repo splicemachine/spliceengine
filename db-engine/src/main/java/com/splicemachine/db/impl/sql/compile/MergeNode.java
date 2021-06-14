@@ -384,6 +384,8 @@ public class MergeNode extends DMLStatementNode
     private void    addTargetRowLocation( ResultColumnList selectList )
             throws StandardException
     {
+          if(selectList.elementAt(selectList.size()-1).getExpression().getColumnName().equals(UpdateNode.COLUMNNAME))
+              return;
         // tell the target table to generate a row location column
         _targetTable.setRowLocationColumnName( TARGET_ROW_LOCATION_NAME );
 
@@ -491,14 +493,24 @@ public class MergeNode extends DMLStatementNode
     {
         ArrayList<String>   list = new ArrayList<String>();
 
+        ColumnReference rowLocationToUpdate = null;
+
         for ( ColumnReference cr : map.values() )
         {
-            if ( exposedName.equals( cr.getTableName() ) ) { list.add( cr.getColumnName() ); }
+            if ( !exposedName.equals( cr.getTableName() ) )
+                continue;
+            if(cr.getColumnName().equals(UpdateNode.COLUMNNAME))
+                rowLocationToUpdate = cr;
+            else
+                list.add( cr.getColumnName() );
+
         }
+        if(rowLocationToUpdate != null)
+            list.add( rowLocationToUpdate.getColumnName() );
 
         String[]    retval = new String[ list.size() ];
         list.toArray( retval );
-        Arrays.sort( retval );
+        //Arrays.sort( retval );
 
         return retval;
     }
