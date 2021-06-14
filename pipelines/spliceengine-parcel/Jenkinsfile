@@ -4,7 +4,7 @@
 def slackResponse = slackSend(channel: "db-automated-testing", message: "Launching $JOB_NAME pipeline")
 slackSend(channel: slackResponse.threadId, message: "Launching Jenkins node...")
 
-def releases = ["cdh6.3.0","dbaas3.0"]
+def releases = ["cdh6.3.0","dbaas3.0","dbaas3.1"]
 
 def parallelStagesMap = releases.collectEntries {
     ["${it}" : generateStage(it,slackResponse)]
