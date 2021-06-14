@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.BitSetIterator;
 import com.google.protobuf.ByteString;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -57,8 +58,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
-import static org.apache.curator.shaded.com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Builds an index table KVPair given a base table KVPair.
@@ -114,7 +113,6 @@ public class IndexTransformer {
     public IndexTransformer(DDLMessage.TentativeIndex tentativeIndex) throws StandardException {
         index = tentativeIndex.getIndex();
         table = tentativeIndex.getTable();
-        checkArgument(!index.getUniqueWithDuplicateNulls() || index.getUniqueWithDuplicateNulls(), "isUniqueWithDuplicateNulls only for use with unique indexes");
         excludeNulls = index.getExcludeNulls();
         excludeDefaultValues = index.getExcludeDefaults();
         this.typeProvider = VersionedSerializers.typesForVersion(table.getTableVersion());
@@ -763,18 +761,16 @@ public class IndexTransformer {
     }
 
     private LanguageConnectionContext getLcc(DDLMessage.TentativeIndex tentativeIndex) throws StandardException {
-        boolean prepared = false;
-        SpliceTransactionResourceImpl transactionResource = null;
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(tentativeIndex.getTxnId());
-            transactionResource = new SpliceTransactionResourceImpl();
-            prepared = transactionResource.marshallTransaction(txn);
+        /* TODO(DB-10485) SpliceTransactionResourceImpl is closed by the time we use the LCC. It works in our small
+         *  use-case here, but could lead to complications if a future commit tries to access the context manager from
+         *  that LCC. We should either pass LCC from a caller function, or get ClassFactory directly.
+         */
+        TxnView txn = DDLUtils.getLazyTransaction(tentativeIndex.getTxnId());
+        try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
+            transactionResource.marshallTransaction(txn);
             return transactionResource.getLcc();
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
-        } finally {
-            if (prepared)
-                transactionResource.close();
         }
     }
 
