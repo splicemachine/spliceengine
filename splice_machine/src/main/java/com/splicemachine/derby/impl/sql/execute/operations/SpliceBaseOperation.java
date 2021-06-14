@@ -618,7 +618,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     private void logExecutionEnd() {
         long timeSpent = System.nanoTime() - startTime;
         try {
-            activation.getLanguageConnectionContext().setElapsedTimeByQuery(timeSpent, uuid);
+            activation.getLanguageConnectionContext().recordAdditionalDisplayedTriggerInfo(timeSpent, modifiedRowCount[0], uuid);
         } catch (Exception ignored) {}
 
         activation.getLanguageConnectionContext().logEndExecuting(uuid.toString(),

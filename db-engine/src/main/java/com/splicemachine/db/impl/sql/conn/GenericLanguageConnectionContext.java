@@ -74,6 +74,7 @@ import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SparkSQLUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
@@ -555,13 +556,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      */
     private String sessionUser = null;
     private ArrayList<DisplayedTriggerInfo> triggerInfos = new ArrayList<>();
-    private HashMap<java.util.UUID, Long> queryTimeMap = new HashMap<>();
+    // Map with key of queryId and value Pair<Timespent, nRowsModified>
+    private HashMap<java.util.UUID, Pair<Long, Long>> queryTimeMap = new HashMap<>();
 
     @Override
     public void setDisplayedTriggerInfo(ArrayList<DisplayedTriggerInfo> triggerInfos) {
         this.triggerInfos = triggerInfos;
         for (DisplayedTriggerInfo dti : this.triggerInfos) {
-            dti.setElapsedTime(this.queryTimeMap.get(dti.getQueryId()));
+            Pair<Long, Long> additionalInfo = this.queryTimeMap.get(dti.getQueryId());
+            dti.setElapsedTime(additionalInfo.getFirst());
+            dti.setModifiedRowCount(additionalInfo.getSecond());
         }
     }
 
@@ -572,8 +576,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public void setElapsedTimeByQuery(long elapsedTime, java.util.UUID queryId) {
-        queryTimeMap.put(queryId, elapsedTime);
+    public void recordAdditionalDisplayedTriggerInfo(long elapsedTime, long modifiedRows, java.util.UUID queryId) {
+        queryTimeMap.put(queryId, Pair.newPair(elapsedTime, modifiedRows));
     }
     @Override
     public void initialize() throws StandardException {

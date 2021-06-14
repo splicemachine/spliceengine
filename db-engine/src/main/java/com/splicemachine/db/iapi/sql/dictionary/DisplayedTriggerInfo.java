@@ -10,6 +10,7 @@ public class DisplayedTriggerInfo {
     private java.util.UUID queryId;
     private java.util.UUID parentQueryId;
     private long elapsedTime = -1;
+    private long modifiedRowCount = -1;
 
     public DisplayedTriggerInfo(UUID id, String name, long txnId, java.util.UUID queryId) {
         this.id = id;
@@ -63,5 +64,13 @@ public class DisplayedTriggerInfo {
 
     public long getElapsedTime() {
         return elapsedTime;
+    }
+
+    public long getModifiedRowCount() {
+        return modifiedRowCount;
+    }
+
+    public void setModifiedRowCount(long modifiedRowCount) {
+        this.modifiedRowCount = modifiedRowCount;
     }
 }

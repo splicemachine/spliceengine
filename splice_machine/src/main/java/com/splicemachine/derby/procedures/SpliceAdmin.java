@@ -147,29 +147,25 @@ public class SpliceAdmin extends BaseAdminProcedures {
     public static void SYSCS_GET_TRIGGER_EXEC(final ResultSet[] resultSet) throws SQLException {
         LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
         ResultHelper res = new ResultHelper();
-//        ResultHelper.BigintColumn  col = res.addBigint("NUM_TRIGGERS", 9);
-//        resultHelper.newRow();
-//        col.set(lcc.getNumTriggers());
-        ResultHelper.VarcharColumn  colTriggerId        = res.addVarchar("triggerId", 36);
         ResultHelper.VarcharColumn  colTriggerName      = res.addVarchar("triggerName", 128);
+        ResultHelper.VarcharColumn  colTriggerId        = res.addVarchar("triggerId", 36);
+        ResultHelper.BigintColumn   colTxnId            = res.addBigint("txnId", 9);
         ResultHelper.VarcharColumn  colQueryId          = res.addVarchar("queryId", 36);
         ResultHelper.VarcharColumn  colParentQueryId    = res.addVarchar("parentQueryId", 36);
-        ResultHelper.BigintColumn   colTxnId            = res.addBigint("txnId", 9);
-        ResultHelper.BigintColumn   colTimeSpent           = res.addBigint("timeSpent", 9);
-//        ResultHelper.BigintColumn   colParentTxnId      = res.addBigint("parentTxnId", 9);
+        ResultHelper.BigintColumn   colTimeSpent        = res.addBigint("timeSpent", 9);
+        ResultHelper.BigintColumn   colnRows            = res.addBigint("numRowsModified", 9);
 
         for(DisplayedTriggerInfo info : lcc.getDisplayedTriggerInfo()){
             res.newRow();
             colTriggerId.set( info.getId().toString() );
             colTriggerName.set( info.getName() );
             colTxnId.set( info.getTxnId() );
-//                if(info.getParentTxnId() != -1)
-//                    colParentTxnId.set( info.getParentTxnId() );
             if(info.getQueryId() != null)
                 colQueryId.set( info.getQueryId().toString() );
             if(info.getParentQueryId() != null)
                 colParentQueryId.set( info.getParentQueryId().toString() );
             colTimeSpent.set( info.getElapsedTime() );
+            colnRows.set( info.getModifiedRowCount() );
         }
 
         resultSet[0] = res.getResultSet();
