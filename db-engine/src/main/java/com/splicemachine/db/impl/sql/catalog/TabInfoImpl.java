@@ -48,6 +48,7 @@ import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
+import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,6 +61,7 @@ import java.util.Properties;
  */
 public class TabInfoImpl
 {
+    private static final Logger LOG = Logger.getLogger(TabInfoImpl.class);
     /**
      * ROWNOTDUPLICATE is out of range for a row
      * number.  If a return code does not equal
@@ -795,8 +797,13 @@ public class TabInfoImpl
 
         // Create a savepoint so that any subsequent writes to the rows we just deleted don't end up
         // with the same timestamp, see DB-9553
-        tc.setSavePoint("DD_SAVEPOINT-" + java.util.UUID.randomUUID().toString(), null);
-        tc.elevate("dictionary");
+        try {
+            tc.setSavePoint("DD_SAVEPOINT-" + java.util.UUID.randomUUID().toString(), null);
+            tc.elevate("dictionary");
+        }
+        catch (Throwable t) {
+            LOG.warn("Could not elevate the txn: " + t.getMessage());
+        }
 
         return rowsDeleted;
     }

@@ -259,11 +259,21 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         ** our trigger spses lest we invalidate them just
         ** after creating them.
         */
-        dm.invalidateFor(triggerTable, DependencyManager.CREATE_TRIGGER, lcc);
-
-        DDLMessage.DDLChange ddlChange = ProtoUtil.createTrigger(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) this.tableId);
-        // Run Remotely
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+        try {
+            dm.invalidateFor(triggerTable, DependencyManager.CREATE_TRIGGER, lcc);
+        }  catch (Throwable e) {
+           if (!lcc.isCloningData()) {
+               throw e;
+           }
+           else {
+               SpliceLogUtils.warn(LOG, "Get an exception when trying to invalidate dependencies", e);
+           }
+        }
+        if (!lcc.isCloningData()) {
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createTrigger(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) this.tableId);
+            // Run Remotely
+            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+        }
 
         /*
         ** Lets get our trigger id up front, we'll use it when
