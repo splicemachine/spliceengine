@@ -193,7 +193,11 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
 
                 @Override
                 public byte[] encode() throws StandardException {
-                    return ((RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
+                    // last column needs to be generated as a RowLocation
+                    //assert currentRow.size() == currentRow.nColumns()+1;
+                    Object lastColumn = currentRow.getColumn(currentRow.nColumns()).getObject();
+                    assert lastColumn instanceof RowLocation;
+                    return ((RowLocation)lastColumn).getBytes();
                 }
 
                 @Override
