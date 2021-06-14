@@ -99,7 +99,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
                 }
                 return true; // No index columns modified, ignore...
             case BLIND_UPDATE:
-                if(transformer.areIndexKeysModified(mutation)) {
+                if(transformer.areIndexKeysModified(mutation, indexedColumns)) {
                     delete = deleteIndexRecord(mutation, ctx, true);
                     return createIndexRecord(mutation, ctx, delete);
                 }
