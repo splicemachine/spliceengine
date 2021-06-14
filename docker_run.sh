@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # used base image for docker is maven:3.6.3-jdk-8 + netcat installed.
 # docker_run.sh
 #----------------------
@@ -128,7 +130,7 @@ CONFIG_SOURCE_MAPPING="-v ${OUR_SOURCE}:/home/splice/spliceengine/"
 
 # on linux: use current user
 # otherwise if the container writes to mounted volumes they will have owner root
-if [[ "$OSTYPE" == "darwin"* ]]; then
+if [[ $OSTYPE = darwin* ]] ; then
 	CONFIG_USER_INFO="" # docker on macos writes per default as current user
 else
 	CONFIG_USER_INFO="--user $(id -u):$(id -g)"
