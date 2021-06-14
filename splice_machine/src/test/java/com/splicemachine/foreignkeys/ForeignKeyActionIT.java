@@ -752,6 +752,7 @@ public class ForeignKeyActionIT {
         s.executeUpdate("create index " + tableName + "i1  on " + tableName + "(col2, col3)");
         s.executeUpdate("create index " + tableName + "i2  on " + tableName + "(col3)");
         s.executeUpdate("create index " + tableName + "i3  on " + tableName + "(col1, col3)");
+        s.executeUpdate("create index " + tableName + "i4  on " + tableName + "(col1, col2, col3)");
 
         s.executeUpdate("insert into psn values (1,1)");
         s.executeUpdate("insert into " + tableName + " values (10, 1, 100)");
@@ -762,16 +763,21 @@ public class ForeignKeyActionIT {
         queryShouldContain("select * from " + tableName + " order by col1 asc", expectedResult);
         queryShouldContain("select * from " + tableName + " --splice-properties index=" + tableName + "i1 \norder by col1 asc", expectedResult);
         queryShouldContain("select * from " + tableName + " --splice-properties index=" + tableName + "i2 \norder by col1 asc", expectedResult);
+        queryShouldContain("select * from " + tableName + " --splice-properties index=" + tableName + "i3 \norder by col1 asc", expectedResult);
+        queryShouldContain("select * from " + tableName + " --splice-properties index=" + tableName + "i4 \norder by col1 asc", expectedResult);
 
         Integer[][] expectedResult2 = new Integer[][]{{10}, {20}};
         queryShouldContain("select col1 from " + tableName + " order by col1 asc", expectedResult2);
         queryShouldContain("select col1 from " + tableName + " --splice-properties index=" + tableName + "i1 \norder by col1 asc", expectedResult2);
         queryShouldContain("select col1 from " + tableName + " --splice-properties index=" + tableName + "i2 \norder by col1 asc", expectedResult2);
+        queryShouldContain("select col1 from " + tableName + " --splice-properties index=" + tableName + "i3 \norder by col1 asc", expectedResult2);
+        queryShouldContain("select col1 from " + tableName + " --splice-properties index=" + tableName + "i4 \norder by col1 asc", expectedResult2);
 
         Integer[][] expectedResult3 = new Integer[][]{{100}, {200}};
         queryShouldContain("select col3 from " + tableName + " order by col1 asc", expectedResult3);
         queryShouldContain("select col3 from " + tableName + " --splice-properties index=" + tableName + "i1 \norder by col1 asc", expectedResult3);
         queryShouldContain("select col3 from " + tableName + " --splice-properties index=" + tableName + "i2 \norder by col1 asc", expectedResult3);
+        queryShouldContain("select col3 from " + tableName + " --splice-properties index=" + tableName + "i3 \norder by col1 asc", expectedResult3);
     }
 
 }

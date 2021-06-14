@@ -97,14 +97,14 @@ public class IndexWriteHandler extends RoutingWriteHandler{
             case INSERT:
                 return createIndexRecord(mutation, ctx,null);
             case UPDATE:
-                if (transformer.areIndexKeysModified(mutation)) { // Do I need to update?
+                if (transformer.areIndexKeysModified(mutation, true)) { // Do I need to update?
                     delete = deleteIndexRecordFromUpdate(mutation, ctx);
                     mutation = getBaseUpdateMutation(mutation);
                     return createIndexRecord(mutation, ctx, delete);
                 }
                 return true; // No index columns modified, ignore...
             case BLIND_UPDATE:
-                if(transformer.areIndexKeysModified(mutation)) {
+                if(transformer.areIndexKeysModified(mutation, false)) {
                     delete = deleteIndexRecord(mutation, ctx, true);
                     return createIndexRecord(mutation, ctx, delete);
                 }

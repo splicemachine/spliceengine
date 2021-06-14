@@ -496,20 +496,27 @@ public class IndexTransformer {
     }
 
     /**
-     * Do we need to update the index, i.e. did all of the values change?
-     * If the write doesn't modify all indexed columns it means the original update doesn't affect the index
+     * Do we need to update the index, i.e. did all (or some, depending on <code>forAll</code> parameter) of the values change?
+     * If the write doesn't modify all (or some, depending on <code>forAll</code> parameter) indexed columns it
+     * means the original update doesn't affect the index.
+     * @param mutation The mutation we want to examine.
+     * @param forAll If true, then the method returns true if <b>all</b> index columns were updated by the mutation, otherwise false.<br/>
+     *               if false, then the method returns true if <b>any</b> index column was updated by the mutation, otherwise false.
      */
-    public boolean areIndexKeysModified(KVPair mutation) {
+    public boolean areIndexKeysModified(KVPair mutation, boolean forAll) {
         EntryDecoder newPutDecoder = new EntryDecoder();
         newPutDecoder.set(mutation.getValue());
         BitIndex updateIndex = newPutDecoder.getCurrentIndex();
         BitSetIterator iterator = nonPkIndexedCols.iterator();
         int nextBit;
         while((nextBit = iterator.nextSetBit()) != -1) {
-            if (!updateIndex.isSet(nextBit))
+            if(updateIndex.isSet(nextBit) && !forAll) {
+                return true;
+            } else if (forAll && !updateIndex.isSet(nextBit)) {
                 return false;
+            }
         }
-        return true;
+        return forAll;
     }
 
     private boolean isSourceColumnPrimaryKey(int sourceColumnIndex) {
