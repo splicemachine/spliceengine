@@ -175,14 +175,14 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         */
         dd.startWriting(lcc);
 
-        SchemaDescriptor triggerSd = getSchemaDescriptorForCreate(dd, activation, triggerSchemaName);
+        SchemaDescriptor triggerSd = getSchemaDescriptorForCreate(dd, activation, null, triggerSchemaName);
 
         if (spsCompSchemaId == null) {
             SchemaDescriptor def = lcc.getDefaultSchema();
             if (def.getUUID() == null) {
                 // Descriptor for default schema is stale,
                 // look it up in the dictionary
-                def = dd.getSchemaDescriptor(def.getDescriptorName(), tc,
+                def = dd.getSchemaDescriptor(null, def.getDescriptorName(), tc,
                         false);
             }
 

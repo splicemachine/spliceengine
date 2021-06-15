@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.utils.Pair;
 
@@ -215,21 +216,22 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
     //
     ///////////////////////////////////////////////////////////////////////////
 
-    /**
-     *
-     * @param row a SYSCOLUMNS row
-     * @param parentTupleDescriptor    Null for this kind of descriptor.
-     * @param dd dataDictionary
-     *
-     * @return    a conglomerate descriptor equivalent to a SYSCONGOMERATES row
-     *
-     * @exception   StandardException thrown on failure
-     */
+	/**
+	 *
+	 * @param row a SYSCOLUMNS row
+	 * @param parentTupleDescriptor    Null for this kind of descriptor.
+	 * @param dd dataDictionary
+	 *
+	 * @param tc
+     * @return	a conglomerate descriptor equivalent to a SYSCONGOMERATES row
+	 *
+	 * @exception   StandardException thrown on failure
+	 */
 
-    public TupleDescriptor buildDescriptor(
-        ExecRow                    row,
-        TupleDescriptor            parentTupleDescriptor,
-        DataDictionary             dd )
+	public TupleDescriptor buildDescriptor(
+            ExecRow row,
+            TupleDescriptor parentTupleDescriptor,
+            DataDictionary dd, TransactionController tc)
                     throws StandardException
     {
         if (SanityManager.DEBUG)

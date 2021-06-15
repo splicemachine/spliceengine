@@ -223,8 +223,7 @@ public abstract class SequenceUpdater implements Cacheable
 	public boolean isDirty() { return false; }
     public Object getIdentity() { return _uuidString; }
 
-	public void clearIdentity()
-    {
+	public void clearIdentity() {
         try
         {
             clean( false );
@@ -234,7 +233,7 @@ public abstract class SequenceUpdater implements Cacheable
             LanguageConnectionContext lcc = getLCC();
             if (lcc != null)
             {
-                InternalDatabase db = lcc.getDatabase();
+                InternalDatabase db = lcc.getSpliceInstance();
                 boolean isactive = (db != null && db.isActive());
                 lcc.getContextManager().cleanupOnError(se, isactive);
             }

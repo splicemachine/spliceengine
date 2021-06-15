@@ -63,7 +63,7 @@ public class SpliceAllRolesVTI implements DatasetProvider, VTICosting, CompileTi
         TransactionController tc = lcc.getTransactionExecute();
         DataDictionaryImpl dd = (DataDictionaryImpl)lcc.getDataDictionary();
         Map<String,List<RoleGrantDescriptor>> graph =
-                dd.getRoleGrantGraph(tc, true, false);
+                dd.getRoleGrantGraph(tc, true, false, lcc.getDatabaseId());
 
 
         while (!roleQueue.isEmpty()) {

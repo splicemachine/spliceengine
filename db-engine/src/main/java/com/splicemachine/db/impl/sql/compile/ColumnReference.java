@@ -1559,7 +1559,7 @@ public class ColumnReference extends ValueNode {
         StoreCostController storeCostController = null;
         boolean skipStats = getCompilerContext().skipStats(getTableNumber());
         if (replacesIndexExpression) {
-            SchemaDescriptor sd = getSchemaDescriptor(getSource().getSourceSchemaName());
+            SchemaDescriptor sd = getSchemaDescriptor(null, getSource().getSourceSchemaName());
             TableDescriptor td = getTableDescriptor(getSource().getSourceTableName(), sd);
             ConglomerateDescriptor cd = td.getConglomerateDescriptor(getSource().getSourceConglomerateNumber());
             storeCostController = getCompilerContext().getStoreCostController(td, cd, skipStats, 0, 0);

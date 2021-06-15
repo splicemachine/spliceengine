@@ -352,7 +352,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     protected final void setCollationUsingCompilationSchema(int collationDerivation)
     throws StandardException {
         setCollationInfo(
-                getSchemaDescriptor(null, false).getCollationType(),
+                getSchemaDescriptor(null, null, false).getCollationType(),
                 collationDerivation);
     }
 

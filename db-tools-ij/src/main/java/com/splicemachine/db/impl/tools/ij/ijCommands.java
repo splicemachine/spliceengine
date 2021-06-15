@@ -369,6 +369,35 @@ public class ijCommands {
     }
 
     /**
+       Return a resultset of databases from database metadata
+     */
+    public ijResult showDatabases() throws SQLException {
+        ResultSet rs = null;
+        try {
+            haveConnection();
+
+            rs = theConnection.createStatement().executeQuery
+                ("SELECT DATABASENAME FROM SYSVW.SYSDATABASESVIEW");
+
+            int[] displayColumns = new int[] {
+                rs.findColumn("DATABASENAME")
+            };
+            int[] columnWidths = new int[] {
+                36
+            };
+
+            return new ijResultSetResult(rs, displayColumns, columnWidths);
+        } catch (SQLException e) {
+            try {
+                if(rs!=null)
+                    rs.close();
+            } catch (SQLException se) {
+            }
+            throw e;
+        }
+    }
+
+    /**
      * Return a resultset of roles. No database metadata
      * available, so select from SYS.SYSROLES directly. This has
      * the side effect of starting a transaction if one is not

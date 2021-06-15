@@ -111,38 +111,39 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
 
 
     @Override
-    public ConstantAction getCreateIndexConstantAction(boolean              forCreateTable,
-                                                       boolean              unique,
-                                                       boolean              uniqueWithDuplicateNulls,
-                                                       String               indexType,
-                                                       String               schemaName,
-                                                       String               indexName,
-                                                       String               tableName,
-                                                       UUID                 tableId,
-                                                       String[]             columnNames,
+    public ConstantAction getCreateIndexConstantAction(boolean forCreateTable,
+                                                       boolean unique,
+                                                       boolean uniqueWithDuplicateNulls,
+                                                       String indexType,
+                                                       UUID dbId,
+                                                       String schemaName,
+                                                       String indexName,
+                                                       String tableName,
+                                                       UUID tableId,
+                                                       String[] columnNames,
                                                        DataTypeDescriptor[] indexColumnTypes,
-                                                       boolean[]            isAscending,
-                                                       boolean              isConstraint,
-                                                       UUID                 conglomerateUUID,
-                                                       boolean              excludeNulls,
-                                                       boolean              excludeDefaults,
-                                                       boolean              preSplit,
-                                                       boolean              isLogicalKey,
-                                                       boolean              sampling,
-                                                       double               sampleFraction,
-                                                       String               splitKeyPath,
-                                                       String               hfilePath,
-                                                       String               columnDelimiter,
-                                                       String               characterDelimiter,
-                                                       String               timestampFormat,
-                                                       String               dateFormat,
-                                                       String               timeFormat,
-                                                       String[]             exprTexts,
-                                                       ByteArray[]          exprBytecode,
-                                                       String[]             generatedClassNames,
-                                                       Properties           properties){
+                                                       boolean[] isAscending,
+                                                       boolean isConstraint,
+                                                       UUID conglomerateUUID,
+                                                       boolean excludeNulls,
+                                                       boolean excludeDefaults,
+                                                       boolean preSplit,
+                                                       boolean isLogicalKey,
+                                                       boolean sampling,
+                                                       double sampleFraction,
+                                                       String splitKeyPath,
+                                                       String hfilePath,
+                                                       String columnDelimiter,
+                                                       String characterDelimiter,
+                                                       String timestampFormat,
+                                                       String dateFormat,
+                                                       String timeFormat,
+                                                       String[] exprTexts,
+                                                       ByteArray[] exprBytecode,
+                                                       String[] generatedClassNames,
+                                                       Properties properties){
         SpliceLogUtils.trace(LOG,"getCreateIndexConstantAction for index {%s.%s} on {%s.%s} with columnNames %s",schemaName,indexName,schemaName,tableName,Arrays.toString(columnNames));
-        return new CreateIndexConstantOperation(forCreateTable,unique,uniqueWithDuplicateNulls,indexType, schemaName,
+        return new CreateIndexConstantOperation(forCreateTable,unique,uniqueWithDuplicateNulls,indexType, dbId, schemaName,
                 indexName,tableName,tableId,columnNames,indexColumnTypes,isAscending,isConstraint, conglomerateUUID, excludeNulls,
                 excludeDefaults,preSplit,isLogicalKey,sampling,sampleFraction,splitKeyPath,hfilePath,columnDelimiter,characterDelimiter,
                 timestampFormat, dateFormat,timeFormat,exprTexts,exprBytecode,generatedClassNames,properties);
@@ -179,6 +180,12 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
     public ConstantAction getCreateAliasConstantAction(String aliasName,String schemaName,String javaClassName,AliasInfo aliasInfo,char aliasType){
         SpliceLogUtils.trace(LOG,"getCreateAliasConstantAction for alias {%s} in schema {%s} with javaClassName %s and aliasInfo {%s}",aliasName,schemaName,javaClassName,aliasInfo);
         return new CreateAliasConstantOperation(aliasName,schemaName,javaClassName,aliasInfo,aliasType);
+    }
+
+    @Override
+    public ConstantAction getCreateDatabaseConstantAction(String dbName) {
+        SpliceLogUtils.trace(LOG, "getCreateDatabaseConstantAction for database {%s}", dbName);
+        return new CreateDatabaseConstantOperation(dbName);
     }
 
     @Override
@@ -287,9 +294,9 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
     }
 
     @Override
-    public ConstantAction getDropRoleConstantAction(String roleName){
+    public ConstantAction getDropRoleConstantAction(String roleName, UUID dbId){
         SpliceLogUtils.trace(LOG,"getDropRoleConstantAction for {%s}",roleName);
-        return new DropRoleConstantOperation(roleName);
+        return new DropRoleConstantOperation(roleName, dbId);
     }
 
     @Override
@@ -299,9 +306,15 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
     }
 
     @Override
-    public ConstantAction getDropSchemaConstantAction(String schemaName, int dropBehavior){
+    public ConstantAction getDropSchemaConstantAction(String schemaName, int dropBehavior, UUID dbId){
         SpliceLogUtils.trace(LOG,"getDropSchemaConstantAction for {%s}",schemaName);
-        return new DropSchemaConstantOperation(schemaName, dropBehavior);
+        return new DropSchemaConstantOperation(dbId, schemaName, dropBehavior);
+    }
+
+    @Override
+    public ConstantAction getDropDatabaseConstantAction(String dbName, int dropBehavior){
+        SpliceLogUtils.trace(LOG,"getDropDatabaseConstantAction for {%s}", dbName);
+        return new DropDatabaseConstantOperation(dbName, dropBehavior);
     }
 
     @Override

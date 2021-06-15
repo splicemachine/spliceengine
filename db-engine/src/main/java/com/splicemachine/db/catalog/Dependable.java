@@ -34,12 +34,12 @@ package com.splicemachine.db.catalog;
 /**
 
   * A Dependable is an in-memory representation of an object managed
-  * by the Dependency System.
+  *    by the Dependency System.
   * 
   * There are two kinds of Dependables:
   * Providers and Dependents. Dependents depend on Providers and
-  * are responsible for executing compensating logic when their
-  * Providers change.
+  *    are responsible for executing compensating logic when their
+  *    Providers change.
   * <P>
   * The fields represent the known Dependables.
   * <P>
@@ -51,8 +51,8 @@ package com.splicemachine.db.catalog;
 public interface Dependable
 {
     /*
-    * Universe of known Dependables.
-    */
+      *    Universe of known Dependables.
+      */
     String ALIAS                        = "Alias";
     String CONGLOMERATE                 = "Conglomerate";
     String CONSTRAINT                   = "Constraint";
@@ -76,27 +76,28 @@ public interface Dependable
     String SEQUENCE                     = "Sequence";
     String PERM                         = "Perm";
     String SPS_PROPERTY                 = "PreparedStatementProperty";
+    String DATABASE                     = "Database";
 
 
     /**
-      * Get an object which can be written to disk and which,
-      * when read from disk, will find or reconstruct this in-memory
+      *    Get an object which can be written to disk and which,
+      *    when read from disk, will find or reconstruct this in-memory
       * Dependable.
       *
-      * @return A Finder object that can be written to disk if this is a
-      * Persistent Dependable.
-      * Null if this is not a persistent dependable.
+      *    @return        A Finder object that can be written to disk if this is a
+      *                    Persistent Dependable.
+      *                Null if this is not a persistent dependable.
       */
-    DependableFinder getDependableFinder();
+    DependableFinder    getDependableFinder();
 
 
     /**
-      * Get the name of this Dependable OBJECT. This is useful
-      * for diagnostic messages.
+      *    Get the name of this Dependable OBJECT. This is useful
+      *    for diagnostic messages.
       *
-      * @return Name of Dependable OBJECT.
+      *    @return    Name of Dependable OBJECT.
       */
-    String getObjectName();
+    String    getObjectName();
 
 
     /**
@@ -104,23 +105,23 @@ public interface Dependable
       *
       *    @return    UUID of this OBJECT.
       */
-    UUID getObjectID();
+    UUID    getObjectID();
 
 
     /**
-      * Return whether or not this Dependable is persistent. Persistent
-      * dependencies are stored in SYS.SYSDEPENDS.
+      *    Return whether or not this Dependable is persistent. Persistent
+      *    dependencies are stored in SYS.SYSDEPENDS.
       *
-      * @return true if this Dependable is persistent.
+      *    @return    true if this Dependable is persistent.
       */
-    boolean isPersistent();
+    boolean    isPersistent();
 
 
     /**
       * Get the unique class id for the Dependable.
-      * Every Dependable belongs to a class of Dependables.
+      *    Every Dependable belongs to a class of Dependables.
       *
-      * @return type of this Dependable.
+      *    @return    type of this Dependable.
       */
-    String getClassType();
+    String    getClassType();
 }

@@ -884,6 +884,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
             throw new RuntimeException(e);
         }
         instance.register(ImmutableList.class);
+        instance.register(DatabaseDescriptor.class,EXTERNALIZABLE_SERIALIZER);
     }
 
 }

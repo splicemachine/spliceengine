@@ -352,4 +352,8 @@ public interface C_NodeNames
     String TO_INSTANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ToInstantOperatorNode";
 
     String TO_HBASE_ESCAPED_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ToHbaseEscapedOperatorNode";
+
+    String CREATE_DATABASE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.CreateDatabaseNode";
+
+    String DROP_DATABASE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.DropDatabaseNode";
 }

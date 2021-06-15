@@ -467,7 +467,9 @@ public class CreateIndexNode extends DDLStatementNode
                 unique,
                 uniqueWithDuplicateNulls, // UniqueWithDuplicateNulls Index is a unique
                 indexType,                    //  index but with no "not null" constraint
-                sd.getSchemaName(),            //  on column in schema
+                sd.getDatabaseId(),
+                //  on column in schema
+                sd.getSchemaName(),
                 indexName.getTableName(),
                 tableName.getTableName(),
                 td.getUUID(),
@@ -491,8 +493,7 @@ public class CreateIndexNode extends DDLStatementNode
                 timeFormat,
                 exprTexts,
                 exprBytecode,
-                generatedClassNames,
-                properties);
+                generatedClassNames, properties);
     }
 
     /**
