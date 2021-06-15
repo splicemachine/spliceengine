@@ -59,7 +59,6 @@ public class DDLTxnView extends AbstractTxnView {
     @Override public Txn.State getEffectiveState() { return txn.getEffectiveState(); }
     @Override public Txn.IsolationLevel getIsolationLevel() { return txn.getIsolationLevel(); }
     @Override public long getTxnId() { return txn.getTxnId(); }
-
     @Override public long getBeginTimestamp() { return txn.getBeginTimestamp(); }
     @Override public long getCommitTimestamp() { return txn.getCommitTimestamp(); }
     @Override public long getEffectiveCommitTimestamp() { return txn.getEffectiveCommitTimestamp(); }

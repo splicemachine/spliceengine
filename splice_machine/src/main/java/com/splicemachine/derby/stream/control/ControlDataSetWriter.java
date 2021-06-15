@@ -127,10 +127,10 @@ public class ControlDataSetWriter<K> implements DataSetWriter, AutoCloseable{
             if( !loadReplaceMode)
                 operation.fireBeforeStatementTriggers();
             pipelineWriter.open(operation.getTriggerHandler(),operation, loadReplaceMode);
-            pipelineWriter.write(dataSet.toLocalIterator());  // Row trigger may be triggered by this
+            pipelineWriter.write(dataSet.toLocalIterator());
 
             if( !loadReplaceMode)
-                pipelineWriter.firePendingAfterTriggers();  // Statement trigger may be triggered by this
+                pipelineWriter.firePendingAfterTriggers();
 
             // Defer closing the pipeline in case we need to rollback.
             if (operation.getActivation().isSubStatement())
