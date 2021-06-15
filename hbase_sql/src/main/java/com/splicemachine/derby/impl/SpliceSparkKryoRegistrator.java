@@ -23,6 +23,7 @@ import com.esotericsoftware.kryo.serializers.DefaultSerializers;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.derby.utils.marshall.dvd.TimestampV3DescriptorSerializer;
 import splice.com.google.common.collect.ArrayListMultimap;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.catalog.types.*;
@@ -345,12 +346,14 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(SQLTimestamp.class,new DataValueDescriptorSerializer<SQLTimestamp>(){
             @Override
             protected void writeValue(Kryo kryo, Output output, SQLTimestamp object) throws StandardException {
-                output.writeLong(object.getTimestamp(null).getTime());
+                long encodedTimestamp = TimestampV3DescriptorSerializer.formatLong(object.getTimestamp(null));
+                output.writeLong(encodedTimestamp);
             }
 
             @Override
             protected void readValue(Kryo kryo, Input input, SQLTimestamp dvd) throws StandardException {
-                dvd.setValue(new Timestamp(input.readLong()));
+                long encodedTimestamp = input.readLong();
+                dvd.setValue(TimestampV3DescriptorSerializer.decodeTimestamp(encodedTimestamp));
             }
         });
         instance.register(SQLSmallint.class,new DataValueDescriptorSerializer<SQLSmallint>() {
@@ -881,6 +884,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
             throw new RuntimeException(e);
         }
         instance.register(ImmutableList.class);
+        instance.register(DatabaseDescriptor.class,EXTERNALIZABLE_SERIALIZER);
     }
 
 }

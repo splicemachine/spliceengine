@@ -81,7 +81,7 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
         //
         // Check if this role already exists. If it does, throw.
         //
-        RoleGrantDescriptor rdDef = dd.getRoleDefinitionDescriptor(roleName);
+        RoleGrantDescriptor rdDef = dd.getRoleDefinitionDescriptor(roleName, lcc.getDatabaseId());
 
         if (rdDef != null) {
             throw StandardException.
@@ -107,9 +107,10 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
             roleName,
             currentAuthId,// grantee
             Authorizer.SYSTEM_AUTHORIZATION_ID,// grantor
-            true,         // with admin option
-            true,
-            false);        // is definition
+            true, // with admin option
+            true, // is definition
+            false,
+            lcc.getDatabaseId());
 
         dd.addDescriptor(rdDef,
                          null,  // parent
@@ -147,7 +148,7 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
             throws StandardException {
         SpliceLogUtils.trace(LOG, "knownUser called with role %s and currentUser %s",roleName, currentUser);
         //
-        AuthenticationService s = lcc.getDatabase().getAuthenticationService();
+        AuthenticationService s = lcc.getSpliceInstance().getAuthenticationService();
 
         if (currentUser.equals(roleName)) {
             return true;
@@ -169,7 +170,7 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
         // Goto through all grants to see if there is a grant to an
         // authorization identifier which is not a role (hence, it
         // must be a user).
-        if (dd.existsGrantToAuthid(roleName, tc)) {
+        if (dd.existsGrantToAuthid(roleName, lcc.getDatabaseId(), tc)) {
             return true;
         }
 

@@ -87,17 +87,18 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
      *
      * @param dd the data dictionary
      * @param activation activation
+     * @param dbId
      * @param schemaName name of the schema
      *
      * @return the schema descriptor
      *
      * @exception StandardException if the schema does not exist
      */
-    public static SchemaDescriptor getSchemaDescriptorForCreate(DataDictionary dd,
-                        Activation activation, String schemaName) throws StandardException {
+    public static SchemaDescriptor getSchemaDescriptorForCreate(
+            DataDictionary dd, Activation activation, UUID dbId, String schemaName) throws StandardException {
         SpliceLogUtils.trace(LOG, "getSchemaDescriptorForCreate %s",schemaName);
         TransactionController tc = activation.getLanguageConnectionContext().getTransactionExecute();
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, false);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(dbId, schemaName, tc, false);
         if (sd == null || sd.getUUID() == null) {
             CreateSchemaConstantOperation csca = new CreateSchemaConstantOperation(schemaName, null);
             try {
@@ -106,7 +107,7 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
                 if (!se.getMessageId().equals(SQLState.LANG_OBJECT_ALREADY_EXISTS))
                     throw se;
             }
-            sd = dd.getSchemaDescriptor(schemaName, tc, true);
+            sd = dd.getSchemaDescriptor(null, schemaName, tc, true);
         }
         return sd;
     }
@@ -164,7 +165,7 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
         String currentUser = lcc.getCurrentUserId(activation);
         List<String> dependedRoleList = new ArrayList<>();
         List<String> groupuserList = lcc.getCurrentGroupUser(activation);
-        String dbo = dd.getAuthorizationDatabaseOwner();
+        String dbo = lcc.getCurrentDatabase().getAuthorizationId();
         if (! currentUser.equals(dbo)
                 && !(groupuserList != null && groupuserList.contains(dbo))) {
             PermissionsDescriptor permDesc;
@@ -380,8 +381,8 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
             // iterate over it to see if permission has
             // been granted to any of the roles the current
             // role inherits.
-            RoleClosureIterator rci = dd.createRoleClosureIterator
-                    (activation.getTransactionController(), role, true /* inverse relation*/);
+            RoleClosureIterator rci = dd.createRoleClosureIterator(
+                    activation.getTransactionController(), role, true, lcc.getDatabaseId());
             String graphGrant;
             while (permDesc == null &&
                     (graphGrant = rci.next()) != null) {
@@ -428,7 +429,7 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
             List<String> roleList = lcc.getCurrentRoles(activation);
             for (String role : roleList) {
                 if (role.equals(grantee)) {
-                    RoleGrantDescriptor rgd = dd.getRoleDefinitionDescriptor(role);
+                    RoleGrantDescriptor rgd = dd.getRoleDefinitionDescriptor(role, lcc.getDatabaseId());
                     dm.addDependency(dependent, rgd, lcc.getContextManager());
                     addedRoleList.add(grantee);
                     break;
@@ -475,7 +476,7 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         DependencyManager dm = dd.getDependencyManager();
-        String dbo = dd.getAuthorizationDatabaseOwner();
+        String dbo = lcc.getCurrentDatabase().getAuthorizationId();
         String currentUser = lcc.getCurrentUserId(activation);
         List<String> dependedRoleList = new ArrayList<>();
         List<String> groupuserList = lcc.getCurrentGroupUser(activation);

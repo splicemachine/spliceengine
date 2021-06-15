@@ -64,16 +64,16 @@ public class SQLTypesUnitTest {
 
     @Test
     public void testTimestamp() throws StandardException, IOException, ClassNotFoundException {
-        SQLTimestamp ts = new SQLTimestamp(Timestamp.valueOf("1867-02-28 04:38:01.042612356"));
-        Assert.assertEquals("1867-02-28 04:38:01.042612356", ts.toString());
+        SQLTimestamp ts = new SQLTimestamp(Timestamp.valueOf("1867-02-28 04:38:01.042612"));
+        Assert.assertEquals("1867-02-28 04:38:01.042612", ts.toString());
 
         SQLTimestamp ts2 = new SQLTimestamp();
         ts.plus(ts, new SQLInteger(5), ts2);
-        Assert.assertEquals("1867-03-05 04:38:01.042612356", ts2.toString());
+        Assert.assertEquals("1867-03-05 04:38:01.042612", ts2.toString());
 
         SQLTimestamp ts3 = new SQLTimestamp();
         ts2.minus(ts2, new SQLInteger(4), ts3);
-        Assert.assertEquals("1867-03-01 04:38:01.042612356", ts3.toString());
+        Assert.assertEquals("1867-03-01 04:38:01.042612", ts3.toString());
     }
 
     @Test
@@ -118,14 +118,14 @@ public class SQLTypesUnitTest {
 
     @Test
     public void testTimestampParseJDBC() throws StandardException, IOException, ClassNotFoundException {
-        SQLTimestamp ts = new SQLTimestamp("1867-02-28 04:38:01.0426123", false, null);
-        ts.setTimestampFormat("yyyy-MM-dd-HH.mm.ss.SSSSSSSSS");
-        Assert.assertEquals("1867-02-28-04.38.01.042612300", ts.toString());
+        SQLTimestamp ts = new SQLTimestamp("1867-02-28 04:38:01.04261", false, null);
+        ts.setTimestampFormat("yyyy-MM-dd-HH.mm.ss.SSSSSS");
+        Assert.assertEquals("1867-02-28-04.38.01.042610", ts.toString());
 
     }
     @Test
     public void testTimestampParseIBM() throws StandardException, IOException, ClassNotFoundException {
-        SQLTimestamp ts = new SQLTimestamp("1867-02-28-04.38.01.0426123", false, null);
-        Assert.assertEquals("1867-02-28 04:38:01.042612300", ts.toString());
+        SQLTimestamp ts = new SQLTimestamp("1867-02-28-04.38.01.04261", false, null);
+        Assert.assertEquals("1867-02-28 04:38:01.042610", ts.toString());
     }
 }

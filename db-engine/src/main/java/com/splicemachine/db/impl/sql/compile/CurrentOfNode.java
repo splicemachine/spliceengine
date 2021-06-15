@@ -186,7 +186,7 @@ public final class CurrentOfNode extends FromTable {
         baseTableName = makeTableName(schemaName,
                                       refTab.getBaseName());
         SchemaDescriptor tableSchema = null;
-        tableSchema = getSchemaDescriptor(refTab.getSchemaName());
+        tableSchema = getSchemaDescriptor(null, refTab.getSchemaName());
 
         /*
         ** This will only happen when we are binding against a publication

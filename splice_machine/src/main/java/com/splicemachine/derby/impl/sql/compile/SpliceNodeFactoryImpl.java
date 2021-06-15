@@ -388,6 +388,7 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.CURRENT_SESSION_PROPERTY_NODE:
             case C_NodeTypes.GROUP_USER_NODE:
             case C_NodeTypes.CURRENT_SERVER_NODE:
+            case C_NodeTypes.CURRENT_DATABASE_ADMIN_NODE:
                 return C_NodeNames.SPECIAL_FUNCTION_NODE_NAME;
 
             case C_NodeTypes.IS_NODE:
@@ -640,6 +641,12 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 
             case C_NodeTypes.TO_HBASE_ESCAPED_NODE:
                 return C_NodeNames.TO_HBASE_ESCAPED_NODE_NAME;
+
+            case C_NodeTypes.CREATE_DATABASE_NODE:
+                return C_NodeNames.CREATE_DATABASE_NODE_NAME;
+
+            case C_NodeTypes.DROP_DATABASE_NODE:
+                return C_NodeNames.DROP_DATABASE_NODE_NAME;
 
             // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
             // THEM TO tools/jar/DBMSnodes.properties

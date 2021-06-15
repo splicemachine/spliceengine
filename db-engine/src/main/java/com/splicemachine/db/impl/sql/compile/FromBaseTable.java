@@ -46,6 +46,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.compile.costing.ScanCostEstimator;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.conn.SQLSessionContext;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -2203,9 +2204,11 @@ public class FromBaseTable extends FromTable {
         boolean authorizeSYSTOKENS= dataDictionary.usesSqlAuthorization() &&
                 tableDescriptor.getUUID().toString().equals(SYSTOKENSRowFactory.SYSTOKENS_UUID);
         if(authorizeSYSUSERS || authorizeSYSTOKENS){
-            String databaseOwner=dataDictionary.getAuthorizationDatabaseOwner();
-            String currentUser=getLanguageConnectionContext().getStatementContext().getSQLSessionContext().getCurrentUser();
-            List<String> groupuserlist = getLanguageConnectionContext().getStatementContext().getSQLSessionContext().getCurrentGroupUser();
+            LanguageConnectionContext lcc = getLanguageConnectionContext();
+            SQLSessionContext context = lcc.getStatementContext().getSQLSessionContext();
+            String databaseOwner = lcc.getCurrentDatabase().getAuthorizationId();
+            String currentUser = context.getCurrentUser();
+            List<String> groupuserlist = context.getCurrentGroupUser();
 
             if(! (databaseOwner.equals(currentUser) || (groupuserlist != null && groupuserlist.contains(databaseOwner)))){
                 throw StandardException.newException(SQLState.DBO_ONLY);
@@ -2362,7 +2365,7 @@ public class FromBaseTable extends FromTable {
     TableDescriptor bindTableDescriptor()
             throws StandardException{
         String schemaName=tableName.getSchemaName();
-        SchemaDescriptor sd=getSchemaDescriptor(schemaName);
+        SchemaDescriptor sd=getSchemaDescriptor(null, schemaName);
 
         tableDescriptor=getTableDescriptor(tableName.getTableName(),sd);
 
@@ -2378,7 +2381,7 @@ public class FromBaseTable extends FromTable {
                 throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND,tableName.toString());
 
             tableName=synonymTab;
-            sd=getSchemaDescriptor(tableName.getSchemaName());
+            sd=getSchemaDescriptor(null, tableName.getSchemaName());
 
             tableDescriptor=getTableDescriptor(synonymTab.getTableName(),sd);
             if(tableDescriptor==null)

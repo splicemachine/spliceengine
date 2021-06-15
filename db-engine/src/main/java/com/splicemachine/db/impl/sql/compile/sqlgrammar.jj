@@ -1930,7 +1930,8 @@ TOKEN [IGNORE_CASE] :
  */
 TOKEN [IGNORE_CASE] :
 {    /* Additional JSQL reserved keywords -- non-SQL92 reserved Keywords */
-     <ANALYZE: "analyze">
+     <ADMIN: "admin">
+|    <ANALYZE: "analyze">
 |    <ANALYSE: "analyse">
 |    <BOOLEAN: "boolean">
 |    <CALL: "call">
@@ -2685,6 +2686,7 @@ createStatements() throws StandardException :
 {
     beginToken = <CREATE> (
         (
+            statementNode = databaseDefinition() |
             statementNode = schemaDefinition() |
             statementNode = viewDefinition(beginToken) |
             statementNode = triggerDefinition() |
@@ -2724,6 +2726,7 @@ dropStatements() throws StandardException :
 {
     <DROP>
         (
+            statementNode = dropDatabaseStatement() |
             statementNode = dropSchemaStatement() |
             statementNode = dropTableStatement() |
             statementNode = dropIndexStatement() |
@@ -7423,6 +7426,11 @@ miscBuiltins() throws StandardException :
         return value;
     }
 |
+    value = currentDatabaseAdminFunction()
+    {
+        return value;
+    }
+|
     value = currentServerFunction()
     {
         return value;
@@ -10760,6 +10768,24 @@ datetimeValueFunction() throws StandardException :
     }
 }
 
+/*
+ * <A NAME="currentDatabaseAdminFunction">currentDatabaseAdminFunction</A>
+ */
+ValueNode
+currentDatabaseAdminFunction() throws StandardException :
+{
+}
+{
+    (
+        LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == DATABASE && getToken(3).kind == ADMIN)}) <CURRENT> <DATABASE> <ADMIN>
+    )
+    {
+        return (ValueNode) nodeFactory.getNode(
+                                C_NodeTypes.CURRENT_DATABASE_ADMIN_NODE,
+                                getContextManager());
+    }
+}
+
 
 /*
  * <A NAME="currentServerFunction">currentServerFunction</A>
@@ -11542,6 +11568,25 @@ asOfClause() throws StandardException :
     {
         return txIdExpression;
     }
+}
+
+StatementNode
+databaseDefinition() throws StandardException :
+{
+    String    dbName = null;
+}
+{
+    <DATABASE>
+    (
+        dbName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
+        {
+            return (StatementNode) nodeFactory.getNode(
+                    C_NodeTypes.CREATE_DATABASE_NODE,
+                    dbName,
+                    getContextManager()
+            );
+        }
+    )
 }
 
 StatementNode
@@ -13483,6 +13528,11 @@ DB2DefaultOption(String columnName) throws StandardException :
             columnName);
     }
 |
+    value = currentDatabaseAdminFunction()
+    {
+        return value;
+    }
+|
     value = currentServerFunction()
     {
         return value;
@@ -15206,6 +15256,25 @@ dropSchemaStatement() throws StandardException :
                             C_NodeTypes.DROP_SCHEMA_NODE,
                             schemaName,
                             new Integer(option ? StatementType.DROP_RESTRICT : StatementType.DROP_CASCADE),
+                            getContextManager());
+
+        return stmt;
+    }
+}
+
+StatementNode
+dropDatabaseStatement() throws StandardException :
+{
+    String dbName;
+    Boolean option;
+}
+{
+    <DATABASE> dbName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) option = restrictOrCascade()
+    {
+        StatementNode stmt =  (StatementNode) nodeFactory.getNode(
+                            C_NodeTypes.DROP_DATABASE_NODE,
+                            dbName,
+                            new Integer(option ? StatementType.DROP_RESTRICT: StatementType.DROP_CASCADE),
                             getContextManager());
 
         return stmt;
@@ -16952,6 +17021,7 @@ nonReservedKeyword()  :
     |    tok = <ABSVAL>
     |    tok = <ACCESS>
     |    tok = <ACTION>
+    |    tok = <ADMIN>
     |    tok = <AFTER>
     |    tok = <AGGREGATE>
     |    tok = <ALWAYS>

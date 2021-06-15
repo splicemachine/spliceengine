@@ -179,7 +179,7 @@ public class CurrentDatetime {
     }
 
     public void setCurrentTimestampPrecision(int timestampPrecision) {
-        assert timestampPrecision >= 0 && timestampPrecision <= 9;
+        assert timestampPrecision >= 0 && timestampPrecision <= 6;
         this.timestampPrecision = timestampPrecision;
         currentTimestamp = null;
     }

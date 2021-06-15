@@ -86,8 +86,8 @@ import java.util.GregorianCalendar;
 
 public final class SQLTimestamp extends DataType implements DateTimeDataValue {
 
-    public static final int MAX_FRACTION_DIGITS = 9; // Only nanosecond resolution on conversion to/from strings
-    static final int FRACTION_TO_NANO = 1; // 10**(9 - MAX_FRACTION_DIGITS)
+    public static final int MAX_FRACTION_DIGITS = 6; // Only microsecond resolution on conversion to/from strings
+    static final int FRACTION_TO_NANO = 1000; // 10**(9 - MAX_FRACTION_DIGITS)
 
     static final int ONE_BILLION = 1000000000;
 
