@@ -184,7 +184,6 @@ public class SpliceObserverInstructions implements Externalizable{
             KryoPool kryoPool=SpliceKryoRegistry.getInstance();
             Kryo kryo=kryoPool.get();
             Output output=new Output(4096,-1);
-            kryo.writeObject(output, holder, new ActivationSerializer());
             try{
                 kryo.writeObject(output, holder, new ActivationSerializer());
             }finally{
