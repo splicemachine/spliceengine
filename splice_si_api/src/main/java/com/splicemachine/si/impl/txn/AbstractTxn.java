@@ -62,7 +62,6 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
         if (getSubId() == 0) {
             counter = new AtomicLong(0);
         }
-        this.numTriggers = new AtomicInteger(0);
     }
 
     @Override
