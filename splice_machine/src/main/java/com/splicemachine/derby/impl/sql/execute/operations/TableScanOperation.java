@@ -160,13 +160,13 @@ public class TableScanOperation extends ScanOperation{
                               int partitionByRefItem,
                               GeneratedMethod defaultRowFunc,
                               int defaultValueMapItem,
-                              GeneratedMethod pastTxFunctor,
+                              long pastTxn,
                               long minRetentionPeriod) throws StandardException{
         super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,
                 sameStartStopPosition,rowIdKey,qualifiersField,resultRowAllocator,lockMode,tableLocked,isolationLevel,
                 colRefItem,indexColItem,oneRowScan,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion,
                 splits,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem,
-                pastTxFunctor, minRetentionPeriod);
+                pastTxn, minRetentionPeriod);
         SpliceLogUtils.trace(LOG,"instantiated for tablename %s or indexName %s with conglomerateID %d",
                 tableName,indexName,conglomId);
         this.forUpdate=forUpdate;

@@ -86,6 +86,7 @@ import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -11105,4 +11106,23 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return false;
     }
 
+    @Override
+    public long getConglomerateCreationTxId(long tableConglom) throws StandardException {
+        return -1;
+    }
+
+    @Override
+    public long getTxnAt(long ts) throws StandardException {
+        return -1;
+    }
+
+    @Override
+    public boolean txnWithin(long period, long pastTx) throws StandardException {
+        return false;
+    }
+
+    @Override
+    public boolean txnWithin(long period, Timestamp pastTx) throws StandardException {
+        return false;
+    }
 }

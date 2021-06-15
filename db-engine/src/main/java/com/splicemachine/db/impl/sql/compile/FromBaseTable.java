@@ -206,6 +206,8 @@ public class FromBaseTable extends FromTable {
 
     private ValueNode pastTxIdExpression = null;
 
+    private long pastTxnId = -1;
+
     private long minRetentionPeriod = -1;
 
     // expressions in whole query referencing columns in this base table
@@ -281,6 +283,10 @@ public class FromBaseTable extends FromTable {
                     && (predList == null || !predList.canSupportIndexExcludedDefaults(tableNumber,currentConglomerateDescriptor, tableDescriptor))) {
                 return false;
             }
+            else if (pastTxnId != -1) {
+                long indexCreationTx = getDataDictionary().getConglomerateCreationTxId(currentConglomerateDescriptor.getConglomerateNumber());
+                return pastTxnId >= indexCreationTx;
+            }
         }
         return true;
     }
@@ -338,6 +344,13 @@ public class FromBaseTable extends FromTable {
                         if(conglomerateName!=null){
                             /* Have we found the desired index? */
                             if(conglomerateName.equals(userSpecifiedIndexName)){
+                                if (pastTxnId != -1 && conglomDesc.isIndex()) {
+                                    long indexCreationTx = getDataDictionary().getConglomerateCreationTxId(conglomDesc.getConglomerateNumber());
+                                    if(pastTxnId < indexCreationTx) {
+                                        throw StandardException.newException(SQLState.LANG_USER_INDEX_CREATED_AFTER_PAST_TRANSACTION,
+                                                                             conglomDesc.getConglomerateName(), indexCreationTx, pastTxnId);
+                                    }
+                                }
                                 break;
                             }
                         }
@@ -1139,6 +1152,10 @@ public class FromBaseTable extends FromTable {
                 Long minRetentionPeriod = tableDescriptor.getMinRetentionPeriod();
                 this.minRetentionPeriod = minRetentionPeriod == null ? -1 : minRetentionPeriod;
             }
+            if(!pastTxIdExpression.isConstantExpression()) {
+                throw StandardException.newException(SQLState.LANG_ILLEGAL_TIME_TRAVEL, "not-constant expression");
+            }
+            pastTxnId = mapToTxId(pastTxIdExpression.evaluateConstantExpressions().getKnownConstantValue(), minRetentionPeriod);
         }
 
         if(tableDescriptor.getTableType()==TableDescriptor.VTI_TYPE){
@@ -2382,7 +2399,7 @@ public class FromBaseTable extends FromTable {
         mb.push(costEstimate.getEstimatedCost());
         mb.push(tableDescriptor.getVersion());
         mb.push(printExplainInformationForActivation());
-        generatePastTxFunc(acb, mb);
+        mb.push(pastTxnId);
         mb.push(minRetentionPeriod);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,17);
     }
@@ -2462,27 +2479,14 @@ public class FromBaseTable extends FromTable {
         BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getLocation());
         mb.push(partitionReferenceItem);
         generateDefaultRow((ActivationClassBuilder)acb, mb);
-        generatePastTxFunc(acb, mb);
+        mb.push(pastTxnId);
         mb.push(minRetentionPeriod);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getDistinctScanResultSet",
                 ClassName.NoPutResultSet,29);
     }
 
-    private void generatePastTxFunc(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
-        if(pastTxIdExpression != null) {
-            MethodBuilder pastTxExpr = acb.newUserExprFun();
-            pastTxIdExpression.generateExpression(acb, pastTxExpr);
-            pastTxExpr.methodReturn();
-            pastTxExpr.complete();
-            acb.pushMethodReference(mb, pastTxExpr);
-        }
-        else
-        {
-            mb.pushNull(ClassName.GeneratedMethod);
-        }
-    }
-
-    private int getScanArguments(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException{
+    private int getScanArguments(ExpressionClassBuilder acb,
+                                 MethodBuilder mb) throws StandardException{
         // get a function to allocate scan rows of the right shape and size
         MethodBuilder resultRowAllocator= resultColumns.generateHolderMethod(acb, referencedCols, null);
 
@@ -2574,7 +2578,7 @@ public class FromBaseTable extends FromTable {
         numArgs += generateDefaultRow((ActivationClassBuilder)acb, mb);
 
         // also add the past transaction id functor
-        generatePastTxFunc(acb, mb);
+        mb.push(pastTxnId);
         numArgs++;
 
         mb.push(minRetentionPeriod);
@@ -3873,5 +3877,35 @@ public class FromBaseTable extends FromTable {
             newList.classify(this, getTrulyTheBestAccessPath().getConglomerateDescriptor(), true);
         }
         return newList;
+    }
+
+    private long mapToTxId(DataValueDescriptor dataValue, long minRetentionPeriod) throws StandardException {
+        if (dataValue instanceof SQLTimestamp) {
+            Timestamp ts = ((SQLTimestamp) dataValue).getTimestamp(null);
+            if (minRetentionPeriod != -1) {
+                if (getDataDictionary().txnWithin(minRetentionPeriod, ts)) {
+                    return getDataDictionary().getTxnAt(ts.getTime());
+                } else {
+                    throw StandardException.newException(SQLState.LANG_TIME_TRAVEL_OUTSIDE_MIN_RETENTION_PERIOD, minRetentionPeriod);
+                }
+            } else {
+                return getDataDictionary().getTxnAt(ts.getTime());
+            }
+        } else if (dataValue instanceof SQLTinyint || dataValue instanceof SQLSmallint || dataValue instanceof SQLInteger || dataValue instanceof SQLLongint) {
+            if (dataValue.isNull()) {
+                throw StandardException.newException(SQLState.LANG_TIME_TRAVEL_INVALID_PAST_TRANSACTION_ID, "null");
+            }
+            long pastTx = dataValue.getLong();
+            if (minRetentionPeriod != -1) {
+                if (getDataDictionary().txnWithin(minRetentionPeriod, pastTx)) {
+                    return pastTx;
+                } else {
+                    throw StandardException.newException(SQLState.LANG_TIME_TRAVEL_INVALID_PAST_TRANSACTION_ID, minRetentionPeriod);
+                }
+            }
+            return dataValue.getLong();
+        } else {
+            throw StandardException.newException(SQLState.NOT_IMPLEMENTED, dataValue.getClass().getSimpleName() + " can not be used with time travel query"); // fix me, we should read SqlTime as well.
+        }
     }
 }
