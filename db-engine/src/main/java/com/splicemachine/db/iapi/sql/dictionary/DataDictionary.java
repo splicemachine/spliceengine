@@ -46,6 +46,8 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 
+import java.io.IOException;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.*;
 
@@ -2274,4 +2276,18 @@ public interface DataDictionary{
     long getSystablesMinRetentionPeriod();
 
     boolean useTxnAwareCache();
+
+    /**
+     * Returns for a given conglomerate the ID of the transaction used to create it
+     * @param conglom the conglomerate ID.
+     * @return The ID of the transaction used to create it.
+     * @throws StandardException In case of e.g. connection error to HBase admin.
+     */
+    long getConglomerateCreationTxId(long conglom) throws StandardException;
+
+    long getTxnAt(long ts) throws StandardException;
+
+    boolean txnWithin(long period, long pastTx) throws StandardException;
+
+    boolean txnWithin(long period, Timestamp pastTx) throws StandardException;
 }
