@@ -1581,8 +1581,7 @@ public class ExternalTableIT extends SpliceUnitTest {
     }
 
     // rather slow test (20s)
-//TODO disable again before merge as dbaas3.0 still should be supported
-//    @Ignore // DB-11151 int array fail on Spark3.0
+    @Ignore // DB-11151 int array fail on Spark3.0
     @Test
     public void testWriteReadArrays() throws Exception {
         for( String fileFormat : fileFormats) {
