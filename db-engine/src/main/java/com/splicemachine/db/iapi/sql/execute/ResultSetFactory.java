@@ -1079,7 +1079,8 @@ public interface ResultSetFactory {
                         int defaultValueMapItem,
                         GeneratedMethod pastTxFunctor,
                         long minRetentionPeriod,
-                        int numUnusedLeadingIndexFields
+                        int numUnusedLeadingIndexFields,
+                        boolean canCacheResultSet
                         )
 	        throws StandardException;
 
@@ -1124,7 +1125,8 @@ public interface ResultSetFactory {
                         int defaultValueMapItem,
                         GeneratedMethod pastTxFunctor,
                         long minRetentionPeriod,
-                        int numUnusedLeadingIndexFields
+                        int numUnusedLeadingIndexFields,
+                        boolean canCacheResultSet
                         )
         throws StandardException;
 
@@ -1327,7 +1329,8 @@ public interface ResultSetFactory {
             int defaultValueMapItem,
             GeneratedMethod pastTxFunctor,
             long minRetentionPeriod,
-            int numUnusedLeadingIndexFields
+            int numUnusedLeadingIndexFields,
+            boolean canCacheResultSet
     )
             throws StandardException;
 

@@ -378,6 +378,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private SparkSQLUtils sparkSQLUtils;
     private boolean hasJoinStrategyHint;
     private boolean compilingStoredPreparedStatement;
+    private boolean compilingTrigger;
     private MessageDigest messageDigest;
 
     /* constructor */
@@ -4398,6 +4399,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public void setCompilingStoredPreparedStatement(boolean newValue) {
         compilingStoredPreparedStatement = newValue;
+    }
+
+    @Override
+    public boolean compilingTrigger() {
+        return compilingTrigger;
+    }
+
+    @Override
+    public void setCompilingTrigger(boolean newValue) {
+        compilingTrigger = newValue;
     }
 
     @Override

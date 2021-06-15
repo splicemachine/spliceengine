@@ -70,7 +70,7 @@ import java.util.List;
 /**
  * A trigger executor is an object that executes a trigger.  It is subclassed by row and statement executors.
  */
-public abstract class GenericTriggerExecutor {
+public abstract class GenericTriggerExecutor implements AutoCloseable {
 
     protected TriggerExecutionContext tec;
     protected TriggerDescriptor triggerd;
@@ -192,12 +192,13 @@ public abstract class GenericTriggerExecutor {
             ** to work correctly.  This is normally a no-no, but
             ** we are an unusual case.
             */
+            ResultSet rs = null;
             try {
                 // This is a substatement; for now, we do not set any timeout
                 // for it. We might change this behaviour later, by linking
                 // timeout to its parent statement's timeout settings.
                 ((GenericPreparedStatement)ps).setNeedsSavepoint(false);
-                ResultSet rs = ps.executeSubStatement(activation, spsActivation, false, 0L);
+                rs = ps.executeSubStatement(activation, spsActivation, false, 0L);
                 if (isWhen)
                 {
                     // This is a WHEN clause. Expect a single BOOLEAN value
@@ -231,6 +232,7 @@ public abstract class GenericTriggerExecutor {
                     }
                 }
                 rs.close();
+                rs = null;
             } catch (StandardException e) {
                 /* 
                 ** When a trigger SPS action is executed and results in 
@@ -276,6 +278,10 @@ public abstract class GenericTriggerExecutor {
 
                 spsActivation.close();
                 throw e;
+            }
+            finally {
+                if (rs != null && !rs.isClosed())
+                    rs.close();
             }
 
             /* Done with execution without any recompiles */
@@ -359,6 +365,7 @@ public abstract class GenericTriggerExecutor {
          }
 
     }
+
     private void dumpClassFile(GenericStorablePreparedStatement ps) throws StandardException {
         if(SanityManager.DEBUG && SanityManager.DEBUG_ON("DumpClassFile")){
             String systemHome = (String) AccessController.doPrivileged(new PrivilegedAction() {
@@ -374,20 +381,26 @@ public abstract class GenericTriggerExecutor {
     /**
      * Cleanup after executing an sps.
      */
-    protected void clearSPS() throws StandardException {
+    @Override
+    public void close() throws StandardException {
+        closeActivations();
+        actionPSList.clear();
+        spsActionActivationList.clear();
+        actionPSList = null;
+        spsActionActivationList = null;
+        whenPS = null;
+        spsWhenActivation = null;
+    }
+
+    protected void closeActivations() throws StandardException {
         for (int i = 0; i < spsActionActivationList.size(); ++i) {
             if (spsActionActivationList.get(i) != null) {
                 spsActionActivationList.get(i).close();
             }
-            actionPSList.set(i, null);
-            spsActionActivationList.set(i, null);
         }
-
         if (spsWhenActivation != null) {
             spsWhenActivation.close();
         }
-        whenPS = null;
-        spsWhenActivation = null;
     }
 
     /**

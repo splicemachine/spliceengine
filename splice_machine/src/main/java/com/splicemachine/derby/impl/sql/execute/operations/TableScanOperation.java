@@ -27,6 +27,7 @@ import com.splicemachine.db.impl.sql.compile.ActivationClassBuilder;
 import com.splicemachine.db.impl.sql.compile.FromTable;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.stream.function.CloneFunction;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -46,6 +47,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -64,6 +66,8 @@ public class TableScanOperation extends ScanOperation{
     protected static final String NAME=TableScanOperation.class.getSimpleName().replaceAll("Operation","");
     protected byte[] tableNameBytes;
     protected ExecRow firstRowOfIndexPrefixIteration = null;
+    protected boolean canCacheResultSet;
+    List<ExecRow> cachedResultSet;
 
     /**
      *
@@ -170,7 +174,8 @@ public class TableScanOperation extends ScanOperation{
                               int defaultValueMapItem,
                               GeneratedMethod pastTxFunctor,
                               long minRetentionPeriod,
-                              int numUnusedLeadingIndexFields) throws StandardException{
+                              int numUnusedLeadingIndexFields,
+                              boolean canCacheResultSet) throws StandardException{
         super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,
                 sameStartStopPosition,rowIdKey,qualifiersField,resultRowAllocator,lockMode,tableLocked,isolationLevel,
                 colRefItem,indexColItem,oneRowScan,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion,
@@ -186,6 +191,7 @@ public class TableScanOperation extends ScanOperation{
         this.tableNameBytes=Bytes.toBytes(this.tableName);
         this.indexColItem=indexColItem;
         this.indexName=indexName;
+        this.canCacheResultSet = canCacheResultSet;
         init();
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"isTopResultSet=%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f",isTopResultSet,optimizerEstimatedCost,optimizerEstimatedRowCount);
@@ -322,13 +328,47 @@ public class TableScanOperation extends ScanOperation{
 
         assert currentTemplate!=null:"Current Template Cannot Be Null";
 
+        if (cachedResultSet != null) {
+            return dataSetFromCachedResultSet();
+        }
         DataSet<ExecRow> ds = getTableScannerBuilder(dsp);
         if (ds.isNativeSpark())
             dsp.incrementOpDepth();
         dsp.prependSpliceExplainString(this.explainPlan);
         if (ds.isNativeSpark())
             dsp.decrementOpDepth();
+        if (canCacheResultSet && dsp.getType().equals(DataSetProcessor.Type.CONTROL)) {
+            cachedResultSet = ds.map(new CloneFunction<>(null)).collect(); // msirek-temp
+            //Iterator<ExecRow> iter = ds.toLocalIterator();
+            Activation parentActivation = activation.getParentActivation();
+            // When the triggering statement which fired the trigger closes, then
+            // release the cached result set.
+            if (parentActivation != null && parentActivation.getResultSet() instanceof SpliceBaseOperation) {
+                SpliceBaseOperation op = (SpliceBaseOperation) parentActivation.getResultSet();
+                op.registerCloseable(new AutoCloseable() {
+                    @Override
+                    public void close() throws Exception {
+                        if (cachedResultSet != null)
+                            cachedResultSet.clear();
+                        cachedResultSet = null;
+                    }
+                });
+            }
+//        DataSetProcessor controlDSP =
+//            EngineDriver.driver().processorFactory().
+//                         localProcessor(getOperation().getActivation(), this);
+//        ds =  controlDSP.createDataSet(iter);
+          ds = dataSetFromCachedResultSet();  // msirek-temp
+        }
+
         return ds;
+    }
+
+    protected DataSet<ExecRow> dataSetFromCachedResultSet() {
+        DataSetProcessor controlDSP =
+            EngineDriver.driver().processorFactory().
+                         localProcessor(getOperation().getActivation(), this);
+        return controlDSP.createDataSet(cachedResultSet.iterator());
     }
 
     /**

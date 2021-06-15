@@ -42,6 +42,9 @@ import com.splicemachine.db.iapi.sql.Activation;
  * There is one per row trigger.
  */
 public class RowTriggerExecutor extends GenericTriggerExecutor {
+
+    private boolean                     firstTime = true;
+
     /**
      * Constructor
      *
@@ -65,6 +68,10 @@ public class RowTriggerExecutor extends GenericTriggerExecutor {
     void fireTrigger(TriggerEvent event, CursorResultSet rs, int[] colsReadFromTable, boolean deferCleanup) throws StandardException {
         tec.setTrigger(triggerd);
         tec.setCurrentTriggerEvent(event);
+        if (firstTime)
+            registerCloseable();
+
+        firstTime = false;
 
         try {
             tec.setTriggeringResultSet(rs);
@@ -93,6 +100,17 @@ public class RowTriggerExecutor extends GenericTriggerExecutor {
             //clearSPS();  // msirek-temp
             tec.clearTrigger(deferCleanup);
         }
+    }
+
+    private void registerCloseable() throws StandardException {
+        Activation ancestorActivation = activation;
+        Activation parentActivation = activation.getParentActivation();
+        while (parentActivation != null) {
+            ancestorActivation = parentActivation;
+            parentActivation = parentActivation.getParentActivation();
+        }
+        if (ancestorActivation.getResultSet() != null)
+            ancestorActivation.getResultSet().registerCloseable(this);  // msirek-temp
     }
 
 }

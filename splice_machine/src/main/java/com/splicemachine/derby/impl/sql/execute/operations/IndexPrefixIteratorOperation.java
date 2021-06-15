@@ -25,6 +25,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.stream.function.CloneFunction;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowFunction;
 import com.splicemachine.derby.stream.function.driver.IndexPrefixIteratorFunction;
@@ -120,7 +121,8 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
                               int defaultValueMapItem,
                               GeneratedMethod pastTxFunctor,
                               long minRetentionPeriod,
-                              int numUnusedLeadingIndexFields) throws StandardException{
+                              int numUnusedLeadingIndexFields,
+                              boolean canCacheResultSet) throws StandardException{
                 super(conglomId, scoci, activation, resultRowAllocator, resultSetNumber, startKeyGetter,
                       startSearchOperator, stopKeyGetter, stopSearchOperator, sameStartStopPosition,
                       rowIdKey, qualifiersField, tableName, userSuppliedOptimizerOverrides, indexName,
@@ -128,7 +130,8 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
                       isolationLevel, rowsPerRead, oneRowScan, optimizerEstimatedRowCount,
                       optimizerEstimatedCost, tableVersion, splits, delimited, escaped,
                       lines, storedAs, location, partitionByRefItem, defaultRowFunc,
-                      defaultValueMapItem, pastTxFunctor, minRetentionPeriod, numUnusedLeadingIndexFields);
+                      defaultValueMapItem, pastTxFunctor, minRetentionPeriod, numUnusedLeadingIndexFields,
+                      canCacheResultSet);
         SpliceLogUtils.trace(LOG,"instantiated for tablename %s or indexName %s with conglomerateID %d",
                 tableName,indexName,conglomId);
         this.sourceResultSet = sourceResultSet;

@@ -405,7 +405,7 @@ public class TriggerHandler {
                 f.get(); // bubble up any exceptions
             }
         }
-        catch (ExecutionException e) {
+        catch (Exception e) {
             // Need to cancel the running futures so no further
             // exceptions are hit.
             for (Future<Void> f : futures) {

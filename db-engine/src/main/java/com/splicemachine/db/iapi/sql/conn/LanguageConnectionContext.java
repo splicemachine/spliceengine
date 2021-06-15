@@ -1581,6 +1581,10 @@ public interface LanguageConnectionContext extends Context {
 
     void setCompilingStoredPreparedStatement(boolean newValue);
 
+    boolean compilingTrigger();
+
+    void setCompilingTrigger(boolean newValue);
+
     boolean isPredicateUsageForIndexOrPkAccessDisabled();
 
     boolean alwaysAllowIndexPrefixIteration();

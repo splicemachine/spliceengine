@@ -3554,7 +3554,33 @@ public class FromBaseTable extends FromTable {
         mb.push(numUnusedLeadingIndexFields);
         numArgs++;
 
+        boolean canCacheResultSet = isCacheable();
+        mb.push(canCacheResultSet);
+        numArgs++;
+
         return numArgs;
+    }
+
+    private boolean isCacheable() throws StandardException {
+        // Cannot reduce rows if there is a nondeterministic function
+        // such as random(), as each row may get a different value that
+        // the distinct sort would not eliminate.
+        if (!compilingTrigger())
+            return false;
+//        if (true)
+//            return true;  // msirek-temp
+        CollectNodesVisitor cnv = new CollectNodesVisitor(MethodCallNode.class);
+        if (getResultColumns() != null) {
+            getResultColumns().accept(cnv);
+            storeRestrictionList.accept(cnv);
+            nonStoreRestrictionList.accept(cnv);
+            List<MethodCallNode> methodList = cnv.getList();
+            for (MethodCallNode methodCallNode : methodList) {
+                if (!methodCallNode.isDeterministic())
+                    return false;
+            }
+        }
+        return true;  // msirek-temp
     }
 
     /**

@@ -126,7 +126,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                                         int defaultValueMapItem,
                                         GeneratedMethod pastTxFunctor,
                                         Long minRetentionPeriod,
-                                        int numUnusedLeadingIndexFields)
+                                        int numUnusedLeadingIndexFields,
+                                        boolean canCacheResultSet)
             throws StandardException
     {
         /* Note: We use '1' as rows per read because we do not currently
@@ -169,7 +170,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             defaultValueMapItem,
             pastTxFunctor,
             minRetentionPeriod,
-            numUnusedLeadingIndexFields);
+            numUnusedLeadingIndexFields,
+            canCacheResultSet);
         this.inlistPosition = inlistPosition;
         this.numUnusedLeadingIndexFields = numUnusedLeadingIndexFields;
 

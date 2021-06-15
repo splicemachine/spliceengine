@@ -61,7 +61,7 @@
         <skipUT>false</skipUT>
         <!-- run chaos monkey -->
         <log4j.config.uri>file:${basedir}/src/main/resources/info-log4j.properties</log4j.config.uri>
-        <log4j2.config.uri>file:${basedir}/src/main/resources/info-log4j2.properties</log4j2.config.uri>
+        <log4j2.config.uri>${basedir}/src/main/resources/info-log4j2.properties</log4j2.config.uri>
         <olap.log4j.config.uri>file:${basedir}/src/main/resources/olap-log4j.properties</olap.log4j.config.uri>
         <olap.log4j2.config.uri>${basedir}/src/main/resources/olap-log4j2.properties</olap.log4j2.config.uri>
         <log4j.version>2.14.1</log4j.version>

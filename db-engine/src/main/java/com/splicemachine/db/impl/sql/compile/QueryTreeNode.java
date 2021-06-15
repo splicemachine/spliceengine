@@ -1279,6 +1279,15 @@ public abstract class QueryTreeNode implements Node, Visitable{
     }
 
     /**
+     * True if this predicate is used in a trigger query.
+     */
+    public final boolean compilingTrigger() {
+        LanguageConnectionContext lcc = getLanguageConnectionContext();
+        boolean compilingTrigger = lcc.compilingTrigger();
+        return compilingTrigger;
+    }
+
+    /**
      * Return header information for debug printing of this query
      * tree node.
      *

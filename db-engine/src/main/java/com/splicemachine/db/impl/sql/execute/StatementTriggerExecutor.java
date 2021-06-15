@@ -79,7 +79,7 @@ public class StatementTriggerExecutor extends GenericTriggerExecutor {
         try {
             executeWhenClauseAndAction();
         } finally {
-            clearSPS();
+            close();
             tec.clearTrigger(deferCleanup);
         }
     }

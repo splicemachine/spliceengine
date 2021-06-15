@@ -441,6 +441,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 continue;
             }
 
+            if (predicate.cannotPushForCreateTrigger(compilingTrigger()))
+                continue;
+
             // Exclude single-table predicates and join predicates that
             // are not relevant to joins within current query block.
             if (isNotJoinPredicateForCurrentQueryBlock(predicate, joinedTableSet, optTable.getReferencedTableMap()).getFirst()) {
@@ -574,6 +577,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         if (pred.isFullJoinPredicate())
             return false;
 
+        if (pred.cannotPushForCreateTrigger(pred.compilingTrigger()))
+            return false;
+
         /*
         ** Skip over it if it's not a relational operator (this includes
         ** BinaryComparisonOperators and IsNullNodes.
@@ -630,7 +636,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         }else if(!((BinaryRelationalOperatorNode) pred.getRelop()).isQualifierForHashableJoin(optTable,pushPreds)){
             // NOT a qualifier, go on to next predicate.
             return false;
-        }
+        }else if (pred.cannotPushForCreateTrigger(pred.compilingTrigger()))
+            return false;
         return true;
     }
 
@@ -683,6 +690,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
          * code generation.
          */
         if(skipProbePreds && pred.isInListProbePredicate())
+            return null;
+
+        if (pred.cannotPushForCreateTrigger(pred.compilingTrigger()))
             return null;
 
         /* Look for an index column on one side of the relop */
@@ -965,6 +975,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             (costingPhase && optTable.indexPrefixIteratorAllowed(accessPath)) ||
                 (!costingPhase && accessPath.getNumUnusedLeadingIndexFields() > 0);
         accessPath.setNumUnusedLeadingIndexFields(0);
+        final boolean compilingTrigger = compilingTrigger();
 
         if(cd!=null && !cd.isIndex() && !cd.isConstraint()){
             List<ConglomerateDescriptor> cdl=optTable.getTableDescriptor().getConglomerateDescriptorList();
