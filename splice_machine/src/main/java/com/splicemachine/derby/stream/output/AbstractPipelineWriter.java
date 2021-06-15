@@ -38,6 +38,7 @@ import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.concurrent.Callable;
@@ -49,6 +50,7 @@ import static com.splicemachine.derby.stream.output.insert.InsertPipelineWriter.
  */
 @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", justification = "triggerRowsEncoder is used in subclasses")
 public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableWriter<T> {
+    private static final Logger LOG = Logger.getLogger(AbstractPipelineWriter.class);
     protected TxnView txn;
     protected byte[] token;
     protected byte[] destinationTable;
@@ -139,6 +141,25 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
             triggerHandler.addRowToNewTableRowHolder(row, encode);
     }
 
+    private void recordStats() {
+        if (writeBuffer != null) {
+            WriteStats ws = writeBuffer.getWriteStats();
+            operationContext.recordPipelineWrites(ws.getWrittenCounter());
+            operationContext.recordRetry(ws.getRetryCounter());
+            operationContext.recordThrownErrorRows(ws.getThrownErrorsRows());
+            operationContext.recordRetriedRows(ws.getRetriedRows());
+            operationContext.recordPartialRows(ws.getPartialRows());
+            operationContext.recordPartialThrownErrorRows(ws.getPartialThrownErrorRows());
+            operationContext.recordPartialRetriedRows(ws.getPartialRetriedRows());
+            operationContext.recordPartialIgnoredRows(ws.getPartialIgnoredRows());
+            operationContext.recordPartialWrite(ws.getPartialWrite());
+            operationContext.recordIgnoredRows(ws.getIgnoredRows());
+            operationContext.recordCatchThrownRows(ws.getCatchThrownRows());
+            operationContext.recordCatchRetriedRows(ws.getCatchRetriedRows());
+            operationContext.recordRegionTooBusy(ws.getRegionTooBusy());
+        }
+    }
+
     @SuppressFBWarnings(value = "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", justification = "already written to by subclasses")
     public void close() throws StandardException {
 
@@ -146,29 +167,23 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
             TriggerHandler.firePendingAfterTriggers(triggerHandler, flushCallback);
             if (writeBuffer != null) {
                 writeBuffer.flushBufferAndWait();
-                writeBuffer.close();
-                WriteStats ws = writeBuffer.getWriteStats();
-                operationContext.recordPipelineWrites(ws.getWrittenCounter());
-                operationContext.recordRetry(ws.getRetryCounter());
-                operationContext.recordThrownErrorRows(ws.getThrownErrorsRows());
-                operationContext.recordRetriedRows(ws.getRetriedRows());
-                operationContext.recordPartialRows(ws.getPartialRows());
-                operationContext.recordPartialThrownErrorRows(ws.getPartialThrownErrorRows());
-                operationContext.recordPartialRetriedRows(ws.getPartialRetriedRows());
-                operationContext.recordPartialIgnoredRows(ws.getPartialIgnoredRows());
-                operationContext.recordPartialWrite(ws.getPartialWrite());
-                operationContext.recordIgnoredRows(ws.getIgnoredRows());
-                operationContext.recordCatchThrownRows(ws.getCatchThrownRows());
-                operationContext.recordCatchRetriedRows(ws.getCatchRetriedRows());
-                operationContext.recordRegionTooBusy(ws.getRegionTooBusy());
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error(e);
             throw Exceptions.parseException(e);
+        } finally {
+            if (writeBuffer != null ) {
+                try {
+                    writeBuffer.close();
+                } catch (Exception e) {
+                    LOG.error(e);
+                } finally {
+                    recordStats();
+                }
+            }
         }
-
-    };
+    }
 
     @Override
     public OperationContext getOperationContext() {
