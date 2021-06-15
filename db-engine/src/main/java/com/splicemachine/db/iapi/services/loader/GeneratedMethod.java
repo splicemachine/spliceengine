@@ -43,17 +43,13 @@ public interface GeneratedMethod {
 
 
 	/**
-		Invoke a generated method that has no arguments.
+		Invoke a generated method
 		(Similar to java.lang.refect.Method.invoke)
-
 		Returns the value returned by the method.
-
 		@exception 	StandardException	Standard Derby error policy
 	*/
+	Object invoke(Object o, Object... args) throws StandardException;
 
-	Object invoke(Object ref)
-		throws StandardException;
-	
 	String getMethodName();
-	
+
 }

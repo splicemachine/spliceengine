@@ -34,6 +34,8 @@ package com.splicemachine.db.iapi.services.loader;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.Context;
 
+import java.lang.reflect.InvocationTargetException;
+
 /**
 	A meta-class that represents a generated class.
 	(Similar to java.lang.Class).
@@ -58,6 +60,11 @@ public interface GeneratedClass {
 	Object newInstance(Context context)
 		throws StandardException;
 
+	default Object newInstance() throws IllegalAccessException, InvocationTargetException, InstantiationException
+	{
+		return null;
+	}
+
 	/**
 		Obtain a handle to the method with the given name
 		that takes no arguments.
@@ -66,6 +73,16 @@ public interface GeneratedClass {
 	*/
 	GeneratedMethod getMethod(String simpleName)
 		throws StandardException;
+
+
+	/**
+	 * directly invoke method with parameters
+	 * @param obj         the object you want to call a method on
+	 * @param simpleName  name of the function
+	 * @param parameters  parameters of the function (or leave empty)
+	 * @return return value
+	 */
+	Object invokeMethod(Object obj, String simpleName, Object... parameters )throws NoSuchMethodException, StandardException;
 
 	/**
 		Return the class reload version that this class was built at.
