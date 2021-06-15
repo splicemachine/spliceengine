@@ -62,6 +62,7 @@ import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.compile.CursorNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.log4j.Logger;
 
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
@@ -81,6 +82,7 @@ import java.util.List;
  */
 @SuppressFBWarnings(value = "IS2_INCONSISTENT_SYNC", justification = "DB-10223")
 public class GenericPreparedStatement implements ExecPreparedStatement {
+    private static final Logger LOG = Logger.getLogger(GenericPreparedStatement.class);
 
     ///////////////////////////////////////////////
     //
@@ -366,44 +368,62 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
 
             ResultSet resultSet = null;
             try {
+                try {
+                    resultSet = activation.execute();
 
-                resultSet = activation.execute();
+                    resultSet.open();
+                } catch (StandardException se) {
+                    try {
+                        if (resultSet != null) {
+                            resultSet.close();
+                            resultSet = null;
+                        }
+                    } catch (Exception e) {
+                        LOG.error(e);
+                    }
+                    /* Can't handle recompiling SPS action recompile here */
+                    if (!se.getMessageId().equals(SQLState.LANG_STATEMENT_NEEDS_RECOMPILE) || spsAction) {
+                        if (se instanceof ResubmitDistributedException)
+                            statementContext.cleanupOnError(se);
+                        throw se;
+                    }
+                    statementContext.cleanupOnError(se);
+                    continue;
 
-                resultSet.open();
-            } catch (StandardException se) {
-                /* Can't handle recompiling SPS action recompile here */
-                if (!se.getMessageId().equals(SQLState.LANG_STATEMENT_NEEDS_RECOMPILE) || spsAction) {
-                    if (se instanceof ResubmitDistributedException)
-                        statementContext.cleanupOnError(se);
-                    throw se;
                 }
-                statementContext.cleanupOnError(se);
-                continue;
 
+
+                if (needToClearSavePoint) {
+                    /* We're done with our updates */
+                    statementContext.clearSavePoint();
+                }
+
+                lccToUse.popStatementContext(statementContext, null);
+
+                if (activation.isSingleExecution()) {
+
+                    // if the result set is 'done', i.e. not openable,
+                    // then we can also release the activation.
+                    // Note that a result set with output parameters
+                    // or rows to return is explicitly finished
+                    // by the user.
+                    if (resultSet.isClosed())
+                        activation.close();
+                    else
+                        resultSet.registerCloseable(activation);
+                }
+
+                return resultSet;
+            } catch (Throwable t) {
+                try {
+                    if (resultSet != null) {
+                        resultSet.close();
+                    }
+                } catch (Exception e) {
+                    LOG.error(e);
+                }
+                throw t;
             }
-
-
-            if (needToClearSavePoint) {
-                /* We're done with our updates */
-                statementContext.clearSavePoint();
-            }
-
-            lccToUse.popStatementContext(statementContext, null);
-
-            if (activation.isSingleExecution()) {
-
-                // if the result set is 'done', i.e. not openable,
-                // then we can also release the activation.
-                // Note that a result set with output parameters
-                // or rows to return is explicitly finished
-                // by the user.
-                if (resultSet.isClosed())
-                    activation.close();
-                else
-                    resultSet.registerCloseable(activation);
-            }
-
-            return resultSet;
 
         }
     }
