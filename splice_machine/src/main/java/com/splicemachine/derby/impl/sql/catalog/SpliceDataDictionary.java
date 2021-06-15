@@ -50,6 +50,7 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
+import com.splicemachine.db.shared.common.sql.Utils;
 import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.impl.sql.catalog.upgrade.SpliceCatalogUpgradeScripts;
@@ -71,6 +72,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.*;
 import java.util.function.Function;
@@ -2008,6 +2010,66 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return !SpliceClient.isRegionServer;
     }
 
+    @Override
+    public long getConglomerateCreationTxId(long tableConglom) throws StandardException {
+        try {
+            SIDriver driver = SIDriver.driver();
+            if(SanityManager.DEBUG) {
+                SanityManager.ASSERT(driver != null);
+            }
+            PartitionFactory tableFactory = driver.getTableFactory();
+            if(SanityManager.DEBUG) {
+                SanityManager.ASSERT(tableFactory != null);
+            }
+            Partition partition = tableFactory.getTable(Long.toString(tableConglom));
+            if(SanityManager.DEBUG) {
+                SanityManager.ASSERT(partition != null);
+            }
+            PartitionAdmin admin = tableFactory.getAdmin();
+            if(SanityManager.DEBUG) {
+                SanityManager.ASSERT(admin != null);
+            }
+            com.splicemachine.access.api.TableDescriptor descriptor = admin.getTableDescriptor(Utils.constructHbaseName(partition.getTableName()));
+            if(SanityManager.DEBUG) {
+                SanityManager.ASSERT(descriptor != null);
+            }
+            return Long.parseLong(descriptor.getTransactionId());
+        } catch(IOException | IllegalArgumentException ex) {
+            throw StandardException.plainWrapException(ex);
+        }
+    }
+
+    @Override
+    public long getTxnAt(long ts) throws StandardException {
+        try {
+            return SIDriver.driver().getTxnStore().getTxnAt(ts);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+    }
+
+    @Override
+    public boolean txnWithin(long period, long pastTx) throws StandardException {
+        if(pastTx < SIConstants.OLDEST_TIME_TRAVEL_TX) {
+            return false;
+        }
+        long mrpTx = 0;
+        try {
+            mrpTx = SIDriver.driver().getTxnStore().getTxnAt(System.currentTimeMillis() - period * 1000);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+        return mrpTx <= pastTx;
+    }
+
+    @Override
+    public boolean txnWithin(long period, Timestamp pastTx) throws StandardException {
+        Timestamp currentTs = new Timestamp(System.currentTimeMillis());
+        if(pastTx.after(currentTs)) { // future time travel is no-op anyway
+            return true;
+        }
+        return ((System.currentTimeMillis() - pastTx.getTime()) / 1000) <= period;
+    }
 
     public void rewriteDescriptors(int catalogNum, long cloned_conglomerate) throws StandardException {
         TabInfoImpl ti = getTableInfo(catalogNum);
