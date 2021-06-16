@@ -91,7 +91,7 @@ public class EmbedDatabaseMetaData extends ConnectionChild
     implements DatabaseMetaData, java.security.PrivilegedAction {
 
     private static final int ILLEGAL_UDT_TYPE = 0;
-
+    
     /*
     ** Property and values related to using
     ** stored prepared statements for metatdata.
@@ -152,6 +152,8 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      * metadata_net.properties. This method must be invoked from
      * within a privileged block.
      */
+
+    @SuppressFBWarnings(value = "UI_INHERITANCE_UNSAFE_GETRESOURCE", justification = "Intentional")
     private void PBloadQueryDescriptions() {
         String[] files = {
             "metadata.properties",
@@ -235,7 +237,7 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      * @return true if so
      */
     public boolean isReadOnly() {
-        return getLanguageConnectionContext().getDatabase().isReadOnly();
+        return getLanguageConnectionContext().getSpliceInstance().isReadOnly();
     }
 
     /**

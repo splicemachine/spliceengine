@@ -2047,18 +2047,12 @@ public class SelectNode extends ResultSetNode {
                 null,                                // table props
                 getContextManager());
             } else {
-                joinNode = (JoinNode) getNodeFactory().getNode(
-                C_NodeTypes.JOIN_NODE,
-                leftResultSet,
-                rightResultSet,
-                null,
-                null,
-                leftRCList,
-                null,
-                //user supplied optimizer overrides
-                fromList.properties,
-                getContextManager()
-                );
+                joinNode = new JoinNode(leftResultSet, rightResultSet,
+                        null, null, leftRCList, null,
+                        //user supplied optimizer overrides
+                        fromList.properties,
+                        getContextManager()
+                        );
             }
             joinNode.setCostEstimate(rightResultSet.getCostEstimate());
 
@@ -2371,7 +2365,7 @@ public class SelectNode extends ResultSetNode {
          *        we will think it is the default schema Beetle 4417
          */
         targetTableDescriptor = getTableDescriptor(targetTable.getBaseTableName(),
-        getSchemaDescriptor(((FromBaseTable) targetTable).getTableNameField().getSchemaName()));
+                getSchemaDescriptor(null, ((FromBaseTable)targetTable).getTableNameField().getSchemaName()));
         assert targetTableDescriptor != null;
         if (targetTableDescriptor.getTableType() == TableDescriptor.SYSTEM_TABLE_TYPE) {
             if (SanityManager.DEBUG)

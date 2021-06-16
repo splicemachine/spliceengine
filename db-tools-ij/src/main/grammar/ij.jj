@@ -102,7 +102,7 @@ class ij extends ijImpl {
      * initialized.
      *
      * @param tm            The token manager to use
-     * @param utilInstance  The util to use
+     * @param utilInstance    The util to use
      */
     ij(ijTokenManager tm, utilMain utilInstance) {
         this(tm);
@@ -170,123 +170,124 @@ MORE :
 }
 
 TOKEN [IGNORE_CASE] :
-{ /* ij Keywords */
+{    /* ij Keywords */
     <ABSOLUTE: "absolute">
-| <AFTER: "after">
-| <ALIASES: "aliases">
-| <ALL: "all">
-| <AS: "as">
-| <ASYNC: "async">
-| <ATTRIBUTES: "attributes">
-| <AUTOCOMMIT: "autocommit">
-| <BANG: "!">
-| <BEFORE: "before">
-| <CLOSE: "close">
-| <COMMIT: "commit">
-| <CONNECT: "connect">
-| <CONNECTION: "connection">
-| <CONNECTIONS: "connections">
-| <CREATE: "create">
-| <CURRENT: "current">
-| <CURSOR: "cursor">
-| <DESCRIBE: "describe">
-| <DISCONNECT: "disconnect">
-| <DRIVER: "driver">
-| <ELAPSEDTIME: "elapsedtime">
-| <END: "end">
-| <EQUALS_OPERATOR: "=">
-| <EXECUTE: "execute">
-| <EXIT: "exit">
-| <EXPECT: "expect">
-| <FAIL: "fail">
-| <FIRST: "first">
-| <FOR: "for">
-| <FROM: "from">
-| <FUNCTIONS: "functions">
-| <GET: "get">
-| <GETCURRENTROWNUMBER: "getcurrentrownumber">
-| <HOLD: "hold">
-| <HELP: "help">
-| <IN: "in">
-| <INDEXES: "indexes">
-| <INSENSITIVE: "insensitive">
-| <INTO: "into">
-| <LAST: "last">
-| <LOCAL: "local">
-| <LOCALIZEDDISPLAY: "localizeddisplay">
-| <MAXIMUMDISPLAYWIDTH: "maximumdisplaywidth">
-| <NAME: "name">
-| <NEXT: "next">
-| <NOHOLD: "nohold">
-| <NOHOLDFORCONNECTION: "noholdforconnection">
-| <OFF: "off">
-| <ON: "on">
-| <PASSWORD: "password">
-| <PERIOD: ".">
-| <PREPARE: "prepare">
-| <PREVIOUS: "previous">
-| <PRIMARYKEYS: "primarykeys">
-| <PROCEDURE: "procedure">
-| <PROCEDURES: "procedures">
-| <PROCEDURECOLS: "procedurecols">
-| <PROPERTIES: "properties">
-| <PROTOCOL: "protocol">
+|    <AFTER: "after">
+|    <ALIASES: "aliases">
+|    <ALL: "all">
+|    <AS: "as">
+|    <ASYNC: "async">
+|    <ATTRIBUTES: "attributes">
+|    <AUTOCOMMIT: "autocommit">
+|    <BANG: "!">
+|    <BEFORE: "before">
+|    <CLOSE: "close">
+|     <COMMIT: "commit">
+|     <CONNECT: "connect">
+|     <CONNECTION: "connection">
+|     <CONNECTIONS: "connections">
+|     <CREATE: "create">
+|    <CURRENT: "current">
+|    <CURSOR: "cursor">
+|    <DATABASES: "databases">
+|    <DESCRIBE: "describe">
+|    <DISCONNECT: "disconnect">
+|    <DRIVER: "driver">
+|    <ELAPSEDTIME: "elapsedtime">
+|    <END: "end">
+|    <EQUALS_OPERATOR: "=">
+|    <EXECUTE: "execute">
+|    <EXIT: "exit">
+|    <EXPECT: "expect">
+|    <FAIL: "fail">
+|    <FIRST: "first">
+|    <FOR: "for">
+|    <FROM: "from">
+|    <FUNCTIONS: "functions">
+|    <GET: "get">
+|    <GETCURRENTROWNUMBER: "getcurrentrownumber">
+|    <HOLD: "hold">
+|    <HELP: "help">
+|    <IN: "in">
+|    <INDEXES: "indexes">
+|    <INSENSITIVE: "insensitive">
+|    <INTO: "into">
+|    <LAST: "last">
+|   <LOCAL: "local">
+|    <LOCALIZEDDISPLAY: "localizeddisplay">
+|    <MAXIMUMDISPLAYWIDTH: "maximumdisplaywidth">
+|    <NAME: "name">
+|    <NEXT: "next">
+|    <NOHOLD: "nohold">
+|    <NOHOLDFORCONNECTION: "noholdforconnection">
+|    <OFF: "off">
+|    <ON: "on">
+|    <PASSWORD: "password">
+|    <PERIOD: ".">
+|    <PREPARE: "prepare">
+|    <PREVIOUS: "previous">
+|   <PRIMARYKEYS: "primarykeys">
+|    <PROCEDURE: "procedure">
+|    <PROCEDURES: "procedures">
+|   <PROCEDURECOLS: "procedurecols">
+|    <PROPERTIES: "properties">
+|    <PROTOCOL: "protocol">
 | <PROGRESSBAR: "progressbar">
-| <QUIT: "quit">
-| <READONLY: "readonly">
-| <RELATIVE: "relative">
-| <REMOVE: "remove">
-| <RESOURCE: "resource">
-| <ROLES: "roles">
-| <ROLLBACK: "rollback">
-| <RUN: "run">
-| <TABLE: "table">
-| <TO: "to">
-| <SAVEPOINT: "savepoint">
-| <SCHEMAS: "schemas">
-| <SCROLL: "scroll">
-| <SENSITIVE: "sensitive">
-| <SET: "set">
-| <SETTABLE_ROLES: "settable_roles">
-| <SHOW: "show">
-| <SHUTDOWN: "shutdown">
-| <STATEMENT: "statement">
-| <SYNONYMS: "synonyms">
-| <TABLES: "tables">
-| <USER: "user">
-| <USING: "using">
-| <VERSION: "version">
-| <VIEWS: "views">
-| <WAIT: "wait">
-| <WITH: "with">
-| <XA_1PHASE: "XA_1phase">
-| <XA_2PHASE: "XA_2phase">
-| <XA_DATASOURCE: "XA_datasource">
-| <XA_CONNECT: "XA_connect">
-| <XA_COMMIT: "XA_commit">
-| <XA_DISCONNECT: "XA_disconnect">
-| <XA_END: "XA_end">
-| <XA_ENDRSCAN: "XA_endrscan">
-| <XA_FAIL: "XA_fail">
-| <XA_FORGET: "XA_forget">
-| <XA_GETCONNECTION: "XA_getconnection">
-| <XA_JOIN: "XA_join">
-| <XA_NOFLAGS: "XA_noflags">
-| <XA_PREPARE: "XA_prepare">
-| <XA_RECOVER: "XA_recover">
-| <XA_RESUME: "XA_resume">
-| <XA_ROLLBACK: "XA_rollback">
-| <XA_START: "XA_start">
-| <XA_STARTRSCAN: "XA_startrscan">
-| <XA_SUCCESS: "XA_success">
-| <XA_SUSPEND: "XA_suspend">
-| <DATASOURCE: "datasource">
-| <CP_DATASOURCE: "CP_datasource">
-| <CP_CONNECT: "CP_connect">
-| <CP_GETCONNECTION: "CP_getconnection">
-| <CP_DISCONNECT: "CP_disconnect">
-| <WORK : "work">
-| <JSON: "JSON">
+|    <QUIT: "quit">
+|    <READONLY: "readonly">
+|    <RELATIVE: "relative">
+|    <REMOVE: "remove">
+|    <RESOURCE: "resource">
+|    <ROLES: "roles">
+|    <ROLLBACK: "rollback">
+|    <RUN: "run">
+|    <TABLE: "table">
+|    <TO: "to">
+|    <SAVEPOINT: "savepoint">
+|    <SCHEMAS: "schemas">
+|    <SCROLL: "scroll">
+|    <SENSITIVE: "sensitive">
+|    <SET: "set">
+|    <SETTABLE_ROLES: "settable_roles">
+|    <SHOW: "show">
+|    <SHUTDOWN: "shutdown">
+|    <STATEMENT: "statement">
+|    <SYNONYMS: "synonyms">
+|    <TABLES: "tables">
+|    <USER: "user">
+|    <USING: "using">
+|   <VERSION: "version">
+|    <VIEWS: "views">
+|    <WAIT: "wait">
+|    <WITH: "with">
+|    <XA_1PHASE: "XA_1phase">
+|    <XA_2PHASE: "XA_2phase">
+|    <XA_DATASOURCE: "XA_datasource">
+|    <XA_CONNECT: "XA_connect">
+|    <XA_COMMIT: "XA_commit">
+|    <XA_DISCONNECT: "XA_disconnect">
+|    <XA_END: "XA_end">
+|    <XA_ENDRSCAN: "XA_endrscan">
+|    <XA_FAIL: "XA_fail">
+|    <XA_FORGET: "XA_forget">
+|    <XA_GETCONNECTION: "XA_getconnection">
+|    <XA_JOIN: "XA_join">
+|    <XA_NOFLAGS: "XA_noflags">
+|    <XA_PREPARE: "XA_prepare">
+|    <XA_RECOVER: "XA_recover">
+|    <XA_RESUME: "XA_resume">
+|    <XA_ROLLBACK: "XA_rollback">
+|    <XA_START: "XA_start">
+|    <XA_STARTRSCAN: "XA_startrscan">
+|    <XA_SUCCESS: "XA_success">
+|    <XA_SUSPEND: "XA_suspend">
+|    <DATASOURCE: "datasource">
+|    <CP_DATASOURCE: "CP_datasource">
+|    <CP_CONNECT: "CP_connect">
+|    <CP_GETCONNECTION: "CP_getconnection">
+|    <CP_DISCONNECT: "CP_disconnect">
+|    <WORK : "work">
+|   <JSON: "JSON">
 | <SPOOL: "SPOOL">
 | <STOP: "STOP">
 | <CLEAR: "CLEAR">
@@ -298,15 +299,15 @@ TOKEN [IGNORE_CASE] :
 }
 
 TOKEN :
-{ /* Operators and punctuation -- to avoid lexical errors for SQL-J stuff, mostly */
+{    /* Operators and punctuation -- to avoid lexical errors for SQL-J stuff, mostly */
     <AT: "@">
-| <COMMA: ",">
-| <LEFT_PAREN: "(">
-| <RIGHT_PAREN: ")">
-| <DOUBLE_QUOTE: "\"">
-| <HASH: "#">
-| <MINUS_SIGN: "-">
-| <PLUS_SIGN: "+">
+|    <COMMA: ",">
+|   <LEFT_PAREN: "(">
+|   <RIGHT_PAREN: ")">
+|   <DOUBLE_QUOTE: "\"">
+|   <HASH: "#">
+|    <MINUS_SIGN: "-">
+|    <PLUS_SIGN: "+">
 }
 
 /**
@@ -572,9 +573,9 @@ TOKEN :
 }
 
 TOKEN :
-{ /* Literals */
-  <INTEGER: (["0" - "9"])+ >
-| <STRING: "'"
+{    /* Literals */
+    <INTEGER: (["0" - "9"])+ >
+|    <STRING: "'"
         (
             "''" |
             ~["'"]
@@ -601,58 +602,58 @@ throws SQLException, IOException
             (!(getToken(3).kind == TO || getToken(3).kind == SAVEPOINT))
         })
     r=RollbackStatement()
-| r=AbsoluteStatement()
-| r=AfterLastStatement()
-| r=AutocommitStatement()
-| r=AsyncStatement()
-| r=Bang()
-| r=BeforeFirstStatement()
-| r=CloseStatement()
-| r=CommitStatement()
-| r=ConnectStatement()
-| r=DescTableStatement()
-| r=DisconnectStatement()
-| r=DriverStatement()
-| r=ElapsedTimeStatement()
-| r=ExecuteStatement()
-| r=FirstStatement()
-| r=ExitStatement()
-| r=ExpectStatement()
-| r=GetCursorStatement()
-| r=GetCurrentRowNumber()
-| r=HelpStatement()
-| r=LastStatement()
-| r=LocalizedDisplay()
-| r=MaximumDisplayWidthStatement()
-| r=NextStatement()
-| r=NoHoldForConnectionStatement()
-| r=PrepareStatement()
-| r=PreviousStatement()
-| r=ProtocolStatement()
+|    r=AbsoluteStatement()
+|    r=AfterLastStatement()
+|    r=AutocommitStatement()
+|    r=AsyncStatement()
+|    r=Bang()
+|    r=BeforeFirstStatement()
+|     r=CloseStatement()
+|     r=CommitStatement()
+|     r=ConnectStatement()
+|    r=DescTableStatement()
+|    r=DisconnectStatement()
+|    r=DriverStatement()
+|    r=ElapsedTimeStatement()
+|    r=ExecuteStatement()
+|    r=FirstStatement()
+|    r=ExitStatement()
+|    r=ExpectStatement()
+|    r=GetCursorStatement()
+|    r=GetCurrentRowNumber()
+|    r=HelpStatement()
+|    r=LastStatement()
+|    r=LocalizedDisplay()
+|    r=MaximumDisplayWidthStatement()
+|    r=NextStatement()
+|    r=NoHoldForConnectionStatement()
+|    r=PrepareStatement()
+|    r=PreviousStatement()
+|    r=ProtocolStatement()
 | r=ProgressbarStatement()
-| r=ReadOnlyStatement()
-| r=RelativeStatement()
-| r=RemoveStatement()
-| r=RunStatement()
+|    r=ReadOnlyStatement()
+|    r=RelativeStatement()
+|    r=RemoveStatement()
+|    r=RunStatement()
 | r=SetStatement()
-| r=ShowStatement()
-| r=WaitForStatement()
-| r=XA_DataSourceStatement()
-| r=XA_ConnectStatement()
-| r=XA_CommitStatement()
-| r=XA_DisconnectStatement()
-| r=XA_GetConnectionStatement()
-| r=XA_EndStatement()
-| r=XA_ForgetStatement()
-| r=XA_PrepareStatement()
-| r=XA_RecoverStatement()
-| r=XA_RollbackStatement()
-| r=XA_StartStatement()
-| r=DataSourceStatement()
-| r=CP_DataSourceStatement()
-| r=CP_ConnectStatement()
-| r=CP_GetConnectionStatement()
-| r=CP_DisconnectStatement()
+|    r=ShowStatement()
+|    r=WaitForStatement()
+|    r=XA_DataSourceStatement()
+|    r=XA_ConnectStatement()
+|    r=XA_CommitStatement()
+|    r=XA_DisconnectStatement()
+|    r=XA_GetConnectionStatement()
+|    r=XA_EndStatement()
+|    r=XA_ForgetStatement()
+|    r=XA_PrepareStatement()
+|    r=XA_RecoverStatement()
+|    r=XA_RollbackStatement()
+|    r=XA_StartStatement()
+|    r=DataSourceStatement()
+|    r=CP_DataSourceStatement()
+|    r=CP_ConnectStatement()
+|    r=CP_GetConnectionStatement()
+|    r=CP_DisconnectStatement()
 |   r=Spool()
 |   r=Prompt()
 |   r=ResultHeader()
@@ -733,7 +734,7 @@ ConnectStatement()
 throws SQLException
 :
 {
-    ijResult result;
+    ijResult    result;
 }
 {
     <CONNECT> (
@@ -780,7 +781,7 @@ throws SQLException
     Properties connInfo = new Properties();
 }
 {
-    t=<STRING> [ <PROTOCOL> p=identifier() ]
+    t=<STRING>    [ <PROTOCOL> p=identifier() ]
                 [ <USER> userT=<STRING> ]
                 [ <PASSWORD> passwordT=<STRING> ]
                 [ <ATTRIBUTES> [ attributeList(connInfo) ] ]
@@ -894,20 +895,20 @@ staticConnection()
 throws SQLException
 :
 {
-    String   name = null;
-    Vector   idList;
-    int    idx = 0;
-    int    lastID = 0;
-    StringBuilder buffer;
-    String   className;
-    String   methodName;
-    Class   classC;
-    Method   method;
-    int    argCount;
-    String[]  args;
-    Class   stringClass;
-    Class[]   argTypes;
-    ijResult  result = null;
+    String            name = null;
+    Vector            idList;
+    int                idx = 0;
+    int                lastID = 0;
+    StringBuilder    buffer;
+    String            className;
+    String            methodName;
+    Class            classC;
+    Method            method;
+    int                argCount;
+    String[]        args;
+    Class            stringClass;
+    Class[]            argTypes;
+    ijResult        result = null;
 }
 {
     idList = staticMethodName() args = staticMethodArgs() [ <AS> name = identifier() ]
@@ -1028,44 +1029,42 @@ throws SQLException
         showTables(schema, types);
     }
 |   <CREATE> <TABLE> ( i = caIdentifierForSysProcs() ( <PERIOD> i2 = caIdentifierForSysProcs() )?
-
-
-        {
-            if (i2 == null) {
-                schema = null;
-                tblname = i;
-            } else {
-                schema = i;
-                tblname = i2;
-            }
-            if (schema == null) {
-                schema = util.getSelectedSchema(theConnection);
-            }
-            return
-            showCreateTable(schema, tblname);
-        }
-    | s=<STRING>
-        {
-            i2 = stringValue(s.image);
-
-            if (i2.length() == 0)
-                throw ijException.noSuchTable("(missing)");
-
-            int dotPosition = i2.indexOf('.');
-            if(dotPosition!=-1) {
-                i = i2.substring(0,dotPosition);
-                i2 = i2.substring(dotPosition+1);
-            }
-
+    {
+        if (i2 == null) {
+            schema = null;
+            tblname = i;
+        } else {
             schema = i;
             tblname = i2;
+        }
+        if (schema == null) {
+            schema = util.getSelectedSchema(theConnection);
+        }
+            return
+            showCreateTable(schema, tblname);
+    }
+| s=<STRING>
+    {
+        i2 = stringValue(s.image);
 
-            if (schema == null) {
-                schema = util.getSelectedSchema(theConnection);
-            }
-            return showCreateTable(schema, tblname);
-        })
-| <INDEXES>
+        if (i2.length() == 0)
+            throw ijException.noSuchTable("(missing)");
+
+        int dotPosition = i2.indexOf('.');
+        if(dotPosition!=-1) {
+            i = i2.substring(0,dotPosition);
+            i2 = i2.substring(dotPosition+1);
+        }
+
+        schema = i;
+        tblname = i2;
+
+        if (schema == null) {
+            schema = util.getSelectedSchema(theConnection);
+        }
+        return showCreateTable(schema, tblname);
+    })
+|    <INDEXES>
         [ (<IN> schema=caIdentifier()) |
           (<FROM> tblname=caIdentifier() [ <PERIOD> str=caIdentifier() ] ) ]
     {
@@ -1120,19 +1119,23 @@ throws SQLException
             schema = util.getSelectedSchema(theConnection);
         return showProcedureColumns(schema,tblname);
     }
-| <PROCEDURES>
+|   <PROCEDURES>
         [ <IN> schema=caIdentifier() ]
     {
         return showProcedures(schema);
     }
-| <FUNCTIONS>
+|   <FUNCTIONS>
         [ <IN> schema=caIdentifier() ]
     {
         return showFunctions(schema);
     }
-| <SCHEMAS>
+|   <SCHEMAS>
     {
         return showSchemas();
+    }
+|   <DATABASES>
+    {
+        return showDatabases();
     }
 |   <ROLES>
     {
@@ -1241,7 +1244,7 @@ throws SQLException
     {
         return quit();
     }
-| <QUIT>
+|    <QUIT>
     {
         return quit();
     }
@@ -1586,8 +1589,8 @@ throws SQLException
  * Syntax:
  *   EXECUTE statementSource [ USING statementSource] ;
  *
- *  statementSource is an identifier of a previously prepared statement
- *  or a string containing SQL-J text.
+ *     statementSource is an identifier of a previously prepared statement
+ *     or a string containing SQL-J text.
  */
 ijResult
 ExecuteStatement()
@@ -1601,7 +1604,7 @@ throws SQLException
 
     QualifiedIdentifier qiUsing = null;
     Token sUsing = null;
-    Token usingObject = null;
+    Token    usingObject = null;
 }
 {
     <EXECUTE> (
@@ -1622,8 +1625,8 @@ throws SQLException
     {
         haveConnection();
 
-        Statement aStatement = theConnection.createStatement();
-        String  text = "execute procedure " + s;
+        Statement    aStatement = theConnection.createStatement();
+        String        text = "execute procedure " + s;
 
         aStatement.execute( text );
 
@@ -1711,52 +1714,52 @@ throws SQLException
                 boolean autoCommited = false;
                 ijMultiResult result = new ijMultiResult(ps,rsUsing,closeWhenDone);
 
-//    while (! autoCommited && rsUsing.next()) {
-//     // note the first time through
-//     if (!exec) {
-//      exec = true;
+//                while (! autoCommited && rsUsing.next()) {
+//                    // note the first time through
+//                    if (!exec) {
+//                        exec = true;
 //
-//      // send a warning if additional results may be lost
-//      if (theConnection.getAutoCommit()) {
-//       // FIXME: currOut.println("IJ WARNING: Autocommit may close using result set");
-//       autoCommited = true;
-//      }
-//     }
-//     for (int c=1; c<=numCols; c++) {
-//      if (usingObject == null)
-//      {
-//       ps.setObject(c,rsUsing.getObject(c),
-//        rsmdUsing.getColumnType(c));
-//      }
-//      else
-//      {
-//       ps.setObject(c,rsUsing.getObject(c));
-//      }
-//     }
+//                        // send a warning if additional results may be lost
+//                        if (theConnection.getAutoCommit()) {
+//                            // FIXME: currOut.println("IJ WARNING: Autocommit may close using result set");
+//                            autoCommited = true;
+//                        }
+//                    }
+//                    for (int c=1; c<=numCols; c++) {
+//                        if (usingObject == null)
+//                        {
+//                            ps.setObject(c,rsUsing.getObject(c),
+//                                rsmdUsing.getColumnType(c));
+//                        }
+//                        else
+//                        {
+//                            ps.setObject(c,rsUsing.getObject(c));
+//                        }
+//                    }
 //
-//     /*
-//      4. execute the statement against those parameters
-//      */
+//                    /*
+//                        4. execute the statement against those parameters
+//                     */
 //
-//     ps.execute();
-//     result.addStatementResult(ps);
+//                    ps.execute();
+//                    result.addStatementResult(ps);
 //
-//     /*
-//      5. clear the parameters
-//      */
-//     ps.clearParameters();
+//                    /*
+//                        5. clear the parameters
+//                     */
+//                    ps.clearParameters();
 //
-//    }
-//    if (!exec) {
-//     throw ijException.noUsingResults();
-//    }
+//                }
+//                if (!exec) {
+//                    throw ijException.noUsingResults();
+//                }
 //
-//    if (! theConnection.getAutoCommit())
-//    {
-//     rsUsing.close();
-//    }
-//    // REMIND: any way to look for more rsUsing rows if autoCommit?
-//    // perhaps just document the behavior...
+//                if (! theConnection.getAutoCommit())
+//                {
+//                    rsUsing.close();
+//                }
+//                // REMIND: any way to look for more rsUsing rows if autoCommit?
+//                // perhaps just document the behavior...
 
                 return result;
             }
@@ -1788,7 +1791,7 @@ throws SQLException
  * Syntax:
  *   ASYNC asyncName statementSource
  *
- *  statementSource is a string containing SQL-J text.
+ *     statementSource is a string containing SQL-J text.
  */
 ijResult
 AsyncStatement()
@@ -1813,7 +1816,7 @@ throws SQLException
  * Syntax:
  *   WAIT FOR asyncName
  *
- *  asyncName is a name used in an ASYNC statement previously
+ *     asyncName is a name used in an ASYNC statement previously
  */
 ijResult
 WaitForStatement()
@@ -1876,7 +1879,7 @@ throws SQLException
     PreparedStatement ps;
 }
 {
-    <RUN>  [r = <RESOURCE>] i=<STRING>
+    <RUN>     [r = <RESOURCE>] i=<STRING>
     {
         if (utilInstance==null) return null;
         if (r == null)
@@ -1946,7 +1949,7 @@ throws SQLException
 ijResult LocalizedDisplay()
 :
 {
-    Token on=null;
+     Token on=null;
 }
 {
     <LOCALIZEDDISPLAY>
@@ -2041,7 +2044,7 @@ ProgressbarStatement() :
 ijResult
 MaximumDisplayWidthStatement() :
 {
-    int   maxWidth;
+    int      maxWidth;
 }
 {
     <MAXIMUMDISPLAYWIDTH> maxWidth=intValue()
@@ -2077,33 +2080,33 @@ Bang() :
 {
     <BANG> cmd=<STRING>
     {
-        ijResult result = null;
+      ijResult result = null;
+      try {
+        Process p = Runtime.getRuntime().exec(stringValue(cmd.image));
+        LocalizedInput in = new LocalizedInput(p.getInputStream());
+        int c;
+        Vector v = new Vector();
+        StringBuilder output = new StringBuilder();
+        // echo output
+        while ((c = in.read()) != -1) {
+            output.append((char)c);
+        }
+        in.close();
+        // echo errors
+        in = new LocalizedInput(p.getErrorStream());
+        // echo output
+        while ((c = in.read()) != -1) {
+            output.append((char)c);
+        }
+        in.close();
+        v.addElement(output);
+        result = new ijVectorResult(v,null);
+        // wait for completion
         try {
-            Process p = Runtime.getRuntime().exec(stringValue(cmd.image));
-            LocalizedInput in = new LocalizedInput(p.getInputStream());
-            int c;
-            Vector v = new Vector();
-            StringBuilder output = new StringBuilder();
-            // echo output
-            while ((c = in.read()) != -1) {
-                output.append((char)c);
-            }
-            in.close();
-            // echo errors
-            in = new LocalizedInput(p.getErrorStream());
-            // echo output
-            while ((c = in.read()) != -1) {
-                output.append((char)c);
-            }
-            in.close();
-            v.addElement(output);
-            result = new ijVectorResult(v,null);
-            // wait for completion
-            try {
-                p.waitFor();
-            } catch (InterruptedException e) {
-                throw ijException.bangException(e);
-            }
+            p.waitFor();
+        } catch (InterruptedException e) {
+            throw ijException.bangException(e);
+        }
       } catch (IOException ioe) {
         throw ijException.bangException(ioe);
       }
@@ -2252,8 +2255,8 @@ path() :
 QualifiedIdentifier
 qualifiedIdentifier() :
 {
-    String sn = null;
-    String ln = null;
+    String    sn    = null;
+    String    ln    = null;
 }
 {
     ln=identifier() [ <AT> sn=identifier() ]
@@ -2320,8 +2323,8 @@ caIdentifierForSysProcs() throws SQLException :
 int
 intLiteral() throws SQLException :
 {
-    String sign = "";
-    Token tok;
+    String    sign = "";
+    Token    tok;
 }
 {
     [ sign = sign() ] tok = <INTEGER>
@@ -2345,7 +2348,7 @@ intLiteral() throws SQLException :
 Vector
 staticMethodName() throws SQLException :
 {
-    Vector list = new Vector();
+    Vector    list = new Vector();
 }
 {
     methodLeg( list ) ( <PERIOD> methodLeg( list ) )+
@@ -2357,7 +2360,7 @@ staticMethodName() throws SQLException :
 void
 methodLeg( Vector list ) throws SQLException :
 {
-    Token id;
+    Token    id;
 }
 {
     id = <IDENTIFIER>
@@ -2369,8 +2372,8 @@ methodLeg( Vector list ) throws SQLException :
 String[]
 staticMethodArgs() throws SQLException :
 {
-    Vector  list = new Vector();
-    String[] args;
+    Vector        list = new Vector();
+    String[]    args;
 }
 {
     <LEFT_PAREN>
@@ -2387,7 +2390,7 @@ staticMethodArgs() throws SQLException :
 void
 oneStaticArg( Vector list ) throws SQLException :
 {
-    Token tok;
+    Token    tok;
 }
 {
     tok = <STRING>
@@ -2404,7 +2407,7 @@ oneStaticArg( Vector list ) throws SQLException :
 String
 sign() throws SQLException :
 {
-    Token s;
+    Token    s;
 }
 {
     s = <PLUS_SIGN>
@@ -2427,7 +2430,7 @@ sign() throws SQLException :
          - get a XADataSource whose database name is dbname and make that
         XADataSource the current XADataSource
 
-    &lt;XA_CONNECT&gt;  [ &lt;USER&gt; 'user' ]
+    &lt;XA_CONNECT&gt;     [ &lt;USER&gt; 'user' ]
             [ &lt;PASSWORD&gt; 'password' ]
             [ &lt;AS&gt; xaconnid ]
         - make an XAConnection using the current XADataSource and make
@@ -2450,19 +2453,19 @@ sign() throws SQLException :
         - dissociate a transaction from the current XAConnection or end
         an already suspened one
 
-    &lt;XA_FORGET&gt; xid  - forget about a global transaction
+    &lt;XA_FORGET&gt; xid        - forget about a global transaction
 
     &lt;XA_GETCONNECTION&gt;  [ &lt;AS&gt; connid ]
         - get a Connection object from the current XAConnection.
         If connid is given, then associate connid with the connection.
         (connid not implemented)
 
-    &lt;XA_PREPARE&gt; xid - prepare a global transaction
+    &lt;XA_PREPARE&gt; xid    - prepare a global transaction
 
     &lt;XA_RECOVER&gt; ( &lt;XA_NOFLAGS&gt; | &lt;XA_STARTRSCAN&gt; | &lt;XA_ENDRSCAN&gt; )
-        - return the list of in-doubt transactions
+         - return the list of in-doubt transactions
 
-    &lt;XA_ROLLBACK&gt; xid - rollback a global transaction
+    &lt;XA_ROLLBACK&gt; xid    - rollback a global transaction
 
     &lt;XA_START&gt; ( &lt;XA_NOFLAGS&gt; | &lt;XA_JOIN&gt; | &lt;XA_RESUME&gt; ) xid
         - associate a transaction or start a new global
@@ -2473,7 +2476,7 @@ sign() throws SQLException :
     their functionality will be lumped into xaHelper because these are here
     only for testing purposes.
 
-    &lt;DATASOURCE&gt; 'dbname' [ &lt;PROTOCOL&gt; 'protocol' ]
+    &lt;DATASOURCE&gt; 'dbname'    [ &lt;PROTOCOL&gt; 'protocol' ]
                 [ &lt;USER&gt; 'user' ]
                 [ &lt;PASSWORD&gt; 'password' ]
                 [ &lt;AS&gt; n=identifier() ]
@@ -2488,7 +2491,7 @@ sign() throws SQLException :
         If &lt;PROTOCOL&gt; is specified, the DataSource may be
         remote.
 
-    &lt;CP_CONNECT&gt; [ &lt;USER&gt; 'user' ]
+    &lt;CP_CONNECT&gt;    [ &lt;USER&gt; 'user' ]
             [ &lt;PASSWORD&gt; 'password' ]
             [ &lt;AS&gt; cpconnid ]
         - make a PooledConnection using the current CPDataSource and
@@ -2550,7 +2553,7 @@ throws SQLException
     String n = null;
 }
 {
-    <XA_CONNECT> [ <USER> userT=<STRING> ]
+    <XA_CONNECT>    [ <USER> userT=<STRING> ]
             [ <PASSWORD> passwordT=<STRING> ]
             [ <AS> n=identifier() ]
     {
@@ -2563,7 +2566,7 @@ throws SQLException
  * XA_DisconnectStatement is XA_DISCONNECT [xaconnid = identifier()]
  * disconnect the current XAConnection
  * If xaconnid is given, then disconnect XAConnection with xaconnid (xaconnid
- * not implemented).
+ *    not implemented).
  *
  */
 ijResult
@@ -2574,7 +2577,7 @@ throws SQLException
     String n = null;
 }
 {
-    <XA_DISCONNECT> [ n = identifier() ]
+    <XA_DISCONNECT>    [ n = identifier() ]
     {
         xahelper.XADisconnectStatement(this, n);
         return null;
@@ -2792,11 +2795,11 @@ throws SQLException
 
 /**
  * DataSourceStatement is
- * DataSource 'dbname'
- *  [ &lt;PROTCOL&gt; 'protocol']
- *  [ &lt;USER&gt; 'user' ]
- *  [ &lt;PASSWORD&gt; 'password' ]
- *  [ &lt;AS&gt; n=identifier() ]
+ *    DataSource 'dbname'
+ *        [ &lt;PROTCOL&gt; 'protocol']
+ *        [ &lt;USER&gt; 'user' ]
+ *        [ &lt;PASSWORD&gt; 'password' ]
+ *        [ &lt;AS&gt; n=identifier() ]
  *
  * We new'ed an instance of DataSource as the current DataSource and set its
  * database name to dbname.  Also get a connection
@@ -2811,7 +2814,7 @@ ijResult DataSourceStatement() throws SQLException
     String n = null;
 }
 {
-    <DATASOURCE> dbname=<STRING> [ <PROTOCOL> protocol=<STRING> ]
+    <DATASOURCE> dbname=<STRING>    [ <PROTOCOL> protocol=<STRING> ]
                     [ <USER> userT=<STRING> ]
                     [ <PASSWORD> passwordT=<STRING> ]
                     [ <AS> n = identifier() ]
@@ -2827,11 +2830,11 @@ ijResult DataSourceStatement() throws SQLException
 
 /**
  * CP_DataSourceStatement is
- * CP_DataSource 'dbname' [ &lt;PROTOCOL&gt; 'protocol' ]
- *  - get a connection pool data source whose database name is
- *  dbname and make that DataSource the current CPDataSource.
- *  If &lt;PROTOCOL&gt; is specified, the DataSource may be
- *  remote.
+ *    CP_DataSource 'dbname' [ &lt;PROTOCOL&gt; 'protocol' ]
+ *        - get a connection pool data source whose database name is
+ *        dbname and make that DataSource the current CPDataSource.
+ *        If &lt;PROTOCOL&gt; is specified, the DataSource may be
+ *        remote.
  */
 ijResult CP_DataSourceStatement() throws SQLException
 :
@@ -2849,9 +2852,9 @@ ijResult CP_DataSourceStatement() throws SQLException
 
 /**
  * CP_ConnectStatement is
- * &lt;CP_CONNECT&gt; [ &lt;USER&gt; 'user' ]
- *   [ &lt;PASSWORD&gt; 'password' ]
- *   [ &lt;AS&gt; cpconnid ]
+ *    &lt;CP_CONNECT&gt;    [ &lt;USER&gt; 'user' ]
+ *            [ &lt;PASSWORD&gt; 'password' ]
+ *            [ &lt;AS&gt; cpconnid ]
  * make a PooledConnection using the current CPDataSource and
  * make that PooledConnection the current PooledConnection.
  * If cpconnid is given, then associate cpconnid with the
@@ -2865,7 +2868,7 @@ ijResult CP_ConnectStatement() throws SQLException
     String n = null;
 }
 {
-    <CP_CONNECT> [ <USER> userT=<STRING> ]
+    <CP_CONNECT>    [ <USER> userT=<STRING> ]
             [ <PASSWORD> passwordT=<STRING> ]
             [ <AS> n = identifier() ]
     {
@@ -2876,7 +2879,7 @@ ijResult CP_ConnectStatement() throws SQLException
 
 /**
  * CP_GetConnectionStatement is
- * &lt;CP_GETCONNECTION&gt; [ &lt;AS&gt; connid ]
+ *    &lt;CP_GETCONNECTION&gt; [ &lt;AS&gt; connid ]
  * get a Connection object from the current PooledConnection.
  * If connid is given, the associate connid with the connection.
  * (connid not implemented)
@@ -2897,7 +2900,7 @@ ijResult CP_GetConnectionStatement() throws SQLException
 
 /**
  * CP_DisconnectStatement is
- * &lt;CP_DISCONNECT&gt; [ cpconnid = identifier() ]
+ *    &lt;CP_DISCONNECT&gt; [ cpconnid = identifier() ]
  * disconnect a PooledConnection.  If cpconnid is given, then
  * disconnect the PooledConnection with the given cpconnid.
  * (cpconnid not implemented)
@@ -3052,120 +3055,121 @@ keyword() :
 }
 {
     (
-  tok = <ABSOLUTE>
-| tok = <AFTER>
-| tok = <ALIASES>
-| tok = <ALL>
-| tok = <AS>
-| tok = <ASYNC>
-| tok = <ATTRIBUTES>
-| tok = <AUTOCOMMIT>
-| tok = <BANG>
-| tok = <BEFORE>
-| tok = <CLOSE>
-| tok = <COMMIT>
-| tok = <CONNECT>
-| tok = <CONNECTION>
-| tok = <CONNECTIONS>
-| tok = <CREATE>
-| tok = <CURRENT>
-| tok = <CURSOR>
-| tok = <DESCRIBE>
-| tok = <DISCONNECT>
-| tok = <DRIVER>
-| tok = <ELAPSEDTIME>
-| tok = <END>
-| tok = <EXECUTE>
-| tok = <EXIT>
-| tok = <EXPECT>
-| tok = <FAIL>
-| tok = <FIRST>
-| tok = <FOR>
-| tok = <FROM>
-| tok = <GET>
-| tok = <GETCURRENTROWNUMBER>
-| tok = <HOLD>
-| tok = <HELP>
-| tok = <IN>
-| tok = <INDEXES>
-| tok = <INSENSITIVE>
-| tok = <INTO>
-| tok = <LAST>
-| tok = <LOCAL>
-| tok = <LOCALIZEDDISPLAY>
-| tok = <MAXIMUMDISPLAYWIDTH>
-| tok = <NAME>
-| tok = <NEXT>
-| tok = <NOHOLD>
-| tok = <NOHOLDFORCONNECTION>
-| tok = <OFF>
-| tok = <ON>
-| tok = <PASSWORD>
-| tok = <PERIOD>
-| tok = <PREPARE>
-| tok = <PREVIOUS>
-| tok = <PROCEDURE>
-| tok = <PROCEDURES>
-| tok = <PROCEDURECOLS>
-| tok = <PROPERTIES>
-| tok = <PROTOCOL>
-| tok = <QUIT>
-| tok = <READONLY>
-| tok = <RELATIVE>
-| tok = <REMOVE>
-| tok = <RESOURCE>
-| tok = <ROLLBACK>
-| tok = <RUN>
-| tok = <TO>
-| tok = <SCHEMAS>
-| tok = <SCROLL>
-| tok = <SENSITIVE>
-| tok = <SET>
-| tok = <SHOW>
-| tok = <SHUTDOWN>
-| tok = <STATEMENT>
-| tok = <SYNONYMS>
-| tok = <TABLE>
-| tok = <TABLES>
-| tok = <USER>
-| tok = <USING>
-| tok = <VERSION>
-| tok = <VIEWS>
-| tok = <WAIT>
-| tok = <WITH>
-| tok = <XA_1PHASE>
-| tok = <XA_2PHASE>
-| tok = <XA_DATASOURCE>
-| tok = <XA_CONNECT>
-| tok = <XA_COMMIT>
-| tok = <XA_DISCONNECT>
-| tok = <XA_END>
-| tok = <XA_ENDRSCAN>
-| tok = <XA_FAIL>
-| tok = <XA_FORGET>
-| tok = <XA_GETCONNECTION>
-| tok = <XA_JOIN>
-| tok = <XA_NOFLAGS>
-| tok = <XA_PREPARE>
-| tok = <XA_RECOVER>
-| tok = <XA_RESUME>
-| tok = <XA_ROLLBACK>
-| tok = <XA_START>
-| tok = <XA_STARTRSCAN>
-| tok = <XA_SUCCESS>
-| tok = <XA_SUSPEND>
-| tok = <DATASOURCE>
-| tok = <CP_DATASOURCE>
-| tok = <CP_CONNECT>
-| tok = <CP_GETCONNECTION>
-| tok = <CP_DISCONNECT>
-| tok = <WORK>
-| tok = <JSON>
-| tok = <PROMPT>
-| tok = <CLOCK>
-| tok = <SPOOL>
-| tok = <STOP>
-| tok = <CLEAR>
+    tok = <ABSOLUTE>
+|    tok = <AFTER>
+|    tok = <ALIASES>
+|    tok = <ALL>
+|    tok = <AS>
+|    tok = <ASYNC>
+|    tok = <ATTRIBUTES>
+|    tok = <AUTOCOMMIT>
+|    tok = <BANG>
+|    tok = <BEFORE>
+|    tok = <CLOSE>
+|     tok = <COMMIT>
+|     tok = <CONNECT>
+|     tok = <CONNECTION>
+|     tok = <CONNECTIONS>
+|     tok = <CREATE>
+|    tok = <CURRENT>
+|    tok = <CURSOR>
+|    tok = <DATABASES>
+|    tok = <DESCRIBE>
+|    tok = <DISCONNECT>
+|    tok = <DRIVER>
+|    tok = <ELAPSEDTIME>
+|    tok = <END>
+|    tok = <EXECUTE>
+|    tok = <EXIT>
+|    tok = <EXPECT>
+|    tok = <FAIL>
+|    tok = <FIRST>
+|    tok = <FOR>
+|    tok = <FROM>
+|    tok = <GET>
+|    tok = <GETCURRENTROWNUMBER>
+|    tok = <HOLD>
+|    tok = <HELP>
+|    tok = <IN>
+|    tok = <INDEXES>
+|    tok = <INSENSITIVE>
+|    tok = <INTO>
+|    tok = <LAST>
+|   tok = <LOCAL>
+|    tok = <LOCALIZEDDISPLAY>
+|    tok = <MAXIMUMDISPLAYWIDTH>
+|    tok = <NAME>
+|    tok = <NEXT>
+|    tok = <NOHOLD>
+|    tok = <NOHOLDFORCONNECTION>
+|    tok = <OFF>
+|    tok = <ON>
+|    tok = <PASSWORD>
+|    tok = <PERIOD>
+|    tok = <PREPARE>
+|    tok = <PREVIOUS>
+|    tok = <PROCEDURE>
+|    tok = <PROCEDURES>
+|   tok = <PROCEDURECOLS>
+|    tok = <PROPERTIES>
+|    tok = <PROTOCOL>
+|    tok = <QUIT>
+|    tok = <READONLY>
+|    tok = <RELATIVE>
+|    tok = <REMOVE>
+|    tok = <RESOURCE>
+|    tok = <ROLLBACK>
+|    tok = <RUN>
+|    tok = <TO>
+|    tok = <SCHEMAS>
+|    tok = <SCROLL>
+|    tok = <SENSITIVE>
+|    tok = <SET>
+|    tok = <SHOW>
+|    tok = <SHUTDOWN>
+|    tok = <STATEMENT>
+|    tok = <SYNONYMS>
+|    tok = <TABLE>
+|    tok = <TABLES>
+|    tok = <USER>
+|    tok = <USING>
+|   tok = <VERSION>
+|    tok = <VIEWS>
+|    tok = <WAIT>
+|    tok = <WITH>
+|    tok = <XA_1PHASE>
+|    tok = <XA_2PHASE>
+|    tok = <XA_DATASOURCE>
+|    tok = <XA_CONNECT>
+|    tok = <XA_COMMIT>
+|    tok = <XA_DISCONNECT>
+|    tok = <XA_END>
+|    tok = <XA_ENDRSCAN>
+|    tok = <XA_FAIL>
+|    tok = <XA_FORGET>
+|    tok = <XA_GETCONNECTION>
+|    tok = <XA_JOIN>
+|    tok = <XA_NOFLAGS>
+|    tok = <XA_PREPARE>
+|    tok = <XA_RECOVER>
+|    tok = <XA_RESUME>
+|    tok = <XA_ROLLBACK>
+|    tok = <XA_START>
+|    tok = <XA_STARTRSCAN>
+|    tok = <XA_SUCCESS>
+|    tok = <XA_SUSPEND>
+|    tok = <DATASOURCE>
+|    tok = <CP_DATASOURCE>
+|    tok = <CP_CONNECT>
+|    tok = <CP_GETCONNECTION>
+|    tok = <CP_DISCONNECT>
+|    tok = <WORK>
+|   tok = <JSON>
+|   tok = <PROMPT>
+|   tok = <CLOCK>
+|   tok = <SPOOL>
+|   tok = <STOP>
+|   tok = <CLEAR>
 | tok = <TERMINATOR>
 )
     {

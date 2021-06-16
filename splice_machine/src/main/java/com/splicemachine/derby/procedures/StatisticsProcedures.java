@@ -1495,7 +1495,7 @@ public class StatisticsProcedures extends BaseAdminProcedures {
                     else if (statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS)
                         statsType = SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS;
                     Pair<String, String> pair = displayPair.get(conglomId);
-                    SchemaDescriptor sd = dataDictionary.getSchemaDescriptor(pair.getFirst(), tc, true);
+                                    SchemaDescriptor sd = dataDictionary.getSchemaDescriptor(null, pair.getFirst(), tc, true);
                     TableDescriptor td = dataDictionary.getTableDescriptor(pair.getSecond(), sd, tc);
                     ConglomerateDescriptor cd = null;
                     if (td == null) {

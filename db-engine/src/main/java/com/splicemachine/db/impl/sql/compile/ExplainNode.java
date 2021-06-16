@@ -35,9 +35,11 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
@@ -102,25 +104,28 @@ public class ExplainNode extends DMLStatementNode {
 
     public String statementToString() { return "Explain"; }
 
-    public void init(Object statementNode,
-                     Object sparkExplainKind,
-                     Object showNoStatsObjects) {
-        init(statementNode, sparkExplainKind, showNoStatsObjects, null, null);
+    public ExplainNode(StatementNode statementNode,
+                       SparkExplainKind sparkExplainKind,
+                       Boolean showNoStatsObjects,
+                       ContextManager cm) {
+        this(statementNode, sparkExplainKind, showNoStatsObjects, null, null, cm);
     }
 
-    public void init(Object statementNode,
-                     Object sparkExplainKind,
-                     Object showNoStatsObjects,
-                     Object start,
-                     Object end) {
-        node = (StatementNode)statementNode;
-        this.sparkExplainKind = (SparkExplainKind)sparkExplainKind;
-        this.showNoStatsObjects = (Boolean)showNoStatsObjects;
+    public ExplainNode(StatementNode statementNode,
+                       SparkExplainKind sparkExplainKind,
+                       Boolean showNoStatsObjects,
+                       Integer start,
+                       Integer end,
+                       ContextManager cm) {
+        setContextManager(cm);
+        node = statementNode;
+        this.sparkExplainKind = sparkExplainKind;
+        this.showNoStatsObjects = showNoStatsObjects;
         if(start != null) {
-            explainedStatementStart = (int)start;
+            explainedStatementStart = start;
         }
         if(end != null) {
-            explainedStatementEnd = (int)end;
+            explainedStatementEnd = end;
         }
     }
 

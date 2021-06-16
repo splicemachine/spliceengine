@@ -53,6 +53,7 @@ import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.shared.common.reference.AuditEventType;
+import com.splicemachine.utils.StringUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.StringUtils;
@@ -759,9 +760,9 @@ public class SystemProcedures{
 //        String escapedTableName = IdUtil.normalToDelimited(tablename);
 //        String query = "alter table " + escapedSchema + "." + escapedTableName;
 //        if (indexname == null)
-//        	query = query + " all drop statistics ";
+//            query = query + " all drop statistics ";
 //        else
-//        	query = query + " statistics drop " + IdUtil.normalToDelimited(indexname);
+//            query = query + " statistics drop " + IdUtil.normalToDelimited(indexname);
 //        Connection conn = getDefaultConn();
 //
 //        PreparedStatement ps = conn.prepareStatement(query);
@@ -1035,10 +1036,9 @@ public class SystemProcedures{
 
         try{
             DataDictionary data_dictionary=lcc.getDataDictionary();
-            SchemaDescriptor sd=
-                    data_dictionary.getSchemaDescriptor(schema,tc,true);
-            TableDescriptor td=
-                    data_dictionary.getTableDescriptor(tablename,sd,tc);
+            UUID dbId = lcc.getDatabaseId();
+            SchemaDescriptor sd = data_dictionary.getSchemaDescriptor(dbId, schema, tc, true);
+            TableDescriptor td = data_dictionary.getTableDescriptor(tablename,sd,tc);
 
             if(td!=null && td.getTableType()==TableDescriptor.VTI_TYPE){
                 return;
@@ -1064,9 +1064,9 @@ public class SystemProcedures{
         }
     }
 
-	/*
-	** SQLJ Procedures.
-	*/
+    /*
+    ** SQLJ Procedures.
+    */
 
     /**
      * Install a jar file in the database.
@@ -1081,26 +1081,26 @@ public class SystemProcedures{
     public static void INSTALL_JAR(String url,String jar,int deploy)
             throws SQLException{
 
-		try {
+        try {
             LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-			String[] st = IdUtil.parseMultiPartSQLIdentifier(jar.trim());
-			String schemaName;
-			String sqlName;
+            String[] st = IdUtil.parseMultiPartSQLIdentifier(jar.trim());
+            String schemaName;
+            String sqlName;
             if (st.length == 1) {
-				schemaName = lcc.getCurrentSchemaName();
-				sqlName = st[0];
+                schemaName = lcc.getCurrentSchemaName();
+                sqlName = st[0];
             }
             else {
                 schemaName = st[0];
-				sqlName = st[1];
-			}
-			checkJarSQLName(sqlName);
-            JarUtil.install(lcc, schemaName, sqlName, url);
-		} 
-		catch (StandardException se) {
-			throw PublicAPI.wrapStandardException(se);
-		}
-	}
+                sqlName = st[1];
+            }
+            checkJarSQLName(sqlName);
+            JarUtil.install(lcc, schemaName, sqlName, url, lcc.getDatabaseId());
+        }
+        catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+    }
 
     /**
      * Replace a jar file in the database.
@@ -1134,7 +1134,7 @@ public class SystemProcedures{
             checkJarSQLName(sqlName);
 
             JarUtil.replace(lcc,
-                    schemaName,sqlName,url);
+                    schemaName,sqlName,url, lcc.getDatabaseId());
         }catch(Throwable t){
             throw PublicAPI.wrapThrowable(t);
         }
@@ -1169,7 +1169,7 @@ public class SystemProcedures{
 
             checkJarSQLName(sqlName);
 
-            JarUtil.drop(lcc,schemaName,sqlName);
+            JarUtil.drop(lcc,schemaName,sqlName, lcc.getDatabaseId());
 
         }catch(Throwable t){
             throw PublicAPI.wrapThrowable(t);
@@ -1595,74 +1595,6 @@ public class SystemProcedures{
     }
 
     /**
-     * Create a system stored procedure.
-     * PLEASE NOTE:
-     * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
-     * with tools to debug and repair databases and data dictionaries.
-     *
-     * @param schemaName name of the system schema
-     * @param procName   name of the system stored procedure
-     * @throws SQLException
-     */
-    public static void SYSCS_CREATE_SYSTEM_PROCEDURE(String schemaName,String procName)
-            throws SQLException{
-        try{
-            LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
-            TransactionController tc=lcc.getTransactionExecute();
-            DataDictionary dd=lcc.getDataDictionary();
-
-            /*
-            ** Inform the data dictionary that we are about to write to it.
-            ** There are several calls to data dictionary "get" methods here
-            ** that might be done in "read" mode in the data dictionary, but
-            ** it seemed safer to do this whole operation in "write" mode.
-            **
-            ** We tell the data dictionary we're done writing at the end of
-            ** the transaction.
-            */
-            dd.startWriting(lcc);
-
-            dd.createSystemProcedure(schemaName,procName,tc);
-        }catch(Throwable t){
-            throw PublicAPI.wrapThrowable(t);
-        }
-    }
-
-    /**
-     * Drop a system stored procedure.
-     * PLEASE NOTE:
-     * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
-     * with tools to debug and repair databases and data dictionaries.
-     *
-     * @param schemaName name of the system schema
-     * @param procName   name of the system stored procedure
-     * @throws SQLException
-     */
-    public static void SYSCS_DROP_SYSTEM_PROCEDURE(String schemaName,String procName)
-            throws SQLException{
-        try{
-            LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
-            TransactionController tc=lcc.getTransactionExecute();
-            DataDictionary dd=lcc.getDataDictionary();
-
-            /*
-            ** Inform the data dictionary that we are about to write to it.
-            ** There are several calls to data dictionary "get" methods here
-            ** that might be done in "read" mode in the data dictionary, but
-            ** it seemed safer to do this whole operation in "write" mode.
-            **
-            ** We tell the data dictionary we're done writing at the end of
-            ** the transaction.
-            */
-            dd.startWriting(lcc);
-
-            dd.dropSystemProcedure(schemaName,procName,tc);
-        }catch(Throwable t){
-            throw PublicAPI.wrapThrowable(t);
-        }
-    }
-
-    /**
      * Empty as much of the cache as possible. It is not guaranteed
      * that the cache is empty after this call, as statements may be kept
      * by currently executing queries, activations that are about to be garbage
@@ -1717,10 +1649,10 @@ public class SystemProcedures{
         // can add them
         try{
             DataDictionary dd=lcc.getDataDictionary();
-            String dbo=dd.getAuthorizationDatabaseOwner();
+            String dbo = lcc.getCurrentDatabase().getAuthorizationId();
 
             if(!dbo.equals(userName)){
-                if(dd.getUser(dbo)==null){
+                if(dd.getUser(lcc.getDatabaseId(), dbo)==null){
                     throw StandardException.newException(SQLState.DBO_FIRST);
                 }
             }else    // we are trying to create credentials for the DBO
@@ -1759,7 +1691,6 @@ public class SystemProcedures{
      * if the schema already exists do nothing, let the admin handle the privileges manually
      * if necessary. This schema is the default schema associated to each user.
      */
-
     public static void addSchema
     (
             String schemaName,
@@ -1769,7 +1700,8 @@ public class SystemProcedures{
         DataDictionary dd=lcc.getDataDictionary();
         TransactionController tc=lcc.getTransactionExecute();
         DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, lcc.getTransactionExecute(), false);
+        UUID dbId =lcc.getDatabaseId();
+        SchemaDescriptor sd = dd.getSchemaDescriptor(dbId, schemaName, lcc.getTransactionExecute(), false);
 
         // if the schema already, do nothing,  we already have a schema for the user
         // let the admin handle that
@@ -1788,9 +1720,8 @@ public class SystemProcedures{
             ** the transaction.
             */
         dd.startWriting(lcc);
-        sd = ddg.newSchemaDescriptor(schemaName, aid, tmpSchemaId);
+        sd = ddg.newSchemaDescriptor(schemaName, aid, tmpSchemaId, lcc.getDatabaseId());
         dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, tc, false);
-
     }
 
     /**
@@ -1818,41 +1749,17 @@ public class SystemProcedures{
             ** the transaction.
             */
             dd.startWriting(lcc);
-            UserDescriptor userDescriptor=makeUserDescriptor(dd,tc,userName,password);
+            UserDescriptor userDescriptor= dd.getDataDescriptorGenerator().makeUserDescriptor(tc,userName,password, lcc.getDatabaseId());
             dd.addDescriptor(userDescriptor,null,DataDictionary.SYSUSERS_CATALOG_NUM,false,tc, false);
 
             // turn on NATIVE::LOCAL authentication
-            if(dd.getAuthorizationDatabaseOwner().equals(userName)){
+            if(lcc.getCurrentDatabase().getAuthorizationId().equals(userName)){
                 //    tc.setProperty
                 //        ( Property.AUTHENTICATION_PROVIDER_PARAMETER, Property.AUTHENTICATION_PROVIDER_NATIVE_LOCAL, true );
             }
         }catch(Throwable t){
             throw PublicAPI.wrapThrowable(t);
         }
-    }
-
-    private static UserDescriptor makeUserDescriptor
-            (
-                    DataDictionary dd,
-                    TransactionController tc,
-                    String userName,
-                    String password
-            )
-            throws StandardException{
-        DataDescriptorGenerator ddg=dd.getDataDescriptorGenerator();
-        PasswordHasher hasher=dd.makePasswordHasher(tc.getProperties());
-
-        if(hasher==null){
-            throw StandardException.newException(SQLState.WEAK_AUTHENTICATION);
-        }
-
-        String hashingScheme=hasher.encodeHashingScheme();
-        String hashedPassword=hasher.hashPasswordIntoString(userName,password);
-
-        Timestamp currentTimestamp=new Timestamp((new java.util.Date()).getTime());
-
-        return ddg.newUserDescriptor
-                (userName,hashingScheme,hashedPassword.toCharArray(),currentTimestamp);
     }
 
     /**
@@ -1871,18 +1778,18 @@ public class SystemProcedures{
             LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
             DataDictionary dd=lcc.getDataDictionary();
 
-			/*
-			 ** Inform the data dictionary that we are about to write to it.
-			 ** There are several calls to data dictionary "get" methods here
-			 ** that might be done in "read" mode in the data dictionary, but
-			 ** it seemed safer to do this whole operation in "write" mode.
-			 **
-			 ** We tell the data dictionary we're done writing at the end of
-			 ** the transaction.
-			 */
+            /*
+             ** Inform the data dictionary that we are about to write to it.
+             ** There are several calls to data dictionary "get" methods here
+             ** that might be done in "read" mode in the data dictionary, but
+             ** it seemed safer to do this whole operation in "write" mode.
+             **
+             ** We tell the data dictionary we're done writing at the end of
+             ** the transaction.
+             */
             dd.startWriting(lcc);
             // Change system schemas to be owned by aid
-            dd.updateSystemSchemaAuthorization(aid,tc);
+            dd.updateSystemSchemaAuthorization(lcc.getCurrentDatabase().getUUID(), aid,tc);
         }catch(Throwable t){
             throw PublicAPI.wrapThrowable(t);
         }
@@ -1903,13 +1810,13 @@ public class SystemProcedures{
         String ip = lcc.getClientIPAddress();
         String reason = null;
         try{
-            resetAuthorizationIDPassword(normalizeUserName(userName),password);
+            resetAuthorizationIDPassword(normalizeUserName(userName),password, lcc.getDatabaseId());
             status = true;
         }catch (SQLException sqle) {
             status = false;
             reason = sqle.getMessage();
             throw sqle;
-        }finally {
+        } finally {
             if (AUDITLOG.isInfoEnabled())
                 AUDITLOG.info(StringUtils.logSpliceAuditEvent(currentUser, AuditEventType.RESET_PASSWORD.name(),status,ip,lcc.getStatementContext().getStatementText(),reason));
         }
@@ -1922,15 +1829,15 @@ public class SystemProcedures{
     private static void resetAuthorizationIDPassword
     (
             String userName,
-            String password
-    )
+            String password,
+            UUID databaseId)
             throws SQLException{
         try{
             LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
             DataDictionary dd=lcc.getDataDictionary();
             TransactionController tc=lcc.getTransactionExecute();
 
-            checkLegalUser(dd,userName);
+            checkLegalUser(dd,userName, databaseId);
             
             /*
             ** Inform the data dictionary that we are about to write to it.
@@ -1943,7 +1850,7 @@ public class SystemProcedures{
             */
             dd.startWriting(lcc);
 
-            UserDescriptor userDescriptor=makeUserDescriptor(dd,tc,userName,password);
+            UserDescriptor userDescriptor= dd.getDataDescriptorGenerator().makeUserDescriptor(tc,userName,password, databaseId);
 
             dd.updateUser(userDescriptor,tc);
 
@@ -1967,13 +1874,13 @@ public class SystemProcedures{
         String ip = lcc.getClientIPAddress();
         String reason = null;
         try{
-            resetAuthorizationIDPassword(currentUser,password);
+            resetAuthorizationIDPassword(currentUser,password, lcc.getDatabaseId());
             status = true;
         }catch (SQLException sqle){
             status = false;
             reason = sqle.getMessage();
             throw sqle;
-        }finally {
+        } finally {
             if (AUDITLOG.isInfoEnabled())
                 AUDITLOG.info(StringUtils.logSpliceAuditEvent(currentUser,AuditEventType.MODIFY_PASSWORD.name(),status,ip,lcc.getStatementContext().getStatementText(),reason));
         }
@@ -1997,27 +1904,11 @@ public class SystemProcedures{
         String reason = null;
         try{
             DataDictionary dd=lcc.getDataDictionary();
-            String dbo=dd.getAuthorizationDatabaseOwner();
 
-            // you can't drop the credentials of the dbo
-            if(dbo.equals(userName)){
-                throw StandardException.newException(SQLState.CANT_DROP_DBO);
-            }
+            checkLegalUser(dd,userName, lcc.getDatabaseId());
 
-            checkLegalUser(dd,userName);
-            
-            /*
-            ** Inform the data dictionary that we are about to write to it.
-            ** There are several calls to data dictionary "get" methods here
-            ** that might be done in "read" mode in the data dictionary, but
-            ** it seemed safer to do this whole operation in "write" mode.
-            **
-            ** We tell the data dictionary we're done writing at the end of
-            ** the transaction.
-            */
-            dd.startWriting(lcc);
-
-            dd.dropUser(userName,lcc.getTransactionExecute());
+            UserDescriptor desc = dd.getUser(lcc.getDatabaseId(), userName);
+            desc.drop(lcc, false);
             status = true;
         }
         catch(Throwable t) {
@@ -2036,9 +1927,9 @@ public class SystemProcedures{
     /**
      * Raise an exception if the user doesn't exist. See commentary on DERBY-5648.
      */
-    private static void checkLegalUser(DataDictionary dd,String userName)
+    private static void checkLegalUser(DataDictionary dd, String userName, UUID databaseId)
             throws StandardException{
-        if(dd.getUser(userName)==null){
+        if(dd.getUser(databaseId, userName)==null){
             throw StandardException.newException(SQLState.NO_SUCH_USER);
         }
     }
@@ -2066,7 +1957,8 @@ public class SystemProcedures{
     public static Long SYSCS_PEEK_AT_SEQUENCE(String schemaName,String sequenceName)
             throws SQLException{
         try{
-            return ConnectionUtil.getCurrentLCC().getDataDictionary().peekAtSequence(schemaName,sequenceName);
+            UUID dbId = ConnectionUtil.getCurrentLCC().getDatabaseId();
+            return ConnectionUtil.getCurrentLCC().getDataDictionary().peekAtSequence(dbId, schemaName,sequenceName);
         } catch(Throwable t) {
             throw PublicAPI.wrapThrowable(t);
         }

@@ -53,7 +53,6 @@ public interface C_NodeTypes
     // 10 available
     int SUBQUERY_LIST = 11;
     int TABLE_ELEMENT_LIST = 12;
-    int UNTYPED_NULL_CONSTANT_NODE = 13;
     int TABLE_ELEMENT_NODE = 14;
     int VALUE_NODE_LIST = 15;
     int ALL_RESULT_COLUMN = 16;
@@ -258,10 +257,7 @@ public interface C_NodeTypes
     int WINDOW_RESULTSET_NODE = 230;
     int DENSERANK_FUNCTION_NODE = 232;
     int RANK_FUNCTION_NODE = 233;
-    int EXPLAIN_NODE = 234;
 
-    int EXPORT_NODE = 250;
-    int TRUNC_NODE = 251;
     int FIRST_LAST_VALUE_FUNCTION_NODE = 253;
     int LEAD_LAG_FUNCTION_NODE = 254;
 
@@ -285,22 +281,21 @@ public interface C_NodeTypes
     int TIME_SPAN_NODE = 275;
     int STATEMENT_LIST_NODE = 276;
     int KAFKA_EXPORT_NODE = 277;
-
     int TO_INSTANT_NODE = 278;
     int TO_HBASE_ESCAPED_NODE = 279;
-
     int SPLIT_PART_OPERATOR_NODE = 280;
-
     int TYPEOF_OPERATOR_NODE = 281;
-
     int DAYS_FUNCTION_NODE = 282;
     int SECOND_FUNCTION_NODE = 283;
     int MULTIPLY_ALT_FUNCTION_NODE = 284;
     int BLOB_FUNCTION_NODE = 285;
     int TRANSLATE_FUNCTION_NODE = 286;
     int POSSTR_OPERATOR_NODE = 287;
+    int CREATE_DATABASE_NODE = 288;
+    int DROP_DATABASE_NODE = 289;
+    int CURRENT_DATABASE_ADMIN_NODE = 290;
     // Final value in set, keep up to date!
-    int FINAL_VALUE = POSSTR_OPERATOR_NODE;
+    int FINAL_VALUE = CURRENT_DATABASE_ADMIN_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision

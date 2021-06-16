@@ -94,25 +94,10 @@ public class TimetravelIT {
     }
 
 
-    private static final String DB_URL_TEMPLATE = SpliceTestDataSource.DB_URL_TEMPLATE + ";schema=" + CLASS_NAME;
-
-    private String getDefaultURL() {
-        return String.format(DB_URL_TEMPLATE,
-                SpliceTestDataSource.DEFAULT_HOST,
-                SpliceTestDataSource.DEFAULT_PORT,
-                SpliceTestDataSource.DEFAULT_USER,
-                SpliceTestDataSource.DEFAULT_USER_PASSWORD,
-                CLASS_NAME);
-    }
-
-    private String getDefaultURLWithTimestamp(long timestamp) {
-        return getDefaultURL()+";snapshot="+timestamp;
-    }
-
     @Test
     public void testSnapshot() throws Exception {
         long snapshot;
-        try (Connection connection = DriverManager.getConnection(getDefaultURL(), new Properties())) {
+        try (Connection connection = methodWatcher.connectionBuilder().schema(CLASS_NAME).build()) {
             try (Statement st = connection.createStatement()) {
                 try (ResultSet rs = st.executeQuery("select count(*) from A")) {
                     assertTrue(rs.next());
@@ -129,7 +114,7 @@ public class TimetravelIT {
             }
         }
         // get connection in the past
-        try (Connection connection = DriverManager.getConnection(getDefaultURLWithTimestamp(snapshot), new Properties())) {
+        try (Connection connection = methodWatcher.connectionBuilder().schema(CLASS_NAME).snapshot(snapshot).build()) {
             try (Statement st = connection.createStatement()) {
                 try (ResultSet rs = st.executeQuery("select count(*) from A")) {
                     assertTrue(rs.next());
@@ -160,7 +145,7 @@ public class TimetravelIT {
         long original;
         long afterUpdate;
         long afterDelete;
-        try (Connection connection = DriverManager.getConnection(getDefaultURL(), new Properties())) {
+        try (Connection connection = methodWatcher.connectionBuilder().schema(CLASS_NAME).build()) {
             try (Statement st = connection.createStatement()) {
                 try (ResultSet rs = st.executeQuery("select count(*) from B")) {
                     assertTrue(rs.next());
@@ -212,7 +197,7 @@ public class TimetravelIT {
     }
 
     private String getDataAtTimestamp(long timestamp) throws Exception {
-        try (Connection connection = DriverManager.getConnection(getDefaultURLWithTimestamp(timestamp), new Properties())) {
+        try (Connection connection = methodWatcher.connectionBuilder().schema(CLASS_NAME).snapshot(timestamp).build()) {
             try (Statement st = connection.createStatement()) {
                 try (ResultSet rs = st.executeQuery("select i from B")) {
                     return TestUtils.FormattedResult.ResultFactory.toString(rs);

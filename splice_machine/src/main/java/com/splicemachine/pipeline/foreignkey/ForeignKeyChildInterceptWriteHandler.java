@@ -82,7 +82,8 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
 
     /* This WriteHandler doesn't do anything when, for example, we delete from the FK backing index. */
     private boolean isForeignKeyInterceptNecessary(KVPair.Type type) {
-        return type == KVPair.Type.INSERT || type == KVPair.Type.UPDATE || type == KVPair.Type.UPSERT;
+        return type == KVPair.Type.INSERT || type == KVPair.Type.UPDATE ||
+               type == KVPair.Type.BLIND_UPDATE || type == KVPair.Type.UPSERT;
     }
 
     @Override

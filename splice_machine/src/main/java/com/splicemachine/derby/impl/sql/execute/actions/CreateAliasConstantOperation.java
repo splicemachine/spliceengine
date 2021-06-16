@@ -64,7 +64,7 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
         SpliceLogUtils.trace(LOG, "CreateAliasConstantOperation with alias {%s} on schema %s with aliasInfo %s",aliasName, schemaName, aliasInfo);
         this.aliasName = aliasName;
         this.schemaName = schemaName;
-        this.javaClassName = javaClassName == null ? "NULL" : javaClassName;
+		this.javaClassName = javaClassName == null ? "NULL" : javaClassName;
         this.aliasInfo = aliasInfo;
         this.aliasType = aliasType;
         switch (aliasType) {
@@ -173,7 +173,7 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
         dd.startWriting(lcc);
 
 
-        SchemaDescriptor sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, schemaName);
+        SchemaDescriptor sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, null, schemaName);
 
 
         notifyMetadataChange(tc,ProtoUtil.createAlias(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId()));
@@ -191,13 +191,13 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
                                      aliasType,
                                      nameSpace,
                                      false,
-                                     aliasInfo, null);
+                                     aliasInfo, null, tc);
 
         // perform duplicate rule checking
         switch (aliasType) {
         case AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR:
 
-            AliasDescriptor duplicateAlias = dd.getAliasDescriptor( sd.getUUID().toString(), aliasName, nameSpace );
+            AliasDescriptor duplicateAlias = dd.getAliasDescriptor( sd.getUUID().toString(), aliasName, nameSpace, tc);
             if ( duplicateAlias != null )
             {
                 throw StandardException.newException( SQLState.LANG_OBJECT_ALREADY_EXISTS, ads.getDescriptorType(), aliasName );
@@ -220,7 +220,7 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
 
             case AliasInfo.ALIAS_TYPE_UDT_AS_CHAR:
 
-            AliasDescriptor duplicateUDT = dd.getAliasDescriptor( sd.getUUID().toString(), aliasName, nameSpace );
+            AliasDescriptor duplicateUDT = dd.getAliasDescriptor( sd.getUUID().toString(), aliasName, nameSpace, tc);
             if ( duplicateUDT != null ) { throw StandardException.newException( SQLState.LANG_OBJECT_ALREADY_EXISTS, ads.getDescriptorType(), aliasName ); }
             break;
             
@@ -264,12 +264,12 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
             SchemaDescriptor nextSD;
             for (;;)
             {
-                nextSD = dd.getSchemaDescriptor(nextSynSchema, tc, false);
+                nextSD = dd.getSchemaDescriptor(null, nextSynSchema, tc, false);
                 if (nextSD == null)
                     break;
 
                 AliasDescriptor nextAD = dd.getAliasDescriptor(nextSD.getUUID().toString(),
-                         nextSynTable, nameSpace);
+                         nextSynTable, nameSpace, tc);
                 if (nextAD == null)
                     break;
 
@@ -297,7 +297,7 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
             DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
             td = ddg.newTableDescriptor(aliasName, sd, TableDescriptor.SYNONYM_TYPE,
                         TableDescriptor.DEFAULT_LOCK_GRANULARITY,-1,
-                    null,null,null,null,null,null,false,false,null);
+					null,null,null,null,null,null,false,false,null);
             dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
             break;
 

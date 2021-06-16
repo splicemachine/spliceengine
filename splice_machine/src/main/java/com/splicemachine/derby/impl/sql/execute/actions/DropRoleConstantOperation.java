@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -21,6 +22,7 @@ import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.RoleClosureIterator;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -34,14 +36,17 @@ import com.splicemachine.protobuf.ProtoUtil;
 
 public class DropRoleConstantOperation extends DDLConstantOperation {
     private final String roleName;
+    private final UUID dbId;
     /**
      *  Make the ConstantAction for a DROP ROLE statement.
      *
      *  @param  roleName  role name to be dropped
+     *  @param  dbId the database id for that role
      *
      */
-    public DropRoleConstantOperation(String roleName) {
+    public DropRoleConstantOperation(String roleName, UUID dbId) {
         this.roleName = roleName;
+        this.dbId = dbId;
     }
 
     public String toString() {
@@ -69,7 +74,7 @@ public class DropRoleConstantOperation extends DDLConstantOperation {
         */
         dd.startWriting(lcc);
 
-        RoleGrantDescriptor rdDef = dd.getRoleDefinitionDescriptor(roleName);
+        RoleGrantDescriptor rdDef = dd.getRoleDefinitionDescriptor(roleName, dbId);
 
         if (rdDef == null) {
             throw StandardException.newException(
@@ -85,11 +90,11 @@ public class DropRoleConstantOperation extends DDLConstantOperation {
         RoleClosureIterator rci =
             dd.createRoleClosureIterator
             (activation.getTransactionController(),
-             roleName, false);
+             roleName, false, dbId);
 
         String role;
         while ((role = rci.next()) != null) {
-            RoleGrantDescriptor r = dd.getRoleDefinitionDescriptor(role);
+            RoleGrantDescriptor r = dd.getRoleDefinitionDescriptor(role, dbId);
 
             dd.getDependencyManager().invalidateFor
                 (r, DependencyManager.REVOKE_ROLE, lcc);
@@ -97,7 +102,7 @@ public class DropRoleConstantOperation extends DDLConstantOperation {
 
         rdDef.drop(lcc);
 
-        notifyMetadataChange(tc, ProtoUtil.createDropRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), roleName));
+        notifyMetadataChange(tc, ProtoUtil.createDropRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), roleName, (BasicUUID)dbId));
 
         /*
          * We dropped a role, now drop all dependents:
@@ -106,8 +111,8 @@ public class DropRoleConstantOperation extends DDLConstantOperation {
          * - privilege grants to this role
          */
 
-        dd.dropRoleGrantsByGrantee(roleName, tc);
-        dd.dropRoleGrantsByName(roleName, tc);
-        dd.dropAllPermsByGrantee(roleName, tc);
+        dd.dropRoleGrantsByGrantee(roleName, dbId, tc);
+        dd.dropRoleGrantsByName(roleName, dbId, tc);
+        dd.dropAllPermsByGrantee(roleName, dbId, tc);
     }
 }

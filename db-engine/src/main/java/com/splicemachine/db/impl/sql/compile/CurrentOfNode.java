@@ -186,7 +186,7 @@ public final class CurrentOfNode extends FromTable {
         baseTableName = makeTableName(schemaName,
                                       refTab.getBaseName());
         SchemaDescriptor tableSchema = null;
-        tableSchema = getSchemaDescriptor(refTab.getSchemaName());
+        tableSchema = getSchemaDescriptor(null, refTab.getSchemaName());
 
         /*
         ** This will only happen when we are binding against a publication
@@ -236,11 +236,7 @@ public final class CurrentOfNode extends FromTable {
                                               exposedTableName,
                                             colDesc.getType(),
                                             getContextManager());
-            ResultColumn rc = (ResultColumn) getNodeFactory().getNode(
-                                            C_NodeTypes.RESULT_COLUMN,
-                                            colDesc,
-                                            bcn,
-                                            getContextManager());
+            ResultColumn rc = new ResultColumn(colDesc, bcn, getContextManager());
 
             /* Build the ResultColumnList to return */
             getResultColumns().addResultColumn(rc);
