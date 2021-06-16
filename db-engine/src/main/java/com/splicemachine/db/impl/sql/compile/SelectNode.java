@@ -1899,7 +1899,7 @@ public class SelectNode extends ResultSetNode {
         ResultSetNode leftResultSet;
         ResultSetNode rightResultSet;
 
-        PredicateList predicateList = (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());;
+        PredicateList predicateList = new PredicateList(getContextManager());
         if (optimizer.getPredicateList() != null)
             optimizer.getPredicateList().copyPredicatesToOtherList(predicateList);
 

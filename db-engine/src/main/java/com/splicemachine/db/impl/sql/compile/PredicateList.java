@@ -896,8 +896,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
     }
 
     private void saveOriginalInListPreds(Predicate newPred, List<Predicate> predsForNewInList) throws StandardException {
-        PredicateList origList =
-            (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
+        PredicateList origList = new PredicateList(getContextManager());
         for (Predicate p:predsForNewInList)
             origList.addPredicate(p);
         newPred.setOriginalInListPredList(origList);
@@ -2459,7 +2458,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             if(referencedTableMap.contains(curBitSet)){
                 /* Add the matching predicate to the push list */
                 if(pushPList==null){
-                    pushPList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
+                    pushPList = new PredicateList(getContextManager());
                 }
                 pushPList.addPredicate(predicate);
 
@@ -3806,7 +3805,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
          */
         PredicateList cloneMe = null;
         if(numberOfQualifiers>0){
-            cloneMe = (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+            cloneMe = new PredicateList(getContextManager());
             this.copyPredicatesToOtherList(cloneMe);
             orderQualifiers();
         }

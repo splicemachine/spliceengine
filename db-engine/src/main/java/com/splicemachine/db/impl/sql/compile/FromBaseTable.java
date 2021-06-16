@@ -2071,8 +2071,8 @@ public class FromBaseTable extends FromTable {
                     //noinspection ConstantConditions
                     SanityManager.ASSERT(vd!=null,"vd not expected to be null for "+tableName);
                 }        // make sure there's a restriction list
-                restrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
-                baseTableRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+                restrictionList = new PredicateList(getContextManager());
+                baseTableRestrictionList = new PredicateList(getContextManager());
 
 
                 cvn=(CreateViewNode)parseStatement(vd.getViewText(),false);
@@ -4852,8 +4852,8 @@ public class FromBaseTable extends FromTable {
                                         pastTxIdExpression,
                                         getContextManager());
         // make sure there's a restriction list
-        fromBaseTable.restrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
-        fromBaseTable.baseTableRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+        fromBaseTable.restrictionList = new PredicateList(getContextManager());
+        fromBaseTable.baseTableRestrictionList = new PredicateList(getContextManager());
 
         fromBaseTable.shallowCopy(this);
         return fromBaseTable;
