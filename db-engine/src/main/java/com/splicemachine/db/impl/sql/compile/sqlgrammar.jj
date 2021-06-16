@@ -10318,9 +10318,7 @@ FromTable tableFactor() throws StandardException :
         [ <LEFT_PAREN> derivedRCL = derivedColumnList() <RIGHT_PAREN> ]
         [ optionalTableClauses = optionalTableProperties() ]
     {
-        fromTable = (FromTable) nodeFactory.getNode(
-                                            C_NodeTypes.FROM_SUBQUERY,
-                                            derivedTable.getResultSet(),
+        fromTable = new FromSubquery(derivedTable.getResultSet(),
                                             derivedTable.getOrderByList(),
                                             derivedTable.getOffset(),
                                             derivedTable.getFetchFirst(),

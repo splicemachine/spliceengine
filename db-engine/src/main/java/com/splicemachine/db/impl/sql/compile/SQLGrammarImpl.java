@@ -599,8 +599,7 @@ class SQLGrammarImpl {
                                                  "Expecting RHS to be a subquery when LHS of set clause is a tuple");
         }
         SubqueryNode subq = (SubqueryNode) subQuery;
-        FromTable fromSubq = (FromTable) nodeFactory.getNode(
-                C_NodeTypes.FROM_SUBQUERY,
+        FromTable fromSubq = new FromSubquery(
                 subq.getResultSet(),
                 subq.getOrderByList(),
                 subq.getOffset(),

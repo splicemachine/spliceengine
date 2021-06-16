@@ -1019,8 +1019,7 @@ public class FromBaseTable extends FromTable {
                                         getContextManager());
 
         String unionAllCorrelationName = "dnfPathDT_###_" + baseTable.getExposedTableName();
-        FromTable fromSubquery = (FromTable) nodeFactory.getNode(
-                                            C_NodeTypes.FROM_SUBQUERY,
+        FromTable fromSubquery = new FromSubquery(
                                             derivedTable.getResultSet(),
                                             derivedTable.getOrderByList(),
                                             derivedTable.getOffset(),
@@ -2117,8 +2116,7 @@ public class FromBaseTable extends FromTable {
                     }
                 }
 
-                fsq=(FromSubquery)getNodeFactory().getNode(
-                        C_NodeTypes.FROM_SUBQUERY,
+                fsq = new FromSubquery(
                         rsn,
                         cvn.getOrderByList(),
                         cvn.getOffset(),

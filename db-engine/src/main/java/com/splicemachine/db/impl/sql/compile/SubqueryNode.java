@@ -472,9 +472,7 @@ public class SubqueryNode extends ValueNode{
                                         Boolean.valueOf( true ),
                                         getContextManager());
 
-        FromTable fromTable = (FromTable) getNodeFactory().getNode(
-                                            C_NodeTypes.FROM_SUBQUERY,
-                                            derivedTable.getResultSet(),
+        FromTable fromTable = new FromSubquery(derivedTable.getResultSet(),
                                             derivedTable.getOrderByList(),
                                             derivedTable.getOffset(),
                                             derivedTable.getFetchFirst(),
