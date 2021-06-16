@@ -1605,7 +1605,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         ResultColumnList newList;
 
         /* Create the new ResultColumnList */
-        newList=(ResultColumnList)getNodeFactory().getNode( C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
+        newList = new ResultColumnList(getContextManager());
 
         /* Walk the current list - for each ResultColumn in the list, make a copy
          * and add it to the new list.
@@ -2232,7 +2232,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         int posn;
 
         /* Get a new ResultColumnList */
-        retval=(ResultColumnList)getNodeFactory().getNode( C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
+        retval = new ResultColumnList(getContextManager());
 
         /*
         ** Form a sorted array of the ResultColumns
@@ -3154,9 +3154,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             return this;
         }
 
-        ResultColumnList newCols=(ResultColumnList)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        ResultColumnList newCols = new ResultColumnList(getContextManager());
         newCols.setFromExprIndex(fromExprIndex);
 
         int size=size();

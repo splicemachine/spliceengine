@@ -1056,9 +1056,7 @@ public class FromBaseTable extends FromTable {
                         getContextManager());
 
         // Include all referenced columns.
-        ResultColumnList    finalResultColumns = (ResultColumnList) nodeFactory.getNode(
-                                    C_NodeTypes.RESULT_COLUMN_LIST,
-                                    getContextManager());
+        ResultColumnList finalResultColumns = new ResultColumnList(getContextManager());
 
         for (ResultColumn rc : resultColumns) {
             if (!rc.isReferenced())
@@ -1512,10 +1510,7 @@ public class FromBaseTable extends FromTable {
                 columnName,
                 columnReference,
                 getContextManager());
-        ResultColumnList
-            newList=(ResultColumnList)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN_LIST,
-                    getContextManager());
+        ResultColumnList newList = new ResultColumnList(getContextManager());
 
         newList.addResultColumn(rowIdResultColumn);
         return newList;
