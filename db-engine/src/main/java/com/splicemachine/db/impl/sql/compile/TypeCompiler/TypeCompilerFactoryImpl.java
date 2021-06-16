@@ -29,9 +29,8 @@
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package com.splicemachine.db.impl.sql.compile;
+package com.splicemachine.db.impl.sql.compile.TypeCompiler;
 
-import com.splicemachine.db.iapi.sql.compile.TypeCompilerFactory;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.types.TypeId;
 
@@ -41,11 +40,8 @@ import com.splicemachine.db.iapi.reference.JDBC40Translation;
 
 import java.sql.Types;
 
-public class TypeCompilerFactoryImpl implements TypeCompilerFactory
+public class TypeCompilerFactoryImpl implements com.splicemachine.db.iapi.sql.compile.TypeCompilerFactory
 {
-        private static final String PACKAGE_NAME =
-                        "com.splicemachine.db.impl.sql.compile.";
-
         // These are all the TypeCompilers that are stateless, so we can
         // use a single instance of each. Initialize all to null, and fault
         // them in.
@@ -94,124 +90,124 @@ public class TypeCompilerFactoryImpl implements TypeCompilerFactory
                 {
                   case Types.BINARY:
                         return bitTypeCompiler =
-                                        getAnInstance(PACKAGE_NAME + "BitTypeCompiler",
+                                        getAnInstance(BitTypeCompiler.class.getName(),
                                                                         bitTypeCompiler,
                                                                         typeId);
 
                   case Types.BIT:
                   case Types.BOOLEAN:
                         return booleanTypeCompiler =
-                                        getAnInstance(PACKAGE_NAME + "BooleanTypeCompiler",
+                                        getAnInstance(BooleanTypeCompiler.class.getName(),
                                                                 booleanTypeCompiler,
                                                                 typeId);
 
                   case Types.CHAR:
                           sqlTypeName = typeId.getSQLTypeName();
                           return charTypeCompiler =
-                              getAnInstance(PACKAGE_NAME + "CharTypeCompiler",
+                              getAnInstance(CharTypeCompiler.class.getName(),
                                                       charTypeCompiler,
                                                       typeId);
 
                   case Types.NUMERIC:
                   case Types.DECIMAL:
                         return decimalTypeCompiler =
-                                getAnInstance(PACKAGE_NAME + "NumericTypeCompiler",
+                                getAnInstance(NumericTypeCompiler.class.getName(),
                                                                 decimalTypeCompiler,
                                                                 typeId);
 
                   case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
                       return decfloatTypeCompiler =
-                              getAnInstance(PACKAGE_NAME + "NumericTypeCompiler",
+                              getAnInstance(NumericTypeCompiler.class.getName(),
                                                                 decfloatTypeCompiler,
                                                                 typeId);
 
                     case Types.DOUBLE:
                         return doubleTypeCompiler =
-                                getAnInstance(PACKAGE_NAME + "NumericTypeCompiler",
+                                getAnInstance(NumericTypeCompiler.class.getName(),
                                                                 doubleTypeCompiler,
                                                                 typeId);
 
                   case Types.INTEGER:
                         return intTypeCompiler =
-                                getAnInstance(PACKAGE_NAME + "NumericTypeCompiler",
+                                getAnInstance(NumericTypeCompiler.class.getName(),
                                                                 intTypeCompiler,
                                                                 typeId);
 
                   case Types.BIGINT:
                         return longintTypeCompiler =
-                                getAnInstance(PACKAGE_NAME + "NumericTypeCompiler",
+                                getAnInstance(NumericTypeCompiler.class.getName(),
                                                                 longintTypeCompiler,
                                                                 typeId);
 
                   case Types.BLOB:
                         return blobTypeCompiler =
-                                getAnInstance(PACKAGE_NAME + "LOBTypeCompiler",
+                                getAnInstance(LOBTypeCompiler.class.getName(),
                                                           blobTypeCompiler,
                                                           typeId);
 
                   case Types.LONGVARBINARY:
                         return longvarbitTypeCompiler =
-                                getAnInstance(PACKAGE_NAME + "BitTypeCompiler",
+                                getAnInstance(BitTypeCompiler.class.getName(),
                                                           longvarbitTypeCompiler,
                                                           typeId);
 
                   case Types.CLOB:
                       sqlTypeName = typeId.getSQLTypeName();
                       return clobTypeCompiler =
-                          getAnInstance(PACKAGE_NAME + "CLOBTypeCompiler",
+                          getAnInstance(CLOBTypeCompiler.class.getName(),
                                         clobTypeCompiler,
                                         typeId);
                   case Types.LONGVARCHAR:
                           sqlTypeName = typeId.getSQLTypeName();
                           return longvarcharTypeCompiler =
-                              getAnInstance(PACKAGE_NAME + "CharTypeCompiler",
+                              getAnInstance(CharTypeCompiler.class.getName(),
                                                       longvarcharTypeCompiler,
                                                       typeId);
 
                   case Types.REAL:
                         return realTypeCompiler =
-                                getAnInstance(PACKAGE_NAME + "NumericTypeCompiler",
+                                getAnInstance(NumericTypeCompiler.class.getName(),
                                                                 realTypeCompiler,
                                                                 typeId);
 
                   case Types.SMALLINT:
                         return smallintTypeCompiler =
-                                getAnInstance(PACKAGE_NAME + "NumericTypeCompiler",
+                                getAnInstance(NumericTypeCompiler.class.getName(),
                                                                 smallintTypeCompiler,
                                                                 typeId);
 
                   case Types.TINYINT:
                     return tinyintTypeCompiler =
-                                getAnInstance(PACKAGE_NAME + "NumericTypeCompiler",
+                                getAnInstance(NumericTypeCompiler.class.getName(),
                                                                 tinyintTypeCompiler,
                                                                 typeId);
 
                   case Types.DATE:
                         return dateTypeCompiler =
-                                        getAnInstance(PACKAGE_NAME + "DateTypeCompiler",
+                                        getAnInstance(DateTypeCompiler.class.getName(),
                                                                         dateTypeCompiler,
                                                                         typeId);
 
                   case Types.TIME:
                         return timeTypeCompiler =
-                                        getAnInstance(PACKAGE_NAME + "TimeTypeCompiler",
+                                        getAnInstance(TimeTypeCompiler.class.getName(),
                                                                         timeTypeCompiler,
                                                                         typeId);
                   case Types.TIMESTAMP:
                         return timestampTypeCompiler =
-                                        getAnInstance(PACKAGE_NAME + "TimestampTypeCompiler",
+                                        getAnInstance(TimestampTypeCompiler.class.getName(),
                                                                         timestampTypeCompiler,
                                                                         typeId);
                   case Types.VARBINARY:
                         return varbitTypeCompiler =
-                                getAnInstance(PACKAGE_NAME + "BitTypeCompiler",
+                                getAnInstance(BitTypeCompiler.class.getName(),
                                                                 varbitTypeCompiler,
                                                                 typeId);
 
                   case Types.VARCHAR:
                           sqlTypeName = typeId.getSQLTypeName();
                           return varcharTypeCompiler =
-                              getAnInstance(PACKAGE_NAME + "CharTypeCompiler",
+                              getAnInstance(CharTypeCompiler.class.getName(),
                                                       varcharTypeCompiler,
                                                       typeId);
 
@@ -220,10 +216,9 @@ public class TypeCompilerFactoryImpl implements TypeCompilerFactory
                   case Types.OTHER:
                         if (typeId.isRefTypeId())
                         {
-                                return refTypeCompiler = getAnInstance(
-                                                                                        PACKAGE_NAME + "RefTypeCompiler",
-                                                                                        refTypeCompiler,
-                                                                                        typeId);
+                                return refTypeCompiler = getAnInstance(RefTypeCompiler.class.getName(),
+                                                        refTypeCompiler,
+                                                        typeId);
                         }
                         else
                         {
@@ -236,13 +231,13 @@ public class TypeCompilerFactoryImpl implements TypeCompilerFactory
 
                   case JDBC40Translation.SQLXML:
                         return xmlTypeCompiler =
-                                getAnInstance(PACKAGE_NAME + "XMLTypeCompiler",
+                                getAnInstance(XMLTypeCompiler.class.getName(),
                                                                 xmlTypeCompiler,
                                                                 typeId);
 
                     case Types.ARRAY:
                         return arrayTypeCompiler =
-                                getAnInstance(PACKAGE_NAME + "ArrayTypeCompiler",
+                                getAnInstance(ArrayTypeCompiler.class.getName(),
                                         arrayTypeCompiler,
                                         typeId);
 

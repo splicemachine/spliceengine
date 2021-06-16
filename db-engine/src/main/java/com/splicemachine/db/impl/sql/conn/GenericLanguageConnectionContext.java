@@ -70,7 +70,7 @@ import com.splicemachine.db.impl.db.BasicDatabase;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.catalog.ManagedCache;
-import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
+import com.splicemachine.db.impl.sql.compile.TypeCompiler.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;

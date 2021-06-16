@@ -29,7 +29,7 @@
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package com.splicemachine.db.impl.sql.compile;
+package com.splicemachine.db.impl.sql.compile.TypeCompiler;
 
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;

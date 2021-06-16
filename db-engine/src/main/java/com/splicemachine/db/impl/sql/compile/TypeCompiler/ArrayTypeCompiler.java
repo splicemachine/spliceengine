@@ -23,7 +23,7 @@
  *
  */
 
-package com.splicemachine.db.impl.sql.compile;
+package com.splicemachine.db.impl.sql.compile.TypeCompiler;
 
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;

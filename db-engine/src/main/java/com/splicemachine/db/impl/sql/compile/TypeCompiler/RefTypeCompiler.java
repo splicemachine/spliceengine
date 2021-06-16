@@ -29,40 +29,54 @@
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package com.splicemachine.db.impl.sql.compile;
+package com.splicemachine.db.impl.sql.compile.TypeCompiler;
+
+import java.sql.Types;
 
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
-
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
-
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
-
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.reference.ClassName;
 
 /**
- * This class implements TypeCompiler for the SQL BOOLEAN datatype.
+ * This class implements TypeCompiler for the SQL REF datatype.
  *
  */
 
-public class BooleanTypeCompiler extends BaseTypeCompiler
+public class RefTypeCompiler extends BaseTypeCompiler
 {
-	/**
-	 * Tell whether this type (boolean) can be converted to the given type.
-	 *
-	 * @see TypeCompiler#convertible
-	 */
-	public boolean convertible(TypeId otherType, boolean forDataTypeFunction)
+	/** @see TypeCompiler#getCorrespondingPrimitiveTypeName */
+	public String getCorrespondingPrimitiveTypeName()
 	{
-        return (otherType.isStringTypeId() || otherType.isBooleanTypeId());
+		if (SanityManager.DEBUG)
+			SanityManager.THROWASSERT("getCorrespondingPrimitiveTypeName not implemented for SQLRef");
+		return null;
 	}
 
-        /**
-         * Tell whether this type (boolean) is compatible with the given type.
-         *
-         * @param otherType     The TypeId of the other type.
-         */
+	/**
+	 * @see TypeCompiler#getCastToCharWidth
+	 */
+	public int getCastToCharWidth(DataTypeDescriptor dts, CompilerContext compilerContext)
+	{
+		if (SanityManager.DEBUG)
+			SanityManager.THROWASSERT( "getCastToCharWidth not implemented for SQLRef");
+		return 0;
+	}
+
+	/** @see TypeCompiler#convertible */
+	public boolean convertible(TypeId otherType, 
+							   boolean forDataTypeFunction)
+	{
+		return otherType.getJDBCTypeId() == Types.VARCHAR;
+	}
+
+	/**
+	 * Tell whether this type is compatible with the given type.
+	 *
+	 * @see TypeCompiler#compatible */
 	public boolean compatible(TypeId otherType)
 	{
 		return convertible(otherType,false);
@@ -71,57 +85,17 @@ public class BooleanTypeCompiler extends BaseTypeCompiler
 	/** @see TypeCompiler#storable */
 	public boolean storable(TypeId otherType, ClassFactory cf)
 	{
-		/* Are the types the same or is other type a string */
-		if ( otherType.isBooleanTypeId() || otherType.isStringTypeId() )
-		{
-			return true;
-		}
-
-		/*
-		** If the other type is user-defined, use the java types to determine
-		** assignability.
-		*/
-		return userTypeStorable(getTypeId(), otherType, cf);
+		return otherType.isRefTypeId();
 	}
 
 	/** @see TypeCompiler#interfaceName */
 	public String interfaceName()
 	{
-		return ClassName.BooleanDataValue;
-	}
-
-	/**
-	 * @see TypeCompiler#getCorrespondingPrimitiveTypeName
-	 */
-
-	public String getCorrespondingPrimitiveTypeName()
-	{
-		/* Only numerics and booleans get mapped to Java primitives */
-		return "boolean";
-	}
-
-	/**
-	 * Get the method name for getting out the corresponding primitive
-	 * Java type.
-	 *
-	 * @return String		The method call name for getting the
-	 *						corresponding primitive Java type.
-	 */
-	public String getPrimitiveMethodName()
-	{
-		return "getBoolean";
-	}
-
-	/**
-	 * @see TypeCompiler#getCastToCharWidth
-	 */
-	public int getCastToCharWidth(DataTypeDescriptor dts, CompilerContext compilerContext)
-	{
-		return TypeCompiler.BOOLEAN_MAXWIDTH_AS_CHAR;
+		return ClassName.RefDataValue;
 	}
 
 	String nullMethodName()
 	{
-		return "getNullBoolean";
+		return "getNullRef";
 	}
 }

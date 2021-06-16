@@ -29,9 +29,12 @@
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package com.splicemachine.db.impl.sql.compile;
+package com.splicemachine.db.impl.sql.compile.TypeCompiler;
 
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
+
+import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -39,10 +42,11 @@ import com.splicemachine.db.iapi.types.TypeId;
 
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 
-import java.sql.Types;
 import com.splicemachine.db.iapi.reference.ClassName;
 
-public class TimeTypeCompiler extends BaseTypeCompiler
+import java.sql.Types;
+
+public class DateTypeCompiler extends BaseTypeCompiler
 {
 	/* TypeCompiler methods */
 	/**
@@ -52,29 +56,26 @@ public class TimeTypeCompiler extends BaseTypeCompiler
 	 * date/time types; it may be generalized later for e.g.
 	 * comparison of any user type with one of its subtypes.
 	 *
-	 * @see TypeCompiler#convertible 
+	 * @see TypeCompiler#convertible
 	 */
-	public boolean convertible(TypeId otherType,
-							   boolean forDataTypeFunction)
-	{
-
-		if (otherType.isStringTypeId() && 
-			(!otherType.isLOBTypeId()) &&
-			!otherType.isLongVarcharTypeId())
-		{
-			return true;
-		}
+	public boolean convertible(TypeId otherType, boolean forDataTypeFunction) {
 
 
-		/*
-		** If same type, convert always ok.
-		*/
-		return (getStoredFormatIdFromTypeId() == 
-				otherType.getTypeFormatId());
-		   
-	}
+        if (otherType.isStringTypeId() &&
+                (!otherType.isLongConcatableTypeId())) {
+            return true;
+        }
 
-	/** @see TypeCompiler#compatible */
+        // we can convert a date to a timestamp
+        return getTypeId().getJDBCTypeId() == Types.DATE && otherType.getJDBCTypeId() == Types.TIMESTAMP || (getStoredFormatIdFromTypeId() == otherType.getTypeFormatId());
+
+    }
+
+        /**
+         * Tell whether this type (date) is compatible with the given type.
+         *
+         * @param otherType     The TypeId of the other type.
+         */
 	public boolean compatible(TypeId otherType)
 	{
 		return convertible(otherType,false);
@@ -95,7 +96,7 @@ public class TimeTypeCompiler extends BaseTypeCompiler
 	public boolean storable(TypeId otherType, ClassFactory cf) {
         int otherJDBCTypeId = otherType.getJDBCTypeId();
 
-        return otherJDBCTypeId == Types.TIME || (otherJDBCTypeId == Types.CHAR) || (otherJDBCTypeId == Types.VARCHAR) || (otherJDBCTypeId == Types.TIMESTAMP) || cf.getClassInspector().assignableTo(otherType.getCorrespondingJavaTypeName(), "java.sql.Time");
+        return otherJDBCTypeId == Types.DATE || (otherJDBCTypeId == Types.CHAR) || (otherJDBCTypeId == Types.VARCHAR) || cf.getClassInspector().assignableTo(otherType.getCorrespondingJavaTypeName(), "java.sql.Date");
 
     }
 
@@ -111,7 +112,7 @@ public class TimeTypeCompiler extends BaseTypeCompiler
 
 	public String getCorrespondingPrimitiveTypeName()
 	{
-		return "java.sql.Time";
+		return "java.sql.Date";
 	}
 
 	/**
@@ -119,16 +120,28 @@ public class TimeTypeCompiler extends BaseTypeCompiler
 	 */
 	public int getCastToCharWidth(DataTypeDescriptor dts, CompilerContext compilerContext)
 	{
-		return 8;
-	}
-
-	public double estimatedMemoryUsage(DataTypeDescriptor dtd)
-	{
-		return 12.0;
+		return 10;
 	}
 
 	String nullMethodName()
 	{
-		return "getNullTime";
+		return "getNullDate";
 	}
+
+    @Override
+    public DataTypeDescriptor resolveArithmeticOperation(DataTypeDescriptor leftType, DataTypeDescriptor rightType, String operator) throws StandardException {
+        if (operator!= null && (operator.equals("*") || operator.equals("/"))) {
+            throw StandardException.newException(SQLState.LANG_DATE_TIME_MULT_DIV_PROHIBITED,
+                                                 TypeId.getBuiltInTypeId(Types.DATE).toParsableString(leftType));
+        }
+        DataTypeDescriptor returnType = leftType;
+        if (rightType != null && (rightType.getJDBCTypeId() == Types.DATE || rightType.getJDBCTypeId() == Types.TIMESTAMP)) {
+            if (operator!= null && operator.equals("+")) {
+                throw StandardException.newException(SQLState.LANG_DATE_TIME_ADDITION_PROHIBITED,
+                                                     TypeId.getBuiltInTypeId(Types.DATE).toParsableString(leftType));
+            }
+            returnType = DataTypeDescriptor.INTEGER;
+        }
+        return returnType;
+    }
 }
