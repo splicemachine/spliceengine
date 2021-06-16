@@ -4108,12 +4108,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public void logStartExecuting(String uuid, String engine, String stmt, ExecPreparedStatement ps,
-                                  ParameterValueSet pvs) {
+                                  ParameterValueSet pvs, String parentId) {
         if (stmtLogger.isInfoEnabled()) {
             stmtLogger.info(String.format(
-                "Start executing query. %s, uuid=%s, engine=%s, %s, paramsCount=%d, params=[ %s ], sessionProperties=[ %s ]",
+                "Start executing query. %s, uuid=%s, engine=%s, %s, paramsCount=%d, params=[ %s ], sessionProperties=[ %s ], triggeredBy=[ %s ]",
                 getLogHeader(), uuid, engine, formatLogStmt(stmt),
-                pvs.getParameterCount(), pvs.toString(), ps.getSessionPropertyValues()));
+                pvs.getParameterCount(), pvs.toString(), ps.getSessionPropertyValues(), parentId));
         }
     }
 

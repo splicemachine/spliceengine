@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.api.txn;
 
+import com.splicemachine.si.impl.txn.AbstractTxn;
 import com.splicemachine.utils.ByteSlice;
 
 import java.io.Externalizable;
