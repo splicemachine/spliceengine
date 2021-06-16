@@ -29,13 +29,13 @@
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package com.splicemachine.db.impl.sql.compile;
+package com.splicemachine.db.impl.sql.compile.selectivity;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.AccessPath;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.Optimizer;
-import com.splicemachine.db.impl.ast.RSUtils;
+import com.splicemachine.db.impl.sql.compile.*;
 
 import static com.splicemachine.db.impl.sql.compile.ColumnReference.isBaseRowIdOrRowId;
 

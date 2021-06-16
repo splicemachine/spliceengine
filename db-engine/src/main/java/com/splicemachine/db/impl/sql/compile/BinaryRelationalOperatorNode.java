@@ -48,13 +48,14 @@ package com.splicemachine.db.impl.sql.compile;
  import com.splicemachine.db.iapi.types.Orderable;
  import com.splicemachine.db.iapi.types.TypeId;
  import com.splicemachine.db.iapi.util.JBitSet;
+ import com.splicemachine.db.impl.sql.compile.selectivity.SelectivityUtil;
 
  import java.sql.Types;
  import java.util.HashSet;
  import java.util.List;
 
  import static com.splicemachine.db.impl.sql.compile.ColumnReference.isBaseRowIdOrRowId;
- import static com.splicemachine.db.impl.sql.compile.SelectivityUtil.*;
+ import static com.splicemachine.db.impl.sql.compile.selectivity.SelectivityUtil.*;
 
  /**
  * This class represents the 6 binary operators: LessThan, LessThanEquals,

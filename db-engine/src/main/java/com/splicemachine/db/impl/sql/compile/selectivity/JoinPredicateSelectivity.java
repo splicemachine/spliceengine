@@ -29,23 +29,24 @@
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package com.splicemachine.db.impl.sql.compile;
+package com.splicemachine.db.impl.sql.compile.selectivity;
 
-import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.impl.sql.compile.Predicate;
+import com.splicemachine.db.impl.sql.compile.QualifierPhase;
 
 /**
- *
- * Constant class used for testing purposes only currently.  This can always be added when you have a fixed selectivity.
+ * Join Predicate Selectivity Holder
  *
  */
-public class ConstantSelectivity extends AbstractSelectivityHolder {
-    public ConstantSelectivity(double selectivity, int colNum, QualifierPhase phase){
-        super(false,colNum,phase,null);
+public class JoinPredicateSelectivity extends DefaultPredicateSelectivity {
+    public JoinPredicateSelectivity(Predicate p, Optimizable baseTable, QualifierPhase phase, double selectivity){
+        super(p, baseTable, phase, 1.0, null);
         this.selectivity = selectivity;
     }
 
-    public double getSelectivity() throws StandardException {
+    @Override
+    public double getSelectivity() {
         return selectivity;
     }
 }
-

@@ -21,6 +21,8 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.db.impl.sql.compile.selectivity.DefaultPredicateSelectivity;
+import com.splicemachine.db.impl.sql.compile.selectivity.InListSelectivity;
 
 import java.util.BitSet;
 import java.util.HashSet;

@@ -22,7 +22,7 @@ import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.impl.sql.compile.BinaryRelationalOperatorNode;
 import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.Predicate;
-import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
+import com.splicemachine.db.impl.sql.compile.selectivity.SelectivityUtil;
 
 public class V1MergeJoinCostEstimation implements StrategyJoinCostEstimation {
 

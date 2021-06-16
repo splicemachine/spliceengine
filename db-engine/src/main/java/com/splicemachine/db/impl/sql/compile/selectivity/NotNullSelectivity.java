@@ -29,23 +29,29 @@
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package com.splicemachine.db.impl.sql.compile;
+package com.splicemachine.db.impl.sql.compile.selectivity;
 
-import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.compile.Optimizer;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.store.access.StoreCostController;
+import com.splicemachine.db.impl.sql.compile.Predicate;
+import com.splicemachine.db.impl.sql.compile.QualifierPhase;
 
 /**
- * Join Predicate Selectivity Holder
+ *
+ * Not Null Selectivity Computation.
+ *
  *
  */
-public class JoinPredicateSelectivity extends DefaultPredicateSelectivity {
-    public JoinPredicateSelectivity(Predicate p, Optimizable baseTable, QualifierPhase phase, double selectivity){
-        super(p, baseTable, phase, 1.0, null);
-        this.selectivity = selectivity;
+public class NotNullSelectivity extends AbstractSelectivityHolder {
+    private final StoreCostController storeCost;
+    public NotNullSelectivity(StoreCostController storeCost, boolean fromExprIndex, int colNum, QualifierPhase phase, Predicate pred){
+        super(fromExprIndex, colNum, phase, pred);
+        this.storeCost = storeCost;
     }
 
-    @Override
-    public double getSelectivity() {
+    public double getSelectivity() throws StandardException {
+        if (selectivity == -1.0d)
+            selectivity = 1.0d-storeCost.nullSelectivity(useExprIndexStats, colNum);
         return selectivity;
     }
 }

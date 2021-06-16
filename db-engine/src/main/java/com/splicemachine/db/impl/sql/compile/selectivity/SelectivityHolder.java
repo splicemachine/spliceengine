@@ -29,26 +29,29 @@
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package com.splicemachine.db.impl.sql.compile;
+package com.splicemachine.db.impl.sql.compile.selectivity;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.store.access.StoreCostController;
+import com.splicemachine.db.impl.sql.compile.QualifierPhase;
 
 /**
  *
- * Null Selectivity Computation.
+ * Interface for Representing a selectivity operation.
+ *
+ * Implementations of SelectivityHolder will perform the low level ops.
+ *
+ * Implements Comparable so we can easily sort Selectivities in ascending order for computation.
  *
  */
-public class NullSelectivity extends AbstractSelectivityHolder {
-    private final StoreCostController storeCost;
-    public NullSelectivity(StoreCostController storeCost, boolean fromExprIndex, int colNum, QualifierPhase phase, Predicate pred){
-        super(fromExprIndex, colNum, phase, pred);
-        this.storeCost = storeCost;
-    }
+public interface SelectivityHolder extends Comparable<SelectivityHolder> {
+        double getSelectivity() throws StandardException;
+        QualifierPhase getPhase();
+        int getColNum();
+        boolean isRangeSelectivity();
+        int getNumReferencedTables();
 
-    public double getSelectivity() throws StandardException {
-        if (selectivity == -1.0d)
-            selectivity = storeCost.nullSelectivity(useExprIndexStats, colNum);
-        return selectivity;
-    }
+        // Test whether this SelectivityHolder should be counted.
+        // For example, join predicates should only be used towards
+        // the filterBaseTableSelectivity for nested loop join.
+        default boolean shouldApplySelectivity() { return true; }
 }

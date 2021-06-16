@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-import static com.splicemachine.db.impl.sql.compile.SelectivityUtil.DEFAULT_RANGE_SELECTIVITY;
+import static com.splicemachine.db.impl.sql.compile.selectivity.SelectivityUtil.DEFAULT_RANGE_SELECTIVITY;
 
 /**
  * Created by yxia on 11/7/19.

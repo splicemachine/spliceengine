@@ -18,8 +18,7 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
-import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.db.impl.sql.compile.selectivity.SelectivityUtil;
 
 public class V1CrossJoinCostEstimation implements StrategyJoinCostEstimation{
     @Override

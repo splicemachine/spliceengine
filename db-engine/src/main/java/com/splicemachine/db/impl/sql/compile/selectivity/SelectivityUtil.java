@@ -29,7 +29,7 @@
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package com.splicemachine.db.impl.sql.compile;
+package com.splicemachine.db.impl.sql.compile.selectivity;
 
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
+import com.splicemachine.db.impl.sql.compile.*;
 
 import java.util.*;
 
@@ -87,7 +88,7 @@ public class SelectivityUtil {
         if (p == null || predicateType != JoinPredicateType.ALL && !p.isHashableJoinPredicate())
             return false;
 
-        if (p.referencedSet.cardinality() < 2)
+        if (p.getReferencedMap().cardinality() < 2)
             return false;
 
         // only equality join conditions can be used for hashable joins to search for matching rows
@@ -104,8 +105,8 @@ public class SelectivityUtil {
                     if (p.getIndexPosition() < 0) {
                         return false;
                     } else {
-                        if ((!(bron.getLeftOperand() instanceof ColumnReference) && bron.leftMatchIndexExpr < 0) ||
-                                (!(bron.getRightOperand() instanceof ColumnReference) && bron.rightMatchIndexExpr < 0))
+                        if ((!(bron.getLeftOperand() instanceof ColumnReference) && bron.getLeftMatchIndexExprTableNumber() < 0) ||
+                                (!(bron.getRightOperand() instanceof ColumnReference) && bron.getRightMatchIndexExprTableNumber() < 0))
                             return false;
                     }
                 }

@@ -29,27 +29,24 @@
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package com.splicemachine.db.impl.sql.compile;
+package com.splicemachine.db.impl.sql.compile.selectivity;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.store.access.StoreCostController;
+import com.splicemachine.db.impl.sql.compile.QualifierPhase;
 
 /**
  *
- * Not Null Selectivity Computation.
- *
+ * Constant class used for testing purposes only currently.  This can always be added when you have a fixed selectivity.
  *
  */
-public class NotNullSelectivity extends AbstractSelectivityHolder {
-    private final StoreCostController storeCost;
-    public NotNullSelectivity(StoreCostController storeCost, boolean fromExprIndex, int colNum, QualifierPhase phase, Predicate pred){
-        super(fromExprIndex, colNum, phase, pred);
-        this.storeCost = storeCost;
+public class ConstantSelectivity extends AbstractSelectivityHolder {
+    public ConstantSelectivity(double selectivity, int colNum, QualifierPhase phase){
+        super(false,colNum,phase,null);
+        this.selectivity = selectivity;
     }
 
     public double getSelectivity() throws StandardException {
-        if (selectivity == -1.0d)
-            selectivity = 1.0d-storeCost.nullSelectivity(useExprIndexStats, colNum);
         return selectivity;
     }
 }
+

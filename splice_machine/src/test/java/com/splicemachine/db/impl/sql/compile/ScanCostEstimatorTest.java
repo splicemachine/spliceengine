@@ -14,6 +14,8 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.impl.sql.compile.selectivity.ConstantSelectivity;
+import com.splicemachine.db.impl.sql.compile.selectivity.SelectivityHolder;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.*;
 import org.junit.experimental.categories.Category;

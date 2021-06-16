@@ -29,13 +29,14 @@
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package com.splicemachine.db.impl.sql.compile;
+package com.splicemachine.db.impl.sql.compile.selectivity;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
+import com.splicemachine.db.impl.sql.compile.*;
 
-import static com.splicemachine.db.impl.sql.compile.SelectivityUtil.DEFAULT_INLIST_SELECTIVITY;
+import static com.splicemachine.db.impl.sql.compile.selectivity.SelectivityUtil.DEFAULT_INLIST_SELECTIVITY;
 
 /**
  *
@@ -56,7 +57,7 @@ public class InListSelectivity extends AbstractSelectivityHolder {
     {
         super(keyColumns != null, getLeftItemColumnPosition(p, 0, keyColumns), phase, p);
 
-        int numLeftItems = p.getSourceInList().leftOperandList.size();
+        int numLeftItems = p.getSourceInList().getLeftOperandList().size();
         colNo = new int[numLeftItems];
         for (int i = 0; i < numLeftItems; i++) {
             colNo[i] = getLeftItemColumnPosition(p, i, keyColumns);
@@ -144,7 +145,7 @@ public class InListSelectivity extends AbstractSelectivityHolder {
 
     // Before calling this function, isMultiProbeQualifier() or isInQualifier() should be called on p already.
     private static int getLeftItemColumnPosition(Predicate p, int index, ValueNode[] keyColumns) throws StandardException {
-        QueryTreeNode leftItem = p.getSourceInList().leftOperandList.elementAt(index);
+        QueryTreeNode leftItem = p.getSourceInList().getLeftOperandList().elementAt(index);
         if (keyColumns == null) {
             assert leftItem instanceof ColumnReference;
             return ((ColumnReference) leftItem).getColumnNumber();
