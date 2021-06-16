@@ -384,17 +384,18 @@ public class MergeNode extends DMLStatementNode
     private void    addTargetRowLocation( ResultColumnList selectList )
             throws StandardException
     {
-        System.out.println("hi");
-//        // tell the target table to generate a row location column
-//        _targetTable.setRowLocationColumnName( TARGET_ROW_LOCATION_NAME );
-//
-//        TableName   fromTableName = _targetTable.getTableName();
-//        ColumnReference cr = new ColumnReference
-//                ( TARGET_ROW_LOCATION_NAME, fromTableName, getContextManager() );
-//        ResultColumn    rowLocationColumn = new ResultColumn( (String) null, cr, getContextManager() );
-//        rowLocationColumn.markGenerated();
-//
-//        selectList.addResultColumn( rowLocationColumn );
+          if(selectList.elementAt(selectList.size()-1).getExpression().getColumnName().equals(UpdateNode.COLUMNNAME))
+              return;
+        // tell the target table to generate a row location column
+        _targetTable.setRowLocationColumnName( TARGET_ROW_LOCATION_NAME );
+
+        TableName   fromTableName = _targetTable.getTableName();
+        ColumnReference cr = new ColumnReference
+                ( TARGET_ROW_LOCATION_NAME, fromTableName, getContextManager() );
+        ResultColumn    rowLocationColumn = new ResultColumn( (String) null, cr, getContextManager() );
+        rowLocationColumn.markGenerated();
+
+        selectList.addResultColumn( rowLocationColumn );
     }
 
     /** Return true if the target table is a base table */
@@ -492,10 +493,20 @@ public class MergeNode extends DMLStatementNode
     {
         ArrayList<String>   list = new ArrayList<String>();
 
+        ColumnReference rowLocationToUpdate = null;
+
         for ( ColumnReference cr : map.values() )
         {
-            if ( exposedName.equals( cr.getTableName() ) ) { list.add( cr.getColumnName() ); }
+            if ( !exposedName.equals( cr.getTableName() ) )
+                continue;
+            if(cr.getColumnName().equals(UpdateNode.COLUMNNAME))
+                rowLocationToUpdate = cr;
+            else
+                list.add( cr.getColumnName() );
+
         }
+        if(rowLocationToUpdate != null)
+            list.add( rowLocationToUpdate.getColumnName() );
 
         String[]    retval = new String[ list.size() ];
         list.toArray( retval );

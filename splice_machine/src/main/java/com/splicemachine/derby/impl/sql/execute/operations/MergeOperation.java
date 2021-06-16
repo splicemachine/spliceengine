@@ -193,7 +193,7 @@ public class MergeOperation extends NoRowsOperation
                 if ( !rlColumn.isNull() )
                 {
                     matched = true;
-                    baseRowLocation = (RowLocation)((SQLRef) rlColumn).getObject(); //.getObject(); // todo what is this
+                    //baseRowLocation = (RowLocation)((SQLRef) rlColumn).getObject(); //.getObject(); // todo what is this
                 }
             }
 
