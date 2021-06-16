@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
@@ -1282,14 +1283,13 @@ public class SelectNode extends ResultSetNode {
             }
         }
 
-        prnRSN = (ResultSetNode) getNodeFactory().getNode(
-            C_NodeTypes.PROJECT_RESTRICT_NODE,
-            fromList.elementAt(0),    /* Child ResultSet */
+        prnRSN = new ProjectRestrictNode(
+            (ResultSetNode)fromList.elementAt(0),    /* Child ResultSet */
             resultColumns,        /* Projection */
-            whereClause,            /* Restriction */
-            wherePredicates,/* Restriction as PredicateList */
-            selectSubquerys,/* Subquerys in Projection */
-            whereSubquerys,    /* Subquerys in Restriction */
+            whereClause,          /* Restriction */
+            wherePredicates,      /* Restriction as PredicateList */
+            selectSubquerys,      /* Subquerys in Projection */
+            whereSubquerys,       /* Subquerys in Restriction */
             null,
             getContextManager());
 
@@ -1497,8 +1497,7 @@ public class SelectNode extends ResultSetNode {
 
                 topList.removeOrderByColumns();
                 topList.genVirtualColumnNodes(prnRSN, newSelectList);
-                prnRSN = (ResultSetNode) getNodeFactory().getNode(
-                    C_NodeTypes.PROJECT_RESTRICT_NODE,
+                prnRSN = new ProjectRestrictNode(
                     prnRSN,
                     topList,
                     null,
@@ -1539,8 +1538,7 @@ public class SelectNode extends ResultSetNode {
 
             topList.removeGeneratedGroupingColumns();
             topList.genVirtualColumnNodes(prnRSN, newSelectList);
-            prnRSN = (ResultSetNode) getNodeFactory().getNode(
-                C_NodeTypes.PROJECT_RESTRICT_NODE,
+            prnRSN = new ProjectRestrictNode(
                 prnRSN,
                 topList,
                 null,
@@ -2846,8 +2844,7 @@ public class SelectNode extends ResultSetNode {
         predList.addPredicate(unsatPredicate);
 
         // Add ProjectRestrictNode ontop with unsat condition
-        ProjectRestrictNode newPRN = (ProjectRestrictNode) nf.getNode(
-            C_NodeTypes.PROJECT_RESTRICT_NODE,
+        ProjectRestrictNode newPRN = new ProjectRestrictNode(
             rowResultSetNode,        /* Child ResultSet */
             prRCL,    /* Projection */
             null,            /* Restriction */

@@ -203,8 +203,7 @@ public class SelfReferenceNode extends FromTable {
         prRCList.doProjection(false);
 
         /* Finally, we create the new ProjectRestrictNode */
-        return (ResultSetNode)getNodeFactory().getNode(
-                C_NodeTypes.PROJECT_RESTRICT_NODE,
+        return new ProjectRestrictNode(
                 this,
                 prRCList,
                 null,    /* Restriction */

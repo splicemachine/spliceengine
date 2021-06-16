@@ -2363,9 +2363,7 @@ public class SubqueryNode extends ValueNode{
         */
         ResultColumnList newRCL=resultColumns.copyListAndObjects();
         newRCL.genVirtualColumnNodes(resultSet,resultColumns);
-        resultSet=(ResultSetNode)getNodeFactory().getNode(
-                C_NodeTypes.PROJECT_RESTRICT_NODE,
-                resultSet,    // child
+        resultSet = new ProjectRestrictNode(resultSet,    // child
                 newRCL,            // result columns
                 null,            // restriction
                 null,            // restriction list
@@ -2895,8 +2893,7 @@ public class SubqueryNode extends ValueNode{
         // Create a new PR node.  Put it over the original subquery.
         ResultColumnList newRCL = resultColumns.copyListAndObjects();
         newRCL.genVirtualColumnNodes(resultSet, resultColumns);
-        ResultSetNode newPRN = (ResultSetNode) getNodeFactory().getNode(
-                C_NodeTypes.PROJECT_RESTRICT_NODE,
+        ResultSetNode newPRN = new ProjectRestrictNode(
                 resultSet,    // child
                 newRCL,            // result columns
                 null,            // restriction

@@ -235,8 +235,7 @@ public abstract class SetOperatorNode extends TableOperatorNode
             // _unscoped_ form, which means they are intended for _this_
             // node instead of this node's children.  That's exactly what
             // we want.
-            ResultSetNode prnRSN = (ResultSetNode) getNodeFactory().getNode(
-                C_NodeTypes.PROJECT_RESTRICT_NODE,
+            ResultSetNode prnRSN = new ProjectRestrictNode(
                 topNode,                    // Child ResultSet
                 topNode.getResultColumns(),    // Projection
                 null,                        // Restriction

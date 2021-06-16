@@ -682,8 +682,7 @@ public class GroupByNode extends SingleChildResultSetNode{
         // have to be projected out upstream.
         rclNew.copyOrderBySelect(resultColumns);
 
-        parent=(FromTable)getNodeFactory().getNode(
-                C_NodeTypes.PROJECT_RESTRICT_NODE,
+        parent = new ProjectRestrictNode(
                 this,    // child
                 rclNew,
                 null, //havingClause,

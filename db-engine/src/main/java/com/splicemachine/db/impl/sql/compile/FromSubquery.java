@@ -532,8 +532,7 @@ public class FromSubquery extends FromTable
         JBitSet          newJBS;
         ResultSetNode newPRN;
 
-        newPRN = (ResultSetNode) getNodeFactory().getNode(
-                                C_NodeTypes.PROJECT_RESTRICT_NODE,
+        newPRN = new ProjectRestrictNode(
                                 subquery,        /* Child ResultSet */
                                 resultColumns,    /* Projection */
                                 null,            /* Restriction */
@@ -541,7 +540,7 @@ public class FromSubquery extends FromTable
                                 null,            /* Subquerys in Projection */
                                 null,            /* Subquerys in Restriction */
                                 tableProperties,
-                                getContextManager()     );
+                                getContextManager() );
 
         /* Set up the PRN's referencedTableMap */
         newJBS = new JBitSet(numTables);

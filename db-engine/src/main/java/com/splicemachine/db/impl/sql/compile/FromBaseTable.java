@@ -2579,8 +2579,7 @@ public class FromBaseTable extends FromTable {
 
         /* Finally, we create the new ProjectRestrictNode */
         ResultSetNode projectRestrict =
-            (ResultSetNode)getNodeFactory().getNode(
-                C_NodeTypes.PROJECT_RESTRICT_NODE,
+            new ProjectRestrictNode(
                 this,
                 prRCList,
                 null,    /* Restriction */
