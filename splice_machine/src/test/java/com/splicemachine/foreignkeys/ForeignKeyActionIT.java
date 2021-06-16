@@ -30,6 +30,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Statement;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -61,7 +63,8 @@ public class ForeignKeyActionIT {
         new TableDAO(conn).drop(SCHEMA, "SNGC2", "SNGC1", "SNC", "SNP", "RP", "RC",
                                         "DHC10", "DHC9", "DHC8", "DHC7", "DHC6", "DHC5", "DHC4", "DHC3", "DHC2", "DHC1",
                                         "FC", "FP", "SRT2", "GC2", "GC1", "CC", "CP", "C1I", "C2I", "PI","SRT", "LC", "YAC", "AC", "AP", "C2", "C", "P",
-                                        "cc1", "cc2", "cc3", "cc4", "cc6", "cc7");
+                                        "cc1", "cc2", "cc3", "cc4", "cc6", "cc7",
+                                        "PSN", "CSN1", "CSN2");
     }
 
     @After
@@ -673,13 +676,35 @@ public class ForeignKeyActionIT {
         }
     }
 
+    @Test
+    public void onDeleteSetNullChildIndexUpdatedCorrectly() throws Exception {
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("create table psn(col1 int primary key, col2 int)");
+            testForeignKeyWithIndexInternal("csn1", true, s);
+            testForeignKeyWithIndexInternal("csn2", false, s);
+        }
+    }
+
+    ///// helper functions.
+
     private void shouldContain(String child, int[][] rows) throws SQLException {
+        queryShouldContain(String.format("select * from %s order by col1 asc", child),
+                           Stream.of(rows)
+                                 .map(array -> IntStream.of(array).boxed().toArray(Integer[]::new))
+                                 .toArray(Integer[][]::new));
+    }
+
+    private void queryShouldContain(String query, Integer[][] rows) throws SQLException {
         try(Statement s = conn.createStatement()) {
-            ResultSet rs = s.executeQuery(String.format("select * from %s order by col1 asc", child));
-            for(int[] row : rows) {
+            ResultSet rs = s.executeQuery(query);
+            for(Integer[] row : rows) {
                 Assert.assertTrue(rs.next());
                 for(int i = 0; i < row.length; ++i) {
-                    Assert.assertEquals(row[i], rs.getInt(i+1));
+                    if(row[i] == null) {
+                        rs.getInt(i+1); Assert.assertTrue(rs.wasNull());
+                    } else {
+                        Assert.assertEquals((int)row[i], rs.getInt(i+1));
+                    }
                 }
             }
             Assert.assertFalse(rs.next());
@@ -704,6 +729,39 @@ public class ForeignKeyActionIT {
                 Assert.assertFalse(rs.next());
             }
         }
+    }
+
+    private void testForeignKeyWithIndexInternal(String tableName, boolean withPk, Statement s) throws SQLException {
+        s.executeUpdate("create table " + tableName + "(col1 int " + (withPk ? "primary key" : "") + ", col2 int references psn(col1) on delete set null, col3 int)");
+        s.executeUpdate("create index " + tableName + "i1  on " + tableName + "(col2, col3)");
+        s.executeUpdate("create index " + tableName + "i2  on " + tableName + "(col3)");
+        s.executeUpdate("create index " + tableName + "i3  on " + tableName + "(col1, col3)");
+        s.executeUpdate("create index " + tableName + "i4  on " + tableName + "(col1, col2, col3)");
+
+        s.executeUpdate("insert into psn values (1,1)");
+        s.executeUpdate("insert into " + tableName + " values (10, 1, 100)");
+        s.executeUpdate("insert into " + tableName + " values (20, 1, 200)");
+        s.executeUpdate("delete from psn");
+
+        Integer[][] expectedResult = new Integer[][]{{10, null, 100}, {20, null, 200}};
+        queryShouldContain("select * from " + tableName + " order by col1 asc", expectedResult);
+        queryShouldContain("select * from " + tableName + " --splice-properties index=" + tableName + "i1 \norder by col1 asc", expectedResult);
+        queryShouldContain("select * from " + tableName + " --splice-properties index=" + tableName + "i2 \norder by col1 asc", expectedResult);
+        queryShouldContain("select * from " + tableName + " --splice-properties index=" + tableName + "i3 \norder by col1 asc", expectedResult);
+        queryShouldContain("select * from " + tableName + " --splice-properties index=" + tableName + "i4 \norder by col1 asc", expectedResult);
+
+        Integer[][] expectedResult2 = new Integer[][]{{10}, {20}};
+        queryShouldContain("select col1 from " + tableName + " order by col1 asc", expectedResult2);
+        queryShouldContain("select col1 from " + tableName + " --splice-properties index=" + tableName + "i1 \norder by col1 asc", expectedResult2);
+        queryShouldContain("select col1 from " + tableName + " --splice-properties index=" + tableName + "i2 \norder by col1 asc", expectedResult2);
+        queryShouldContain("select col1 from " + tableName + " --splice-properties index=" + tableName + "i3 \norder by col1 asc", expectedResult2);
+        queryShouldContain("select col1 from " + tableName + " --splice-properties index=" + tableName + "i4 \norder by col1 asc", expectedResult2);
+
+        Integer[][] expectedResult3 = new Integer[][]{{100}, {200}};
+        queryShouldContain("select col3 from " + tableName + " order by col1 asc", expectedResult3);
+        queryShouldContain("select col3 from " + tableName + " --splice-properties index=" + tableName + "i1 \norder by col1 asc", expectedResult3);
+        queryShouldContain("select col3 from " + tableName + " --splice-properties index=" + tableName + "i2 \norder by col1 asc", expectedResult3);
+        queryShouldContain("select col3 from " + tableName + " --splice-properties index=" + tableName + "i3 \norder by col1 asc", expectedResult3);
     }
 
 }
