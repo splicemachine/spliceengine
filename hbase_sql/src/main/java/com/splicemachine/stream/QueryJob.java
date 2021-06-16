@@ -34,6 +34,7 @@ import com.splicemachine.derby.stream.spark.SparkDataSet;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.sparksql.SparkSQLUtilsImpl;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -51,7 +52,7 @@ import static java.lang.String.format;
  */
 public class QueryJob implements Callable<Void>{
 
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(QueryJob.class);
+    private static final Logger LOG = LogManager.getLogger(QueryJob.class);
 
     private final OlapStatus status;
     private final RemoteQueryJob queryRequest;

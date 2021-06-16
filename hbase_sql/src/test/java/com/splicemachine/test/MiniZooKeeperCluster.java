@@ -16,6 +16,7 @@ package com.splicemachine.test;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig;
 
 import java.io.File;
@@ -26,7 +27,7 @@ import java.util.concurrent.Executors;
 
 public class MiniZooKeeperCluster {
 
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(MiniZooKeeperCluster.class);
+    private static final Logger LOG = LogManager.getLogger(MiniZooKeeperCluster.class);
     protected boolean started;
     protected ExecutorService service;
 

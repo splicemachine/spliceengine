@@ -16,6 +16,7 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.uuid.UUIDService;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  *
@@ -24,7 +25,7 @@ import org.apache.logging.log4j.Logger;
  */
 
 public class SpliceUtils {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceUtils.class);
+    private static Logger LOG = LogManager.getLogger(SpliceUtils.class);
 
     public static byte[] getUniqueKey(){
         /*

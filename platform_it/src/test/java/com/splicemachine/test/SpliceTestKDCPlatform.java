@@ -21,6 +21,7 @@ import org.apache.directory.server.protocol.shared.transport.TcpTransport;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.minikdc.MiniKdc;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.File;
 import java.lang.reflect.Field;
@@ -36,7 +37,7 @@ public class SpliceTestKDCPlatform {
     public static final int DEFAULT_HEARTBEAT_INTERVAL = 100;
     public static int DEFAULT_NODE_COUNT = 1;
 
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceTestKDCPlatform.class);
+    private static final Logger LOG = LogManager.getLogger(SpliceTestKDCPlatform.class);
 
     private MiniKdc kdcCluster = null;
     private LdapServer ldapServer = null;

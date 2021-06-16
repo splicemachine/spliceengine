@@ -8,6 +8,7 @@ import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.nio.ByteBuff;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.util.List;
@@ -16,7 +17,7 @@ import java.util.List;
  * Created by jyuan on 5/30/19.
  */
 public class SpliceHFileUtil {
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(HFileUtil.class);
+    private static final Logger LOG=LogManager.getLogger(HFileUtil.class);
 
     public static int addStoreFileCutpoints(List<byte[]> cutpoints, HFile.Reader fileReader, long storeFileInBytes, int carry, Pair<byte[], byte[]> range, int splitBlockSize) throws IOException {
         HFileBlockIndex.BlockIndexReader indexReader = fileReader.getDataBlockIndexReader();

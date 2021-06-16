@@ -19,9 +19,10 @@ import com.splicemachine.db.iapi.services.context.ContextImpl;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.shared.common.error.ExceptionSeverity;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public final class SpliceTransactionManagerContext extends ContextImpl {
-	private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceTransactionManagerContext.class);
+	private static Logger LOG = LogManager.getLogger(SpliceTransactionManagerContext.class);
 	private SpliceTransactionManager transactionManager;
 	private boolean abortAll;
 

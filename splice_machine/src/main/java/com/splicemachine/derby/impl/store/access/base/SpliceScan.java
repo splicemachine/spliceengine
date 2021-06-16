@@ -42,12 +42,13 @@ import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.util.Arrays;
 
 public class SpliceScan implements ScanManager, LazyScan{
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SpliceScan.class);
+    private static final Logger LOG=LogManager.getLogger(SpliceScan.class);
     protected OpenSpliceConglomerate spliceConglomerate;
     private BaseSpliceTransaction trans;
     protected DataScan scan;

@@ -30,6 +30,7 @@ import com.splicemachine.pipeline.constraint.UniqueConstraintViolation;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.WriteConflict;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -42,7 +43,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  *         Created on: 5/1/13
  */
 public abstract class RoutingWriteHandler implements WriteHandler {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(RoutingWriteHandler.class);
+    private static final Logger LOG = LogManager.getLogger(RoutingWriteHandler.class);
     private final byte[] destination;
     private boolean failed = false;
     /*

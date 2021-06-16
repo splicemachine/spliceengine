@@ -22,6 +22,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -33,7 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @SuppressFBWarnings("SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION")
 public class ReadOnlyTxn extends AbstractTxn{
 
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(ReadOnlyTxn.class);
+    private static final Logger LOG=LogManager.getLogger(ReadOnlyTxn.class);
     private volatile TxnView parentTxn;
     private AtomicReference<State> state=new AtomicReference<State>(State.ACTIVE);
     private final TxnLifecycleManager tc;

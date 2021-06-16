@@ -24,6 +24,7 @@ import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.pipeline.client.WriteResult;
@@ -34,7 +35,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  *         Date: 3/16/15
  */
 public class AlterTableInterceptWriteHandler implements WriteHandler{
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(AlterTableInterceptWriteHandler.class);
+    private static final Logger LOG = LogManager.getLogger(AlterTableInterceptWriteHandler.class);
 
     private final WriteCoordinator writeCoordinator;
     private final RowTransformer rowTransformer;

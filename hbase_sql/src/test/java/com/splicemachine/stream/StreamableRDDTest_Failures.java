@@ -21,6 +21,7 @@ import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.BaseStreamTest;
 import org.apache.commons.collections.IteratorUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
@@ -46,7 +47,7 @@ import static org.junit.Assert.*;
  * Created by dgomezferro on 6/1/16.
  */
 public class StreamableRDDTest_Failures extends BaseStreamTest implements Serializable {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(StreamableRDDTest_Failures.class);
+    private static final Logger LOG = LogManager.getLogger(StreamableRDDTest_Failures.class);
 
     private static StreamListenerServer server;
 

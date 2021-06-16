@@ -29,13 +29,14 @@ import java.util.Iterator;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * @author Scott Fines
  *         Date: 8/14/14
  */
 public abstract class AbstractTxnView implements TxnView {
-	private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(AbstractTxnView.class);
+	private static final Logger LOG = LogManager.getLogger(AbstractTxnView.class);
     protected long txnId;
     private long beginTimestamp;
     protected Txn.IsolationLevel isolationLevel;

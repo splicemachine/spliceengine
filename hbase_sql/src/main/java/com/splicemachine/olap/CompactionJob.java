@@ -29,6 +29,7 @@ import com.splicemachine.stream.SparkCompactionContext;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.spark.SparkJobInfo;
 import org.apache.spark.SparkStageInfo;
 import org.apache.spark.SparkStatusTracker;
@@ -54,7 +55,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class CompactionJob implements Callable<Void>{
 
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(CompactionJob.class);
+    private static final Logger LOG = LogManager.getLogger(CompactionJob.class);
 
     private final OlapStatus status;
     private final DistributedCompaction compactionRequest;

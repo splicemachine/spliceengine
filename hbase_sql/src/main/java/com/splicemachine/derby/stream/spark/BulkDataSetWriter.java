@@ -37,6 +37,7 @@ import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.types.DataTypes;
@@ -57,7 +58,7 @@ public class BulkDataSetWriter  {
     protected TxnView txn;
     protected byte[] token;
 
-    protected static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(BulkDataSetWriter.class);
+    protected static final Logger LOG=LogManager.getLogger(BulkDataSetWriter.class);
 
 
     public BulkDataSetWriter() {}

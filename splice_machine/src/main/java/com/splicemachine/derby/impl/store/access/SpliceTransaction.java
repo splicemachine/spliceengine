@@ -25,10 +25,11 @@ import com.splicemachine.si.impl.TransactionImpl;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.io.IOException;
 
 public class SpliceTransaction extends BaseSpliceTransaction<TransactionImpl> {
-    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SpliceTransaction.class);
+    private static Logger LOG=LogManager.getLogger(SpliceTransaction.class);
 
     public SpliceTransaction(CompatibilitySpace compatibilitySpace,
                              SpliceTransactionFactory spliceTransactionFactory,

@@ -18,11 +18,12 @@ import com.splicemachine.db.iapi.sql.execute.ResultSetFactory;
 import com.splicemachine.db.impl.sql.execute.GenericConstantActionFactory;
 import com.splicemachine.db.impl.sql.execute.GenericExecutionFactory;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public abstract class SpliceExecutionFactory extends GenericExecutionFactory {
 
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceExecutionFactory.class);
+    private static Logger LOG = LogManager.getLogger(SpliceExecutionFactory.class);
 
     private SpliceGenericResultSetFactory resultSetFactory;
     private SpliceGenericConstantActionFactory genericConstantActionFactory;

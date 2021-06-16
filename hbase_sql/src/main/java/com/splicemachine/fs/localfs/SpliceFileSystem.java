@@ -20,6 +20,7 @@ import org.apache.hadoop.fs.*;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -34,7 +35,7 @@ import java.util.Random;
 @InterfaceAudience.Public
 @InterfaceStability.Stable
 public class SpliceFileSystem extends ChecksumFileSystem {
-    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SpliceFileSystem.class);
+    private static Logger LOG=LogManager.getLogger(SpliceFileSystem.class);
 
     public static final URI NAME = URI.create("splice:///");
     public static final String SCHEME = "splice";

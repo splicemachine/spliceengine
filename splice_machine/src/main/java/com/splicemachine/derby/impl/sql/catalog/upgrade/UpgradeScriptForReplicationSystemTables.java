@@ -19,13 +19,14 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * Created by jyuan on 12/12/19.
  */
 public class UpgradeScriptForReplicationSystemTables extends UpgradeScriptBase {
 
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(UpgradeScriptForReplicationSystemTables.class);
+    private static final Logger LOG = LogManager.getLogger(UpgradeScriptForReplicationSystemTables.class);
     public UpgradeScriptForReplicationSystemTables(SpliceDataDictionary sdd, TransactionController tc) {
         super(sdd, tc);
     }

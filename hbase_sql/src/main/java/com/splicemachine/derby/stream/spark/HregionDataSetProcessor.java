@@ -39,6 +39,7 @@ import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.io.IOException;
 
 /**
@@ -46,7 +47,7 @@ import java.io.IOException;
  *
  */
 public class HregionDataSetProcessor extends ControlDataSetProcessor {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(HregionDataSetProcessor.class);
+    private static final Logger LOG = LogManager.getLogger(HregionDataSetProcessor.class);
 
 
     public HregionDataSetProcessor(TxnSupplier txnSupplier,

@@ -78,6 +78,7 @@ import com.splicemachine.utils.SparkSQLUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.config.Configurator;
 import splice.com.google.common.cache.CacheBuilder;
 
@@ -98,8 +99,8 @@ import static com.splicemachine.db.iapi.reference.Property.MATCHING_STATEMENT_CA
 public class GenericLanguageConnectionContext extends ContextImpl implements LanguageConnectionContext {
 
     private static final String statementLoggerName = "splice.statement";
-    private static final Logger stmtLogger = org.apache.logging.log4j.LogManager.getLogger(statementLoggerName);
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(GenericLanguageConnectionContext.class);
+    private static final Logger stmtLogger = LogManager.getLogger(statementLoggerName);
+    private static Logger LOG = LogManager.getLogger(GenericLanguageConnectionContext.class);
     private static final int LOCAL_MANAGED_CACHE_MAX_SIZE = 256;
 
 

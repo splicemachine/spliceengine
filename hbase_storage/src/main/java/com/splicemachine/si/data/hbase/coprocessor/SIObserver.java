@@ -73,6 +73,7 @@ import org.apache.hadoop.hbase.wal.WALKey;
 import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.collect.Iterables;
 import splice.com.google.common.collect.Maps;
 
@@ -87,7 +88,7 @@ import static com.splicemachine.si.constants.SIConstants.ENTRY_PREDICATE_LABEL;
  * An HBase coprocessor that applies SI logic to HBase read/write operations.
  */
 public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocessor {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SIObserver.class);
+    private static Logger LOG = LogManager.getLogger(SIObserver.class);
     protected boolean tableEnvMatch=false;
     protected boolean spliceTable=false;
     protected long conglomId;

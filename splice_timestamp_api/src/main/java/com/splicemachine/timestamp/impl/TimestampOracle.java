@@ -20,6 +20,7 @@ import com.splicemachine.timestamp.api.TimestampOracleStatistics;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.lang.management.ManagementFactory;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.management.InstanceAlreadyExistsException;
@@ -32,7 +33,7 @@ import javax.management.ObjectName;
 public class TimestampOracle implements TimestampOracleStatistics{
     private static final long TIMESTAMP_INCREMENT = 0x100l;
 
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(TimestampOracle.class);
+    private static final Logger LOG = LogManager.getLogger(TimestampOracle.class);
 
     // Contains the next timestamp value to be returned to caller use
     private final AtomicLong _timestampCounter = new AtomicLong(0l);

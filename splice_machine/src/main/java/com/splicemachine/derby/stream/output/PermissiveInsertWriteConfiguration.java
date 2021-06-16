@@ -30,6 +30,7 @@ import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -38,7 +39,7 @@ import java.util.concurrent.ExecutionException;
  *
  */
 public class PermissiveInsertWriteConfiguration extends ForwardingWriteConfiguration {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(PermissiveInsertWriteConfiguration.class);
+    private static final Logger LOG = LogManager.getLogger(PermissiveInsertWriteConfiguration.class);
     protected OperationContext operationContext;
     protected ThreadLocal<PairDecoder> pairDecoder;
 

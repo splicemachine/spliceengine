@@ -26,12 +26,13 @@ import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.Properties;
 
 public class HBaseStore implements ModuleControl, ModuleSupportable {
 	protected SpliceTransactionFactory transactionFactory;
-	private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(HBaseStore.class);
+	private static Logger LOG = LogManager.getLogger(HBaseStore.class);
 	public HBaseStore() {
 		
 	}

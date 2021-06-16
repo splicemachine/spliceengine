@@ -37,13 +37,14 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.util.*;
 
 
 public class IndexController extends SpliceController{
-    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(IndexController.class);
+    private static Logger LOG=LogManager.getLogger(IndexController.class);
     private int nKeyFields;
 
     public IndexController(OpenSpliceConglomerate openSpliceConglomerate,

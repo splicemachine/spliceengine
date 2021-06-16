@@ -25,6 +25,7 @@ import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import scala.util.Either;
 
 import java.io.IOException;
@@ -33,7 +34,7 @@ import java.io.IOException;
  * Created by jyuan on 10/19/15.
  */
 public class HTableOutputFormat extends OutputFormat<byte[],Either<Exception, KVPair>> implements Configurable {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(HTableOutputFormat.class);
+    private static Logger LOG = LogManager.getLogger(HTableOutputFormat.class);
     protected Configuration conf;
     protected SpliceOutputCommitter outputCommitter;
 

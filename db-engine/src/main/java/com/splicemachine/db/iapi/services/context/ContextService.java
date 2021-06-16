@@ -34,6 +34,7 @@ package com.splicemachine.db.iapi.services.context;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -43,7 +44,7 @@ import java.util.*;
  * A set of static methods to supply easier access to contexts.
  */
 public final class ContextService{
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ContextService.class);
+    private static final Logger LOG = LogManager.getLogger(ContextService.class);
 
     private static volatile ContextService factory;
     private static volatile boolean stopped;

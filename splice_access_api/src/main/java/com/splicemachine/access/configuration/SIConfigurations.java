@@ -17,6 +17,7 @@ package com.splicemachine.access.configuration;
 import com.splicemachine.access.api.Durability;
 import com.splicemachine.primitives.Bytes;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * Repository for holding configuration keys for SI.
@@ -28,7 +29,7 @@ import org.apache.logging.log4j.Logger;
  *         Date: 12/15/15
  */
 public class SIConfigurations implements ConfigurationDefault {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SIConfigurations.class);
+    private static final Logger LOG = LogManager.getLogger(SIConfigurations.class);
 
     public static final String completedTxnCacheSize="splice.txn.completedTxns.cacheSize";
     private static final int DEFAULT_COMPLETED_TRANSACTION_CACHE_SIZE=1<<20; // want to hold lots of completed transactions

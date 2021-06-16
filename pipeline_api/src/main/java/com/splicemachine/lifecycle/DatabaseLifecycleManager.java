@@ -25,6 +25,7 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import javax.management.MBeanServer;
 import java.io.IOException;
@@ -52,7 +53,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *         Date: 1/4/16
  */
 public class DatabaseLifecycleManager{
-    private static final Logger LOG= org.apache.logging.log4j.LogManager.getLogger(DatabaseLifecycleManager.class);
+    private static final Logger LOG= LogManager.getLogger(DatabaseLifecycleManager.class);
     public static volatile DatabaseLifecycleManager INSTANCE;
 
     public enum State{

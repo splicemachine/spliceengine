@@ -36,6 +36,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 
 /**
@@ -79,7 +80,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
  */
 
 public class ScrollInsensitiveOperation extends SpliceBaseOperation {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ScrollInsensitiveOperation.class);
+    private static Logger LOG = LogManager.getLogger(ScrollInsensitiveOperation.class);
 	protected int sourceRowWidth;
 	protected SpliceOperation source;
 	protected boolean scrollable;

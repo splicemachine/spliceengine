@@ -37,6 +37,7 @@ import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.base.Function;
 import splice.com.google.common.collect.Lists;
 import splice.com.google.common.collect.Maps;
@@ -55,7 +56,7 @@ import static com.splicemachine.EngineDriver.*;
  */
 public class StoreCostControllerImpl implements StoreCostController {
 
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(StoreCostControllerImpl.class);
+    private static Logger LOG = LogManager.getLogger(StoreCostControllerImpl.class);
 
     private static final Function<? super Partition,? extends String> partitionNameTransform = (Function<Partition, String>) hRegionInfo -> {
         assert hRegionInfo != null : "regionInfo cannot be null!";

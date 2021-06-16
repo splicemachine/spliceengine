@@ -21,6 +21,7 @@ import com.splicemachine.timestamp.api.TimestampHostProvider;
 import com.splicemachine.timestamp.api.TimestampIOException;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -42,7 +43,7 @@ import static org.mockito.Mockito.when;
 
 @RunWith(Parameterized.class)
 public class TimestampClientTest {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(TimestampClientTest.class);
+    private static final Logger LOG = LogManager.getLogger(TimestampClientTest.class);
 
     private final TCFactory factory;
 

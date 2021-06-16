@@ -25,6 +25,7 @@ import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.collect.Lists;
 
 import java.util.*;
@@ -34,7 +35,7 @@ import java.util.*;
  *         Date: 12/22/15
  */
 public class PipelineUtils{
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(PipelineUtils.class);
+    private static final Logger LOG=LogManager.getLogger(PipelineUtils.class);
     @SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "DB-9844")
     public static final int RETRY_BACKOFF[] = {1, 2, 3, 5, 10, 20, 40, 100, 100, 100, 100, 200, 200};
     private static final Random RANDOM = new Random();

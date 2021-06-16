@@ -17,9 +17,10 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class JoinUtils {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(JoinUtils.class);
+    private static Logger LOG = LogManager.getLogger(JoinUtils.class);
 
     public enum JoinSide {RIGHT, LEFT}
 

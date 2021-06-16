@@ -20,6 +20,7 @@ import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SerialTest;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -206,7 +207,7 @@ public class UniqueIndexIT extends SpliceUnitTest{
             try{
                 s.execute(format("insert into %s (name,val) values ('%s',%s)",TABLE_D,name,value));
             }catch(SQLException se){
-                org.apache.logging.log4j.LogManager.getLogger(UniqueIndexIT.class).error(se);
+                LogManager.getLogger(UniqueIndexIT.class).error(se);
                 if(se.getMessage().contains("unique"))
                     throw se;
             }

@@ -21,11 +21,12 @@ import java.sql.Statement;
 
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 
 public class SpliceRoleWatcher extends TestWatcher {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceRoleWatcher.class);
+    private static final Logger LOG = LogManager.getLogger(SpliceRoleWatcher.class);
     protected String roleName;
     public SpliceRoleWatcher(String roleName) {
         this.roleName = roleName;

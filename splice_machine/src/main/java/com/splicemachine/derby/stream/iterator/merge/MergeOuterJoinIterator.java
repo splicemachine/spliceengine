@@ -20,10 +20,11 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.collect.PeekingIterator;
 
 public class MergeOuterJoinIterator extends AbstractMergeJoinIterator {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(MergeOuterJoinIterator.class);
+    private static final Logger LOG = LogManager.getLogger(MergeOuterJoinIterator.class);
     /**
      * MergeJoinRows constructor. Note that keys for left & right sides
      * are the join keys on which each side is sorted (not all of the

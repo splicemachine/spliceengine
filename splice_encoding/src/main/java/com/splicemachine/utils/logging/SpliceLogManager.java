@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2020 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2021 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -19,6 +19,7 @@ import java.util.*;
 import com.splicemachine.db.iapi.services.classfile.ClassHolder;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configurator;
 
@@ -26,7 +27,7 @@ import org.apache.logging.log4j.core.config.Configurator;
  * @author Jeff Cunningham
  *         Date: 1/31/14
  */
-public class LogManager implements Logging {
+public class SpliceLogManager implements Logging {
 
     private static final Logger LOGGER = org.apache.logging.log4j.LogManager.getRootLogger();
     private static final List<String> LOG4JLEVELS =
@@ -56,7 +57,7 @@ public class LogManager implements Logging {
     @Override
     public String getLoggerLevel(String loggerName) {
 
-        Logger logger = org.apache.logging.log4j.LogManager.getLogger(loggerName);
+        Logger logger = LogManager.getLogger(loggerName);
         if (logger == null) {
             throw new IllegalArgumentException("Logger \"" + loggerName +
                     "\" does not exist");
@@ -80,7 +81,7 @@ public class LogManager implements Logging {
             throw new IllegalArgumentException("Log level \"" + levelName +
                     "\" is not valid.");
         }
-        Logger logger = org.apache.logging.log4j.LogManager.getLogger(loggerName);
+        Logger logger = LogManager.getLogger(loggerName);
         if (logger == null) {
             throw new IllegalArgumentException("Logger \"" + loggerName +
                     "\" does not exist");

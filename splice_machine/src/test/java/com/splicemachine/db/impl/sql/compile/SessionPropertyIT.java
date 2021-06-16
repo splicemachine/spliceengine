@@ -38,6 +38,7 @@ import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -60,7 +61,7 @@ import static org.junit.Assert.fail;
  * Created by yxia on 6/12/18.
  */
 public class SessionPropertyIT extends SpliceUnitTest {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SessionPropertyIT.class);
+    private static Logger LOG = LogManager.getLogger(SessionPropertyIT.class);
     public static final String CLASS_NAME = SessionPropertyIT.class.getSimpleName().toUpperCase();
     protected final static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected final static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);

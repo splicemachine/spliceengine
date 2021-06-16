@@ -23,11 +23,12 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 /**
  * Created by jyuan on 10/13/14.
  */
 public class Splice_DD_Version extends DD_Version {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(Splice_DD_Version.class);
+    private static final Logger LOG = LogManager.getLogger(Splice_DD_Version.class);
     private int patchVersionNumber;
     private int sprintVersionNumber;
 

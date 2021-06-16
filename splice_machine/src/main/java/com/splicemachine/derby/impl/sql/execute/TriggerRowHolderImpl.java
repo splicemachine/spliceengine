@@ -55,6 +55,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import static java.lang.String.format;
 
@@ -92,7 +93,7 @@ import static java.lang.String.format;
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
 {
-     private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(TriggerRowHolderImpl.class);
+     private static final Logger LOG = LogManager.getLogger(TriggerRowHolderImpl.class);
 
     protected static final int STATE_UNINIT = 0;
     public static final int STATE_INSERT = 1;

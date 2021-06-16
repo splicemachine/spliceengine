@@ -38,6 +38,7 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.collect.Iterables;
 
 import java.util.*;
@@ -49,7 +50,7 @@ import java.util.*;
  */
 
 public class DropSchemaConstantOperation extends DDLConstantOperation {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(DropSchemaConstantOperation.class);
+    private static final Logger LOG = LogManager.getLogger(DropSchemaConstantOperation.class);
     private final String schemaName;
     private final int dropBehavior;
     private final UUID dbId;

@@ -29,6 +29,7 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
@@ -36,7 +37,7 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.mrio.MRConstants;
 
 public class BaseMRIOTest extends SpliceUnitTest{
-	private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(BaseMRIOTest.class);
+	private static final Logger LOG = LogManager.getLogger(BaseMRIOTest.class);
 	protected static Configuration config;
 	protected static SMSQLUtil sqlUtil;
 	protected static org.apache.hadoop.hbase.client.Connection connection;

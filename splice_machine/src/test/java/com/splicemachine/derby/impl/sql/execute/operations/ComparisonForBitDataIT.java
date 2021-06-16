@@ -20,6 +20,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -35,7 +36,7 @@ import static org.junit.Assert.assertEquals;
  * Created by yxia on 10/21/20.
  */
 public class ComparisonForBitDataIT extends SpliceUnitTest {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(TernaryFunctionForBitDataIT.class);
+    private static Logger LOG = LogManager.getLogger(TernaryFunctionForBitDataIT.class);
     public static final String CLASS_NAME = ComparisonForBitDataIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);

@@ -17,6 +17,7 @@ package com.splicemachine.derby.test.framework;
 import com.splicemachine.test_dao.SchemaDAO;
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.Assert;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -30,7 +31,7 @@ import static java.lang.String.format;
 
 
 public class SpliceUserWatcher extends TestWatcher {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceUserWatcher.class);
+    private static final Logger LOG = LogManager.getLogger(SpliceUserWatcher.class);
     public String userName;
     public String password;
 

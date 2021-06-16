@@ -21,6 +21,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.test.SerialTest;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -43,7 +44,7 @@ public class FunctionIT extends SpliceUnitTest {
     protected static final String PASSWORD1 = "xiayi";
     protected static final String SCHEMA = FunctionIT.class.getSimpleName();
 
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(FunctionIT.class);
+    private static final Logger LOG = LogManager.getLogger(FunctionIT.class);
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
     private static SpliceUserWatcher spliceUserWatcher1 = new SpliceUserWatcher(USER1, PASSWORD1);

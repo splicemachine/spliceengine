@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.collect.Collections2;
 import splice.com.google.common.collect.Iterables;
 import java.util.*;
@@ -92,7 +93,7 @@ import java.util.*;
  *         Date: 03/03/2014
  */
 public class CorrelatedPushDown extends AbstractSpliceVisitor {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(CorrelatedPushDown.class);
+    private static Logger LOG = LogManager.getLogger(CorrelatedPushDown.class);
 
     public Visitable visit(SubqueryNode subq) throws StandardException {
         if (!(subq.getResultSet() instanceof ProjectRestrictNode)){

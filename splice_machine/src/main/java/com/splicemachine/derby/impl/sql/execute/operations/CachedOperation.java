@@ -30,6 +30,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.pipeline.Exceptions;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -43,7 +44,7 @@ import java.util.List;
  */
 public class CachedOperation extends SpliceBaseOperation {
 
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(CachedOperation.class);
+    private static Logger LOG = LogManager.getLogger(CachedOperation.class);
     protected static final String NAME = CachedOperation.class.getSimpleName().replaceAll("Operation", "");
     private SpliceOperation source;
     private DataSet ds;

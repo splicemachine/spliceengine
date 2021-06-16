@@ -31,6 +31,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.io.IOException;
 
 /**
@@ -95,7 +96,7 @@ import java.io.IOException;
  */
 public class MergeSortJoinOperation extends JoinOperation {
     private static final long serialVersionUID = 2l;
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(MergeSortJoinOperation.class);
+    private static Logger LOG = LogManager.getLogger(MergeSortJoinOperation.class);
     protected int leftHashKeyItem;
     protected int[] leftHashKeys;
     protected int rightHashKeyItem;

@@ -32,6 +32,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
@@ -41,7 +42,7 @@ import java.util.List;
 
 public class NormalizeOperation extends SpliceBaseOperation{
     private static final long serialVersionUID=2l;
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(NormalizeOperation.class);
+    private static final Logger LOG=LogManager.getLogger(NormalizeOperation.class);
     public SpliceOperation source;
     private ExecRow normalizedRow;
     private int numCols;

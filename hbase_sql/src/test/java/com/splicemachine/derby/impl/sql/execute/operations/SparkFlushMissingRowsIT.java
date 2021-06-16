@@ -24,6 +24,7 @@ import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,7 +41,7 @@ import static org.junit.Assert.assertNotNull;
 
 @Category(HBaseTest.class)
 public class SparkFlushMissingRowsIT extends SpliceUnitTest {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SparkFlushMissingRowsIT.class);
+    private static Logger LOG = LogManager.getLogger(SparkFlushMissingRowsIT.class);
 
     public static final String CLASS_NAME = StressSparkIT.class.getSimpleName().toUpperCase();
 

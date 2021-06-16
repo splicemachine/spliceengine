@@ -994,6 +994,9 @@ public final class InsertNode extends DMLModStatementNode {
                                 MethodBuilder mb)
                             throws StandardException
     {
+        acb.addTargetTable(targetTableDescriptor.getObjectID());
+        acb.setHasDML(true);
+
         // If the DML is on the temporary table, generate the code to
         // mark temporary table as modified in the current UOW. After
         // DERBY-827 this must be done in execute() since

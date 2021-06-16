@@ -18,12 +18,13 @@
 package com.splicemachine.pipeline.config;
 
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  *
  */
 public class UnsafeWriteConfiguration extends ForwardingWriteConfiguration {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(UnsafeWriteConfiguration.class);
+    private static final Logger LOG = LogManager.getLogger(UnsafeWriteConfiguration.class);
     protected boolean skipWAL;
     protected boolean skipConflictDetection;
 

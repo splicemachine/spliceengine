@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import com.splicemachine.access.configuration.SQLConfiguration;
 import org.apache.spark.sql.internal.SQLConf;
@@ -36,7 +37,7 @@ import org.apache.spark.sql.internal.SQLConf;
  * A partial DataSource implementation that allows pooling Connections by Database URL.
  */
 public class SpliceTestDataSource implements DataSource {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceTestDataSource.class);
+    private static final Logger LOG = LogManager.getLogger(SpliceTestDataSource.class);
 
     public static final String DB_URL_TEMPLATE = "jdbc:splice://%s:%s/%s;create=true;user=%s;password=%s";
     public static final String DEFAULT_HOST = "localhost";

@@ -10,11 +10,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import static java.lang.String.format;
 
 public class ExecutionBenchmark extends Benchmark {
-    protected static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(IndexLookupBenchmark.class);
+    protected static final Logger LOG = LogManager.getLogger(IndexLookupBenchmark.class);
 
     protected static final String BASE_TABLE = "BASE_TABLE";
     protected static final String BASE_TABLE_IDX = "BASE_TABLE_IDX";

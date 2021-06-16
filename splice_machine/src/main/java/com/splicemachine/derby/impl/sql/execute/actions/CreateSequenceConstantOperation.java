@@ -25,6 +25,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -34,7 +35,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  * These SQL objects are stored in the SYS.SYSSEQUENCES table.
  */
 public class CreateSequenceConstantOperation extends DDLConstantOperation {
-	private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(CreateSequenceConstantOperation.class);
+	private static final Logger LOG = LogManager.getLogger(CreateSequenceConstantOperation.class);
     private String _sequenceName;
     private String _schemaName;
     private DataTypeDescriptor _dataType;

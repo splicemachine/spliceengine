@@ -30,6 +30,7 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -52,7 +53,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 public class WindowOperation extends SpliceBaseOperation {
     private static final long serialVersionUID = 1l;
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(WindowOperation.class);
+    private static Logger LOG = LogManager.getLogger(WindowOperation.class);
     protected boolean isInSortedOrder;
     private WindowContext windowContext;
     protected SpliceOperation source;

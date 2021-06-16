@@ -1497,9 +1497,6 @@ public class SubqueryNode extends ValueNode{
                 executeMB.completeConditional();
             }
 
-//            executeMB.pushNull(ClassName.NoPutResultSet);
-//            executeMB.setField(rsFieldLF);  // msirek-temp
-
             // now we fill in the body of the conditional
             mb.getField(rsFieldLF);
             mb.conditionalIfNull();

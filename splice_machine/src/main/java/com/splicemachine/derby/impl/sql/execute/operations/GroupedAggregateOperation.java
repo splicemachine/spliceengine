@@ -31,6 +31,7 @@ import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 
@@ -59,7 +60,7 @@ import java.io.IOException;
  */
 public class GroupedAggregateOperation extends GenericAggregateOperation {
     private static final long serialVersionUID = 1l;
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(GroupedAggregateOperation.class);
+    private static Logger LOG = LogManager.getLogger(GroupedAggregateOperation.class);
     protected boolean isRollup;
     public GroupedAggregateContext groupedAggregateContext;
     protected static final String NAME = GroupedAggregateOperation.class.getSimpleName().replaceAll("Operation","");

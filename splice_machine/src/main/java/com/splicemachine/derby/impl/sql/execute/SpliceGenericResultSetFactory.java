@@ -35,9 +35,10 @@ import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperatio
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class SpliceGenericResultSetFactory implements ResultSetFactory {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceGenericResultSetFactory.class);
+    private static Logger LOG = LogManager.getLogger(SpliceGenericResultSetFactory.class);
 
     public SpliceGenericResultSetFactory() {
         super();

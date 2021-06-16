@@ -24,6 +24,7 @@ import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.codec.protobuf.ProtobufDecoder;
 import io.netty.handler.codec.protobuf.ProtobufEncoder;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class TimestampPipelineFactoryLite extends ChannelInitializer {
 
@@ -31,7 +32,7 @@ public class TimestampPipelineFactoryLite extends ChannelInitializer {
     // more sophisticated implementations that might do things like
     // specify an Executor.
     
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(TimestampPipelineFactoryLite.class);
+    private static final Logger LOG = LogManager.getLogger(TimestampPipelineFactoryLite.class);
 
     private ChannelHandler tsHandler = null;
 

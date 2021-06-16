@@ -33,6 +33,7 @@ import com.splicemachine.derby.stream.spark.SparkUtils;
 import com.splicemachine.derby.test.framework.*;
 
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -66,7 +67,7 @@ import static org.junit.Assert.assertEquals;
 @Ignore("SPLICE-1444")
 public class DataFrameIT extends SpliceUnitTest {
 
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(DataFrameIT.class);
+    private static Logger LOG = LogManager.getLogger(DataFrameIT.class);
     public static final String CLASS_NAME = DataFrameIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     public static final String TABLE_NAME_1 = "FOOD";

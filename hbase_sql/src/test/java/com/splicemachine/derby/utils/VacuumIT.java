@@ -28,6 +28,7 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -50,7 +51,7 @@ import static org.junit.Assert.assertTrue;
  */
 @Category({SerialTest.class})
 public class VacuumIT extends SpliceUnitTest{
-    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(VacuumIT.class);
+    private static Logger LOG=LogManager.getLogger(VacuumIT.class);
     public static final String CLASS_NAME = VacuumIT.class.getSimpleName().toUpperCase();
     final protected static String TABLE = "T";
     final protected static String TABLEA = "A";

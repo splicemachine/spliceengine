@@ -16,6 +16,7 @@ package com.splicemachine.derby.test.framework;
 
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 
@@ -29,7 +30,7 @@ import java.sql.Statement;
  */
 public class SpliceViewWatcher extends TestWatcher {
     public static final String CREATE_VIEW = "create view ";
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceViewWatcher.class);
+    private static final Logger LOG = LogManager.getLogger(SpliceViewWatcher.class);
     protected String viewName;
     protected String schemaName;
     protected String createString;

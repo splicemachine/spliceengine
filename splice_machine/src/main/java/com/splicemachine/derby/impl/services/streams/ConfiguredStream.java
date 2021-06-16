@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
@@ -30,7 +31,7 @@ import com.splicemachine.db.impl.services.stream.SingleStream;
  */
 public class ConfiguredStream extends SingleStream {
 
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ConfiguredStream.class);
+    private static Logger LOG = LogManager.getLogger(ConfiguredStream.class);
 	private static String SPLICE_DERBY_LOG = "splice-derby.log";
 	
     @Override

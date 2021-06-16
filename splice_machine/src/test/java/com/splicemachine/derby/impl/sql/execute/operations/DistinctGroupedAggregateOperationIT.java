@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -41,7 +42,7 @@ public class DistinctGroupedAggregateOperationIT extends SpliceUnitTest {
 	public static final String CLASS_NAME = DistinctGroupedAggregateOperationIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
 	public static final String TABLE_NAME_1 = "A";
-	private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(DistinctGroupedAggregateOperationIT.class);
+	private static Logger LOG = LogManager.getLogger(DistinctGroupedAggregateOperationIT.class);
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(oid int, quantity int)");
 	

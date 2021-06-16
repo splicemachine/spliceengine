@@ -50,6 +50,7 @@ import com.splicemachine.db.impl.sql.execute.WindowFunctionInfo;
 import com.splicemachine.db.impl.sql.execute.WindowFunctionInfoList;
 import com.splicemachine.utils.Pair;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.*;
 
@@ -107,7 +108,7 @@ import java.util.*;
  * </ul>
  */
 public class WindowResultSetNode extends SingleChildResultSetNode {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(WindowResultSetNode.class);
+    private static Logger LOG = LogManager.getLogger(WindowResultSetNode.class);
 
     private WindowDefinitionNode wdn;
 

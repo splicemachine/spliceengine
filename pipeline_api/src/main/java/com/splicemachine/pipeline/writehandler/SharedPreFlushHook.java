@@ -21,6 +21,7 @@ import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,7 +32,7 @@ import java.util.List;
  */
 public class SharedPreFlushHook implements PreFlushHook{
 
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SharedPreFlushHook.class);
+    private static final Logger LOG=LogManager.getLogger(SharedPreFlushHook.class);
 
     private List<Pair<WriteContext, ObjectObjectHashMap<KVPair, KVPair>>> sharedMainMutationList=new ArrayList<>();
 

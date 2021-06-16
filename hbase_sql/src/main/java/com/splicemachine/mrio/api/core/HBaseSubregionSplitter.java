@@ -27,6 +27,7 @@ import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,7 +41,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *         Date: 1/6/16
  */
 public class HBaseSubregionSplitter implements SubregionSplitter{
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(HBaseSubregionSplitter.class);
+    private static final Logger LOG = LogManager.getLogger(HBaseSubregionSplitter.class);
     @Override
     public List<InputSplit> getSubSplits(Table table, List<Partition> splits,
                                          final byte[] scanStartRow, final byte[] scanStopRow, int requestedSplits, long tableSize) {

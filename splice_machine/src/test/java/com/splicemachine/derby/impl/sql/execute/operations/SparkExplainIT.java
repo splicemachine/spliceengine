@@ -21,6 +21,7 @@ import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -41,7 +42,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 @Category(HBaseTest.class)
 @RunWith(Parameterized.class)
 public class SparkExplainIT extends SpliceUnitTest {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SparkExplainIT.class);
+    private static Logger LOG = LogManager.getLogger(SparkExplainIT.class);
     public static final String CLASS_NAME = SparkExplainIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);

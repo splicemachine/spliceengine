@@ -27,6 +27,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -40,7 +41,7 @@ import java.util.List;
  *
  */
 public class SetOpOperation extends SpliceBaseOperation {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SetOperation.class);
+    private static Logger LOG = LogManager.getLogger(SetOperation.class);
     protected static final String NAME = SetOpOperation.class.getSimpleName().replaceAll("Operation", "");
 
     @Override

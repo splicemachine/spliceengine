@@ -31,6 +31,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.stream.accumulator.BadRecordsAccumulator;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.spark.util.AccumulatorV2;
 import org.apache.spark.TaskContext;
 import org.apache.spark.util.LongAccumulator;
@@ -52,7 +53,7 @@ import java.util.List;
  *
  */
 public class SparkLeanOperationContext<Op extends SpliceOperation> implements OperationContext<Op>{
-    protected static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SparkLeanOperationContext.class);
+    protected static Logger LOG=LogManager.getLogger(SparkLeanOperationContext.class);
     private static final String LINE_SEP = System.lineSeparator();
     private static final String BAD_FILENAME = "unspecified_";
     protected BroadcastedActivation broadcastedActivation;

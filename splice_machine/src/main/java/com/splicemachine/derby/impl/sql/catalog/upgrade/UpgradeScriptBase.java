@@ -20,6 +20,7 @@ import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 
@@ -29,7 +30,7 @@ import java.util.Properties;
  * Created by jyuan on 10/17/14.
  */
 public class UpgradeScriptBase implements UpgradeScript {
-	protected static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(UpgradeScriptBase.class);
+	protected static final Logger LOG = LogManager.getLogger(UpgradeScriptBase.class);
 
     protected SpliceDataDictionary sdd;
     protected TransactionController tc;

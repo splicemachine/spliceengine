@@ -28,6 +28,7 @@ import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.TableDescriptorBuilder;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.hadoop.hbase.client.*;
 
 import java.io.IOException;
@@ -41,7 +42,7 @@ import java.util.concurrent.TimeoutException;
  *         Date: 12/28/15
  */
 public class HPartitionCreator implements PartitionCreator{
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(HPartitionCreator.class);
+    private static final Logger LOG = LogManager.getLogger(HPartitionCreator.class);
 
     private TableDescriptorBuilder descriptorBuilder;
     private TableName tableName;

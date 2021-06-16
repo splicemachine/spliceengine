@@ -16,7 +16,8 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.test.framework.*;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -35,7 +36,7 @@ import static org.junit.Assert.*;
  * Tests around creating schemas
  */
 public class MultiDatabaseIT extends SpliceUnitTest {
-    private static final Logger LOG = Logger.getLogger(MultiDatabaseIT.class);
+    private static final Logger LOG = LogManager.getLogger(MultiDatabaseIT.class);
     private static String OTHER_DB = MultiDatabaseIT.class.getSimpleName().toUpperCase();
     private static String OTHER_DB_OWNER_NOT_SPLICE = MultiDatabaseIT.class.getSimpleName().toUpperCase() + "2";
     private static String SCHEMA = MultiDatabaseIT.class.getSimpleName().toUpperCase();

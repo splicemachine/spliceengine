@@ -18,6 +18,7 @@ import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.suites.Stats;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -32,7 +33,7 @@ import static org.junit.Assert.assertEquals;
 public class ScalarAggregateOperationIT extends SpliceUnitTest {
     public static final String CLASS_NAME = ScalarAggregateOperationIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ScalarAggregateOperationIT.class);
+    private static final Logger LOG = LogManager.getLogger(ScalarAggregateOperationIT.class);
     public static final String TABLE_NAME = "T";
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME, CLASS_NAME, "(username varchar(40),i int)");

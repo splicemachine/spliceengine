@@ -20,6 +20,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -29,7 +30,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  *
  */
 public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation {
-	private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(DistinctGroupedAggregateOperation.class);
+	private static Logger LOG = LogManager.getLogger(DistinctGroupedAggregateOperation.class);
 
 	/**
 	 *

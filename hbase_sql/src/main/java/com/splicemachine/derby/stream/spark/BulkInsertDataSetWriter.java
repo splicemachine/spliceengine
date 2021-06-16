@@ -49,6 +49,7 @@ import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import scala.Tuple2;
 
 import java.io.*;
@@ -57,7 +58,7 @@ import java.util.*;
 @SuppressFBWarnings({"EI_EXPOSE_REP2"})
 public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSetWriter {
 
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(BulkInsertDataSetWriter.class);
+    private static final Logger LOG=LogManager.getLogger(BulkInsertDataSetWriter.class);
 
     private String tableVersion;
     private int[] pkCols;

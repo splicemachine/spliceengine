@@ -21,6 +21,7 @@ import com.splicemachine.si.impl.HRegionTooBusy;
 import com.splicemachine.si.impl.HWrongRegion;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.collect.ImmutableList;
 import splice.com.google.common.collect.Iterables;
 import splice.com.google.common.collect.Iterators;
@@ -49,7 +50,7 @@ import java.util.concurrent.locks.Lock;
  */
 @NotThreadSafe
 public class ClientPartition extends SkeletonHBaseClientPartition{
-    protected static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ClientPartition.class);
+    protected static final Logger LOG = LogManager.getLogger(ClientPartition.class);
     private TableName tableName;
     private final Table table;
     private final Connection connection;

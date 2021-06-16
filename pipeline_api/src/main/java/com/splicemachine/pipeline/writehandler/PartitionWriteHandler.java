@@ -29,6 +29,7 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.MutationStatus;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.base.Predicate;
 import splice.com.google.common.collect.Collections2;
 import splice.com.google.common.collect.Lists;
@@ -47,7 +48,7 @@ import static com.splicemachine.storage.util.UpdateUtils.updateFromWrite;
  *         Created on: 4/30/13
  */
 public class PartitionWriteHandler implements WriteHandler {
-    static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(PartitionWriteHandler.class);
+    static final Logger LOG = LogManager.getLogger(PartitionWriteHandler.class);
     protected final TransactionalRegion region;
     protected List<KVPair> mutations = Lists.newArrayList();
     protected ResettableCountDownLatch writeLatch;

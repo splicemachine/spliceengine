@@ -61,6 +61,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -76,7 +77,7 @@ import java.util.concurrent.TimeoutException;
  */
 
 public class AlterTableConstantOperation extends IndexConstantOperation {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(AlterTableConstantOperation.class);
+    private static final Logger LOG = LogManager.getLogger(AlterTableConstantOperation.class);
     // copied from constructor args and stored locally.
     protected SchemaDescriptor            sd;
     protected String                        tableName;

@@ -27,6 +27,7 @@ import com.splicemachine.pipeline.traffic.SpliceWriteControl;
 import com.splicemachine.pipeline.writehandler.SharedCallBufferFactory;
 import com.splicemachine.utils.Pair;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.primitives.Ints;
 
 import javax.annotation.Nonnull;
@@ -41,7 +42,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 @ThreadSafe
 public class PipelineWriter{
-    private static final Logger LOG =org.apache.logging.log4j.LogManager.getLogger(PipelineWriter.class);
+    private static final Logger LOG =LogManager.getLogger(PipelineWriter.class);
     private final SpliceWriteControl writeControl;
     private final AtomicLong rejectedCount = new AtomicLong(0l);
 

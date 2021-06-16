@@ -34,6 +34,7 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.protobuf.generated.AdminProtos;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -54,7 +55,7 @@ import org.junit.experimental.categories.Category;
  */
 @Category({com.splicemachine.test.SerialTest.class,SlowTest.class})
 public class CompactionSplitIT {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(CompactionSplitIT.class);
+    private static final Logger LOG = LogManager.getLogger(CompactionSplitIT.class);
     private static final String SCHEMA = CompactionSplitIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
 

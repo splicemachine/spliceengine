@@ -30,6 +30,7 @@ import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import javax.annotation.Nonnull;
 import java.util.Collections;
@@ -43,7 +44,7 @@ import java.util.List;
  */
 
 public class DropAliasConstantOperation extends DDLConstantOperation {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(DropAliasConstantOperation.class);
+    private static final Logger LOG = LogManager.getLogger(DropAliasConstantOperation.class);
     private SchemaDescriptor sd;
     private final String aliasName;
     private final char nameSpace;

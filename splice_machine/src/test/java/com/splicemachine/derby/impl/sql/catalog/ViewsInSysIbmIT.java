@@ -21,6 +21,7 @@ import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -34,7 +35,7 @@ import java.sql.ResultSet;
  * Created by yxia on 12/17/19.
  */
 public class ViewsInSysIbmIT extends SpliceUnitTest {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ViewsInSysIbmIT.class);
+    private static Logger LOG = LogManager.getLogger(ViewsInSysIbmIT.class);
     public static final String CLASS_NAME = ViewsInSysIbmIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);

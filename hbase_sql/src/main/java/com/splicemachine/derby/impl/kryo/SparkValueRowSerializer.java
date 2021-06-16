@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl;
 import com.splicemachine.db.iapi.types.SQLDecimal;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -55,7 +56,7 @@ import java.util.concurrent.ExecutionException;
  * Created on: 10/10/13
  */
 public abstract class SparkValueRowSerializer<T extends ExecRow> extends Serializer<T> {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SparkValueRowSerializer.class);
+    private static Logger LOG = LogManager.getLogger(SparkValueRowSerializer.class);
     private static ClassFactory cf;
     private LoadingCache<IntArray, DescriptorSerializer[]> serializersCache = CacheBuilder.newBuilder().maximumSize(10).build(
             new CacheLoader<IntArray, DescriptorSerializer[]>() {

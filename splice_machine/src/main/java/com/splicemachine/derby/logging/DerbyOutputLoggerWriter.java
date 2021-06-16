@@ -18,10 +18,11 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 
 	public class DerbyOutputLoggerWriter extends PrintWriter {
-		private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(DerbyOutputLoggerWriter.class);
+		private static Logger LOG = LogManager.getLogger(DerbyOutputLoggerWriter.class);
 		public DerbyOutputLoggerWriter() {
 			super( new InternalCategoryWriter(LOG), true );
 		}

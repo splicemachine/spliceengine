@@ -32,6 +32,7 @@ import org.apache.hadoop.hbase.io.hfile.SpliceHFileUtil;
 import org.apache.hadoop.hbase.nio.ByteBuff;
 import org.apache.hadoop.hbase.util.BloomFilter;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.util.*;
@@ -43,7 +44,7 @@ import java.util.concurrent.locks.Lock;
  *
  */
 public class HRegionUtil {
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(HRegionUtil.class);
+    private static final Logger LOG=LogManager.getLogger(HRegionUtil.class);
     public static void lockStore(Store store){
         ((HStore)store).lock.readLock().lock();
     }

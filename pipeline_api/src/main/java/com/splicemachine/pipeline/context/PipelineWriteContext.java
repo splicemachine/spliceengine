@@ -31,6 +31,7 @@ import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.collect.Maps;
 import java.io.IOException;
 import java.util.*;
@@ -41,7 +42,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *         Created on: 4/30/13
  */
 public class PipelineWriteContext implements WriteContext, Comparable<PipelineWriteContext> {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(PipelineWriteContext.class);
+    private static final Logger LOG = LogManager.getLogger(PipelineWriteContext.class);
     private static final AtomicInteger idGen = new AtomicInteger(0);
 
     private final Map<KVPair, WriteResult> resultsMap;

@@ -20,6 +20,7 @@ import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.commons.lang3.SerializationUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.spark.SimpleFutureAction;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
@@ -47,7 +48,7 @@ import static java.lang.Math.max;
  * Created by dgomezferro on 6/1/16.
  */
 public class StreamableRDD<T> {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(StreamableRDD.class);
+    private static final Logger LOG = LogManager.getLogger(StreamableRDD.class);
     public static final int DEFAULT_PARALLEL_PARTITIONS = 4;
     public static final int MAX_PARALLEL_THREADS = 8;
 

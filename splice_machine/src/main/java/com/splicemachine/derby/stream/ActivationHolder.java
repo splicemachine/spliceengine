@@ -42,6 +42,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.base.Optional;
 import splice.com.google.common.collect.Maps;
 
@@ -66,7 +67,7 @@ import java.util.Vector;
  */
 @NotThreadSafe
 public class ActivationHolder implements Externalizable {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ActivationHolder.class);
+    private static final Logger LOG = LogManager.getLogger(ActivationHolder.class);
 
     private Map<Integer, SpliceOperation> operationsMap = Maps.newHashMap();
     private List<SpliceOperation> operationsList = new ArrayList<>();

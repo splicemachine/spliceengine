@@ -47,6 +47,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.base.Supplier;
 import splice.com.google.common.collect.Lists;
 import splice.com.google.common.primitives.Longs;
@@ -61,7 +62,7 @@ import static com.splicemachine.si.impl.HOperationFactory.toHBaseDurability;
  *         Date: 6/19/14
  */
 public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService implements RegionCoprocessor {
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(TxnLifecycleEndpoint.class);
+    private static final Logger LOG=LogManager.getLogger(TxnLifecycleEndpoint.class);
     private TxnLifecycleStore lifecycleStore;
     private volatile boolean isTxnTable=false;
 

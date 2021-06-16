@@ -17,6 +17,7 @@ package com.splicemachine.olap;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.concurrent.TimeUnit;
 
@@ -26,7 +27,7 @@ import java.util.concurrent.TimeUnit;
  */
 @ChannelHandler.Sharable
 public class OlapStatusHandler extends AbstractOlapHandler{
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(OlapStatusHandler.class);
+    private static final Logger LOG = LogManager.getLogger(OlapStatusHandler.class);
 
     public OlapStatusHandler(OlapJobRegistry registry){
         super(registry);

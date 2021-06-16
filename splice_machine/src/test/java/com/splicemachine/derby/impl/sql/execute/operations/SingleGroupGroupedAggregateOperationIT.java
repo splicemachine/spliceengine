@@ -24,6 +24,7 @@ import java.util.Map;
 import splice.com.google.common.collect.Lists;
 import com.splicemachine.test.SlowTest;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -42,7 +43,7 @@ import com.splicemachine.test.suites.Stats;
  *
  */
 public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SingleGroupGroupedAggregateOperationIT.class);
+    private static Logger LOG = LogManager.getLogger(SingleGroupGroupedAggregateOperationIT.class);
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = SingleGroupGroupedAggregateOperationIT.class.getSimpleName().toUpperCase();
     public static final String TABLE_NAME_1 = "T";

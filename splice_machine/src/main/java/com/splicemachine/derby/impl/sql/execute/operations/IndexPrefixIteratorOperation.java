@@ -38,6 +38,7 @@ import com.splicemachine.storage.DataScan;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.collections.iterators.IteratorChain;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -58,7 +59,7 @@ import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNA
  */
 public class IndexPrefixIteratorOperation extends TableScanOperation{
     private static final long serialVersionUID=3l;
-    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(IndexPrefixIteratorOperation.class);
+    private static Logger LOG=LogManager.getLogger(IndexPrefixIteratorOperation.class);
     private SpliceOperation sourceResultSet = null;
     protected static final String opName=IndexPrefixIteratorOperation.class.getSimpleName().replaceAll("Operation","");
     private int firstIndexColumnNumber;

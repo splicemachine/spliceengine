@@ -29,6 +29,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.net.BindException;
@@ -38,7 +39,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class OlapServer {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(OlapServer.class);
+    private static final Logger LOG = LogManager.getLogger(OlapServer.class);
 
     private int port;
     private Clock clock;

@@ -54,6 +54,7 @@ import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 
@@ -65,7 +66,7 @@ import java.io.IOException;
  */
 public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     private static final long serialVersionUID=1l;
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(InsertOperation.class);
+    private static final Logger LOG=LogManager.getLogger(InsertOperation.class);
     private ExecRow rowTemplate;
     private int[] pkCols;
     private long nextIncrement=-1;

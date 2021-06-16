@@ -23,9 +23,10 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class EnvUtils {
-	private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(EnvUtils.class);
+	private static Logger LOG = LogManager.getLogger(EnvUtils.class);
     // NOTE: JC - this constant is also defined in DataDictionary. When adding a new sys table, this
     // number will need to be increased in BOTH places.
 	private static final long FIRST_USER_TABLE_NUMBER = 1568;

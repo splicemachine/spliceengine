@@ -23,11 +23,12 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 @ChannelHandler.Sharable
 public class TimestampServerHandler extends TimestampBaseHandler<TimestampMessage.TimestampRequest> {
 
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(TimestampServerHandler.class);
+    private static final Logger LOG = LogManager.getLogger(TimestampServerHandler.class);
 
     private volatile TimestampOracle oracle;
 

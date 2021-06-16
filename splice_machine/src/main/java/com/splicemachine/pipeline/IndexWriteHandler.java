@@ -25,6 +25,7 @@ import com.splicemachine.pipeline.writehandler.RoutingWriteHandler;
 import com.splicemachine.primitives.Bytes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import static com.splicemachine.storage.util.UpdateUtils.deleteFromWrite;

@@ -26,6 +26,7 @@ import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.util.Properties;
 
 
@@ -37,7 +38,7 @@ import java.util.Properties;
  **/
 
 public class HBaseConglomerateFactory extends SpliceConglomerateFactory{
-    protected static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(HBaseConglomerate.class);
+    protected static final Logger LOG=LogManager.getLogger(HBaseConglomerate.class);
 
     public HBaseConglomerateFactory(){
         super();

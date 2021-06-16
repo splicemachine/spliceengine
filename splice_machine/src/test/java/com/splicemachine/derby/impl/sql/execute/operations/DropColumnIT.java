@@ -18,6 +18,7 @@ import com.splicemachine.derby.impl.sql.actions.index.CustomerTable;
 import com.splicemachine.derby.test.framework.*;
 
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -41,7 +42,7 @@ import java.sql.ResultSet;
  * To change this template use File | Settings | File Templates.
  */
 public class DropColumnIT extends SpliceUnitTest {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(DropColumnIT.class);
+    private static Logger LOG = LogManager.getLogger(DropColumnIT.class);
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     private static final String SCHEMA_NAME = DropColumnIT.class.getSimpleName().toUpperCase();

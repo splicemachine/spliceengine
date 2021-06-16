@@ -45,13 +45,14 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public class PropertyConglomerate {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(PropertyConglomerate.class);
+    private static Logger LOG = LogManager.getLogger(PropertyConglomerate.class);
     protected long propertiesConglomId;
     protected Properties serviceProperties;
     protected Properties loadedProperties;

@@ -41,6 +41,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,7 +58,7 @@ public class ControlDataSetWriter<K> implements DataSetWriter, AutoCloseable{
     private final OperationContext operationContext;
     private final AbstractPipelineWriter<ExecRow> pipelineWriter;
     private final int[] updateCounts;
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ControlDataSetWriter.class);
+    private static final Logger LOG = LogManager.getLogger(ControlDataSetWriter.class);
     private Txn     txn = null;
     private TransactionController transactionController = null;
     private BaseSpliceTransaction internalTransaction = null;

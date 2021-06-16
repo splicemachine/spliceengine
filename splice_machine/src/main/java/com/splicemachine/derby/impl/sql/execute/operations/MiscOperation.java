@@ -27,6 +27,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * This is a wrapper class which invokes the Execution-time logic for
@@ -45,7 +46,7 @@ import org.apache.logging.log4j.Logger;
 @SuppressFBWarnings(value="SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION", justification="Serializing this is a mistake,"+
         "but we inherit externalizability from the SpliceBaseOperation")
 public class MiscOperation extends NoRowsOperation{
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(MiscOperation.class);
+    private static final Logger LOG=LogManager.getLogger(MiscOperation.class);
     protected static final String NAME=MiscOperation.class.getSimpleName().replaceAll("Operation","");
 
     public MiscOperation(){}

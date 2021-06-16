@@ -43,6 +43,7 @@ import com.splicemachine.storage.DataScan;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -51,7 +52,7 @@ import java.util.Arrays;
 import static com.splicemachine.si.constants.SIConstants.OLDEST_TIME_TRAVEL_TX;
 
 public abstract class ScanOperation extends SpliceBaseOperation {
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(ScanOperation.class);
+    private static final Logger LOG=LogManager.getLogger(ScanOperation.class);
     private static final long serialVersionUID=7l;
     public int lockMode;
     public int isolationLevel;

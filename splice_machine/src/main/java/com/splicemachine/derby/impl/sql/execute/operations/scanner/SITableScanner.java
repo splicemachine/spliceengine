@@ -43,6 +43,7 @@ import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -60,7 +61,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
             return "--";
         }
     };
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SITableScanner.class);
+    private static Logger LOG = LogManager.getLogger(SITableScanner.class);
     private final Counter filterCounter;
     private DataScanner regionScanner;
     private final TransactionalRegion region;

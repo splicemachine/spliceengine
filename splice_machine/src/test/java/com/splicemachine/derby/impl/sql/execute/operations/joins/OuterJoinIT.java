@@ -20,6 +20,7 @@ import splice.com.google.common.collect.ImmutableMap;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -36,7 +37,7 @@ import static org.junit.Assert.assertEquals;
 
 public class OuterJoinIT extends SpliceUnitTest { 
 
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(OuterJoinIT.class);
+    private static Logger LOG = LogManager.getLogger(OuterJoinIT.class);
 
     public static final String CLASS_NAME = OuterJoinIT.class.getSimpleName().toUpperCase()+ "_2"; 
     public static final String TABLE_NAME_1 = "A";

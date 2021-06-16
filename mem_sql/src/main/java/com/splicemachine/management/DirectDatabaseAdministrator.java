@@ -19,7 +19,7 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.derby.utils.DatabasePropertyManagementImpl;
 import com.splicemachine.pipeline.PipelineDriver;
-import com.splicemachine.utils.logging.LogManager;
+import com.splicemachine.utils.logging.SpliceLogManager;
 import com.splicemachine.utils.logging.Logging;
 
 import java.sql.SQLException;
@@ -30,7 +30,7 @@ import java.util.*;
  *         Date: 2/17/16
  */
 public class DirectDatabaseAdministrator implements DatabaseAdministrator{
-    private final Logging logging = new LogManager();
+    private final Logging logging = new SpliceLogManager();
 
     @Override
     public void setLoggerLevel(String loggerName,String logLevel) throws SQLException{

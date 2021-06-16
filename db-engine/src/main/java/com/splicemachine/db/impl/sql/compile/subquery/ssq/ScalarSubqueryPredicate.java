@@ -41,6 +41,7 @@ import com.splicemachine.db.impl.ast.CollectingVisitorBuilder;
 import com.splicemachine.db.impl.ast.ColumnUtils;
 import com.splicemachine.db.impl.sql.compile.*;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.List;
 
@@ -48,7 +49,7 @@ import java.util.List;
  * This predicate determines if we attempt to flatten a given scalar subquery in select clause or not.
  */
 public class ScalarSubqueryPredicate implements splice.com.google.common.base.Predicate<SubqueryNode> {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ScalarSubqueryPredicate.class);
+    private static Logger LOG = LogManager.getLogger(ScalarSubqueryPredicate.class);
     private SelectNode outerSelect;
     private JBitSet innerTables;
 

@@ -23,6 +23,7 @@ import java.util.Properties;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.SqlEnvironment;
@@ -44,7 +45,7 @@ import com.splicemachine.pipeline.contextfactory.ReferenceCountingFactoryDriver;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.tools.version.ManifestReader;
-import com.splicemachine.utils.logging.LogManager;
+import com.splicemachine.utils.logging.SpliceLogManager;
 import com.splicemachine.utils.logging.Logging;
 import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.uuid.UUIDService;
@@ -57,7 +58,7 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
     public static final ThreadLocal<Boolean> isCreate = new ThreadLocal<>();
     public static final ThreadLocal<Boolean> toUpgrade = new ThreadLocal<>();
 
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(EngineLifecycleService.class);
+    private static final Logger LOG=LogManager.getLogger(EngineLifecycleService.class);
     private final DistributedDerbyStartup startup;
     private final SConfiguration configuration;
     private final Properties dbProperties = new Properties();
@@ -129,7 +130,7 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         db = (SpliceDatabase)((EmbedConnection)internalConnection).getLanguageConnection().getSpliceInstance();
         db.registerDDL();
 
-        logging = new LogManager();
+        logging = new SpliceLogManager();
     }
 
     @Override

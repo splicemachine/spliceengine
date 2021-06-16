@@ -20,6 +20,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -34,7 +35,7 @@ import static com.splicemachine.test_tools.Rows.rows;
  * Created by yxia on 1/26/20.
  */
 public class FlattenedOuterJoinIT  extends SpliceUnitTest {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(FlattenedOuterJoinIT.class);
+    private static Logger LOG = LogManager.getLogger(FlattenedOuterJoinIT.class);
     public static final String CLASS_NAME = FlattenedOuterJoinIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);

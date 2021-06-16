@@ -38,6 +38,7 @@ import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionLifeCycleTracker;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.util.NavigableSet;
@@ -50,7 +51,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver, Coprocessor {
 
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(MemstoreAwareObserver.class);
+    private static final Logger LOG = LogManager.getLogger(MemstoreAwareObserver.class);
     protected AtomicReference<MemstoreAware> memstoreAware =new AtomicReference<>(new MemstoreAware());
     protected Optional<RegionObserver> optionalRegionObserver = Optional.empty();
 

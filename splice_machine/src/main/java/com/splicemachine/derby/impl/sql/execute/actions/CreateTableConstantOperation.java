@@ -63,6 +63,7 @@ import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.RowUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
@@ -71,7 +72,7 @@ import java.io.IOException;
 import java.util.*;
 
 public class CreateTableConstantOperation extends DDLConstantOperation {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(CreateTableConstantOperation.class);
+    private static final Logger LOG = LogManager.getLogger(CreateTableConstantOperation.class);
 
     private char                    lockGranularity;
     private boolean                    onCommitDeleteRows; //If true, on commit delete rows else on commit preserve rows of temporary table.

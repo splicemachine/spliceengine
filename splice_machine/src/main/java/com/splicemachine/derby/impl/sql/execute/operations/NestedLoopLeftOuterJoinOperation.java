@@ -24,11 +24,12 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 
 public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
-		private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(NestedLoopLeftOuterJoinOperation.class);
+		private static Logger LOG = LogManager.getLogger(NestedLoopLeftOuterJoinOperation.class);
 		protected SpliceMethod<ExecRow> emptyRowFun;
 		protected ExecRow emptyRow;
 		public int emptyRightRowsReturned = 0;

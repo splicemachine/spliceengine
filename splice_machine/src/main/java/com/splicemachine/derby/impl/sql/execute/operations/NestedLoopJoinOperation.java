@@ -28,10 +28,11 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.io.IOException;
 
 public class NestedLoopJoinOperation extends JoinOperation {
-        private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(NestedLoopJoinOperation.class);
+        private static Logger LOG = LogManager.getLogger(NestedLoopJoinOperation.class);
         protected boolean isHash;
         protected static final String NAME = NestedLoopJoinOperation.class.getSimpleName().replaceAll("Operation","");
         @Override

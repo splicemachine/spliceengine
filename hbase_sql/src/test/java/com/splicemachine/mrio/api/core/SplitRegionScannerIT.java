@@ -42,6 +42,7 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -53,7 +54,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 @Category(LongerThanTwoMinutes.class)
 public class SplitRegionScannerIT  extends BaseMRIOTest {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SplitRegionScannerIT.class);
+    private static final Logger LOG = LogManager.getLogger(SplitRegionScannerIT.class);
     private static final String SCHEMA = SplitRegionScannerIT.class.getSimpleName();
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);

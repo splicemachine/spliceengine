@@ -25,6 +25,7 @@ import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SliceIterator;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
@@ -40,7 +41,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
  *         Date: 6/18/14
  */
 public class WritableTxn extends AbstractTxn{
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(WritableTxn.class);
+    private static final Logger LOG=LogManager.getLogger(WritableTxn.class);
     private volatile TxnView parentTxn;
     private volatile long commitTimestamp=-1l;
     private volatile long globalCommitTimestamp=-1l;

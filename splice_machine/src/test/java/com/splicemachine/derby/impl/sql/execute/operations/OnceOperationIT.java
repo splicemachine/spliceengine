@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -32,7 +33,7 @@ import java.sql.SQLException;
 import static org.junit.Assert.assertEquals;
 
 public class OnceOperationIT extends SpliceUnitTest { 
-	private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(OnceOperationIT.class);
+	private static Logger LOG = LogManager.getLogger(OnceOperationIT.class);
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = OnceOperationIT.class.getSimpleName().toUpperCase();
 	public static final String TABLE1_NAME = "A";

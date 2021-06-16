@@ -27,12 +27,13 @@ import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.ByteDataOutput;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 
 
 public class DerbyBytesUtil {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(DerbyBytesUtil.class);
+    private static Logger LOG = LogManager.getLogger(DerbyBytesUtil.class);
 
     @SuppressWarnings("unchecked")
     public static <T> T fromBytes(byte[] bytes) throws StandardException {

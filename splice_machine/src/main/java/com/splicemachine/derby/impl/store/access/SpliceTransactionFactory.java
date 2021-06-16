@@ -36,6 +36,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.security.AccessController;
@@ -44,7 +45,7 @@ import java.security.PrivilegedExceptionAction;
 import java.util.Properties;
 
 public class SpliceTransactionFactory implements ModuleControl, ModuleSupportable{
-    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SpliceTransactionFactory.class);
+    private static Logger LOG=LogManager.getLogger(SpliceTransactionFactory.class);
 
     protected static final String USER_CONTEXT_ID="UserTransaction";
     protected static final String NESTED_READONLY_USER_CONTEXT_ID="NestedRawReadOnlyUserTransaction";

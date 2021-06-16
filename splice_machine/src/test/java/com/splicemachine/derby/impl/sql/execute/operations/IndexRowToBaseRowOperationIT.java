@@ -27,6 +27,7 @@ import org.junit.*;
 import splice.com.google.common.collect.Lists;
 import splice.com.google.common.collect.Maps;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
@@ -38,7 +39,7 @@ import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 
 public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
-	private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(IndexRowToBaseRowOperationIT.class);
+	private static final Logger LOG = LogManager.getLogger(IndexRowToBaseRowOperationIT.class);
 
     private static final String CLASSNAME = IndexRowToBaseRowOperationIT.class.getSimpleName();
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASSNAME);

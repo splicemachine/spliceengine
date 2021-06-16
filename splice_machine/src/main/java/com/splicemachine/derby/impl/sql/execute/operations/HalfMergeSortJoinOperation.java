@@ -33,6 +33,7 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.Arrays;
 
@@ -43,7 +44,7 @@ import static com.splicemachine.db.iapi.sql.compile.CompilerContext.NewMergeJoin
  *         Date: 18/11/2013
  */
 public class HalfMergeSortJoinOperation extends MergeJoinOperation {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(HalfMergeSortJoinOperation.class);
+    private static final Logger LOG = LogManager.getLogger(HalfMergeSortJoinOperation.class);
 
     protected static final String NAME = HalfMergeSortJoinOperation.class.getSimpleName().replaceAll("Operation","");
 

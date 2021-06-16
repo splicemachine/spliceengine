@@ -26,10 +26,11 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class KafkaMaintenance {
 
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(KafkaMaintenance.class);
+    private static Logger LOG = LogManager.getLogger(KafkaMaintenance.class);
 
     public static AdminClient adminClient(String kafkaServers) {
         Properties props = new Properties();

@@ -27,6 +27,7 @@ import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -62,7 +63,7 @@ import static org.junit.Assert.fail;
 @Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
 public class KillOperationIT {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(KillOperationIT.class);
+    private static final Logger LOG = LogManager.getLogger(KillOperationIT.class);
     private static final String SCHEMA = KillOperationIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
     private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);

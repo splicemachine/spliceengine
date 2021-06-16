@@ -27,6 +27,7 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.spark.TaskContext;
 import org.apache.spark.TaskKilledException;
 import org.apache.spark.api.java.function.Function2;
@@ -43,7 +44,7 @@ import java.util.concurrent.*;
  */
 public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements Function2<Integer, Iterator<T>, Iterator<String>>, Serializable, Externalizable {
     private static final long serialVersionUID = -6509694203842227972L;
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ResultStreamer.class);
+    private static final Logger LOG = LogManager.getLogger(ResultStreamer.class);
 
     private OperationContext<?> context;
     private UUID uuid;

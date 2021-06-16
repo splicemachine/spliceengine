@@ -17,6 +17,7 @@ package com.splicemachine.utils.logging;
 import com.splicemachine.utils.StringUtils;
 
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.config.Configuration;
@@ -38,7 +39,7 @@ public final class MaskPatternLayout extends AbstractStringLayout {
     private Encoder<StringBuilder> textEncoder;
     private String maskString = "********";
     private Pattern maskPattern = null;
-    private Logger logger = org.apache.logging.log4j.LogManager.getLogger(this.getClass());
+    private Logger logger = LogManager.getLogger(this.getClass());
     protected static final int DEFAULT_STRING_BUILDER_SIZE = 1024;
 
     protected static final int MAX_STRING_BUILDER_SIZE = Math.max(DEFAULT_STRING_BUILDER_SIZE,

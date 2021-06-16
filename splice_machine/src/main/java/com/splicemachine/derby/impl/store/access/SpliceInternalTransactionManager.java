@@ -20,6 +20,7 @@ import com.splicemachine.db.iapi.services.daemon.Serviceable;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /* A special type of SpliceTransactionManager only used to track the hierarchy
  * of internal transactions, and should not be used from committing transactions

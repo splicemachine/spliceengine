@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.services.stream;
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 import com.splicemachine.db.iapi.services.stream.PrintWriterGetHeader;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.PrintWriter;
 import java.io.Writer;
@@ -50,8 +51,8 @@ import java.io.OutputStream;
 class BasicHeaderPrintWriter 
 	implements HeaderPrintWriter
 {
-	private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger("splice-derby");
-	private static final Logger LOG_STATEMENT = org.apache.logging.log4j.LogManager.getLogger("splice.statement");
+	private static final Logger LOG = LogManager.getLogger("splice-derby");
+	private static final Logger LOG_STATEMENT = LogManager.getLogger("splice.statement");
 
 	private final PrintWriterGetHeader headerGetter;
 	private final String name;

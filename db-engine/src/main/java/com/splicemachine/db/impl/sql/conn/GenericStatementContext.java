@@ -61,6 +61,7 @@ import com.splicemachine.db.iapi.services.context.ContextImpl;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.reference.SQLState;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.ArrayList;
 import java.util.Timer;
@@ -75,7 +76,7 @@ import java.util.TimerTask;
 final class GenericStatementContext 
 	extends ContextImpl implements StatementContext
 {
-	private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(GenericStatementContext.class);
+	private static final Logger LOG = LogManager.getLogger(GenericStatementContext.class);
 	
 	private boolean		setSavePoint;
 	private String		internalSavePointName;

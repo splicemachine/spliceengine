@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.SlowTest;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -37,7 +38,7 @@ import java.sql.ResultSet;
 // Skip this if you want because it takes forever and doesn't usually help much, but is nifty in some cases
 @Category(SlowTest.class)
 public class IndividualPrimaryKeyScanIT {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(PrimaryKeyScanIT.class);
+    private static Logger LOG = LogManager.getLogger(PrimaryKeyScanIT.class);
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = IndividualPrimaryKeyScanIT.class.getSimpleName().toUpperCase();
     public static final String TABLE_NAME = "item";

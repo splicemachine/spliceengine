@@ -46,6 +46,7 @@ import org.apache.datasketches.theta.Sketch;
 import org.apache.datasketches.theta.Sketches;
 import org.apache.datasketches.theta.UpdateSketch;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -62,7 +63,7 @@ import static com.splicemachine.db.iapi.types.Orderable.*;
  * @see <a href="https://datasketches.github.io/">https://datasketches.github.io/</a>
  */
 public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>, Externalizable {
-    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(ColumnStatisticsImpl.class);
+    private static Logger LOG=LogManager.getLogger(ColumnStatisticsImpl.class);
     protected org.apache.datasketches.quantiles.ItemsSketch<DataValueDescriptor> quantilesSketch;
     protected org.apache.datasketches.frequencies.ItemsSketch<DataValueDescriptor> frequenciesSketch;
     protected Sketch thetaSketch;

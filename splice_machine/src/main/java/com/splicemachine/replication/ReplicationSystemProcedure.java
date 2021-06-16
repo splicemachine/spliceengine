@@ -49,6 +49,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.joda.time.DateTime;
 
 import java.io.IOException;
@@ -62,7 +63,7 @@ import java.util.concurrent.Future;
  */
 public class ReplicationSystemProcedure {
 
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ReplicationSystemProcedure.class);
+    private static Logger LOG = LogManager.getLogger(ReplicationSystemProcedure.class);
 
     public static void GET_REPLICATION_PROGRESS(ResultSet[] resultSets) throws StandardException, SQLException {
         ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();

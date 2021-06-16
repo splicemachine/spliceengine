@@ -42,6 +42,7 @@ import com.splicemachine.db.impl.sql.compile.*;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.base.Strings;
 import splice.com.google.common.collect.Iterators;
 import splice.com.google.common.collect.Lists;
@@ -53,7 +54,7 @@ import java.util.*;
  *         Date: 30/09/2013
  */
 public class PlanPrinter extends AbstractSpliceVisitor {
-    public static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(PlanPrinter.class);
+    public static final Logger LOG = LogManager.getLogger(PlanPrinter.class);
     public static final String spaces = "  ";
     private boolean explain = false;
     public static final ThreadLocal<Map<String,Collection<Pair<QueryTreeNode,Integer>>>> planMap = ThreadLocal.withInitial(HashMap::new);

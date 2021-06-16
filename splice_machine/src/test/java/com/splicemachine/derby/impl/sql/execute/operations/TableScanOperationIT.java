@@ -23,6 +23,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_dao.JDBCTemplate;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -40,7 +41,7 @@ import static org.junit.Assert.*;
  */
 public class TableScanOperationIT{
 
-    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(TableScanOperationIT.class);
+    private static Logger LOG=LogManager.getLogger(TableScanOperationIT.class);
 
     private static SpliceWatcher spliceClassWatcher=new SpliceWatcher();
 

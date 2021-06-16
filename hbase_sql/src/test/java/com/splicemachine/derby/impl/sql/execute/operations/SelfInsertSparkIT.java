@@ -27,6 +27,7 @@ import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -45,7 +46,7 @@ import static org.junit.Assert.assertTrue;
  */
 @Category({SlowTest.class, SerialTest.class})
 public class SelfInsertSparkIT {
-    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SelfInsertSparkIT.class);
+    private static Logger LOG=LogManager.getLogger(SelfInsertSparkIT.class);
 
     public static final String CLASS_NAME = SelfInsertSparkIT.class.getSimpleName().toUpperCase();
 

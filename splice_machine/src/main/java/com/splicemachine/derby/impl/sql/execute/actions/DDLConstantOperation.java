@@ -51,6 +51,7 @@ import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.util.*;
@@ -61,7 +62,7 @@ import java.util.*;
  *
  */
 public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(DDLConstantOperation.class);
+    private static final Logger LOG = LogManager.getLogger(DDLConstantOperation.class);
 
     /**
      * Get the schema descriptor for the schemaid.

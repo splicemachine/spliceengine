@@ -42,6 +42,7 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
@@ -53,7 +54,7 @@ import java.util.List;
  * Maps between an Index Table and a data Table.
  */
 public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(IndexRowToBaseRowOperation.class);
+    private static Logger LOG = LogManager.getLogger(IndexRowToBaseRowOperation.class);
     protected int lockMode;
     protected int isolationLevel;
     protected FormatableBitSet accessedCols;

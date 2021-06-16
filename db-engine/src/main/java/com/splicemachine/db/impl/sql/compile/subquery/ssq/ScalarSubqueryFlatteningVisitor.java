@@ -39,6 +39,7 @@ import com.splicemachine.db.impl.ast.ColumnUtils;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.subquery.FlatteningUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.collect.Iterables;
 import splice.com.google.common.collect.Lists;
 
@@ -50,7 +51,7 @@ import java.util.List;
  * Flatten correlated SSQ in Select clause.
  */
 public class ScalarSubqueryFlatteningVisitor extends AbstractSpliceVisitor implements Visitor {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ScalarSubqueryFlatteningVisitor.class);
+    private static Logger LOG = LogManager.getLogger(ScalarSubqueryFlatteningVisitor.class);
     private final int originalNestingLevel;
     private int flattenedCount = 0;
 

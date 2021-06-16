@@ -32,6 +32,7 @@ import com.splicemachine.storage.CellType;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.util.*;
@@ -47,7 +48,7 @@ import java.util.concurrent.RejectedExecutionException;
  * It is handed key-values and can change them.
  */
 public class SICompactionState {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SICompactionState.class);
+    private static final Logger LOG = LogManager.getLogger(SICompactionState.class);
     private final TxnSupplier transactionStore;
     private final CompactionContext context;
     private final ExecutorService executorService;

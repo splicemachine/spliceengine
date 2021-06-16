@@ -36,6 +36,7 @@ import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.base.Function;
 import splice.com.google.common.base.Joiner;
 import splice.com.google.common.collect.Lists;
@@ -49,7 +50,7 @@ import java.util.List;
  * Created by jleach on 11/13/15.
  */
 public class ProtoUtil {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ProtoUtil.class);
+    private static final Logger LOG = LogManager.getLogger(ProtoUtil.class);
     private static Function TABLEDESCRIPTORTOUUID = new Function<TableDescriptor,DerbyMessage.UUID>() {
         @Override
         public DerbyMessage.UUID apply(@Nullable TableDescriptor td) {

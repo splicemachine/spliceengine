@@ -26,6 +26,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import splice.com.google.common.collect.Lists;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Op;
@@ -46,7 +47,7 @@ import com.splicemachine.utils.Pair;
  *         Date: 9/7/15
  */
 public class ZooKeeperDDLWatchChecker implements DDLWatchChecker{
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(ZooKeeperDDLWatchChecker.class);
+    private static final Logger LOG=LogManager.getLogger(ZooKeeperDDLWatchChecker.class);
     private String id;
     private Watcher changeIdWatcher;
     private final DDLZookeeperClient zkClient;

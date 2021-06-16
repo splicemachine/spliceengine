@@ -35,12 +35,13 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * Created by yxia on 4/11/19.
  */
 public class RecursiveViewSyntaxCheckVisitor implements Visitor {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(RecursiveViewSyntaxCheckVisitor.class);
+    private static Logger LOG = LogManager.getLogger(RecursiveViewSyntaxCheckVisitor.class);
     HasNodeVisitor visitor = new HasNodeVisitor(SelfReferenceNode.class);
 
     public RecursiveViewSyntaxCheckVisitor() {

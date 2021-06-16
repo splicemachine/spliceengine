@@ -25,6 +25,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
 import com.splicemachine.kvpair.KVPair;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -38,7 +39,7 @@ import java.util.List;
  * Created by jyuan on 10/16/15.
  */
 public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceFunction<Op,ExecRow,KVPair> {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(IndexTransformFunction.class);
+    private static Logger LOG = LogManager.getLogger(IndexTransformFunction.class);
     private boolean initialized;
     private DDLMessage.TentativeIndex tentativeIndex;
     private int[] projectedMapping;

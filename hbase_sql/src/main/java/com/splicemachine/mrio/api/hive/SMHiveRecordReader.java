@@ -17,6 +17,7 @@ package com.splicemachine.mrio.api.hive;
 import java.io.IOException;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import com.splicemachine.mrio.api.core.SMRecordReaderImpl;
 import com.splicemachine.mrio.api.serde.ExecRowWritable;
 import com.splicemachine.mrio.api.serde.RowLocationWritable;
@@ -28,7 +29,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  *
  */
 public class SMHiveRecordReader implements RecordReader<RowLocationWritable,ExecRowWritable> {
-    protected static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SMHiveRecordReader.class);
+    protected static final Logger LOG = LogManager.getLogger(SMHiveRecordReader.class);
 	protected SMRecordReaderImpl delegate;
 	protected RowLocationWritable key; 
 	protected ExecRowWritable value;

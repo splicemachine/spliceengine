@@ -21,6 +21,7 @@ import com.splicemachine.test.suites.Stats;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -46,7 +47,7 @@ import static com.splicemachine.test_tools.Rows.rows;
  *
  */
 public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest { 
-	private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(MultiGroupGroupedAggregateOperationIT.class);
+	private static Logger LOG = LogManager.getLogger(MultiGroupGroupedAggregateOperationIT.class);
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = MultiGroupGroupedAggregateOperationIT.class.getSimpleName().toUpperCase();
 	public static final String TABLE_NAME = "A";

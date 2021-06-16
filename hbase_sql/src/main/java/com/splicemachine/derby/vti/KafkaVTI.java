@@ -26,6 +26,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
 
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
@@ -33,7 +34,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
 public class KafkaVTI implements DatasetProvider, VTICosting{
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(KafkaVTI.class.getName());
+    private static final Logger LOG = LogManager.getLogger(KafkaVTI.class.getName());
     private OperationContext operationContext;
     public static final ThreadLocal<Dataset<Row>> datasetThreadLocal = new ThreadLocal();
 

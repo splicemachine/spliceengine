@@ -27,11 +27,12 @@ import org.apache.hadoop.yarn.server.nodemanager.security.NMContainerTokenSecret
 import org.apache.hadoop.yarn.server.nodemanager.security.NMTokenSecretManagerInNM;
 import org.apache.hadoop.yarn.server.resourcemanager.ResourceTrackerService;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 
 public class Utils {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(Utils.class);
+    private static final Logger LOG = LogManager.getLogger(Utils.class);
 
     public static ResourceTracker getResourceTracker(ResourceTrackerService rt) {
         return new ResourceTracker() {

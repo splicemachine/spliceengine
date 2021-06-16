@@ -52,6 +52,7 @@ import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.spark.api.java.function.MapPartitionsFunction;
 import org.apache.spark.sql.Row;
 
@@ -68,7 +69,7 @@ import java.util.*;
  */
 public abstract class HFileGenerationFunction implements MapPartitionsFunction<Row, String>, Externalizable {
 
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(HFileGenerationFunction.class);
+    private static final Logger LOG=LogManager.getLogger(HFileGenerationFunction.class);
 
     public enum OperationType {
         INSERT,

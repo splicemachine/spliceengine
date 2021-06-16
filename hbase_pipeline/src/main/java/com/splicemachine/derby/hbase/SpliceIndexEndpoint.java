@@ -51,6 +51,7 @@ import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.base.Function;
 import splice.com.google.common.collect.Lists;
 
@@ -68,7 +69,7 @@ import java.util.Optional;
  *         Created on: 3/11/13
  */
 public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implements RegionCoprocessor, RegionObserver {
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SpliceIndexEndpoint.class);
+    private static final Logger LOG=LogManager.getLogger(SpliceIndexEndpoint.class);
 
     private PartitionWritePipeline writePipeline;
     private PipelineWriter pipelineWriter;

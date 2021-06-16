@@ -52,6 +52,7 @@ import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.spark.sql.types.StructType;
 
 import java.io.IOException;
@@ -66,7 +67,7 @@ import java.util.Arrays;
  */
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 public class StatisticsOperation extends SpliceBaseOperation {
-    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(StatisticsOperation.class);
+    private static Logger LOG=LogManager.getLogger(StatisticsOperation.class);
 
     protected ScanSetBuilder scanSetBuilder;
     protected String scope;

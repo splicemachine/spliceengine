@@ -17,6 +17,7 @@ package com.splicemachine;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * We use this to transfer StandardExceptions over the wire via hbase RPC as IOExceptions.
@@ -26,7 +27,7 @@ import org.apache.logging.log4j.Logger;
 public class SpliceDoNotRetryIOException extends DoNotRetryIOException {
 
     private static final long serialVersionUID = -733330421228198468L;
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceDoNotRetryIOException.class);
+    private static final Logger LOG = LogManager.getLogger(SpliceDoNotRetryIOException.class);
 
     public SpliceDoNotRetryIOException() {
         super();

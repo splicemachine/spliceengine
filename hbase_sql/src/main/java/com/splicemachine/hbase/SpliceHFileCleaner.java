@@ -23,13 +23,14 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.master.cleaner.BaseHFileCleanerDelegate;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * Created by jyuan on 1/29/15.
  */
 public class SpliceHFileCleaner extends BaseHFileCleanerDelegate {
 
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceHFileCleaner.class);
+    private static final Logger LOG = LogManager.getLogger(SpliceHFileCleaner.class);
 
     @Override
     public void setConf(Configuration conf) {

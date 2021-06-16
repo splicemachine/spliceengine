@@ -26,6 +26,7 @@ import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.TrafficControl;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -43,7 +44,7 @@ import java.util.concurrent.TimeUnit;
  */
 @ThreadSafe
 public class AsyncReadResolver{
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(AsyncReadResolver.class);
+    private static final Logger LOG=LogManager.getLogger(AsyncReadResolver.class);
     private final RingBuffer<ResolveEvent> ringBuffer;
     private final Disruptor<ResolveEvent> disruptor;
 

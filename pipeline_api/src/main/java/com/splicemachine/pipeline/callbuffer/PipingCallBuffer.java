@@ -32,6 +32,7 @@ import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.util.*;
 
 /**
@@ -49,7 +50,7 @@ import java.util.*;
  * Created on: 8/27/13
  */
 public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildable{
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(PipingCallBuffer.class);
+    private static final Logger LOG = LogManager.getLogger(PipingCallBuffer.class);
 
     /**
      * Map from the region's starting row key to the region's call buffer.

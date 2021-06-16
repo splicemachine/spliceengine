@@ -21,6 +21,7 @@ import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.SlowTest;
 import com.splicemachine.test.Transactions;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -44,7 +45,7 @@ import java.util.concurrent.Future;
 // Warning: creates hundreds of conglomerates
 @Category({Transactions.class, SlowTest.class})
 public class ConcurrentDDLIT {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ConcurrentDDLIT.class);
+    private static final Logger LOG = LogManager.getLogger(ConcurrentDDLIT.class);
     public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(ConcurrentDDLIT.class.getSimpleName().toUpperCase());
 
     public static final SpliceWatcher classWatcher = new SpliceWatcher();

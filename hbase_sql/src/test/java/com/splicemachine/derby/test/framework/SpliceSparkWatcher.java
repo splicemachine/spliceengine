@@ -15,6 +15,7 @@
 package com.splicemachine.derby.test.framework;
 
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.junit.rules.TestWatcher;
@@ -23,7 +24,7 @@ import org.junit.runner.Description;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class SpliceSparkWatcher extends TestWatcher {
-	private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceSparkWatcher.class);
+	private static final Logger LOG = LogManager.getLogger(SpliceSparkWatcher.class);
 	public JavaSparkContext jsc;
 	public String appName;
 	

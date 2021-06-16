@@ -17,9 +17,10 @@ package com.splicemachine.mrio.api.hive;
 import org.apache.hadoop.hive.ql.hooks.ExecuteWithHookContext;
 import org.apache.hadoop.hive.ql.hooks.HookContext;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class FailureExecHook implements ExecuteWithHookContext {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(FailureExecHook.class.getName());
+    private static Logger LOG = LogManager.getLogger(FailureExecHook.class.getName());
     @Override
     public void run(HookContext hookContext) throws Exception {
         LOG.info("failure in job, rolled back");

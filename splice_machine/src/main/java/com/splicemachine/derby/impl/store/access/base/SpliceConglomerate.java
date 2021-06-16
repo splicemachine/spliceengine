@@ -41,6 +41,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.datasketches.theta.UpdateSketch;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.spark.sql.Row;
 
 import java.io.IOException;
@@ -50,7 +51,7 @@ import java.util.Properties;
 
 public abstract class SpliceConglomerate extends GenericConglomerate implements Conglomerate, StaticCompiledOpenConglomInfo{
     private static final long serialVersionUID=7583841286945209190l;
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SpliceConglomerate.class);
+    private static final Logger LOG=LogManager.getLogger(SpliceConglomerate.class);
     protected int conglom_format_id;
     protected int tmpFlag;
     protected int[] format_ids;

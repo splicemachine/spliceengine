@@ -17,6 +17,7 @@ package com.splicemachine.derby.utils.test;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -56,7 +57,7 @@ import static org.junit.Assert.assertEquals;
  *         Date: 1/6/14
  */
 public class DecoderIT {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(DecoderIT.class);
+    private static final Logger LOG = LogManager.getLogger(DecoderIT.class);
 
     private static final String SCHEMA_NAME = DecoderIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();

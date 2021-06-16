@@ -32,6 +32,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -43,7 +44,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  *
  */
 public class CreateAliasConstantOperation extends DDLConstantOperation {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(CreateAliasConstantOperation.class);
+    private static final Logger LOG = LogManager.getLogger(CreateAliasConstantOperation.class);
     private final String aliasName;
     private final String schemaName;
     private final String javaClassName;

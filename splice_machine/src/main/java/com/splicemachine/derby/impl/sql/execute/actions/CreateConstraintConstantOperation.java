@@ -41,9 +41,10 @@ import com.splicemachine.db.impl.sql.execute.ConstraintInfo;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class CreateConstraintConstantOperation extends ConstraintConstantOperation {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(CreateConstraintConstantOperation.class);
+    private static final Logger LOG = LogManager.getLogger(CreateConstraintConstantOperation.class);
     private final boolean forCreateTable;
     public String[] columnNames;
     private    String constraintText;

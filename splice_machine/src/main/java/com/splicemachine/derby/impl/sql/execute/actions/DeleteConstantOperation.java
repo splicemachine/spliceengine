@@ -30,6 +30,7 @@ import com.splicemachine.db.impl.sql.execute.FKInfo;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
@@ -41,7 +42,7 @@ import java.io.IOException;
  *
  */
 public class DeleteConstantOperation extends WriteCursorConstantOperation {
-	private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(DeleteConstantOperation.class);	
+	private static final Logger LOG = LogManager.getLogger(DeleteConstantOperation.class);	
 	int numColumns;
 	ConstantAction[] dependentCActions; //constant action for the dependent table
 	ResultDescription resultDescription; //required for dependent tables.

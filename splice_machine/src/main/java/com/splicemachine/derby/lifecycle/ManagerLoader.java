@@ -21,6 +21,7 @@ import java.util.ServiceLoader;
 import com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeManager;
 import com.splicemachine.replication.ReplicationManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.backup.BackupManager;
@@ -38,7 +39,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  * Uses ServiceLoader to load the appropriate {@link Manager} implementation.
  */
 public class ManagerLoader {
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(ManagerLoader.class);
+    private static final Logger LOG=LogManager.getLogger(ManagerLoader.class);
     private static volatile Manager manager;
 
     public static Manager load() {

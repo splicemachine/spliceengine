@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.Properties;
 
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class NielsenTesting {
 

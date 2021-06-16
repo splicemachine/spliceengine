@@ -27,9 +27,10 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class CrossJoinStrategy extends BaseJoinStrategy {
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(CrossJoinStrategy.class);
+    private static final Logger LOG=LogManager.getLogger(CrossJoinStrategy.class);
 
     public CrossJoinStrategy() { }
 

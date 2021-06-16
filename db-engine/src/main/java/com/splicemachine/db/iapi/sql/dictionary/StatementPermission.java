@@ -44,6 +44,7 @@ import com.splicemachine.db.shared.common.reference.AuditEventType;
 import com.splicemachine.utils.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -30,6 +30,7 @@ import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
@@ -50,7 +51,7 @@ public class ExportKafkaOperation extends SpliceBaseOperation {
     private String topicName;
 
     protected static final String NAME = ExportKafkaOperation.class.getSimpleName().replaceAll("Operation","");
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ExportKafkaOperation.class);
+    private static final Logger LOG = LogManager.getLogger(ExportKafkaOperation.class);
 
 	@Override
 	public String getName() {

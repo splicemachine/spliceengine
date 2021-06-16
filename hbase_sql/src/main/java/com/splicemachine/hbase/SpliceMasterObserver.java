@@ -53,6 +53,7 @@ import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
 
@@ -71,7 +72,7 @@ import java.util.Set;
  */
 public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, Coprocessor, Stoppable {
 
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceMasterObserver.class);
+    private static final Logger LOG = LogManager.getLogger(SpliceMasterObserver.class);
     @SuppressFBWarnings(value = "MS_MUTABLE_ARRAY", justification = "Intentional")
     public static final byte[] INIT_TABLE = Bytes.toBytes("SPLICE_INIT");
     private TimestampServer timestampServer;

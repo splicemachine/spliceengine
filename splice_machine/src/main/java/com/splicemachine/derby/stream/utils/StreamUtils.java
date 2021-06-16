@@ -21,13 +21,14 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.derby.stream.iapi.ScopeNamed;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * Created by jleach on 4/16/15.
  */
 public class StreamUtils {
 
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(StreamUtils.class);
+    private static final Logger LOG = LogManager.getLogger(StreamUtils.class);
 
     private static final Map<String, String> mapFxnNameToPrettyName =
         new ImmutableMap.Builder<String, String>()

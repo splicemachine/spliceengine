@@ -21,6 +21,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.spark.util.LongAccumulator;
 
 import java.io.*;
@@ -31,7 +32,7 @@ import java.io.*;
  *
  */
 public class SparkOperationContext<Op extends SpliceOperation> extends SparkLeanOperationContext<Op>{
-    protected static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SparkOperationContext.class);
+    protected static Logger LOG=LogManager.getLogger(SparkOperationContext.class);
 
     public LongAccumulator rowsRead;
     public LongAccumulator rowsJoinedLeft;

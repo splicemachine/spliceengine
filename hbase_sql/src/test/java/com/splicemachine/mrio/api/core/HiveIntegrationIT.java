@@ -35,6 +35,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hive.jdbc.HiveDriver;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -53,7 +54,7 @@ import com.splicemachine.test_dao.TriggerBuilder;
 import com.splicemachine.test_tools.TableCreator;
 @Ignore
 public class HiveIntegrationIT extends BaseMRIOTest {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(HiveIntegrationIT.class);
+    private static final Logger LOG = LogManager.getLogger(HiveIntegrationIT.class);
     public static final String CLASS_NAME = HiveIntegrationIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);

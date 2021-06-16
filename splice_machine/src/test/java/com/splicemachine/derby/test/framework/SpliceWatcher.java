@@ -16,6 +16,7 @@ package com.splicemachine.derby.test.framework;
 
 import com.splicemachine.homeless.TestUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.Assert;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
@@ -54,7 +55,7 @@ import static splice.com.google.common.base.Strings.isNullOrEmpty;
  */
 public class SpliceWatcher extends TestWatcher implements AutoCloseable {
 
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceWatcher.class);
+    private static final Logger LOG = LogManager.getLogger(SpliceWatcher.class);
     private static ExecutorService executor = Executors.newCachedThreadPool(
             new ThreadFactoryBuilder().setDaemon(true).setNameFormat("connection-close-%d").build());
 

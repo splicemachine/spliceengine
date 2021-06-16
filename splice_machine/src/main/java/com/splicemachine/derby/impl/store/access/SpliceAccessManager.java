@@ -55,11 +55,12 @@ import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.shared.common.reference.Attribute;
 import com.splicemachine.si.api.txn.TxnView;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import com.splicemachine.utils.SpliceLogUtils;
 
 
 public class SpliceAccessManager implements AccessFactory, CacheableFactory, ModuleControl, PropertySetCallback {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceAccessManager.class);
+    private static Logger LOG = LogManager.getLogger(SpliceAccessManager.class);
     private Hashtable implhash;
     private HBaseStore rawstore;
     private int system_lock_level = TransactionController.MODE_RECORD;

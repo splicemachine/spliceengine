@@ -31,9 +31,10 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class TimestampServer {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(TimestampServer.class);
+    private static final Logger LOG = LogManager.getLogger(TimestampServer.class);
 
     private int port;
     private Channel channel;

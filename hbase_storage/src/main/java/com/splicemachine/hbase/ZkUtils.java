@@ -26,6 +26,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
@@ -41,7 +42,7 @@ import com.splicemachine.access.HConfiguration;
  *         Created: 2/2/13 9:38 AM
  */
 public class ZkUtils{
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(ZkUtils.class);
+    private static final Logger LOG=LogManager.getLogger(ZkUtils.class);
     private static final SpliceZooKeeperManager zkManager=new SpliceZooKeeperManager();
 
     /**

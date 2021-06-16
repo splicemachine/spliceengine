@@ -40,6 +40,7 @@ import org.apache.hadoop.hive.common.type.HiveVarchar;
 import org.apache.hadoop.hive.common.type.HiveChar;
 import org.apache.hadoop.io.Writable;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.NameType;
 import com.splicemachine.mrio.api.core.SMSQLUtil;
@@ -61,7 +62,7 @@ public class SMSerDe extends AbstractSerDe {
 //    protected SerDeParameters serdeParams;
     protected List<String> colNames = new ArrayList<String>(); // hive names
     protected List<TypeInfo> colTypes; // hive types, not Splice Types
-    protected static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SMSerDe.class.getName());
+    protected static final Logger LOG = LogManager.getLogger(SMSerDe.class.getName());
     protected List<Object> objectCache;
     protected String tableName;
     

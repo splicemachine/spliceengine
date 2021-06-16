@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -46,6 +47,10 @@ import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 
 import java.lang.reflect.Modifier;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * ActivationClassBuilder
@@ -87,6 +92,9 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
     private MethodBuilder closeActivationMethod;
     private DataSetProcessorType pushedType;
     private SparkExecutionType pushedSparkExecutionType;
+
+    private Set<UUID> targetTableOIDs;
+    private boolean hasDML;
 
     ///////////////////////////////////////////////////////////////////////
     //
@@ -516,6 +524,31 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
             closeActivationMethod.addThrownException("java.lang.Exception");
         }
         return closeActivationMethod;
+    }
+
+    public void addTargetTable(UUID targetTableOID) {
+        if (targetTableOIDs == null) {
+            targetTableOIDs = new HashSet<>();
+        }
+        targetTableOIDs.add(targetTableOID);
+    }
+
+    @Override
+    public boolean tableIsTargetOfDML(UUID tableOID) {
+        if (targetTableOIDs == null)
+            return false;
+        return targetTableOIDs.contains(tableOID);
+    }
+
+    public void setHasDML(boolean hasDML) {
+        this.hasDML = hasDML;
+    }
+
+    // True if a DML statement exists anywhere in statement tree
+    // contained in this ActivationClassBuilder.
+    @Override
+    public boolean hasDML() {
+        return hasDML;
     }
 }
 

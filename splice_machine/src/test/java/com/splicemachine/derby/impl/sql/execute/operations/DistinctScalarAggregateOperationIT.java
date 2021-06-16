@@ -22,6 +22,7 @@ import java.sql.Statement;
 import com.splicemachine.test.SlowTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -39,7 +40,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 
 public class DistinctScalarAggregateOperationIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(DistinctScalarAggregateOperationIT.class);
+    private static Logger LOG = LogManager.getLogger(DistinctScalarAggregateOperationIT.class);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(DistinctScalarAggregateOperationIT.class.getSimpleName());
     protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("ORDERSUMMARY",DistinctScalarAggregateOperationIT.class.getSimpleName(),"(oid int, catalog varchar(40), score float, brand varchar(40))");
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("EMPTY_TABLE",DistinctScalarAggregateOperationIT.class.getSimpleName(),"(oid int, catalog varchar(40), score float, brand char(40))");

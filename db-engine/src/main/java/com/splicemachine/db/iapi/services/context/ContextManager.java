@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.sql.SQLException;
 import java.util.*;
@@ -60,7 +61,7 @@ import java.util.*;
 
 public class ContextManager
 {
-	private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ContextManager.class);
+	private static final Logger LOG = LogManager.getLogger(ContextManager.class);
 
 	/**
 	 * The CtxStack implement a stack on top of an ArrayList (to avoid

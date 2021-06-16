@@ -20,6 +20,7 @@ import java.net.InetAddress;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.util.NetworkUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.drda.NetworkServerControl;
@@ -34,7 +35,7 @@ import splice.com.google.common.net.HostAndPort;
  *         Date: 1/6/16
  */
 public class NetworkLifecycleService implements DatabaseLifecycleService{
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(NetworkLifecycleService.class);
+    private static final Logger LOG=LogManager.getLogger(NetworkLifecycleService.class);
     private final SConfiguration config;
     private volatile NetworkServerControl server;
 

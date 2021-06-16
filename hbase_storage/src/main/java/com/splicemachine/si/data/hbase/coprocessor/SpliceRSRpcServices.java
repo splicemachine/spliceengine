@@ -33,6 +33,7 @@ import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.hadoop.hbase.regionserver.wal.AbstractFSWAL;
 import org.apache.hadoop.hbase.wal.WAL;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.collect.Lists;
 
 import java.io.IOException;
@@ -40,7 +41,7 @@ import java.util.*;
 
 public class SpliceRSRpcServices extends SpliceMessage.SpliceRSRpcServices implements RegionServerCoprocessor {
 
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceRSRpcServices.class);
+    private static final Logger LOG = LogManager.getLogger(SpliceRSRpcServices.class);
     private RegionServerServices regionServerServices;
 
     @Override

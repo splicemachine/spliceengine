@@ -23,6 +23,7 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -34,7 +35,7 @@ import java.util.concurrent.TimeUnit;
  *         Date: 6/25/14
  */
 public class QueuedKeepAliveScheduler implements KeepAliveScheduler{
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(QueuedKeepAliveScheduler.class);
+    private static final Logger LOG=LogManager.getLogger(QueuedKeepAliveScheduler.class);
     private final long maxWaitIntervalMs;
     private final long maxKeepAliveIntervalMs;
     private final ScheduledExecutorService threadPool;

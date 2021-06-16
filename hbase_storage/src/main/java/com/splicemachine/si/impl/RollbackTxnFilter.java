@@ -29,12 +29,13 @@ import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.List;
 
 public class RollbackTxnFilter extends FilterBase {
 
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(RollbackTxnFilter.class);
+    private static final Logger LOG=LogManager.getLogger(RollbackTxnFilter.class);
 
 
     private List<DataMutation> mutations;

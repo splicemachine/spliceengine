@@ -38,7 +38,8 @@ import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.util.concurrent.Callable;
@@ -50,7 +51,7 @@ import static com.splicemachine.derby.stream.output.insert.InsertPipelineWriter.
  */
 @SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", justification = "triggerRowsEncoder is used in subclasses")
 public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableWriter<T> {
-    private static final Logger LOG = Logger.getLogger(AbstractPipelineWriter.class);
+    private static final Logger LOG = LogManager.getLogger(AbstractPipelineWriter.class);
     protected TxnView txn;
     protected byte[] token;
     protected byte[] destinationTable;

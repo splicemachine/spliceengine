@@ -36,6 +36,7 @@ import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import scala.Tuple2;
 
 import javax.annotation.Nullable;
@@ -47,7 +48,7 @@ import java.util.*;
 
 public class CheckTableUtils {
 
-    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(CheckTableUtils.class);
+    private static Logger LOG=LogManager.getLogger(CheckTableUtils.class);
 
     public static Map<String, List<String>> checkTable(String schemaName, String tableName, TableDescriptor td,
                                                        List<DDLMessage.TentativeIndex> tentativeIndexList,

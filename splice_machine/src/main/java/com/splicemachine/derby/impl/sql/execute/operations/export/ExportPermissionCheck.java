@@ -20,6 +20,7 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.io.IOException;
 import java.util.Random;
 
@@ -28,7 +29,7 @@ import java.util.Random;
  * can be created and written to.  If not throws StandardException with error message suitable for display to user.
  */
 class ExportPermissionCheck {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ExportPermissionCheck.class);
+    private static final Logger LOG = LogManager.getLogger(ExportPermissionCheck.class);
     private ExportParams exportParams;
     private ExportFile testFile;
 

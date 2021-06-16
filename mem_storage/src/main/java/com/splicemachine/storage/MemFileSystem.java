@@ -19,6 +19,7 @@ import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,7 +40,7 @@ import java.util.regex.Pattern;
 @SuppressFBWarnings(value={ "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"}, justification = ".")
 public class MemFileSystem extends DistributedFileSystem{
     private final FileSystemProvider localDelegate;
-    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(MemFileSystem.class);
+    private static Logger LOG=LogManager.getLogger(MemFileSystem.class);
 
     public MemFileSystem(FileSystemProvider localDelegate){
         this.localDelegate=localDelegate;

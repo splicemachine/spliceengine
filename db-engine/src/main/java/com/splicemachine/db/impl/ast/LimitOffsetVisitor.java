@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.*;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  *
@@ -44,7 +45,7 @@ import org.apache.logging.log4j.Logger;
  *
  */
 public class LimitOffsetVisitor extends AbstractSpliceVisitor {
-    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(LimitOffsetVisitor.class);
+    private static Logger LOG=LogManager.getLogger(LimitOffsetVisitor.class);
     public long offset = -1;
     public long fetchFirst = -1;
     public double scaleFactor;

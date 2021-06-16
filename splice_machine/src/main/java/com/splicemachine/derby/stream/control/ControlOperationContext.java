@@ -28,6 +28,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.*;
 import java.sql.SQLException;
@@ -39,7 +40,7 @@ import java.util.List;
  */
 public class ControlOperationContext<Op extends SpliceOperation> implements OperationContext<Op> {
     private static final String LINE_SEP = System.lineSeparator();
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ControlOperationContext.class);
+    private static Logger LOG = LogManager.getLogger(ControlOperationContext.class);
 
     long rowsRead;
         long rowsFiltered;

@@ -19,6 +19,7 @@ import com.splicemachine.timestamp.api.TimestampIOException;
 import com.splicemachine.timestamp.api.TimestampHostProvider;
 import com.splicemachine.timestamp.impl.TimestampConnection;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * HBase-based Timestamp host provider.
@@ -26,7 +27,7 @@ import org.apache.logging.log4j.Logger;
  * Created by jleach on 12/9/15.
  */
 public class HBaseTimestampHostProvider implements TimestampHostProvider {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(HBaseTimestampHostProvider.class);
+    private static final Logger LOG = LogManager.getLogger(HBaseTimestampHostProvider.class);
     private final HBaseConnectionFactory connectionFactory;
     private final int port;
 

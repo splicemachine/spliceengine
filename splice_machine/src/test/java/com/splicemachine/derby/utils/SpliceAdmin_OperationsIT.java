@@ -20,6 +20,7 @@ import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test.SerialTest;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -42,7 +43,7 @@ import static org.junit.Assert.*;
 
 @Category(SerialTest.class)
 public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceAdmin_OperationsIT.class);
+    private static final Logger LOG = LogManager.getLogger(SpliceAdmin_OperationsIT.class);
     public static final String CLASS_NAME = SpliceAdmin_OperationsIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceTableWatcher bigTableWatcher = new SpliceTableWatcher("TEST_BIG",CLASS_NAME,"(a int)");

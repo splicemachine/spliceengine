@@ -6,6 +6,7 @@ import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.zookeeper.KeeperException;
 
 import java.io.IOException;
@@ -14,7 +15,7 @@ import java.io.IOException;
  * Created by jyuan on 7/17/17.
  */
 public class ZkUpgrade {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ZkUpgrade.class);
+    private static final Logger LOG = LogManager.getLogger(ZkUpgrade.class);
     private static final String OLD_TRANSACTIONS_NODE = "/transactions/v1transactions";
 
     public static long getOldTransactions(SConfiguration conf) throws IOException {

@@ -28,6 +28,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -40,7 +41,7 @@ import java.util.List;
  *         Date: 1/18/16
  */
 public class HOperationFactory implements OperationFactory{
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(HOperationFactory.class);
+    private static final Logger LOG = LogManager.getLogger(HOperationFactory.class);
     public static final HOperationFactory INSTANCE = new HOperationFactory();
     private final Durability durability;
 

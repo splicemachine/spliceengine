@@ -19,6 +19,7 @@ import org.apache.hadoop.fs.DelegateToFileSystem;
 import org.apache.hadoop.fs.FsServerDefaults;
 import org.apache.hadoop.fs.local.LocalConfigKeys;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.net.URI;
@@ -30,7 +31,7 @@ import java.net.URISyntaxException;
  *
  */
 public class RawSpliceFs extends DelegateToFileSystem {
-    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(RawSpliceFs.class);
+    private static Logger LOG=LogManager.getLogger(RawSpliceFs.class);
 
     RawSpliceFs(final Configuration conf) throws IOException, URISyntaxException {
         this(SpliceFileSystem.NAME, conf);

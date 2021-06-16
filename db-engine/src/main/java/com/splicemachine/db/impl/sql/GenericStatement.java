@@ -63,6 +63,7 @@ import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -84,7 +85,7 @@ import static com.splicemachine.db.impl.sql.compile.CharTypeCompiler.getCurrentC
 public class GenericStatement implements Statement{
     protected static final AtomicInteger jsonIncrement = new AtomicInteger(0);
     protected int actualJsonIncrement = -1;
-    private static final Logger JSON_TREE_LOG = org.apache.logging.log4j.LogManager.getLogger(JsonTreeBuilderVisitor.class);
+    private static final Logger JSON_TREE_LOG = LogManager.getLogger(JsonTreeBuilderVisitor.class);
 
     // these fields define the identity of the statement
     private final SchemaDescriptor compilationSchema;

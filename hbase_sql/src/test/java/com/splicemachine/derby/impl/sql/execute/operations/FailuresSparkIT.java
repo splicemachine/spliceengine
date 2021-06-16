@@ -29,6 +29,7 @@ import com.splicemachine.test.SlowTest;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -51,7 +52,7 @@ import static org.junit.Assert.fail;
  * A Collection of ITs oriented around scanning and inserting from Spark with failures.
  */
 public class FailuresSparkIT {
-    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(FailuresSparkIT.class);
+    private static Logger LOG=LogManager.getLogger(FailuresSparkIT.class);
 
     public static final String CLASS_NAME = FailuresSparkIT.class.getSimpleName().toUpperCase();
 

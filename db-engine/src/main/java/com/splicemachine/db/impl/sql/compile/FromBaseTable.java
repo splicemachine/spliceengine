@@ -3554,18 +3554,31 @@ public class FromBaseTable extends FromTable {
         mb.push(numUnusedLeadingIndexFields);
         numArgs++;
 
-        boolean canCacheResultSet = isCacheable();
+        boolean canCacheResultSet = isCacheable(acb);
         mb.push(canCacheResultSet);
         numArgs++;
 
         return numArgs;
     }
 
-    private boolean isCacheable() throws StandardException {
+    // Test whether this table, accessed as part of trigger
+    // stored statements, may be cached and reused.
+    private boolean isCacheable(ExpressionClassBuilder acb) throws StandardException {
         // Cannot reduce rows if there is a nondeterministic function
         // such as random(), as each row may get a different value that
         // the distinct sort would not eliminate.
         if (!compilingTrigger())
+            return false;
+
+        // If the table may grow or shrink after each trigger invocation,
+        // we can't cache it.
+        if (acb.tableIsTargetOfDML(tableDescriptor.getObjectID()))
+            return false;
+
+        // This rather restrictive rule prevents caching of any result sets
+        // when DML is present in the trigger.
+        // TODO: Replace with something less restrictive.
+        if (acb.hasDML())
             return false;
 
         CollectNodesVisitor cnv = new CollectNodesVisitor(MethodCallNode.class);
@@ -3579,7 +3592,7 @@ public class FromBaseTable extends FromTable {
                     return false;
             }
         }
-        return true;  // msirek-temp
+        return true;
     }
 
     /**

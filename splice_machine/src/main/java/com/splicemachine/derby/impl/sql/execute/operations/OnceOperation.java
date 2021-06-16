@@ -32,6 +32,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -44,7 +45,7 @@ public class OnceOperation extends SpliceBaseOperation {
     public static final int UNIQUE_CARDINALITY_CHECK = 3;
     protected static final String NAME = OnceOperation.class.getSimpleName().replaceAll("Operation", "");
     private static final long serialversionUID = 1l;
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(OnceOperation.class);
+    private static Logger LOG = LogManager.getLogger(OnceOperation.class);
     // set in constructor and not altered during
     // life of object.
     public SpliceOperation source;

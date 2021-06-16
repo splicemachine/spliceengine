@@ -26,6 +26,7 @@ import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.Source;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -38,7 +39,7 @@ import java.util.concurrent.locks.ReadWriteLock;
  */
 public class StripedTxnLifecycleStore implements TxnLifecycleStore{
 
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(StripedTxnLifecycleStore.class);
+    private static final Logger LOG=LogManager.getLogger(StripedTxnLifecycleStore.class);
 
     private static final TxnMessage.Txn NONEXISTENT_TXN;
     private static final TxnMessage.TaskId NONEXISTENT_TASK_ID;

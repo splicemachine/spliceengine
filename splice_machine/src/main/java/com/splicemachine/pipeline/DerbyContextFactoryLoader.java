@@ -43,6 +43,7 @@ import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -57,7 +58,7 @@ import static com.splicemachine.pipeline.ConglomerateDescriptors.*;
  */
 @ThreadSafe
 public class DerbyContextFactoryLoader implements ContextFactoryLoader{
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(DerbyContextFactoryLoader.class);
+    private static final Logger LOG=LogManager.getLogger(DerbyContextFactoryLoader.class);
 
     private final long conglomId;
     private final OperationStatusFactory osf;

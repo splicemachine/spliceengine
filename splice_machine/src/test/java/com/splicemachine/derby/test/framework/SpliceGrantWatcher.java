@@ -20,11 +20,12 @@ import java.sql.Statement;
 
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 
 public class SpliceGrantWatcher extends TestWatcher {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceGrantWatcher.class);
+    private static final Logger LOG = LogManager.getLogger(SpliceGrantWatcher.class);
     protected String createString;
     private String userName;
     private String password;

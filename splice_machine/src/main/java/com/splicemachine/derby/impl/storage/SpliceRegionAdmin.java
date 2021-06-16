@@ -71,6 +71,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.joda.time.DateTime;
 import splice.com.google.common.collect.Lists;
 import org.supercsv.prefs.CsvPreference;
@@ -88,7 +89,7 @@ import java.util.concurrent.Future;
  */
 public class SpliceRegionAdmin {
 
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SpliceRegionAdmin.class);
+    private static final Logger LOG=LogManager.getLogger(SpliceRegionAdmin.class);
     public static final String HBASE_DIR = "hbase.rootdir";
 
 

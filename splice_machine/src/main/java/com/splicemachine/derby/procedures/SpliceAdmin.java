@@ -79,6 +79,7 @@ import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.joda.time.DateTime;
 import splice.com.google.common.collect.Lists;
 import splice.com.google.common.net.HostAndPort;
@@ -106,7 +107,7 @@ import static com.splicemachine.db.shared.common.reference.SQLState.*;
  */
 @SuppressWarnings("unused")
 public class SpliceAdmin extends BaseAdminProcedures {
-    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(SpliceAdmin.class);
+    private static Logger LOG=LogManager.getLogger(SpliceAdmin.class);
 
     @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
     public static void SYSCS_GET_CACHED_STATEMENTS(final ResultSet[] resultSet) throws SQLException{

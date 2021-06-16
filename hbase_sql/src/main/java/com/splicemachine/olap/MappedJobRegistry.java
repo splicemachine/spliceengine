@@ -16,6 +16,7 @@ package com.splicemachine.olap;
 
 import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -26,7 +27,7 @@ import java.util.concurrent.*;
  *         Date: 4/1/16
  */
 public class MappedJobRegistry implements OlapJobRegistry{
-    private static final Logger LOG =org.apache.logging.log4j.LogManager.getLogger(MappedJobRegistry.class);
+    private static final Logger LOG =LogManager.getLogger(MappedJobRegistry.class);
     private final ConcurrentMap<String/*jobName*/,OlapJobStatus/*jobStatus*/> registry;
     private final ScheduledExecutorService registryCleaner;
     private final long tickTime;

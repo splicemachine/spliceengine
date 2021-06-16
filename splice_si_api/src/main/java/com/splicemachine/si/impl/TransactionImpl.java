@@ -22,6 +22,7 @@ import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.util.Deque;
@@ -32,7 +33,7 @@ import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNA
 
 public class TransactionImpl extends BaseTransaction {
     public static final String BATCH_SAVEPOINT="BATCH_SAVEPOINT";
-    private static Logger LOG=org.apache.logging.log4j.LogManager.getLogger(TransactionImpl.class);
+    private static Logger LOG=LogManager.getLogger(TransactionImpl.class);
     private boolean ignoreSavePoints;
     private TxnLifecycleManager lifecycleManager;
 

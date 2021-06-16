@@ -40,6 +40,7 @@ import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 
@@ -51,7 +52,7 @@ import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEven
  * @author Scott Fines
  */
 public class UpdateOperation extends DMLWriteOperation{
-    private static final Logger LOG=org.apache.logging.log4j.LogManager.getLogger(UpdateOperation.class);
+    private static final Logger LOG=LogManager.getLogger(UpdateOperation.class);
     private DataValueDescriptor[] kdvds;
     public int[] colPositionMap;
     public FormatableBitSet heapList; // 1-based

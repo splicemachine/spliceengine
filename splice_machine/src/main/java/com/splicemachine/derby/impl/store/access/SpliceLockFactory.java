@@ -31,12 +31,13 @@ import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.Matchable;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 //FIXME: We may need to implement unlock and zeroDurationlockObject since they are called directly by DataDictionaryImpl
 //and used by locking the cache.
 
 public class SpliceLockFactory implements LockFactory, ModuleControl, ModuleSupportable {
-	private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceLockFactory.class);
+	private static Logger LOG = LogManager.getLogger(SpliceLockFactory.class);
 	
 	//private TxnLockManager lockManager;
 	

@@ -30,6 +30,7 @@ import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputFormat;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import com.splicemachine.mrio.MRConstants;
@@ -49,7 +50,7 @@ public class SMStorageHandler extends DefaultStorageHandler
     private static SMSQLUtil sqlUtil = null;
     private static String parentTxnId = null;
     private static Connection parentConn = null;
-    private static Logger Log = org.apache.logging.log4j.LogManager.getLogger(SMStorageHandler.class.getName());
+    private static Logger Log = LogManager.getLogger(SMStorageHandler.class.getName());
 
     @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification="DB-9846")
     public void configureTableJobProperties(TableDesc tableDesc,

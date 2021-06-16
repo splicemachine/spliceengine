@@ -24,11 +24,12 @@ import com.splicemachine.db.iapi.store.access.conglomerate.ConglomerateFactory;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerateFactory;
 
 public class IndexConglomerateFactory extends SpliceConglomerateFactory {
-    protected static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(IndexConglomerateFactory.class);
+    protected static Logger LOG = LogManager.getLogger(IndexConglomerateFactory.class);
     public IndexConglomerateFactory() {
         super();
     }

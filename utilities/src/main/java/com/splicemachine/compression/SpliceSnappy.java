@@ -17,11 +17,12 @@ package com.splicemachine.compression;
 import java.io.File;
 import java.io.IOException;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.xerial.snappy.OSInfo;
 import org.xerial.snappy.Snappy;
 
 public class SpliceSnappy {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceSnappy.class);
+    private static final Logger LOG = LogManager.getLogger(SpliceSnappy.class);
     private static boolean installed = false;
 
     static {

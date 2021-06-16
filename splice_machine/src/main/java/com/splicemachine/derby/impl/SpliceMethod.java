@@ -19,11 +19,12 @@ import java.lang.reflect.Method;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import com.splicemachine.pipeline.Exceptions;
 
 public class SpliceMethod<T> {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(SpliceMethod.class);
+    private static Logger LOG = LogManager.getLogger(SpliceMethod.class);
     protected String methodName;
     protected Activation activation;
     protected Method method;

@@ -22,6 +22,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.collect.PeekingIterator;
 import java.io.Closeable;
 import java.io.IOException;
@@ -31,7 +32,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, Iterable<ExecRow> {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(MergeOuterJoinIterator.class);
+    private static final Logger LOG = LogManager.getLogger(MergeOuterJoinIterator.class);
     final PeekingIterator<ExecRow> leftRS;
     PeekingIterator<ExecRow> rightRS;
     final int[] joinKeys;

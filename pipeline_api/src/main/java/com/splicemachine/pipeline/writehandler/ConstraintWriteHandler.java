@@ -22,6 +22,7 @@ import com.splicemachine.pipeline.api.Constraint;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -32,7 +33,7 @@ import java.util.Map;
  *         Created on: 4/30/13
  */
 public class ConstraintWriteHandler implements WriteHandler {
-    private static final Logger LOG = org.apache.logging.log4j.LogManager.getLogger(ConstraintWriteHandler.class);
+    private static final Logger LOG = LogManager.getLogger(ConstraintWriteHandler.class);
 
     private static final WriteResult additiveWriteConflict = WriteResult.failed("Additive WriteConflict");
 

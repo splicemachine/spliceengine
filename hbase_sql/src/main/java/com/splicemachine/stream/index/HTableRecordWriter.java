@@ -21,6 +21,7 @@ import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import scala.util.Either;
 
 import java.io.IOException;
@@ -29,7 +30,7 @@ import java.io.IOException;
  * Created by jyuan on 10/19/15.
  */
 public class HTableRecordWriter extends RecordWriter<byte[],Either<Exception, KVPair>> {
-    private static Logger LOG = org.apache.logging.log4j.LogManager.getLogger(HTableRecordWriter.class);
+    private static Logger LOG = LogManager.getLogger(HTableRecordWriter.class);
     boolean initialized = false;
     TableWriter tableWriter;
     OutputCommitter outputCommitter;

@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 
 import com.splicemachine.db.catalog.TypeDescriptor;
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -957,5 +958,11 @@ public abstract class ExpressionClassBuilder implements ExpressionClassBuilderIn
         return this.nextFieldNum;
     }
 
+    public boolean tableIsTargetOfDML(UUID tableOID) {
+        return false;
+    }
 
+    public boolean hasDML() {
+        return false;
+    }
 }
