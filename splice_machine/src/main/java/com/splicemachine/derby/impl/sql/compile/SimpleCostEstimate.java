@@ -15,10 +15,9 @@
 package com.splicemachine.derby.impl.sql.compile;
 
 import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.impl.sql.compile.FirstColumnOfIndexStats;
 import com.splicemachine.db.impl.sql.compile.JoinNode;
-import com.splicemachine.db.impl.sql.compile.Level2OptimizerImpl;
+import com.splicemachine.db.impl.sql.compile.optimizer.Level2OptimizerImpl;
 import com.splicemachine.db.impl.sql.compile.PredicateList;
 
 import java.text.DecimalFormat;

@@ -29,7 +29,7 @@
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package com.splicemachine.db.impl.sql.compile;
+package com.splicemachine.db.impl.sql.compile.optimizer;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -47,6 +47,7 @@ import com.splicemachine.db.iapi.store.access.AggregateCostController;
 import com.splicemachine.db.iapi.store.access.SortCostController;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.db.impl.sql.compile.*;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -909,7 +910,7 @@ public class OptimizerImpl implements Optimizer{
             // table because it has already been materialized into a sequence of statements that
             // can't be modified.
             ResultSetNode optimizableResultSet = (ResultSetNode) optimizableList.getOptimizable(nextOptimizable);
-            if (optimizableResultSet.skipBindAndOptimize) {
+            if (optimizableResultSet.skipBindAndOptimize()) {
                 if (optimizableResultSet instanceof FromTable) {
                     FromTable fromTable = (FromTable)optimizableResultSet;
                     AccessPath bestAP = fromTable.getBestAccessPath();

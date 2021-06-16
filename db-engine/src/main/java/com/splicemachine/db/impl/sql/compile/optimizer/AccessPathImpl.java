@@ -29,7 +29,7 @@
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package com.splicemachine.db.impl.sql.compile;
+package com.splicemachine.db.impl.sql.compile.optimizer;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -42,8 +42,12 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.impl.sql.compile.FirstColumnOfIndexStats;
+import com.splicemachine.db.impl.sql.compile.Predicate;
+import com.splicemachine.db.impl.sql.compile.ResultSetNode;
+import com.splicemachine.db.impl.sql.compile.UnionNode;
 
-class AccessPathImpl implements AccessPath{
+public class AccessPathImpl implements AccessPath{
     ConglomerateDescriptor cd=null;
     boolean coveringIndexScan=false;
     boolean nonMatchingIndexScan=false;
@@ -61,7 +65,7 @@ class AccessPathImpl implements AccessPath{
     private ResultSetNode uisRowIdJoinBackToBaseTableResultSet = null;
 
 
-    AccessPathImpl(Optimizer optimizer){
+    public AccessPathImpl(Optimizer optimizer){
         this.optimizer=optimizer;
     }
 

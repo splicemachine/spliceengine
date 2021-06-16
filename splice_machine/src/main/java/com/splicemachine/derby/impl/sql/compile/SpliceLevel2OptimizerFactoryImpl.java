@@ -28,7 +28,7 @@ import com.splicemachine.db.iapi.sql.compile.RequiredRowOrdering;
 import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.impl.sql.compile.OptimizerFactoryImpl;
+import com.splicemachine.db.impl.sql.compile.optimizer.OptimizerFactoryImpl;
 
 public class SpliceLevel2OptimizerFactoryImpl extends OptimizerFactoryImpl {
 

@@ -95,7 +95,7 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
         return v.iterator();
     }
 
-    void destructiveAppend(QueryTreeNodeVector<T> qtnv){
+    public void destructiveAppend(QueryTreeNodeVector<T> qtnv){
         nondestructiveAppend(qtnv);
         qtnv.removeAllElements();
     }

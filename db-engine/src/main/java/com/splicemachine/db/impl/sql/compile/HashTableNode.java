@@ -50,6 +50,7 @@ import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.impl.sql.compile.optimizer.AccessPathImpl;
 
 /**
  * A HashTableNode represents a result set where a hash table is built.

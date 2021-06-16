@@ -153,7 +153,7 @@ public class OrderByNode extends SingleChildResultSetNode {
     }
 
     @Override
-    protected CostEstimate getCostEstimate(Optimizer optimizer) {
+    public CostEstimate getCostEstimate(Optimizer optimizer) {
         return super.getCostEstimate(optimizer);
     }
 
