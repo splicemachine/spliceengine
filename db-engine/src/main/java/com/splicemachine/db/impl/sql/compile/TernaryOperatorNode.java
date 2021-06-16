@@ -44,9 +44,7 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.StringDataValue;
-import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 
@@ -67,6 +65,8 @@ import java.util.Set;
 
 public class TernaryOperatorNode extends OperatorNode
 {
+    private static final String TIMESTAMP_METHOD_NAME="getTimestamp";
+
     String        operator;
     String        methodName;
     int            operatorType;
@@ -1560,5 +1560,36 @@ public class TernaryOperatorNode extends OperatorNode
             cost += rightOperand.getBaseOperationCost();
         }
         return cost;
+    }
+
+    @Override
+    ValueNode evaluateConstantExpressions() throws StandardException {
+        if(getLeftOperand().isConstantExpression() && getRightOperand().isConstantExpression()) {
+            if(operatorType == TIMESTAMPADD) {
+                DataValueFactory dvf = getLanguageConnectionContext().getDataValueFactory();
+                DataValueDescriptor sourceValue = (getReceiver()).evaluateConstantExpressions().getKnownConstantValue();
+                DateTimeDataValue destValue = dvf.getNullTimestamp(null);
+                if (!sourceValue.isNull()) {
+                    DataValueDescriptor leftDvd = getLeftOperand().evaluateConstantExpressions().getKnownConstantValue();
+                    if(leftDvd == null) {
+                        throw StandardException.newException(SQLState.NOT_IMPLEMENTED, String.format("Evaluation of constant expression of type %s is not supported",
+                                                                                                     getLeftOperand().getClass().getSimpleName()));
+                    }
+                    DataValueDescriptor rightDvd = getRightOperand().evaluateConstantExpressions().getKnownConstantValue();
+                    if(rightDvd == null) {
+                        throw StandardException.newException(SQLState.NOT_IMPLEMENTED, String.format("Evaluation of constant expression of type %s is not supported",
+                                                                                                     getRightOperand().getClass().getSimpleName()));
+                    }
+                    int type = leftDvd.getInt();
+                    NumberDataValue count = dvf.getDataValue(rightDvd.getInt(), null);
+                    destValue = dvf.getNullTimestamp(null);
+                    dvf.getTimestamp(sourceValue).timestampAdd(type, count, null, destValue);
+                }
+                return (ValueNode) getNodeFactory().getNode(C_NodeTypes.USERTYPE_CONSTANT_NODE, destValue, getContextManager());
+            } else {
+                return super.evaluateConstantExpressions();
+            }
+        }
+        return super.evaluateConstantExpressions();
     }
 }
