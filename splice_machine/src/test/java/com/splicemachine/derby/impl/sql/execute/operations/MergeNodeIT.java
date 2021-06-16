@@ -7,10 +7,7 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test_tools.TableCreator;
 import com.sun.org.apache.xalan.internal.xsltc.compiler.util.ErrorMsg;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -29,6 +26,13 @@ public class MergeNodeIT
 
     protected static String TABLE_1 = "A";
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+
+
+    @ClassRule
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+            .around(spliceSchemaWatcher);
+
+    @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     @BeforeClass
@@ -158,9 +162,22 @@ public class MergeNodeIT
                 " 2 |20 | 3 |");
     }
 
-    //@Ignore // fails Nullpointer Except
     @Test
     public void testSimpleUpdate() throws Exception {
+        test(   "(1, 11, 111)", // src
+                "(1, 10, 3)", // dest
+
+                "merge into T_dest using T_src on (T_dest.i = T_src.i) " +
+                        "when matched then UPDATE SET k = 5",
+
+                "I | J | K |\n" +
+                "------------\n" +
+                " 1 |10 | 5 |");
+    }
+
+    //@Ignore // fails Nullpointer Except
+    @Test
+    public void testSimpleUpdate2() throws Exception {
         test(   "(1, 11, 111), (4, 44, 444)", // src
                 "(1, 10, 3), (2, 20, 3)", // dest
 
