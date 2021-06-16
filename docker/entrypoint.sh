@@ -1,4 +1,4 @@
 #!/bin/bash
-echo starting inside container command:
-echo $*
+echo "starting inside container command: $*"
+echo
 $*

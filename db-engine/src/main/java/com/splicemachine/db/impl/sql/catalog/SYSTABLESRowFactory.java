@@ -381,18 +381,19 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
      *                              ISOLATION_REPEATABLE_READ (normal usage)
      *                              or ISOLATION_READ_UNCOMMITTED (corner
      *                              cases) supported for now.
+     * @param tc
      * @throws StandardException thrown on failure
      */
     TupleDescriptor buildDescriptor(
             ExecRow row,
             TupleDescriptor parentTupleDescriptor,
             DataDictionary dd,
-            int isolationLevel)
+            int isolationLevel, TransactionController tc)
             throws StandardException {
         return buildDescriptorBody(row,
                 parentTupleDescriptor,
                 dd,
-                isolationLevel);
+                isolationLevel, tc);
     }
 
 
@@ -408,6 +409,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
      * @param row                   a SYSTABLES row
      * @param parentTupleDescriptor Null for this kind of descriptor.
      * @param dd                    dataDictionary
+     * @param tc
      * @throws StandardException thrown on failure
      * @return a table descriptor equivalent to a SYSTABLES row
      */
@@ -415,13 +417,13 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
     public TupleDescriptor buildDescriptor(
             ExecRow row,
             TupleDescriptor parentTupleDescriptor,
-            DataDictionary dd)
+            DataDictionary dd, TransactionController tc)
             throws StandardException {
         return buildDescriptorBody(
                 row,
                 parentTupleDescriptor,
                 dd,
-                TransactionController.ISOLATION_REPEATABLE_READ);
+                TransactionController.ISOLATION_REPEATABLE_READ, tc);
     }
 
 
@@ -429,7 +431,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
             ExecRow row,
             TupleDescriptor parentTupleDescriptor,
             DataDictionary dd,
-            int isolationLevel)
+            int isolationLevel, TransactionController tc)
             throws StandardException {
         if (SanityManager.DEBUG)
             SanityManager.ASSERT(row.nColumns() == SYSTABLES_COLUMN_COUNT, "Wrong number of columns for a SYSTABLES row");
@@ -493,7 +495,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
         schemaUUIDString = col.getString();
         schemaUUID = getUUIDFactory().recreateUUID(schemaUUIDString);
 
-        schema = dd.getSchemaDescriptor(schemaUUID, isolationLevel, null);
+        schema = dd.getSchemaDescriptor(schemaUUID, isolationLevel, tc);
 
         // If table is temp table, (SESSION) schema will be null
         if (schema == null && (tableTypeEnum == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE)) {
@@ -695,8 +697,10 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
             "from (\n" +
             "      select T.tablename, T.tableid, T.tabletype, S.schemaname, T.schemaid\n" +
             "      from\n" +
-            "      sys.systables T, sys.sysschemas S\n" +
-            "      where T.schemaid=S.schemaid) T\n" +
+            "      sys.systables T, sys.sysschemas S, sys.sysdatabases D\n" +
+            "      where T.schemaid=S.schemaid and d.databaseid = s.databaseid and \n" +
+            SYSSCHEMASRowFactory.FILTER_SYS_SCHEMAS_OR_CURRENT_DB_SCHEMAS +
+            "     ) T\n" +
             "left join -- compute number of columns in a table\n" +
             "(select C.referenceid, count(*) as COLCOUNT\n" +
             "      from sys.syscolumns C group by 1) C on T.tableid = C.referenceid\n" +

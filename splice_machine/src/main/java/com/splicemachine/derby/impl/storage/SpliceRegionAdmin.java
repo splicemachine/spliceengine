@@ -19,12 +19,15 @@ import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.catalog.IndexDescriptor;
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -38,6 +41,8 @@ import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stream.function.csv.CsvParserConfig;
 import com.splicemachine.derby.stream.function.csv.FileFunction;
 import com.splicemachine.derby.stream.function.csv.MutableCSVTokenizer;
@@ -46,20 +51,19 @@ import com.splicemachine.derby.stream.utils.BooleanList;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.procedures.SpliceAdmin;
+import com.splicemachine.derby.utils.ResultHelper;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.procedures.ProcedureUtils;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.DataResult;
-import com.splicemachine.storage.DataResultScanner;
-import com.splicemachine.storage.DataScan;
-import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.*;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -74,11 +78,10 @@ import org.supercsv.prefs.CsvPreference;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
-import java.sql.ResultSet;
-import java.sql.Types;
-import java.util.ArrayList;
-import java.util.GregorianCalendar;
-import java.util.List;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 
 /**
  * Created by jyuan on 8/14/17.
@@ -89,6 +92,295 @@ public class SpliceRegionAdmin {
     public static final String HBASE_DIR = "hbase.rootdir";
 
 
+    /**
+     * List region locations for an object (table or index)
+     * @param schemaName schema name of the object
+     * @param objectName table or index name
+     * @param results
+     */
+    public static void GET_REGION_LOCATIONS(String schemaName,
+                                            String objectName,
+                                            ResultSet[] results) throws Exception{
+
+        schemaName = EngineUtils.validateSchema(schemaName);
+        objectName = EngineUtils.validateTable(objectName);
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        long conglomerateNumber = getConglomerateNumber(lcc, null, schemaName, objectName);
+        PartitionFactory partitionFactory = SIDriver.driver().getTableFactory();
+        Partition table = partitionFactory.getTable(Long.toString(conglomerateNumber));
+
+        ResultHelper res = new ResultHelper();
+        ResultHelper.VarcharColumn colName   = res.addVarchar("ENCODED_REGION_NAME", 50);
+        ResultHelper.VarcharColumn colStart  = res.addVarchar("START_KEY", 1024);
+        ResultHelper.VarcharColumn colEnd    = res.addVarchar("END_KEY", 1024);
+        ResultHelper.VarcharColumn colOwning = res.addVarchar("OWNING_SERVER", 32672);
+
+        List<Partition> partitions =  table.subPartitions(new byte[0], new byte[0], true);
+        for (Partition p : partitions) {
+            String serverName = getServerName(p.owningServer().getHostname(),
+                    p.owningServer().getPort(),
+                    p.owningServer().getStartupTimestamp());
+            res.newRow();
+            colName.set(p.getEncodedName());
+            colStart.set(Bytes.toStringBinary(p.getStartKey()));
+            colEnd.set(Bytes.toStringBinary(p.getEndKey()));
+            colOwning.set(serverName);
+        }
+        results[0] = res.getResultSet();
+    }
+
+    public static final String SERVERNAME_SEPARATOR = ",";
+
+    /**
+     * Get full region server name that includes port and startup timestamp
+     * @param hostName region server host name
+     * @param port region server port number
+     * @param startcode region server startup timestamp
+     * @return
+     */
+    static String getServerName(String hostName, int port, long startcode) {
+        final StringBuilder name = new StringBuilder();
+        name.append(hostName);
+        name.append(SERVERNAME_SEPARATOR);
+        name.append(port);
+        name.append(SERVERNAME_SEPARATOR);
+        name.append(startcode);
+        return name.toString();
+    }
+
+    /**
+     * Get conglomerate number for a splice table or index
+     * @param lcc
+     * @param schemaName
+     * @param objectName
+     * @return
+     * @throws SQLException
+     * @throws StandardException
+     */
+    private static long getConglomerateNumber(LanguageConnectionContext lcc, UUID databaseId, String schemaName, String objectName) throws SQLException, StandardException {
+        TransactionController tc = lcc.getTransactionExecute();
+        DataDictionary dd = lcc.getDataDictionary();
+        SchemaDescriptor sd = dd.getSchemaDescriptor(databaseId, schemaName, tc, true);
+        TableDescriptor td = dd.getTableDescriptor(objectName, sd, tc);
+        long conglomerateNumber = 0;
+        if (td != null) {
+            conglomerateNumber = td.getHeapConglomerateId();
+        }
+        else {
+            ConglomerateDescriptor cd = dd.getConglomerateDescriptor(objectName, sd, false);
+            if (cd == null) {
+                throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND, schemaName);
+            }
+            conglomerateNumber = cd.getConglomerateNumber();
+        }
+
+        return conglomerateNumber;
+    }
+    /**
+     * Assigns a table or index to a region server
+     * @param schemaName
+     * @param objectName table or index name
+     * @param server the server to assign to
+     * @param resultSets
+     */
+    public static void ASSIGN_TO_SERVER(String schemaName,
+                                        String objectName,
+                                        String server,
+                                        ResultSet[] resultSets) throws StandardException, SQLException {
+
+        IteratorNoPutResultSet inprs = null;
+        try {
+            Connection conn = SpliceAdmin.getDefaultConn();
+            LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+
+            schemaName = EngineUtils.validateSchema(schemaName);
+            objectName = EngineUtils.validateTable(objectName);
+            long conglomerateNumber = getConglomerateNumber(lcc, null, schemaName, objectName);
+            PartitionFactory partitionFactory = SIDriver.driver().getTableFactory();
+            Partition table = partitionFactory.getTable(Long.toString(conglomerateNumber));
+            List<Partition> partitions = table.subPartitions(new byte[0], new byte[0], true);
+
+            String warning = null;
+            if (partitions.size() > 1) {
+                warning = "Operation not supported for table with more than 1 region.";
+            } else {
+                PartitionServer ps = partitions.get(0).owningServer();
+                String hostName = ps.getHostname();
+                String region = partitions.get(0).getEncodedName();
+                int port = ps.getPort();
+                long startupTimestamp = ps.getStartupTimestamp();
+                String sourceServer = getServerName(hostName, port, startupTimestamp);
+                if (sourceServer.compareToIgnoreCase(server.trim()) != 0) {
+                    PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
+                    admin.move(region, server);
+                } else {
+                    warning = "Object already on server " + server;
+                }
+            }
+
+            List<String> messages = Lists.newArrayList();
+            if (warning == null) {
+                messages.add("Moved to server " + server);
+            } else {
+                messages.add(warning);
+            }
+            resultSets[0] = processResult(messages);
+        }
+        catch (Throwable t) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
+        }
+    }
+
+    /**
+     * Relocate all indexes to the region server that hosts the base table
+     * @param schemaName
+     * @param tableName
+     * @param resultSets
+     */
+    public static void LOCALIZE_INDEXES_FOR_TABLE(String schemaName, String tableName, ResultSet[] resultSets) throws Exception {
+
+        Connection conn = SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+        TransactionController tc = lcc.getTransactionExecute();
+        TxnView txn = ((SpliceTransactionManager) tc).getActiveStateTxn();
+        schemaName = EngineUtils.validateSchema(schemaName);
+        tableName = EngineUtils.validateTable(tableName);
+        long conglomerateNumber = getConglomerateNumber(lcc, null, schemaName, tableName);
+        PartitionFactory partitionFactory = SIDriver.driver().getTableFactory();
+        Partition table = partitionFactory.getTable(Long.toString(conglomerateNumber));
+        List<Partition> partitions = table.subPartitions(new byte[0], new byte[0], true);
+        List<String> messages = Lists.newArrayList();
+        if (partitions.size() > 1) {
+            messages.add("Operation not supported for table with more than 1 region.");
+        } else {
+            LocalizeIndexesTask task = new LocalizeIndexesTask(txn, schemaName, tableName);
+            messages.addAll(task.call());
+        }
+        resultSets[0] = processResult(messages);
+    }
+
+    /**
+     * Relocate all indexes to the region server that hosts the base table of a schema
+     * @param schemaName
+     * @param resultSets
+     * @throws Exception
+     */
+    public static void LOCALIZE_INDEXES_FOR_SCHEMA(String schemaName, ResultSet[] resultSets) throws Exception {
+
+        List<String> tables = Lists.newArrayList();
+        schemaName = EngineUtils.validateSchema(schemaName);
+        String sql = String.format("select t.tablename from sysvw.systablesview t, sysvw.sysschemasview s, sysvw.sysconglomeratesview c" +
+                " where s.schemaname='%s' and s.schemaid=t.schemaid and c.tableid=t.tableid and stored is null and not c.isindex", schemaName);
+        Connection connection = SpliceAdmin.getDefaultConn();
+        try (Statement s = connection.createStatement();
+             ResultSet rs = s.executeQuery(sql)) {
+            while (rs.next()) {
+                tables.add(rs.getString(1));
+            }
+        }
+        LanguageConnectionContext lcc = connection.unwrap(EmbedConnection.class).getLanguageConnection();
+        TransactionController tc = lcc.getTransactionExecute();
+        TxnView txn = ((SpliceTransactionManager) tc).getActiveStateTxn();
+
+        List<LocalizeIndexesTask> callables = Lists.newArrayList();
+        for (String table : tables) {
+            callables.add(new LocalizeIndexesTask(txn, schemaName, table));
+        }
+
+        List<String> messages = Lists.newArrayList();
+        List<Future<List<String>>> results = SIDriver.driver().getExecutorService().invokeAll(callables);
+        for (Future<List<String>> result : results) {
+            messages.addAll(result.get());
+        }
+        resultSets[0] = processResult(messages);
+    }
+
+    private static ResultSet processResult(List<String> messages) throws StandardException, SQLException {
+        ResultHelper res = new ResultHelper();
+        ResultHelper.VarcharColumn col = res.addVarchar("Results", 32672);
+        for (String message : messages) {
+            res.newRow();
+            col.set(message);
+        }
+        return res.getResultSet();
+    }
+
+    /**
+     * A thread to colocate indexes to the base table
+     */
+    private static class LocalizeIndexesTask implements Callable<List<String>> {
+        private TxnView txn;
+        private String schemaName;
+        private String tableName;
+
+        public LocalizeIndexesTask(TxnView txn,
+                                   String schemaName,
+                                   String tableName) {
+            this.txn = txn;
+            this.schemaName = schemaName;
+            this.tableName = tableName;
+        }
+
+        public List<String> call() {
+            List<String> result = Lists.newArrayList();
+            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()){
+                transactionResource.marshallTransaction(txn);
+                LanguageConnectionContext lcc = transactionResource.getLcc();
+                long conglomerateNumber = getConglomerateNumber(lcc, null, schemaName, tableName);
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "Localize index for table %s.%s : %d",
+                            schemaName, tableName, conglomerateNumber);
+                }
+                PartitionFactory partitionFactory = SIDriver.driver().getTableFactory();
+                Partition table = partitionFactory.getTable(Long.toString(conglomerateNumber));
+                List<Partition> partitions = table.subPartitions(new byte[0], new byte[0], true);
+                if (partitions.size() == 1) {
+                    PartitionServer ps = partitions.get(0).owningServer();
+                    String targetServer = getServerName(ps.getHostname(), ps.getPort(), ps.getStartupTimestamp());
+                    PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
+                    TableDescriptor td = DataDictionaryUtils.getTableDescriptor(lcc, schemaName, tableName);
+                    ConglomerateDescriptorList cds = td.getConglomerateDescriptorList();
+                    for (ConglomerateDescriptor cd : cds) {
+                        long cn = cd.getConglomerateNumber();
+                        if (cn != conglomerateNumber) {
+                            if (LOG.isDebugEnabled()) {
+                                SpliceLogUtils.debug(LOG, "Localize index %s for table %s.%s",
+                                        cd.getConglomerateName(), schemaName, tableName);
+                            }
+                            table = partitionFactory.getTable(Long.toString(cn));
+                            partitions = table.subPartitions(new byte[0], new byte[0], true);
+                            for (Partition p : partitions) {
+                                String region = p.getEncodedName();
+                                String server = getServerName(p.owningServer().getHostname(),
+                                        p.owningServer().getPort(), p.owningServer().getStartupTimestamp());
+                                if (server.compareToIgnoreCase(targetServer) != 0) {
+                                    if (LOG.isDebugEnabled()) {
+                                        SpliceLogUtils.debug(LOG, "Moving index %s from %s to %s",
+                                                cd.getConglomerateName(), server, targetServer);
+                                    }
+                                    admin.move(region, targetServer);
+                                    result.add(String.format("Moved index %s from %s to %s", cd.getConglomerateName(),
+                                            server, targetServer));
+                                    if (LOG.isDebugEnabled()) {
+                                        SpliceLogUtils.debug(LOG, "Moved index %s from %s to %s",
+                                                cd.getConglomerateName(), server, targetServer);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                else {
+                    if (LOG.isDebugEnabled()) {
+                        SpliceLogUtils.debug(LOG, "Ignore table %s.%s because it has more than 1 region", schemaName, tableName);
+                    }
+                }
+            } catch (IOException | StandardException | SQLException e) {
+                throw new RuntimeException(e);
+            }
+            return result;
+        }
+    }
     /**
      *
      * @param schemaName name of the schema
@@ -780,10 +1072,10 @@ public class SpliceRegionAdmin {
             valueSizeHints.add(dvd.estimateMemoryUsage());
         }
 
-        boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
-                lcc, Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
-        boolean preserveLineEndings = PropertyUtil.getCachedDatabaseBoolean(
-                lcc, Property.PRESERVE_LINE_ENDINGS);
+        boolean quotedEmptyIsNull = !PropertyUtil.getCachedBoolean(
+                lcc, GlobalDBProperties.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
+        boolean preserveLineEndings = PropertyUtil.getCachedBoolean(
+                lcc, GlobalDBProperties.PRESERVE_LINE_ENDINGS);
 
         CsvParserConfig config = new CsvParserConfig(preference)
                 .oneLineRecord(false).quotedEmptyIsNull(quotedEmptyIsNull).preserveLineEndings(preserveLineEndings);

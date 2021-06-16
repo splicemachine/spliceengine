@@ -58,7 +58,7 @@ public class SubqueryNodeFactory {
     public AndNode buildAndNode() throws StandardException {
         ValueNode left = buildBooleanTrue();
         ValueNode right = buildBooleanTrue();
-        return (AndNode) nodeFactory.getNode(C_NodeTypes.AND_NODE, left, right, contextManager);
+        return new AndNode(left, right, contextManager);
     }
 
     /**
@@ -74,7 +74,7 @@ public class SubqueryNodeFactory {
      * BooleanConstantNode -- TRUE
      */
     public BooleanConstantNode buildBooleanTrue() throws StandardException {
-        BooleanConstantNode trueNode = (BooleanConstantNode) nodeFactory.getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE, Boolean.TRUE, contextManager);
+        BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE,contextManager);
         trueNode.setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, false));
         return trueNode;
     }
@@ -105,10 +105,12 @@ public class SubqueryNodeFactory {
      */
     public HalfOuterJoinNode buildOuterJoinNode(FromList outerFromList,
                                                 FromSubquery fromSubquery,
-                                                ValueNode joinClause) throws StandardException {
-        /* Currently we only attempt not-exist flattening if the outer table has one table. */
-        assert outerFromList.size() == 1 : "expected only one FromList element at this point";
-        QueryTreeNode outerTable = outerFromList.getNodes().get(0);
+                                                ValueNode joinClause,
+                                                FromTable outerFromTable) throws StandardException {
+        /* If outerFromTable is null, that means there is only one outer table.
+         * If outerFromTable is not null, it specifies the outer table we are flattening.
+         */
+        FromTable outerTable = outerFromTable == null ? (FromTable)outerFromList.getNodes().get(0) : outerFromTable;
 
         HalfOuterJoinNode outerJoinNode = (HalfOuterJoinNode) nodeFactory.getNode(
                 C_NodeTypes.HALF_OUTER_JOIN_NODE,

@@ -264,10 +264,7 @@ public final class InsertNode extends DMLModStatementNode {
     public void bindStatement() throws StandardException {
         // We just need select privilege on the expressions
         getCompilerContext().pushCurrentPrivType( Authorizer.SELECT_PRIV);
-        FromList    fromList = (FromList) getNodeFactory().getNode(
-                                    C_NodeTypes.FROM_LIST,
-                                    getNodeFactory().doJoinOrderOptimization(),
-                                    getContextManager());
+        FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
 
         // Bind and Optimize Real Time Views (OK, That is a made up name).
         bindAndOptimizeRealTimeViews();
@@ -590,8 +587,8 @@ public final class InsertNode extends DMLModStatementNode {
             storagePosMap[storagePosition-1] = index;
         }
 
-        ResultColumnList expandedRS = (ResultColumnList)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
-        ResultColumnList expandedRCL = (ResultColumnList)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
+        ResultColumnList expandedRS = new ResultColumnList(getContextManager());
+        ResultColumnList expandedRCL = new ResultColumnList(getContextManager());
         for (int index = 0; index < maxStorageID; index++) {
             int pos = storagePosMap[index]; // index is 0-based, pos is 1-based
             ResultColumn newSourceRC = null;
@@ -607,11 +604,7 @@ public final class InsertNode extends DMLModStatementNode {
                 // ValueNode nullNode = (ValueNode) getNodeFactory().getNode(
                 //     C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
                 //     getContextManager());
-                newSourceRC = (ResultColumn)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    "",
-                    getNullNode(dtd),
-                    getContextManager());
+                newSourceRC = new ResultColumn("", getNullNode(dtd), getContextManager());
                 newSourceRCLEntry = newSourceRC.cloneMe();
             }
             expandedRS.addResultColumn(newSourceRC);

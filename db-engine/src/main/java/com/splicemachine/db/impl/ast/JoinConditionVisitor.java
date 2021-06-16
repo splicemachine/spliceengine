@@ -491,21 +491,15 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
             NodeFactory nodeFactory = lcc.getLanguageConnectionFactory().
                     getNodeFactory();
 
-            ColumnReference generatedRef = (ColumnReference) nodeFactory.getNode(
-                    C_NodeTypes.COLUMN_REFERENCE,
-                    resultColumn.getName(),
-                    null,
-                    ContextService.getService().getCurrentContextManager());
+            ColumnReference generatedRef = new ColumnReference(resultColumn.getName(),
+                    null, ContextService.getService().getCurrentContextManager());
             VirtualColumnNode vnode = (VirtualColumnNode) nodeFactory.getNode(C_NodeTypes.VIRTUAL_COLUMN_NODE,
                     resultSetNode, // source result set.
                     resultColumn,
                     resultSetNode.getResultColumns().size(),
                     ContextService.getService().getCurrentContextManager());
 
-            resultColumn = (ResultColumn) nodeFactory.getNode(C_NodeTypes.RESULT_COLUMN,
-                    resultColumn.getName(),
-                    vnode,
-                    ContextService.getService().getCurrentContextManager());
+            resultColumn = new ResultColumn(resultColumn.getName(), vnode, ContextService.getService().getCurrentContextManager());
             resultColumn.markGenerated();
             resultColumn.setResultSetNumber(joinNode.getResultSetNumber());
             generatedRef.setSource(resultColumn);
@@ -537,45 +531,30 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                                                        ValueNode operand,
                                                        ResultSetNode resultSetNode,
                                                        ResultColumnList rcl) throws StandardException{
-        try {
-            LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-            NodeFactory nodeFactory = lcc.getLanguageConnectionFactory().
-                    getNodeFactory();
+        // Add a result column and return virtual column Id
+        ResultColumn rc = cr.getSource();
+        assert rc.getExpression() instanceof VirtualColumnNode;
+        VirtualColumnNode vn = (VirtualColumnNode) rc.getExpression();
+        rc = vn.getSourceColumn();
 
-            // Add a result column and return virtual column Id
-            ResultColumn rc = cr.getSource();
-            assert rc.getExpression() instanceof VirtualColumnNode;
-            VirtualColumnNode vn = (VirtualColumnNode) rc.getExpression();
-            rc = vn.getSourceColumn();
+        // construct a result column and add to result column list of child result set
+        ColumnReference generatedRef = new ColumnReference(rc.getName(),null,
+                ContextService.getService().getCurrentContextManager());
 
-            // construct a result column and add to result column list of child result set
-            ColumnReference generatedRef = (ColumnReference) nodeFactory.getNode(
-                    C_NodeTypes.COLUMN_REFERENCE,
-                    rc.getName(),
-                    null,
-                    ContextService.getService().getCurrentContextManager());
+        assert rc.getExpression() instanceof VirtualColumnNode;
+        vn = (VirtualColumnNode) rc.getExpression();
+        generatedRef.setSource(vn.getSourceColumn());
+        setColumnReferenceFields(generatedRef, operand);
+        operand.setHashableJoinColumnReference(generatedRef);
 
-            assert rc.getExpression() instanceof VirtualColumnNode;
-            vn = (VirtualColumnNode) rc.getExpression();
-            generatedRef.setSource(vn.getSourceColumn());
-            setColumnReferenceFields(generatedRef, operand);
-            operand.setHashableJoinColumnReference(generatedRef);
+        ResultColumn resultColumn = new ResultColumn(generatedRef.getColumnName(), operand,
+                        ContextService.getService().getCurrentContextManager());
+        resultColumn.markGenerated();
+        resultColumn.setResultSetNumber(resultSetNode.getResultSetNumber());
+        resultColumn.setVirtualColumnId(rcl.size());
+        rcl.addResultColumn(resultColumn);
 
-            ResultColumn resultColumn =
-                    (ResultColumn) nodeFactory.getNode(C_NodeTypes.RESULT_COLUMN,
-                            generatedRef.getColumnName(),
-                            operand,
-                            ContextService.getService().getCurrentContextManager());
-            resultColumn.markGenerated();
-            resultColumn.setResultSetNumber(resultSetNode.getResultSetNumber());
-            resultColumn.setVirtualColumnId(rcl.size());
-            rcl.addResultColumn(resultColumn);
-
-            return resultColumn;
-        }
-        catch (SQLException e) {
-            throw StandardException.newException(e.getSQLState());
-        }
+        return resultColumn;
     }
     public Pair<List<Integer>, List<Integer>> findHashIndices(final JoinNode node, Collection<Predicate> equiJoinPreds)
             throws StandardException {

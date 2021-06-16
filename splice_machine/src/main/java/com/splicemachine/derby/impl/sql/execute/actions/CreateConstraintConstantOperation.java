@@ -46,9 +46,9 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
     private static final Logger LOG = Logger.getLogger(CreateConstraintConstantOperation.class);
     private final boolean forCreateTable;
     public String[] columnNames;
-    private	String constraintText;
+    private    String constraintText;
     private ConstraintInfo otherConstraintInfo;
-    private	ClassFactory cf;
+    private    ClassFactory cf;
     /*
     ** Is this constraint to be created as enabled or not.
     ** The only way to create a disabled constraint is by
@@ -62,37 +62,37 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
     // CONSTRUCTORS
 
     /**
-     * Make one of these puppies.
+     *    Make one of these puppies.
      *
-     * @param constraintName Constraint name.
-     * @param constraintType Constraint type.
-     * @param forCreateTable Constraint is being added for a CREATE TABLE
-     * @param tableName Table name.
-     * @param tableId UUID of table.
-     * @param schemaName the schema that table and constraint lives in.
-     * @param columnNames String[] for column names
-     * @param indexAction IndexConstantAction for constraint (if necessary)
-     * @param constraintText Text for check constraint
-     * RESOLVE - the next parameter should go away once we use UUIDs
-     * (Generated constraint names will be based off of uuids)
-     * @param enabled Should the constraint be created as enabled
-     * (enabled == true), or disabled (enabled == false).
-     * @param otherConstraint information about the constraint that this references
-     * @param providerInfo Information on all the Providers
+     *  @param constraintName    Constraint name.
+     *  @param constraintType    Constraint type.
+     *  @param forCreateTable   Constraint is being added for a CREATE TABLE
+     *  @param tableName        Table name.
+     *    @param tableId            UUID of table.
+     *  @param schemaName        the schema that table and constraint lives in.
+     *  @param columnNames        String[] for column names
+     *  @param indexAction        IndexConstantAction for constraint (if necessary)
+     *  @param constraintText    Text for check constraint
+     *  RESOLVE - the next parameter should go away once we use UUIDs
+     *              (Generated constraint names will be based off of uuids)
+     *    @param enabled            Should the constraint be created as enabled
+     *                            (enabled == true), or disabled (enabled == false).
+     *    @param otherConstraint     information about the constraint that this references
+     *  @param providerInfo Information on all the Providers
      */
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public CreateConstraintConstantOperation(
-                       String constraintName,
-                       int  constraintType,
+                       String    constraintName,
+                       int        constraintType,
                        boolean  forCreateTable,
-                       String tableName,
-                       UUID  tableId,
-                       String schemaName,
-                       String[] columnNames,
+                       String    tableName,
+                       UUID        tableId,
+                       String    schemaName,
+                       String[]    columnNames,
                        ConstantAction indexAction,
-                       String constraintText,
-                       boolean enabled,
-                       ConstraintInfo otherConstraint,
+                       String    constraintText,
+                       boolean    enabled,
+                       ConstraintInfo    otherConstraint,
                        ProviderInfo[] providerInfo) {
         super(constraintName, constraintType, tableName, tableId, schemaName, indexAction);
         SpliceLogUtils.trace(LOG, "CreateConstraintConstantOperation for %s", constraintName);
@@ -109,11 +109,11 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
         if(constraintType!=DataDictionary.FOREIGNKEY_CONSTRAINT) return; //nothing to validate
 
         /*
-         * ON DELETE SET DEFAULT clause is not supported.
+		 * ON DELETE SET DEFAULT clause is not supported.
          */
         switch(otherConstraintInfo.getReferentialActionDeleteRule()){
-            case StatementType.RA_SETDEFAULT:
-                throw StandardException.newException(SQLState.NOT_IMPLEMENTED, "ON DELETE SET DEFAULT");
+			case StatementType.RA_SETDEFAULT:
+				throw StandardException.newException(SQLState.NOT_IMPLEMENTED, "ON DELETE SET DEFAULT");
         }
     }
 
@@ -121,7 +121,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         TransactionController tc = lcc.getTransactionExecute();
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, tc, true);
 
         TableDescriptor result = activation.getDDLTableDescriptor();
 
@@ -155,40 +155,40 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
     }
 
     /**
-     * This is the guts of the Execution-time logic for CREATE CONSTRAINT.
+     *    This is the guts of the Execution-time logic for CREATE CONSTRAINT.
      * <p>
-     * A constraint is represented as:
-     * <UL>
-     * <LI> ConstraintDescriptor.
-     * </UL>
-     * If a backing index is required then the index will
-     * be created through an CreateIndexConstantAction setup
-     * by the compiler.
-     * <BR>
-     * Dependencies are created as:
-     * <UL>
-     * <LI> ConstraintDescriptor depends on all the providers collected
-     * at compile time and passed into the constructor.
-     * <LI> For a FOREIGN KEY constraint ConstraintDescriptor depends
-     * on the ConstraintDescriptor for the referenced constraints
-     * and the privileges required to create the constraint.
-     * </UL>
+     *  A constraint is represented as:
+     *  <UL>
+     *  <LI> ConstraintDescriptor.
+     *  </UL>
+     *  If a backing index is required then the index will
+     *  be created through an CreateIndexConstantAction setup
+     *  by the compiler.
+     *  <BR>
+     *  Dependencies are created as:
+     *  <UL>
+     *  <LI> ConstraintDescriptor depends on all the providers collected
+     *  at compile time and passed into the constructor.
+     *  <LI> For a FOREIGN KEY constraint ConstraintDescriptor depends
+     *  on the ConstraintDescriptor for the referenced constraints
+     *  and the privileges required to create the constraint.
+     *  </UL>
      *
      * @throws StandardException Thrown on failure
-     * @see ConstraintDescriptor
-     * @see CreateIndexConstantOperation
-     * @see ConstantAction#executeConstantAction
+     *  @see ConstraintDescriptor
+     *  @see CreateIndexConstantOperation
+     *    @see ConstantAction#executeConstantAction
      */
     @Override
     public void executeConstantAction( Activation activation ) throws StandardException {
         SpliceLogUtils.trace(LOG, "executeConstantAction");
-        ConglomerateDescriptor  conglomDesc = null;
-        ConglomerateDescriptor[] conglomDescs = null;
-        ConstraintDescriptor  conDesc = null;
-        TableDescriptor    td = null;
-        UUID      indexId = null;
-        String      uniqueName;
-        String      backingIndexName;
+        ConglomerateDescriptor        conglomDesc = null;
+        ConglomerateDescriptor[]    conglomDescs = null;
+        ConstraintDescriptor        conDesc = null;
+        TableDescriptor                td = null;
+        UUID                        indexId = null;
+        String                        uniqueName;
+        String                        backingIndexName;
         /* RESOLVE - blow off not null constraints for now (and probably for ever) */
         // XXX TODO Was this us or derby? - JL
         if (constraintType == DataDictionary.NOTNULL_CONSTRAINT) {
@@ -199,10 +199,10 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
         DependencyManager dm = dd.getDependencyManager();
         TransactionController tc = lcc.getTransactionExecute();
         cf = lcc.getLanguageConnectionFactory().getClassFactory();
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, tc, true);
 
         td = getTableDescriptor(activation, true);
-        activation.setDDLTableDescriptor(td);
+            activation.setDDLTableDescriptor(td);
 
         /* Generate the UUID for the backing index.  This will become the
          * constraint's name, if no name was specified.
@@ -249,20 +249,20 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
                 if (td.getTableType() == TableDescriptor.EXTERNAL_TYPE)
                     throw StandardException.newException(SQLState.EXTERNAL_TABLES_NO_CHECK_CONSTRAINTS,td.getName());
 
-				conDesc = ddg.newCheckConstraintDescriptor(
-								td, constraintName,
-								false, //deferable,
-								false, //initiallyDeferred,
-								constraintId,
-								constraintText,
-								new ReferencedColumnsDescriptorImpl(genColumnPositions(td, false)), //int[],
-								sd,
-								enabled
-								);
-				dd.addConstraintDescriptor(conDesc, tc);
-				storeConstraintDependenciesOnPrivileges
-					(activation, conDesc, null, providerInfo);
-				break;
+                conDesc = ddg.newCheckConstraintDescriptor(
+                                td, constraintName,
+                                false, //deferable,
+                                false, //initiallyDeferred,
+                                constraintId,
+                                constraintText,
+                                new ReferencedColumnsDescriptorImpl(genColumnPositions(td, false)), //int[],
+                                sd,
+                                enabled
+                                );
+                dd.addConstraintDescriptor(conDesc, tc);
+                storeConstraintDependenciesOnPrivileges
+                    (activation, conDesc, null, providerInfo);
+                break;
 
             case DataDictionary.FOREIGNKEY_CONSTRAINT:
                 if (td.getTableType() == TableDescriptor.EXTERNAL_TYPE)
@@ -275,43 +275,43 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
                 }
                 DDUtils.validateReferentialActions(dd, td, constraintName, otherConstraintInfo,columnNames, fkGraph, foreignKeyChecker);
 
-				conDesc = ddg.newForeignKeyConstraintDescriptor(
-								td, constraintName,
-								false, //deferable,
-								false, //initiallyDeferred,
-								genColumnPositions(td, false), //int[],
-								constraintId,
-								indexId,
-								sd,
-								referencedConstraint,
-								enabled,
-								otherConstraintInfo.getReferentialActionDeleteRule(),
-								otherConstraintInfo.getReferentialActionUpdateRule()
-								);
+                conDesc = ddg.newForeignKeyConstraintDescriptor(
+                                td, constraintName,
+                                false, //deferable,
+                                false, //initiallyDeferred,
+                                genColumnPositions(td, false), //int[],
+                                constraintId,
+                                indexId,
+                                sd,
+                                referencedConstraint,
+                                enabled,
+                                otherConstraintInfo.getReferentialActionDeleteRule(),
+                                otherConstraintInfo.getReferentialActionUpdateRule()
+                                );
 
                 // try to create the constraint first, because it
                 // is expensive to do the bulk check, find obvious
                 // errors first
                 dd.addConstraintDescriptor(conDesc, tc);
 
-				/* No need to do check if we're creating a
-				 * table.
-				 */
-				if ( (! forCreateTable) &&
-					 dd.activeConstraint( conDesc ) )
-				{
+                /* No need to do check if we're creating a
+                 * table.
+                 */
+                if ( (! forCreateTable) &&
+                     dd.activeConstraint( conDesc ) )
+                {
 					validateFKConstraint(
-                            (ForeignKeyConstraintDescriptor)conDesc,
-										 referencedConstraint,
+                                         (ForeignKeyConstraintDescriptor)conDesc,
+                                         referencedConstraint,
                             lcc);
-				}
+                }
 
-				/* Create stored dependency on the referenced constraint */
-				dm.addDependency(conDesc, referencedConstraint, lcc.getContextManager());
-				/**
-				 * It is problematic to make the FK constraint depend on a privileges or role definition,
-				 * as when the depended privilege or role is dropped, the FK constraint will be dropped too
-				 *
+                /* Create stored dependency on the referenced constraint */
+                dm.addDependency(conDesc, referencedConstraint, lcc.getContextManager());
+                /**
+                 * It is problematic to make the FK constraint depend on a privileges or role definition,
+                 * as when the depended privilege or role is dropped, the FK constraint will be dropped too
+                 *
 
                 //store constraint's dependency on REFERENCES privileges in the dependency system
                 storeConstraintDependenciesOnPrivileges
@@ -326,14 +326,14 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 
                 break;
 
-			default:
-				if (SanityManager.DEBUG)
-				{
-					SanityManager.THROWASSERT("contraintType (" + constraintType +
-						") has unexpected value");
-				}
-				break;
-		}
+            default:
+                if (SanityManager.DEBUG)
+                {
+                    SanityManager.THROWASSERT("contraintType (" + constraintType +
+                        ") has unexpected value");
+                }
+                break;
+        }
 
         /* Create stored dependencies for each provider */
         if (providerInfo != null) {
@@ -432,10 +432,10 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
      * Generate an array of column positions for the column list in
      * the constraint.
      *
-     * @param td The TableDescriptor for the table in question
-     * @param columnsMustBeOrderable true for primaryKey and unique constraints
+     * @param td    The TableDescriptor for the table in question
+     * @param columnsMustBeOrderable    true for primaryKey and unique constraints
      *
-     * @return int[] The column positions.
+     * @return int[]    The column positions.
      */
     public int[] genColumnPositions(TableDescriptor td, boolean columnsMustBeOrderable) throws StandardException {
         int[] baseColumnPositions;
@@ -451,11 +451,11 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
                         columnNames[i],tableName);
             }
 
-			// Don't allow a column to be created on a non-orderable type
-			// (for primaryKey and unique constraints)
-			if ( columnsMustBeOrderable && ( ! columnDescriptor.getType().getTypeId().orderable(cf)))
-				throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION,
-					columnDescriptor.getType().getTypeId().getSQLTypeName());
+            // Don't allow a column to be created on a non-orderable type
+            // (for primaryKey and unique constraints)
+            if ( columnsMustBeOrderable && ( ! columnDescriptor.getType().getTypeId().orderable(cf)))
+                throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION,
+                    columnDescriptor.getType().getTypeId().getSQLTypeName());
 
             // Remember the position in the base table of each column
             baseColumnPositions[i] = columnDescriptor.getPosition();
@@ -464,11 +464,11 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
     }
 
     /**
-      * Get the text defining this constraint.
+      *    Get the text defining this constraint.
       *
-      * @return constraint text
+      *    @return    constraint text
       */
-    String getConstraintText() {
+    String    getConstraintText() {
         return constraintText;
     }
 

@@ -249,7 +249,7 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
 
         MethodCallNode methodNode = new StaticMethodCallNode(
                 functionName,
-                "com.splicemachine.derby.utils.SpliceDateFunctions",
+                "com.splicemachine.derby.procedures.SpliceDateFunctions",
                 getContextManager());
         Vector<ValueNode> parameterList = new Vector<>();
         parameterList.addElement(getLeftOperand());
@@ -302,12 +302,7 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
                             timespan.getUnit());
             }
             MethodCallNode methodNode = new StaticMethodCallNode(
-                    getNodeFactory().getNode(
-                            C_NodeTypes.TABLE_NAME,
-                            null,
-                            function,
-                            getContextManager()
-                    ),
+                    new TableName(null, function, getContextManager()),
                     null,
                     getContextManager()
             );

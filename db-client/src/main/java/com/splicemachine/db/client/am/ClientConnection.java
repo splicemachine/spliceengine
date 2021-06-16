@@ -2561,5 +2561,5 @@ public abstract class ClientConnection
 
     public abstract NetConnection getSideConnection() throws SqlException;
 
-    public abstract byte[] getInterruptToken();
+    public abstract byte[] getConnectionToken();
 }

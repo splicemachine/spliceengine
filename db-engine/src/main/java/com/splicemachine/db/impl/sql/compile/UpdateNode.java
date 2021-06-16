@@ -190,16 +190,13 @@ public final class UpdateNode extends DMLModStatementNode
         // We just need select privilege on the expressions
         getCompilerContext().pushCurrentPrivType( Authorizer.SELECT_PRIV);
 
-        FromList    fromList = (FromList) getNodeFactory().getNode(
-                                    C_NodeTypes.FROM_LIST,
-                                    getNodeFactory().doJoinOrderOptimization(),
-                                    getContextManager());
-        ResultColumn                rowLocationColumn = null;
-        ValueNode                    rowLocationNode = null;
-        TableName                    cursorTargetTableName = null;
-        CurrentOfNode               currentOfNode = null;
-        FromList                    resultFromList;
-        ResultColumnList            afterColumns = null;
+        FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
+        ResultColumn      rowLocationColumn;
+        ValueNode         rowLocationNode;
+        TableName         cursorTargetTableName = null;
+        CurrentOfNode     currentOfNode = null;
+        FromList          resultFromList;
+        ResultColumnList  afterColumns = null;
 
         DataDictionary dataDictionary = getDataDictionary();
 
@@ -306,8 +303,8 @@ public final class UpdateNode extends DMLModStatementNode
                         if (targetTable.getMatchingColumn(cr) == null) {
                             toAppend.addResultColumn(cr.generateResultColumn());
                             TableName crTblName = cr.getTableNameNode();
-                            cr.setTableNameNode(QueryTreeNode.makeTableName(getNodeFactory(), getContextManager(),
-                                    crTblName == null ? null : crTblName.getSchemaName(), fromSubq.getExposedName()));
+                            cr.setTableNameNode(new TableName(crTblName == null ? null : crTblName.getSchemaName(),
+                                    fromSubq.getExposedName(), getContextManager()));
                         }
                     }
                     ResultColumn selRC = selRCL.elementAt(i);
@@ -341,8 +338,8 @@ public final class UpdateNode extends DMLModStatementNode
                             innerRCL.addResultColumn(rc);
                         }
                         TableName crTblName = cr.getTableNameNode();
-                        cr.setTableNameNode(QueryTreeNode.makeTableName(getNodeFactory(), getContextManager(),
-                                crTblName == null ? null : crTblName.getSchemaName(), fromSubq.getExposedName()));
+                        cr.setTableNameNode(new TableName(crTblName == null ? null : crTblName.getSchemaName(),
+                                fromSubq.getExposedName(), getContextManager()));
                     }
                 }
             }
@@ -409,7 +406,7 @@ public final class UpdateNode extends DMLModStatementNode
 
         /* Prepend CurrentRowLocation() to the select's result column list. */
         if (SanityManager.DEBUG)
-        SanityManager.ASSERT((resultSet.resultColumns != null),
+        SanityManager.ASSERT((resultSet.getResultColumns() != null),
                               "resultColumns is expected not to be null at bind time");
 
         /*
@@ -427,15 +424,15 @@ public final class UpdateNode extends DMLModStatementNode
 
         /* Normalize the SET clause's result column list for synonym */
         if (synonymTableName != null)
-            normalizeSynonymColumns( resultSet.resultColumns, targetTable );
+            normalizeSynonymColumns( resultSet.getResultColumns(), targetTable );
 
         /* Bind the original result columns by column name */
-        normalizeCorrelatedColumns( resultSet.resultColumns, targetTable );
+        normalizeCorrelatedColumns( resultSet.getResultColumns(), targetTable );
 
         getCompilerContext().pushCurrentPrivType(getPrivType()); // Update privilege
         resultSet.bindResultColumns(targetTableDescriptor,
                     targetVTI,
-                    resultSet.resultColumns, this,
+                    resultSet.getResultColumns(), this,
                     fromList);
         getCompilerContext().popCurrentPrivType();
 
@@ -578,9 +575,8 @@ public final class UpdateNode extends DMLModStatementNode
             resultColumnList.appendResultColumns(afterColumns, false);
 
             /* Generate the RowLocation column */
-            rowLocationNode = (ValueNode) getNodeFactory().getNode(
-                                        C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
-                                        getContextManager());
+            rowLocationNode = new CurrentRowLocationNode(getContextManager());
+            rowLocationNode.bindExpression(null, null, null);
         }
         else
         {
@@ -611,12 +607,7 @@ public final class UpdateNode extends DMLModStatementNode
 
         ResultColumn rowIdColumn = targetTable.getRowIdColumn();
         if (rowIdColumn == null) {
-            rowIdColumn =
-                    (ResultColumn) getNodeFactory().getNode(
-                            C_NodeTypes.RESULT_COLUMN,
-                            COLUMNNAME,
-                            rowLocationNode,
-                            getContextManager());
+            rowIdColumn = new ResultColumn(COLUMNNAME, rowLocationNode, getContextManager());
             rowLocationNode.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
                             false        /* Not nullable */
                     )
@@ -628,27 +619,14 @@ public final class UpdateNode extends DMLModStatementNode
         }
 
         if(!cursorUpdate) {
-            ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
-                    C_NodeTypes.COLUMN_REFERENCE,
-                    rowIdColumn.getName(),
-                    null,
-                    getContextManager());
+            ColumnReference columnReference = new ColumnReference(rowIdColumn.getName(),
+                    null, getContextManager());
             columnReference.setSource(rowIdColumn);
             columnReference.setNestingLevel(targetTable.getLevel());
             columnReference.setSourceLevel(targetTable.getLevel());
-            rowLocationColumn =
-                    (ResultColumn) getNodeFactory().getNode(
-                            C_NodeTypes.RESULT_COLUMN,
-                            COLUMNNAME,
-                            columnReference,
-                            getContextManager());
+            rowLocationColumn = new ResultColumn(COLUMNNAME, columnReference, getContextManager());
         } else {
-            rowLocationColumn =
-                    (ResultColumn) getNodeFactory().getNode(
-                            C_NodeTypes.RESULT_COLUMN,
-                            COLUMNNAME,
-                            rowIdColumn,
-                            getContextManager());
+            rowLocationColumn = new ResultColumn(COLUMNNAME, rowIdColumn, getContextManager());
         }
 
         /* Append to the ResultColumnList */
@@ -689,9 +667,7 @@ public final class UpdateNode extends DMLModStatementNode
                   * order to bind the check constraints.
                   */
                  int afterColumnsSize = afterColumns.size();
-                 afterColumns = (ResultColumnList) getNodeFactory().getNode(
-                                                C_NodeTypes.RESULT_COLUMN_LIST,
-                                                getContextManager());
+                 afterColumns = new ResultColumnList(getContextManager());
                  ResultColumnList normalizedRCs = resultSet.getResultColumns();
                  for (int index = 0; index < afterColumnsSize; index++)
                  {
@@ -1416,10 +1392,8 @@ public final class UpdateNode extends DMLModStatementNode
                         addedGeneratedColumns.add(tableID, gc);
 
                         // we will fill in the real value later on in parseAndBindGenerationClauses();
-                        ValueNode dummy = (ValueNode) getNodeFactory().getNode
-                                (C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE, getContextManager());
-                        ResultColumn newResultColumn = (ResultColumn) getNodeFactory().getNode
-                                (C_NodeTypes.RESULT_COLUMN, gc.getType(), dummy, getContextManager());
+                        ValueNode dummy = new UntypedNullConstantNode(getContextManager());
+                        ResultColumn newResultColumn = new ResultColumn(gc.getType(), dummy, getContextManager());
                         newResultColumn.setColumnDescriptor(baseTable, gc);
                         newResultColumn.setName(gc.getColumnName());
 

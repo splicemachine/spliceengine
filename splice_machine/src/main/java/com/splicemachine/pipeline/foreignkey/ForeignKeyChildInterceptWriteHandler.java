@@ -82,7 +82,8 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
 
     /* This WriteHandler doesn't do anything when, for example, we delete from the FK backing index. */
     private boolean isForeignKeyInterceptNecessary(KVPair.Type type) {
-        return type == KVPair.Type.INSERT || type == KVPair.Type.UPDATE || type == KVPair.Type.UPSERT;
+        return type == KVPair.Type.INSERT || type == KVPair.Type.UPDATE ||
+               type == KVPair.Type.BLIND_UPDATE || type == KVPair.Type.UPSERT;
     }
 
     @Override
@@ -108,11 +109,11 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
             SimpleTxnFilter readUncommittedFilter;
             SimpleTxnFilter readCommittedFilter;
             if (ctx.getTxn() instanceof ActiveWriteTxn) {
-                readUncommittedFilter = new SimpleTxnFilter(Long.toString(referencedConglomerateNumber), ((ActiveWriteTxn) ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
-                readCommittedFilter = new SimpleTxnFilter(Long.toString(referencedConglomerateNumber), ((ActiveWriteTxn) ctx.getTxn()).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
+                readUncommittedFilter = new SimpleTxnFilter(((ActiveWriteTxn) ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
+                readCommittedFilter = new SimpleTxnFilter(((ActiveWriteTxn) ctx.getTxn()).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
             }else if (ctx.getTxn() instanceof WritableTxn) {
-                readUncommittedFilter = new SimpleTxnFilter(Long.toString(referencedConglomerateNumber), ((WritableTxn) ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
-                readCommittedFilter = new SimpleTxnFilter(Long.toString(referencedConglomerateNumber), ((WritableTxn) ctx.getTxn()).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
+                readUncommittedFilter = new SimpleTxnFilter(((WritableTxn) ctx.getTxn()).getReadUncommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
+                readCommittedFilter = new SimpleTxnFilter(((WritableTxn) ctx.getTxn()).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
             }else
                 throw new IOException("invalidTxn");
 
@@ -185,8 +186,10 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
 
     @Override
     public String toString() {
-        return "ForeignKeyChildInterceptWriteHandler{parentTable='" + referencedConglomerateNumber + '\'' + '}';
+        return "ForeignKeyChildInterceptWriteHandler { referencedConglomerateNumber = " + referencedConglomerateNumber
+                + " fkConstraintInfo = " + (fkConstraintInfo == null ? "null" : fkConstraintInfo.toString()) + "}";
     }
+
 
     private void failWrite(KVPair kvPair, WriteContext ctx) {
         WriteResult foreignKeyConstraint = new WriteResult(Code.FOREIGN_KEY_VIOLATION, ConstraintContext.foreignKey(fkConstraintInfo));
@@ -243,5 +246,4 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
         System.arraycopy(rowKeyIn, 0, checkRowKey, 0, lastKeyIndex + 1);
         return checkRowKey;
     }
-
 }

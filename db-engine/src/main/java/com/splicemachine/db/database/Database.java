@@ -112,7 +112,6 @@ public interface Database
 
     /**
         Return the UUID of this database.
-        @deprecated No longer supported.
 
     */
     UUID getId();

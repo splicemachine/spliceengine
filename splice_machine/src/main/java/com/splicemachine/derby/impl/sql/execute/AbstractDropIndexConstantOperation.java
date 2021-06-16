@@ -21,8 +21,6 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.sql.execute.actions.IndexConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.pipeline.ErrorState;
@@ -43,7 +41,7 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 3/4/14
  */
-public abstract class AbstractDropIndexConstantOperation extends IndexConstantOperation{
+public abstract class AbstractDropIndexConstantOperation extends IndexConstantOperation {
     private String fullIndexName;
     private long tableConglomerateId;
 
@@ -58,8 +56,8 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
      * @param    schemaName            Schema that index lives in.
      */
     public AbstractDropIndexConstantOperation(String fullIndexName,String indexName,String tableName,
-                                              String schemaName,UUID tableId,long tableConglomerateId){
-        super(tableId,indexName,tableName,schemaName);
+                                              String schemaName,UUID tableId,long tableConglomerateId, UUID dbId){
+        super(tableId,indexName,tableName,schemaName, dbId);
         this.fullIndexName=fullIndexName;
         this.tableConglomerateId=tableConglomerateId;
     }
@@ -84,7 +82,7 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
         if(tableConglomerateId==0)
             tableConglomerateId=td.getHeapConglomerateId();
 
-        SchemaDescriptor sd=dd.getSchemaDescriptor(schemaName,tc,true);
+        SchemaDescriptor sd=dd.getSchemaDescriptor(null, schemaName,tc,true);
 
         ConglomerateDescriptor cd=dd.getConglomerateDescriptor(indexName,sd,true);
         if(cd==null)
@@ -111,7 +109,7 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
 
         invalidate(cd,dm,lcc); // invalidate locally for error handling
         // Remote Notification
-        dropIndex(td,cd,(SpliceTransactionManager)lcc.getTransactionExecute(),lcc, schemaName, indexName);
+        dropIndex(td,cd,(SpliceTransactionManager)lcc.getTransactionExecute(),lcc, schemaName, indexName, dbId);
         // Physical DD Drop
         drop(cd, td, dd, lcc);
     }
@@ -135,8 +133,7 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
          * Broadcast a message to invalidate the related plans.
          */
         List<TableDescriptor> tds = Collections.singletonList(td);
-        DDLMessage.DDLChange ddlChange = ProtoUtil.alterStats(userTxnManager.getActiveStateTxn().getTxnId(), tds);
-        userTxnManager.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+        notifyMetadataChange(userTxnManager, ProtoUtil.alterStats(userTxnManager.getActiveStateTxn().getTxnId(), tds));
     }
 
     public String getScopeName() {

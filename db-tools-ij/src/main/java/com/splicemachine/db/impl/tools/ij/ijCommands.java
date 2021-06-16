@@ -4,7 +4,6 @@ import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 import com.splicemachine.db.shared.common.sql.Utils;
 import com.splicemachine.db.tools.JDBCDisplayUtil;
 import com.splicemachine.db.impl.tools.ij.ijResultSetResult.ColumnParameters;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.*;
@@ -45,12 +44,16 @@ public class ijCommands {
     boolean hasServerLikeFix() {
         if(serverLikeFix == null) {
             try {
-                int[] v = parseVersion(getVersion());
-                if(v != null && v[0] >= 3 && v[3] >= 1988 ){
-                    serverLikeFix = Boolean.TRUE;
+                String strVersion = getVersion();
+                if(strVersion.equals("UNKNOWN"))
+                    serverLikeFix = Boolean.TRUE; // mem platform
+                else {
+                    int[] v = parseVersion(strVersion);
+                    if (v != null && v[0] >= 3 && v[3] >= 1988) {
+                        serverLikeFix = Boolean.TRUE;
+                    } else
+                        serverLikeFix = Boolean.FALSE;
                 }
-                else
-                    serverLikeFix = Boolean.FALSE;
             } catch (Exception e) {
                 serverLikeFix = Boolean.FALSE;
             }
@@ -355,6 +358,35 @@ public class ijCommands {
             };
 
             return new ijResultSetResult(rs, columnParameters);
+        } catch (SQLException e) {
+            try {
+                if(rs!=null)
+                    rs.close();
+            } catch (SQLException se) {
+            }
+            throw e;
+        }
+    }
+
+    /**
+       Return a resultset of databases from database metadata
+     */
+    public ijResult showDatabases() throws SQLException {
+        ResultSet rs = null;
+        try {
+            haveConnection();
+
+            rs = theConnection.createStatement().executeQuery
+                ("SELECT DATABASENAME FROM SYSVW.SYSDATABASESVIEW");
+
+            int[] displayColumns = new int[] {
+                rs.findColumn("DATABASENAME")
+            };
+            int[] columnWidths = new int[] {
+                36
+            };
+
+            return new ijResultSetResult(rs, displayColumns, columnWidths);
         } catch (SQLException e) {
             try {
                 if(rs!=null)

@@ -173,11 +173,7 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
                 ValueNode newLeftNode = (ValueNode) defaultVisit(((AndNode) node).getLeftOperand());
                 ValueNode newRightNode = (ValueNode) defaultVisit(((AndNode) node).getRightOperand());
                 if (!newLeftNode.equals(((AndNode) node).getLeftOperand()) || !newRightNode.equals(((AndNode) node).getRightOperand()))
-                    newNode = (AndNode) ((ValueNode) node).getNodeFactory().getNode(
-                            C_NodeTypes.AND_NODE,
-                            newLeftNode,
-                            newRightNode,
-                            ((ValueNode) node).getContextManager());
+                    newNode = new AndNode(newLeftNode, newRightNode, ((ValueNode) node).getContextManager());
                 updatedNode = newNode;
             } else if (isDNF(newNode))
                 n = numClauses(newNode);
@@ -192,11 +188,7 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
                 if (foundInPath(me.getKey(), newNode)) {
                     AndOrReplacementVisitor aor = new AndOrReplacementVisitor(me.getKey(), aggregateVector);
                     newNode.accept(new SpliceDerbyVisitorAdapter(aor));
-                    newNode = (AndNode) ((ValueNode) node).getNodeFactory().getNode(
-                            C_NodeTypes.AND_NODE,
-                            me.getKey(),
-                            newNode,
-                            ((ValueNode) node).getContextManager());
+                    newNode = new AndNode(me.getKey(), newNode, ((ValueNode) node).getContextManager());
                     if (aggregateVector != null) {
                         CollectNodesVisitor cnv = new CollectNodesVisitor(AggregateNode.class);
                         me.getKey().accept(cnv);

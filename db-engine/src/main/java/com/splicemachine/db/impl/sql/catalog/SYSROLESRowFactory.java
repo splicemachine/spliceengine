@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 
 import java.sql.Types;
@@ -52,7 +53,7 @@ public class SYSROLESRowFactory extends CatalogRowFactory
 {
     public static final String TABLENAME_STRING = "SYSROLES";
 
-    private static final int SYSROLES_COLUMN_COUNT = 7;
+    public static final int SYSROLES_COLUMN_COUNT = 8;
     /* Column #s for sysinfo (1 based) */
     private static final int SYSROLES_ROLE_UUID = 1;
     private static final int SYSROLES_ROLEID = 2;
@@ -61,22 +62,24 @@ public class SYSROLESRowFactory extends CatalogRowFactory
     private static final int SYSROLES_WITHADMINOPTION = 5;
     static final int SYSROLES_ISDEF = 6;
     static final int SYSROLES_DEFAULT_ROLE = 7;
+    static final int SYSROLES_DATABASE_ID = 8;
 
     private static final int[][] indexColumnPositions =
     {
-        {SYSROLES_ROLEID, SYSROLES_GRANTEE, SYSROLES_GRANTOR},
-        {SYSROLES_ROLEID, SYSROLES_ISDEF},
+        {SYSROLES_DATABASE_ID, SYSROLES_ROLEID, SYSROLES_GRANTEE, SYSROLES_GRANTOR},
+        {SYSROLES_DATABASE_ID, SYSROLES_ROLEID, SYSROLES_ISDEF},
         {SYSROLES_ROLE_UUID},
-        {SYSROLES_GRANTEE}
+        {SYSROLES_DATABASE_ID, SYSROLES_GRANTEE}
     };
 
-    static final int SYSROLES_ROLEID_COLPOS_IN_INDEX_ID_EE_OR = 1;
-    static final int SYSROLES_GRANTEE_COLPOS_IN_INDEX_ID_EE_OR = 2;
+    static final int SYSROLES_DATABASEID_COLPOS_IN_INDEX_ID_EE_OR = 1;
+    static final int SYSROLES_ROLEID_COLPOS_IN_INDEX_ID_EE_OR = 2;
+    static final int SYSROLES_GRANTEE_COLPOS_IN_INDEX_ID_EE_OR = 3;
 
     // (role)ID_(grant)EE_(grant)OR
-    static final int SYSROLES_INDEX_ID_EE_OR_IDX = 0;
+    public static final int SYSROLES_INDEX_ID_EE_OR_IDX = 0;
     // (role)ID_(is)DEF
-    static final int SYSROLES_INDEX_ID_DEF_IDX = 1;
+    public static final int SYSROLES_INDEX_ID_DEF_IDX = 1;
     // UUID
     static final int SYSROLES_INDEX_UUID_IDX = 2;
     // (grant)EE_DEFAULT(role)
@@ -136,6 +139,7 @@ public class SYSROLESRowFactory extends CatalogRowFactory
         boolean                 wao = false;
         boolean                 isdef = false;   // is role definition or not
         boolean                 isDefaultRole = false; // is default role of a user or not
+        String                  databaseId = null;
 
         if (td != null)
         {
@@ -152,6 +156,7 @@ public class SYSROLESRowFactory extends CatalogRowFactory
             UUID oid = rgd.getUUID();
             oid_string = oid.toString();
             isDefaultRole = rgd.isDefaultRole();
+            databaseId = rgd.getDatabaseId().toString();
         }
 
         /* Build the row to insert */
@@ -178,6 +183,9 @@ public class SYSROLESRowFactory extends CatalogRowFactory
         /* 7th column is DefaultRole */
         row.setColumn(7, new SQLChar(isDefaultRole? "Y" : "N"));
 
+        /* 8th column is DatabaseId*/
+        row.setColumn(8, new SQLChar(databaseId));
+
         return row;
     }
 
@@ -195,25 +203,27 @@ public class SYSROLESRowFactory extends CatalogRowFactory
      * @param parentTupleDescriptor unused
      * @param dd                    dataDictionary
      *
+     * @param tc
      * @return  a  descriptor equivalent to a SYSROLES row
      *
      * @exception   StandardException thrown on failure
      */
     public TupleDescriptor buildDescriptor
-        (ExecRow                 row,
-         TupleDescriptor         parentTupleDescriptor,
-         DataDictionary          dd )
+    (ExecRow row,
+     TupleDescriptor parentTupleDescriptor,
+     DataDictionary dd, TransactionController tc)
         throws StandardException {
 
         DataValueDescriptor         col;
-        RoleGrantDescriptor              descriptor;
+        RoleGrantDescriptor         descriptor;
         String                      oid_string;
         String                      roleid;
         String                      grantee;
         String                      grantor;
         String                      wao;
-        boolean                      isdef;
-        boolean                      isDefaultRole;
+        boolean                     isdef;
+        boolean                     isDefaultRole;
+        String                      databaseId;
         DataDescriptorGenerator     ddg = dd.getDataDescriptorGenerator();
 
         if (SanityManager.DEBUG)
@@ -256,6 +266,11 @@ public class SYSROLESRowFactory extends CatalogRowFactory
                 isDefaultRole = false;
         } else
             isDefaultRole = col.getString().equals("Y");
+
+        // eigth column is databaseId (char(36))
+        col = row.getColumn(8);
+        databaseId = col.getString();
+
         descriptor = ddg.newRoleGrantDescriptor
             (getUUIDFactory().recreateUUID(oid_string),
              roleid,
@@ -263,7 +278,8 @@ public class SYSROLESRowFactory extends CatalogRowFactory
              grantor,
              wao.equals("Y"),
              isdef,
-             isDefaultRole);
+             isDefaultRole,
+             getUUIDFactory().recreateUUID(databaseId));
 
         return descriptor;
     }
@@ -284,7 +300,8 @@ public class SYSROLESRowFactory extends CatalogRowFactory
             SystemColumnImpl.getIdentifierColumn("GRANTOR", false),
             SystemColumnImpl.getIndicatorColumn("WITHADMINOPTION"),
             SystemColumnImpl.getIndicatorColumn("ISDEF"),
-            SystemColumnImpl.getColumn("DEFAULTROLE", Types.CHAR, true, 1)
+            SystemColumnImpl.getColumn("DEFAULTROLE", Types.CHAR, true, 1),
+            SystemColumnImpl.getUUIDColumn("DATABASEID", false)
         };
     }
 
@@ -293,7 +310,18 @@ public class SYSROLESRowFactory extends CatalogRowFactory
 
         List<ColumnDescriptor[]> cdsl = new ArrayList<>();
         cdsl.add(new ColumnDescriptor[]{
-                new ColumnDescriptor("NAME"               ,1,1,varcharType,null,null,view,viewId,0,0,0)
+                new ColumnDescriptor(
+                        "NAME",
+                        1,
+                        1,
+                        varcharType,
+                        null,
+                        null,
+                        view,
+                        viewId,
+                        0,
+                        0,
+                        0)
         });
         return cdsl;
     }

@@ -33,9 +33,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import splice.com.google.common.collect.Maps;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -213,7 +211,15 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
 
     @Override
     public String toString() {
-        return "PipelineWriteContext { region=" + rce.getRegionName() + " }";
+        List<WriteNode> list = new ArrayList<>();
+        addChildren(list);
+        StringBuilder sb = new StringBuilder();
+        sb.append("PipelineWriteContext { region=" + rce.getRegionName() + "\n");
+        for (int i = 0; i < list.size(); i++) {
+            sb.append(i + ": " + list.get(i).toString() + "\n");
+        }
+        sb.append("\n}");
+        return sb.toString();
     }
 
     @Override
@@ -270,5 +276,10 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     @Override
     public PipelineExceptionFactory exceptionFactory(){
         return pef;
+    }
+
+    @Override
+    public void addChildren(List<WriteNode> nodes) {
+        head.getNext().addChildren(nodes);
     }
 }

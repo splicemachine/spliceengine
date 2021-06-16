@@ -56,7 +56,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
     public static final Logger LOG = Logger.getLogger(PlanPrinter.class);
     public static final String spaces = "  ";
     private boolean explain = false;
-    public static final ThreadLocal<Map<String,Collection<QueryTreeNode>>> planMap = ThreadLocal.withInitial(HashMap::new);
+    public static final ThreadLocal<Map<String,Collection<Pair<QueryTreeNode,Integer>>>> planMap = ThreadLocal.withInitial(HashMap::new);
 
     // Only visit root node
     @Override
@@ -82,9 +82,10 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                 node instanceof DMLStatementNode &&
                 (((DMLStatementNode) node).getResultSetNode()) != null) {
             rsn = (DMLStatementNode) node;
-            List<QueryTreeNode> orderedNodes = new ArrayList<>();
+            // Pair of <QueryTreeNode, depth>
+            List<Pair<QueryTreeNode,Integer>> orderedNodes = new ArrayList<>();
             rsn.buildTree(orderedNodes,0);
-            Map<String, Collection<QueryTreeNode>> m=planMap.get();
+            Map<String, Collection<Pair<QueryTreeNode,Integer>>> m=planMap.get();
             m.put(query,orderedNodes);
             if (LOG.isDebugEnabled()){
                 DataSetProcessorType currentType = rsn.getCompilerContext().getDataSetProcessorType();
@@ -214,6 +215,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             FromBaseTable fbt = (FromBaseTable) rsn;
             ConglomerateDescriptor cd = fbt.getTrulyTheBestAccessPath().getConglomerateDescriptor();
             info.put("table", String.format("%s(%s)", fbt.getTableDescriptor().getName(), fbt.getTableDescriptor().getHeapConglomerateId()));
+            info.put("keys", Lists.transform(PredicateUtils.PLtoList(RSUtils.getKeyPreds(fbt)), PredicateUtils.predToString));
             info.put("quals", Lists.transform(preds(rsn), PredicateUtils.predToString));
             if (cd.isIndex()) {
                 info.put("using-index", String.format("%s(%s)", cd.getConglomerateName(), cd.getConglomerateNumber()));
@@ -368,14 +370,16 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         }
     }
 
-    public static Iterator<String> planToIterator(final Collection<QueryTreeNode> orderedNodes, final DataSetProcessorType type) throws StandardException {
-        return Iterators.transform(orderedNodes.iterator(), new Function<QueryTreeNode, String>() {
+    public static Iterator<String> planToIterator(final Collection<Pair<QueryTreeNode, Integer>> orderedNodes, final DataSetProcessorType type) throws StandardException {
+        return Iterators.transform(orderedNodes.iterator(), new Function<Pair<QueryTreeNode, Integer>, String>() {
             boolean header = true;
 
             @Override
-            public String apply(QueryTreeNode queryTreeNode) {
+            public String apply(Pair<QueryTreeNode, Integer> queryTreeNodeInfo) {
                 try {
-                    assert queryTreeNode != null;
+                    assert queryTreeNodeInfo != null;
+                    QueryTreeNode queryTreeNode = queryTreeNodeInfo.getLeft();
+                    queryTreeNode.setDepth(queryTreeNodeInfo.getRight());
                     return queryTreeNode.printExplainInformation(header, type, true);
                 } catch (StandardException se) {
                     throw new RuntimeException(se);

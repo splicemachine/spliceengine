@@ -14,9 +14,10 @@
 
 package com.splicemachine.derby.vti;
 
+import com.google.common.io.Files;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -40,8 +41,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -132,9 +135,8 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         boolean defaultValue = CompilerContext.DEFAULT_PRESERVE_LINE_ENDINGS;
         if( op == null || op.getActivation() == null || op.getActivation().getLanguageConnectionContext() == null )
             return defaultValue;
-        String preserveLineEndingsString =
-                PropertyUtil.getCachedDatabaseProperty(op.getActivation().getLanguageConnectionContext(),
-                        Property.PRESERVE_LINE_ENDINGS);
+        String preserveLineEndingsString = PropertyUtil.getCached(op.getActivation().getLanguageConnectionContext(),
+                                                GlobalDBProperties.PRESERVE_LINE_ENDINGS);
         try {
             if (preserveLineEndingsString != null)
                 return Boolean.parseBoolean(preserveLineEndingsString);
@@ -143,6 +145,40 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
             // just use the default setting.
         }
         return defaultValue;
+    }
+
+    @SuppressFBWarnings("REC_CATCH_EXCEPTION")
+    public static String getDirectoryContentExtension(String fileName, boolean recursive) {
+        String extension = "txt";
+        try {
+            FileInfo fileInfo = ImportUtils.getImportFileInfo(fileName);
+            if(fileInfo.isDirectory()) {
+                FileInfo[] files = recursive ? fileInfo.listFilesRecursive()
+                                    : fileInfo.listDir();
+                Set<String> s = Arrays.stream(files)
+                        .filter(f -> !f.isDirectory())
+                        .map(FileInfo::fullPath)
+                        .map(Files::getFileExtension)
+                        .map( String::toLowerCase)
+                        .collect(Collectors.toSet());
+                if (s.contains("parquet"))
+                    extension = "parquet";
+                else if (s.contains("orc"))
+                    extension = "orc";
+                else if (s.contains("avro"))
+                    extension = "avro";
+            }
+            else {
+                fileName = fileName.toLowerCase();
+                if(fileName.endsWith(".parquet")) return "parquet";
+                else if(fileName.endsWith(".orc")) return "orc";
+                else if(fileName.endsWith(".avro")) return "avro";
+                else return "csv";
+            }
+
+        } catch (Exception e) {
+        }
+        return extension;
     }
 
     @Override
@@ -155,35 +191,49 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
             ImportUtils.validateReadable(fileName, false);
             if (statusDirectory != null)
                 operationContext.setPermissive(statusDirectory, fileName, badRecordsAllowed);
-            boolean quotedEmptyIsNull = false;
-            if (op instanceof VTIOperation) {
-                VTIOperation vtiOperation = (VTIOperation)op;
-                quotedEmptyIsNull = vtiOperation.getQuotedEmptyIsNull();
+
+            String extension = getDirectoryContentExtension(fileName, false);
+
+            if( extension == "parquet" || extension == "orc" ) {
+                return dsp.readFileX(fileName, extension, op);
             }
-
-            // if we have oneLineRecords, we don't read the line endings into the data
-            // for this, we would need multiline-line varchars). so in that cases, we set preserveLineEndings = false
-
-            if (oneLineRecords && (charset==null || charset.toLowerCase().equals("utf-8"))) {
-                // full parallel execution
-                DataSet<String> textSet = dsp.readTextFile(fileName, op);
-                operationContext.pushScopeForOp("Parse File");
-                return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
-                        columnIndex, timeFormat, dateTimeFormat, timestampFormat,
-                        true, operationContext, quotedEmptyIsNull, false /*preserveLineEndings*/ ), true);
-            } else {
-                // note this code path is much slower since it's not splitting the file,
-                // effectively reducing parallelization
-                boolean preserveLineEndings = getPreserveLineEndings(op);
-                PairDataSet<String,InputStream> streamSet = dsp.readWholeTextFile(fileName, op);
-                operationContext.pushScopeForOp("Parse File");
-                return streamSet.values(operationContext).flatMap(
-                        new StreamFileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex,
-                                timeFormat, dateTimeFormat, timestampFormat, charset,
-                                operationContext, quotedEmptyIsNull, preserveLineEndings), true);
+            else { // CSV
+                return readCSV(op, dsp, execRow);
             }
         } finally {
             operationContext.popScope();
+        }
+    }
+
+    private DataSet<ExecRow> readCSV(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
+        boolean quotedEmptyIsNull = false;
+        if (op instanceof VTIOperation) {
+            VTIOperation vtiOperation = (VTIOperation)op;
+            quotedEmptyIsNull = vtiOperation.getQuotedEmptyIsNull();
+        }
+
+        if (oneLineRecords && (charset==null || charset.toLowerCase().equals("utf-8"))) {
+            // if we have oneLineRecords, we don't read the line endings into the data.
+            // for this, we would need multiline-line varchars. so in that case, we set preserveLineEndings = false
+            boolean preserveLineEndings = false;
+
+            // full parallel execution
+            DataSet<String> textSet = dsp.readTextFile(fileName, op);
+            operationContext.pushScopeForOp("Parse File");
+            return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
+                    columnIndex, timeFormat, dateTimeFormat, timestampFormat,
+                    true, operationContext, quotedEmptyIsNull, preserveLineEndings ), true);
+        } else {
+            // note this code path is much slower since it's not splitting the file,
+            // effectively reducing parallelization
+            boolean preserveLineEndings = getPreserveLineEndings(op);
+
+            PairDataSet<String, InputStream> streamSet = dsp.readWholeTextFile(fileName, op);
+            operationContext.pushScopeForOp("Parse File");
+            return streamSet.values(operationContext).flatMap(
+                    new StreamFileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex,
+                            timeFormat, dateTimeFormat, timestampFormat, charset,
+                            operationContext, quotedEmptyIsNull, preserveLineEndings), true);
         }
     }
 

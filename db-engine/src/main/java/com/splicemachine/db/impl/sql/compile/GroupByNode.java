@@ -376,14 +376,8 @@ public class GroupByNode extends SingleChildResultSetNode{
          * SelectNode in a query tree.
          */
         childResult=childResult.optimize(dataDictionary, predicates, outerRows, forSpark);
-        Optimizer optimizer=getOptimizer(
-                (FromList)getNodeFactory().getNode(
-                        C_NodeTypes.FROM_LIST,
-                        getNodeFactory().doJoinOrderOptimization(),
-                        getContextManager()),
-                predicates,
-                dataDictionary,
-                null);
+        Optimizer optimizer = getOptimizer(new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager()),
+                predicates, dataDictionary, null);
         optimizer.setForSpark(forSpark);
 
         // RESOLVE: NEED TO FACTOR IN COST OF SORTING AND FIGURE OUT HOW
@@ -673,8 +667,7 @@ public class GroupByNode extends SingleChildResultSetNode{
         ** Get the new PR, put above the GroupBy.
         */
         boolean isFromExprIndex = resultColumns.isFromExprIndex();
-        ResultColumnList rclNew=(ResultColumnList)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        ResultColumnList rclNew = new ResultColumnList(getContextManager());
         int sz=resultColumns.size();
         for(int i=0;i<sz;i++){
             ResultColumn rc=resultColumns.elementAt(i);
@@ -704,14 +697,13 @@ public class GroupByNode extends SingleChildResultSetNode{
         /*
         ** Reset the bottom RCL to be empty.
         */
-        childResult.setResultColumns((ResultColumnList)
-                getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,getContextManager()));
+        childResult.setResultColumns(new ResultColumnList(getContextManager()));
         childResult.getResultColumns().setFromExprIndex(isFromExprIndex);
 
         /*
         ** Set the group by RCL to be empty
         */
-        resultColumns=(ResultColumnList)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,getContextManager());
+        resultColumns = new ResultColumnList(getContextManager());
         resultColumns.setFromExprIndex(isFromExprIndex);
     }
 
@@ -736,11 +728,8 @@ public class GroupByNode extends SingleChildResultSetNode{
         int sz=groupingList.size();
         for(int i=0;i<sz;i++){
             GroupByColumn gbc=(GroupByColumn)groupingList.elementAt(i);
-            ResultColumn newRC=(ResultColumn)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    "##UnaggColumn"+gbc.getColumnName(),
-                    gbc.getColumnExpression(),
-                    getContextManager());
+            ResultColumn newRC = new ResultColumn("##UnaggColumn"+gbc.getColumnName(),
+                    gbc.getColumnExpression(), getContextManager());
 
             // add this result column to the bottom rcl
             bottomRCL.addElement(newRC);
@@ -749,11 +738,8 @@ public class GroupByNode extends SingleChildResultSetNode{
             newRC.setVirtualColumnId(bottomRCL.size());
 
             // now add this column to the groupbylist
-            ResultColumn gbRC=(ResultColumn)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    "##UnaggColumn"+gbc.getColumnName(),
-                    gbc.getColumnExpression(),
-                    getContextManager());
+            ResultColumn gbRC = new ResultColumn("##UnaggColumn"+gbc.getColumnName(),
+                    gbc.getColumnExpression(), getContextManager());
             groupByRCL.addElement(gbRC);
             gbRC.markGenerated();
             gbRC.bindResultColumnToExpression();
@@ -876,23 +862,14 @@ public class GroupByNode extends SingleChildResultSetNode{
                 getNewNullResultExpressionForGroupingID(),
                 getContextManager());
 
-            ResultColumn newRC=(ResultColumn)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                colName,
-                gbn.getColumnExpression(),
-                getContextManager());
-
+            ResultColumn newRC = new ResultColumn(colName, gbn.getColumnExpression(), getContextManager());
             bottomRCL.addElement(newRC);
             newRC.markGenerated();
             newRC.bindResultColumnToExpression();
             newRC.setVirtualColumnId(bottomRCL.size());
 
             // add result column to the groupbylist
-            ResultColumn gbRC=(ResultColumn)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    colName,
-                    gbn.getColumnExpression(),
-                    getContextManager());
+            ResultColumn gbRC = new ResultColumn(colName, gbn.getColumnExpression(), getContextManager());
             groupByRCL.addElement(gbRC);
             gbRC.markGenerated();
             gbRC.bindResultColumnToExpression();
@@ -926,10 +903,7 @@ public class GroupByNode extends SingleChildResultSetNode{
                 getNullNode(bitType),
                 getContextManager());
 
-        ResultColumn newRC=(ResultColumn)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                "##UnaggColumn-GroupingId",
-                groupingIdColumn.getColumnExpression(),
+        ResultColumn newRC = new ResultColumn("##UnaggColumn-GroupingId", groupingIdColumn.getColumnExpression(),
                 getContextManager());
 
         bottomRCL.addElement(newRC);
@@ -938,10 +912,7 @@ public class GroupByNode extends SingleChildResultSetNode{
         newRC.setVirtualColumnId(bottomRCL.size());
 
         // add result column to the groupbylist
-        ResultColumn gbRC=(ResultColumn)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                "##UnaggColumn-GroupingId",
-                groupingIdColumn.getColumnExpression(),
+        ResultColumn gbRC = new ResultColumn("##UnaggColumn-GroupingId", groupingIdColumn.getColumnExpression(),
                 getContextManager());
         groupByRCL.addElement(gbRC);
         gbRC.markGenerated();
@@ -1137,9 +1108,7 @@ public class GroupByNode extends SingleChildResultSetNode{
         LanguageFactory lf=getLanguageConnectionContext().getLanguageFactory();
 
         ReplaceAggregatesWithCRVisitor replaceAggsVisitor=
-                new ReplaceAggregatesWithCRVisitor((ResultColumnList)getNodeFactory().getNode(
-                        C_NodeTypes.RESULT_COLUMN_LIST,
-                        getContextManager()),
+                new ReplaceAggregatesWithCRVisitor(new ResultColumnList(getContextManager()),
                         ((FromTable)childResult).getTableNumber(),
                         ResultSetNode.class);
         parent.getResultColumns().accept(replaceAggsVisitor);
@@ -1147,9 +1116,7 @@ public class GroupByNode extends SingleChildResultSetNode{
 
         if(havingClause!=null){
             // replace aggregates in the having clause with column references.
-            replaceAggsVisitor=new ReplaceAggregatesWithCRVisitor((ResultColumnList)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN_LIST,
-                    getContextManager()),
+            replaceAggsVisitor=new ReplaceAggregatesWithCRVisitor(new ResultColumnList(getContextManager()),
                     ((FromTable)childResult).getTableNumber());
             havingClause.accept(replaceAggsVisitor);
             // make having clause a restriction list in the parent
@@ -1169,10 +1136,7 @@ public class GroupByNode extends SingleChildResultSetNode{
             ** AGG RESULT: Set the aggregate result to null in the
             ** bottom project restrict.
             */
-            newRC=(ResultColumn)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    "##"+aggregate.getAggregateName()+"Result",
-                    aggregate.getNewNullResultExpression(),
+            newRC = new ResultColumn("##"+aggregate.getAggregateName()+"Result", aggregate.getNewNullResultExpression(),
                     getContextManager());
             newRC.markGenerated();
             newRC.bindResultColumnToExpression();
@@ -1186,19 +1150,11 @@ public class GroupByNode extends SingleChildResultSetNode{
             ** was created when we called
             ** ReplaceAggregatesWithCRVisitor()
             */
-            newColumnRef=(ColumnReference)getNodeFactory().getNode(
-                    C_NodeTypes.COLUMN_REFERENCE,
-                    newRC.getName(),
-                    null,
-                    getContextManager());
+            newColumnRef= new ColumnReference(newRC.getName(), null, getContextManager());
             newColumnRef.setSource(newRC);
             newColumnRef.setNestingLevel(this.getLevel());
             newColumnRef.setSourceLevel(this.getLevel());
-            tmpRC=(ResultColumn)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    newColumnRef.getColumnName(),
-                    newColumnRef,
-                    getContextManager());
+            tmpRC = new ResultColumn(newColumnRef.getColumnName(), newColumnRef, getContextManager());
             tmpRC.markGenerated();
             tmpRC.bindResultColumnToExpression();
             groupByRCL.addElement(tmpRC);
@@ -1223,9 +1179,7 @@ public class GroupByNode extends SingleChildResultSetNode{
             bottomRCL.addElement(newRC);
             newRC.setVirtualColumnId(bottomRCL.size());
             aggInputVColId=newRC.getVirtualColumnId();
-            aggResultRC=(ResultColumn)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,
-                    "##aggregate expression",
-                    aggregate.getNewNullResultExpression(),
+            aggResultRC = new ResultColumn("##aggregate expression", aggregate.getNewNullResultExpression(),
                     getContextManager());
 
 
@@ -1262,7 +1216,7 @@ public class GroupByNode extends SingleChildResultSetNode{
             ** to generate a proper result description for input
             ** to this agg if it is a user agg.
             */
-            aggRCL=(ResultColumnList)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,getContextManager());
+            aggRCL = new ResultColumnList(getContextManager());
             aggRCL.addElement(aggResultRC);
 
             DataValueDescriptor parameter = aggregate instanceof StringAggregateNode ?
@@ -1379,19 +1333,11 @@ public class GroupByNode extends SingleChildResultSetNode{
         ColumnReference tmpColumnRef;
         ResultColumn newRC;
 
-        tmpColumnRef=(ColumnReference)getNodeFactory().getNode(
-                C_NodeTypes.COLUMN_REFERENCE,
-                targetRC.getName(),
-                null,
-                getContextManager());
+        tmpColumnRef = new ColumnReference(targetRC.getName(), null, getContextManager());
         tmpColumnRef.setSource(targetRC);
         tmpColumnRef.setNestingLevel(this.getLevel());
         tmpColumnRef.setSourceLevel(this.getLevel());
-        newRC=(ResultColumn)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                tmpColumnRef.getColumnName(),
-                tmpColumnRef,
-                getContextManager());
+        newRC = new ResultColumn(tmpColumnRef.getColumnName(), tmpColumnRef, getContextManager());
         newRC.markGenerated();
         newRC.bindResultColumnToExpression();
         return newRC;

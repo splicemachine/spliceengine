@@ -59,9 +59,9 @@ public class ExportExecRowWriterTest {
     @Test
     public void writeRow_withNullValue() throws IOException, StandardException {
         assertEquals("" +
-                    "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,0.0,1970-01-01 00:00:00.000000000\n" +
-                    "AAA,BBB,,DDD,EEE,111.12,222.1234568,1234.1,2020-12-16 16:11:39.000000000\n" +
-                    "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,-0.12354,1975-02-05 06:25:09.900000000\n",
+                    "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,0.0,1970-01-01 00:00:00.000000\n" +
+                    "AAA,BBB,,DDD,EEE,111.12,222.1234568,1234.1,2020-12-16 16:11:39.000000\n" +
+                    "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568,-0.12354,1975-02-05 06:25:09.900000\n",
                 writeRowImpl(FloatingPointDataType.PLAIN, CompilerContext.DEFAULT_TIMESTAMP_FORMAT));
     }
 

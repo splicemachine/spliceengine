@@ -39,6 +39,10 @@ public class TimestampV3DescriptorSerializer extends TimestampV2DescriptorSerial
 
     @Override
     protected Timestamp toTimestamp(long time) {
+        return decodeTimestamp(time);
+    }
+
+    public static Timestamp decodeTimestamp(long time) {
         long millis = time / 1000;
         // nanos start of being set to the number of microseconds.
         int nanos = (int)(time % 1000000);

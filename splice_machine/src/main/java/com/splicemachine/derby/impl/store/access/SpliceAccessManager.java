@@ -19,6 +19,8 @@ import java.io.Serializable;
 import java.util.*;
 
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
+import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.utils.Pair;
 import splice.com.google.common.base.Preconditions;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
@@ -349,7 +351,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         SpliceTransactionManagerContext rtc = (SpliceTransactionManagerContext)
                 cm.getContext(AccessFactoryGlobals.RAMXACT_CONTEXT_ID);
 
-        if (rtc != null)
+        if (rtc != null && rtc.getTransactionManager().getActiveStateTxId() == id)
             return rtc.getTransactionManager(); //we already have a transaction from the context
 
         if (LOG.isDebugEnabled())
@@ -675,7 +677,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         pf = (PropertyFactory) Monitor.findServiceModule(this, com.splicemachine.db.iapi.reference.Module.PropertyFactory);
 
         if(create)
-            ((SpliceTransaction)tc.getRawTransaction()).elevate(Bytes.toBytes("boot"));
+            elevateRawTransaction(Bytes.toBytes("boot"));
         // set up the transaction properties.  On J9, over NFS, runing on a
         // power PC coprossor, the directories were created fine, but create
         // db would fail when trying to create this first file in seg0.
@@ -709,6 +711,11 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
     }
 
     public void stop() {
+    }
+
+    public void elevateRawTransaction(byte[] writeTable) throws StandardException {
+        TransactionController tc = getTransaction(ContextService.getFactory().getCurrentContextManager());
+        ((SpliceTransaction)((SpliceTransactionManager) tc).getRawTransaction()).elevate(writeTable);
     }
 
     /* Methods of the PropertySetCallback interface */
@@ -755,5 +762,12 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         this.database = database;
     }
 
+    public boolean isMultiDatabaseEnabled() {
+        return Boolean.parseBoolean(serviceProperties.getProperty(BaseDataDictionary.CFG_ALLOW_MULTIDATABASE));
+    }
+
+    public void enableMultiDatabase(boolean value) {
+        serviceProperties.setProperty(BaseDataDictionary.CFG_ALLOW_MULTIDATABASE, Boolean.toString(value));
+    }
 }
 

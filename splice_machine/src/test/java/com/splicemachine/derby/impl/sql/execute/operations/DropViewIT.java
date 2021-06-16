@@ -141,7 +141,8 @@ public class DropViewIT {
         }
         catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","42X01",e.getSQLState());
-            Assert.assertEquals("Wrong Warning Message", "Syntax error: Encountered \"EXISTS\" at line 1, column 11.", e.getMessage());
+            Assert.assertEquals("Wrong Warning Message",
+                    "Syntax error: Encountered \"EXISTS\" at line 1, column 11.", e.getMessage().split("\n")[0]);
         }
     }
 

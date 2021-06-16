@@ -25,7 +25,6 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.catalog.TableKey;
 import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -33,87 +32,89 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nonnull;
+import java.util.Collections;
+import java.util.List;
 
 /**
- *	This class performs actions that are ALWAYS performed for a
- *	DROP FUNCTION/PROCEDURE/SYNONYM statement at execution time.
+ *    This class performs actions that are ALWAYS performed for a
+ *    DROP FUNCTION/PROCEDURE/SYNONYM statement at execution time.
  *  All of these SQL objects are represented by an AliasDescriptor.
  *
  */
 
 public class DropAliasConstantOperation extends DDLConstantOperation {
-	private static final Logger LOG = Logger.getLogger(DropAliasConstantOperation.class);
-	private SchemaDescriptor sd;
-	private final String aliasName;
-	private final char nameSpace;
-	/**
-	 *	Make the ConstantAction for a DROP  ALIAS statement.
-	 *
-	 *
-	 *	@param	aliasName			Alias name.
-	 *	@param	nameSpace			Alias name space.
-	 *
-	 */
-	public DropAliasConstantOperation(@Nonnull SchemaDescriptor sd,
+    private static final Logger LOG = Logger.getLogger(DropAliasConstantOperation.class);
+    private SchemaDescriptor sd;
+    private final String aliasName;
+    private final char nameSpace;
+    /**
+     *    Make the ConstantAction for a DROP  ALIAS statement.
+     *
+     *
+     *    @param    aliasName            Alias name.
+     *    @param    nameSpace            Alias name space.
+     *
+     */
+    public DropAliasConstantOperation(@Nonnull SchemaDescriptor sd,
                                       String aliasName,
                                       char nameSpace) {
-		SpliceLogUtils.trace(LOG, "DropAliasConstantOperation for %s.%s", sd.getSchemaName(),aliasName);
-		this.sd = sd;
-		this.aliasName = aliasName;
-		this.nameSpace = nameSpace;
-	}
-	
-	public	String	toString() {
-		return	"DROP ALIAS " + aliasName;
-	}
+        SpliceLogUtils.trace(LOG, "DropAliasConstantOperation for %s.%s", sd.getSchemaName(),aliasName);
+        this.sd = sd;
+        this.aliasName = aliasName;
+        this.nameSpace = nameSpace;
+    }
+
+    public    String    toString() {
+        return    "DROP ALIAS " + aliasName;
+    }
 
 
-	/**
-	 *	This is the guts of the Execution-time logic for DROP ALIAS.
-	 *
-	 *	@see ConstantAction#executeConstantAction
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public void executeConstantAction( Activation activation ) throws StandardException {
-		SpliceLogUtils.trace(LOG, "executeConstantAction for activation {%s}", activation);
-		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-		DataDictionary dd = lcc.getDataDictionary();
-		/*
-		** Inform the data dictionary that we are about to write to it.
-		** There are several calls to data dictionary "get" methods here
-		** that might be done in "read" mode in the data dictionary, but
-		** it seemed safer to do this whole operation in "write" mode.
-		**
-		** We tell the data dictionary we're done writing at the end of
-		** the transaction.
-		*/
-		dd.startWriting(lcc);
+    /**
+     *    This is the guts of the Execution-time logic for DROP ALIAS.
+     *
+     *    @see ConstantAction#executeConstantAction
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public void executeConstantAction( Activation activation, boolean notify ) throws StandardException {
+        SpliceLogUtils.trace(LOG, "executeConstantAction for activation {%s}", activation);
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        /*
+        ** Inform the data dictionary that we are about to write to it.
+        ** There are several calls to data dictionary "get" methods here
+        ** that might be done in "read" mode in the data dictionary, but
+        ** it seemed safer to do this whole operation in "write" mode.
+        **
+        ** We tell the data dictionary we're done writing at the end of
+        ** the transaction.
+        */
+        dd.startWriting(lcc);
 
-		/* Get the alias descriptor.  We're responsible for raising
-		 * the error if it isn't found 
-		 */
-		AliasDescriptor ad = dd.getAliasDescriptor(sd.getUUID().toString(), aliasName, nameSpace);
-		// RESOLVE - fix error message
-		if (ad == null)
-			throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND, AliasDescriptor.getAliasType(nameSpace),  aliasName);
+        /* Get the alias descriptor.  We're responsible for raising
+         * the error if it isn't found
+         */
+		AliasDescriptor ad = dd.getAliasDescriptor(sd.getUUID().toString(), aliasName, nameSpace, null);
+        // RESOLVE - fix error message
+        if (ad == null)
+            throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND, AliasDescriptor.getAliasType(nameSpace),  aliasName);
         adjustUDTDependencies( lcc, dd, ad, false );
-        drop(lcc, ad);
-	}
+        drop(lcc, ad, notify);
+    }
 
-    public void drop(LanguageConnectionContext lcc,AliasDescriptor ad) throws StandardException {
+    private void drop(LanguageConnectionContext lcc,AliasDescriptor ad, boolean notify) throws StandardException {
 
         DataDictionary dd = ad.getDataDictionary();
         TransactionController tc = lcc.getTransactionExecute();
         DependencyManager dm = dd.getDependencyManager();
         invalidate(ad,dm,lcc);
-        DDLMessage.DDLChange ddlChange = ProtoUtil.dropAlias(
-                ((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
-                sd.getUUID().toString(), aliasName, nameSpace+"");
-        // Run Remotely
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+        if (notify) {
+            List<DDLMessage.DDLChange> ddlChanges = generateDDLChanges(
+                    ((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), null);
+            notifyMetadataChanges(tc, ddlChanges);
+        }
 
-    if (ad.getAliasType() == AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR) {
+        if (ad.getAliasType() == AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR) {
             SchemaDescriptor sd = dd.getSchemaDescriptor(ad.getSchemaUUID(), tc);
 
             // Drop the entry from SYSTABLES as well.
@@ -161,5 +162,10 @@ public class DropAliasConstantOperation extends DDLConstantOperation {
 
     public String getScopeName() {
         return String.format("Drop Alias %s", aliasName);
+    }
+
+    @Override
+    public List<DDLMessage.DDLChange> generateDDLChanges(long txnId, Activation activation) {
+        return Collections.singletonList(ProtoUtil.dropAlias(txnId, sd.getUUID().toString(), aliasName, nameSpace+""));
     }
 }
