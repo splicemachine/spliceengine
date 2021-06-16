@@ -246,9 +246,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
         constructNodeForInList(vn, multiColumn, columnMap, vnl, constNodes);
     
         if (columnMap.size() > 1) {
-            ValueNodeList constList = (ValueNodeList) getNodeFactory().getNode(
-                C_NodeTypes.VALUE_NODE_LIST,
-                getContextManager());
+            ValueNodeList constList = new ValueNodeList(getContextManager());
             for (int i = 0; i < columnMap.size(); i++) {
                 constList.addValueNode((ValueNode)constNodes.get(i));
             }
@@ -394,9 +392,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
             /* So, can we convert the OR chain? */
             if (convert)
             {
-                ValueNodeList crList = (ValueNodeList) getNodeFactory().getNode(
-                    C_NodeTypes.VALUE_NODE_LIST,
-                    getContextManager());
+                ValueNodeList crList = new ValueNodeList(getContextManager());;
 
                 for (int i = 0; i < columnNumbers.size(); i++) {
                     Integer colNum = (Integer)columnNumbers.get(i);
@@ -404,9 +400,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
                     crList.addValueNode((ValueNode)columns.get(colNum));
                 }
                 
-                ValueNodeList vnl = (ValueNodeList) getNodeFactory().getNode(
-                                                    C_NodeTypes.VALUE_NODE_LIST,
-                                                    getContextManager());
+                ValueNodeList vnl = new ValueNodeList(getContextManager());
                 // Build the IN list
                 for (vn = this;
                         vn instanceof OrNode;
