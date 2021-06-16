@@ -132,7 +132,14 @@ public abstract class ScanOperation extends SpliceBaseOperation {
                 defaultRowFunc!=null?defaultRowFunc.getMethodName():null,
                 defaultValueMapItem
         );
-        this.pastTx = pastTxn;
+        if(pastTxn != -2) {
+            this.pastTx = pastTxn;
+            if(this.pastTx == -1) {
+                this.pastTx = SIConstants.OLDEST_TIME_TRAVEL_TX; // force going back to the oldest transaction instead of ignoring it.
+            }
+        } else {
+            this.pastTx = -1; // nothing is set, go ahead and use the latest transaction.
+        }
     }
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "DB-9844")

@@ -283,7 +283,7 @@ public class FromBaseTable extends FromTable {
                     && (predList == null || !predList.canSupportIndexExcludedDefaults(tableNumber,currentConglomerateDescriptor, tableDescriptor))) {
                 return false;
             }
-            else if (pastTxnId != -1) {
+            else if (pastTxnId != -2) {
                 long indexCreationTx = getDataDictionary().getConglomerateCreationTxId(currentConglomerateDescriptor.getConglomerateNumber());
                 return pastTxnId >= indexCreationTx;
             }
@@ -343,8 +343,8 @@ public class FromBaseTable extends FromTable {
                         String conglomerateName=currentConglomerateDescriptor.getConglomerateName();
                         if(conglomerateName!=null){
                             /* Have we found the desired index? */
-                            if(conglomerateName.equals(userSpecifiedIndexName)){
-                                if (pastTxnId != -1 && conglomDesc.isIndex()) {
+                            if(conglomerateName.equals(userSpecifiedIndexName)) {
+                                if (pastTxnId != -2 && conglomDesc.isIndex()) {
                                     long indexCreationTx = getDataDictionary().getConglomerateCreationTxId(conglomDesc.getConglomerateNumber());
                                     if(pastTxnId < indexCreationTx) {
                                         throw StandardException.newException(SQLState.LANG_USER_INDEX_CREATED_AFTER_PAST_TRANSACTION,
@@ -1155,7 +1155,15 @@ public class FromBaseTable extends FromTable {
             if(!pastTxIdExpression.isConstantExpression()) {
                 throw StandardException.newException(SQLState.LANG_ILLEGAL_TIME_TRAVEL, "not-constant expression");
             }
-            pastTxnId = mapToTxId(pastTxIdExpression.evaluateConstantExpressions().getKnownConstantValue(), minRetentionPeriod);
+            ValueNode valueNode = pastTxIdExpression.evaluateConstantExpressions();
+            DataValueDescriptor dvd = valueNode.getKnownConstantValue();
+            if(dvd == null) {
+                throw StandardException.newException(SQLState.NOT_IMPLEMENTED, String.format("Evaluation of constant expression of type %s is not supported",
+                                                                                             valueNode.getClass().getSimpleName()));
+            }
+            pastTxnId = mapToTxId(dvd, minRetentionPeriod);
+        } else {
+            pastTxnId = -2;
         }
 
         if(tableDescriptor.getTableType()==TableDescriptor.VTI_TYPE){
@@ -3880,6 +3888,9 @@ public class FromBaseTable extends FromTable {
     }
 
     private long mapToTxId(DataValueDescriptor dataValue, long minRetentionPeriod) throws StandardException {
+        if(SanityManager.DEBUG) {
+            SanityManager.ASSERT(dataValue != null);
+        }
         if (dataValue instanceof SQLTimestamp) {
             Timestamp ts = ((SQLTimestamp) dataValue).getTimestamp(null);
             if (minRetentionPeriod != -1) {
