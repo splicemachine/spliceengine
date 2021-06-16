@@ -6111,7 +6111,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ti,
                 null,
                 cdl,
-                false);
+                false,
+                null);
 
 
         return cdl.stream().toArray(ConglomerateDescriptor[]::new);
