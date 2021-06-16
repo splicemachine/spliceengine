@@ -98,11 +98,7 @@ public class ScalarSubqueryCorrelatedPredicateVisitor implements Visitor {
         ResultColumnList subqueryRCL = fromSubquery.getResultColumns();
 
         /* create a new column in the subquery select node's RCL */
-        ResultColumn rc = (ResultColumn) topSelect.getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                cr.getColumnName(),
-                cr,
-                topSelect.getContextManager());
+        ResultColumn rc = new ResultColumn(cr.getColumnName(), cr, topSelect.getContextManager());
         rc.setColumnDescriptor(null);
 
         if (cr.getTableNameNode() != null) {

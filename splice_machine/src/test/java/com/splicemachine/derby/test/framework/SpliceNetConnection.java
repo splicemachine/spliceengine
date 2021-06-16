@@ -145,6 +145,7 @@ public class SpliceNetConnection {
         private String minPlanTimeout;
         private String currentFunctionPath;
         private String jdbcDb2Compatible;
+        private String snapshot;
         private String autoCommit;
 
         @Override
@@ -213,9 +214,14 @@ public class SpliceNetConnection {
             return this;
         }
 
+        public ConnectionBuilder snapshot(long snapshot) {
+            this.snapshot = Long.toString(snapshot);
+            return this;
+        }
+
         public Connection build() throws SQLException {
             Properties info = new Properties();
-            info.put("user", user != null ? user : jdbcUser);
+            info.put("user", (user != null ? user : jdbcUser).toUpperCase());
             info.put("password", password != null ? password : jdbcPassword);
             if (create != null || jdbcCreate != null)
                 info.put("create", create != null ? create : jdbcCreate);
@@ -235,6 +241,8 @@ public class SpliceNetConnection {
                 info.put("CurrentFunctionPath", currentFunctionPath);
             if (jdbcDb2Compatible != null || jdbcJdbcDb2CompatibleMode != null)
                 info.put("jdbcDb2CompatibleMode", jdbcDb2Compatible != null ? jdbcDb2Compatible : jdbcJdbcDb2CompatibleMode);
+            if (snapshot != null)
+                info.put("snapshot", snapshot);
             if (autoCommit != null) {
                 info.put("autoCommit", autoCommit);
             }

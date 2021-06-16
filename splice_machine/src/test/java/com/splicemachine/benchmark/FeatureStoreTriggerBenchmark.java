@@ -33,7 +33,7 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
 
     private static final Logger LOG = Logger.getLogger(FeatureStoreTriggerBenchmark.class);
     private static final int DEFAULT_CONNECTIONS = 10;
-    private static final int DEFAULT_ENTITIES = 1 << 10;
+    private static final int DEFAULT_ENTITIES = 1 << 12;
     private static final int DEFAULT_OPS = 16;
 
     @ClassRule
@@ -44,6 +44,7 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
     private static final int entities  = Integer.getInteger("splice.benchmark.entities", DEFAULT_ENTITIES);
     private static final int updates  = Integer.getInteger("splice.benchmark.operations", DEFAULT_OPS);
 
+    private static int numHosts;
     private static Connection testConnection;
     private static Statement testStatement;
 
@@ -72,13 +73,14 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
             LOG.info(String.format("HOST: %s  SPLICE: %s (%s)", rs.hostName, rs.release, rs.buildHash));
         }
 
+        numHosts = info.length;
         testConnection = makeConnection();
         testStatement = testConnection.createStatement();
 
-        createTables(info.length);
+        createTables();
     }
 
-    private static void createTables(int numHosts) throws Exception {
+    private static void createTables() throws Exception {
         LOG.info("Creating tables...");
 
         // Pre-split FeatureTable
@@ -119,26 +121,6 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
                 "PRIMARY KEY (entity_key, asof_ts))" +
                 "LOGICAL SPLITKEYS LOCATION '%s'", fileName)
         );
-
-        fileName = "/tmp/split_FeatureStaging";
-        testStatement.execute("DROP TABLE IF EXISTS SPLITKEYS");
-        testStatement.execute("CREATE TABLE SPLITKEYS (pk1 int, pk2 int)");
-        for (int split = 1; split < numHosts; ++split) {
-            int pk = split * (entities / numHosts);
-            testStatement.execute("INSERT INTO SPLITKEYS VALUES (" + pk + ",0)");
-        }
-        testStatement.execute(String.format("EXPORT('%s', false, null, null, null, null) SELECT * FROM SPLITKEYS", fileName));
-
-        testStatement.execute(
-            String.format("CREATE TABLE FeatureStaging(" +
-                "entity_key INTEGER," +
-                "update_order INTEGER," +
-                "ts TIMESTAMP," +
-                "feature1 DOUBLE," +
-                "feature2 DOUBLE," +
-                "PRIMARY KEY (entity_key, update_order))" +
-                "LOGICAL SPLITKEYS LOCATION '%s'", fileName)
-        );
     }
 
     static final String STAT_ERROR = "ERROR";
@@ -158,6 +140,7 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
     // Generate timestamps between ts0 inclusive and ts1 exclusive
     private static void populateStagingTable(long ts0, long ts1) {
         try (Connection conn = makeConnection()) {
+            conn.setAutoCommit(false);
             PreparedStatement insert = conn.prepareStatement("INSERT INTO FeatureStaging VALUES (?, ?, ?, ?, ?)");
             Random rnd = ThreadLocalRandom.current();
             int maxDay = (int)((ts1 - ts0 + DAYMS - 1) / DAYMS);
@@ -192,6 +175,7 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
                     updateStats(STAT_CREATE, count, end - start);
                 }
             }
+            conn.commit();
         }
         catch (Throwable t) {
             LOG.error("Connection broken", t);
@@ -200,23 +184,45 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
     }
 
     private void populateStagingTable() throws SQLException {
-        testStatement.execute("TRUNCATE TABLE FeatureStaging");
-        long nextTimestamp = curTimestamp + 60 * DAYMS;
+        testStatement.execute("DROP TABLE IF EXISTS FeatureStaging");
+        String fileName = "/tmp/split_FeatureStaging";
+        testStatement.execute("DROP TABLE IF EXISTS SPLITKEYS");
+        testStatement.execute("CREATE TABLE SPLITKEYS (pk1 int, pk2 int)");
+        for (int split = 1; split < numHosts; ++split) {
+            int pk = split * (entities / numHosts);
+            testStatement.execute("INSERT INTO SPLITKEYS VALUES (" + pk + ",0)");
+        }
+        testStatement.execute(String.format("EXPORT('%s', false, null, null, null, null) SELECT * FROM SPLITKEYS", fileName));
+
+        testStatement.execute(
+                String.format("CREATE TABLE FeatureStaging(" +
+                        "entity_key INTEGER," +
+                        "update_order INTEGER," +
+                        "ts TIMESTAMP," +
+                        "feature1 DOUBLE," +
+                        "feature2 DOUBLE," +
+                        "PRIMARY KEY (entity_key, update_order))" +
+                        "LOGICAL SPLITKEYS LOCATION '%s'", fileName)
+        );
+
+        long nextTimestamp = curTimestamp + updates * 2 * DAYMS;
         taskId.set(0);
         runBenchmark(connections, () -> populateStagingTable(curTimestamp, nextTimestamp));
         curTimestamp = nextTimestamp;
+
+        testStatement.execute("ANALYZE TABLE FeatureStaging");
     }
 
     public void insertAndUpdateFromBatches() {
         try (Connection conn = makeConnection()) {
-            try (Statement statement = conn.createStatement()) {
+            try (PreparedStatement statement = conn.prepareStatement(
+                    "INSERT INTO FeatureTable --splice-properties insertMode=UPSERT\n" +
+                            "SELECT entity_key, ts, feature1, feature2 " +
+                            "FROM FeatureStaging WHERE update_order=?")) {
                 for (int update = 1; update <= updates; ++update) {
                     long start = System.currentTimeMillis();
-                    int count = statement.executeUpdate(
-                        String.format("INSERT INTO FeatureTable --splice-properties insertMode=UPSERT\n" +
-                                        "SELECT entity_key, ts, feature1, feature2 " +
-                                        "FROM FeatureStaging WHERE update_order=%d", update)
-                    );
+                    statement.setInt(1, update);
+                    int count = statement.executeUpdate();
                     long end = System.currentTimeMillis();
                     updateStats(STAT_UPDATE, count, end - start);
                 }
@@ -351,7 +357,7 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
         try {
             createFeatureTableTriggers();
 
-            long nextTimestamp = curTimestamp + 60 * DAYMS;
+            long nextTimestamp = curTimestamp + updates * 2 * DAYMS;
             long start = System.currentTimeMillis();
             runBenchmark(connections, () -> insertAndUpdateConcurrently(curTimestamp, nextTimestamp));
             long end = System.currentTimeMillis();
@@ -479,7 +485,7 @@ public class FeatureStoreTriggerBenchmark extends Benchmark {
         try {
             createHistoryTableTriggers();
 
-            long nextTimestamp = curTimestamp + 60 * DAYMS;
+            long nextTimestamp = curTimestamp + updates * 2 * DAYMS;
             long start = System.currentTimeMillis();
             runBenchmark(connections, () -> insertAndUpdateConcurrently2(curTimestamp, nextTimestamp));
             long end = System.currentTimeMillis();

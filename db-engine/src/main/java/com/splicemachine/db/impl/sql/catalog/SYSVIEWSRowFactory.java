@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.SQLChar;
@@ -192,15 +193,16 @@ public class SYSVIEWSRowFactory extends CatalogRowFactory
 	 * Make a ViewDescriptor out of a SYSVIEWS row
 	 *
 	 * @param row a SYSVIEWS row
-	 * @param parentTupleDescriptor	Null for this kind of descriptor.
+	 * @param parentTupleDescriptor    Null for this kind of descriptor.
 	 * @param dd dataDictionary
 	 *
-	 * @exception   StandardException thrown on failure
+	 * @param tc
+     * @exception   StandardException thrown on failure
 	 */
 	public TupleDescriptor buildDescriptor(
-		ExecRow					row,
-		TupleDescriptor			parentTupleDescriptor,
-		DataDictionary 			dd )
+            ExecRow row,
+            TupleDescriptor parentTupleDescriptor,
+            DataDictionary dd, TransactionController tc)
 					throws StandardException
 	{
 		ViewDescriptor vd = null;

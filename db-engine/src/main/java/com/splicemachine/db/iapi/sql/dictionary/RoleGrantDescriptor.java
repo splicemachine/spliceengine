@@ -67,6 +67,7 @@ public class RoleGrantDescriptor extends TupleDescriptor
     private final boolean isDef; // if true, represents a role
                                  // definition, else a grant
     private boolean isDefaultRole; // if true, it is a default role of the user granted this role
+    private final UUID databaseId;
 
     /**
      * Constructor
@@ -89,7 +90,8 @@ public class RoleGrantDescriptor extends TupleDescriptor
                                String grantor,
                                boolean withAdminOption,
                                boolean isDef,
-                               boolean isDefaultRole) {
+                               boolean isDefaultRole,
+                               UUID databaseId) {
         super(dd);
         this.uuid = uuid;
         this.roleName = roleName;
@@ -98,6 +100,7 @@ public class RoleGrantDescriptor extends TupleDescriptor
         this.withAdminOption = withAdminOption;
         this.isDef = isDef;
         this.isDefaultRole = isDefaultRole;
+        this.databaseId = databaseId;
     }
 
     public UUID getUUID() {
@@ -135,6 +138,10 @@ public class RoleGrantDescriptor extends TupleDescriptor
         withAdminOption = b;
     }
 
+    public UUID getDatabaseId() {
+        return databaseId;
+    }
+
     public String toString() {
         if (SanityManager.DEBUG) {
             return "uuid: " + uuid + "\n" +
@@ -143,7 +150,8 @@ public class RoleGrantDescriptor extends TupleDescriptor
                 "grantee: " + grantee + "\n" +
                 "withadminoption: " + withAdminOption + "\n" +
                 "isDef: " + isDef + "\n" +
-                "defaultRole: " + isDefaultRole + "\n";
+                "defaultRole: " + isDefaultRole + "\n" +
+                "databaseId: " + databaseId + "\n";
         } else {
             return "";
         }
@@ -170,7 +178,7 @@ public class RoleGrantDescriptor extends TupleDescriptor
         DataDictionary dd = getDataDictionary();
         TransactionController tc = lcc.getTransactionExecute();
 
-        dd.dropRoleGrant(roleName, grantee, grantor, tc);
+        dd.dropRoleGrant(roleName, grantee, grantor, databaseId, tc);
     }
 
     //////////////////////////////////////////////

@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.services.monitor.ModuleControl;
 import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.DatabaseDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -55,11 +56,16 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
     protected static final String       CFG_SYSSCHEMAS_ID = "SysschemasIdentifier";
     protected static final String       CFG_SYSSCHEMAS_INDEX1_ID = "SysschemasIndex1Identifier";
     protected static final String       CFG_SYSSCHEMAS_INDEX2_ID = "SysschemasIndex2Identifier";
+    protected static final String        CFG_SYSDATABASES_ID = "SysdatabasesIdentifier";
+    protected static final String        CFG_SYSDATABASES_INDEX1_ID = "SysdatabasesIndex1Identifier";
+    protected static final String        CFG_SYSDATABASES_INDEX2_ID = "SysdatabasesIndex2Identifier";
+    public static final String           CFG_ALLOW_MULTIDATABASE = "AllowMultidatabase";
     protected static final int          SYSCONGLOMERATES_CORE_NUM = 0;
     protected static final int          SYSTABLES_CORE_NUM = 1;
     protected static final int          SYSCOLUMNS_CORE_NUM = 2;
     protected static final int          SYSSCHEMAS_CORE_NUM = 3;
-    protected static final int          NUM_CORE = 4;
+    protected static final int           SYSDATABASES_CORE_NUM = 4;
+    protected static final int           NUM_CORE = 5;
 
     @SuppressFBWarnings(value = "MS_CANNOT_BE_FINAL", justification = "intentional")
     public static boolean READ_NEW_FORMAT = true;
@@ -195,10 +201,10 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
         SchemaDescriptor.IBM_SYSTEM_STAT_SCHEMA_NAME,
         SchemaDescriptor.IBM_SYSTEM_NULLID_SCHEMA_NAME,
         SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME,
-        SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,
+        SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME, // schema with grantable routines
         SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,
         SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME,
-        SchemaDescriptor.STD_SQLJ_SCHEMA_NAME,
+        SchemaDescriptor.STD_SQLJ_SCHEMA_NAME, // schema with grantable routines
         SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME,
         SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME
     };
@@ -221,7 +227,6 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
     protected static final String[] sysUtilFunctionsWithPublicAccess = {
                                                 "SYSCS_PEEK_AT_SEQUENCE",
                                                 };
-
 
     @Override
     public void startWriting(LanguageConnectionContext lcc,boolean setDDMode) throws StandardException{

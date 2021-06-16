@@ -57,9 +57,9 @@ public class SpliceGroupUserVTI implements DatasetProvider, VTICosting, CompileT
         String currentUser = lcc.getCurrentUserId(activation);
         List<String> groupUsers = lcc.getCurrentGroupUser(activation);
         if (returnType == ADMINONLY) {
-            if (currentUser.equals("SPLICE") || groupUsers!= null && groupUsers.contains("SPLICE")) {
+            if (lcc.currentUserIsDatabaseOwner(activation)) {
                 ValueRow valueRow = new ValueRow(1);
-                valueRow.setColumn(1, new SQLVarchar("SPLICE"));
+                valueRow.setColumn(1, new SQLVarchar(lcc.getCurrentDatabaseOwner(activation)));
                 items.add(valueRow);
             }
             return dsp.createDataSet(items.iterator());

@@ -43,10 +43,7 @@ import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.daemon.Serviceable;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.JarReader;
-import com.splicemachine.db.iapi.services.monitor.ModuleControl;
-import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
-import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
-import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.services.monitor.*;
 import com.splicemachine.db.iapi.services.property.PropertyFactory;
 import com.splicemachine.db.iapi.services.property.PropertySetCallback;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
@@ -118,7 +115,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
     private DateFormat dateFormat;
     private DateFormat timeFormat;
     private DateFormat timestampFormat;
-    private UUID        myUUID;
+    private UUID myUUID;
 
     protected boolean lastToBoot; // is this class last to boot
 
@@ -173,7 +170,6 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 
         // create a database ID if one doesn't already exist
         myUUID = makeDatabaseID(create, startParams);
-
 
         // Add the database properties read from disk (not stored
         // in service.properties) into the set seen by booting modules.
@@ -418,7 +414,6 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 
     /**
         Return the UUID of this database.
-        @deprecated
     */
     public final UUID getId() {
         return myUUID;
@@ -507,26 +502,26 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
     protected    UUID    makeDatabaseID(boolean create, Properties startParams)
         throws StandardException
     {
+        ContextService.getFactory();
+        TransactionController tc = af.getTransaction(ContextService.getCurrentContextManager());
 
-        TransactionController tc = af.getTransaction(
-                ContextService.getFactory().getCurrentContextManager());
+        String dbName = startParams.getProperty(PersistentService.SERVICE_NAME);
+        String dbIdKey = DataDictionary.getDatabaseId(dbName);
 
         // If a pre-2003 build failed to upgraded to a post-2003 build, property conglomerate may be in an
         // inconsistent state. Restore it before trying to retrieve database properties.
         tc.recoverPropertyConglomerateIfNecessary();
 
         String  upgradeID = null;
-        UUID    databaseID;
+        UUID    databaseID = (UUID) tc.getProperty(dbIdKey);
 
-        if ((databaseID = (UUID) tc.getProperty(DataDictionary.DATABASE_ID)) == null) {
-
+        if (databaseID == null) {
             // no property defined in the Transaction set
             // this could be an upgrade, see if it's stored in the service set
 
             UUIDFactory    uuidFactory  = Monitor.getMonitor().getUUIDFactory();
 
-
-            upgradeID = startParams.getProperty(DataDictionary.DATABASE_ID);
+            upgradeID = startParams.getProperty(dbIdKey);
             if (upgradeID == null )
             {
                 // just create one
@@ -535,14 +530,14 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
                 databaseID = uuidFactory.recreateUUID(upgradeID);
             }
 
-            tc.setProperty(DataDictionary.DATABASE_ID, databaseID, true);
+            tc.setProperty(dbIdKey, databaseID, true);
         }
 
         // Remove the database identifier from the service.properties
         // file only if we upgraded it to be stored in the transactional
         // property set.
         if (upgradeID != null)
-            startParams.remove(DataDictionary.DATABASE_ID);
+            startParams.remove(dbIdKey);
 
         tc.commit();
         tc.destroy();
@@ -598,7 +593,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
         if (dbcp != null)
         {
             for (String[] aDbcp : dbcp) {
-                SchemaDescriptor sd = dd.getSchemaDescriptor(aDbcp[IdUtil.DBCP_SCHEMA_NAME], null, false);
+                SchemaDescriptor sd = dd.getSchemaDescriptor(getId(), aDbcp[IdUtil.DBCP_SCHEMA_NAME], null, false);
 
                 FileInfoDescriptor fid = null;
                 if (sd != null)
@@ -756,7 +751,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
     public StorageFile getJarFile(String schemaName, String sqlName)
         throws StandardException {
 
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, null, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(getId(), schemaName, null, true);
         FileInfoDescriptor fid = dd.getFileInfoDescriptor(sd,sqlName);
         if (fid == null)
             throw StandardException.newException(SQLState.LANG_JAR_FILE_DOES_NOT_EXIST, sqlName, schemaName);
@@ -783,7 +778,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
                     StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
                             fid.getDescriptorType(), util.getSqlName(), fid.getSchemaDescriptor().getDescriptorType(), util.getSchemaName());
 
-        SchemaDescriptor sd = dd.getSchemaDescriptor(util.getSchemaName(), null, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(getId(), util.getSchemaName(), null, true);
         try {
             util.notifyLoader(false);
             dd.invalidateAllSPSPlans(); // This will break other nodes, must do ddl

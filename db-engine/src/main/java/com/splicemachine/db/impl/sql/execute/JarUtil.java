@@ -62,6 +62,7 @@ public class JarUtil
     private LanguageConnectionContext lcc;
     private String schemaName;
     private String sqlName;
+    private UUID dbId;
 
     //Derived state
 
@@ -72,10 +73,11 @@ public class JarUtil
     //
     //State derived from the caller's context
     private JarUtil(LanguageConnectionContext lcc,
-            String schemaName, String sqlName)
+            String schemaName, String sqlName, UUID dbId)
          throws StandardException {
         this.schemaName = schemaName;
         this.sqlName = sqlName;
+        this.dbId = dbId;
         this.lcc = lcc;
         fr = lcc.getTransactionExecute().getFileHandler();
         dd = lcc.getDataDictionary();
@@ -85,17 +87,18 @@ public class JarUtil
     /**
       install a jar file to the current connection's database.
 
-      @param schemaName the name for the schema that holds the jar file.
-      @param sqlName the sql name for the jar file.
-      @param externalPath the path for the jar file to add.
-      @return The generationId for the jar file we add.
+     @return The generationId for the jar file we add.
 
       @exception StandardException Opps
+       * @param schemaName the name for the schema that holds the jar file.
+     * @param sqlName the sql name for the jar file.
+     * @param externalPath the path for the jar file to add.
+     * @param dbId
       */
     @SuppressFBWarnings(value="DE_MIGHT_IGNORE", justification="Ignore throw in finally")
-    public static long install(LanguageConnectionContext lcc, String schemaName, String sqlName, String externalPath)
+    public static long install(LanguageConnectionContext lcc, String schemaName, String sqlName, String externalPath, UUID dbId)
          throws StandardException {
-        JarUtil jutil = new JarUtil(lcc, schemaName, sqlName);
+        JarUtil jutil = new JarUtil(lcc, schemaName, sqlName, dbId);
         try {
             try (InputStream is = openJarURL(externalPath)){
                 return jutil.add(is);
@@ -115,7 +118,7 @@ public class JarUtil
       @exception StandardException Opps
       */
     private long add(final InputStream is) throws StandardException {
-        return lcc.getDatabase().addJar(is,this);
+        return lcc.getSpliceInstance().addJar(is,this);
     }
 
     /**
@@ -125,15 +128,16 @@ public class JarUtil
      *            the name for the schema that holds the jar file.
      * @param sqlName
      *            the sql name for the jar file.
-     * 
+     *
+     * @param dbId
      * @exception StandardException
      *                Opps
      */
     public static void
-    drop(LanguageConnectionContext lcc, String schemaName, String sqlName)
+    drop(LanguageConnectionContext lcc, String schemaName, String sqlName, UUID dbId)
          throws StandardException
     {
-        JarUtil jutil = new JarUtil(lcc, schemaName,sqlName);
+        JarUtil jutil = new JarUtil(lcc, schemaName,sqlName, dbId);
         jutil.drop();
     }
 
@@ -147,7 +151,7 @@ public class JarUtil
       @exception StandardException Opps
       */
     private void drop() throws StandardException {
-        lcc.getDatabase().dropJar(this);
+        lcc.getSpliceInstance().dropJar(this);
     }
 
     /**
@@ -155,17 +159,18 @@ public class JarUtil
       external file.
 
 
-      @param schemaName the name for the schema that holds the jar file.
-      @param sqlName the sql name for the jar file.
-      @param externalPath the path for the jar file to add.
-      @return The new generationId for the jar file we replace.
+     @return The new generationId for the jar file we replace.
 
       @exception StandardException Opps
+       * @param schemaName the name for the schema that holds the jar file.
+     * @param sqlName the sql name for the jar file.
+     * @param externalPath the path for the jar file to add.
+     * @param dbId
       */
-    public static long replace(LanguageConnectionContext lcc, String schemaName, String sqlName, String externalPath)
+    public static long replace(LanguageConnectionContext lcc, String schemaName, String sqlName, String externalPath, UUID dbId)
          throws StandardException
     {
-        JarUtil jutil = new JarUtil(lcc, schemaName,sqlName);
+        JarUtil jutil = new JarUtil(lcc, schemaName,sqlName, dbId);
 
         try {
             try (InputStream is = openJarURL(externalPath)) {
@@ -187,7 +192,7 @@ public class JarUtil
       @exception StandardException Opps
       */
     private long replace(InputStream is) throws StandardException {
-        return lcc.getDatabase().replaceJar(is,this);
+        return lcc.getSpliceInstance().replaceJar(is,this);
     }
 
     /**
@@ -197,7 +202,7 @@ public class JarUtil
     public FileInfoDescriptor getInfo()
          throws StandardException
     {
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, null, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(lcc.getDatabaseId(), schemaName, null, true);
         return dd.getFileInfoDescriptor(sd,sqlName);
     }
 
@@ -353,6 +358,10 @@ public class JarUtil
     }
     public String getSchemaName() {
         return schemaName;
+    }
+    public UUID getDbId()
+    {
+        return dbId;
     }
 
     public DataDescriptorGenerator getDataDescriptorGenerator() {

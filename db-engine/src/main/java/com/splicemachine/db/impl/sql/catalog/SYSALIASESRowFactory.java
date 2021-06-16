@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.utils.Pair;
 
@@ -290,12 +291,14 @@ public class SYSALIASESRowFactory extends CatalogRowFactory {
      * @param row                   a SYSALIASES row
      * @param parentTupleDescriptor Null for this kind of descriptor.
      * @param dd                    dataDictionary
+     * @param tc
      * @throws StandardException thrown on failure
      */
     public TupleDescriptor buildDescriptor(
             ExecRow row,
             TupleDescriptor parentTupleDescriptor,
-            DataDictionary dd)
+            DataDictionary dd,
+            TransactionController tc)
             throws StandardException {
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(
@@ -395,7 +398,7 @@ public class SYSALIASESRowFactory extends CatalogRowFactory {
         return new AliasDescriptor(dd, aliasUUID, aliasName,
                 schemaUUID, javaClassName, cAliasType,
                 cNameSpace, systemAlias,
-                aliasInfo, specificName);
+                aliasInfo, specificName, tc);
     }
 
     /**

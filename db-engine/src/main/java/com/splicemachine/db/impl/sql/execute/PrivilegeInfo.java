@@ -44,67 +44,67 @@ import java.util.List;
 public abstract class PrivilegeInfo
 {
 
-	/**
-	 *	This is the guts of the Execution-time logic for GRANT/REVOKE
-	 *
-	 * @param activation
-	 * @param grant true if grant, false if revoke
-	 * @param grantees a list of authorization ids (strings)
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	abstract public List<PermissionsDescriptor> executeGrantRevoke( Activation activation,
-											 boolean grant,
-											 List grantees)
-		throws StandardException;
+    /**
+     *    This is the guts of the Execution-time logic for GRANT/REVOKE
+     *
+     * @param activation
+     * @param grant true if grant, false if revoke
+     * @param grantees a list of authorization ids (strings)
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    abstract public List<PermissionsDescriptor> executeGrantRevoke( Activation activation,
+                                             boolean grant,
+                                             List grantees)
+        throws StandardException;
 
-	/**
-	 * Determines whether a user is the owner of an object
-	 * (table, function, or procedure). Note that Database Owner can access
-	 * database objects without needing to be their owner
-	 *
-	 * @param user					authorizationId of current user
-	 * @param groupuserlist         groupId list of current user
-	 * @param sd					SchemaDescriptor
-	 * @param dd					DataDictionary
-	 *
-	 * @exception StandardException if user does not own the object
-	 */
-	protected void checkOwnership( String user,
-								   List<String> groupuserlist,
-								   SchemaDescriptor sd,
-								   DataDictionary dd)
-		throws StandardException
-	{
-		if (!user.equals(sd.getAuthorizationId()) &&
-				!user.equals(dd.getAuthorizationDatabaseOwner())) {
-			if (groupuserlist != null) {
-				if (!groupuserlist.contains(sd.getAuthorizationId())
-						&& !groupuserlist.contains(dd.getAuthorizationDatabaseOwner()))
-				throw StandardException.newException(SQLState.AUTH_NOT_OWNER, user, sd.getSchemaName());
-			} else {
-				throw StandardException.newException(SQLState.AUTH_NOT_OWNER, user, sd.getSchemaName());
-			}
-		}
-	}
-	
-	/**
-	 * This method adds a warning if a revoke statement has not revoked 
-	 * any privileges from a grantee.
-	 * 
-	 * @param activation
-	 * @param grant true if grant, false if revoke
-	 * @param privileges_revoked true, if at least one privilege has been 
-	 * 							revoked from a grantee, false otherwise
-	 * @param grantee authorization id of the user
-	 */
-	protected void addWarningIfPrivilegeNotRevoked( Activation activation,
-													boolean grant,
-													boolean privileges_revoked,
-													String grantee) 
-	{
-		if(!grant && !privileges_revoked)
-			activation.addWarning(StandardException.newWarning
-					(SQLState.LANG_PRIVILEGE_NOT_REVOKED, grantee));
-	}
+    /**
+     * Determines whether a user is the owner of an object
+     * (table, function, or procedure). Note that Database Owner can access
+     * database objects without needing to be their owner
+     *
+     * @param user                    authorizationId of current user
+     * @param groupuserlist         groupId list of current user
+     * @param sd                    SchemaDescriptor
+     * @param dd                    DataDictionary
+     *
+     * @exception StandardException if user does not own the object
+     */
+    protected void checkOwnership( String user,
+                                   List<String> groupuserlist,
+                                   SchemaDescriptor sd,
+                                   DataDictionary dd)
+        throws StandardException
+    {
+        if (!user.equals(sd.getAuthorizationId()) &&
+                !user.equals(dd.getAuthorizationDatabaseOwner(sd.getDatabaseId()))) {
+            if (groupuserlist != null) {
+                if (!groupuserlist.contains(sd.getAuthorizationId())
+                        && !groupuserlist.contains(dd.getAuthorizationDatabaseOwner(sd.getDatabaseId())))
+                throw StandardException.newException(SQLState.AUTH_NOT_OWNER, user, sd.getSchemaName());
+            } else {
+                throw StandardException.newException(SQLState.AUTH_NOT_OWNER, user, sd.getSchemaName());
+            }
+        }
+    }
+
+    /**
+     * This method adds a warning if a revoke statement has not revoked
+     * any privileges from a grantee.
+     *
+     * @param activation
+     * @param grant true if grant, false if revoke
+     * @param privileges_revoked true, if at least one privilege has been
+     *                             revoked from a grantee, false otherwise
+     * @param grantee authorization id of the user
+     */
+    protected void addWarningIfPrivilegeNotRevoked( Activation activation,
+                                                    boolean grant,
+                                                    boolean privileges_revoked,
+                                                    String grantee)
+    {
+        if(!grant && !privileges_revoked)
+            activation.addWarning(StandardException.newWarning
+                    (SQLState.LANG_PRIVILEGE_NOT_REVOKED, grantee));
+    }
 }

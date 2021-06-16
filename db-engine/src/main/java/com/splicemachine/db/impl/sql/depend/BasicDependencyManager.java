@@ -866,34 +866,7 @@ public class BasicDependencyManager implements DependencyManager {
         }
     }
 
-    /**
-     * Count the number of active dependencies, both stored and in memory,
-     * in the system.
-     *
-     * @return int        The number of active dependencies in the system.
-
-        @exception StandardException thrown if something goes wrong
-     */
-    public int countDependencies() throws StandardException {
-        // Add the stored dependencies.
-        int numDependencies = dd.getAllDependencyDescriptorsList().size();
-        synchronized(this) {
-            Iterator<List<Dependency>> deps = dependents.values().iterator();
-            Iterator<List<Dependency>> provs = providers.values().iterator();
-
-            // Count the in memory dependencies.
-            while (deps.hasNext()) {
-                numDependencies += deps.next().size();
-            }
-
-            while (provs.hasNext()) {
-                numDependencies += provs.next().size();
-            }
-        }
-        return numDependencies;
-    }
-
-    //
+	//
     // class interface
     //
     public BasicDependencyManager(DataDictionary dd) {

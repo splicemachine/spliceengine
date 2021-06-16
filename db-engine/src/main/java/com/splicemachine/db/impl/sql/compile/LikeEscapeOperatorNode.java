@@ -431,12 +431,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
                     //           / \
                     //       column 'Derby'
 
-                    AndNode newAnd = 
-                        (AndNode) getNodeFactory().getNode(
-                                    C_NodeTypes.AND_NODE,
-                                    this,
-                                    equals,
-                                    getContextManager());
+                    AndNode newAnd = new AndNode(this, equals, getContextManager());
 
                     finishBindExpr();
                     newAnd.postBindFixup();
@@ -700,11 +695,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
             lessThan.setBetweenSelectivity();
 
             /* Create the AND */
-            newAnd = (AndNode) getNodeFactory().getNode(
-                C_NodeTypes.AND_NODE,
-                lessThan,
-                trueNode,
-                getContextManager());
+            newAnd = new AndNode(lessThan, trueNode, getContextManager());
 
             newAnd.postBindFixup();
         }
@@ -760,22 +751,8 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
         greaterEqual.setBetweenSelectivity();
 
         /* Create the AND */
-        if (newAnd == null)
-        {
-            newAnd = (AndNode) getNodeFactory().getNode(
-                C_NodeTypes.AND_NODE,
-                greaterEqual,
-                trueNode,
-                getContextManager());
-        }
-        else
-        {
-            newAnd = (AndNode) getNodeFactory().getNode(
-                C_NodeTypes.AND_NODE,
-                greaterEqual,
-                newAnd,
-                getContextManager());
-        }
+        newAnd = new AndNode(greaterEqual,
+                newAnd == null ? trueNode : newAnd, getContextManager());
         newAnd.postBindFixup();
 
         /* Finally, we put an AND LIKE on top of the left deep tree, but
@@ -783,13 +760,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
          */
         if (!eliminateLikeComparison)
         {
-            newAnd = (AndNode) 
-                getNodeFactory().getNode(
-                    C_NodeTypes.AND_NODE,
-                    this,
-                    newAnd,
-                    getContextManager());
-
+            newAnd = new AndNode(this, newAnd, getContextManager());
             newAnd.postBindFixup();
         }
 

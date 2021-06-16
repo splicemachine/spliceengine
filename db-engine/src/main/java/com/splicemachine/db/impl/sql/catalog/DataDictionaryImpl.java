@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.locks.LockFactory;
 import com.splicemachine.db.iapi.services.locks.ShExLockable;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.services.monitor.PersistentService;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
@@ -80,6 +81,7 @@ import splice.com.google.common.collect.ImmutableListMultimap;
 import splice.com.google.common.collect.Lists;
 import splice.com.google.common.collect.Multimaps;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
@@ -125,6 +127,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     protected SchemaDescriptor sysFunSchemaDesc;
     protected SchemaDescriptor sysViewSchemaDesc;
     protected SchemaDescriptor sysCatSchemaDesc;
+    protected DatabaseDescriptor spliceDbDesc;
 
     /**
      * Dictionary version of the on-disk database
@@ -134,7 +137,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * Dictionary version of the currently running engine
      */
     protected DD_Version softwareVersion;
-    protected String authorizationDatabaseOwner;
+    protected Map<UUID, String> authorizationDatabasesOwner = new HashMap<>();
     protected boolean usesSqlAuthorization;
 
     /**
@@ -159,7 +162,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
     public DataDescriptorGenerator dataDescriptorGenerator;
     protected DataValueFactory dvf;
-    AccessFactory af;
+    protected AccessFactory af;
     //DataDictionaryContext                ddc;
 
     protected ExecutionFactory exFactory;
@@ -269,7 +272,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         //yet. We will know the right collation for user schema little later
         //in this boot method.
         collationTypeOfSystemSchemas=StringDataValue.COLLATION_TYPE_UCS_BASIC;
-        getBuiltinSystemSchemas();
+
+        /* Get AccessFactory in order to transaction stuff */
+        af=(AccessFactory)Monitor.findServiceModule(this,AccessFactory.MODULE);
+
+        createBuiltinSpliceDb(startParams);
+        createBuiltinSystemSchemas();
 
         // REMIND: actually, we're supposed to get the DataValueFactory
         // out of the connection context...this is a bit of a shortcut.
@@ -357,6 +365,18 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             coreInfo[SYSSCHEMAS_CORE_NUM].setIndexConglomerate(
                     SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX2_ID,
                     getBootParameter(startParams,CFG_SYSSCHEMAS_INDEX2_ID,true));
+
+            // SYSDATABASES
+            coreInfo[SYSDATABASES_CORE_NUM].setHeapConglomerate(
+                    getBootParameter(startParams, CFG_SYSDATABASES_ID, false));
+
+            coreInfo[SYSDATABASES_CORE_NUM].setIndexConglomerate(
+                    SYSDATABASESRowFactory.SYSDATABASES_INDEX1_ID,
+                    getBootParameter(startParams, CFG_SYSDATABASES_INDEX1_ID, false));
+
+            coreInfo[SYSDATABASES_CORE_NUM].setIndexConglomerate(
+                    SYSDATABASESRowFactory.SYSDATABASES_INDEX2_ID,
+                    getBootParameter(startParams, CFG_SYSDATABASES_INDEX2_ID, false));
         }
 
         dataDictionaryCache = new DataDictionaryCache(startParams,this);
@@ -365,9 +385,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         /* Get the object to coordinate cache transitions */
         cacheCoordinator=new ShExLockable();
-
-        /* Get AccessFactory in order to transaction stuff */
-        af=(AccessFactory)Monitor.findServiceModule(this,AccessFactory.MODULE);
 
         /* Get the lock factory */
         lockFactory=af.getLockFactory();
@@ -438,14 +455,13 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
             boolean nativeAuthenticationEnabled=PropertyUtil.nativeAuthenticationEnabled(startParams);
 
-            if(create){
-                String userName=IdUtil.getUserNameFromURLProps(startParams);
-                authorizationDatabaseOwner=IdUtil.getUserAuthorizationId(userName);
-                HashSet newlyCreatedRoutines=new HashSet();
+            HashSet newlyCreatedRoutines = null;
+
+            if(create) {
+                newlyCreatedRoutines = new HashSet();
 
                 // create any required tables.
                 createDictionaryTables(startParams,bootingTC,ddg);
-
                 //create metadata sps statement required for network server
                 createSystemSps(bootingTC);
 
@@ -468,7 +484,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 aggregateGenerator.createAggregates(bootingTC);
 
                 // now grant execute permission on some of these routines
-                grantPublicAccessToSystemRoutines(newlyCreatedRoutines,bootingTC,authorizationDatabaseOwner);
+                grantPublicAccessToSystemRoutines(newlyCreatedRoutines,bootingTC, spliceDbDesc.getAuthorizationId());
                 // log the current dictionary version
                 dictionaryVersion=softwareVersion;
                 
@@ -509,7 +525,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         Property.SQL_AUTHORIZATION_PROPERTY);
 
                 // Feature compatibility check.
-                if(Boolean.valueOf(startParams.getProperty(Attribute.SOFT_UPGRADE_NO_FEATURE_CHECK))){
+                if(Boolean.parseBoolean(startParams.getProperty(Attribute.SOFT_UPGRADE_NO_FEATURE_CHECK))){
                     // Do not perform check if this boot is the first
                     // phase (soft upgrade boot) of a hard upgrade,
                     // which happens in two phases beginning with
@@ -529,18 +545,23 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     // For upgrades from 10.1 and earlier there is no
                     // database owner check at a hard upgrade.
                     if(dictionaryVersion.majorVersionNumber>=DataDictionary.DD_VERSION_DERBY_10_2){
-                        usesSqlAuthorization=Boolean.valueOf(sqlAuth) || nativeAuthenticationEnabled;
+                        usesSqlAuthorization=Boolean.parseBoolean(sqlAuth) || nativeAuthenticationEnabled;
                     }
                 }else{
-                    if(Boolean.valueOf(sqlAuth) || nativeAuthenticationEnabled){
+                    if(Boolean.parseBoolean(sqlAuth) || nativeAuthenticationEnabled){
                         usesSqlAuthorization=true;
                     }
                 }
             }
-            assert authorizationDatabaseOwner!=null:"Failed to get Database Owner authorization";
+
+            if (create) {
+                createDbOwnerSchema(bootingTC, getSpliceDatabaseDescriptor().getUUID(), SchemaDescriptor.DEFAULT_USER_NAME);
+            }
+
+            assert authorizationDatabasesOwner.containsKey(spliceDbDesc.getUUID()) :"Failed to get Database Owner authorization";
 
             // Update (or create) the system stored procedures if requested.
-            updateSystemProcedures(bootingTC);
+            updateSystemProcedures(spliceDbDesc, bootingTC);
 
             // read the system configuration setting about whether access restriction is enabled
             // and determine if sysvw.sysschemasview should be updated
@@ -561,6 +582,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         setDependencyManager();
         booting=false;
+    }
+
+    protected UUID getCurrentlyBootingDatabaseUuid(Properties startParams, TransactionController tc) throws StandardException {
+        String dbIdKey = DataDictionary.getDatabaseId(startParams.getProperty(PersistentService.SERVICE_NAME));
+        return (UUID) tc.getProperty(dbIdKey);
     }
 
     /**
@@ -635,10 +661,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * Get authorizationID of Database Owner
      *
      * @return authorizationID
+     * @param dbId
      */
     @Override
-    public String getAuthorizationDatabaseOwner(){
-        return authorizationDatabaseOwner;
+    public String getAuthorizationDatabaseOwner(UUID dbId){
+        return authorizationDatabasesOwner.get(dbId);
     }
 
     @Override
@@ -669,7 +696,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     /**
      * Set up the builtin schema descriptors for system schemas.
      */
-    private void getBuiltinSystemSchemas(){
+    private void createBuiltinSystemSchemas(){
         if(systemSchemaDesc!=null)
             return;
 
@@ -682,6 +709,65 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         sysCatSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.IBM_SYSTEM_CAT_SCHEMA_NAME,SchemaDescriptor.SYSCAT_SCHEMA_UUID);
     }
 
+    private void createBuiltinSpliceDb(Properties startParams) throws StandardException {
+        if (spliceDbDesc != null)
+            return;
+
+        ContextService.getFactory();
+        TransactionController tc = af.getTransaction(ContextService.getCurrentContextManager());
+        UUID databaseID = (UUID) tc.getProperty(DataDictionary.DATABASE_ID);
+        String userName = IdUtil.getUserNameFromURLProps(startParams);
+        String authorizationId = IdUtil.getUserAuthorizationId(userName);
+
+
+        spliceDbDesc = new DatabaseDescriptor(this, DatabaseDescriptor.STD_DB_NAME, authorizationId, databaseID);
+        authorizationDatabasesOwner.put(databaseID, authorizationId);
+    }
+
+    private void assertTcElevated(TransactionController tc, String caller) throws StandardException {
+        if (!tc.isElevated()) {
+            throw StandardException.plainWrapException(new IOException(caller + ": not writeable"));
+        }
+    }
+
+    public UUID createNewDatabaseAndDatabaseOwner(TransactionController tc, String dbName, String dbOwner, String dbPassword) throws StandardException {
+        assertTcElevated(tc, "createNewDatabaseAndDatabaseOwner");
+        dbOwner = IdUtil.getUserAuthorizationId(dbOwner);
+        UserDescriptor dbOwnerDesc = dataDescriptorGenerator.makeUserDescriptor(tc, dbOwner, dbPassword, null);
+        return createNewDatabaseAndDatabaseOwner(tc, dbName, dbOwnerDesc);
+    }
+
+    public UUID createNewDatabaseAndDatabaseOwner(TransactionController tc, String dbName, UserDescriptor dbOwner) throws StandardException {
+        if (!af.isMultiDatabaseEnabled()) {
+            throw StandardException.newException(SQLState.LANG_MULTIDATABASE_NOT_ENABLED);
+        }
+        assertTcElevated(tc, "createNewDatabaseAndDatabaseOwner");
+        DatabaseDescriptor dbDesc = createNewDatabase(dbName, dbOwner.getUserName());
+        UUID dbId = dbDesc.getUUID();
+        dbOwner.setDatabaseId(dbId);
+        addDescriptor(dbOwner, null, SYSUSERS_CATALOG_NUM, false, tc, false);
+        authorizationDatabasesOwner.put(dbId, dbOwner.getUserName());
+        createDbSpecificSystemSchemas(tc, dbDesc);
+        return dbId;
+    }
+
+    private DatabaseDescriptor createNewDatabase(String name, String dbOwner) throws StandardException {
+        dbOwner = IdUtil.getUserAuthorizationId(dbOwner);
+        ContextService.getFactory();
+        TransactionController tc = af.getTransaction(ContextService.getCurrentContextManager());
+        if (!tc.isElevated()) {
+            throw StandardException.plainWrapException(new IOException("createNewDatabase: not writeable"));
+        }
+
+        UUID uuid = getUUIDFactory().createUUID();
+        DatabaseDescriptor desc = new DatabaseDescriptor(
+                this, name, dbOwner, uuid);
+        addDescriptor(desc, null, SYSDATABASES_CATALOG_NUM, false, tc, false);
+        createDbOwnerSchema(tc, uuid, dbOwner);
+        return desc;
+    }
+
+    // TODO(arnaud multidb) make this DB specific? DB-10257. Only used in SYSSCHEMASRowFactory via SchemaFilterVTI for Ranger
     public List<SchemaDescriptor> getAllSchemas(TransactionController tc) throws StandardException{
         List<SchemaDescriptor> lists =new ArrayList<>();
         TabInfoImpl ti=coreInfo[SYSSCHEMAS_CORE_NUM];
@@ -709,13 +795,36 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             ExecRow outRow = rf.makeEmptyRow();
             SchemaDescriptor schemaDescr;
             while (sc.fetchNext(outRow.getRowArray())) {
-                schemaDescr = (SchemaDescriptor) rf.buildDescriptor(outRow, null, this);
+                schemaDescr = (SchemaDescriptor) rf.buildDescriptor(outRow, null, this, tc);
                 lists.add(schemaDescr);
             }
         }
         return lists;
     }
 
+    public List<DatabaseDescriptor> getAllDatabases(TransactionController tc) throws StandardException{
+        List<DatabaseDescriptor> lists = new ArrayList<>();
+        TabInfoImpl ti=coreInfo[SYSDATABASES_CORE_NUM];
+        SYSDATABASESRowFactory rf=(SYSDATABASESRowFactory) ti.getCatalogRowFactory();
+        try (ScanController sc = tc.openScan(
+                ti.getHeapConglomerate(),
+                false,   // don't hold open across commit
+                0,       // for update
+                TransactionController.MODE_RECORD,
+                TransactionController.ISOLATION_REPEATABLE_READ,
+                null,      // all fields as objects
+                null, // start position -
+                0,                            // startSearchOperation - none
+                null,                //
+                null, // stop position -through last row
+                0)) {
+            ExecRow outRow = rf.makeEmptyRow();
+            while (sc.fetchNext(outRow.getRowArray())) {
+                lists.add((DatabaseDescriptor) rf.buildDescriptor(outRow, null, this, tc));
+            }
+        }
+        return lists;
+    }
 
     // returns null if database is at rev level 10.5 or earlier
     @Override
@@ -809,6 +918,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return defaultValue;
     }
 
+    /**
+     * Get the descriptor for the default splice database.
+     */
+    @Override
+    public DatabaseDescriptor getSpliceDatabaseDescriptor() {
+        return spliceDbDesc;
+    }
+
 
     /**
      * Get the descriptor for the system schema. Schema descriptors include
@@ -838,7 +955,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public SchemaDescriptor getSystemUtilSchemaDescriptor() {
-        return (systemUtilSchemaDesc);
+        return systemUtilSchemaDesc;
     }
 
     /**
@@ -852,7 +969,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public SchemaDescriptor getSysIBMSchemaDescriptor() {
+    public SchemaDescriptor getSysIBMSchemaDescriptor(){
         return sysIBMSchemaDesc;
     }
 
@@ -867,7 +984,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public SchemaDescriptor getSysFunSchemaDescriptor() {
+    public SchemaDescriptor getSysFunSchemaDescriptor(){
         return sysFunSchemaDesc;
     }
 
@@ -902,6 +1019,46 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return (ret_val);
     }
 
+    @Override
+    public DatabaseDescriptor getDatabaseDescriptor(String dbName, TransactionController tc) throws StandardException {
+        return getDatabaseDescriptor(dbName, tc, true);
+    }
+
+    @Override
+    public DatabaseDescriptor getDatabaseDescriptor(String dbName, TransactionController tc, boolean raiseError) throws StandardException
+    {
+        /*
+         ** Check for SPLICEDB before going any further.
+         */
+
+        if(tc==null){
+            tc=getTransactionCompile();
+        }
+
+        if(dbName == null || getSpliceDatabaseDescriptor().getDatabaseName().equals(dbName)){
+            return getSpliceDatabaseDescriptor();
+        }
+
+        /*
+         ** Manual lookup
+         */
+
+        DatabaseDescriptor dd = dataDictionaryCache.databaseCacheFind(dbName, tc);
+        if (dd!=null)
+            return dd;
+
+        dd = locateDatabaseRow(dbName,tc);
+
+        if (dd!=null)
+            dataDictionaryCache.databaseCacheAdd(dbName, dd, tc);
+
+        if(dd==null && raiseError) {
+            throw StandardException.newException(SQLState.LANG_DATABASE_DOES_NOT_EXIST, dbName);
+        }else{
+            return dd;
+        }
+    }
+
     /**
      * Get the descriptor for the named schema.
      * Schema descriptors include authorization ids and schema ids.
@@ -916,7 +1073,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on error
      */
     @Override
-    public SchemaDescriptor getSchemaDescriptor(String schemaName,
+    public SchemaDescriptor getSchemaDescriptor(UUID dbId, String schemaName,
                                                 TransactionController tc,
                                                 boolean raiseError) throws StandardException{
         /*
@@ -927,20 +1084,24 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         if(tc==null){
             tc=getTransactionCompile();
         }
+        if (dbId == null) {
+            dbId = getLCC().getDatabaseId();
+        }
 
         SchemaDescriptor sd = getSystemWideSchemaDescriptor(schemaName);
         if (sd != null)
             return sd;
 
-        sd = dataDictionaryCache.schemaCacheFind(schemaName);
+        // Manual lookup
+        sd = dataDictionaryCache.schemaCacheFind(dbId, schemaName, tc);
         if (sd!=null)
             return sd;
 
-        sd=locateSchemaRow(schemaName,tc);
+        sd=locateSchemaRow(dbId, schemaName,tc);
 
         if (sd!=null)
-            dataDictionaryCache.schemaCacheAdd(schemaName,sd);
-        //if no schema found and schema name is SESSION, then create an 
+            dataDictionaryCache.schemaCacheAdd(dbId, schemaName,sd, tc);
+        //if no schema found and schema name is SESSION, then create an
         //in-memory schema descriptor
         if(sd==null && getDeclaredGlobalTemporaryTablesSchemaDescriptor().getSchemaName().equals(schemaName)){
             return getDeclaredGlobalTemporaryTablesSchemaDescriptor();
@@ -1030,6 +1191,39 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     /**
+     * Get the target database by searching for a matching row
+     * in SYSDATABASES by database name.  Read only scan.
+     *
+     * @param dbName The name of the schema we're interested in.
+     *                   If schemaId is null, used to qual.
+     * @param tc         TransactionController.  If null, one
+     *                   is gotten off of the language connection context.
+     * @return The row for the schema
+     * @throws StandardException Thrown on error
+     */
+    public DatabaseDescriptor locateDatabaseRow(String dbName,TransactionController tc) throws StandardException{
+        DataValueDescriptor databaseNameOrderable;
+        TabInfoImpl ti=coreInfo[SYSDATABASES_CORE_NUM];
+
+        databaseNameOrderable=new SQLVarchar(dbName);
+
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1,databaseNameOrderable);
+
+        return (DatabaseDescriptor)
+                getDescriptorViaIndex(
+                        SYSDATABASESRowFactory.SYSDATABASES_INDEX1_ID,
+                        keyRow,
+                        null,
+                        ti,
+                        null,
+                        null,
+                        false,
+                        TransactionController.ISOLATION_REPEATABLE_READ,
+                        tc);
+    }
+
+    /**
      * Get the target schema by searching for a matching row
      * in SYSSCHEMAS by schema name.  Read only scan.
      *
@@ -1041,14 +1235,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on error
      */
     @Override
-    public SchemaDescriptor locateSchemaRow(String schemaName,TransactionController tc) throws StandardException{
-        DataValueDescriptor schemaNameOrderable;
+    public SchemaDescriptor locateSchemaRow(UUID dbId, String schemaName,TransactionController tc) throws StandardException{
         TabInfoImpl ti=coreInfo[SYSSCHEMAS_CORE_NUM];
 
-        schemaNameOrderable=new SQLVarchar(schemaName);
+        DataValueDescriptor schemaNameOrderable=new SQLVarchar(schemaName);
+        DataValueDescriptor dbIdOrderable = getIDValueAsCHAR(dbId);
 
-        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
-        keyRow.setColumn(1,schemaNameOrderable);
+        ExecIndexRow keyRow=exFactory.getIndexableRow(2);
+        keyRow.setColumn(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_DATABASEID, dbIdOrderable);
+        keyRow.setColumn(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_SCHEMANAME, schemaNameOrderable);
 
         return (SchemaDescriptor)
                 getDescriptorViaIndex(
@@ -1076,12 +1271,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public SchemaDescriptor getSchemaDescriptor(UUID schemaId,TransactionController tc) throws StandardException{
         SchemaDescriptor sd = null;
         if (schemaId != null)
-            sd = dataDictionaryCache.oidSchemaCacheFind(schemaId);
+            sd = dataDictionaryCache.oidSchemaCacheFind(schemaId, tc);
         if (sd != null)
             return sd;
         sd = getSchemaDescriptorBody(schemaId,TransactionController.ISOLATION_REPEATABLE_READ,tc);
         if (schemaId != null && sd != null)
-            dataDictionaryCache.oidSchemaCacheAdd(schemaId, sd);
+            dataDictionaryCache.oidSchemaCacheAdd(schemaId, sd, tc);
         return sd;
     }
 
@@ -1287,24 +1482,28 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public void dropRoleGrant(String roleName,
                               String grantee,
                               String grantor,
-                              TransactionController tc) throws StandardException{
+                              UUID databaseId, TransactionController tc) throws StandardException{
         DataValueDescriptor roleNameOrderable;
         DataValueDescriptor granteeOrderable;
         DataValueDescriptor grantorOrderable;
+        DataValueDescriptor dbIdOrderable;
 
         TabInfoImpl ti=getNonCoreTI(SYSROLES_CATALOG_NUM);
 
-        roleNameOrderable=new SQLVarchar(roleName);
-        granteeOrderable=new SQLVarchar(grantee);
-        grantorOrderable=new SQLVarchar(grantor);
+        roleNameOrderable = new SQLVarchar(roleName);
+        granteeOrderable = new SQLVarchar(grantee);
+        grantorOrderable = new SQLVarchar(grantor);
+        dbIdOrderable = new SQLChar(databaseId.toString());
 
         ExecIndexRow keyRow;
 
+        SYSROLESRowFactory rf=(SYSROLESRowFactory) ti.getCatalogRowFactory();
         /* Set up the start/stop position for the scan */
-        keyRow=exFactory.getIndexableRow(3);
-        keyRow.setColumn(1,roleNameOrderable);
-        keyRow.setColumn(2,granteeOrderable);
-        keyRow.setColumn(3,grantorOrderable);
+        keyRow=exFactory.getIndexableRow(rf.getIndexColumnCount(SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX));
+        keyRow.setColumn(1,dbIdOrderable);
+        keyRow.setColumn(2,roleNameOrderable);
+        keyRow.setColumn(3,granteeOrderable);
+        keyRow.setColumn(4,grantorOrderable);
 
         ti.deleteRow(tc,keyRow,SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX);
     }
@@ -1368,7 +1567,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ti,
                 null,
                 partitionStatisticsDescriptors,
-                false);
+                false, null);
         List<ColumnStatisticsDescriptor> columnStats = getColumnStatistics(conglomerate, tc);
         ImmutableListMultimap columnStatsMap = Multimaps.index(columnStats, new Function<ColumnStatisticsDescriptor, String>() {
             @Override
@@ -1399,7 +1598,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ti,
                 null,
                 columnStatisticsDescriptors,
-                false);
+                false, tc);
         return columnStatisticsDescriptors;
     }
 
@@ -1411,13 +1610,13 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on error
      */
     @Override
-    public void dropSchemaDescriptor(String schemaName,TransactionController tc) throws StandardException{
+    public void dropSchemaDescriptor(UUID dbId, String schemaName,TransactionController tc) throws StandardException{
         ExecIndexRow keyRow1;
-        DataValueDescriptor schemaNameOrderable;
+        DataValueDescriptor schemaNameOrderable, dbIdOrderable;
         TabInfoImpl ti=coreInfo[SYSSCHEMAS_CORE_NUM];
 
         if(SanityManager.DEBUG){
-            SchemaDescriptor sd=getSchemaDescriptor(schemaName,getTransactionCompile(),true);
+            SchemaDescriptor sd = getSchemaDescriptor(dbId, schemaName, getTransactionCompile(), true);
             if(!isSchemaEmpty(sd)){
                 SanityManager.THROWASSERT("Attempt to drop schema "+schemaName+" that is not empty");
             }
@@ -1427,12 +1626,47 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
          * and stop position for index 1 scan.
          */
         schemaNameOrderable=new SQLVarchar(schemaName);
+        dbIdOrderable = new SQLChar(dbId.toString());
+
+        /* Set up the start/stop position for the scan */
+        SYSSCHEMASRowFactory rf=(SYSSCHEMASRowFactory)ti.getCatalogRowFactory();
+        keyRow1=exFactory.getIndexableRow(rf.getIndexColumnCount(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID));
+        keyRow1.setColumn(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_SCHEMANAME, schemaNameOrderable);
+        keyRow1.setColumn(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_DATABASEID, dbIdOrderable);
+
+        ti.deleteRow(tc,keyRow1,SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID);
+    }
+
+    /**
+     * Drop the descriptor for a database, given the db's name
+     *
+     * @param dbName The name of the schema to drop
+     * @param tc         TransactionController for the transaction
+     * @throws StandardException Thrown on error
+     */
+    @Override
+    public void dropDatabaseDescriptor(String dbName,TransactionController tc) throws StandardException{
+        ExecIndexRow keyRow1;
+        DataValueDescriptor databaseNameOrderable;
+        TabInfoImpl ti=coreInfo[SYSDATABASES_CORE_NUM];
+
+        if(SanityManager.DEBUG){
+            DatabaseDescriptor dd = getDatabaseDescriptor(dbName, getTransactionCompile(), true);
+            if(!isDatabaseEmpty(dd)){
+                SanityManager.THROWASSERT("Attempt to drop database " + dbName + " that is not empty");
+            }
+        }
+
+        /* Use databaseNameOrderable in both start
+         * and stop position for index 1 scan.
+         */
+        databaseNameOrderable=new SQLVarchar(dbName);
 
         /* Set up the start/stop position for the scan */
         keyRow1=exFactory.getIndexableRow(1);
-        keyRow1.setColumn(1,schemaNameOrderable);
+        keyRow1.setColumn(1,databaseNameOrderable);
 
-        ti.deleteRow(tc,keyRow1,SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID);
+        ti.deleteRow(tc, keyRow1, SYSDATABASESRowFactory.SYSDATABASES_INDEX1_ID);
     }
 
     /**
@@ -1490,7 +1724,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
         if (schemaUUID == null)
             throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, sd.getSchemaName());
-        retval = getTableDescriptorIndex1Scan(tableName,schemaUUID.toString());
+        retval = getTableDescriptorIndex1Scan(tableName,schemaUUID.toString(), tc);
         if (retval!=null) {
             dataDictionaryCache.nameTdCacheAdd(tableKey, retval);
         }
@@ -1503,7 +1737,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @return TableDescriptor    The matching descriptor, if any.
      * @throws StandardException Thrown on failure
      */
-    private TableDescriptor getTableDescriptorIndex1Scan(String tableName,String schemaUUID) throws StandardException{
+    private TableDescriptor getTableDescriptorIndex1Scan(String tableName,String schemaUUID, TransactionController tc) throws StandardException{
         DataValueDescriptor schemaIDOrderable;
         DataValueDescriptor tableNameOrderable;
         TableDescriptor td;
@@ -1527,9 +1761,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ti,
                 null,
                 null,
-                false);
+                false, tc);
 
-        return finishTableDescriptor(td);
+        return finishTableDescriptor(td, tc);
     }
 
     /**
@@ -1608,7 +1842,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 false);
 
         for (int i = 0; i < tds.size(); i++) {
-            tds.set(i, finishTableDescriptor(tds.get(i)));
+            tds.set(i, finishTableDescriptor(tds.get(i), null));
         }
 
         return tds;
@@ -1678,9 +1912,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         ti,
                         null,
                         null,
-                        false);
+                        false, null);
 
-        return finishTableDescriptor(td);
+        return finishTableDescriptor(td, null);
     }
 
     protected void markSystemTablesAsVersion1(TableDescriptor td) {
@@ -1694,22 +1928,54 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * (Build the various lists that hang off the TD.)
      *
      * @param td The TableDescriptor.
+     * @param tc
      * @return The completed TableDescriptor.
      * @throws StandardException Thrown on failure
      */
-    private TableDescriptor finishTableDescriptor(TableDescriptor td) throws StandardException{
+    private TableDescriptor finishTableDescriptor(TableDescriptor td, TransactionController tc) throws StandardException{
 
         if(td!=null){
             //noinspection SynchronizationOnLocalVariableOrMethodParameter
             synchronized(td){
-                getColumnDescriptorsScan(td);
-                getConglomerateDescriptorsScan(td);
+                getColumnDescriptorsScan(td, tc);
+                getConglomerateDescriptorsScan(td, tc);
                 markSystemTablesAsVersion1(td);
                 td.getHeapConglomerateId(); // populate heapConglomerateId
              }
         }
 
         return td;
+    }
+
+    @Override
+    public boolean isDatabaseEmpty(DatabaseDescriptor dd) throws StandardException{
+        DataValueDescriptor dbIdOrderable;
+        TransactionController tc=getTransactionCompile();
+
+        dbIdOrderable=getIDValueAsCHAR(dd.getUUID());
+
+        if(isDatabaseReferenced(tc,coreInfo[SYSSCHEMAS_CORE_NUM],
+                SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID,
+                SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_DATABASEID,
+                dbIdOrderable)){
+            return false;
+        }
+
+        if(isDatabaseReferenced(tc, getNonCoreTI(SYSUSERS_CATALOG_NUM),
+                SYSUSERSRowFactory.SYSUSERS_INDEX1_ID,
+                SYSUSERSRowFactory.SYSUSERS_INDEX1_DATABASEID,
+                dbIdOrderable)){
+            return false;
+        }
+
+        if(isDatabaseReferenced(tc, getNonCoreTI(SYSROLES_CATALOG_NUM),
+                SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX,
+                SYSROLESRowFactory.SYSROLES_DATABASEID_COLPOS_IN_INDEX_ID_EE_OR,
+                dbIdOrderable)){
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -1789,6 +2055,76 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     /**
+     * Is the database id referenced by the system table in question?
+     * Currently assumes that the schema id is in an index.
+     * NOTE: could be generalized a bit, and possibly used
+     * elsewhere...
+     *
+     * @param tc                transaction controller
+     * @param ti                table info for the system table
+     * @param indexId           index id
+     * @param indexCol          1 based index column
+     * @param databaseIdOrderable the databaseid in a char orderable
+     * @return true if there is a reference to this schema
+     * @throws StandardException on error
+     */
+    protected boolean isDatabaseReferenced(TransactionController tc,
+                                         TabInfoImpl ti,
+                                         int indexId,
+                                         int indexCol,
+                                         DataValueDescriptor databaseIdOrderable) throws StandardException{
+        ConglomerateController heapCC=null;
+        ScanController scanController=null;
+        boolean foundRow;
+        FormatableBitSet colToCheck=new FormatableBitSet(indexCol);
+
+        assert indexId>=0:"Programmer error: code needs to be enhanced to support a table scan to find the index id";
+
+        colToCheck.set(indexCol-1);
+
+        ScanQualifier[][] qualifier=exFactory.getScanQualifier(1);
+        qualifier[0][0].setQualifier
+                (indexCol-1,
+                        databaseIdOrderable,
+                        Orderable.ORDER_OP_EQUALS,
+                        false,
+                        false,
+                        false);
+
+        try{
+            heapCC=tc.openConglomerate(
+                    ti.getHeapConglomerate(),false,0,
+                    TransactionController.MODE_RECORD,
+                    TransactionController.ISOLATION_REPEATABLE_READ);
+
+            scanController=tc.openScan(
+                    ti.getIndexConglomerate(indexId),    // conglomerate to open
+                    false,                                // don't hold open across commit
+                    0,                                  // for read
+                    TransactionController.MODE_RECORD,    // row locking
+                    TransactionController.ISOLATION_REPEATABLE_READ,
+                    colToCheck,                        // don't get any rows
+                    null,                            // start position - first row
+                    ScanController.GE,                // startSearchOperation
+                    qualifier,                            // scanQualifier,
+                    null,                            // stop position - through last row
+                    ScanController.GT);                // stopSearchOperation
+
+            foundRow=(scanController.next());
+        }finally{
+            if(scanController!=null){
+                scanController.close();
+            }
+            if(heapCC!=null){
+                heapCC.close();
+            }
+        }
+
+        return foundRow;
+    }
+
+
+    /**
      * Is the schema id referenced by the system table in question?
      * Currently assumes that the schema id is in an index.
      * NOTE: could be generalized a bit, and possibly used
@@ -1845,6 +2181,52 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
     }
 
+    public ArrayList<SchemaDescriptor> getSchemasInDatabase(DatabaseDescriptor dbDesc) throws StandardException {
+        TabInfoImpl ti = coreInfo[SYSSCHEMAS_CATALOG_NUM];
+
+        ExecIndexRow keyRow = exFactory.getIndexableRow(1);
+        keyRow.setColumn(1, getIDValueAsCHAR(dbDesc.getUUID()));
+        ArrayList<SchemaDescriptor> resultList = new ArrayList<>();
+        getDescriptorViaIndex(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID,
+                keyRow,
+                null,
+                ti,
+                null,
+                resultList,
+                false, null);
+        return resultList;
+    }
+
+    public ArrayList<UserDescriptor> getUsersInDatabase(DatabaseDescriptor dbDesc) throws StandardException {
+        TabInfoImpl ti = getNonCoreTI(SYSUSERS_CATALOG_NUM);
+        ExecIndexRow keyRow = exFactory.getIndexableRow(1);
+        keyRow.setColumn(1, getIDValueAsCHAR(dbDesc.getUUID()));
+        ArrayList<UserDescriptor> resultList = new ArrayList<>();
+        getDescriptorViaIndex(SYSUSERSRowFactory.SYSUSERS_INDEX1_ID,
+                keyRow,
+                null,
+                ti,
+                null,
+                resultList,
+                false, null);
+        return resultList;
+    }
+
+    public ArrayList<RoleGrantDescriptor> getRoleGrantsInDatabase(DatabaseDescriptor dbDesc) throws StandardException {
+        TabInfoImpl ti = getNonCoreTI(SYSROLES_CATALOG_NUM);
+        ExecIndexRow keyRow = exFactory.getIndexableRow(1);
+        keyRow.setColumn(1, getIDValueAsCHAR(dbDesc.getUUID()));
+        ArrayList<RoleGrantDescriptor> resultList = new ArrayList<>();
+        getDescriptorViaIndex(SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX,
+                keyRow,
+                null,
+                ti,
+                null,
+                resultList,
+                false, null);
+        return resultList;
+    }
+
     public ArrayList<TupleDescriptor> getTablesInSchema(SchemaDescriptor sd) throws StandardException{
 
         DataValueDescriptor schemaIdOrderable;
@@ -1867,7 +2249,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         getDescriptorViaHeap(null,scanQualifier,ti,null,list);
 
         for (int i = 0; i < list.size(); i++) {
-            list.set(i, finishTableDescriptor((TableDescriptor)(list.get(i))));
+            list.set(i, finishTableDescriptor((TableDescriptor)(list.get(i)), null));
         }
         return list;
     }
@@ -1887,7 +2269,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ti,
                 null,
                 resultList,
-                false);
+                false, null);
         return resultList;
     }
 
@@ -1906,7 +2288,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ti,
                 null,
                 resultList,
-                false);
+                false, null);
         return resultList;
     }
 
@@ -2084,7 +2466,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 oldAD.getNameSpace(),
                 oldAD.getSystemAlias(),
                 newRai,
-                oldAD.getSpecificName()
+                oldAD.getSpecificName(),
+                tc
         );
         ExecRow newRow=ti.getCatalogRowFactory().makeRow(newAD,null);
 
@@ -2172,7 +2555,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ExecIndexRow keyRow=exFactory.getIndexableRow(1);
         keyRow.setColumn(1,UUIDStringOrderable);
 
-        return (ColumnDescriptor)getDescriptorViaIndex(SYSCOLUMNSRowFactory.SYSCOLUMNS_INDEX2_ID,keyRow,null,ti,null,null,false);
+        return (ColumnDescriptor)getDescriptorViaIndex(SYSCOLUMNSRowFactory.SYSCOLUMNS_INDEX2_ID,keyRow,null,ti,null,null,false, null);
     }
 
 
@@ -2183,10 +2566,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * on the CDL in the given TD.
      *
      * @param td The TableDescriptor.
+     * @param tc
      * @throws StandardException Thrown on failure
      */
-    private void getColumnDescriptorsScan(TableDescriptor td) throws StandardException{
-        getColumnDescriptorsScan(td.getUUID(),td.getColumnDescriptorList(),td);
+    private void getColumnDescriptorsScan(TableDescriptor td, TransactionController tc) throws StandardException{
+        getColumnDescriptorsScan(td.getUUID(),td.getColumnDescriptorList(),td, tc);
     }
 
     /**
@@ -2198,9 +2582,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param uuid The referencing UUID
      * @param cdl  The column descriptor list
      * @param td   The parent tuple descriptor
+     * @param tc
      * @throws StandardException Thrown on failure
      */
-    private void getColumnDescriptorsScan(UUID uuid,ColumnDescriptorList cdl,TupleDescriptor td) throws StandardException{
+    private void getColumnDescriptorsScan(UUID uuid, ColumnDescriptorList cdl, TupleDescriptor td, TransactionController tc) throws StandardException{
         DataValueDescriptor refIDOrderable;
         TabInfoImpl ti=coreInfo[SYSCOLUMNS_CORE_NUM];
 
@@ -2218,7 +2603,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ti,
                 td,
                 cdl,
-                false);
+                false, tc);
 
         /* The TableDescriptor's column descriptor list must be ordered by
          * columnNumber.  (It is probably not ordered correctly at this point due
@@ -2418,7 +2803,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ti,
                 null,
                 permissionDescriptorsList,
-                false);
+                false, tc);
 
         /* Next, using each of the ColPermDescriptor's uuid, get the unique row
         in SYSCOLPERMS and adjust the "COLUMNS" column in SYSCOLPERMS to
@@ -2506,7 +2891,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         keyRow.setColumn(1,routineIdOrderable);
 
         while((curRow=ti.getRow(tc,keyRow,SYSROUTINEPERMSRowFactory.ALIASID_INDEX_NUM))!=null){
-            perm=(PermissionsDescriptor)rf.buildDescriptor(curRow,null,this);
+            perm=(PermissionsDescriptor)rf.buildDescriptor(curRow,null,this, tc);
             removePermEntryInCache(perm);
 
             // Build new key based on UUID and drop the entry as we want to drop
@@ -2518,7 +2903,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     @Override
-    public void dropRoleGrantsByGrantee(String grantee,TransactionController tc) throws StandardException{
+    public void dropRoleGrantsByGrantee(String grantee, UUID databaseId, TransactionController tc) throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSROLES_CATALOG_NUM);
         SYSROLESRowFactory rf=(SYSROLESRowFactory)ti.getCatalogRowFactory();
 
@@ -2526,6 +2911,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 rf,
                 SYSROLESRowFactory.SYSROLES_GRANTEE_COLPOS_IN_INDEX_ID_EE_OR,
                 grantee,
+                SYSROLESRowFactory.SYSROLES_DATABASEID_COLPOS_IN_INDEX_ID_EE_OR,
+                databaseId,
                 tc,
                 DataDictionaryImpl.DROP);
     }
@@ -2540,7 +2927,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @return true if there exists such a grant
      * @throws StandardException Thrown on failure
      */
-    private boolean existsRoleGrantByGrantee(String grantee,TransactionController tc) throws StandardException{
+    private boolean existsRoleGrantByGrantee(String grantee, UUID databaseId, TransactionController tc) throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSROLES_CATALOG_NUM);
         SYSROLESRowFactory rf=(SYSROLESRowFactory)ti.getCatalogRowFactory();
 
@@ -2548,12 +2935,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 rf,
                 SYSROLESRowFactory.SYSROLES_GRANTEE_COLPOS_IN_INDEX_ID_EE_OR,
                 grantee,
+                SYSROLESRowFactory.SYSROLES_DATABASEID_COLPOS_IN_INDEX_ID_EE_OR,
+                databaseId,
                 tc,
                 DataDictionaryImpl.EXISTS);
     }
 
     @Override
-    public void dropRoleGrantsByName(String roleName,TransactionController tc) throws StandardException{
+    public void dropRoleGrantsByName(String roleName, UUID databaseId, TransactionController tc) throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSROLES_CATALOG_NUM);
         SYSROLESRowFactory rf=(SYSROLESRowFactory)ti.getCatalogRowFactory();
         dataDictionaryCache.roleCacheRemove(roleName);
@@ -2561,6 +2950,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 rf,
                 SYSROLESRowFactory.SYSROLES_ROLEID_COLPOS_IN_INDEX_ID_EE_OR,
                 roleName,
+                SYSROLESRowFactory.SYSROLES_DATABASEID_COLPOS_IN_INDEX_ID_EE_OR,
+                databaseId,
                 tc,
                 DataDictionaryImpl.DROP);
     }
@@ -2589,6 +2980,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                     SYSROLESRowFactory rf,
                                     int columnNo,
                                     String authId,
+                                    int databaseIdColumnNo,
+                                    UUID databaseId,
                                     TransactionController tc,
                                     int action) throws StandardException{
         try (ConglomerateController heapCC=tc.openConglomerate(
@@ -2597,7 +2990,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 TransactionController.ISOLATION_REPEATABLE_READ)) {
 
             DataValueDescriptor authIdOrderable = new SQLVarchar(authId);
-            ScanQualifier[][] scanQualifier = exFactory.getScanQualifier(1);
+            DataValueDescriptor dbIdOrderable = new SQLChar(databaseId.toString());
+            ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(2);
 
             scanQualifier[0][0].setQualifier(
                     columnNo - 1,    /* to zero-based */
@@ -2606,6 +3000,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     false,
                     false,
                     false);
+
+            scanQualifier[0][1].setQualifier(
+                databaseIdColumnNo - 1,  /* to zero-based */
+                dbIdOrderable,
+                Orderable.ORDER_OP_EQUALS,
+                false,
+                false,
+                false);
 
             try (ScanController sc = tc.openScan(
                     ti.getIndexConglomerate(SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX),
@@ -2655,7 +3057,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * FIXME: Need to cache graph and invalidate when role graph is modified.
      * Currently, we always read from SYSROLES.
      */
-    public Map<String, List<RoleGrantDescriptor>> getRoleGrantGraph(TransactionController tc,boolean inverse, boolean roleOnly) throws StandardException{
+    public Map<String, List<RoleGrantDescriptor>> getRoleGrantGraph(TransactionController tc,boolean inverse, boolean roleOnly, UUID databaseId) throws StandardException{
 
         Map<String, List<RoleGrantDescriptor>> hm=new HashMap<>();
 
@@ -2663,11 +3065,20 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         SYSROLESRowFactory rf=(SYSROLESRowFactory)ti.getCatalogRowFactory();
 
         DataValueDescriptor isDefOrderable=new SQLVarchar("N");
-        ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(1);
+        DataValueDescriptor dbIdOrderable = new SQLChar(databaseId.toString());
+        ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(2);
 
         scanQualifier[0][0].setQualifier(
                 SYSROLESRowFactory.SYSROLES_ISDEF-1, /* to zero-based */
                 isDefOrderable,
+                Orderable.ORDER_OP_EQUALS,
+                false,
+                false,
+                false);
+
+        scanQualifier[0][1].setQualifier(
+                SYSROLESRowFactory.SYSROLES_DATABASE_ID -1, /* to zero-based */
+                dbIdOrderable,
                 Orderable.ORDER_OP_EQUALS,
                 false,
                 false,
@@ -2690,13 +3101,13 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             RoleGrantDescriptor grantDescr;
 
             while (sc.fetchNext(outRow.getRowArray())) {
-                grantDescr = (RoleGrantDescriptor) rf.buildDescriptor(outRow, null, this);
+            grantDescr=(RoleGrantDescriptor)rf.buildDescriptor(outRow,null,this, tc);
 
                 if (roleOnly) {
                     // Next call is potentially inefficient.  We could read in
                     // definitions first in a separate hash table limiting
                     // this to a 2-pass scan.
-                    RoleGrantDescriptor granteeDef = getRoleDefinitionDescriptor(grantDescr.getGrantee());
+                RoleGrantDescriptor granteeDef = getRoleDefinitionDescriptor(grantDescr.getGrantee(), databaseId);
 
                     if (granteeDef == null) {
                         // not a role, must be user authid, skip
@@ -2726,8 +3137,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     @Override
-    public RoleClosureIterator createRoleClosureIterator(TransactionController tc,String role,boolean inverse) throws StandardException{
-        return new RoleClosureIteratorImpl(role,inverse,this,tc);
+    public RoleClosureIterator createRoleClosureIterator(TransactionController tc, String role, boolean inverse, UUID databaseId) throws StandardException{
+        return new RoleClosureIteratorImpl(role, inverse, this, tc, databaseId);
     }
 
 
@@ -2740,9 +3151,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public void dropAllPermsByGrantee(String authId,TransactionController tc) throws StandardException{
+    public void dropAllPermsByGrantee(String authId, UUID dbId, TransactionController tc) throws StandardException{
         dropPermsByGrantee(
                 authId,
+                dbId,
                 tc,
                 SYSSCHEMAPERMS_CATALOG_NUM,
                 SYSSCHEMAPERMSRowFactory.GRANTEE_SCHEMA_GRANTOR_INDEX_NUM,
@@ -2751,6 +3163,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         dropPermsByGrantee(
                 authId,
+                dbId,
                 tc,
                 SYSTABLEPERMS_CATALOG_NUM,
                 SYSTABLEPERMSRowFactory.GRANTEE_TABLE_GRANTOR_INDEX_NUM,
@@ -2759,6 +3172,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         dropPermsByGrantee(
                 authId,
+                dbId,
                 tc,
                 SYSCOLPERMS_CATALOG_NUM,
                 SYSCOLPERMSRowFactory.GRANTEE_TABLE_TYPE_GRANTOR_INDEX_NUM,
@@ -2767,6 +3181,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         dropPermsByGrantee(
                 authId,
+                dbId,
                 tc,
                 SYSROUTINEPERMS_CATALOG_NUM,
                 SYSROUTINEPERMSRowFactory.GRANTEE_ALIAS_GRANTOR_INDEX_NUM,
@@ -2775,6 +3190,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         dropPermsByGrantee(
                 authId,
+                dbId,
                 tc,
                 SYSPERMS_CATALOG_NUM,
                 SYSPERMSRowFactory.GRANTEE_OBJECTID_GRANTOR_INDEX_NUM,
@@ -2790,11 +3206,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * user is no more.
      */
     private void dropPermsByGrantee(String authId,
+                                    UUID dbId,
                                     TransactionController tc,
                                     int catalog,
                                     int indexNo,
                                     int granteeColnoInIndex) throws StandardException{
-        visitPermsByGrantee(authId,tc,catalog,indexNo,granteeColnoInIndex,DataDictionaryImpl.DROP);
+        visitPermsByGrantee(authId, dbId, tc,catalog,indexNo,granteeColnoInIndex,DataDictionaryImpl.DROP);
     }
 
     /**
@@ -2802,11 +3219,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * authorization id.
      */
     private boolean existsPermByGrantee(String authId,
+                                        UUID dbId,
                                         TransactionController tc,
                                         int catalog,
                                         int indexNo,
                                         int granteeColnoInIndex) throws StandardException{
-        return visitPermsByGrantee(authId,tc,catalog,indexNo,granteeColnoInIndex,DataDictionaryImpl.EXISTS);
+        return visitPermsByGrantee(authId,dbId,tc,catalog,indexNo,granteeColnoInIndex,DataDictionaryImpl.EXISTS);
     }
 
 
@@ -2849,6 +3267,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException
      */
     private boolean visitPermsByGrantee(String authId,
+                                        UUID dbId,
                                         TransactionController tc,
                                         int catalog,
                                         int indexNo,
@@ -2901,12 +3320,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         SanityManager.ASSERT(base_row_exists, "base row doesn't exist");
                     }
 
-                    if (action == DataDictionaryImpl.EXISTS) {
-                        return true;
-                    } else if (action == DataDictionaryImpl.DROP) {
-                        PermissionsDescriptor perm = (PermissionsDescriptor) rf.buildDescriptor(outRow, null, this);
-                        removePermEntryInCache(perm);
-                        ti.deleteRow(tc, indexRow, indexNo);
+                    PermissionsDescriptor perm = (PermissionsDescriptor)rf.buildDescriptor(outRow,null,this, tc);
+                    if (perm.getSchemaDescriptor().getDatabaseId().equals(dbId)) {
+                        if (action == DataDictionaryImpl.EXISTS) {
+                            return true;
+                        } else if (action == DataDictionaryImpl.DROP) {
+                            removePermEntryInCache(perm);
+                            ti.deleteRow(tc, indexRow, indexNo);
+                        }
                     }
                 }
             }
@@ -2944,7 +3365,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         SYSSCHEMAPERMSRowFactory rf=(SYSSCHEMAPERMSRowFactory)ti.getCatalogRowFactory();
 
         while((curRow=ti.getRow(tc,keyRow,SYSSCHEMAPERMSRowFactory.SCHEMAID_INDEX_NUM))!=null){
-            perm=(PermissionsDescriptor)rf.buildDescriptor(curRow,null,this);
+            perm=(PermissionsDescriptor)rf.buildDescriptor(curRow,null,this, tc);
             removePermEntryInCache(perm);
 
             // Build key on UUID and drop the entry as we want to drop only this row
@@ -2970,7 +3391,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         SYSTABLEPERMSRowFactory rf=(SYSTABLEPERMSRowFactory)ti.getCatalogRowFactory();
 
         while((curRow=ti.getRow(tc,keyRow,SYSTABLEPERMSRowFactory.TABLEID_INDEX_NUM))!=null){
-            perm=(PermissionsDescriptor)rf.buildDescriptor(curRow,null,this);
+            perm=(PermissionsDescriptor)rf.buildDescriptor(curRow,null,this, tc);
             removePermEntryInCache(perm);
 
             // Build key on UUID and drop the entry as we want to drop only this row
@@ -2995,7 +3416,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         SYSCOLPERMSRowFactory rf=(SYSCOLPERMSRowFactory)ti.getCatalogRowFactory();
 
         while((curRow=ti.getRow(tc,keyRow,SYSCOLPERMSRowFactory.TABLEID_INDEX_NUM))!=null){
-            perm=(PermissionsDescriptor)rf.buildDescriptor(curRow,null,this);
+            perm=(PermissionsDescriptor)rf.buildDescriptor(curRow,null,this, tc);
             removePermEntryInCache(perm);
 
             // Build key on UUID and drop the entry as we want to drop only this row
@@ -3146,7 +3567,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ExecIndexRow keyRow=exFactory.getIndexableRow(1);
         keyRow.setColumn(1,viewIdOrderable);
 
-        vd=(ViewDescriptor)getDescriptorViaIndex(SYSVIEWSRowFactory.SYSVIEWS_INDEX1_ID,keyRow,null,ti,null,null,false);
+        vd=(ViewDescriptor)getDescriptorViaIndex(SYSVIEWSRowFactory.SYSVIEWS_INDEX1_ID,keyRow,null,ti,null,null,false, null);
 
         if(vd!=null){
             vd.setViewName(tdi.getName());
@@ -3194,7 +3615,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         keyRow.setColumn(1,idOrderable);
 
         return (FileInfoDescriptor)
-                getDescriptorViaIndex(SYSFILESRowFactory.SYSFILES_INDEX2_ID,keyRow,null,ti,null,null,false);
+                getDescriptorViaIndex(SYSFILESRowFactory.SYSFILES_INDEX2_ID,keyRow,null,ti,null,null,false, null);
     }
 
     @Override
@@ -3222,7 +3643,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         keyRow.setColumn(1,nameOrderable);
         keyRow.setColumn(2,schemaIDOrderable);
         return (FileInfoDescriptor)
-                getDescriptorViaIndex(SYSFILESRowFactory.SYSFILES_INDEX1_ID,keyRow,null,ti,null,null,false);
+                getDescriptorViaIndex(SYSFILESRowFactory.SYSFILES_INDEX1_ID,keyRow,null,ti,null,null,false, null);
     }
 
     @Override
@@ -3307,7 +3728,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ti,
                 null,
                 null,
-                false);
+                false, null);
     }
 
     /**
@@ -3370,7 +3791,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         ti,
                         null,
                         null,
-                        false);
+                        false, null);
 
         /*
         ** Set up the parameter defaults.  We are only
@@ -3482,7 +3903,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     @Override
     public DataTypeDescriptor[] getSPSParams(SPSDescriptor spsd,List<DataValueDescriptor> defaults) throws StandardException{
         ColumnDescriptorList cdl=new ColumnDescriptorList();
-        getColumnDescriptorsScan(spsd.getUUID(),cdl,spsd);
+        getColumnDescriptorsScan(spsd.getUUID(),cdl,spsd, null);
 
         int cdlSize=cdl.size();
         DataTypeDescriptor[] params=new DataTypeDescriptor[cdlSize];
@@ -3663,7 +4084,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     public void clearSPSPlans() throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSSTATEMENTS_CATALOG_NUM);
-        faultInTabInfo(ti);
+        faultInTabInfo(ti, null);
 
         TransactionController tc=getTransactionExecute();
 
@@ -3763,7 +4184,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
     /**
      * Get every statement in this database.
-     * Return the SPSDescriptors in an list.
+     * Return the SPSDescriptors in a list.
      * The returned descriptors don't contain the compiled statement, so it
      * it safe to call this method during upgrade when it isn't known if the
      * saved statement can still be deserialized with the new version.
@@ -4482,7 +4903,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         ti,
                         null,
                         null,
-                        false);
+                        false, null);
     }
 
     /**
@@ -4512,7 +4933,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         keyRow.setColumn(2,schemaIDOrderable);
 
         return (TriggerDescriptor)
-                getDescriptorViaIndex(SYSTRIGGERSRowFactory.SYSTRIGGERS_INDEX2_ID,keyRow,null,ti,null,null,false);
+                getDescriptorViaIndex(SYSTRIGGERSRowFactory.SYSTRIGGERS_INDEX2_ID,keyRow,null,ti,null,null,false, null);
     }
 
     /**
@@ -4526,12 +4947,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public GenericDescriptorList getTriggerDescriptors(TableDescriptor td) throws StandardException{
+    public GenericDescriptorList getTriggerDescriptors(@Nonnull TableDescriptor td) throws StandardException{
         GenericDescriptorList gdl;
-
-        if(td==null){
-            return getAllTriggerDescriptors();
-        }
 
         /* Build the TableDescriptor's TDL if it is currently empty */
         gdl=td.getTriggerDescriptorList();
@@ -4581,7 +4998,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ti,
                 null,
                 gdl,
-                forUpdate);
+                forUpdate, null);
         gdl.setScanned(true);
     }
 
@@ -4663,7 +5080,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     /**
      * Load up the constraint descriptor list for this table
      * descriptor and return it.  If the descriptor list
-     * is already loaded up, it is retuned without further
+     * is already loaded up, it is returned without further
      * ado.  If no table descriptor is passed in, then all
      * constraint descriptors are retrieved.  Note that in
      * this case, the constraint descriptor objects may be
@@ -4926,7 +5343,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                      */
                     subCD.setTableDescriptor(td);
 
-                    cd = (ConstraintDescriptor) rf.buildDescriptor(outRow, subCD, this);
+            cd=(ConstraintDescriptor)rf.buildDescriptor(outRow,subCD,this, tc);
 
                     /* If dList is null, then caller only wants a single descriptor - we're done
                      * else just add the current descriptor to the list.
@@ -5004,7 +5421,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 }
 
                 assert subCD != null : "subCD is expected to be non-null";
-                cd = (ConstraintDescriptor) rf.buildDescriptor(outRow, subCD, this);
+                cd=(ConstraintDescriptor)rf.buildDescriptor(outRow,subCD,this, tc);
 
                 /* If dList is null, then caller only wants a single descriptor - we're done
                  * else just add the current descriptor to the list.
@@ -5070,7 +5487,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ti,
                 null,
                 fkList,
-                false);
+                false, null);
 
         TableDescriptor td;
         ConstraintDescriptorList cdl=new ConstraintDescriptorList();
@@ -5380,7 +5797,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         ti,
                         null,
                         null,
-                        false);
+                        false, null);
     }
 
     /**
@@ -5414,7 +5831,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             ti = getNonCoreTI(baseNum);
         } else if(constraint.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT){
             ti=getPkTable();
-            faultInTabInfo(ti);
+            faultInTabInfo(ti, tc);
             indexNum=0;
         } else{
             baseNum=SYSKEYS_CATALOG_NUM;
@@ -5457,7 +5874,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         keyRow.setColumn(1,constraintIDOrderable);
 
         return (SubCheckConstraintDescriptor)
-                getDescriptorViaIndex(SYSCHECKSRowFactory.SYSCHECKS_INDEX1_ID,keyRow,null,ti,null,null,false);
+                getDescriptorViaIndex(SYSCHECKSRowFactory.SYSCHECKS_INDEX1_ID,keyRow,null,ti,null,null,false, null);
     }
 
     /**
@@ -5525,7 +5942,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 cd = (ConglomerateDescriptor) rf.buildDescriptor(
                         outRow,
                         null,
-                        this);
+                    this, tc);
                 ht.put(cd.getConglomerateNumber(), cd);
             }
         }
@@ -5577,7 +5994,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                 outRow,
                                 null,
                                 this,
-                                TransactionController.ISOLATION_READ_UNCOMMITTED);
+                            TransactionController.ISOLATION_READ_UNCOMMITTED, tc);
                 ht.put(td.getUUID(), td);
             }
         }
@@ -5633,7 +6050,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     ti,
                     null,
                     cdl,
-                    false);
+                    false, null);
         }else{
             getDescriptorViaHeap(null,null,ti,null,cdl);
         }
@@ -5709,9 +6126,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * on the CDL in the given TD.
      *
      * @param td The TableDescriptor.
+     * @param tc
      * @throws StandardException Thrown on failure
      */
-    private void getConglomerateDescriptorsScan(TableDescriptor td) throws StandardException{
+    private void getConglomerateDescriptorsScan(TableDescriptor td, TransactionController tc) throws StandardException{
         ConglomerateDescriptorList cdl=td.getConglomerateDescriptorList();
 
         ExecIndexRow keyRow3;
@@ -5732,7 +6150,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ti,
                 null,
                 cdl,
-                false);
+                false, tc);
     }
 
     /**
@@ -5771,7 +6189,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ti,
                 null,
                 null,
-                forUpdate);
+                forUpdate, null);
     }
 
     /**
@@ -5865,23 +6283,28 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     @Override
-    public void updateSystemSchemaAuthorization(String aid,TransactionController tc) throws StandardException{
-        updateSchemaAuth(SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME,aid,tc);
-        updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,aid,tc);
-        updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME,aid,tc);
+    public void updateSystemSchemaAuthorization(UUID dbId, String aid,TransactionController tc) throws StandardException{
+        if (dbId.equals(spliceDbDesc.getUUID())) {
+            String dbIdString = dbId.toString();
+            updateSchemaAuth(dbIdString, SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME, aid, tc);
+            updateSchemaAuth(dbIdString, SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME, aid, tc);
+            updateSchemaAuth(dbIdString, SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, aid, tc);
 
-        updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_CAT_SCHEMA_NAME,aid,tc);
-        updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME,aid,tc);
-        updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_PROC_SCHEMA_NAME,aid,tc);
-        updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_STAT_SCHEMA_NAME,aid,tc);
-        updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_NULLID_SCHEMA_NAME,aid,tc);
+            updateSchemaAuth(dbIdString, SchemaDescriptor.IBM_SYSTEM_CAT_SCHEMA_NAME, aid, tc);
+            updateSchemaAuth(dbIdString, SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME, aid, tc);
+            updateSchemaAuth(dbIdString, SchemaDescriptor.IBM_SYSTEM_PROC_SCHEMA_NAME, aid, tc);
+            updateSchemaAuth(dbIdString, SchemaDescriptor.IBM_SYSTEM_STAT_SCHEMA_NAME, aid, tc);
+            updateSchemaAuth(dbIdString, SchemaDescriptor.IBM_SYSTEM_NULLID_SCHEMA_NAME, aid, tc);
 
-        updateSchemaAuth(SchemaDescriptor.STD_SQLJ_SCHEMA_NAME,aid,tc);
-        updateSchemaAuth(SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME,aid,tc);
-        updateSchemaAuth(SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,aid,tc);
+            updateSchemaAuth(dbIdString, SchemaDescriptor.STD_SQLJ_SCHEMA_NAME, aid, tc);
+            updateSchemaAuth(dbIdString, SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME, aid, tc);
+            updateSchemaAuth(dbIdString, SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME, aid, tc);
+        } else {
+            updateSchemaAuth(dbId.toString(), SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME, aid, tc);
+        }
 
         // now reset our understanding of who owns the database
-        resetDatabaseOwner(tc);
+        resetSpliceDbOwner(tc, dbId);
     }
 
     /**
@@ -5892,21 +6315,22 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param tc              The TransactionController to use
      * @throws StandardException Thrown on failure
      */
-    public void updateSchemaAuth(String schemaName,String authorizationId,TransactionController tc) throws StandardException{
+    public void updateSchemaAuth(String dbUUID, String schemaName,String authorizationId,TransactionController tc) throws StandardException{
         ExecIndexRow keyRow;
-        DataValueDescriptor schemaNameOrderable;
+        DataValueDescriptor schemaNameOrderable, dbIdOrderable;
         TabInfoImpl ti=coreInfo[SYSSCHEMAS_CORE_NUM];
 
         /* Use schemaNameOrderable in both start
          * and stop position for index 1 scan.
          */
         schemaNameOrderable=new SQLVarchar(schemaName);
+        dbIdOrderable = new SQLChar(dbUUID);
 
         /* Set up the start/stop position for the scan */
-        keyRow=exFactory.getIndexableRow(1);
-        keyRow.setColumn(1,schemaNameOrderable);
-
         SYSSCHEMASRowFactory rf=(SYSSCHEMASRowFactory)ti.getCatalogRowFactory();
+        keyRow=exFactory.getIndexableRow(rf.getIndexColumnCount(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID));
+        keyRow.setColumn(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_SCHEMANAME, schemaNameOrderable);
+        keyRow.setColumn(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_DATABASEID, dbIdOrderable);
 
         ExecRow row=rf.makeEmptyRow();
 
@@ -5990,7 +6414,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ExecIndexRow keyRow=exFactory.getIndexableRow(1);
         keyRow.setColumn(1,dependentIDOrderable);
 
-        getDescriptorViaIndex(SYSDEPENDSRowFactory.SYSDEPENDS_INDEX1_ID,keyRow,null,ti,null,ddlList,false);
+        getDescriptorViaIndex(SYSDEPENDSRowFactory.SYSDEPENDS_INDEX1_ID,keyRow,null,ti,null,ddlList,false, null);
 
         return ddlList;
     }
@@ -6017,55 +6441,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ExecIndexRow keyRow=exFactory.getIndexableRow(1);
         keyRow.setColumn(1,providerIDOrderable);
 
-        getDescriptorViaIndex(SYSDEPENDSRowFactory.SYSDEPENDS_INDEX2_ID,keyRow,null,ti,null,ddlList,false);
+        getDescriptorViaIndex(SYSDEPENDSRowFactory.SYSDEPENDS_INDEX2_ID,keyRow,null,ti,null,ddlList,false, null);
         return ddlList;
-    }
-
-    /**
-     * Build and return an List with DependencyDescriptors for
-     * all of the stored dependencies.
-     * This is useful for consistency checking.
-     *
-     * @return List        List of all DependencyDescriptors.
-     * @throws StandardException Thrown on failure
-     */
-    @Override
-    public List<DependencyDescriptor> getAllDependencyDescriptorsList() throws StandardException{
-        TransactionController tc;
-        ExecRow outRow;
-        List<DependencyDescriptor> ddl=newSList();
-        TabInfoImpl ti=getNonCoreTI(SYSDEPENDS_CATALOG_NUM);
-        SYSDEPENDSRowFactory rf=(SYSDEPENDSRowFactory)ti.getCatalogRowFactory();
-
-
-        // Get the current transaction controller
-        tc=getTransactionCompile();
-
-        outRow=rf.makeEmptyRow();
-
-        try (ScanController scanController=tc.openScan(
-                ti.getHeapConglomerate(),  // conglomerate to open
-                false, // don't hold open across commit
-                0, // for read
-                TransactionController.MODE_TABLE,   // scans entire table.
-                TransactionController.ISOLATION_REPEATABLE_READ,
-                null,                     // all fields as objects
-                null,   // start position - first row
-                ScanController.GE,      // startSearchOperation
-                null,
-                null,   // stop position - through last row
-                ScanController.GT)) {   // stopSearchOperation
-
-            while (scanController.fetchNext(outRow.getRowArray())) {
-                DependencyDescriptor dependencyDescriptor;
-
-                dependencyDescriptor = (DependencyDescriptor) rf.buildDescriptor(outRow, null, this);
-
-                ddl.add(dependencyDescriptor);
-            }
-        }
-
-        return ddl;
     }
 
     /**
@@ -6117,7 +6494,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     @Override
     public void dropDependentsStoredDependencies(UUID dependentsUUID,TransactionController tc) throws StandardException{
         if (!tc.isElevated()) {
-            StandardException.plainWrapException(new IOException("addStoreDependency: not writeable"));
+            StandardException.plainWrapException(new IOException("dropDependentsStoredDependencies: not writeable"));
         }
 
         dropDependentsStoredDependencies(dependentsUUID,tc,true);
@@ -6176,20 +6553,21 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             return null;
         }
 
-        SchemaDescriptor sd=getSchemaDescriptor(btii.getSchemaName(),tc,true);
+        SchemaDescriptor sd = getSchemaDescriptor(getLCC().getDatabaseId(), btii.getSchemaName(), tc, true);
 
-        return getAliasDescriptor(sd.getUUID().toString(),btii.getUnqualifiedName(),AliasInfo.ALIAS_NAME_SPACE_UDT_AS_CHAR);
+        return getAliasDescriptor(sd.getUUID().toString(),btii.getUnqualifiedName(),AliasInfo.ALIAS_NAME_SPACE_UDT_AS_CHAR, tc);
     }
 
     /**
      * Get a AliasDescriptor given its UUID.
      *
      * @param uuid The UUID
+     * @param tc
      * @return The AliasDescriptor for the alias.
      * @throws StandardException Thrown on failure
      */
     @Override
-    public AliasDescriptor getAliasDescriptor(UUID uuid) throws StandardException{
+    public AliasDescriptor getAliasDescriptor(UUID uuid, TransactionController tc) throws StandardException{
         DataValueDescriptor UUIDStringOrderable;
         TabInfoImpl ti=getNonCoreTI(SYSALIASES_CATALOG_NUM);
 
@@ -6206,7 +6584,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ti,
                 null,
                 null,
-                false);
+                false, tc);
     }
 
     /**
@@ -6216,11 +6594,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param schemaId  schema identifier
      * @param aliasName The alias name.
      * @param nameSpace The alias type.
+     * @param tc
      * @return AliasDescriptor    AliasDescriptor for the alias name and name space
      * @throws StandardException Thrown on failure
      */
     @Override
-    public AliasDescriptor getAliasDescriptor(String schemaId,String aliasName,char nameSpace) throws StandardException{
+    public AliasDescriptor getAliasDescriptor(String schemaId, String aliasName, char nameSpace, TransactionController tc) throws StandardException{
         DataValueDescriptor aliasNameOrderable;
         DataValueDescriptor nameSpaceOrderable;
         TabInfoImpl ti=getNonCoreTI(SYSALIASES_CATALOG_NUM);
@@ -6245,7 +6624,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ti,
                 null,
                 null,
-                false);
+                false, tc);
     }
 
     /**
@@ -6306,7 +6685,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                             uuidFactory.recreateUUID(schemaID),
                             details[2],AliasInfo.ALIAS_TYPE_FUNCTION_AS_CHAR,
                             AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR,
-                            true,ai,null);
+                            true,ai,null, null);
 
                     sysfunDescriptors[f]=ad;
                 }
@@ -6315,7 +6694,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             return list;
         }
 
-        AliasDescriptor ad=getAliasDescriptor(schemaID,routineName,nameSpace);
+        AliasDescriptor ad=getAliasDescriptor(schemaID,routineName,nameSpace, null);
         return ad==null?Collections.<AliasDescriptor>emptyList():Collections.singletonList(ad);
     }
 
@@ -6351,10 +6730,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public void updateUser(UserDescriptor newDescriptor,TransactionController tc) throws StandardException{
         ExecIndexRow keyRow;
         TabInfoImpl ti=getNonCoreTI(SYSUSERS_CATALOG_NUM);
+        SYSUSERSRowFactory rf = (SYSUSERSRowFactory) ti.getCatalogRowFactory();
 
         /* Set up the start/stop position for the scan */
-        keyRow=exFactory.getIndexableRow(1);
-        keyRow.setColumn(1,new SQLVarchar(newDescriptor.getUserName()));
+        keyRow=exFactory.getIndexableRow(rf.getIndexColumnCount(SYSUSERSRowFactory.SYSUSERS_INDEX1_ID));
+        keyRow.setColumn(1,new SQLChar(newDescriptor.getDatabaseId().toString()));
+        keyRow.setColumn(2,new SQLVarchar(newDescriptor.getUserName()));
 
         // this zeroes out the password in the UserDescriptor
         ExecRow row=ti.getCatalogRowFactory().makeRow(newDescriptor,null);
@@ -6371,7 +6752,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     @Override
-    public UserDescriptor getUser(String userName) throws StandardException{
+    public UserDescriptor getUser(UUID databaseId, String userName) throws StandardException{
         //
         // No sense looking for the SYSUSERS congomerate until the database
         // is hard-upgraded to 10.9 or later.
@@ -6380,19 +6761,23 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         ExecIndexRow keyRow;
         TabInfoImpl ti=getNonCoreTI(SYSUSERS_CATALOG_NUM);
+        SYSUSERSRowFactory rf = (SYSUSERSRowFactory) ti.getCatalogRowFactory();
         /* Set up the start/stop position for the scan */
-        keyRow=exFactory.getIndexableRow(1);
-        keyRow.setColumn(1,new SQLVarchar(userName));
-        return (UserDescriptor)getDescriptorViaIndex(SYSUSERSRowFactory.SYSUSERS_INDEX1_ID,keyRow,null,ti,null,null,false);
+        keyRow=exFactory.getIndexableRow(rf.getIndexColumnCount(SYSUSERSRowFactory.SYSUSERS_INDEX1_ID));
+        keyRow.setColumn(1,new SQLChar(databaseId.toString()));
+        keyRow.setColumn(2,new SQLVarchar(userName));
+        return (UserDescriptor)getDescriptorViaIndex(SYSUSERSRowFactory.SYSUSERS_INDEX1_ID,keyRow,null,ti,null,null,false, null);
     }
 
     @Override
-    public void dropUser(String userName,TransactionController tc) throws StandardException{
+    public void dropUser(UUID databaseId, String userName, TransactionController tc) throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSUSERS_CATALOG_NUM);
+        SYSUSERSRowFactory rf = (SYSUSERSRowFactory) ti.getCatalogRowFactory();
 
         /* Set up the start/stop position for the scan */
-        ExecIndexRow keyRow1=exFactory.getIndexableRow(1);
-        keyRow1.setColumn(1,new SQLVarchar(userName));
+        ExecIndexRow keyRow1=exFactory.getIndexableRow(rf.getIndexColumnCount(SYSUSERSRowFactory.SYSUSERS_INDEX1_ID));
+        keyRow1.setColumn(1,new SQLChar(databaseId.toString()));
+        keyRow1.setColumn(2,new SQLVarchar(userName));
 
         ti.deleteRow(tc,keyRow1,SYSUSERSRowFactory.SYSUSERS_INDEX1_ID);
     }
@@ -6425,8 +6810,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             dictionaryVersion.checkVersion(DD_VERSION_DERBY_10_9,"NATIVE AUTHENTICATION");
         }
 
-        resetDatabaseOwner(tc);
-
         softwareVersion.upgradeIfNeeded(dictionaryVersion,tc,startParams);
     }
 
@@ -6438,10 +6821,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param tc TransactionController
      * @throws StandardException Thrown on error
      */
-    protected void updateSystemProcedures(TransactionController tc) throws StandardException{
+    protected void updateSystemProcedures(DatabaseDescriptor dbDesc, TransactionController tc) throws StandardException{
         // Update (or create) the system stored procedures if requested.
         if(updateSystemProcs){
-            createOrUpdateAllSystemProcedures(tc);
+            createOrUpdateAllSystemProcedures(dbDesc, tc);
         }
         // Only update the system procedures once.  Otherwise, each time an ij session is created, the system procedures will be dropped/created again.
         // It would be better if it was possible to detect when the database is being booted during server startup versus the database being booted during ij startup.
@@ -6454,16 +6837,18 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * a separately callable method.
      *
      * @param tc TransactionController
+     * @param spliceDbUUID
      * @throws StandardException Thrown on error
      */
-    public void resetDatabaseOwner(TransactionController tc) throws StandardException{
-        SchemaDescriptor sd=locateSchemaRow(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,tc);
-        authorizationDatabaseOwner=sd.getAuthorizationId();
+    public void resetSpliceDbOwner(TransactionController tc, UUID spliceDbUUID) throws StandardException{
+        SchemaDescriptor sd=locateSchemaRow(spliceDbUUID, SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME, tc);
+        String owner = sd.getAuthorizationId();
+        authorizationDatabasesOwner.put(spliceDbUUID, owner);
 
-        systemSchemaDesc.setAuthorizationId(authorizationDatabaseOwner);
-        sysIBMSchemaDesc.setAuthorizationId(authorizationDatabaseOwner);
-        sysIBMADMSchemaDesc.setAuthorizationId(authorizationDatabaseOwner);
-        systemUtilSchemaDesc.setAuthorizationId(authorizationDatabaseOwner);
+        systemSchemaDesc.setAuthorizationId(owner);
+        sysIBMSchemaDesc.setAuthorizationId(owner);
+        sysIBMADMSchemaDesc.setAuthorizationId(owner);
+        systemUtilSchemaDesc.setAuthorizationId(owner);
     }
 
     /**
@@ -6650,11 +7035,21 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         coreInfo[SYSSCHEMAS_CORE_NUM].getIndexConglomerate(
                                 SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX2_ID)));
 
+        params.put(CFG_SYSDATABASES_ID,Long.toString(coreInfo[SYSDATABASES_CORE_NUM].getHeapConglomerate()));
+        params.put(CFG_SYSDATABASES_INDEX1_ID,
+                Long.toString(
+                        coreInfo[SYSDATABASES_CORE_NUM].getIndexConglomerate(
+                                SYSDATABASESRowFactory.SYSDATABASES_INDEX1_ID)));
+        params.put(CFG_SYSDATABASES_INDEX2_ID,
+                Long.toString(
+                        coreInfo[SYSDATABASES_CORE_NUM].getIndexConglomerate(
+                                SYSDATABASESRowFactory.SYSDATABASES_INDEX2_ID)));
+
                 //Add the SYSIBM Schema
-        sysIBMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,SchemaDescriptor.SYSIBM_SCHEMA_UUID,tc);
+        sysIBMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,SchemaDescriptor.SYSIBM_SCHEMA_UUID, spliceDbDesc, tc);
 
         //Add the SYSIBMADM Schema
-        sysIBMADMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME,SchemaDescriptor.SYSIBMADM_SCHEMA_UUID,tc);
+        sysIBMADMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME,SchemaDescriptor.SYSIBMADM_SCHEMA_UUID, spliceDbDesc, tc);
 
         /* Create the non-core tables and generate the UUIDs for their
          * heaps (before creating the indexes).
@@ -6675,6 +7070,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             }
         }
 
+        // Add the database table
+        addDescriptor(spliceDbDesc, null, SYSDATABASES_CATALOG_NUM, false, tc, false);
+
         //Add ths System Schema
         addDescriptor(systemSchemaDesc,null,SYSSCHEMAS_CATALOG_NUM,false,tc,false);
 
@@ -6690,40 +7088,58 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         //     NULLID
 
         //Add the SYSCAT Schema 
-        addSystemSchema(SchemaDescriptor.IBM_SYSTEM_CAT_SCHEMA_NAME,SchemaDescriptor.SYSCAT_SCHEMA_UUID,tc);
+        addSystemSchema(SchemaDescriptor.IBM_SYSTEM_CAT_SCHEMA_NAME,SchemaDescriptor.SYSCAT_SCHEMA_UUID, spliceDbDesc, tc);
 
         //Add the SYSFUN Schema
-        addSystemSchema(SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME,SchemaDescriptor.SYSFUN_SCHEMA_UUID,tc);
+        addSystemSchema(SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME,SchemaDescriptor.SYSFUN_SCHEMA_UUID, spliceDbDesc, tc);
 
         //Add the SYSPROC Schema
-        addSystemSchema(SchemaDescriptor.IBM_SYSTEM_PROC_SCHEMA_NAME,SchemaDescriptor.SYSPROC_SCHEMA_UUID,tc);
+        addSystemSchema(SchemaDescriptor.IBM_SYSTEM_PROC_SCHEMA_NAME,SchemaDescriptor.SYSPROC_SCHEMA_UUID, spliceDbDesc, tc);
 
         //Add the SYSSTAT Schema
-        addSystemSchema(SchemaDescriptor.IBM_SYSTEM_STAT_SCHEMA_NAME,SchemaDescriptor.SYSSTAT_SCHEMA_UUID,tc);
+        addSystemSchema(SchemaDescriptor.IBM_SYSTEM_STAT_SCHEMA_NAME,SchemaDescriptor.SYSSTAT_SCHEMA_UUID, spliceDbDesc, tc);
 
         //Add the NULLID Schema
-        addSystemSchema(SchemaDescriptor.IBM_SYSTEM_NULLID_SCHEMA_NAME,SchemaDescriptor.NULLID_SCHEMA_UUID,tc);
+        addSystemSchema(SchemaDescriptor.IBM_SYSTEM_NULLID_SCHEMA_NAME,SchemaDescriptor.NULLID_SCHEMA_UUID, spliceDbDesc, tc);
 
         //Add the SQLJ Schema
-        addSystemSchema(SchemaDescriptor.STD_SQLJ_SCHEMA_NAME,SchemaDescriptor.SQLJ_SCHEMA_UUID,tc);
+        addSystemSchema(SchemaDescriptor.STD_SQLJ_SCHEMA_NAME,SchemaDescriptor.SQLJ_SCHEMA_UUID, spliceDbDesc, tc);
 
         //Add the SYSCS_DIAG Schema
-        addSystemSchema(SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME,SchemaDescriptor.SYSCS_DIAG_SCHEMA_UUID,tc);
+        addSystemSchema(SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME,SchemaDescriptor.SYSCS_DIAG_SCHEMA_UUID, spliceDbDesc, tc);
 
         //Add the SYSCS_UTIL Schema
-        addSystemSchema(SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,SchemaDescriptor.SYSCS_UTIL_SCHEMA_UUID,tc);
+        addSystemSchema(SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,SchemaDescriptor.SYSCS_UTIL_SCHEMA_UUID, spliceDbDesc, tc);
 
-        //Add the SPLICE schema
+        //Add the SYSVW schema
+        sysViewSchemaDesc = addSystemSchema(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME,SchemaDescriptor.SYSVW_SCHEMA_UUID, spliceDbDesc, tc);
+    }
+
+    public void createDbSpecificSystemSchemas(TransactionController tc, DatabaseDescriptor dbDesc) throws StandardException {
+        UUID uuid = getUUIDFactory().createUUID();
+        //Add the SYSCS_UTIL Schema
+        addSystemSchema(SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME, uuid.toString(), dbDesc, tc);
+        createOrUpdateAllSystemProcedures(dbDesc, tc);
+    }
+
+    public void createDbOwnerSchema(TransactionController tc, UUID databaseUuid, String dbOwner) throws StandardException {
+        UUID schemaUuid;
+        if (databaseUuid.equals(getSpliceDatabaseDescriptor().getUUID())) {
+            schemaUuid = uuidFactory.recreateUUID(SchemaDescriptor.DEFAULT_SCHEMA_UUID);
+            assert SchemaDescriptor.STD_DEFAULT_SCHEMA_NAME.equals(SchemaDescriptor.DEFAULT_USER_NAME) &&
+                    dbOwner.equals(SchemaDescriptor.STD_DEFAULT_SCHEMA_NAME);
+        } else {
+            schemaUuid = uuidFactory.createUUID();
+        }
+
         SchemaDescriptor appSchemaDesc=new SchemaDescriptor(this,
-                SchemaDescriptor.STD_DEFAULT_SCHEMA_NAME,
-                SchemaDescriptor.DEFAULT_USER_NAME,
-                uuidFactory.recreateUUID(SchemaDescriptor.DEFAULT_SCHEMA_UUID),
+                dbOwner,
+                dbOwner,
+                schemaUuid,
+                databaseUuid,
                 false);
 
         addDescriptor(appSchemaDesc,null,SYSSCHEMAS_CATALOG_NUM,false,tc,false);
-
-        //Add the SYSVW schema
-        sysViewSchemaDesc = addSystemSchema(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME,SchemaDescriptor.SYSVW_SCHEMA_UUID,tc);
     }
 
     /**
@@ -6735,15 +7151,18 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     protected SchemaDescriptor addSystemSchema(String schema_name,
                                              String schema_uuid,
+                                             DatabaseDescriptor dbDesc,
                                              TransactionController tc) throws StandardException{
         // create the descriptor
-        UUID oid=uuidFactory.recreateUUID(schema_uuid);
-        SchemaDescriptor schema_desc=new SchemaDescriptor(this,schema_name,authorizationDatabaseOwner,oid,true);
+        UUID oid = uuidFactory.recreateUUID(schema_uuid);
+        SchemaDescriptor schema_desc=new SchemaDescriptor(
+                this, schema_name, dbDesc.getAuthorizationId(),
+                oid, dbDesc.getUUID(), true);
 
         // add it to the catalog.
         addDescriptor(schema_desc,null,SYSSCHEMAS_CATALOG_NUM,false,tc,false);
 
-        return (schema_desc);
+        return schema_desc;
     }
 
     /**
@@ -6799,7 +7218,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 null, // stop position -through last row
                 0)){
             while(scanController.fetchNext(outRow.getRowArray())){
-                FileInfoDescriptor fid=(FileInfoDescriptor)rf.buildDescriptor(outRow,null,this);
+                FileInfoDescriptor fid=(FileInfoDescriptor)rf.buildDescriptor(outRow,null,this, tc);
                 schemas.add(fid.getSchemaDescriptor().getSchemaName());
                 JarUtil.upgradeJar(tc,fid);
             }
@@ -7011,13 +7430,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
       *
       *    @param    rowFactory     Associated with this catalog.
       *    @param    newColumnIDs   Array of 1-based column ids.
-      *    @param    tc             Transaction controller
-      *
-      *    @exception StandardException Standard Derby error policy
+      *    @param templateRow
+     * @param    tc             Transaction controller
+     *
+     *    @exception StandardException Standard Derby error policy
       */
         public void upgradeAddColumns(CatalogRowFactory rowFactory,
-                                      int[] newColumnIDs,
-                                      ExecRow templateRow, TransactionController tc)
+                                       int[] newColumnIDs,
+                                       ExecRow templateRow, TransactionController tc)
                     throws StandardException
     {
         int columnID;
@@ -7070,10 +7490,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ColumnDescriptor[] cdArray = new ColumnDescriptor[columnCount];
         for ( int ix = 0; ix < columnCount; ix++ )
         {
-                    columnID = newColumnIDs[ix];
-                    currentColumn = columns[ columnID - 1 ];    // from 1 to 0 based
+            columnID = newColumnIDs[ix];
+            currentColumn = columns[ columnID - 1 ];    // from 1 to 0 based
 
-                    cdArray[ix] = makeColumnDescriptor(currentColumn, columnID, td);
+            cdArray[ix] = makeColumnDescriptor(currentColumn, columnID, td);
         }
         addDescriptorArray(cdArray, td, SYSCOLUMNS_CATALOG_NUM, false, tc);
     }
@@ -7327,7 +7747,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * Add the required entries to the data dictionary for a System table.
      */
 
-    private void addSystemTableToDictionary(TabInfoImpl ti,
+    protected void addSystemTableToDictionary(TabInfoImpl ti,
                                             SchemaDescriptor sd,
                                             TransactionController tc,
                                             DataDescriptorGenerator ddg) throws StandardException{
@@ -7476,6 +7896,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         lcoreInfo[SYSCOLUMNS_CORE_NUM]=new TabInfoImpl(new SYSCOLUMNSRowFactory(luuidFactory,exFactory,dvf,this));
         lcoreInfo[SYSCONGLOMERATES_CORE_NUM]=new TabInfoImpl(new SYSCONGLOMERATESRowFactory(luuidFactory,exFactory,dvf, this));
         lcoreInfo[SYSSCHEMAS_CORE_NUM]=new TabInfoImpl(new SYSSCHEMASRowFactory(luuidFactory,exFactory,dvf, this));
+        lcoreInfo[SYSDATABASES_CORE_NUM] = new TabInfoImpl(new SYSDATABASESRowFactory(luuidFactory, exFactory, dvf, this));
     }
 
     /**
@@ -7541,6 +7962,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param list                  The list to build, if supplied.  If null, then
      *                              caller expects a single descriptor
      * @param forUpdate             Whether or not to open the index for update.
+     * @param tc
      * @return The last matching descriptor
      * @throws StandardException Thrown on error
      */
@@ -7550,9 +7972,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                                        TabInfoImpl ti,
                                                        TupleDescriptor parentTupleDescriptor,
                                                        List list,
-                                                       boolean forUpdate) throws StandardException{
-        // Get the current transaction controller
-        TransactionController tc=getTransactionCompile();
+                                                       boolean forUpdate, TransactionController tc) throws StandardException{
+        if (tc == null)
+            tc = getTransactionCompile();
 
         return getDescriptorViaIndexMinion(
                 indexId,
@@ -7719,7 +8141,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 }
 
                 for (ExecRow retrievedRow : outRows) {
-                    td = (T) rf.buildDescriptor(retrievedRow, parentTupleDescriptor, this);
+            td=(T)rf.buildDescriptor(retrievedRow,parentTupleDescriptor,this, tc);
                     if (td != null && list != null)
                         list.add(td);
                 }
@@ -7829,7 +8251,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 0)) {                  // stopSearchOperation - none
 
             while (scanController.fetchNext(outRow.getRowArray())) {
-                td = rf.buildDescriptor(outRow, parentTupleDescriptor, this);
+            td=rf.buildDescriptor(outRow,parentTupleDescriptor,this, tc);
 
                 /* If dList is null, then caller only wants a single descriptor - we're done
                  * else just add the current descriptor to the list.
@@ -7856,13 +8278,24 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on error
      */
     protected TabInfoImpl getNonCoreTI(int catalogNumber) throws StandardException{
+        return getNonCoreTI(catalogNumber, null);
+    }
+
+    /**
+     * Get a TabInfoImpl for a non-core table.
+     * (We fault in information about non-core tables as needed.)
+     *
+     * @param catalogNumber The index into noncoreTable[].
+     * @throws StandardException Thrown on error
+     */
+    protected TabInfoImpl getNonCoreTI(int catalogNumber, TransactionController tc) throws StandardException{
         TabInfoImpl ti=getNonCoreTIByNumber(catalogNumber);
 
         if(ti == null) { // catalog number is invalid.
             return null;
         }
 
-        faultInTabInfo(ti);
+        faultInTabInfo(ti, tc);
 
         return ti;
     }
@@ -8045,9 +8478,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * NOP if TabInfoImpl has already been faulted in.
      *
      * @param ti TabInfoImpl to fault in.
+     * @param tc
      * @throws StandardException Thrown on error
      */
-    public void faultInTabInfo(TabInfoImpl ti) throws StandardException{
+    public void faultInTabInfo(TabInfoImpl ti, TransactionController tc) throws StandardException{
         int numIndexes;
 
         /* Most of the time, the noncoreInfo will be complete.
@@ -8078,7 +8512,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 return;
             }
 
-            TableDescriptor td=getTableDescriptor(ti.getTableName(),getSystemSchemaDescriptor(),null);
+            TableDescriptor td=getTableDescriptor(ti.getTableName(),getSystemSchemaDescriptor(),tc);
 
             // It's possible that the system table is not there right
             // now. This can happen, for example, if we're in the
@@ -8088,10 +8522,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             // exception.
             if(td==null){
                 // look up from SYSIBM schema
-                td=getTableDescriptor(ti.getTableName(),getSysIBMSchemaDescriptor(),null);
+                td=getTableDescriptor(ti.getTableName(),getSysIBMSchemaDescriptor(),tc);
                 if ( td == null) {
                     // look up from SYSIBMADM schema
-                    td = getTableDescriptor(ti.getTableName(), sysIBMADMSchemaDesc, null);
+                    td = getTableDescriptor(ti.getTableName(), sysIBMADMSchemaDesc, tc);
                     if (td == null) {
                         return;
                     }
@@ -8460,7 +8894,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public abstract void getCurrentValueAndAdvance(String sequenceUUIDstring,NumberDataValue returnValue, boolean useBatch) throws StandardException;
 
     @Override
-    public abstract Long peekAtSequence(String schemaName,String sequenceName) throws StandardException;
+    public abstract Long peekAtSequence(UUID dbId, String schemaName,String sequenceName) throws StandardException;
 
     @Override
     public RowLocation getRowLocationTemplate(LanguageConnectionContext lcc,TableDescriptor td) throws StandardException{
@@ -8476,16 +8910,20 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return rl;
     }
 
-    private static LanguageConnectionContext getLCC(){
+    protected static LanguageConnectionContext getLCC(){
         return (LanguageConnectionContext)ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
     }
 
     private SchemaDescriptor newSystemSchemaDesc(String name,String uuid){
-        return new SchemaDescriptor(this,name,authorizationDatabaseOwner,uuidFactory.recreateUUID(uuid),true);
+        return new SchemaDescriptor(
+                this, name, spliceDbDesc.getAuthorizationId(),
+                uuidFactory.recreateUUID(uuid), spliceDbDesc.getUUID(), true);
     }
 
     private SchemaDescriptor newDeclaredGlobalTemporaryTablesSchemaDesc(String name){
-        return new SchemaDescriptor(this,name,authorizationDatabaseOwner,uuidFactory.createUUID(),false);
+        return new SchemaDescriptor(
+                this, name, spliceDbDesc.getAuthorizationId(),
+                uuidFactory.createUUID(), spliceDbDesc.getUUID(), false);
     }
 
     /**
@@ -8653,7 +9091,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR:
                         AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR,
                 false,
-                routine_alias_info,null);
+                routine_alias_info,null, tc);
 
         addDescriptor(ads,null,DataDictionary.SYSALIASES_CATALOG_NUM,false,tc,false);
 
@@ -8753,7 +9191,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                                   String authorizationID) throws StandardException{
         // For system routines, a valid alias descriptor will be returned.
         AliasDescriptor ad=getAliasDescriptor(schemaID,routineName,
-                nameSpace);
+                nameSpace, tc);
         //
         // When upgrading from 10.1, it can happen that we haven't yet created
         // all public procedures. We forgive that possibility here and just return.
@@ -8780,9 +9218,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                            TransactionController tc,
                                            String authorizationID) throws StandardException{
         RoutinePermsDescriptor routinePermDesc=
-                new RoutinePermsDescriptor(this,"PUBLIC",authorizationID,routineUUID);
+                new RoutinePermsDescriptor(this,"PUBLIC",authorizationID,routineUUID, tc);
         // add if this permission has not been granted before
-        if (getUncachedRoutinePermsDescriptor(routinePermDesc) == null)
+        if (getUncachedRoutinePermsDescriptor(routinePermDesc, tc) == null)
             addDescriptor(routinePermDesc,null,DataDictionary.SYSROUTINEPERMS_CATALOG_NUM,false,tc,false);
     }
 
@@ -9746,7 +10184,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     @Override
     public TablePermsDescriptor getTablePermissions(UUID tablePermsUUID) throws StandardException{
         TablePermsDescriptor key=new TablePermsDescriptor(this,tablePermsUUID);
-        return getUncachedTablePermsDescriptor(key);
+        return getUncachedTablePermsDescriptor(key, null);
     }
 
     /**
@@ -9766,7 +10204,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     @Override
     public SchemaPermsDescriptor getSchemaPermissions(UUID schemaPermsUUID) throws StandardException{
         SchemaPermsDescriptor key=new SchemaPermsDescriptor(this,schemaPermsUUID);
-        return getUncachedSchemaPermsDescriptor(key);
+        return getUncachedSchemaPermsDescriptor(key, null);
     }
 
     public Object getPermissions(PermissionsDescriptor key) throws StandardException {
@@ -9784,7 +10222,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         if( key instanceof TablePermsDescriptor) {
 
             TablePermsDescriptor tablePermsKey = (TablePermsDescriptor) key;
-            permissions = getUncachedTablePermsDescriptor(tablePermsKey);
+            permissions = getUncachedTablePermsDescriptor(tablePermsKey, null);
             if( permissions == null)
             {
                 // The owner has all privileges unless they have been revoked.
@@ -9815,7 +10253,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         else if( key instanceof ColPermsDescriptor)
         {
             ColPermsDescriptor colPermsKey = (ColPermsDescriptor) key;
-            permissions = getUncachedColPermsDescriptor(colPermsKey );
+            permissions = getUncachedColPermsDescriptor(colPermsKey, null);
             if( permissions == null)
                 permissions = new ColPermsDescriptor( this,
                         colPermsKey.getGrantee(),
@@ -9827,13 +10265,13 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         else if( key instanceof RoutinePermsDescriptor)
         {
             RoutinePermsDescriptor routinePermsKey = (RoutinePermsDescriptor) key;
-            permissions = getUncachedRoutinePermsDescriptor( routinePermsKey);
+            permissions = getUncachedRoutinePermsDescriptor( routinePermsKey, null);
             if( permissions == null)
             {
                 // The owner has all privileges unless they have been revoked.
                 try
                 {
-                    AliasDescriptor ad = getAliasDescriptor( routinePermsKey.getRoutineUUID());
+                    AliasDescriptor ad = getAliasDescriptor( routinePermsKey.getRoutineUUID(), null);
                     SchemaDescriptor sd = getSchemaDescriptor( ad.getSchemaUUID(),
                             ConnectionUtil.getCurrentLCC().getTransactionExecute());
                     if (sd.isSystemSchema() && !sd.isSchemaWithGrantableRoutines())
@@ -9841,13 +10279,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                 routinePermsKey.getGrantee(),
                                 (String) null,
                                 routinePermsKey.getRoutineUUID(),
-                                true);
-                    else if( routinePermsKey.getGrantee().equals( sd.getAuthorizationId()))
+                                true, null);
+                    else if(getLCC().getCurrentDatabase().getUUID().equals(sd.getDatabaseId()) &&
+                            routinePermsKey.getGrantee().equals( sd.getAuthorizationId()))
                         permissions = new RoutinePermsDescriptor( this,
                                 routinePermsKey.getGrantee(),
                                 Authorizer.SYSTEM_AUTHORIZATION_ID,
                                 routinePermsKey.getRoutineUUID(),
-                                true);
+                                true, null);
                 }
                 catch( java.sql.SQLException sqle)
                 {
@@ -9857,7 +10296,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
         else if (key instanceof SchemaPermsDescriptor) {
             SchemaPermsDescriptor schemaPermsKey = (SchemaPermsDescriptor) key;
-            permissions = getUncachedSchemaPermsDescriptor(schemaPermsKey);
+            permissions = getUncachedSchemaPermsDescriptor(schemaPermsKey, null);
 
             if( permissions == null)
             {
@@ -9873,7 +10312,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                 (String) null,
                                 schemaPermsKey.getSchemaUUID(),
                                 "Y", "N", "N", "N", "N", "N", "N", "Y");
-                    } else if (schemaPermsKey.getGrantee().equals(sd.getAuthorizationId())) {
+                    } else if (getLCC().getCurrentDatabase().getUUID().equals(sd.getDatabaseId()) &&
+                            schemaPermsKey.getGrantee().equals(sd.getAuthorizationId())) {
                         permissions = new SchemaPermsDescriptor(this,
                                 schemaPermsKey.getGrantee(),
                                 Authorizer.SYSTEM_AUTHORIZATION_ID,
@@ -9888,7 +10328,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         else if( key instanceof PermDescriptor)
         {
             PermDescriptor permKey = (PermDescriptor) key;
-            permissions = getUncachedGenericPermDescriptor( permKey);
+            permissions = getUncachedGenericPermDescriptor( permKey, null);
             if( permissions == null)
             {
                 // The owner has all privileges unless they have been revoked.
@@ -9899,7 +10339,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
                 PrivilegedSQLObject pso = PermDescriptor.getProtectedObject( this, protectedObjectsID, objectType );
                 SchemaDescriptor sd = pso.getSchemaDescriptor();
-                if( permKey.getGrantee().equals( sd.getAuthorizationId()))
+                if(getLCC().getCurrentDatabase().getUUID().equals(sd.getDatabaseId()) &&
+                        permKey.getGrantee().equals( sd.getAuthorizationId()))
                 {
                     permissions = new PermDescriptor
                             (
@@ -9957,25 +10398,25 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException
      */
     public RoutinePermsDescriptor getRoutinePermissions(UUID routineUUID,String authorizationId) throws StandardException{
-        RoutinePermsDescriptor key=new RoutinePermsDescriptor(this,authorizationId,null,routineUUID);
+        RoutinePermsDescriptor key=new RoutinePermsDescriptor(this,authorizationId,null,routineUUID, null);
 
         return (RoutinePermsDescriptor)getPermissions(key);
     } // end of getRoutinePermissions
 
     @Override
     public RoutinePermsDescriptor getRoutinePermissions(UUID routinePermsUUID) throws StandardException{
-        RoutinePermsDescriptor key=new RoutinePermsDescriptor(this,routinePermsUUID);
-        return getUncachedRoutinePermsDescriptor(key);
+        RoutinePermsDescriptor key=new RoutinePermsDescriptor(this,routinePermsUUID, null);
+        return getUncachedRoutinePermsDescriptor(key, null);
     }
 
     @Override
     public RoutinePermsDescriptor getRoutinePermissions(UUID routineUUID,
                                                  List<RoutinePermsDescriptor> permsList) throws StandardException{
-        RoutinePermsDescriptor key=new RoutinePermsDescriptor(this,null,null,routineUUID);
+        RoutinePermsDescriptor key=new RoutinePermsDescriptor(this,null,null,routineUUID, null);
         TabInfoImpl ti=getNonCoreTI(SYSROUTINEPERMS_CATALOG_NUM);
         PermissionsCatalogRowFactory rowFactory=(PermissionsCatalogRowFactory)ti.getCatalogRowFactory();
         ExecIndexRow keyRow=rowFactory.buildIndexKeyRow(SYSROUTINEPERMSRowFactory.ALIASID_INDEX_NUM,key);
-        return (RoutinePermsDescriptor)getDescriptorViaIndex(SYSROUTINEPERMSRowFactory.ALIASID_INDEX_NUM,keyRow,null,ti,null,permsList,false);
+        return (RoutinePermsDescriptor)getDescriptorViaIndex(SYSROUTINEPERMSRowFactory.ALIASID_INDEX_NUM,keyRow,null,ti,null,permsList,false, null);
     } // end of getRoutinePermissions
     /**
      * Add or remove a permission to/from the permission database.
@@ -10096,20 +10537,20 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * if no table-level permissions have been granted to him on the table.
      * @throws StandardException
      */
-    public TablePermsDescriptor getUncachedTablePermsDescriptor(TablePermsDescriptor key) throws StandardException{
+    public TablePermsDescriptor getUncachedTablePermsDescriptor(TablePermsDescriptor key, TransactionController tc) throws StandardException{
         if(key.getObjectID()==null){
             //the TABLEPERMSID for SYSTABLEPERMS is not known, so use
             //table id, grantor and granteee to find TablePermsDescriptor
             return (TablePermsDescriptor)
                     getUncachedPermissionsDescriptor(SYSTABLEPERMS_CATALOG_NUM,
                             SYSTABLEPERMSRowFactory.GRANTEE_TABLE_GRANTOR_INDEX_NUM,
-                            key);
+                            key, tc);
         }else{
             //we know the TABLEPERMSID for SYSTABLEPERMS, so use that to
             //find TablePermsDescriptor from the sytem table
             return (TablePermsDescriptor)
                     getUncachedPermissionsDescriptor(SYSTABLEPERMS_CATALOG_NUM,
-                            SYSTABLEPERMSRowFactory.TABLEPERMSID_INDEX_NUM,key);
+                            SYSTABLEPERMSRowFactory.TABLEPERMSID_INDEX_NUM,key, tc);
         }
     } // end of getUncachedTablePermsDescriptor
 
@@ -10118,24 +10559,25 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * This method is called to fill the permissions cache.
      *
      * @param key
+     * @param tc
      * @return SchemaPermsDescriptor that describes the table permissions granted to the grantee, null
      * if no schema-table permissions have been granted to him on the schema
      * @throws StandardException
      */
-    public SchemaPermsDescriptor getUncachedSchemaPermsDescriptor(SchemaPermsDescriptor key) throws StandardException{
+    public SchemaPermsDescriptor getUncachedSchemaPermsDescriptor(SchemaPermsDescriptor key, TransactionController tc) throws StandardException{
         if(key.getObjectID()==null){
             //the SCHEMAPERMSID for SYSTABLEPERMS is not known, so use
             //table id, grantor and granteee to find SchemaPermsDescriptor
             return (SchemaPermsDescriptor)
                     getUncachedPermissionsDescriptor(SYSSCHEMAPERMS_CATALOG_NUM,
                             SYSSCHEMAPERMSRowFactory.GRANTEE_SCHEMA_GRANTOR_INDEX_NUM,
-                            key);
+                            key, tc);
         }else{
             //we know the SCHEMAPERMSID for SYSTABLEPERMS, so use that to
             //find SchemaPermsDescriptor from the sytem table
             return (SchemaPermsDescriptor)
                     getUncachedPermissionsDescriptor(SYSSCHEMAPERMS_CATALOG_NUM,
-                            SYSSCHEMAPERMSRowFactory.SCHEMAPERMSID_INDEX_NUM,key);
+                            SYSSCHEMAPERMSRowFactory.SCHEMAPERMSID_INDEX_NUM,key, tc);
         }
     } // end of getUncachedSchemaPermsDescriptor
 
@@ -10147,31 +10589,31 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * if no column permissions have been granted to him on the table.
      * @throws StandardException
      */
-    public ColPermsDescriptor getUncachedColPermsDescriptor(ColPermsDescriptor key) throws StandardException{
+    public ColPermsDescriptor getUncachedColPermsDescriptor(ColPermsDescriptor key, TransactionController tc) throws StandardException{
         if(key.getObjectID()==null){
             //the COLPERMSID for SYSCOLPERMS is not known, so use tableid,
             //privilege type, grantor and granteee to find ColPermsDescriptor
             return (ColPermsDescriptor)
                     getUncachedPermissionsDescriptor(SYSCOLPERMS_CATALOG_NUM,
                             SYSCOLPERMSRowFactory.GRANTEE_TABLE_TYPE_GRANTOR_INDEX_NUM,
-                            key);
+                            key, tc);
         }else{
             //we know the COLPERMSID for SYSCOLPERMS, so use that to
             //find ColPermsDescriptor from the sytem table
             return (ColPermsDescriptor)
                     getUncachedPermissionsDescriptor(SYSCOLPERMS_CATALOG_NUM,
                             SYSCOLPERMSRowFactory.COLPERMSID_INDEX_NUM,
-                            key);
+                            key, tc);
         }
     } // end of getUncachedColPermsDescriptor
 
     private TupleDescriptor getUncachedPermissionsDescriptor(int catalogNumber,
                                                              int indexNumber,
-                                                             PermissionsDescriptor key) throws StandardException{
+                                                             PermissionsDescriptor key, TransactionController tc) throws StandardException{
         TabInfoImpl ti=getNonCoreTI(catalogNumber);
         PermissionsCatalogRowFactory rowFactory=(PermissionsCatalogRowFactory)ti.getCatalogRowFactory();
         ExecIndexRow keyRow=rowFactory.buildIndexKeyRow(indexNumber,key);
-        return getDescriptorViaIndex(indexNumber,keyRow,null,ti,null,null,false);
+        return getDescriptorViaIndex(indexNumber,keyRow,null,ti,null,null,false, tc);
     } // end of getUncachedPermissionsDescriptor
     /**
      * Get a routine permissions descriptor from the system tables, without going through the cache.
@@ -10181,20 +10623,20 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * if no table-level permissions have been granted to him on the table.
      * @throws StandardException
      */
-    RoutinePermsDescriptor getUncachedRoutinePermsDescriptor(RoutinePermsDescriptor key) throws StandardException{
+    RoutinePermsDescriptor getUncachedRoutinePermsDescriptor(RoutinePermsDescriptor key, TransactionController tc) throws StandardException{
         if(key.getObjectID()==null){
             //the ROUTINEPERMSID for SYSROUTINEPERMS is not known, so use aliasid,
             //grantor and granteee to find RoutinePermsDescriptor
             return (RoutinePermsDescriptor)
                     getUncachedPermissionsDescriptor(SYSROUTINEPERMS_CATALOG_NUM,
                             SYSROUTINEPERMSRowFactory.GRANTEE_ALIAS_GRANTOR_INDEX_NUM,
-                            key);
+                            key, tc);
         }else{
             //we know the ROUTINEPERMSID for SYSROUTINEPERMS, so use that to
             //find RoutinePermsDescriptor from the sytem table
             return (RoutinePermsDescriptor)
                     getUncachedPermissionsDescriptor(SYSROUTINEPERMS_CATALOG_NUM,
-                            SYSROUTINEPERMSRowFactory.ROUTINEPERMSID_INDEX_NUM,key);
+                            SYSROUTINEPERMSRowFactory.ROUTINEPERMSID_INDEX_NUM,key, tc);
 
         }
     } // end of getUncachedRoutinePermsDescriptor
@@ -10226,10 +10668,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }else{// see if it's a user-defined table function
             String schemaName=td.getSchemaName();
             String functionName=td.getDescriptorName();
-            SchemaDescriptor sd=getSchemaDescriptor(td.getSchemaName(),null,true);
+            SchemaDescriptor sd=getSchemaDescriptor(getLCC().getDatabaseId(), td.getSchemaName(),null,true);
 
             if(sd!=null){
-                AliasDescriptor ad=getAliasDescriptor(sd.getUUID().toString(),functionName,AliasInfo.ALIAS_TYPE_FUNCTION_AS_CHAR);
+                AliasDescriptor ad=getAliasDescriptor(sd.getUUID().toString(),functionName,AliasInfo.ALIAS_TYPE_FUNCTION_AS_CHAR, null);
 
                 if((ad!=null) && ad.isTableFunction()){
                     return ad.getJavaClassName();
@@ -10282,13 +10724,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
          * scan.
          */
         UUIDStringOrderable=getIDValueAsCHAR(uuid);
+        SYSROLESRowFactory rf=(SYSROLESRowFactory) ti.getCatalogRowFactory();
 
         /* Set up the start/stop position for the scan */
-        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        ExecIndexRow keyRow=exFactory.getIndexableRow(rf.getIndexColumnCount(SYSROLESRowFactory.SYSROLES_INDEX_UUID_IDX));
         keyRow.setColumn(1,UUIDStringOrderable);
 
         return (RoleGrantDescriptor)
-                getDescriptorViaIndex(SYSROLESRowFactory.SYSROLES_INDEX_UUID_IDX,keyRow,null,ti,null,null,false);
+                getDescriptorViaIndex(SYSROLESRowFactory.SYSROLES_INDEX_UUID_IDX,keyRow,null,ti,null,null,false, null);
     }
 
 
@@ -10298,35 +10741,36 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * Uses index on (rolename, isDef) columns.
      *
      * @param roleName The name of the role we're interested in.
+     * @param databaseId
      * @return The descriptor (row) for the role
      * @throws StandardException Thrown on error
      * @see DataDictionary#getRoleDefinitionDescriptor
      */
     @Override
-    public RoleGrantDescriptor getRoleDefinitionDescriptor(String roleName) throws StandardException{
+    public RoleGrantDescriptor getRoleDefinitionDescriptor(String roleName, UUID databaseId) throws StandardException{
 
         Optional<RoleGrantDescriptor> optional = dataDictionaryCache.roleCacheFind(roleName);
         if (optional!=null)
             return optional.orNull();
-
-        DataValueDescriptor roleNameOrderable;
-        DataValueDescriptor isDefOrderable;
 
         TabInfoImpl ti=getNonCoreTI(SYSROLES_CATALOG_NUM);
 
         /* Use aliasNameOrderable , isDefOrderable in both start
          * and stop position for scan.
          */
-        roleNameOrderable=new SQLVarchar(roleName);
-        isDefOrderable=new SQLVarchar("Y");
+        DataValueDescriptor roleNameOrderable = new SQLVarchar(roleName);
+        DataValueDescriptor isDefOrderable = new SQLVarchar("Y");
+        DataValueDescriptor dbIdOrderable = new SQLChar(databaseId.toString());
 
+        SYSROLESRowFactory rf=(SYSROLESRowFactory) ti.getCatalogRowFactory();
         /* Set up the start/stop position for the scan */
-        ExecIndexRow keyRow=exFactory.getIndexableRow(2);
-        keyRow.setColumn(1,roleNameOrderable);
-        keyRow.setColumn(2,isDefOrderable);
+        ExecIndexRow keyRow=exFactory.getIndexableRow(rf.getIndexColumnCount(SYSROLESRowFactory.SYSROLES_INDEX_ID_DEF_IDX));
+        keyRow.setColumn(1, dbIdOrderable);
+        keyRow.setColumn(2, roleNameOrderable);
+        keyRow.setColumn(3, isDefOrderable);
 
         RoleGrantDescriptor rgs = (RoleGrantDescriptor)
-                getDescriptorViaIndex(SYSROLESRowFactory.SYSROLES_INDEX_ID_DEF_IDX,keyRow,null,ti,null,null,false);
+                getDescriptorViaIndex(SYSROLESRowFactory.SYSROLES_INDEX_ID_DEF_IDX,keyRow,null,ti,null,null,false, null);
         dataDictionaryCache.roleCacheAdd(roleName,rgs==null?Optional.<RoleGrantDescriptor>absent():Optional.of(rgs));
         return rgs;
     }
@@ -10339,16 +10783,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      *
      * @param roleName The name of the role we're interested in.
      * @param grantee  The grantee
+     * @param databaseId
      * @return The descriptor for the role grant
      * @throws StandardException Thrown on error
-     * @see DataDictionary#getRoleGrantDescriptor(String,String)
+     * @see DataDictionary#getRoleGrantDescriptor(String, String, UUID)
      */
     @Override
     public RoleGrantDescriptor getRoleGrantDescriptor(String roleName,
-                                                      String grantee) throws StandardException{
-        DataValueDescriptor roleNameOrderable;
-        DataValueDescriptor granteeOrderable;
-
+                                                      String grantee, UUID databaseId) throws StandardException{
         Pair<String, String> roleGrantPair = new Pair<>(roleName, grantee);
         Optional<RoleGrantDescriptor> optional = dataDictionaryCache.roleGrantCacheFind(roleGrantPair);
         if (optional!=null)
@@ -10359,16 +10801,20 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         /* Use aliasNameOrderable, granteeOrderable
          * in both start and stop position for scan.
          */
-        roleNameOrderable=new SQLVarchar(roleName);
-        granteeOrderable=new SQLVarchar(grantee);
+        DataValueDescriptor roleNameOrderable = new SQLVarchar(roleName);
+        DataValueDescriptor granteeOrderable = new SQLVarchar(grantee);
+        DataValueDescriptor dbIdOrderable = new SQLChar(databaseId.toString());
 
+        SYSROLESRowFactory rf=(SYSROLESRowFactory) ti.getCatalogRowFactory();
         /* Set up the start/stop position for the scan */
-        ExecIndexRow keyRow = exFactory.getIndexableRow(2);
-        keyRow.setColumn(1, roleNameOrderable);
-        keyRow.setColumn(2, granteeOrderable);
+        ExecIndexRow keyRow = exFactory.getIndexableRow(rf.getIndexColumnCount(
+                SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX) - 1); // We do not use the grantor column
+        keyRow.setColumn(1, dbIdOrderable);
+        keyRow.setColumn(2, roleNameOrderable);
+        keyRow.setColumn(3, granteeOrderable);
 
         RoleGrantDescriptor rgd = (RoleGrantDescriptor)
-                getDescriptorViaIndex(SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX,keyRow,null,ti,null,null,false);
+                getDescriptorViaIndex(SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX,keyRow,null,ti,null,null,false, null);
 
         dataDictionaryCache.roleGrantCacheAdd(roleGrantPair,rgd==null?Optional.<RoleGrantDescriptor>absent():Optional.of(rgd));
         return rgd;
@@ -10380,35 +10826,34 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * descriptor containing <code>authId</code> as its grantee.
      *
      * @param authId grantee for which a grant exists or not
+     * @param databaseId
      * @param tc     TransactionController for the transaction
      * @return boolean true if such a grant exists
      */
     @Override
-    public boolean existsGrantToAuthid(String authId,TransactionController tc) throws StandardException{
-
-        return
-                (existsPermByGrantee(
+    public boolean existsGrantToAuthid(String authId, UUID databaseId, TransactionController tc) throws StandardException{
+        return existsPermByGrantee(
+                authId,
+                databaseId,
+                tc,
+                SYSTABLEPERMS_CATALOG_NUM,
+                SYSTABLEPERMSRowFactory.GRANTEE_TABLE_GRANTOR_INDEX_NUM,
+                SYSTABLEPERMSRowFactory.GRANTEE_COL_NUM_IN_GRANTEE_TABLE_GRANTOR_INDEX) ||
+                existsPermByGrantee(
                         authId,
+                        databaseId,
                         tc,
-                        SYSTABLEPERMS_CATALOG_NUM,
-                        SYSTABLEPERMSRowFactory.GRANTEE_TABLE_GRANTOR_INDEX_NUM,
-                        SYSTABLEPERMSRowFactory.
-                                GRANTEE_COL_NUM_IN_GRANTEE_TABLE_GRANTOR_INDEX) ||
-                        existsPermByGrantee(
-                                authId,
-                                tc,
-                                SYSCOLPERMS_CATALOG_NUM,
-                                SYSCOLPERMSRowFactory.GRANTEE_TABLE_TYPE_GRANTOR_INDEX_NUM,
-                                SYSCOLPERMSRowFactory.
-                                        GRANTEE_COL_NUM_IN_GRANTEE_TABLE_TYPE_GRANTOR_INDEX) ||
-                        existsPermByGrantee(
-                                authId,
-                                tc,
-                                SYSROUTINEPERMS_CATALOG_NUM,
-                                SYSROUTINEPERMSRowFactory.GRANTEE_ALIAS_GRANTOR_INDEX_NUM,
-                                SYSROUTINEPERMSRowFactory.
-                                        GRANTEE_COL_NUM_IN_GRANTEE_ALIAS_GRANTOR_INDEX) ||
-                        existsRoleGrantByGrantee(authId,tc));
+                        SYSCOLPERMS_CATALOG_NUM,
+                        SYSCOLPERMSRowFactory.GRANTEE_TABLE_TYPE_GRANTOR_INDEX_NUM,
+                        SYSCOLPERMSRowFactory.GRANTEE_COL_NUM_IN_GRANTEE_TABLE_TYPE_GRANTOR_INDEX) ||
+                existsPermByGrantee(
+                        authId,
+                        databaseId,
+                        tc,
+                        SYSROUTINEPERMS_CATALOG_NUM,
+                        SYSROUTINEPERMSRowFactory.GRANTEE_ALIAS_GRANTOR_INDEX_NUM,
+                        SYSROUTINEPERMSRowFactory.GRANTEE_COL_NUM_IN_GRANTEE_ALIAS_GRANTOR_INDEX) ||
+                existsRoleGrantByGrantee(authId, databaseId, tc);
     }
 
 
@@ -10449,80 +10894,58 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     /**
-     * Create a system stored procedure.
-     * PLEASE NOTE:
-     * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
-     * with tools to debug and repair databases and data dictionaries.
-     *
-     * @param schemaName name of the system schema
-     * @param procName   name of the system stored procedure
-     * @param tc         TransactionController to use
-     * @throws StandardException
-     */
-    @Override
-    public void createSystemProcedure(String schemaName,String procName,TransactionController tc) throws StandardException{
-        HashSet newlyCreatedRoutines=new HashSet();
-        SystemProcedureGenerator procedureGenerator=getSystemProcedures();
-
-        procedureGenerator.createProcedure(schemaName,procName,tc,newlyCreatedRoutines);
-        grantPublicAccessToSystemRoutines(newlyCreatedRoutines,tc,authorizationDatabaseOwner);
-    }
-
-    /**
-     * Drop a system stored procedure.
-     * PLEASE NOTE:
-     * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
-     * with tools to debug and repair databases and data dictionaries.
-     *
-     * @param schemaName name of the system schema
-     * @param procName   name of the system stored procedure
-     * @param tc         TransactionController to use
-     * @throws StandardException
-     */
-    @Override
-    public void dropSystemProcedure(String schemaName,String procName,TransactionController tc) throws StandardException{
-        HashSet newlyCreatedRoutines=new HashSet();
-        SystemProcedureGenerator procedureGenerator=getSystemProcedures();
-
-        procedureGenerator.dropProcedure(schemaName,procName,tc,newlyCreatedRoutines);
-        grantPublicAccessToSystemRoutines(newlyCreatedRoutines,tc,authorizationDatabaseOwner);
-    }
-
-    /**
      * Create or update a system stored procedure.  If the system stored procedure alreadys exists in the data dictionary,
      * the stored procedure will be dropped and then created again.
      *
+     *
+     * @param databaseName
      * @param schemaName the schema where the procedure does and/or will reside
      * @param procName   the procedure to create or update
      * @param tc         the xact
      * @throws StandardException
      */
     @Override
-    public void createOrUpdateSystemProcedure(String schemaName,String procName,TransactionController tc) throws StandardException{
+    public void createOrUpdateSystemProcedure(String databaseName, String schemaName, String procName, TransactionController tc) throws StandardException{
         HashSet newlyCreatedRoutines=new HashSet();
         SystemProcedureGenerator procedureGenerator=getSystemProcedures();
 
-        procedureGenerator.createOrUpdateProcedure(schemaName,procName,tc,newlyCreatedRoutines);
-        grantPublicAccessToSystemRoutines(newlyCreatedRoutines,tc,authorizationDatabaseOwner);
+        if (databaseName == null) {
+            databaseName = getLCC().getCurrentDatabase().getDatabaseName();
+        }
+
+        DatabaseDescriptor databaseDescriptor = getDatabaseDescriptor(databaseName, tc);
+        procedureGenerator.createOrUpdateProcedure(databaseDescriptor.getUUID(), schemaName, procName,tc,newlyCreatedRoutines);
+        grantPublicAccessToSystemRoutines(newlyCreatedRoutines, tc, databaseDescriptor.getAuthorizationId());
     }
 
     /**
      * Create or update all system stored procedures.  If the system stored procedure alreadys exists in the data dictionary,
      * the stored procedure will be dropped and then created again.
      *
+     *
+     * @param dbDesc
      * @param tc the xact
      * @throws StandardException
      */
     @Override
-    public void createOrUpdateAllSystemProcedures(TransactionController tc) throws StandardException{
+    public void createOrUpdateAllSystemProcedures(DatabaseDescriptor dbDesc, TransactionController tc) throws StandardException{
         HashSet newlyCreatedRoutines=new HashSet();
         SystemProcedureGenerator procedureGenerator=getSystemProcedures();
 
-        procedureGenerator.createOrUpdateAllProcedures(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,tc,newlyCreatedRoutines);
-        procedureGenerator.createOrUpdateAllProcedures(SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,tc,newlyCreatedRoutines);
-        procedureGenerator.createOrUpdateAllProcedures(SchemaDescriptor.STD_SQLJ_SCHEMA_NAME,tc,newlyCreatedRoutines);
-        procedureGenerator.createOrUpdateAllProcedures(SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME,tc,newlyCreatedRoutines);
-        grantPublicAccessToSystemRoutines(newlyCreatedRoutines,tc,authorizationDatabaseOwner);
+        if (spliceDbDesc.getDatabaseName().equals(dbDesc.getDatabaseName())) {
+            procedureGenerator.createOrUpdateAllProcedures(dbDesc.getUUID(), SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME, tc, newlyCreatedRoutines);
+            procedureGenerator.createOrUpdateAllProcedures(dbDesc.getUUID(), SchemaDescriptor.STD_SQLJ_SCHEMA_NAME, tc, newlyCreatedRoutines);
+            procedureGenerator.createOrUpdateAllProcedures(dbDesc.getUUID(), SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME, tc, newlyCreatedRoutines);
+        }
+        procedureGenerator.createOrUpdateAllProcedures(dbDesc.getUUID(), SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME, tc, newlyCreatedRoutines);
+        grantPublicAccessToSystemRoutines(newlyCreatedRoutines,tc, dbDesc.getAuthorizationId());
+    }
+
+    @Override
+    public void createOrUpdateAllSystemProceduresForAllDatabases(TransactionController tc) throws StandardException{
+        for (DatabaseDescriptor dbDesc : getAllDatabases(tc)) {
+            createOrUpdateAllSystemProcedures(dbDesc, tc);
+        }
     }
 
     /**
@@ -10572,7 +10995,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         ti,
                         null,
                         null,
-                        false);
+                        false, null);
 
         putSequenceID(sequenceDescriptor);
 
@@ -10612,7 +11035,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         ti,
                         null,
                         null,
-                        false);
+                        false, null);
 
         putSequenceID(sequenceDescriptor);
 
@@ -10673,7 +11096,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * Get the uuid string of a sequence given its schema and sequence name.
      * </p>
      */
-    protected String getSequenceID(String schemaName,String sequenceName) throws StandardException{
+    protected String getSequenceID(UUID dbId, String schemaName,String sequenceName) throws StandardException{
         Map<String, String> sequencesInSchema=sequenceIDs.get(schemaName);
         if(sequencesInSchema!=null){
             String uuid=sequencesInSchema.get(sequenceName);
@@ -10685,7 +11108,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         // oops, not saved in the sequenceID map yet. lookup the sequence.
         // this will save the uuid in the sequenceID map.
-        SchemaDescriptor schemaDescriptor=getSchemaDescriptor(schemaName,getTransactionCompile(),true);
+        SchemaDescriptor schemaDescriptor=getSchemaDescriptor(dbId, schemaName,getTransactionCompile(),true);
         SequenceDescriptor desc=getSequenceDescriptor(schemaDescriptor,sequenceName);
 
         if(desc==null){
@@ -10703,12 +11126,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * , null if no table-level permissions have been granted to him on the table.
      * @throws StandardException
      */
-    protected PermDescriptor getUncachedGenericPermDescriptor(PermDescriptor key) throws StandardException{
+    protected PermDescriptor getUncachedGenericPermDescriptor(PermDescriptor key, TransactionController tc) throws StandardException{
         int indexNum=SYSPERMSRowFactory.GRANTEE_OBJECTID_GRANTOR_INDEX_NUM;
         if(key.getObjectID()!=null)
             indexNum=SYSPERMSRowFactory.PERMS_UUID_IDX_NUM;
 
-        Object o=getUncachedPermissionsDescriptor(SYSPERMS_CATALOG_NUM,indexNum,key);
+        Object o=getUncachedPermissionsDescriptor(SYSPERMS_CATALOG_NUM,indexNum,key, tc);
         return (PermDescriptor)o;
     } // end of getUncachedGenericPermDescriptor
 
@@ -10743,7 +11166,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     @Override
     public PermDescriptor getGenericPermissions(UUID permUUID) throws StandardException{
         PermDescriptor key=new PermDescriptor(this,permUUID);
-        return getUncachedGenericPermDescriptor(key);
+        return getUncachedGenericPermDescriptor(key, null);
     }
 
     @Override
@@ -10848,7 +11271,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 0)) {                       // stopSearchOperation - none
 
             while (scanController.fetchNext(outRow.getRowArray())) {
-                BackupDescriptor bd = (BackupDescriptor) rf.buildDescriptor(outRow, null, this);
+                BackupDescriptor bd = (BackupDescriptor)rf.buildDescriptor(outRow, null, this, tc);
                 backupDescriptorList.add(bd);
             }
         }
@@ -10885,7 +11308,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 0)) {                       // stopSearchOperation - none
 
             while(scanController.fetchNext(outRow.getRowArray())){
-                BackupItemsDescriptor bd = (BackupItemsDescriptor) rf.buildDescriptor(outRow, null, this);
+                BackupItemsDescriptor bd = (BackupItemsDescriptor) rf.buildDescriptor(outRow, null, this, tc);
                 backupItemDescriptorList.add(bd);
             }
         }
@@ -10971,7 +11394,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
     }
 
-    public List<String> getDefaultRoles(String username, TransactionController tc) throws StandardException {
+    public List<String> getDefaultRoles(UUID databaseId, String username, TransactionController tc) throws StandardException {
         // check dictionary cache first
         List<String> roleList = dataDictionaryCache.defaultRoleCacheFind(username);
         if (roleList != null)
@@ -10979,11 +11402,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         List<RoleGrantDescriptor> roleGrantDescriptors = new ArrayList<>();
 
-        TabInfoImpl ti=getNonCoreTI(SYSROLES_CATALOG_NUM);
+        TabInfoImpl ti=getNonCoreTI(SYSROLES_CATALOG_NUM, tc);
         /* set up the start/stop position for the scan */
-        ExecIndexRow keyRow = exFactory.getIndexableRow(1);
+        SYSROLESRowFactory rf=(SYSROLESRowFactory) ti.getCatalogRowFactory();
+        ExecIndexRow keyRow = exFactory.getIndexableRow(rf.getIndexColumnCount(SYSROLESRowFactory.SYSROLES_INDEX_EE_DEFAULT_IDX));
         DataValueDescriptor granteeOrderable=new SQLVarchar(username);
-        keyRow.setColumn(1, granteeOrderable);
+        DataValueDescriptor dbIdOrderable = new SQLChar(databaseId.toString());
+        keyRow.setColumn(1, dbIdOrderable);
+        keyRow.setColumn(2, granteeOrderable);
         getDescriptorViaIndex(
                 SYSROLESRowFactory.SYSROLES_INDEX_EE_DEFAULT_IDX,
                 keyRow,
@@ -10991,7 +11417,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ti,
                 null,
                 roleGrantDescriptors,
-                false);
+                false, tc);
 
         roleList = FluentIterable.from(roleGrantDescriptors).filter(rgd -> rgd.isDefaultRole()).transform(rgd -> rgd.getRoleName()).toList();
         dataDictionaryCache.defaultRoleCacheAdd(username, roleList);
