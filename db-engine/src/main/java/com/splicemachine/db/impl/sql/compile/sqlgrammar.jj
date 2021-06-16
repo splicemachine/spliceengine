@@ -8984,10 +8984,7 @@ atIsolationLevel() throws StandardException :
 OrderByList
 sortSpecificationList(ResultSetNode rs) throws StandardException :
 {
-    OrderByList orderCols = (OrderByList) nodeFactory.getNode(
-                                            C_NodeTypes.ORDER_BY_LIST,
-                                            rs,
-                                            getContextManager());
+    OrderByList orderCols = new OrderByList(rs, getContextManager());
 }
 {
     sortSpecification(orderCols) ( <COMMA> sortSpecification(orderCols) ) *
