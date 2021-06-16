@@ -156,7 +156,7 @@ public class QueryJob implements Callable<Void>{
                 JavaRDD rdd = sparkDataSet.rdd;
                 StreamableRDD streamableRDD = new StreamableRDD<>(rdd, context, uuid, clientHost, clientPort,
                         queryRequest.streamingBatches, queryRequest.streamingBatchSize,
-                    queryRequest.parallelPartitions);
+                    queryRequest.parallelPartitions, queryRequest.partitionExecutorThreads);
                 streamableRDD.setJobStatus(status);
                 streamableRDD.submit();
 
