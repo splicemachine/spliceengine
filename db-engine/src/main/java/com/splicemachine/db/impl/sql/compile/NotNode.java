@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 
 import java.lang.reflect.Modifier;
 
@@ -63,20 +64,20 @@ public final class NotNode extends UnaryLogicalOperatorNode
 	}
 
 	/**
-	 * Eliminate NotNodes in the current query block.  We traverse the tree, 
-	 * inverting ANDs and ORs and eliminating NOTs as we go.  We stop at 
-	 * ComparisonOperators and boolean expressions.  We invert 
-	 * ComparisonOperators and replace boolean expressions with 
+	 * Eliminate NotNodes in the current query block.  We traverse the tree,
+	 * inverting ANDs and ORs and eliminating NOTs as we go.  We stop at
+	 * ComparisonOperators and boolean expressions.  We invert
+	 * ComparisonOperators and replace boolean expressions with
 	 * boolean expression = false.
 	 *
 	 * @param	underNotNode		Whether or not we are under a NotNode.
-	 *							
+	 *
 	 *
 	 * @return		The modified expression
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	ValueNode eliminateNots(boolean underNotNode) 
+	ValueNode eliminateNots(boolean underNotNode)
 					throws StandardException
 	{
 		return operand.eliminateNots(! underNotNode);
@@ -94,7 +95,23 @@ public final class NotNode extends UnaryLogicalOperatorNode
 	/** @see ValueNode#evaluateConstantExpressions */
 	@Override
 	ValueNode evaluateConstantExpressions() throws StandardException {
-		return (operand instanceof UntypedNullConstantNode) ? operand : this;
+        if (getOperand() instanceof ConstantNode) {
+            ConstantNode op = (ConstantNode) getOperand();
+            if (op.isNull()) {
+                return getOperand();
+            } else if (op instanceof BooleanConstantNode) {
+                if (op.isBooleanTrue()) {
+                    return (ValueNode) getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+                            Boolean.FALSE,
+                            getContextManager());
+                } else {
+                    return (ValueNode) getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+                            Boolean.TRUE,
+                            getContextManager());
+                }
+            }
+        }
+        return this;
 	}
 
 	public void generateExpression(ExpressionClassBuilder acb,
@@ -126,7 +143,7 @@ public final class NotNode extends UnaryLogicalOperatorNode
 
 		// arg 2
 		mb.push(false);
-		acb.generateDataValue(mb, getTypeCompiler(), 
+		acb.generateDataValue(mb, getTypeCompiler(),
 				getTypeServices().getCollationType(), field);
 		mb.upCast(ClassName.DataValueDescriptor);
 

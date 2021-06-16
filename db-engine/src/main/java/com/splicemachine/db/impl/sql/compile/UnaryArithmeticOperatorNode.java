@@ -38,11 +38,14 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.NumberDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
 import java.util.List;
+
+import static com.splicemachine.db.iapi.reference.ClassName.NumberDataValue;
 
 /**
  * This node represents a unary arithmetic operator
@@ -122,7 +125,22 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
     @Override
     ValueNode evaluateConstantExpressions() throws StandardException {
         if(operatorType == UNARY_MINUS || operatorType == UNARY_PLUS) {
-            return (operand instanceof UntypedNullConstantNode) ? operand : this;
+            if (getOperand() instanceof ConstantNode) {
+                ConstantNode op = (ConstantNode) getOperand();
+                if (op.isNull()) {
+                    return op;
+                } else if (op instanceof NumericConstantNode) {
+                    if (operatorType == UNARY_PLUS) {
+                        return getOperand();
+                    } else {
+                        return new NumericConstantNode(
+                                getContextManager(),
+                                op.getNodeType(),
+                                ((NumberDataValue) op.getValue()).minus(null),
+                                null);
+                    }
+                }
+            }
         }
         return this;
     }
@@ -183,8 +201,8 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
             checkOperandIsNumeric(operand.getTypeId());
         }
         /*
-		** The result type of a +, -, SQRT, ABS is the same as its operand.
-		*/
+        ** The result type of a +, -, SQRT, ABS is the same as its operand.
+        */
         super.setType(operand.getTypeServices());
         return this;
     }
@@ -213,7 +231,7 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
     public void generateExpression(ExpressionClassBuilder acb,
                                    MethodBuilder mb)
             throws StandardException{
-		/* Unary + doesn't do anything.  Just return the operand */
+        /* Unary + doesn't do anything.  Just return the operand */
         if(operatorType==UNARY_PLUS)
             operand.generateExpression(acb,mb);
         else
@@ -230,29 +248,29 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
         TypeId operandType;
         int jdbcType;
 
-		/*
-		** Check the type of the operand 
-		*/
+        /*
+        ** Check the type of the operand
+        */
         operandType=operand.getTypeId();
 
-		/*
-	 	 * If the operand is not a build-in type, generate a bound conversion
-		 * tree to build-in types.
-		 */
+        /*
+         * If the operand is not a build-in type, generate a bound conversion
+         * tree to build-in types.
+         */
         if(operandType.userType()){
             operand=operand.genSQLJavaSQLTree();
         }
-		/* DB2 doesn't cast string types to numeric types for numeric functions  */
+        /* DB2 doesn't cast string types to numeric types for numeric functions  */
 
         jdbcType=operandType.getJDBCTypeId();
 
-		/* Both SQRT and ABS are only allowed on numeric types */
+        /* Both SQRT and ABS are only allowed on numeric types */
         if(!operandType.isNumericTypeId())
             throw StandardException.newException(
                     SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
                     getOperatorString(),operandType.getSQLTypeName());
 
-		/* For SQRT, if operand is not a DOUBLE, convert it to DOUBLE */
+        /* For SQRT, if operand is not a DOUBLE, convert it to DOUBLE */
         if(operatorType==SQRT && jdbcType!=Types.DOUBLE){
             operand=(ValueNode)getNodeFactory().getNode(
                     C_NodeTypes.CAST_NODE,
@@ -269,7 +287,7 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
      * binding. The setType method will call the binding code after setting
      * the type of the parameter
      */
-    public void setType(DataTypeDescriptor descriptor) throws StandardException{
+    public void setType(DataTypeDescriptor descriptor) throws StandardException {
         if(operand.requiresTypeFromContext() && operand.getTypeServices()==null){
             checkOperandIsNumeric(descriptor.getTypeId());
             operand.setType(descriptor);
