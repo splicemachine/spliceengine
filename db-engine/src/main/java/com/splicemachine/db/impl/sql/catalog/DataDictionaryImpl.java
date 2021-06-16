@@ -6368,7 +6368,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         DataValueDescriptor conglomIDOrderable;
         TabInfoImpl ti=coreInfo[SYSCONGLOMERATES_CORE_NUM];
         SYSCONGLOMERATESRowFactory rf=(SYSCONGLOMERATESRowFactory)ti.getCatalogRowFactory();
-        boolean[] bArray={false,false,false};
+        boolean[] bArray={false,false,false, true};
 
         for(ConglomerateDescriptor cd : cds){
             /* Use conglomIDOrderable in both start
