@@ -384,16 +384,17 @@ public class MergeNode extends DMLStatementNode
     private void    addTargetRowLocation( ResultColumnList selectList )
             throws StandardException
     {
-        // tell the target table to generate a row location column
-        _targetTable.setRowLocationColumnName( TARGET_ROW_LOCATION_NAME );
-
-        TableName   fromTableName = _targetTable.getTableName();
-        ColumnReference cr = new ColumnReference
-                ( TARGET_ROW_LOCATION_NAME, fromTableName, getContextManager() );
-        ResultColumn    rowLocationColumn = new ResultColumn( (String) null, cr, getContextManager() );
-        rowLocationColumn.markGenerated();
-
-        selectList.addResultColumn( rowLocationColumn );
+        System.out.println("hi");
+//        // tell the target table to generate a row location column
+//        _targetTable.setRowLocationColumnName( TARGET_ROW_LOCATION_NAME );
+//
+//        TableName   fromTableName = _targetTable.getTableName();
+//        ColumnReference cr = new ColumnReference
+//                ( TARGET_ROW_LOCATION_NAME, fromTableName, getContextManager() );
+//        ResultColumn    rowLocationColumn = new ResultColumn( (String) null, cr, getContextManager() );
+//        rowLocationColumn.markGenerated();
+//
+//        selectList.addResultColumn( rowLocationColumn );
     }
 
     /** Return true if the target table is a base table */
@@ -498,7 +499,7 @@ public class MergeNode extends DMLStatementNode
 
         String[]    retval = new String[ list.size() ];
         list.toArray( retval );
-        Arrays.sort( retval );
+        //Arrays.sort( retval );
 
         return retval;
     }

@@ -242,7 +242,7 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
                 break;
 
             default:
-                thenRow = bufferThenRow( activation );
+                thenRow = bufferThenRow( activation, selectRow );
                 break;
         }
 
@@ -284,8 +284,8 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
      */
     ExecRow    bufferThenRow
     (
-            Activation activation
-    )
+            Activation activation,
+            ExecRow row)
             throws StandardException
     {
         if ( _rowMakingMethod == null )
