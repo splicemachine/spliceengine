@@ -832,9 +832,13 @@ public class GenericStatement implements Statement{
     }
 
     private void setCostModelName(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
-        String costModelString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.COST_MODEL);
-        if (costModelString != null && CostModelRegistry.exists(costModelString)) {
+        String costModelString = PropertyUtil.getCached(lcc, GlobalDBProperties.COST_MODEL);
+        if (costModelString == null) {
+            cc.setCostModelName(CompilerContext.DEFAULT_COST_MODEL_NAME);
+        } else if (CostModelRegistry.exists(costModelString)) {
             cc.setCostModelName(costModelString);
+        } else if (costModelString.equalsIgnoreCase("null")) {
+            cc.setCostModelName(CompilerContext.DEFAULT_COST_MODEL_NAME);
         }
     }
 
