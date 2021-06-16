@@ -461,9 +461,7 @@ public class SubqueryNode extends ValueNode{
             return false;
         SetOperatorNode setOperatorNode = (SetOperatorNode)resultSet;
         ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
-        SubqueryNode derivedTable = (SubqueryNode) getNodeFactory().getNode(
-                                        C_NodeTypes.SUBQUERY_NODE,
-                                        resultSet,  // SetOperatorNode
+        SubqueryNode derivedTable = new SubqueryNode(resultSet,  // SetOperatorNode
                                         ReuseFactory.getInteger(SubqueryNode.FROM_SUBQUERY),
                                         null, // leftOperand,
                                         null, // orderCols,

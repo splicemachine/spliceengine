@@ -1007,9 +1007,7 @@ public class FromBaseTable extends FromTable {
         // to be the outer table of the join.  Not doing this may leave it
         // to chance that we pick a performant join.
         unionOfIndexes.setOuterTableOnly(true);
-        SubqueryNode    derivedTable = (SubqueryNode) nodeFactory.getNode(
-                                        C_NodeTypes.SUBQUERY_NODE,
-                                        unionOfIndexes,  // UnionNode
+        SubqueryNode    derivedTable = new SubqueryNode(unionOfIndexes,  // UnionNode
                                         ReuseFactory.getInteger(SubqueryNode.FROM_SUBQUERY),
                                         null,
                                         null,
