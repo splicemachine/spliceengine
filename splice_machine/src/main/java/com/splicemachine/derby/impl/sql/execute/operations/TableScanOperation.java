@@ -338,8 +338,7 @@ public class TableScanOperation extends ScanOperation{
         if (ds.isNativeSpark())
             dsp.decrementOpDepth();
         if (canCacheResultSet && dsp.getType().equals(DataSetProcessor.Type.CONTROL)) {
-            cachedResultSet = ds.map(new CloneFunction<>(null)).collect(); // msirek-temp
-            //Iterator<ExecRow> iter = ds.toLocalIterator();
+            cachedResultSet = ds.map(new CloneFunction<>(null)).collect();
             Activation parentActivation = activation.getParentActivation();
             // When the triggering statement which fired the trigger closes, then
             // release the cached result set.
@@ -354,11 +353,7 @@ public class TableScanOperation extends ScanOperation{
                     }
                 });
             }
-//        DataSetProcessor controlDSP =
-//            EngineDriver.driver().processorFactory().
-//                         localProcessor(getOperation().getActivation(), this);
-//        ds =  controlDSP.createDataSet(iter);
-          ds = dataSetFromCachedResultSet();  // msirek-temp
+          ds = dataSetFromCachedResultSet();
         }
 
         return ds;

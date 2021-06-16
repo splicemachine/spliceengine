@@ -172,7 +172,7 @@ public abstract class GenericTriggerExecutor implements AutoCloseable {
             ** way a row trigger doesn't do any unnecessary
             ** setup work.
             */
-            if (ps == null || spsActivation == null || recompile) {
+            if (ps == null || spsActivation == null || spsActivation.isClosed() || recompile) {
 
                 compile(sps, ps, index);
                 spsActivation = isWhen ? spsWhenActivation : spsActionActivationList.get(index);
@@ -388,7 +388,6 @@ public abstract class GenericTriggerExecutor implements AutoCloseable {
         spsActionActivationList.clear();
         actionPSList = null;
         spsActionActivationList = null;
-        whenPS = null;
         spsWhenActivation = null;
     }
 

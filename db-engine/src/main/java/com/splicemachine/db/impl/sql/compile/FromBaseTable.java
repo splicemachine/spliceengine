@@ -3567,8 +3567,7 @@ public class FromBaseTable extends FromTable {
         // the distinct sort would not eliminate.
         if (!compilingTrigger())
             return false;
-//        if (true)
-//            return true;  // msirek-temp
+
         CollectNodesVisitor cnv = new CollectNodesVisitor(MethodCallNode.class);
         if (getResultColumns() != null) {
             getResultColumns().accept(cnv);

@@ -327,8 +327,10 @@ public class TriggerHandler {
                 try {
                     f.get();
                 } catch (InterruptedException e) {
+                    cancelFutures(futures);
                     throw new RuntimeException(e);
                 } catch (ExecutionException e) {
+                    cancelFutures(futures);
                     if (e.getCause() instanceof StandardException) {
                         throw (StandardException) e.getCause();
                     } else {
@@ -337,6 +339,13 @@ public class TriggerHandler {
                 }
             }
             triggerActivator.notifyRowEvent(beforeEvent, triggeringResultSet, null, hasStatementTriggerWithReferencingClause);
+        }
+    }
+
+    // Cancel any futures than may be running.
+    private void cancelFutures(List<Future<Void>> futures) {
+        for (Future<Void> f : futures) {
+            f.cancel(true);
         }
     }
 
@@ -366,52 +375,28 @@ public class TriggerHandler {
 
         List<Future<Void>> futures = new ArrayList<>();
 
-        // The LCC can't be shared amongst threads, so
-        // only use one level of concurrency for now.
-        if (true || pendingAfterRows.size() <= 1) {
-            for (ExecRow flushedRow : pendingAfterRows)
-                futures.addAll(fireAfterRowConcurrentTriggers(flushedRow));
-            for (ExecRow flushedRow : pendingAfterRows)
-                fireAfterRowTriggers(flushedRow);
-        } else {
-            Object lock = new Object();
-            // work concurrently
-            List<Future<Void>> rowFutures = new ArrayList<>();
-            for (ExecRow flushedRow : pendingAfterRows) {
-                rowFutures.add(SIDriver.driver().getExecutorService().submit(withContext.apply(new Function<LanguageConnectionContext,Void>() {
-                    @Override
-                    public Void apply(LanguageConnectionContext lcc) {
-                        try {
-                            List<Future<Void>> f = fireAfterRowConcurrentTriggers(flushedRow);
-                            synchronized (lock) {
-                                futures.addAll(f);
-                            }
-                        } catch (StandardException e) {
-                            throw new RuntimeException(e);
-                        }
-                        return null;
-                    }
-                })));
+        for (ExecRow flushedRow : pendingAfterRows) {
+            futures.addAll(fireAfterRowConcurrentTriggers(flushedRow));
+            fireAfterRowTriggers(flushedRow);
+            try {
+                for (Future<Void> f : futures) {
+                    f.get(); // bubble up any exceptions
+                }
             }
-            for (ExecRow flushedRow : pendingAfterRows)
-                fireAfterRowTriggers(flushedRow);
-
-            for (Future<Void> f : rowFutures) {
-                f.get(); // bubble up any exceptions
+            catch (InterruptedException e) {
+                cancelFutures(futures);
+                throw new RuntimeException(e);
             }
-        }
-        try {
-            for (Future<Void> f : futures) {
-                f.get(); // bubble up any exceptions
+            catch (ExecutionException e) {
+                // Need to cancel the running futures so no further
+                // exceptions are hit.
+                cancelFutures(futures);
+                if (e.getCause() instanceof StandardException) {
+                    throw (StandardException) e.getCause();
+                } else {
+                    throw new RuntimeException(e);
+                }
             }
-        }
-        catch (Exception e) {
-            // Need to cancel the running futures so no further
-            // exceptions are hit.
-            for (Future<Void> f : futures) {
-                f.cancel(true);
-            }
-            throw e;
         }
         pendingAfterRows.clear();
     }
