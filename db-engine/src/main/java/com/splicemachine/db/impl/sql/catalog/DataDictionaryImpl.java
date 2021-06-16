@@ -6097,7 +6097,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public ConglomerateDescriptor[] getConglomerateDescriptors(long conglomerateNumber) throws StandardException{
-        // XXX Make this an index scan
         DataValueDescriptor conglomNumberOrderable;
         TabInfoImpl ti=coreInfo[SYSCONGLOMERATES_CORE_NUM];
 
