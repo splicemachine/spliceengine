@@ -328,16 +328,8 @@ abstract class DMLModStatementNode extends DMLStatementNode
         throws StandardException
     {
         /* Get a ResultColumnList representing all the columns in the target */
-        FromBaseTable    fbt =
-            (FromBaseTable)
-                (getNodeFactory().getNode(
-                                        C_NodeTypes.FROM_BASE_TABLE,
-                                        synonymTableName != null ? synonymTableName : targetTableName,
-                                        null,
-                                        null,
-                                        null,
-                                        getContextManager())
-                );
+        FromBaseTable fbt = new FromBaseTable(synonymTableName != null ? synonymTableName : targetTableName,
+                                        null, null, null, getContextManager());
 
         fbt.bindNonVTITables(getDataDictionary(), new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager()));
 
@@ -449,8 +441,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
                     compilerContext.popCompilationSchema();
                 }
 
-                ResultColumn    newRC =  (ResultColumn) getNodeFactory().getNode
-                    ( C_NodeTypes.RESULT_COLUMN, generationClause.getTypeServices(), generationClause, getContextManager());
+                ResultColumn newRC = new ResultColumn(generationClause.getTypeServices(), generationClause, getContextManager());
 
                 // replace the result column in place
                 newRC.setVirtualColumnId( i + 1 ); // column ids are 1-based
@@ -700,14 +691,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
          * has chosen to pass in the correct RCL to bind against.
          */
         FromList fakeFromList = new FromList(nodeFactory.doJoinOrderOptimization(), contextManager);
-        FromBaseTable table = (FromBaseTable)
-            nodeFactory.getNode(
-                C_NodeTypes.FROM_BASE_TABLE,
-                targetTableName,
-                null,
-                sourceRCL,
-                null,
-                contextManager);
+        FromBaseTable table = new FromBaseTable(targetTableName, null, sourceRCL, null, contextManager);
         table.setTableNumber(0);
         fakeFromList.addFromTable(table);
 
@@ -808,11 +792,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
             }
             else
             {
-                checkTree = (ValueNode) getNodeFactory().getNode(
-                    C_NodeTypes.AND_NODE,
-                    tcn,
-                    checkTree,
-                    getContextManager());
+                checkTree = new AndNode(tcn, checkTree, getContextManager());
             }
         }
 

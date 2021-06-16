@@ -66,10 +66,7 @@ public class FlatteningUtils {
     }
 
     private static ValueNode newAndNode(ValueNode node, ValueNode pred, ValueNode root) throws StandardException {
-        ValueNode andNode = (AndNode) node.getNodeFactory().getNode(C_NodeTypes.AND_NODE,
-                root,
-                pred,
-                node.getContextManager());
+        ValueNode andNode = new AndNode(root, pred, node.getContextManager());
         andNode.setType(pred.getTypeServices());
         return andNode;
     }

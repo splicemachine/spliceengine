@@ -302,11 +302,7 @@ public class CreateIndexNode extends DDLStatementNode
 
         // fake a FromList to bind index expressions
         FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
-        FromTable fromTable = (FromTable) getNodeFactory().getNode(
-                C_NodeTypes.FROM_BASE_TABLE,
-                tableName,
-                null, null, null, false, null,
-                getContextManager());
+        FromBaseTable fromTable = new FromBaseTable(tableName, null, null, null, false, null, getContextManager());
         fromList.addFromTable(fromTable);
         fromList.bindTables(
                 dd,

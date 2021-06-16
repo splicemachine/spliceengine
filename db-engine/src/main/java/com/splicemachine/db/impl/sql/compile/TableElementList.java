@@ -587,11 +587,7 @@ public class TableElementList extends QueryTreeNodeVector {
                                             cdn.getType(),
                                             getContextManager());
 
-                resultColumn = (ResultColumn) getNodeFactory().getNode(
-                                                C_NodeTypes.RESULT_COLUMN,
-                                                cdn.getType(),
-                                                valueNode,
-                                                getContextManager());
+                resultColumn = new ResultColumn(cdn.getType(), valueNode, getContextManager());
                 resultColumn.setName(cdn.getColumnName());
                 rcl.addElement(resultColumn);
             }

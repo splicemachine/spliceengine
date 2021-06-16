@@ -2603,22 +2603,14 @@ analyzeTableStatement() throws StandardException :
 
     Vector  parameterList = new Vector();
     if (tableName.hasSchema()) {
-      schema = (CharConstantNode) nodeFactory.getNode(
-            C_NodeTypes.CHAR_CONSTANT_NODE,
-            tableName.getSchemaName(),
-            getContextManager());
+      schema = new CharConstantNode(tableName.getSchemaName(), getContextManager());
     }
     else {
-      schema = (UntypedNullConstantNode) getNodeFactory().getNode(
-             C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
-             getContextManager());
+      schema = new UntypedNullConstantNode(getContextManager());
     }
     parameterList.addElement(schema);
 
-    CharConstantNode table = (CharConstantNode) nodeFactory.getNode(
-                                   C_NodeTypes.CHAR_CONSTANT_NODE,
-                                   tableName.getTableName(),
-                                   getContextManager());
+    CharConstantNode table = new CharConstantNode(tableName.getTableName(), getContextManager());
     parameterList.addElement(table);
 
     if (samplePercent != null) {
@@ -2635,10 +2627,7 @@ analyzeTableStatement() throws StandardException :
     value = new JavaToSQLValueNode(methodNode, getContextManager());
   }
   {
-    callStatement = (StatementNode) nodeFactory.getNode(
-      C_NodeTypes.CALL_STATEMENT_NODE,
-      value,
-      getContextManager());
+    callStatement = new CallStatementNode((JavaToSQLValueNode)value, getContextManager());
 
     setUpAndLinkParameters();
 
@@ -2664,10 +2653,7 @@ analyzeSchemaStatement() throws StandardException :
                                   getContextManager());
 
     Vector  parameterList = new Vector();
-    CharConstantNode schema = (CharConstantNode) nodeFactory.getNode(
-                C_NodeTypes.CHAR_CONSTANT_NODE,
-                schemaName,
-                getContextManager());
+    CharConstantNode schema = new CharConstantNode(schemaName, getContextManager());
     parameterList.addElement(schema);
 
     //add parameter staleOnly
@@ -2680,10 +2666,7 @@ analyzeSchemaStatement() throws StandardException :
     value = new JavaToSQLValueNode(methodNode, getContextManager());
   }
   {
-    callStatement = (StatementNode) nodeFactory.getNode(
-          C_NodeTypes.CALL_STATEMENT_NODE,
-          value,
-          getContextManager());
+    callStatement = new CallStatementNode((JavaToSQLValueNode)value, getContextManager());
 
     setUpAndLinkParameters();
 
@@ -2877,45 +2860,29 @@ explainStatement() throws StandardException :
     <EXPLAIN> [excludeToken = <EXCLUDE> <NO> <STATISTICS>] ({markerToken = getToken(0); statementNode = preparableSQLDataStatement();})
     {
         endToken = getToken(0);
-        return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
-                                   statementNode,
-                                   SparkExplainKind.NONE,
-                                   (excludeToken == null),
-                                   markerToken.endOffset,
-                                   endToken.endOffset,
-                                   getContextManager());
+        return new ExplainNode(statementNode, SparkExplainKind.NONE,
+                                   (excludeToken == null), markerToken.endOffset,
+                                   endToken.endOffset, getContextManager());
     }
     | <SPARKEXPLAIN> statementNode = preparableSQLDataStatement()
     {
-        return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
-                                   statementNode,
-                                   SparkExplainKind.EXECUTED,
-                                   false,
-                                   getContextManager());
+        return new ExplainNode(statementNode, SparkExplainKind.EXECUTED,
+                                   false, getContextManager());
     }
     | <SPARKEXPLAIN_LOGICAL> statementNode = preparableSQLDataStatement()
     {
-        return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
-                                   statementNode,
-                                   SparkExplainKind.LOGICAL,
-                                   false,
-                                   getContextManager());
+        return new ExplainNode(statementNode, SparkExplainKind.LOGICAL,
+                                   false, getContextManager());
     }
     | <SPARKEXPLAIN_ANALYZED> statementNode = preparableSQLDataStatement()
     {
-        return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
-                                   statementNode,
-                                   SparkExplainKind.ANALYZED,
-                                   false,
-                                   getContextManager());
+        return new ExplainNode(statementNode, SparkExplainKind.ANALYZED,
+                                   false, getContextManager());
     }
     | <SPARKEXPLAIN_OPTIMIZED> statementNode = preparableSQLDataStatement()
     {
-        return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
-                                   statementNode,
-                                   SparkExplainKind.OPTIMIZED,
-                                   false,
-                                   getContextManager());
+        return new ExplainNode(statementNode, SparkExplainKind.OPTIMIZED,
+                                   false, getContextManager());
     }
 }
 
@@ -2962,10 +2929,7 @@ ValueNode exportCompression() throws StandardException :
 {
     token = exportCompressionToken()
     {
-        return (ValueNode) nodeFactory.getNode(
-            C_NodeTypes.CHAR_CONSTANT_NODE,
-            token,
-            getContextManager());
+        return new CharConstantNode(token, getContextManager());
     }
 |
     expr = orExpression(null)
@@ -3002,10 +2966,7 @@ ValueNode exportFormat() throws StandardException :
 {
     token = exportFormatToken()
     {
-        return (ValueNode) nodeFactory.getNode(
-            C_NodeTypes.CHAR_CONSTANT_NODE,
-            token,
-            getContextManager());
+        return new CharConstantNode(token, getContextManager());
     }
 |
     expr = orExpression(null)
@@ -3037,10 +2998,7 @@ ValueNode exportQuoteMode() throws StandardException :
 {
     token = exportQuoteModeToken()
     {
-        return (ValueNode) nodeFactory.getNode(
-            C_NodeTypes.CHAR_CONSTANT_NODE,
-            token,
-            getContextManager());
+        return new CharConstantNode(token, getContextManager());
     }
 |
     expr = orExpression(null)
@@ -3072,10 +3030,7 @@ ValueNode floatingPointNotation() throws StandardException :
 {
     token = floatingPointNotationToken()
     {
-        return (ValueNode) nodeFactory.getNode(
-            C_NodeTypes.CHAR_CONSTANT_NODE,
-            token,
-            getContextManager());
+        return new CharConstantNode(token, getContextManager());
     }
 |
     expr = orExpression(null)
@@ -3142,26 +3097,17 @@ exportStatement() throws StandardException :
             parameterList.addElement(fileType);
             parameterList.addElement(floatingPointNotation);
             parameterList.addElement(timestampFormat);
-            return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
-                                       statementNode,
-                                       parameterList,
-                                       getContextManager());
+            return new ExportNode(statementNode, parameterList, getContextManager());
         }
     |
         // Legacy export
         methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
         {
             parameterList.addElement(null); // null for legacy (quote mode)
-            parameterList.addElement((CharConstantNode) nodeFactory.getNode(
-                                     C_NodeTypes.CHAR_CONSTANT_NODE,
-                                     "csv",
-                                     getContextManager()));
+            parameterList.addElement( new CharConstantNode("csv", getContextManager()));
             parameterList.addElement(null); // null for legacy (floating point notation)
             parameterList.addElement(null); // null for legacy (timestamp format)
-            return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
-                                       statementNode,
-                                       parameterList,
-                                       getContextManager());
+            return new ExportNode(statementNode, parameterList, getContextManager());
         }
     )
 }
@@ -3175,10 +3121,7 @@ kafkaExportStatement() throws StandardException :
 {
     <EXPORT_KAFKA> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
     {
-        return (KafkaExportNode) nodeFactory.getNode(C_NodeTypes.KAFKA_EXPORT_NODE,
-                                   statementNode,
-                                   parameterList,
-                                   getContextManager());
+        return new KafkaExportNode(statementNode, parameterList, getContextManager());
     }
 }
 
@@ -3206,10 +3149,7 @@ binaryExportStatement() throws StandardException :
         actualParameterList.addElement(parameterList.elementAt(2));
         actualParameterList.addElement(null);
         actualParameterList.addElement(null);
-        return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
-                                   statementNode,
-                                   actualParameterList,
-                                   getContextManager());
+        return new ExportNode(statementNode, actualParameterList, getContextManager());
     }
 }
 
@@ -3248,13 +3188,8 @@ deleteBody() throws StandardException :
     <FROM> javaToSQLNode = newInvocation()
     [ whereToken = <WHERE> whereClause = whereClause(whereToken) ]
     {
-        fromTable =  (FromTable) nodeFactory.getNode(
-                                    C_NodeTypes.FROM_VTI,
-                                    javaToSQLNode.getJavaValueNode(),
-                                    (String) null,
-                                    null,
-                                    (Properties) null,
-                                    getContextManager());
+        fromTable =  new FromVTI((MethodCallNode)javaToSQLNode.getJavaValueNode(), (String) null,
+                                    null, (Properties) null, getContextManager());
 
         return getDeleteNode(fromTable, tableName, whereClause, null, parameterList);
     }
@@ -3297,16 +3232,9 @@ deleteBody() throws StandardException :
         boolean isBulkDelete = DeleteNode.isBulkDelete(deleteProperties);
 
         if (fromTable == null)
-            fromTable = (FromTable) nodeFactory.getNode(
-                                        C_NodeTypes.FROM_BASE_TABLE,
-                                        tableName,
-                                        correlationName,
-                                        ReuseFactory.getInteger(
-                                                FromBaseTable.DELETE),
-                                        null,
-                                        isBulkDelete,
-                                        null,
-                                        getContextManager());
+            fromTable = new FromBaseTable(tableName, correlationName,
+                                        ReuseFactory.getInteger(FromBaseTable.DELETE),
+                                        null, isBulkDelete, null, getContextManager());
 
 
         /* Update the FromTable with any properties, if non-null */
@@ -3397,18 +3325,13 @@ preparableSelectStatement(boolean checkParams) throws StandardException :
         // must be READ ONLY or empty, and the cursor
         // is implicitly READ_ONLY.
 
-        retval = (CursorNode) nodeFactory.getNode(
-                C_NodeTypes.CURSOR_NODE,
-                "SELECT",
-                queryExpression,
-                null,
-                orderCols,
-                offsetClauses[ OFFSET_CLAUSE ],
-                offsetClauses[ FETCH_FIRST_CLAUSE ],
-                Boolean.valueOf( hasJDBClimitClause ),
-                ReuseFactory.getInteger(forUpdateState.intValue()),
-                (forUpdateState.intValue() == CursorNode.READ_ONLY ? null : updateColumns ),
-                getContextManager());
+        retval = new CursorNode("SELECT", queryExpression, null, orderCols, 
+                      offsetClauses[ OFFSET_CLAUSE ],
+                      offsetClauses[ FETCH_FIRST_CLAUSE ],
+                      Boolean.valueOf( hasJDBClimitClause ),
+                      ReuseFactory.getInteger(forUpdateState.intValue()),
+                      (forUpdateState.intValue() == CursorNode.READ_ONLY ? null : updateColumns ),
+                      getContextManager());
 
         if (checkParams)
         {
@@ -3459,13 +3382,8 @@ targetTable() throws StandardException :
     LOOKAHEAD( { newInvocationFollows(1) } )
     javaToSQLNode = newInvocation()
     {
-        return (QueryTreeNode) nodeFactory.getNode(
-                                C_NodeTypes.FROM_VTI,
-                                javaToSQLNode.getJavaValueNode(),
-                                correlationName,
-                                null,
-                                (Properties) null,
-                                getContextManager());
+        return new FromVTI((MethodCallNode)javaToSQLNode.getJavaValueNode(), correlationName,
+                                null, (Properties) null, getContextManager());
     }
 |
     tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
@@ -3532,13 +3450,8 @@ updateBody() throws StandardException :
         <SET> columnList = setClauseList()
     [ whereToken = <WHERE> whereClause = whereClause(whereToken) ]
     {
-        fromTable =  (FromTable) nodeFactory.getNode(
-                                    C_NodeTypes.FROM_VTI,
-                                    javaToSQLNode.getJavaValueNode(),
-                                    (String) null,
-                                    null,
-                                    (Properties) null,
-                                    getContextManager());
+        fromTable =  new FromVTI((MethodCallNode)javaToSQLNode.getJavaValueNode(), (String) null,
+                                    null, (Properties) null, getContextManager());
 
         return getUpdateNode(fromTable, tableName, columnList, whereClause);
     }
@@ -3598,14 +3511,9 @@ updateBody() throws StandardException :
          * decision that the parser's output should look like the language.
          */
         if (fromTable == null)
-            fromTable = (FromTable) nodeFactory.getNode(
-                                        C_NodeTypes.FROM_BASE_TABLE,
-                                        tableName,
-                                        correlationName,
-                                        ReuseFactory.getInteger(
-                                                        FromBaseTable.UPDATE),
-                                        null,
-                                        getContextManager());
+            fromTable = new FromBaseTable(tableName, correlationName,
+                                        ReuseFactory.getInteger(FromBaseTable.UPDATE),
+                                        null, getContextManager());
 
         /* Update the FromTable with any properties, if non-null */
         if (targetProperties != null)
@@ -3671,12 +3579,7 @@ bareCallStatement() throws StandardException :
             throw StandardException.newException(SQLState.LANG_INVALID_CALL_STATEMENT);
         }
 
-        StatementNode callStatement =
-                                    (StatementNode) nodeFactory.getNode(
-                                                C_NodeTypes.CALL_STATEMENT_NODE,
-                                                value,
-                                                getContextManager());
-
+        StatementNode callStatement = new CallStatementNode((JavaToSQLValueNode)value, getContextManager());
         setUpAndLinkParameters();
 
         return callStatement;
@@ -3707,19 +3610,10 @@ bareCallStatement() throws StandardException :
         }
 
         // wrap the row result set in a cursor node
-        StatementNode cursorNode =
-                    (StatementNode) nodeFactory.getNode(
-                        C_NodeTypes.CURSOR_NODE,
-                        "SELECT",
-                        resultSetNode,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        ReuseFactory.getInteger(CursorNode.READ_ONLY),
-                        null,
-                        getContextManager());
+        CursorNode cursorNode = new CursorNode("SELECT",
+                                resultSetNode, null, null, null, null, null,
+                                ReuseFactory.getInteger(CursorNode.READ_ONLY),
+                                null, getContextManager());
 
         // set the 0th param to be a RETURN param
         returnParam.setReturnOutputParam(value);
@@ -5459,11 +5353,7 @@ derivedColumn(ResultColumnList resultColumns) throws StandardException :
             columnName = ((ColumnReference) columnExpression).columnName;
         }
 
-        return (ResultColumn) nodeFactory.getNode(
-                        C_NodeTypes.RESULT_COLUMN,
-                        columnName,
-                        columnExpression,
-                        getContextManager());
+        return new ResultColumn(columnName, columnExpression, getContextManager());
     }
 }
 
@@ -5518,11 +5408,7 @@ orExpression(ValueNode farLeftOperand) throws StandardException :
         }
         else
         {
-            return (ValueNode) nodeFactory.getNode(
-                                        C_NodeTypes.OR_NODE,
-                                        farLeftOperand,
-                                        leftOperand,
-                                        getContextManager());
+            return new OrNode(farLeftOperand, leftOperand, getContextManager());
         }
     }
 }
@@ -5544,19 +5430,12 @@ andExpression(ValueNode farLeftOperand) throws StandardException :
         /* Put the NOT on top of test */
         if (tok != null)
         {
-            test = (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.NOT_NODE,
-                                    test,
-                                    getContextManager());
+            test = new NotNode(test, getContextManager());
         }
 
         if (farLeftOperand != null)
         {
-            test = (ValueNode) nodeFactory.getNode(
-                                        C_NodeTypes.AND_NODE,
-                                        farLeftOperand,
-                                        test,
-                                        getContextManager());
+            test = new AndNode(farLeftOperand, test, getContextManager());
         }
         return test;
     }
@@ -5590,10 +5469,7 @@ isSearchCondition() throws StandardException :
                 /* Put the NOT on top of the tree */
                 if (notToken != null)
                 {
-                    result = (ValueNode) nodeFactory.getNode(
-                                            C_NodeTypes.NOT_NODE,
-                                            result,
-                                            getContextManager());
+                    result = new NotNode(result, getContextManager());
                 }
         }
         else { result = booleanPrimary; }
@@ -5675,10 +5551,7 @@ remainingPredicate(ValueNode value) throws StandardException :
         /* Put the NOT on top of the tree */
         if (tok != null)
         {
-            value = (ValueNode) nodeFactory.getNode(
-                                        C_NodeTypes.NOT_NODE,
-                                        value,
-                                        getContextManager());
+            value = new NotNode(value, getContextManager());
         }
 
         return value;
@@ -5933,9 +5806,7 @@ additiveExpressionTuple(
                         rightTuple.get(0),
                         getContextManager());
         for (int i = 1; i < leftTuple.size(); ++i) {
-            value = (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.AND_NODE,
-                            value,
+            value = new AndNode(value,
                             (ValueNode) nodeFactory.getNode(
                                 nodeType,
                                 leftTuple.get(i),
@@ -6488,21 +6359,13 @@ escapedValueFunction() throws StandardException :
     /* CURDATE() is an escaped function supported by JCC 2.2 or higher */
     <CURDATE> <LEFT_PAREN> <RIGHT_PAREN>
     {
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
-                                ReuseFactory.getInteger(
-                                    CurrentDatetimeOperatorNode.CURRENT_DATE),
-                                getContextManager());
+        return new CurrentDatetimeOperatorNode(CurrentDatetimeOperatorNode.CURRENT_DATE, getContextManager());
     }
 |
     /* CURTIME() is an escaped function supported by JCC 2.2 or higher */
     <CURTIME> <LEFT_PAREN> <RIGHT_PAREN>
     {
-        return (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
-                            ReuseFactory.getInteger(
-                                CurrentDatetimeOperatorNode.CURRENT_TIME),
-                            getContextManager());
+        return new CurrentDatetimeOperatorNode(CurrentDatetimeOperatorNode.CURRENT_TIME, getContextManager());
     }
 |
     /* Method versions of USER special registers
@@ -7442,9 +7305,7 @@ valueTupleElement(ValueNode tupleOrFirstValue) throws StandardException:
         if (tupleOrFirstValue instanceof ValueTupleNode) {
             valueTuple = (ValueTupleNode) tupleOrFirstValue;
         } else {
-            valueTuple = (ValueTupleNode) nodeFactory.getNode(
-                                    C_NodeTypes.VALUE_TUPLE_NODE,
-                                    getContextManager());
+            valueTuple = new ValueTupleNode(getContextManager());
             valueTuple.addValueNode((ValueNode) tupleOrFirstValue);
         }
         if (newValue instanceof ValueTupleNode) {
@@ -8510,10 +8371,7 @@ ValueNode
 truncateFunctionCompletion(ValueNode truncateOperand) throws StandardException :
 {
         /* default truncValue to DAY */
-        ValueNode truncValue = (CharConstantNode) nodeFactory.getNode(
-                                                               C_NodeTypes.CHAR_CONSTANT_NODE,
-                                                               "DAY",  // default to DAY
-                                                               getContextManager());
+        ValueNode truncValue = new CharConstantNode("DAY" /* default to DAY */,  getContextManager());
 }
 {
     ( <RIGHT_PAREN> | <COMMA> truncValue = additiveExpression(null,0) <RIGHT_PAREN> )
@@ -9457,7 +9315,7 @@ void
 setClause(ResultColumnList columnList) throws StandardException :
 {
     ResultColumn resultColumn;
-    ValueNode     columnName;
+    ValueNode     columnRef;
     ValueNode     valueNode;
 }
 {
@@ -9467,13 +9325,9 @@ setClause(ResultColumnList columnList) throws StandardException :
         but JBuilder expects table.column, so we allow the
         general form.
      */
-    columnName = columnReference() <EQUALS_OPERATOR> valueNode = updateSource(columnName.getColumnName())
+    columnRef = columnReference() <EQUALS_OPERATOR> valueNode = updateSource(columnRef.getColumnName())
     {
-        resultColumn = (ResultColumn) nodeFactory.getNode(
-                                        C_NodeTypes.RESULT_COLUMN,
-                                        columnName,
-                                        valueNode,
-                                        getContextManager());
+        resultColumn = new ResultColumn((ColumnReference)columnRef, valueNode, getContextManager());
         columnList.addResultColumn(resultColumn);
     }
 }
@@ -9482,15 +9336,13 @@ void
 setClauseSpecial(ResultColumnList columnList) throws StandardException :
 {
     ResultColumn resultColumn;
-    ValueNode  columnName;
+    ValueNode  columnRef;
     ValueNode    valueNode;
 }
 {
-    columnName = columnReference()
+    columnRef = columnReference()
     {
-        resultColumn = (ResultColumn) nodeFactory.getNode(
-                                        C_NodeTypes.RESULT_COLUMN,
-                                        columnName,
+        resultColumn = new ResultColumn((ColumnReference)columnRef,
                                         null, /* valueNode null for now - will be populated later */
                                         getContextManager());
         columnList.addResultColumn(resultColumn);
@@ -9534,9 +9386,7 @@ nullSpecification() throws StandardException :
 {
     <NULL>
     {
-        return (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
-                                    getContextManager());
+        return new UntypedNullConstantNode(getContextManager());
     }
 }
 
@@ -9672,11 +9522,7 @@ columnQualifiedNameItem(ResultColumnList columnList) throws StandardException :
         ** should be hooked up to each result column, so set that
         ** to null for now.
         */
-        resultColumn = (ResultColumn) nodeFactory.getNode(
-                                        C_NodeTypes.RESULT_COLUMN,
-                                        columnRef,
-                                        null,
-                                        getContextManager());
+        resultColumn = new ResultColumn((ColumnReference)columnRef, null, getContextManager());
         columnList.addResultColumn(resultColumn);
     }
 }
@@ -9770,32 +9616,17 @@ rowValueConstructorElement(ResultColumnList resultColumns) throws StandardExcept
 {
     value = orExpression(null)
     {
-        resultColumns.addResultColumn(
-            (ResultColumn) nodeFactory.getNode(
-                            C_NodeTypes.RESULT_COLUMN,
-                            null,
-                            value,
-                            getContextManager())
-                );
+        resultColumns.addResultColumn(new ResultColumn((String)null, value, getContextManager()));
     }
 |
     value = nullSpecification()
     {
-        resultColumns.addResultColumn(
-            (ResultColumn) nodeFactory.getNode(
-                            C_NodeTypes.RESULT_COLUMN,
-                            null,
-                            value,
-                            getContextManager())
-                );
+        resultColumns.addResultColumn(new ResultColumn((String)null, value, getContextManager()));
     }
 |
     <_DEFAULT>
     {
-        resultColumns.addResultColumn(
-            (ResultColumn) nodeFactory.getNode(
-                            C_NodeTypes.RESULT_COLUMN,
-                            null,
+        resultColumns.addResultColumn(new ResultColumn((String)null,
                             (ValueNode) nodeFactory.getNode(
                                 C_NodeTypes.DEFAULT_NODE,
                                 null,
@@ -9859,9 +9690,7 @@ subquery(int subqueryType, ValueNode leftOperand) throws StandardException :
             hasJDBClimitClause = true;
             offsetClauses[ FETCH_FIRST_CLAUSE ] = topNOut[0];
         }
-        subqueryNode = (SubqueryNode) nodeFactory.getNode(
-                                        C_NodeTypes.SUBQUERY_NODE,
-                                        queryExpression,
+        subqueryNode = new SubqueryNode(queryExpression,
                                         ReuseFactory.getInteger(subqueryType),
                                         leftOperand,
                                         orderCols,
@@ -10356,9 +10185,7 @@ FromTable tableFactor() throws StandardException :
         <RIGHT_PAREN> ]
         [ optionalTableClauses = optionalTableProperties() ]
     {
-        fromTable = (FromTable) nodeFactory.getNode(
-                                C_NodeTypes.FROM_VTI,
-                                javaToSQLNode.getJavaValueNode(),
+        fromTable = new FromVTI((MethodCallNode)javaToSQLNode.getJavaValueNode(),
                                 correlationName,
                                 derivedRCL,
                                 ((optionalTableClauses != null) ?
@@ -10390,7 +10217,7 @@ FromTable tableFactor() throws StandardException :
         actionTextList = new ArrayList();
         actionTextList.add(internalSelectStmt);
         selectStatementNode = dmlStatement.parseStatement(internalSelectStmt, true);
-        actionNodeList = (StatementListNode) nodeFactory.getNode(C_NodeTypes.STATEMENT_LIST_NODE, getContextManager());
+        actionNodeList = new StatementListNode(getContextManager());
         actionNodeList.addStatement(selectStatementNode);
 
         String javaClassName =
@@ -10452,19 +10279,11 @@ FromTable tableFactor() throws StandardException :
                format("CREATE TRIGGER %s AFTER %s ON %s REFERENCING %s_TABLE AS %s FOR EACH STATEMENT VALUES 1",
                       triggerName, stmtKind, targetTableName, newOrOld, correlationName);
 
-        FromVTI fromVTI =
-          (FromVTI) nodeFactory.getNode(
-                        C_NodeTypes.FROM_VTI,
-                        javaToSQLNode.getJavaValueNode(),
-                        correlationName,
-                        derivedRCL,
-                        ((optionalTableClauses != null) ?
+        FromVTI fromVTI = new FromVTI((MethodCallNode)javaToSQLNode.getJavaValueNode(), correlationName,
+                        derivedRCL, ((optionalTableClauses != null) ?
                             (Properties) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] :
                             (Properties) null),
-                        typeDescriptor,
-                        parameterList,
-                        new Boolean(true),
-                        getContextManager());
+                        typeDescriptor, parameterList, Boolean.TRUE, getContextManager());
         fromVTI.setFromTableDMLStmt(dmlStatement);
         fromVTI.setTempTriggerDefinition(tempTriggerDefinition);
         fromVTI.setTempTriggerSQLText(tempTriggerSQLText);
@@ -10476,9 +10295,7 @@ FromTable tableFactor() throws StandardException :
     tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
         optionalTableClauses = optionalTableClauses()
     {
-        fromTable = (FromTable) nodeFactory.getNode(
-                                            C_NodeTypes.FROM_BASE_TABLE,
-                                            tableName,
+        fromTable = new FromBaseTable(tableName, 
                                             (String) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME],
                                             (ResultColumnList) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL],
                                             (Properties) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES],
@@ -10616,11 +10433,7 @@ columnNameItem(ResultColumnList columnList) throws StandardException :
         ** should be hooked up to each result column, so set that
         ** to null for now.
         */
-        resultColumn = (ResultColumn) nodeFactory.getNode(
-                                    C_NodeTypes.RESULT_COLUMN,
-                                    columnName,
-                                    null,
-                                    getContextManager());
+        resultColumn = new ResultColumn(columnName, null, getContextManager());
         columnList.addResultColumn(resultColumn);
     }
 }
@@ -10916,78 +10729,42 @@ datetimeValueFunction() throws StandardException :
 {
     LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == DATE)}) <CURRENT> <DATE>
     {
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
-                                ReuseFactory.getInteger(
-                                    CurrentDatetimeOperatorNode.CURRENT_DATE),
-                                getContextManager());
+        return new CurrentDatetimeOperatorNode(CurrentDatetimeOperatorNode.CURRENT_DATE, getContextManager());
     }
     | <CURRENT_DATE>
     {
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
-                                ReuseFactory.getInteger(
-                                    CurrentDatetimeOperatorNode.CURRENT_DATE),
-                                getContextManager());
+        return new CurrentDatetimeOperatorNode(CurrentDatetimeOperatorNode.CURRENT_DATE, getContextManager());
     }
 |
     LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == TIME)}) <CURRENT> <TIME>
     {
-        return (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
-                            ReuseFactory.getInteger(
-                                CurrentDatetimeOperatorNode.CURRENT_TIME),
-                            getContextManager());
+        return new CurrentDatetimeOperatorNode(CurrentDatetimeOperatorNode.CURRENT_TIME, getContextManager());
     }
     | <CURRENT_TIME>
     {
-        return (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
-                            ReuseFactory.getInteger(
-                                CurrentDatetimeOperatorNode.CURRENT_TIME),
-                            getContextManager());
+        return new CurrentDatetimeOperatorNode(CurrentDatetimeOperatorNode.CURRENT_TIME, getContextManager());
     }
 |
     LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == TIMEZONE)}) <CURRENT> <TIMEZONE>
     {
-        return (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
-                            ReuseFactory.getInteger(
-                                CurrentDatetimeOperatorNode.CURRENT_TIMEZONE),
-                            getContextManager());
+        return new CurrentDatetimeOperatorNode(CurrentDatetimeOperatorNode.CURRENT_TIMEZONE, getContextManager());
     }
     | <CURRENT_TIMEZONE>
     {
-        return (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
-                            ReuseFactory.getInteger(
-                                CurrentDatetimeOperatorNode.CURRENT_TIMEZONE),
-                            getContextManager());
+        return new CurrentDatetimeOperatorNode(CurrentDatetimeOperatorNode.CURRENT_TIMEZONE, getContextManager());
     }
 |
     LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == TIMESTAMP)}) <CURRENT> <TIMESTAMP>
     {
-        return (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
-                            ReuseFactory.getInteger(
-                                CurrentDatetimeOperatorNode.CURRENT_TIMESTAMP),
-                            getContextManager());
+        return new CurrentDatetimeOperatorNode(CurrentDatetimeOperatorNode.CURRENT_TIMESTAMP, getContextManager());
     }
     | <CURRENT_TIMESTAMP>
     {
-        return (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
-                            ReuseFactory.getInteger(
-                                CurrentDatetimeOperatorNode.CURRENT_TIMESTAMP),
-                            getContextManager());
+        return new CurrentDatetimeOperatorNode(CurrentDatetimeOperatorNode.CURRENT_TIMESTAMP, getContextManager());
     }
     | <NOW> [ <LEFT_PAREN> <RIGHT_PAREN> ]
     {
-        return (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
-                            ReuseFactory.getInteger(
-                                CurrentDatetimeOperatorNode.CURRENT_TIMESTAMP),
-                            getContextManager());
+        return new CurrentDatetimeOperatorNode(CurrentDatetimeOperatorNode.CURRENT_TIMESTAMP, getContextManager());
     }
 }
 
@@ -11588,9 +11365,7 @@ castOperand() throws StandardException :
 |
     <NULL>
     {
-        return (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
-                                    getContextManager());
+        return new UntypedNullConstantNode(getContextManager());
     }
 }
 
@@ -11671,9 +11446,7 @@ groupByClause() throws StandardException :
 GroupByList
 groupingColumnReferenceList(boolean fromPartitionBy) throws StandardException :
 {
-    GroupByList groupingCols = (GroupByList) nodeFactory.getNode(
-                                    C_NodeTypes.GROUP_BY_LIST,
-                                    getContextManager());
+    GroupByList groupingCols = new GroupByList(getContextManager());
 }
 {
     groupingColumnReference(groupingCols, fromPartitionBy) ( <COMMA> groupingColumnReference(groupingCols, fromPartitionBy) ) *
@@ -13189,7 +12962,7 @@ triggerActionList(HashSet<String> hs,
                   Boolean isBefore,
                   List<String> actionTextList) throws StandardException :
 {
-    StatementListNode actionNodeList = (StatementListNode) nodeFactory.getNode(C_NodeTypes.STATEMENT_LIST_NODE, getContextManager());
+    StatementListNode actionNodeList = new StatementListNode(getContextManager());
     StatementNode actionNode = null;
 }
 {
@@ -13474,9 +13247,7 @@ defaultNullOnlyClause() throws StandardException :
 {
      <_DEFAULT> <NULL>
      {
-        return (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
-                                    getContextManager());
+        return new UntypedNullConstantNode(getContextManager());
      }
 }
 
@@ -13655,9 +13426,7 @@ defaultOption(Token beginToken, long[] autoIncrementInfo,
             getToken(2).kind == DOUBLE_COLON)})
     <NULL>
     {
-        return (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
-                                    getContextManager());
+        return new UntypedNullConstantNode(getContextManager());
     }
 |
     value = DB2DefaultOption(columnName)
@@ -14087,10 +13856,7 @@ stringLiteral() throws StandardException :
             throw StandardException.newException(SQLState.LANG_DB2_STRING_CONSTANT_TOO_LONG, StringUtil.formatForPrint(tok.image));
         string = StringUtil.compressQuotes(tok.image.substring(1, tok.image.length() - 1), SINGLEQUOTES);
         /* Trim quotes from string. */
-        return (CharConstantNode) nodeFactory.getNode(
-                                C_NodeTypes.CHAR_CONSTANT_NODE,
-                                string,
-                                getContextManager());
+        return new CharConstantNode(string, getContextManager());
     }
 }
 
@@ -14158,11 +13924,7 @@ checkConstraintDefinition(TableName constraintName, String columnName)
         {
             /* Column check constraint */
             rclList = new ResultColumnList(getContextManager());
-            rclList.addElement((ResultColumn) nodeFactory.getNode(
-                                    C_NodeTypes.RESULT_COLUMN,
-                                    columnName,
-                                    null,
-                                    getContextManager()));
+            rclList.addElement(new ResultColumn(columnName, null, getContextManager()));
         }
 
         value.setBeginOffset( beginToken.beginOffset );
@@ -14914,9 +14676,7 @@ valueSpecification() throws StandardException :
         ValueNodeList thenElseList = (ValueNodeList) nodeFactory.getNode(C_NodeTypes.VALUE_NODE_LIST, cm);
 
         //Use untyped null for then clause at this point. At the bind time, we will cast it to the datatype of L
-        thenElseList.addElement((ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
-                                    cm));
+        thenElseList.addElement(new UntypedNullConstantNode(cm));
         thenElseList.addElement(leftExpression);
 
         return (ValueNode) nodeFactory.getNode(
@@ -15403,12 +15163,7 @@ columnConstraint(TableName constraintName,
         [ properties = propertyList(false) <CHECK_PROPERTIES>]
     {
         ResultColumnList uniqueColumnList = new ResultColumnList(getContextManager());
-        uniqueColumnList.addElement(
-            (ResultColumn) nodeFactory.getNode(
-                            C_NodeTypes.RESULT_COLUMN,
-                            columnName,
-                            null,
-                            getContextManager()));
+        uniqueColumnList.addElement(new ResultColumn(columnName, null, getContextManager()));
 
         return (ConstraintDefinitionNode) nodeFactory.getNode(
                         C_NodeTypes.CONSTRAINT_DEFINITION_NODE,
@@ -15426,13 +15181,7 @@ columnConstraint(TableName constraintName,
         [ properties = propertyList(false)<CHECK_PROPERTIES>]
     {
         ResultColumnList fkRcl = new ResultColumnList(getContextManager());
-        fkRcl.addElement(
-                    (ResultColumn) nodeFactory.getNode(
-                                    C_NodeTypes.RESULT_COLUMN,
-                                    columnName,
-                                    null,
-                                    getContextManager())
-                );
+        fkRcl.addElement(new ResultColumn(columnName, null, getContextManager()));
         tcdn = (ConstraintDefinitionNode) nodeFactory.getNode(
                         C_NodeTypes.FK_CONSTRAINT_DEFINITION_NODE,
                         constraintName,
@@ -15979,8 +15728,7 @@ columnAlterClause(String columnName) throws StandardException :
     <DROP> <_DEFAULT>
     {
 
-        defaultNode = (ValueNode) nodeFactory.getNode(
-            C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE, getContextManager());
+        defaultNode = new UntypedNullConstantNode(getContextManager());
 
         return wrapAlterColumnDefaultValue(defaultNode,
                                            columnName,

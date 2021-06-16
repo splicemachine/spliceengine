@@ -58,7 +58,7 @@ public class SubqueryNodeFactory {
     public AndNode buildAndNode() throws StandardException {
         ValueNode left = buildBooleanTrue();
         ValueNode right = buildBooleanTrue();
-        return (AndNode) nodeFactory.getNode(C_NodeTypes.AND_NODE, left, right, contextManager);
+        return new AndNode(left, right, contextManager);
     }
 
     /**
