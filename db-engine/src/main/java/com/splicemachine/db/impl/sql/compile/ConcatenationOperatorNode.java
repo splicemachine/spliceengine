@@ -65,7 +65,7 @@ import static com.splicemachine.db.iapi.reference.Limits.DB2_VARCHAR_MAXWIDTH;
 public class ConcatenationOperatorNode extends BinaryOperatorNode {
 	/**
 	 * Initializer for a ConcatenationOperatorNode
-	 * 
+	 *
 	 * @param leftOperand
 	 *            The left operand of the concatenation
 	 * @param rightOperand
@@ -93,7 +93,7 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
             StringDataValue leftValue = (StringDataValue) leftOp.getValue();
             StringDataValue rightValue = (StringDataValue) rightOp.getValue();
 
-			StringDataValue resultValue = null;
+            StringDataValue resultValue;
             DataTypeDescriptor resultDTD = getTypeServices();
             if (resultDTD == null) {
             	TypeId resultTypeId =
@@ -106,6 +106,7 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
             else
                 resultValue = (StringDataValue) resultDTD.getNull();
 
+            assert resultValue != null;
             resultValue.concatenate(leftValue, rightValue, resultValue);
 
             return (ValueNode) getNodeFactory().getNode(
@@ -120,7 +121,7 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
 	/**
 	 * overrides BindOperatorNode.bindExpression because concatenation has
 	 * special requirements for parameter binding.
-	 * 
+	 *
 	 * @exception StandardException
 	 *                thrown on failure
 	 */
@@ -258,9 +259,9 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
 					getContextManager());
 
 			// DERBY-2910 - Match current schema collation for implicit cast as we do for
-			// explicit casts per SQL Spec 6.12 (10)			
+			// explicit casts per SQL Spec 6.12 (10)
 			leftOperand.setCollationUsingCompilationSchema();
-						
+
 			((CastNode) leftOperand).bindCastNodeOnly();
 		}
 		tc = rightOperand.getTypeCompiler();
@@ -276,11 +277,11 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
 					rightOperand,
 					dtd,
 					getContextManager());
-			
+
 			// DERBY-2910 - Match current schema collation for implicit cast as we do for
-			// explicit casts per SQL Spec 6.12 (10)					
+			// explicit casts per SQL Spec 6.12 (10)
 			rightOperand.setCollationUsingCompilationSchema();
-			
+
 			((CastNode) rightOperand).bindCastNodeOnly();
 		}
 

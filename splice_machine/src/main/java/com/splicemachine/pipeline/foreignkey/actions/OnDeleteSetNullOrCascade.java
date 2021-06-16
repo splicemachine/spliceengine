@@ -96,7 +96,7 @@ public class OnDeleteSetNullOrCascade extends OnDeleteAbstractAction {
         int deleteRule = constraintInfo.getDeleteRule();
         assert deleteRule == StatementType.RA_SETNULL || deleteRule == StatementType.RA_CASCADE;
         if(deleteRule == StatementType.RA_SETNULL) {
-            return KVPair.Type.UPDATE;
+            return KVPair.Type.BLIND_UPDATE; // force index row rebuilding via base table lookup.
         } else { // CASCADE
             return KVPair.Type.DELETE;
         }
