@@ -234,7 +234,7 @@ public abstract class BinaryListOperatorNode extends ValueNode{
         }
         else {
             throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
-                                                 "Multicolumn IN predicate requires a subquery on the right-hand side.");
+                                                 "Multicolumn IN predicate requires a subquery on the right-hand side");
         }
 
         /* Generate bound conversion trees for those elements in the rightOperandList
