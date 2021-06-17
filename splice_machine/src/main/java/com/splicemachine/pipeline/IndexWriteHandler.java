@@ -26,8 +26,8 @@ import com.splicemachine.primitives.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
-import static com.splicemachine.pipeline.writehandler.UpdateUtils.deleteFromUpdate;
-import static com.splicemachine.pipeline.writehandler.UpdateUtils.getBaseUpdateMutation;
+import static com.splicemachine.storage.util.UpdateUtils.deleteFromWrite;
+import static com.splicemachine.storage.util.UpdateUtils.updateFromWrite;
 
 /**
  * Intercepts UPDATE/UPSERT/INSERT/DELETE mutations to a base table and sends corresponding mutations to the index table.
@@ -36,7 +36,6 @@ import static com.splicemachine.pipeline.writehandler.UpdateUtils.getBaseUpdateM
  *         Created on: 5/1/13
  */
 public class IndexWriteHandler extends RoutingWriteHandler{
-    // todo: IndexWriteHandler is the only usage of RoutingWriteHandler. Merge into one class
     private static final Logger LOG = Logger.getLogger(IndexWriteHandler.class);
     private final IndexTransformer transformer;
     private CallBuffer<KVPair> indexBuffer;
@@ -99,7 +98,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
             case UPDATE:
                 if (transformer.areIndexKeysModified(mutation, true)) { // Do I need to update?
                     delete = deleteIndexRecordFromUpdate(mutation, ctx);
-                    mutation = getBaseUpdateMutation(mutation);
+                    mutation = updateFromWrite(mutation);
                     return createIndexRecord(mutation, ctx, delete);
                 }
                 return true; // No index columns modified, ignore...
@@ -130,7 +129,7 @@ public class IndexWriteHandler extends RoutingWriteHandler{
             SpliceLogUtils.trace(LOG, "index delete with %s", mutation);
 
         try {
-            KVPair toTransform = deleteFromUpdate(mutation);
+            KVPair toTransform = deleteFromWrite(mutation);
 
             KVPair indexDelete = transformer.translate(toTransform);
 
