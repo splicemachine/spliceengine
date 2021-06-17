@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.store.access.base;
 
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -261,10 +262,33 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
      **/
     @Override
     public void readExternal(ObjectInput in) throws IOException {
+        if (LOG.isTraceEnabled()) {
+            SpliceLogUtils.trace(LOG, "localReadExternal");
+        }
+        try {
+            SIDriver driver = SIDriver.driver();
+            boolean useNew = false;
 
-        partitionFactory= SIDriver.driver().getTableFactory();
-        opFactory=SIDriver.driver().getOperationFactory();
-        super.readExternal(in);
+            if (driver != null) {
+                partitionFactory = driver.getTableFactory();
+                opFactory = driver.getOperationFactory();
+                if (driver.isEngineStarted()) {
+                    // In that case, the upgrade must have happened, so we must have version > 1
+                    useNew = true;
+                } else {
+                    String version = getConglomerateVersion();
+                    useNew = (version != null && !version.equals("1"));
+                }
+            }
+
+            if (useNew) {
+                readExternalNew(in);
+            } else {
+                readExternalOld(in);
+            }
+        } catch (StandardException e) {
+            throw new IOException(e);
+        }
     }
 
     public static SpliceConglomerate fromProtobuf(TypeMessage.SpliceConglomerate spliceConglomerate) {
@@ -284,4 +308,8 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
         throw new RuntimeException("Unexpected type " + type);
     }
 
+    protected String getConglomerateVersion() throws IOException, StandardException {
+        PartitionAdmin admin = partitionFactory.getAdmin();
+        return admin.getCatalogVersion(SQLConfiguration.CONGLOMERATE_TABLE_NAME);
+    }
 }
