@@ -46,11 +46,11 @@ import com.splicemachine.db.iapi.util.IdUtil;
  */
 public class TableName extends QueryTreeNode
 {
-    /* Both schemaName and tableName can be null, however, if 
+    /* Both schemaName and tableName can be null, however, if
     ** tableName is null then schemaName must also be null.
     */
-    String tableName;
-    String schemaName;
+    String    tableName;
+    String    schemaName;
     private boolean hasSchema;
 
 
@@ -73,7 +73,7 @@ public class TableName extends QueryTreeNode
      * Initializer for when you have both the table and schema names.
      *
      * @param schemaName    The name of the schema being referenced
-     * @param tableName        The name of the table being referenced     
+     * @param tableName        The name of the table being referenced
      */
 
     public void init(Object schemaName, Object tableName)
@@ -124,7 +124,7 @@ public class TableName extends QueryTreeNode
      *
      * @return true if this instance was initialized with not null schemaName
      */
-    
+
     public boolean hasSchema(){
         return hasSchema;
     }
@@ -143,7 +143,7 @@ public class TableName extends QueryTreeNode
     /**
      * Set the schema name.
      *
-     * @param schemaName Schema name as a String
+     * @param schemaName     Schema name as a String
      */
 
     public void setSchemaName(String schemaName)
@@ -178,7 +178,7 @@ public class TableName extends QueryTreeNode
      * Convert this object to a String.  See comments in QueryTreeNode.java
      * for how this should be done for tree printing.
      *
-     * @return This object as a String
+     * @return    This object as a String
      */
 
     public String toString()
@@ -195,9 +195,9 @@ public class TableName extends QueryTreeNode
      * SELECT * is expanded).  Also, only check table names if the schema
      * name(s) are null.
      *
-     * @param otherTableName The other TableName.
+     * @param otherTableName    The other TableName.
      *
-     * @return boolean       Whether or not the 2 TableNames are equal.
+     * @return boolean        Whether or not the 2 TableNames are equal.
      */
     public boolean equals(TableName otherTableName)
     {
@@ -209,7 +209,7 @@ public class TableName extends QueryTreeNode
         {
             return true;
         }
-        else if ((schemaName == null) || 
+        else if ((schemaName == null) ||
                  (otherTableName.getSchemaName() == null))
         {
             return tableName.equals(otherTableName.getTableName());
@@ -226,10 +226,10 @@ public class TableName extends QueryTreeNode
      * SELECT * is expanded).  Also, only check table names if the schema
      * name(s) are null.
      *
-     * @param otherSchemaName  The other TableName.
-     * @param otherTableName   The other TableName.
+     * @param otherSchemaName    The other TableName.
+     * @param otherTableName    The other TableName.
      *
-     * @return boolean         Whether or not the 2 TableNames are equal.
+     * @return boolean        Whether or not the 2 TableNames are equal.
      */
     public boolean equals(String otherSchemaName, String otherTableName)
     {
@@ -238,7 +238,7 @@ public class TableName extends QueryTreeNode
         {
             return true;
         }
-        else if ((schemaName == null) || 
+        else if ((schemaName == null) ||
                  (otherSchemaName == null))
         {
             return tableName.equals(otherTableName);
@@ -256,17 +256,17 @@ public class TableName extends QueryTreeNode
     ///////////////////////////////////////////////////////////////////////
 
     /**
-      *  Bind this TableName. This means filling in the schema name if it
-      *  wasn't specified.
+      *    Bind this TableName. This means filling in the schema name if it
+      *    wasn't specified.
       *
-      *  @param dataDictionary Data dictionary to bind against.
+      *    @param    dataDictionary    Data dictionary to bind against.
       *
-      *  @exception StandardException Thrown on error
+      *    @exception StandardException        Thrown on error
       */
     public void    bind( DataDictionary    dataDictionary )
                                throws StandardException
     {
-        schemaName = getSchemaDescriptor(schemaName).getSchemaName();
+        schemaName = getSchemaDescriptor(null, schemaName).getSchemaName();
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -276,22 +276,22 @@ public class TableName extends QueryTreeNode
     ///////////////////////////////////////////////////////////////////////
 
     /**
-      * Returns a hashcode for this tableName. This allows us to use TableNames
-      * as keys in hash lists.
+      *    Returns a hashcode for this tableName. This allows us to use TableNames
+      *    as keys in hash lists.
       *
-      * @return hashcode for this tablename
+      *    @return    hashcode for this tablename
       */
-    public int hashCode()
+    public    int    hashCode()
     {
         return    getFullTableName().hashCode();
     }
 
     /**
-      * Compares two TableNames. Needed for hashing logic to work.
+      *    Compares two TableNames. Needed for hashing logic to work.
       *
-      * @param other other tableName
+      *    @param    other    other tableName
       */
-    public boolean equals( Object other )
+    public    boolean    equals( Object other )
     {
         if ( !( other instanceof TableName ) ) { return false; }
 

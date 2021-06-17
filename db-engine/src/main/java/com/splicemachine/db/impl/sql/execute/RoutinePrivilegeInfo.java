@@ -113,7 +113,7 @@ public class RoutinePrivilegeInfo extends PrivilegeInfo
 			if (action != DataDictionary.PermissionOperation.NOCHANGE) {
                 RoutinePermsDescriptor routinePermsDescriptor =
                         new RoutinePermsDescriptor(dd, routinePermsDesc.getGrantee(), routinePermsDesc.getGrantor(),
-                                routinePermsDesc.getRoutineUUID());
+                                routinePermsDesc.getRoutineUUID(), tc);
                 routinePermsDescriptor.setUUID(routinePermsDesc.getUUID());
                 result.add(routinePermsDescriptor);
             }

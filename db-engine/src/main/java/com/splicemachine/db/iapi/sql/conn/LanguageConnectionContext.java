@@ -46,10 +46,7 @@ import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import com.splicemachine.db.iapi.sql.depend.Provider;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.CursorActivation;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
@@ -495,7 +492,11 @@ public interface LanguageConnectionContext extends Context {
      */
     String getCurrentUserId(Activation a);
 
+    UserDescriptor getCurrentUserDescriptor(Activation a) throws StandardException;
+
     void setCurrentUser(Activation a, String userName);
+
+    boolean currentUserIsDatabaseOwner(Activation a);
 
     void setCurrentGroupUser(Activation a, List<String> groupUsers);
     /**
@@ -535,6 +536,37 @@ public interface LanguageConnectionContext extends Context {
     SchemaDescriptor getDefaultSchema(Activation a);
 
     /**
+     * Get the current database
+     * used at compile-time when no activation
+     * is yet available, cf. the activation argument overload version.
+     *
+     * @return DatabaseDescriptor    the current database descriptor
+     */
+    DatabaseDescriptor getCurrentDatabase();
+
+    /**
+     * Get the current database (used at execution time).  At execution
+     * time, the current statement context is not always a reliable
+     * place to find the correct SQL session context, viz. when a
+     * dynamic result set referencing CURRENT SCHEMA is accessed after
+     * a called procedure has returned only the activation of the call
+     * is live and still holds the correct session context.
+     * @param a current activation
+     *
+     * @return DatabaseDescriptor    the current database descriptor
+     */
+    DatabaseDescriptor getCurrentDatabase(Activation a);
+
+    boolean currentDatabaseIsSpliceDB();
+
+    /**
+     * Set the current database
+     */
+    void setCurrentDatabase(DatabaseDescriptor desc);
+
+    void setCurrentDatabase(Activation a, DatabaseDescriptor desc);
+
+    /**
      * Set the default schema (at compile-time, see explanations for
      * getDefaultSchema overloads).
      *
@@ -544,7 +576,7 @@ public interface LanguageConnectionContext extends Context {
      * @exception StandardException thrown on failure
      */
     void setDefaultSchema(SchemaDescriptor sd)
-        throws StandardException;
+    ;
 
     /**
      * Set the default schema (at execution time, see explanations for
@@ -557,7 +589,7 @@ public interface LanguageConnectionContext extends Context {
      * @exception StandardException thrown on failure
      */
     void setDefaultSchema(Activation a, SchemaDescriptor sd)
-        throws StandardException;
+    ;
 
     /**
      * Reset any occurence of schemaName as current default schema in
@@ -570,7 +602,7 @@ public interface LanguageConnectionContext extends Context {
      * @throws StandardException
      */
     void resetSchemaUsages(Activation activation, String schemaName)
-        throws StandardException;
+    ;
 
     /**
      *    Get the current schema name (at compile-time, see explanations for
@@ -854,7 +886,12 @@ public interface LanguageConnectionContext extends Context {
     /**
       Returns the Database of this connection.
      */
-    InternalDatabase getDatabase();
+    InternalDatabase getSpliceInstance();
+
+    /**
+     * Returns the Database id of this connection
+     */
+    UUID getDatabaseId();
 
     /**
      * Returns true if isolation level has been set using JDBC/SQL.
@@ -1152,7 +1189,14 @@ public interface LanguageConnectionContext extends Context {
      *
      * @return database name of this LCC.
      */
-    String getDbname();
+    String getCurrentDatabaseName(Activation a);
+
+    /**
+     * Get the owner name of the current database of this LCC
+     *
+     * @return owner name
+     */
+    String getCurrentDatabaseOwner(Activation a);
 
     /**
      * Check if in SQL standard mode, with support for Grant & Revoke
@@ -1168,16 +1212,20 @@ public interface LanguageConnectionContext extends Context {
 
     /**
      * Set the current role
-     *
-     * @param a activation of set role statement
+     *  @param a activation of set role statement
      * @param role  the id of the role to be set to current
      */
     void setCurrentRole(Activation a, String role);
 
     /**
-     * Set the current role
-     *
-     * @param a activation of set role statement
+     * Set the current roles
+     * @param roles  the list of roles to be set to current
+     */
+    public void setCurrentRoles(List<String> roles);
+
+    /**
+     * Set the current roles
+     *  @param a activation of set role statement
      * @param roles  the list of roles to be set to current
      */
     public void setCurrentRoles(Activation a, List<String> roles);
@@ -1216,7 +1264,7 @@ public interface LanguageConnectionContext extends Context {
      * @return String of the group user list in delimited form
      * @throws StandardException
      */
-    String getCurrentGroupUserDelimited(Activation a) throws StandardException;
+    String getCurrentGroupUserDelimited(Activation a);
 
     /**
      * Checks whether the given role can be legally set for the current user.

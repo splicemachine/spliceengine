@@ -702,11 +702,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             ** FUNCTION RESULT: Set the windowFunctionNode result to null in the
             ** bottom project restrict.
             */
-            ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,
-                                                                            "##" + windowFunctionNode.getAggregateName() +
-                                                                                "Result",
-                                                                            windowFunctionNode.getNewNullResultExpression(),
-                                                                            getContextManager());
+            ResultColumn newRC = new ResultColumn("##" + windowFunctionNode.getAggregateName() + "Result",
+                    windowFunctionNode.getNewNullResultExpression(), getContextManager());
             newRC.markGenerated();
             newRC.bindResultColumnToExpression();
             childRCL.addElement(newRC);
@@ -780,8 +777,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                     }
                     exp.accept(columnPuller);
 
-                    tmpRC = (ResultColumn) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,
-                             "##" + windowFunctionNode.getAggregateName() + "_Input_" +
+                    tmpRC = new ResultColumn("##" + windowFunctionNode.getAggregateName() + "_Input_" +
                              exp.getColumnName(), exp, getContextManager());
 
                     tmpRC.markGenerated();
@@ -824,10 +820,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             /*
             ** Create an window function result expression
              */
-            ResultColumn fnResultRC = (ResultColumn) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,
-                                                                                "##" + windowFunctionNode.getAggregateName() + "ResultExp",
-                                                                                windowFunctionNode.getNewNullResultExpression(),
-                                                                                getContextManager());
+            ResultColumn fnResultRC = new ResultColumn("##" + windowFunctionNode.getAggregateName() + "ResultExp",
+                    windowFunctionNode.getNewNullResultExpression(), getContextManager());
 
             /*
             ** Piece together a fake one column rcl that we will use
@@ -1462,10 +1456,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         }
 
         // create the RC, wrap the CR
-        ResultColumn resultColumn = (ResultColumn) nodeFactory.getNode(C_NodeTypes.RESULT_COLUMN,
-                                                                       name,
-                                                                       columnRef,
-                                                                       contextManager);
+        ResultColumn resultColumn = new ResultColumn(name, columnRef, contextManager);
         resultColumn.markGenerated();
         resultColumn.bindResultColumnToExpression();
         if (sourceRC.getTableColumnDescriptor() != null) {
@@ -1506,11 +1497,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         ResultColumnList origResultColumnList = resultColumnList;
 
         resultColumnList = origResultColumnList;
-        ResultColumn resultColumn = (ResultColumn)
-        nodeFactory.getNode(C_NodeTypes.RESULT_COLUMN,
-                            name,
-                            expression,
-                            contextManager);
+        ResultColumn resultColumn = new ResultColumn(name, expression, contextManager);
         resultColumn.markGenerated();
         resultColumn.bindResultColumnToExpression();
         resultColumnList.addResultColumn(resultColumn);

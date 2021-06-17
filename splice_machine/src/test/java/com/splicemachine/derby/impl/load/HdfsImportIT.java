@@ -1356,6 +1356,7 @@ public class HdfsImportIT extends SpliceUnitTest {
         colNameToTypeMap.put("SCHEMAID", Types.CHAR);
         colNameToTypeMap.put("SCHEMANAME", Types.VARCHAR);
         colNameToTypeMap.put("AUTHORIZATIONID", Types.VARCHAR);
+        colNameToTypeMap.put("DATABASEID", Types.CHAR);
         int count = 0;
         while (rs.next()) {
             String colName = rs.getString(4);

@@ -321,7 +321,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
         long conglomId = conglomerate.getContainerid();
 
-        SchemaDescriptor sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, schemaName);
+        SchemaDescriptor sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, null, schemaName);
 
         try {
             if (tableType != TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE) {

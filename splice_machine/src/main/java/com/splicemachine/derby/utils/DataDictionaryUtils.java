@@ -45,7 +45,7 @@ public class DataDictionaryUtils {
         DataDictionary dd = lcc.getDataDictionary();
         SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
 
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, tc, true);
         if (sd == null) {
             throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
         }

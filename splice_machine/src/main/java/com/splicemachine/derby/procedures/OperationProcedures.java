@@ -179,7 +179,7 @@ public class OperationProcedures extends BaseAdminProcedures {
         EmbedConnection conn = (EmbedConnection)getDefaultConn();
         Activation lastActivation = conn.getLanguageConnection().getLastActivation();
         String userId = lastActivation.getLanguageConnectionContext().getCurrentUserId(lastActivation);
-        String dbo = lastActivation.getLanguageConnectionContext().getDataDictionary().getAuthorizationDatabaseOwner();
+        String dbo = lastActivation.getLanguageConnectionContext().getCurrentDatabase().getAuthorizationId();
         if (userId != null && userId.equals(dbo)) {
             userId = null;
         }

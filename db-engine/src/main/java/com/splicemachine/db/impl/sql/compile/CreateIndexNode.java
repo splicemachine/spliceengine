@@ -302,11 +302,7 @@ public class CreateIndexNode extends DDLStatementNode
 
         // fake a FromList to bind index expressions
         FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
-        FromTable fromTable = (FromTable) getNodeFactory().getNode(
-                C_NodeTypes.FROM_BASE_TABLE,
-                tableName,
-                null, null, null, false, null,
-                getContextManager());
+        FromBaseTable fromTable = new FromBaseTable(tableName, null, null, null, false, null, getContextManager());
         fromList.addFromTable(fromTable);
         fromList.bindTables(
                 dd,
@@ -467,7 +463,9 @@ public class CreateIndexNode extends DDLStatementNode
                 unique,
                 uniqueWithDuplicateNulls, // UniqueWithDuplicateNulls Index is a unique
                 indexType,                    //  index but with no "not null" constraint
-                sd.getSchemaName(),            //  on column in schema
+                sd.getDatabaseId(),
+                //  on column in schema
+                sd.getSchemaName(),
                 indexName.getTableName(),
                 tableName.getTableName(),
                 td.getUUID(),
@@ -491,8 +489,7 @@ public class CreateIndexNode extends DDLStatementNode
                 timeFormat,
                 exprTexts,
                 exprBytecode,
-                generatedClassNames,
-                properties);
+                generatedClassNames, properties);
     }
 
     /**

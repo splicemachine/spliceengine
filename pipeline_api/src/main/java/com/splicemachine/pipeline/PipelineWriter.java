@@ -297,7 +297,8 @@ public class PipelineWriter{
                 case INSERT:
                     privileges.add(Authorizer.INSERT_PRIV);
                     break;
-                case UPDATE:
+                case UPDATE: // fallthrough
+                case BLIND_UPDATE:
                     privileges.add(Authorizer.UPDATE_PRIV);
                     break;
                 case UPSERT:
