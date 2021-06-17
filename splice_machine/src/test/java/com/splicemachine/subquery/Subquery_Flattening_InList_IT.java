@@ -212,29 +212,78 @@ public class Subquery_Flattening_InList_IT extends SpliceUnitTest {
     }
 
     @Test
-    public void testMultiColumnNotInWithNulls() throws Exception {
+    public void testMultiColumnNotInWithNulls1() throws Exception {
         methodWatcher.executeUpdate("create table if not exists AWN (a1 int not null, a2 int)");
         methodWatcher.executeUpdate("create table if not exists BWN (b1 int, b2 int not null)");
         methodWatcher.executeUpdate("delete from AWN");
         methodWatcher.executeUpdate("delete from BWN");
-        methodWatcher.executeUpdate("insert into AWN values(0,0),(1,10),(2,20),(3,30),(4,40),(5,50),(5,NULL)");
+        methodWatcher.executeUpdate("insert into AWN values(0,0),(1,10),(2,20),(3,30),(4,40),(5,50),(5,NULL),(1,NULL)");
         methodWatcher.executeUpdate("insert into BWN values(0,0),(0,0),(1,10),(1,10),(2,20),(2,20),(3,30),(3,30),(4,40),(4,40),(5,50),(5,50),(NULL,50)");
 
-        String expected = "A1 |A2 |\n" +
-                "--------\n" +
-                " 3 |30 |\n" +
-                " 4 |40 |\n" +
-                " 5 |50 |";
+        // expected result is from DB2
+        String expected = "A1 | A2  |\n" +
+                "----------\n" +
+                " 3 | 30  |\n" +
+                " 4 | 40  |\n" +
+                " 5 | 50  |\n" +
+                " 5 |NULL |";
         assertUnorderedResult(methodWatcher.getOrCreateConnection(),
                 "select * from AWN where (a1, a2) not in (select b1, b2 from BWN where b2 <= 20)", ONE_SUBQUERY_NODE, expected);
         assertUnorderedResult(methodWatcher.getOrCreateConnection(),
                 "select * from AWN where (a2, a1) not in (select b2, b1 from BWN where b2 <= 20)", ONE_SUBQUERY_NODE, expected);
 
+        // expected result is from DB2
+        expected = "A1 |A2 |\n" +
+                "--------\n" +
+                " 3 |30 |\n" +
+                " 4 |40 |";
         assertUnorderedResult(methodWatcher.getOrCreateConnection(),
-                "select * from AWN where (a1, a2) not in (select b1, b2 from BWN where b2 <= 20 or b1 is null)", ONE_SUBQUERY_NODE, "");
+                "select * from AWN where (a1, a2) not in (select b1, b2 from BWN where b2 <= 20 or b1 is null)", ONE_SUBQUERY_NODE, expected);
 
         assertUnorderedResult(methodWatcher.getOrCreateConnection(),
-                "select * from AWN where (a2, a1) not in (select b2, b1 from BWN where b2 <= 20 or b1 is null)", ONE_SUBQUERY_NODE, "");
+                "select * from AWN where (a2, a1) not in (select b2, b1 from BWN where b2 <= 20 or b1 is null)", ONE_SUBQUERY_NODE, expected);
+    }
+
+    @Test
+    public void testMultiColumnNotInWithNulls2() throws Exception {
+        methodWatcher.executeUpdate("create table if not exists D(a1 int, a2 varchar(3))");
+        methodWatcher.executeUpdate("create table if not exists VQ(b1 int, b2 varchar(3))");
+        methodWatcher.executeUpdate("delete from D");
+        methodWatcher.executeUpdate("delete from VQ");
+        methodWatcher.executeUpdate("insert into D values(1,'x11'),(1,'not'),(1,'x14'),(2,'x22'),(404,'x42'),(505,'not')");
+        methodWatcher.executeUpdate("insert into VQ values (1 ,'x11'),(1 ,'x12'),(1 ,'x13'),(1 ,'x14'),(2 ,'x21'),(2 ,'x22'),(3 ,'x31'),(3 ,'x32'),(3 ,'x33'),(4 ,'x41'),(4 ,'x42')");
+
+        String query = "select a1,a2 from D WHERE (a1,a2) not in (select b1,b2 from VQ) order by A1";
+
+        // VQ doesn't contain NULLs, expected result is from DB2
+        String expected = "A1  |A2  |\n" +
+                "----------\n" +
+                " 1  |not |\n" +
+                "404 |x42 |\n" +
+                "505 |not |";
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(), query, ONE_SUBQUERY_NODE, expected);
+
+        // insert two rows into VQ with one NULL in each row, each column
+        methodWatcher.executeUpdate("insert into VQ values (NULL,'x50'),(4 ,NULL)");
+
+        // the query should give the same result, verified in DB2
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(), query, ONE_SUBQUERY_NODE, expected);
+
+        // insert one more row into VQ, note that this row has 'x42' as the non-null value
+        methodWatcher.executeUpdate("insert into VQ values (NULL,'x42')");
+
+        // now "404 |x42 |" is excluded from the result, verified in DB2
+        expected = "A1  |A2  |\n" +
+                "----------\n" +
+                " 1  |not |\n" +
+                "505 |not |";
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(), query, ONE_SUBQUERY_NODE, expected);
+
+        // finally, insert a row containing only NULLs
+        methodWatcher.executeUpdate("insert into VQ values (NULL,NULL)");
+
+        // result should be empty, verified in DB2
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(), query, ONE_SUBQUERY_NODE, "");
     }
 
     @Test
@@ -363,6 +412,7 @@ public class Subquery_Flattening_InList_IT extends SpliceUnitTest {
             Assert.assertEquals("42X58", e.getSQLState());
         }
     }
+
 
     @Test
     public void testSetOpInSubQFlatten() throws Exception {

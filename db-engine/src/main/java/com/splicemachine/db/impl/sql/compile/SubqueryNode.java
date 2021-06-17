@@ -2385,29 +2385,7 @@ public class SubqueryNode extends ValueNode{
         joinCondition=getNewJoinCondition(leftOperand,rightOperand);
 
         ValueNode andLeft=joinCondition;
-
-        /* For NOT IN or ALL, and if either side of the comparison is nullable, and the
-         * subquery can not be flattened (because of that), we need to add IS NULL node
-         * on top of the nullables, such that the behavior is (beetle 5173):
-         *
-         *    (1) If we have nulls in right operand, no row is returned.
-         *    (2) If subquery result is empty before applying join predicate, every
-         *          left row (including NULLs) is returned.
-         *      (3) Otherwise, return {all left row} - {NULLs}
-         */
-        if(isNOT_IN() || isALL()){
-            if (leftOperand instanceof ValueTupleNode && rightOperand instanceof ValueTupleNode) {
-                ValueTupleNode leftItems = (ValueTupleNode) leftOperand;
-                ValueTupleNode rightItems = (ValueTupleNode) rightOperand;
-
-                for (int i = 0; i < leftItems.size(); i++) {
-                    andLeft = fixPredicateForNotInAndAll(andLeft, leftItems.get(i), rightItems.get(i));
-                }
-                andLeft = SelectNode.normExpressions(andLeft);
-            } else {
-                andLeft = fixPredicateForNotInAndAll(andLeft, leftOperand, rightOperand);
-            }
-        }
+        andLeft = SelectNode.normExpressions(andLeft);
 
         /* Place an AndNode above the <BinaryComparisonOperator> */
         andNode = new AndNode(andLeft, getTrueNode(), getContextManager());
@@ -2606,13 +2584,13 @@ public class SubqueryNode extends ValueNode{
             ValueTupleNode leftItems = (ValueTupleNode) leftOperand;
             ValueTupleNode rightItems = (ValueTupleNode) rightOperand;
 
-            BinaryComparisonOperatorNode bcoNode =
+            ValueNode singleCondition =
                     getSingleComparisonJoinCondition(nodeType, leftItems.get(0), rightItems.get(0));
 
-            ValueNode tree = bcoNode;
+            ValueNode tree = singleCondition;
             for (int i = 1; i < leftItems.size(); i++) {
-                bcoNode = getSingleComparisonJoinCondition(nodeType, leftItems.get(i), rightItems.get(i));
-                tree = new AndNode(tree, bcoNode, getContextManager());
+                singleCondition = getSingleComparisonJoinCondition(nodeType, leftItems.get(i), rightItems.get(i));
+                tree = new AndNode(tree, singleCondition, getContextManager());
                 ((AndNode) tree).postBindFixup();
             }
             return tree;
@@ -2621,7 +2599,7 @@ public class SubqueryNode extends ValueNode{
         }
     }
 
-    private BinaryComparisonOperatorNode getSingleComparisonJoinCondition(int nodeType, ValueNode left, ValueNode right)
+    private ValueNode getSingleComparisonJoinCondition(int nodeType, ValueNode left, ValueNode right)
             throws StandardException
     {
         BinaryComparisonOperatorNode bcoNode = (BinaryComparisonOperatorNode)
@@ -2631,7 +2609,28 @@ public class SubqueryNode extends ValueNode{
                         right,
                         getContextManager());
         bcoNode.bindComparisonOperator();
-        return bcoNode;
+
+        ValueNode result = bcoNode;
+
+        /* For NOT IN or ALL, and if either side of the comparison is nullable, and the
+         * subquery can not be flattened (because of that), we need to add IS NULL node
+         * on top of the nullables, such that the behavior is (beetle 5173):
+         *
+         *    (1) If we have nulls in right operand, no row is returned.
+         *    (2) If subquery result is empty before applying join predicate, every
+         *          left row (including NULLs) is returned.
+         *      (3) Otherwise, return {all left row} - {NULLs}
+         *
+         * Although getNewJoinCondition() is called in different flattening scenarios,
+         * the following code snippet for NOT_IN and ALL is only called in
+         * pushNewPredicate() code path because all other cases has preconditions like
+         * isIN(). Also, canAllBeFlattened() prevents NOT_IN subquery and ALL subquery
+         * being flattened if any elements in tuple is nullable.
+         */
+        if(isNOT_IN() || isALL()){
+            result = fixPredicateForNotInAndAll(result, left, right);
+        }
+        return result;
     }
 
     /*
