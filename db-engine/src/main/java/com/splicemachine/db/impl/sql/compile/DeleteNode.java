@@ -280,7 +280,7 @@ public class DeleteNode extends DMLModStatementNode
             /* Generate a select list for the ResultSetNode - CurrentRowLocation(). */
             if (SanityManager.DEBUG)
             {
-                SanityManager.ASSERT((resultSet.resultColumns == null),
+                SanityManager.ASSERT((resultSet.getResultColumns() == null),
                               "resultColumns is expected to be null until bind time");
             }
 
@@ -292,8 +292,6 @@ public class DeleteNode extends DMLModStatementNode
 
                 /* Set the new result column list in the result set */
                 resultSet.setResultColumns(resultColumnList);
-                /* Bind the expressions before the ResultColumns are bound */
-                super.bindExpressions();
             }
             else
             {
@@ -329,8 +327,6 @@ public class DeleteNode extends DMLModStatementNode
                     readColsBitSet = null;
                 }
 
-                /* Bind the expressions before the ResultColumns are bound */
-                super.bindExpressions();
                 /*
                 ** Construct an empty heap row for use in our constant action.
                 */
@@ -364,6 +360,8 @@ public class DeleteNode extends DMLModStatementNode
                 }
                 rowLocationColumn.markGenerated();
 
+                // rowLocationColumn.bindResultColumnToExpression(); // have we removed this?
+
                 /* Append to the ResultColumnList */
                 resultColumnList.addResultColumn(rowLocationColumn);
 
@@ -372,15 +370,16 @@ public class DeleteNode extends DMLModStatementNode
 
                 /* Add the new result columns to the driving result set */
                 ResultColumnList    originalRCL = resultSet.resultColumns;
-                if ( originalRCL != null )
-                {
-                    originalRCL.appendResultColumns( resultColumnList, false );
-                    resultColumnList = originalRCL;
-                }
+                if ( originalRCL == null )
+                    originalRCL = new ResultColumnList(getContextManager());
+
+                originalRCL.appendResultColumns( resultColumnList, false );
+                resultColumnList = originalRCL;
                 resultSet.setResultColumns(resultColumnList);
             }
 
-
+            /* Bind the expressions before the ResultColumns are bound */
+            super.bindExpressions();
 
             /* Bind untyped nulls directly under the result columns */
             resultSet.getResultColumns().
