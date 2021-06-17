@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -51,6 +52,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * A RowResultSetNode represents the result set for a VALUES clause.
@@ -64,6 +66,13 @@ public class RowResultSetNode extends FromTable {
     ValueNode    offset; // OFFSET n ROWS
     ValueNode    fetchFirst; // FETCH FIRST n ROWS ONLY
     boolean   hasJDBClimitClause; //  were OFFSET/FETCH FIRST specified by a JDBC LIMIT clause?
+
+    public RowResultSetNode() {}
+    public RowResultSetNode(ResultColumnList rcl, Properties tableProperties, ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.ROW_RESULT_SET_NODE);
+        init(rcl, tableProperties);
+    }
 
     /**
      * Initializer for a RowResultSetNode.
@@ -619,13 +628,7 @@ public class RowResultSetNode extends FromTable {
             ResultColumnList newRcl = treeTop.getResultColumns().copyListAndObjects();
             newRcl.genVirtualColumnNodes(treeTop, treeTop.getResultColumns());
 
-            treeTop = (ResultSetNode)getNodeFactory().getNode( C_NodeTypes.ROW_COUNT_NODE,
-                treeTop,
-                newRcl,
-                offset,
-                fetchFirst,
-                    hasJDBClimitClause,
-                getContextManager());
+            treeTop = new RowCountNode(treeTop, newRcl, offset, fetchFirst, hasJDBClimitClause, getContextManager());
         }
 
         return treeTop;

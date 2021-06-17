@@ -1358,16 +1358,8 @@ public class SelectNode extends ResultSetNode {
                     havingAggregates.addAll(selectAggregates);
                 aggs = havingAggregates;
             }
-            GroupByNode gbn = (GroupByNode) getNodeFactory().getNode(
-                C_NodeTypes.GROUP_BY_NODE,
-                prnRSN,
-                groupByList,
-                aggs,
-                havingClause,
-                havingSubquerys,
-                null,
-                nestingLevel,
-                getContextManager());
+            GroupByNode gbn = new GroupByNode(prnRSN, groupByList, aggs, havingClause,
+                    havingSubquerys, null, nestingLevel, getContextManager());
             gbn.considerPostOptimizeOptimizations(originalWhereClause != null);
             // JL-TODO Interesting
             CostEstimate ce = gbn.estimateCost(null, null, optimizer.getOptimizedCost(), optimizer, null);
@@ -1381,14 +1373,9 @@ public class SelectNode extends ResultSetNode {
         if (hasWindows()) {
             // Now we add a window result set wrapped in a PRN on top of what we currently have.
             for (WindowNode windowDefinition : windowDefinitionList) {
-                WindowResultSetNode wrsn =
-                (WindowResultSetNode) getNodeFactory().getNode(
-                C_NodeTypes.WINDOW_RESULTSET_NODE,
-                prnRSN,
-                windowDefinition,
-                null,   // table properties
-                nestingLevel,
-                getContextManager());
+                WindowResultSetNode wrsn = new WindowResultSetNode(prnRSN,
+                    windowDefinition, null,   // table properties
+                    nestingLevel, getContextManager());
 
                 prnRSN = wrsn.processWindowDefinition();
                 // TODO-JL NOT OPTIMAL
@@ -1448,12 +1435,7 @@ public class SelectNode extends ResultSetNode {
                  * duplicates without a sorter.
                  */
                 boolean inSortedOrder = isOrderedResult(resultColumns, prnRSN, !(orderByAndDistinctMerged));
-                prnRSN = (ResultSetNode) getNodeFactory().getNode(
-                C_NodeTypes.DISTINCT_NODE,
-                prnRSN,
-                inSortedOrder,
-                null,
-                getContextManager());
+                prnRSN = new DistinctNode(prnRSN, inSortedOrder, null, getContextManager());
                 // TODO NOT-OPTIMAL
                 // Remember whether or not we can eliminate the sort.
                 eliminateSort = eliminateSort || inSortedOrder;
@@ -1469,12 +1451,7 @@ public class SelectNode extends ResultSetNode {
             // Need to remove sort reduction if you are aggregating (hash)
             if (orderByList.isSortNeeded()
                 || (((selectAggregates != null) && (!selectAggregates.isEmpty())) || (groupByList != null))) {
-                prnRSN = (ResultSetNode) getNodeFactory().getNode(
-                    C_NodeTypes.ORDER_BY_NODE,
-                    prnRSN,
-                    orderByList,
-                    null,
-                    getContextManager());
+                prnRSN = new OrderByNode(prnRSN, orderByList, null, getContextManager());
                 // TODO JL NOT OPTIMAL
 //                prnRSN.costEstimate=optimizer.getOptimizedCost().cloneMe();
             }
@@ -1597,14 +1574,7 @@ public class SelectNode extends ResultSetNode {
         ResultColumnList newSelectList = topList.copyListAndObjects();
         topNode.setResultColumns(newSelectList);
         topList.genVirtualColumnNodes(topNode, newSelectList);
-        return (ResultSetNode) getNodeFactory().getNode(
-            C_NodeTypes.ROW_COUNT_NODE,
-            topNode,
-            topList,
-            offset,
-            fetchFirst,
-            hasJDBClimitClause,
-            getContextManager());
+        return new RowCountNode(topNode, topList, offset, fetchFirst, hasJDBClimitClause, getContextManager());
     }
 
     /**
@@ -2034,16 +2004,13 @@ public class SelectNode extends ResultSetNode {
             JoinNode joinNode;
             if (rightResultSet.getFromSSQ() || rightResultSet instanceof FromTable && ((FromTable) rightResultSet).getOuterJoinLevel() > 0) {
                 rightRCList.setNullability(true);
-                joinNode = (JoinNode) getNodeFactory().getNode(
-                C_NodeTypes.HALF_OUTER_JOIN_NODE,
-                leftResultSet,
-                rightResultSet,
-                null,                          // join clause
-                null,                                // using clause
-                Boolean.FALSE,                       // is right join
-                leftRCList,                          // RCL
-                null,                                // table props
-                getContextManager());
+                joinNode = new HalfOuterJoinNode(   leftResultSet, rightResultSet,
+                                                    null,          // join clause
+                                                    null,          // using clause
+                                                    Boolean.FALSE, // is right join
+                                                    leftRCList,    // RCL
+                                                    null,          // table props
+                                                    getContextManager());
             } else {
                 joinNode = new JoinNode(leftResultSet, rightResultSet,
                         null, null, leftRCList, null,
@@ -2818,7 +2785,7 @@ public class SelectNode extends ResultSetNode {
         }
 
         // Manufacture a RowResultSetNode
-        RowResultSetNode rowResultSetNode = (RowResultSetNode) nf.getNode( C_NodeTypes.ROW_RESULT_SET_NODE, rowRCL, null, cm);
+        RowResultSetNode rowResultSetNode = new RowResultSetNode(rowRCL, null, cm);
         FromList tmpFromList = new FromList(nf.doJoinOrderOptimization(), cm);
         rowResultSetNode.bindExpressions(tmpFromList);
         rowResultSetNode.setLevel(((FromTable) fromList.elementAt(0)).getLevel());

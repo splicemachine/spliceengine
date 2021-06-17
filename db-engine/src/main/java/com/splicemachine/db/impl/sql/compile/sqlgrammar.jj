@@ -9525,11 +9525,7 @@ rowValueConstructor(ResultSetNode leftRSN) throws StandardException :
          * return a UNION ALL above the 2 RSNs, after verifying that the size()
          * of both RSNs RCLs is the same.
          */
-        newRSN = (ResultSetNode) nodeFactory.getNode(
-                                C_NodeTypes.ROW_RESULT_SET_NODE,
-                                resultColumns,
-                                null,
-                                getContextManager());
+        newRSN = new RowResultSetNode(resultColumns, null, getContextManager());
         if (leftRSN != null)
         {
             if (leftRSN.getResultColumns().size() !=
@@ -9557,11 +9553,7 @@ rowValueConstructor(ResultSetNode leftRSN) throws StandardException :
          * return a UNION ALL above the 2 RSNs, after verifying that the size()
          * of both RSNs RCLs is the same.
          */
-        newRSN = (ResultSetNode) nodeFactory.getNode(
-                                C_NodeTypes.ROW_RESULT_SET_NODE,
-                                resultColumns,
-                                null,
-                                getContextManager());
+        newRSN = new RowResultSetNode(resultColumns, null, getContextManager());
         if (leftRSN != null)
         {
             if (leftRSN.getResultColumns().size() !=
@@ -9892,11 +9884,7 @@ tableExpression(ResultColumnList selectList) throws StandardException :
             ) {
                 throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, "Illegal SELECT without FROM");
             }
-            return (RowResultSetNode)nodeFactory.getNode(
-                                C_NodeTypes.ROW_RESULT_SET_NODE,
-                                selectList,
-                                null,
-                                getContextManager());
+            return new RowResultSetNode(selectList, null, getContextManager());
         }
         // fix for HAVING without GROUP BY, makes sure we get one
         // aggregate operator by adding a count(*), this fixes beetle 5853, 5890

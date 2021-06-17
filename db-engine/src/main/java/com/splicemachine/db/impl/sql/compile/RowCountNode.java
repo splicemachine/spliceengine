@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
@@ -63,6 +64,14 @@ public final class RowCountNode extends SingleChildResultSetNode{
      * True if the offset/fetchFirst clauses were added by JDBC LIMIT syntax.
      */
     private boolean hasJDBClimitClause;
+
+    public RowCountNode() {}
+    public RowCountNode(ResultSetNode topNode, ResultColumnList rcl, ValueNode offset, ValueNode fetchFirst,
+                        boolean hasJDBClimitClause, ContextManager contextManager) throws StandardException {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.ROW_COUNT_NODE);
+        init(childResult, rcl, offset, fetchFirst, hasJDBClimitClause);
+    }
 
 
     /**

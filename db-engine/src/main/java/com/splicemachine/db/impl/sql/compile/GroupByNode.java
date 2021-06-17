@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -113,6 +114,15 @@ public class GroupByNode extends SingleChildResultSetNode{
     private GroupByColumn groupingIdColumn;
 
     private HashMap<Integer, VirtualColumnNode>groupingIdColumns = new HashMap<>();
+
+    public GroupByNode() {}
+    public GroupByNode(ResultSetNode childResult, GroupByList groupByList, List<AggregateNode> aggs,
+                       ValueNode havingClause, SubqueryList havingSubquerys, Properties tableProperties, int nestingLevel,
+                       ContextManager contextManager) throws StandardException {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.GROUP_BY_NODE);
+        init(childResult, groupByList, aggs, havingClause, havingSubquerys, tableProperties, nestingLevel);
+    }
 
     @Override
     public boolean isParallelizable(){

@@ -447,11 +447,8 @@ public class UnionNode extends SetOperatorNode{
                         getContextManager());
             }
 
-            treeTop=(ResultSetNode)getNodeFactory().getNode(C_NodeTypes.DISTINCT_NODE,
-                    treeTop.genProjectRestrict(),
-                    Boolean.FALSE,
-                    tableProperties,
-                    getContextManager());
+            treeTop = new DistinctNode(treeTop.genProjectRestrict(),
+                    Boolean.FALSE, tableProperties, getContextManager());
             /* HACK - propagate our table number up to the new DistinctNode
              * so that arbitrary hash join will work correctly.  (Otherwise it
              * could have a problem dividing up the predicate list at the end
@@ -480,13 +477,7 @@ public class UnionNode extends SetOperatorNode{
             ResultColumnList newRcl= treeTop.getResultColumns().copyListAndObjects();
             newRcl.genVirtualColumnNodes(treeTop,treeTop.getResultColumns());
 
-            treeTop=(ResultSetNode)getNodeFactory().getNode( C_NodeTypes.ROW_COUNT_NODE,
-                    treeTop,
-                    newRcl,
-                    offset,
-                    fetchFirst,
-                    hasJDBClimitClause,
-                    getContextManager());
+            treeTop = new RowCountNode(treeTop, newRcl, offset, fetchFirst, hasJDBClimitClause, getContextManager());
         }
 
         return treeTop;

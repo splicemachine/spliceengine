@@ -333,14 +333,7 @@ public class IntersectOrExceptNode extends SetOperatorNode
                 treeTop.getResultColumns().copyListAndObjects();
             newRcl.genVirtualColumnNodes(treeTop, treeTop.getResultColumns());
 
-            treeTop = (ResultSetNode)getNodeFactory().getNode(
-                C_NodeTypes.ROW_COUNT_NODE,
-                treeTop,
-                newRcl,
-                offset,
-                fetchFirst,
-                    hasJDBClimitClause,
-                getContextManager());
+            treeTop = new RowCountNode(treeTop, newRcl, offset, fetchFirst, hasJDBClimitClause, getContextManager());
         }
 
         return treeTop;

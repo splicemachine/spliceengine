@@ -33,16 +33,24 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
-import com.splicemachine.db.iapi.sql.compile.Optimizer;
-import com.splicemachine.db.iapi.sql.compile.RowOrdering;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+
+import java.util.Properties;
 
 public class OrderByNode extends SingleChildResultSetNode {
     OrderByList		orderByList;
+
+    public OrderByNode() {}
+    public OrderByNode(ResultSetNode prnRSN, OrderByList orderByList, Properties tableProperties, ContextManager contextManager) throws StandardException {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.ORDER_BY_NODE);
+        init(prnRSN, orderByList, tableProperties);
+    }
+
     @Override
     public boolean isParallelizable() {
         return true; //represented by a sort operation

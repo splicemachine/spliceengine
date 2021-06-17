@@ -134,6 +134,14 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
     private RCtoCRfactory rCtoCRfactory;
 
+    public WindowResultSetNode() {}
+    public WindowResultSetNode(ResultSetNode childResult, WindowNode windowDefinition, Properties tableProperties,
+                               int nestingLevel, ContextManager contextManager) throws StandardException {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.WINDOW_RESULTSET_NODE);
+        init(childResult, windowDefinition, tableProperties, nestingLevel);
+    }
+
     /**
      * Initializer for a WindowResultSetNode.
      *

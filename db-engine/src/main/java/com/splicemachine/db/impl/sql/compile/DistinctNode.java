@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
@@ -69,6 +70,14 @@ import java.util.*;
 public class DistinctNode extends SingleChildResultSetNode
 {
     boolean inSortedOrder;
+
+    public DistinctNode() {}
+    public DistinctNode(ResultSetNode childResult, boolean inSortedOrder, Properties tableProperties,
+                        ContextManager contextManager) throws StandardException {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.DISTINCT_NODE);
+        init(childResult, inSortedOrder, tableProperties);
+    }
 
     @Override
     public boolean isParallelizable() {
