@@ -63,6 +63,7 @@ import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.ast.CollectingVisitorBuilder;
 import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
+import com.splicemachine.db.impl.ast.StringUtils;
 import com.splicemachine.db.impl.sql.catalog.SYSTOKENSRowFactory;
 import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -1987,18 +1988,16 @@ public class FromBaseTable extends FromTable {
     @Override
     public String toString(){
         if(SanityManager.DEBUG){
-            return "tableName: "+
-                    (tableName!=null?tableName.toString():"null")+"\n"+
-                    "tableDescriptor: "+tableDescriptor+"\n"+
-                    "updateOrDelete: "+updateOrDelete+"\n"+
-                    (tableProperties!=null?
-                            tableProperties.toString():"null")+"\n"+
-                    "existsTable: "+existsTable+"\n"+
-                    "dependencyMap: "+
-                    (dependencyMap!=null
-                            ?dependencyMap.toString()
-                            :"null")+"\n"+
-                    super.toString();
+            StringBuilder sb = new StringBuilder();
+            sb.append("FromBaseTable\n");
+            Node.append2(sb,"tableName", "  ",      tableName);
+            Node.append2(sb,"tableDescriptor", "  ",tableDescriptor);
+            Node.append2(sb,"updateOrDelete", "  ", updateOrDelete);
+            Node.append2(sb,"tableProperties", "  ",tableProperties);
+            Node.append2(sb,"existsTable", "  ",    existsTable);
+            Node.append2(sb,"dependencyMap", "  ",  dependencyMap);
+            //super.toString();
+            return sb.toString();
         }else{
             return "";
         }
