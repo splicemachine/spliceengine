@@ -1564,7 +1564,8 @@ public class TernaryOperatorNode extends OperatorNode
 
     @Override
     ValueNode evaluateConstantExpressions() throws StandardException {
-        if(getLeftOperand().isConstantExpression() && getRightOperand().isConstantExpression()) {
+        if(getLeftOperand() != null && getLeftOperand().isConstantExpression()
+           && getRightOperand() != null && getRightOperand().isConstantExpression()) {
             if(operatorType == TIMESTAMPADD) {
                 DataValueFactory dvf = getLanguageConnectionContext().getDataValueFactory();
                 DataValueDescriptor sourceValue = (getReceiver()).evaluateConstantExpressions().getKnownConstantValue();
