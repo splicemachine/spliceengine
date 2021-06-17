@@ -64,8 +64,8 @@ class DefaultSource extends RelationProvider with CreatableRelationProvider
             } else {
               // Otherwise, do not truncate the table, instead drop and recreate it
               dropTable(conn, table, jdbcOptions)
-              //TODO check parameters, caseSensitive, how to pass df
-              createTable(conn, table, df.schema, true, jdbcOptions)
+              val isCaseSensitive = df.sparkSession.sessionState.conf.caseSensitiveAnalysis
+              createTable(conn, table, df.schema, isCaseSensitive, jdbcOptions)
               actualRelation.insert(df,false)
               actualRelation
             }
@@ -84,8 +84,8 @@ class DefaultSource extends RelationProvider with CreatableRelationProvider
           // Therefore, it is okay to do nothing here and then just return the relation below.
         }
       } else {
-        //TODO check parameters, caseSensitive, how to pass df
-        createTable(conn, table, df.schema, true, jdbcOptions)
+        val isCaseSensitive = df.sparkSession.sessionState.conf.caseSensitiveAnalysis
+        createTable(conn, table, df.schema, isCaseSensitive, jdbcOptions)
         val actualRelation = new SpliceRelation2(new JdbcOptionsInWrite(parameters))(sqlContext,Option.apply(df.schema))
         actualRelation.insert(df,false)
         actualRelation
