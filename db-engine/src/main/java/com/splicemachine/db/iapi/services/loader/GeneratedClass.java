@@ -54,16 +54,17 @@ public interface GeneratedClass {
 		constructor of the represneted class.
 		(Similar to java.lang.Class.newInstance).
 
-		@exception 	StandardException	Standard Derby error policy
+		This is for code-generated classes that implement GeneratedByteCode
+		@exception StandardException Standard Derby error policy
 
 	*/
 	Object newInstance(Context context)
 		throws StandardException;
 
-	default Object newInstance() throws IllegalAccessException, InvocationTargetException, InstantiationException
-	{
-		return null;
-	}
+	/**
+	 * create a instance without a context (tests only)
+	 */
+	Object newInstance() throws IllegalAccessException, InvocationTargetException, InstantiationException;
 
 	/**
 		Obtain a handle to the method with the given name

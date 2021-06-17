@@ -27,6 +27,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
@@ -481,7 +482,8 @@ public class CodeGenUnitTest {
             output = output.replace(cb.getFullName(), "%CLASSNAME%");
             Assert.assertEquals(expected, output);
         } finally {
-            //new File(filename).delete();
+            File f = new File(filename);
+            if(f.exists()) f.delete();
         }
     }
 
