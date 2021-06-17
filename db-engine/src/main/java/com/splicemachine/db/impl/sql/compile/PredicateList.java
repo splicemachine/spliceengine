@@ -75,6 +75,11 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
     public PredicateList(){
     }
 
+    public PredicateList(ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.PREDICATE_LIST);
+    }
+
     /*
      * OptimizableList interface
      */
@@ -840,10 +845,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             // We've grabbed a ConstantNode (or other type of ValueNode) from each level.
             // Time to materialize this combination into a new
             // ListValueNode.
-            ValueNode lcn = (ListValueNode) getNodeFactory().getNode(
-                C_NodeTypes.LIST_VALUE_NODE,
-                localConstList,
-                getContextManager());
+            ValueNode lcn = new ListValueNode(localConstList, getContextManager());
             groupedConstants.addValueNode(lcn);
             
         } else {
@@ -1673,11 +1675,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                  */
                 Predicate predToPush;
                 if((isIn && !thisPred.isInListProbePredicate()) || isBetween){
-                    AndNode andCopy=(AndNode)getNodeFactory().getNode(
-                            C_NodeTypes.AND_NODE,
-                            thisPred.getAndNode().getLeftOperand(),
-                            thisPred.getAndNode().getRightOperand(),
-                            getContextManager());
+                    AndNode andCopy= new AndNode(thisPred.getAndNode().getLeftOperand(),
+                            thisPred.getAndNode().getRightOperand(), getContextManager());
                     andCopy.copyFields(thisPred.getAndNode());
                     Predicate predCopy=(Predicate)getNodeFactory().getNode(
                             C_NodeTypes.PREDICATE,
@@ -2061,8 +2060,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         if(searchClause!=null){
             topAnd=(AndNode)searchClause;
             ContextManager contextManager = getContextManager();
-            BooleanConstantNode trueNode=(BooleanConstantNode)getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                    Boolean.TRUE,contextManager);
+            BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE,contextManager);
 
             AndNode firstAndInProbeSet = null;
             while(topAnd.getRightOperand() instanceof AndNode){
@@ -2303,11 +2301,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                         newRelop.bindComparisonOperator();
                         leftOperand = newRelop;
                     } else {
-                        BooleanConstantNode falseNode=(BooleanConstantNode)getNodeFactory().
-                                getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                                        Boolean.FALSE,
-                                        contextManager);
-                        leftOperand = falseNode;
+                        leftOperand = new BooleanConstantNode(Boolean.FALSE, contextManager);
                     }
                 }else{
                     // pushable inlist condition should have been represented as BinaryRelationalOperatorNode
@@ -2316,15 +2310,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 }
 
                 // Convert the predicate into CNF form
-                ValueNode trueNode=(ValueNode)getNodeFactory().getNode(
-                        C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                        Boolean.TRUE,
-                        contextManager);
-                AndNode newAnd=(AndNode)getNodeFactory().getNode(
-                        C_NodeTypes.AND_NODE,
-                        leftOperand,
-                        trueNode,
-                        contextManager);
+                ValueNode trueNode = new BooleanConstantNode(Boolean.TRUE,contextManager);
+                AndNode newAnd = new AndNode(leftOperand, trueNode, contextManager);
                 newAnd.postBindFixup();
                 JBitSet tableMap=new JBitSet(select.referencedTableMap.size());
 
@@ -2808,15 +2795,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                                     getContextManager());
                     newEquals.bindComparisonOperator();
                                /* Create the AND */
-                    ValueNode trueNode=(ValueNode)getNodeFactory().getNode(
-                            C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                            Boolean.TRUE,
-                            getContextManager());
-                    AndNode newAnd=(AndNode)getNodeFactory().getNode(
-                            C_NodeTypes.AND_NODE,
-                            newEquals,
-                            trueNode,
-                            getContextManager());
+                    ValueNode trueNode= new BooleanConstantNode(Boolean.TRUE,getContextManager());
+                    AndNode newAnd = new AndNode(newEquals, trueNode, getContextManager());
                     newAnd.postBindFixup();
                     // Add a new predicate to both the equijoin clauses and this list
                     JBitSet tableMap=new JBitSet(numTables);
@@ -3048,11 +3028,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     }
 
                                /* Create the AND */
-                    ValueNode trueNode=(ValueNode)getNodeFactory().getNode(
-                            C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                            Boolean.TRUE,
-                            getContextManager());
-                    AndNode newAnd=(AndNode)getNodeFactory().getNode(
+                    ValueNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
+                    AndNode newAnd = (AndNode)getNodeFactory().getNode(
                             C_NodeTypes.AND_NODE,
                             roClone,
                             trueNode,

@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Node;
@@ -39,6 +40,13 @@ import com.splicemachine.db.iapi.sql.compile.Node;
 import java.util.List;
 
 public class AndNode extends BinaryLogicalOperatorNode{
+
+    public AndNode() {}
+    public AndNode(ValueNode left, ValueNode right, ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.AND_NODE);
+        init(left, right);
+    }
 
     /**
      * Initializer for an AndNode
@@ -142,7 +150,7 @@ public class AndNode extends BinaryLogicalOperatorNode{
         /* Convert the AndNode to an OrNode */
         ValueNode orNode;
 
-        orNode=(ValueNode)getNodeFactory().getNode(C_NodeTypes.OR_NODE,getLeftOperand(),getRightOperand(),getContextManager());
+        orNode = new OrNode(getLeftOperand(),getRightOperand(),getContextManager());
         orNode.setType(getTypeServices());
         return orNode;
     }
@@ -223,9 +231,7 @@ public class AndNode extends BinaryLogicalOperatorNode{
         if (!(getRightOperand() instanceof AndNode) && !(getRightOperand().isBooleanTrue())) {
             BooleanConstantNode trueNode;
 
-            trueNode=(BooleanConstantNode)getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                    Boolean.TRUE,
-                    getContextManager());
+            trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
             curAnd.setRightOperand((ValueNode)getNodeFactory().getNode(C_NodeTypes.AND_NODE,
                     curAnd.getRightOperand(),
                     trueNode,

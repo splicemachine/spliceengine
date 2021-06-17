@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
@@ -140,10 +141,66 @@ public class FromVTI extends FromTable implements VTIEnvironment {
     private String tempTriggerName;
     private Vector<ParameterNode> fromTableParameterList;
 
+    public FromVTI(ContextManager cm) {
+        setNodeType(C_NodeTypes.FROM_VTI);
+        setContextManager(cm);
+    }
+
     /**
-     * @param invocation        The constructor or static method for the VTI
+     * Constructor.
+     * @param invocation		The constructor or static method for the VTI
+     * @param correlationName	The correlation name
+     * @param derivedRCL		The derived column list
+     * @param tableProperties	Properties list associated with the table
+     *
+     * @exception StandardException		Thrown on error
+     */
+    public FromVTI(MethodCallNode invocation,
+            String correlationName,
+            ResultColumnList derivedRCL,
+            Properties tableProperties,
+            ContextManager cm) throws StandardException {
+        this(cm);
+        super.init2(correlationName, tableProperties);
+        constructorMinion(invocation, derivedRCL, makeTableName(null, correlationName));
+    }
+
+    /**
+     * Constructor.
+     * @param invocation		The constructor or static method for the VTI
+     * @param correlationName	The correlation name
+     * @param derivedRCL		The derived column list
+     * @param tableProperties	Properties list associated with the table
+     * @param exposedTableName  The table name (TableName class)
+     * @param cm                The context manager
+     */
+    public FromVTI(MethodCallNode invocation,
+            String correlationName,
+            ResultColumnList derivedRCL,
+            Properties tableProperties,
+            TableName exposedTableName,
+            ContextManager cm) {
+        this(cm);
+        super.init2(correlationName, tableProperties);
+        constructorMinion(invocation, derivedRCL, exposedTableName);
+    }
+
+    public FromVTI(MethodCallNode javaValueNode, String correlationName, ResultColumnList derivedRCL,
+                   Properties tableProperties, TypeDescriptor typeDescriptor, ContextManager contextManager) throws StandardException {
+        this(contextManager);
+        init(javaValueNode, correlationName, derivedRCL, tableProperties, typeDescriptor);
+    }
+
+    public FromVTI(MethodCallNode javaValueNode, String correlationName, ResultColumnList derivedRCL, Properties tableProperties,
+                   TypeDescriptor typeDescriptor, Vector fromTableParameterList, Boolean forFromTable, ContextManager contextManager) throws StandardException {
+        this(contextManager);
+        init(javaValueNode, correlationName, derivedRCL, tableProperties, typeDescriptor, fromTableParameterList, forFromTable);
+    }
+
+    /**
+     * @param invocation         The constructor or static method for the VTI
      * @param correlationName    The correlation name
-     * @param derivedRCL        The derived column list
+     * @param derivedRCL         The derived column list
      * @param tableProperties    Properties list associated with the table
      * @param fromTableParameterList  Parameterized FROM TABLE statement, list of parameters.
      * @param forFromTable       If processing a FROM TABLE statement, this is a Boolean true.
@@ -243,7 +300,20 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         super.startOptimizing(optimizer,rowOrdering);
     }
 
+    private void constructorMinion(
+            MethodCallNode invocation,
+            ResultColumnList derivedRCL,
+            TableName exposedTableName) {
 
+        this.methodCall = invocation;
+        this.resultColumns = derivedRCL;
+        this.subqueryList = new SubqueryList(getContextManager());
+
+        // Cache exposed name for this table.
+        // The exposed name becomes the qualifier for each column
+        // in the expanded list.
+        this.exposedName = exposedTableName;
+    }
     /**
      * @param invocation        The constructor or static method for the VTI
      * @param correlationName    The correlation name
@@ -271,9 +341,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                                    oldTriggerRowsVTI.equals(methodCall.getJavaClassName());
         }
         resultColumns = (ResultColumnList) derivedRCL;
-        subqueryList = (SubqueryList) getNodeFactory().getNode(
-                C_NodeTypes.SUBQUERY_LIST,
-                getContextManager());
+        subqueryList = new SubqueryList(getContextManager());
 
         /* Cache exposed name for this table.
          * The exposed name becomes the qualifier for each column
@@ -434,9 +502,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
             return false;
 
         if (restrictionList == null) {
-            restrictionList = (PredicateList) getNodeFactory().getNode(
-                    C_NodeTypes.PREDICATE_LIST,
-                    getContextManager());
+            restrictionList = new PredicateList(getContextManager());
         }
 
         restrictionList.addPredicate((Predicate) optimizablePredicate);
@@ -798,9 +864,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                 estimatedRowCount = 5d;
                 supportsMultipleInstantiations = true;
             } else {
-                resultColumns = (ResultColumnList) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+                resultColumns = new ResultColumnList(getContextManager());
 
                 // if this is a Derby-style Table Function, then build the result
                 // column list from the RowMultiSetImpl return datatype
@@ -1038,9 +1102,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
             return null;
         }
 
-        rcList = (ResultColumnList) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        rcList = new ResultColumnList(getContextManager());
 
         /* Build a new result column list based off of resultColumns.
          * NOTE: This method will capture any column renaming due to
@@ -1058,16 +1120,9 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
             // Build a ResultColumn/ColumnReference pair for the column //
             columnName = resultColumn.getName();
-            valueNode = (ValueNode) getNodeFactory().getNode(
-                    C_NodeTypes.COLUMN_REFERENCE,
-                    columnName,
-                    exposedName,
-                    getContextManager());
-            resultColumn = (ResultColumn) getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    columnName,
-                    valueNode,
-                    getContextManager());
+            valueNode = new ColumnReference(columnName,
+                    exposedName, getContextManager());
+            resultColumn = new ResultColumn(columnName, valueNode, getContextManager());
 
             // Build the ResultColumnList to return //
             rcList.addResultColumn(resultColumn);
@@ -1155,18 +1210,11 @@ public class FromVTI extends FromTable implements VTIEnvironment {
             numTables = getCompilerContext().getMaximalPossibleTableCount();
         }
 
-        methodCall.preprocess(
-                numTables,
-                (FromList) getNodeFactory().getNode(
-                        C_NodeTypes.FROM_LIST,
-                        getNodeFactory().doJoinOrderOptimization(),
-                        getContextManager()),
-                (SubqueryList) getNodeFactory().getNode(
-                        C_NodeTypes.SUBQUERY_LIST,
-                        getContextManager()),
-                (PredicateList) getNodeFactory().getNode(
-                        C_NodeTypes.PREDICATE_LIST,
-                        getContextManager()));
+        methodCall.preprocess(numTables,
+                new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager()),
+                new SubqueryList(getContextManager()),
+                new PredicateList(getContextManager())
+            );
         /* Generate the referenced table map */
         referencedTableMap = new JBitSet(numTables);
         referencedTableMap.set(tableNumber);
@@ -1844,9 +1892,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         makeTableName(td.getSchemaName(), td.getName());
 
         /* Add all of the columns in the table */
-        rcList = (ResultColumnList) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        rcList = new ResultColumnList(getContextManager());
         ColumnDescriptorList cdl = td.getColumnDescriptorList();
         int                     cdlSize = cdl.size();
 
@@ -1862,11 +1908,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                     exposedName,
                     colDesc.getType(),
                     getContextManager());
-            resultColumn = (ResultColumn) getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    colDesc,
-                    valueNode,
-                    getContextManager());
+            resultColumn = new ResultColumn(colDesc, valueNode, getContextManager());
 
             /* Build the ResultColumnList to return */
             rcList.addResultColumn(resultColumn);

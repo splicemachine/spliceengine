@@ -83,7 +83,7 @@ public class Factory
 		// Get the current language connection context.  This is associated
 		// with the current database.
 		LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-		return lcc.getDatabase();
+		return lcc.getSpliceInstance();
 	}
 
 	/** 

@@ -57,7 +57,7 @@ public class CallStatementOperationIT extends SpliceUnitTest {
         int count =0;
         DatabaseMetaData dmd = methodWatcher.getOrCreateConnection().getMetaData();
         ResultSet rs = dmd.getColumns(null,"SYS","SYSSCHEMAS",null);
-        Set<String> correctNames = Sets.newHashSet("SCHEMAID","SCHEMANAME","AUTHORIZATIONID");
+        Set<String> correctNames = Sets.newHashSet("SCHEMAID","SCHEMANAME","AUTHORIZATIONID","DATABASEID");
         while(rs.next()){
             String sIdCol = rs.getString(4);
             int colType = rs.getInt(5);
@@ -68,7 +68,7 @@ public class CallStatementOperationIT extends SpliceUnitTest {
             Assert.assertTrue("Incorrect column name returned!",correctNames.contains(sIdCol.toUpperCase()));
             count++;
         }
-        Assert.assertEquals("incorrect rows returned!",3,count);
+        Assert.assertEquals("incorrect rows returned!",4,count);
         DbUtils.closeQuietly(rs);
     }
 

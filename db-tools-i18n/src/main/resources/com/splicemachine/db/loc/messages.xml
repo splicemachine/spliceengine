@@ -2532,6 +2532,17 @@ Guide.
             </msg>
 
             <msg>
+                <name>42Y18</name>
+                <text>Database '{0}' does not exist</text>
+                <arg>databaeName</arg>
+            </msg>
+
+            <msg>
+                <name>42Y19</name>
+                <text>Multidatabase is disabled</text>
+            </msg>
+
+            <msg>
                 <name>42Y22</name>
                 <text>Aggregate {0} cannot operate on type {1}.</text>
                 <arg>aggregateType</arg>
@@ -2804,6 +2815,12 @@ Guide.
                 <name>42Y67</name>
                 <text>Schema '{0}' cannot be dropped.</text>
                 <arg>schemaNamet</arg>
+            </msg>
+
+            <msg>
+                <name>42Y68</name>
+                <text>Database '{0}' cannot be dropped.</text>
+                <arg>dbName</arg>
             </msg>
 
             <msg>
@@ -3876,6 +3893,12 @@ Guide.
                 <text>Constraint '{0}' is invalid: referenced table {1} does not exist.</text>
                 <arg>constraintName</arg>
                 <arg>tableName</arg>
+            </msg>
+
+            <msg>
+                <name>X0Y53.S</name>
+                <text>Database '{0}' cannot be dropped because it is not empty.</text>
+                <arg>dbName</arg>
             </msg>
 
             <msg>

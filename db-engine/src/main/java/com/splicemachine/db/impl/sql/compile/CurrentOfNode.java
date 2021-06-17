@@ -186,7 +186,7 @@ public final class CurrentOfNode extends FromTable {
         baseTableName = makeTableName(schemaName,
                                       refTab.getBaseName());
         SchemaDescriptor tableSchema = null;
-        tableSchema = getSchemaDescriptor(refTab.getSchemaName());
+        tableSchema = getSchemaDescriptor(null, refTab.getSchemaName());
 
         /*
         ** This will only happen when we are binding against a publication
@@ -221,9 +221,7 @@ public final class CurrentOfNode extends FromTable {
         ** the result columns from preparedStatement and
         ** turn them into an RCL that we can run with.
         */
-        resultColumns = (ResultColumnList) getNodeFactory().getNode(
-                                            C_NodeTypes.RESULT_COLUMN_LIST,
-                                            getContextManager());
+        resultColumns = new ResultColumnList(getContextManager());
         ColumnDescriptorList cdl = td.getColumnDescriptorList();
         int                     cdlSize = cdl.size();
 
@@ -238,11 +236,7 @@ public final class CurrentOfNode extends FromTable {
                                               exposedTableName,
                                             colDesc.getType(),
                                             getContextManager());
-            ResultColumn rc = (ResultColumn) getNodeFactory().getNode(
-                                            C_NodeTypes.RESULT_COLUMN,
-                                            colDesc,
-                                            bcn,
-                                            getContextManager());
+            ResultColumn rc = new ResultColumn(colDesc, bcn, getContextManager());
 
             /* Build the ResultColumnList to return */
             getResultColumns().addResultColumn(rc);
@@ -418,11 +412,7 @@ public final class CurrentOfNode extends FromTable {
                         throws StandardException {
         /* Get an optimizer so we can get a cost */
         Optimizer optimizer = getOptimizer(
-                                (FromList) getNodeFactory().getNode(
-                                    C_NodeTypes.FROM_LIST,
-                                    getNodeFactory().doJoinOrderOptimization(),
-                                    this,
-                                    getContextManager()),
+                                new FromList(getNodeFactory().doJoinOrderOptimization(), this, getContextManager()),
                                 predicateList,
                                 dataDictionary,
                                 (RequiredRowOrdering) null);

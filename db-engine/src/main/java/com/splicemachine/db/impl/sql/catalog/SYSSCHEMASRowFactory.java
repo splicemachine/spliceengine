@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 
 import java.sql.Types;
@@ -55,19 +56,24 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 {
     public static    final    String    TABLENAME_STRING = "SYSSCHEMAS";
 
-    public    static    final    int        SYSSCHEMAS_COLUMN_COUNT = 3;
+    public static final int SYSSCHEMAS_COLUMN_COUNT = 4;
     /* Column #s for sysinfo (1 based) */
-    public    static    final    int        SYSSCHEMAS_SCHEMAID = 1;
-    public    static    final    int        SYSSCHEMAS_SCHEMANAME = 2;
-    public    static    final    int        SYSSCHEMAS_SCHEMAAID = 3;
+    public static final int SYSSCHEMAS_SCHEMAID = 1;
+    public static final int SYSSCHEMAS_SCHEMANAME = 2;
+    public static final int SYSSCHEMAS_SCHEMAAID = 3;
+    public static final int SYSSCHEMAS_DATABASEID = 4;
 
-    public static final int        SYSSCHEMAS_INDEX1_ID = 0;
-    public static final int        SYSSCHEMAS_INDEX2_ID = 1;
+
+    public static final int SYSSCHEMAS_INDEX1_ID = 0;
+    protected static final int SYSSCHEMAS_INDEX1_DATABASEID = 1;
+    protected static final int SYSSCHEMAS_INDEX1_SCHEMANAME = 2;
+
+    public static final int SYSSCHEMAS_INDEX2_ID = 1;
 
 
     private static final int[][] indexColumnPositions =
     {
-        {SYSSCHEMAS_SCHEMANAME},
+        {SYSSCHEMAS_DATABASEID, SYSSCHEMAS_SCHEMANAME},
         {SYSSCHEMAS_SCHEMAID}
     };
 
@@ -118,13 +124,14 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
     public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent)
                     throws StandardException
     {
-        DataTypeDescriptor        dtd;
-        ExecRow                    row;
-        DataValueDescriptor        col;
-        String                    name = null;
-        UUID                        oid = null;
-        String                    uuid = null;
-        String                    aid = null;
+        DataTypeDescriptor  dtd;
+        ExecRow             row;
+        DataValueDescriptor col;
+        String              name = null;
+        UUID                oid = null;
+        String              uuid = null;
+        String              aid = null;
+        String              dbid = null;
 
         if (td != null)
         {
@@ -143,16 +150,19 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
             uuid = oid.toString();
 
             aid = schemaDescriptor.getAuthorizationId();
+
+            dbid = schemaDescriptor.getDatabaseId().toString();
+
         }
 
         /* Build the row to insert */
         row = getExecutionFactory().getValueRow(SYSSCHEMAS_COLUMN_COUNT);
-        setRowColumns(row, name, uuid, aid);
+        setRowColumns(row, name, uuid, aid, dbid);
 
         return row;
     }
 
-    public static void setRowColumns(ExecRow row, String name, String uuid, String aid) {
+    public static void setRowColumns(ExecRow row, String name, String uuid, String aid, String dbid) {
         /* 1st column is SCHEMAID */
         row.setColumn(1, new SQLChar(uuid));
 
@@ -161,6 +171,9 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 
         /* 3rd column is SCHEMAAID */
         row.setColumn(3, new SQLVarchar(aid));
+
+        /* 4th column is DATABASEID*/
+        row.setColumn(4, new SQLChar(dbid));
     }
 
 
@@ -177,23 +190,25 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
      * @param parentTupleDescriptor    unused
      * @param dd                     dataDictionary
      *
+     * @param tc
      * @return    a  descriptor equivalent to a SYSSCHEMAS row
      *
      * @exception   StandardException thrown on failure
      */
     public TupleDescriptor buildDescriptor(
-        ExecRow                    row,
-        TupleDescriptor            parentTupleDescriptor,
-        DataDictionary             dd )
+            ExecRow row,
+            TupleDescriptor parentTupleDescriptor,
+            DataDictionary dd, TransactionController tc)
                     throws StandardException
     {
-        DataValueDescriptor            col;
-        SchemaDescriptor            descriptor;
-        String                        name;
-        UUID                            id;
-        String                        aid;
-        String                        uuid;
-        DataDescriptorGenerator        ddg = dd.getDataDescriptorGenerator();
+        DataValueDescriptor     col;
+        SchemaDescriptor        descriptor;
+        String                  name;
+        UUID                    id;
+        String                  aid;
+        String                  uuid;
+        UUID                    dbid;
+        DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
         if (SanityManager.DEBUG)
         {
@@ -214,7 +229,11 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
         col = row.getColumn(3);
         aid = col.getString();
 
-        descriptor = ddg.newSchemaDescriptor(name, aid, id);
+        // fourth column is databaseid (char(36))
+        col = row.getColumn(4);
+        dbid = getUUIDFactory().recreateUUID(col.getString());
+
+        descriptor = ddg.newSchemaDescriptor(name, aid, id, dbid);
 
         return descriptor;
     }
@@ -232,6 +251,7 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
                 SystemColumnImpl.getUUIDColumn("SCHEMAID", false),
                 SystemColumnImpl.getIdentifierColumn("SCHEMANAME", false),
                 SystemColumnImpl.getIdentifierColumn("AUTHORIZATIONID", false),
+                SystemColumnImpl.getUUIDColumn("DATABASEID", false)
             };
     }
 
@@ -241,52 +261,61 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
         List<ColumnDescriptor[]> cdsl = new ArrayList<>();
         cdsl.add(
             new ColumnDescriptor[]{
-                new ColumnDescriptor("SCHEMAID"               ,1,1,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
-                        null,null,view,viewId,0,0,0),
-                new ColumnDescriptor("SCHEMANAME"               ,2,2,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
-                        null,null,view,viewId,0,0,0),
-                new ColumnDescriptor("AUTHORIZATIONID"               ,3,3,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
-                        null,null,view,viewId,0,0,0)
+                new ColumnDescriptor("SCHEMAID", 1, 1,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR,  false,  36),
+                        null, null, view, viewId, 0, 0, 0),
+                new ColumnDescriptor("SCHEMANAME", 2, 2,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,  false,  128),
+                        null, null, view, viewId, 0, 0, 0),
+                new ColumnDescriptor("AUTHORIZATIONID", 3, 3,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,  false,  128),
+                        null, null, view, viewId, 0, 0, 0),
+                //new ColumnDescriptor("DATABASEID", 4, 4,
+                //        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
+                //        null, null, view, viewId, 0, 0, 0)
         });
         return cdsl;
     }
 
+    public static final String FILTER_SYS_SCHEMAS_OR_CURRENT_DB_SCHEMAS =
+        " (s.schemaname in ('SYS', 'SYSIBM', 'SYSIBMADM', 'SYSC_UTIL', 'SYSFUN', 'SYSVW') OR " +
+        " d.databasename = current server) ";
+
     private static final String REGULAR_USER_SCHEMA =
-            "SELECT S.* " +
-                    "FROM SYS.SYSSCHEMAS as S, SYS.SYSSCHEMAPERMS as P " +
-                    "WHERE  S.schemaid = P.schemaid and P.accessPriv = 'y' " +
-                    "and P.grantee in (select name from sysvw.sysallroles) \n" +
-                    "UNION ALL " +
-                    "SELECT S.* " +
-                    "FROM SYS.SYSSCHEMAS as S " +
-                    "WHERE S.authorizationId " +
-                    "     in (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(1) as b (NAME VARCHAR(128)))";
+            "SELECT S.SCHEMAID, S.SCHEMANAME, S.AUTHORIZATIONID " +
+            "FROM SYS.SYSSCHEMAS as S, SYS.SYSSCHEMAPERMS as P, SYS.SYSDATABASES as D " +
+            "WHERE  S.schemaid = P.schemaid and P.accessPriv = 'y' and s.databaseid = d.databaseid and " +
+                FILTER_SYS_SCHEMAS_OR_CURRENT_DB_SCHEMAS +
+                "and P.grantee in (select name from sysvw.sysallroles) \n" +
+            "UNION ALL " +
+            "SELECT S.SCHEMAID, S.SCHEMANAME, S.AUTHORIZATIONID " +
+            "FROM SYS.SYSSCHEMAS as S INNER JOIN SYS.SYSDATABASES as D ON s.databaseid = d.databaseid " +
+            "WHERE " + FILTER_SYS_SCHEMAS_OR_CURRENT_DB_SCHEMAS + " AND " +
+                "S.authorizationId in (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(1) as b (NAME VARCHAR(128)))";
 
     private static final String SUPER_USER_SCHEMA =
-            "SELECT S.* " +
-                    "FROM SYS.SYSSCHEMAS as S ";
+            "SELECT S.SCHEMAID, S.SCHEMANAME, S.AUTHORIZATIONID " +
+                    "FROM SYS.SYSSCHEMAS as S INNER JOIN SYS.SYSDATABASES as D on s.databaseid = d.databaseid ";
 
     private static final String PUBLIC_SCHEMA =
-            "SELECT S.* " +
-                    "FROM SYS.SYSSCHEMAS as S where S.SCHEMANAME in ('SYSVW') ";
+            "SELECT S.SCHEMAID, S.SCHEMANAME, S.AUTHORIZATIONID " +
+                    "FROM SYS.SYSSCHEMAS as S where S.SCHEMANAME in ('SYSVW', 'SYSCS_UTIL', 'SYSFUN') ";
 
     public static final String SYSSCHEMASVIEW_VIEW_SQL = "create view sysschemasView as \n" +
             SUPER_USER_SCHEMA +
-            "WHERE 'SPLICE' = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128))) \n" +
+            "WHERE " + FILTER_SYS_SCHEMAS_OR_CURRENT_DB_SCHEMAS + " AND " +
+                "CURRENT DATABASE ADMIN = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128))) \n" +
             "UNION ALL " +
             REGULAR_USER_SCHEMA +
             "UNION " +
             PUBLIC_SCHEMA;
 
     public static final String SYSSCHEMASVIEW_VIEW_SQL1 = "create view sysschemasView as \n" +
-            SUPER_USER_SCHEMA;
+            SUPER_USER_SCHEMA + "WHERE " + FILTER_SYS_SCHEMAS_OR_CURRENT_DB_SCHEMAS;
 
 
     public static final String RANGER_USER_SCHEMA =
-            "select S.* from SYS.SYSSCHEMAS as S where S.SCHEMANAME in " +
+            "select S.SCHEMAID, S.SCHEMANAME, S.AUTHORIZATIONID from SYS.SYSSCHEMAS as S where S.SCHEMANAME in " +
             "(select name from new com.splicemachine.derby.vti.SchemaFilterVTI() as b (NAME VARCHAR(128))) ";
 
 

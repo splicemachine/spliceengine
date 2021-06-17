@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
@@ -143,6 +144,38 @@ public class ResultColumn extends ValueNode
     /* whether this result column comes from an expression-based index column */
     private ValueNode indexExpression = null;
 
+    public ResultColumn() {}
+    public ResultColumn(ContextManager contextManager) {
+        super(contextManager, C_NodeTypes.RESULT_COLUMN);
+    }
+    public ResultColumn(String rowLocationColumnName, CurrentRowLocationNode rowLocationNode,
+                        ContextManager contextManager) throws StandardException {
+        super(contextManager, C_NodeTypes.RESULT_COLUMN);
+        init(rowLocationColumnName, rowLocationNode);
+    }
+
+    public ResultColumn(ColumnReference cr,
+                        ValueNode expression,
+                        ContextManager contextManager) throws StandardException {
+        super(contextManager, C_NodeTypes.RESULT_COLUMN);
+        init(cr, expression);
+    }
+
+    public ResultColumn(String columnName, ValueNode expression, ContextManager contextManager) throws StandardException {
+        super(contextManager, C_NodeTypes.RESULT_COLUMN);
+        init(columnName, expression);
+    }
+
+    public ResultColumn(DataTypeDescriptor a1, ValueNode expression, ContextManager contextManager) throws StandardException {
+        super(contextManager, C_NodeTypes.RESULT_COLUMN);
+        init(a1, expression);
+    }
+
+    public ResultColumn(ColumnDescriptor colDesc, ValueNode vn, ContextManager contextManager) throws StandardException {
+        super(contextManager, C_NodeTypes.RESULT_COLUMN);
+        init(colDesc, vn);
+    }
+
     /**
      * Different types of initializer parameters indicate different
      * types of initialization. Parameters may be:
@@ -193,15 +226,7 @@ public class ResultColumn extends ValueNode
         else if (arg1 instanceof ColumnReference)
         {
             ColumnReference ref = (ColumnReference) arg1;
-
-            this.name = ref.getColumnName();
-            this.exposedName = ref.getColumnName();
-            /*
-                when we bind, we'll want to make sure
-                the reference has the right table name.
-             */
-            this.reference = ref;
-            setExpression( (ValueNode) arg2 );
+            initFromColumnReference( (ValueNode) arg2, ref);
         }
         else if (arg1 instanceof ColumnDescriptor)
         {
@@ -230,6 +255,18 @@ public class ResultColumn extends ValueNode
         if (expression != null &&
                 expression.isInstanceOf(C_NodeTypes.DEFAULT_NODE))
             defaultColumn = true;
+
+    }
+
+    private void initFromColumnReference(ValueNode valueNode, ColumnReference columnReference) {
+        this.name = columnReference.getColumnName();
+        this.exposedName = columnReference.getColumnName();
+        /*
+            when we bind, we'll want to make sure
+            the reference has the right table name.
+         */
+        this.reference = columnReference;
+        setExpression(valueNode);
     }
 
     /**
@@ -1594,21 +1631,11 @@ public class ResultColumn extends ValueNode
         /* If a columnDescriptor exists, then we must propagate it */
         if (columnDescriptor != null)
         {
-            newResultColumn = (ResultColumn) getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    columnDescriptor,
-                    expression,
-                    getContextManager());
+            newResultColumn = new ResultColumn(columnDescriptor, expression, getContextManager());
             newResultColumn.setExpression(cloneExpr);
         }
-        else
-        {
-
-            newResultColumn = (ResultColumn) getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    getName(),
-                    cloneExpr,
-                    getContextManager());
+        else {
+            newResultColumn = new ResultColumn(getName(), cloneExpr, getContextManager());
         }
 
         /* Set the VirtualColumnId and name in the new node */
@@ -2180,12 +2207,8 @@ public class ResultColumn extends ValueNode
      * @return A column reference referring to this ResultColumn.
      */
     public ColumnReference getColumnReference(ValueNode originalExpr) throws StandardException {
-        ColumnReference cr = (ColumnReference) getNodeFactory().getNode(
-                C_NodeTypes.COLUMN_REFERENCE,
-                getColumnName(),
-                getTableNameObject(),
-                getContextManager()
-        );
+        ColumnReference cr = new ColumnReference(getColumnName(), getTableNameObject(),
+                getContextManager());
         cr.setSource(this);
         if (getTableNumber() >= 0) {
             cr.setTableNumber(getTableNumber());

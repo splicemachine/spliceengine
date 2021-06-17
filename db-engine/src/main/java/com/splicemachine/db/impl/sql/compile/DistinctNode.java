@@ -248,11 +248,7 @@ public class DistinctNode extends SingleChildResultSetNode
                 outerRows,
                 forSpark);
         Optimizer optimizer = getOptimizer(
-                        (FromList) getNodeFactory().getNode(
-                            C_NodeTypes.FROM_LIST,
-                            getNodeFactory().doJoinOrderOptimization(),
-                            this,
-                            getContextManager()),
+                        new FromList(getNodeFactory().doJoinOrderOptimization(), this, getContextManager()),
                         predicates,
                         dataDictionary,
                         (RequiredRowOrdering) null);

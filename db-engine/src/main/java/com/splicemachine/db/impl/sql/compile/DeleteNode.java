@@ -187,10 +187,7 @@ public class DeleteNode extends DMLModStatementNode
         getCompilerContext().pushCurrentPrivType( Authorizer.SELECT_PRIV);
         try
         {
-            FromList    fromList = (FromList) getNodeFactory().getNode(
-                                    C_NodeTypes.FROM_LIST,
-                                    getNodeFactory().doJoinOrderOptimization(),
-                                    getContextManager());
+            FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
             ResultColumn                rowLocationColumn = null;
             CurrentRowLocationNode        rowLocationNode;
             TableName                    cursorTargetTableName = null;
@@ -323,15 +320,8 @@ public class DeleteNode extends DMLModStatementNode
                 /* Generate the RowLocation column */
                 ResultColumn rowIdColumn = targetTable.getRowIdColumn();
                 if (rowIdColumn == null) {
-                    rowLocationNode = (CurrentRowLocationNode) getNodeFactory().getNode(
-                            C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
-                            getContextManager());
-                    rowIdColumn =
-                            (ResultColumn) getNodeFactory().getNode(
-                                    C_NodeTypes.RESULT_COLUMN,
-                                    COLUMNNAME,
-                                    rowLocationNode,
-                                    getContextManager());
+                    rowLocationNode = new CurrentRowLocationNode(getContextManager());
+                    rowIdColumn = new ResultColumn(COLUMNNAME, rowLocationNode, getContextManager());
 
                     rowLocationNode.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
                                     false		/* Not nullable */
@@ -344,27 +334,14 @@ public class DeleteNode extends DMLModStatementNode
                 }
 
                 if(!cursorDelete) {
-                    ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
-                            C_NodeTypes.COLUMN_REFERENCE,
-                            rowIdColumn.getName(),
-                            null,
-                            getContextManager());
+                    ColumnReference columnReference = new ColumnReference(rowIdColumn.getName(),
+                            null, getContextManager());
                     columnReference.setSource(rowIdColumn);
                     columnReference.setNestingLevel(targetTable.getLevel());
                     columnReference.setSourceLevel(targetTable.getLevel());
-                    rowLocationColumn =
-                            (ResultColumn) getNodeFactory().getNode(
-                                    C_NodeTypes.RESULT_COLUMN,
-                                    COLUMNNAME,
-                                    columnReference,
-                                    getContextManager());
+                    rowLocationColumn = new ResultColumn(COLUMNNAME, columnReference, getContextManager());
                 } else {
-                    rowLocationColumn =
-                            (ResultColumn) getNodeFactory().getNode(
-                                    C_NodeTypes.RESULT_COLUMN,
-                                    COLUMNNAME,
-                                    rowIdColumn,
-                                    getContextManager());
+                    rowLocationColumn = new ResultColumn(COLUMNNAME, rowIdColumn, getContextManager());
                 }
 
                 rowLocationColumn.bindResultColumnToExpression();
@@ -900,14 +877,9 @@ public class DeleteNode extends DMLModStatementNode
         tableName.init(schemaName , targetTableName);
 
         NodeFactory nodeFactory = getNodeFactory();
-        FromList   fromList = (FromList) nodeFactory.getNode(C_NodeTypes.FROM_LIST, getContextManager());
-        FromTable fromTable = (FromTable) nodeFactory.getNode(
-                                                    C_NodeTypes.FROM_BASE_TABLE,
-                                                    tableName,
-                                                    null,
-                                                    ReuseFactory.getInteger(FromBaseTable.DELETE),
-                                                    null,
-                                                    getContextManager());
+        FromList      fromList = new FromList(getContextManager());
+        FromBaseTable fromTable = new FromBaseTable(tableName, null, ReuseFactory.getInteger(FromBaseTable.DELETE),
+                                                    null, getContextManager());
 
         //we would like to use references index & table scan instead of
         //what optimizer says for the dependent table scan.
@@ -946,15 +918,9 @@ public class DeleteNode extends DMLModStatementNode
         TableName tableName = new TableName();
         tableName.init(schemaName , targetTableName);
 
-        NodeFactory nodeFactory = getNodeFactory();
-        FromList   fromList = (FromList) nodeFactory.getNode(C_NodeTypes.FROM_LIST, getContextManager());
-        FromTable fromTable = (FromTable) nodeFactory.getNode(
-                                                    C_NodeTypes.FROM_BASE_TABLE,
-                                                    tableName,
-                                                    null,
-                                                    ReuseFactory.getInteger(FromBaseTable.DELETE),
-                                                    null,
-                                                    getContextManager());
+        FromList  fromList = new FromList(getContextManager());
+        FromTable fromTable = new FromBaseTable(tableName, null, ReuseFactory.getInteger(FromBaseTable.DELETE),
+                                                    null, getContextManager());
 
 
         //we would like to use references index & table scan instead of
@@ -986,26 +952,16 @@ public class DeleteNode extends DMLModStatementNode
         ResultColumn resultColumn;
         ValueNode     valueNode;
 
-        NodeFactory nodeFactory = getNodeFactory();
-        ResultColumnList    columnList = (ResultColumnList) nodeFactory.getNode(
-                                                C_NodeTypes.RESULT_COLUMN_LIST,
-                                                getContextManager());
-
-        valueNode =  (ValueNode) nodeFactory.getNode(C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
-                                                             getContextManager());
+        ResultColumnList columnList = new ResultColumnList(getContextManager());
+        valueNode = new UntypedNullConstantNode(getContextManager());
         for(int index =0 ; index < cdl.size() ; index++)
         {
-            ColumnDescriptor cd = (ColumnDescriptor) cdl.elementAt(index);
+            ColumnDescriptor cd = cdl.elementAt(index);
             //only columns that are nullable need to be set to 'null' for ON
             //DELETE SET NULL
             if((cd.getType()).isNullable())
             {
-                resultColumn = (ResultColumn) nodeFactory.getNode(
-                                           C_NodeTypes.RESULT_COLUMN,
-                                        cd,
-                                        valueNode,
-                                        getContextManager());
-
+                resultColumn = new ResultColumn(cd, valueNode, getContextManager());
                 columnList.addResultColumn(resultColumn);
             }
         }

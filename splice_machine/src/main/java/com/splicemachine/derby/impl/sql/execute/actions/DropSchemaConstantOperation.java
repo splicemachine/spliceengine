@@ -52,13 +52,16 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
     private static final Logger LOG = Logger.getLogger(DropSchemaConstantOperation.class);
     private final String schemaName;
     private final int dropBehavior;
+    private final UUID dbId;
     /**
-     *    Make the ConstantAction for a DROP TABLE statement.
+     *    Make the ConstantAction for a DROP SCHEMA statement.
      *
-     *    @param    schemaName            Table name.
+     * @param    schemaName            Schema name.
+     * @param dbId
      *
      */
-    public DropSchemaConstantOperation(String    schemaName, int dropBehavior) {
+    public DropSchemaConstantOperation(UUID dbId, String schemaName, int dropBehavior) {
+        this.dbId = dbId;
         this.schemaName = schemaName;
         this.dropBehavior = dropBehavior;
     }
@@ -90,7 +93,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
          */
         dd.startWriting(lcc);
         SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(dbId, schemaName, tc, true);
 
         // drop all objects in the schema first
         if (dropBehavior == StatementType.DROP_CASCADE) {
@@ -98,7 +101,11 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
         }
 
         /* Invalidate dependencies remotely */
-        DDLMessage.DDLChange ddlChange = ProtoUtil.createDropSchema(tc.getActiveStateTxn().getTxnId(), schemaName, (BasicUUID)sd.getUUID());
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createDropSchema(
+                tc.getActiveStateTxn().getTxnId(),
+                (BasicUUID)sd.getDatabaseId(),
+                schemaName,
+                (BasicUUID)sd.getUUID());
         // Run locally first to capture any errors.
         dm.invalidateFor(sd, DependencyManager.DROP_SCHEMA, lcc);
         // Run Remotely
@@ -256,7 +263,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
             // TableDescriptor could be for a view or alias
             if (((TableDescriptor) tupleDescriptor).isSynonymDescriptor()) {
                 // we need to get the alias UUID for dependency check
-                AliasDescriptor aliasDescriptor = dd.getAliasDescriptor(sd.getUUID().toString(), ((TableDescriptor) tupleDescriptor).getName(), AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR);
+                AliasDescriptor aliasDescriptor = dd.getAliasDescriptor(sd.getUUID().toString(), ((TableDescriptor) tupleDescriptor).getName(), AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR, null);
                 if (aliasDescriptor != null) {
                     providerID = aliasDescriptor.getUUID().toString();
                 }

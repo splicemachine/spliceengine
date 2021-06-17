@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
@@ -171,7 +172,7 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
 	/** builds a tuple descriptor from a row */
 	public TupleDescriptor buildDescriptor(ExecRow row,
                                            TupleDescriptor parentTuple,
-                                           DataDictionary dataDictionary)
+                                           DataDictionary dataDictionary, TransactionController tc)
 		throws StandardException
     {
 		if( SanityManager.DEBUG)
@@ -466,6 +467,6 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
             "UNION ALL \n" +
 
             "SELECT P.*, S.SCHEMANAME FROM SYS.SYSSCHEMAPERMS P, SYSVW.SYSSCHEMASVIEW S "+
-            "WHERE S.SCHEMAID = P.SCHEMAID AND 'SPLICE' = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128)))";
+            "WHERE S.SCHEMAID = P.SCHEMAID AND CURRENT DATABASE ADMIN = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128)))";
 
 }

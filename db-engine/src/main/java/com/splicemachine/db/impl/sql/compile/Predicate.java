@@ -572,21 +572,15 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
         if(andNode.getLeftOperand() instanceof OrNode){
             QueryTreeNode node = andNode.getLeftOperand();
-            QueryTreeNode trueNode;
+            ValueNode trueNode;
             AndNode tempAnd = null;
 
             IndexRowGenerator irg = cd == null ? null : cd.getIndexDescriptor();
             boolean isOnExpression = irg != null && irg.isOnExpression();
             if (isOnExpression) {
-                trueNode = (QueryTreeNode) getNodeFactory().getNode(
-                        C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                        Boolean.TRUE,
-                        getContextManager());
-                tempAnd = (AndNode) getNodeFactory().getNode(
-                        C_NodeTypes.AND_NODE,
-                        trueNode,  // to be replaced later
-                        trueNode,
-                        getContextManager());
+                trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
+                tempAnd = new AndNode(trueNode,  // to be replaced later
+                        trueNode, getContextManager());
             }
 
             while(node instanceof OrNode){
@@ -1077,17 +1071,11 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         // need to create an AndNode representing:
         //    <scoped_bin_rel_op> AND TRUE
         // First create the boolean constant for TRUE.
-        ValueNode trueNode=(ValueNode)getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                Boolean.TRUE,
-                getContextManager());
+        ValueNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
 
         // Create and bind a new AND node in CNF form,
         // i.e. "<newOpNode> AND TRUE".
-        AndNode newAnd=(AndNode)getNodeFactory().getNode(
-                C_NodeTypes.AND_NODE,
-                newOpNode,
-                trueNode,
-                getContextManager());
+        AndNode newAnd = new AndNode(newOpNode, trueNode, getContextManager());
         newAnd.postBindFixup();
 
         // Categorize the new AND node; among other things, this
@@ -1546,20 +1534,10 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     }
 
     public static Predicate generateUnsatPredicate(int numTables, NodeFactory nf, ContextManager cm) throws StandardException{
-        BooleanConstantNode trueNode=(BooleanConstantNode)nf.
-                getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                        Boolean.TRUE,
-                        cm);
-        BooleanConstantNode falseNode=(BooleanConstantNode)nf.
-                getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                        Boolean.FALSE,
-                        cm);
-        AndNode andNode = (AndNode)nf.
-                getNode(C_NodeTypes.AND_NODE,
-                        falseNode,
-                        trueNode,
-                        cm);
-        JBitSet newJBitSet=new JBitSet(numTables);
+        BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE,cm);
+        BooleanConstantNode falseNode = new BooleanConstantNode(Boolean.FALSE,cm);
+        AndNode andNode = new AndNode(falseNode, trueNode, cm);
+        JBitSet newJBitSet = new JBitSet(numTables);
 
         return (Predicate)nf.
                 getNode(C_NodeTypes.PREDICATE,

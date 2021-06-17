@@ -1218,10 +1218,7 @@ public class BinaryRelationalOperatorNode
      * @return a node representing a Boolean constant
      */
     private ValueNode newBool(boolean b) throws StandardException{
-        return (ValueNode)getNodeFactory().getNode(
-                C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                b,
-                getContextManager());
+        return new BooleanConstantNode(b,getContextManager());
     }
 
     /**
@@ -1668,11 +1665,7 @@ public class BinaryRelationalOperatorNode
         ColumnReference baseColumnRef = baseColumnRefs.get(0);
 
         // build a fake ResultColumn
-        ResultColumn rc = (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                irg.getIndexColumnTypes()[indexColumnPosition],
-                operand,
-                getContextManager());
+        ResultColumn rc = new ResultColumn(irg.getIndexColumnTypes()[indexColumnPosition], operand, getContextManager());
         rc.setIndexExpression(operand);
         rc.setReferenced();
         // virtual column IDs are 1-based, set to conglomerate index column position

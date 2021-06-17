@@ -137,32 +137,32 @@ public final class PropertyInfo
         TransactionController tc = lcc.getTransactionExecute();
 
         try {
-            // find the DataDictionary
-            DataDictionary dd = lcc.getDataDictionary();
+        // find the DataDictionary
+        DataDictionary dd = lcc.getDataDictionary();
 
 
-            // get the SchemaDescriptor
-            SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
-            if ( !isIndex)
-            {
-                // get the TableDescriptor for the table
-                TableDescriptor td = dd.getTableDescriptor(conglomerateName, sd, tc);
+        // get the SchemaDescriptor
+        SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, tc, true);
+        if ( !isIndex)
+        {
+            // get the TableDescriptor for the table
+            TableDescriptor td = dd.getTableDescriptor(conglomerateName, sd, tc);
 
-                // Return an empty Properties if table does not exist or if it is for a view.
-                if ((td == null) || td.getTableType() == TableDescriptor.VIEW_TYPE) { return new Properties(); }
+            // Return an empty Properties if table does not exist or if it is for a view.
+            if ((td == null) || td.getTableType() == TableDescriptor.VIEW_TYPE) { return new Properties(); }
 
-                conglomerateNumber = td.getHeapConglomerateId();
-            }
-            else
-            {
-                // get the ConglomerateDescriptor for the index
-                ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomerateName, sd, false);
+            conglomerateNumber = td.getHeapConglomerateId();
+        }
+        else
+        {
+            // get the ConglomerateDescriptor for the index
+            ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomerateName, sd, false);
 
-                // Return an empty Properties if index does not exist
-                if (cd == null) { return new Properties(); }
+            // Return an empty Properties if index does not exist
+            if (cd == null) { return new Properties(); }
 
-                conglomerateNumber = cd.getConglomerateNumber();
-            }
+            conglomerateNumber = cd.getConglomerateNumber();
+        }
 
             try (ConglomerateController cc = tc.openConglomerate(
                     conglomerateNumber,
@@ -171,8 +171,8 @@ public final class PropertyInfo
                     TransactionController.MODE_RECORD,
                     TransactionController.ISOLATION_SERIALIZABLE)) {
 
-                Properties properties = tc.getUserCreateConglomPropList();
-                cc.getTableProperties(properties);
+        Properties properties = tc.getUserCreateConglomPropList();
+        cc.getTableProperties( properties );
                 return properties;
             }
 

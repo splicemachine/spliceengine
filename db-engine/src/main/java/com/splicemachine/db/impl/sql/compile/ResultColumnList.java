@@ -114,6 +114,11 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
     public ResultColumnList(){
     }
 
+    public ResultColumnList(ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.RESULT_COLUMN_LIST);
+    }
+
     /**
      * Add a ResultColumn (at this point, ResultColumn or
      * AllResultColumn) to the list
@@ -1997,11 +2002,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         }
 
         /* Make a dummy TableName to be shared by all new CRs */
-        dummyTN=(TableName)getNodeFactory().getNode(
-                C_NodeTypes.TABLE_NAME,
-                null,
-                null,
-                getContextManager());
+        dummyTN = new TableName(null, null, getContextManager());
 
         int size=visibleSize();
         for(int index=0;index<size;index++){
@@ -2054,10 +2055,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                         cf);
             }
 
-            newCR=(ColumnReference)getNodeFactory().getNode(
-                    C_NodeTypes.COLUMN_REFERENCE,
-                    thisRC.getName(),
-                    dummyTN,
+            newCR = new ColumnReference(thisRC.getName(), dummyTN,
                     getContextManager());
             newCR.setType(resultType);
             /* Set the tableNumber and nesting levels in newCR.
@@ -2869,11 +2867,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                 tableName,
                 dts,
                 getContextManager());
-        ResultColumn rc=(ResultColumn)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                columnName,
-                bcn,
-                getContextManager());
+        ResultColumn rc = new ResultColumn(columnName, bcn, getContextManager());
         rc.setType(dts);
         addResultColumn(rc);
     }
@@ -2892,14 +2886,9 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         CurrentRowLocationNode rowLocationNode;
 
         /* Generate the RowLocation column */
-        rowLocationNode=(CurrentRowLocationNode)getNodeFactory().getNode(C_NodeTypes.CURRENT_ROW_LOCATION_NODE,getContextManager());
+        rowLocationNode = new CurrentRowLocationNode(getContextManager());
         rowLocationNode.bindExpression(null, null, null);
-        rowLocationColumn=
-                (ResultColumn)getNodeFactory().getNode(
-                        C_NodeTypes.RESULT_COLUMN,
-                        "",
-                        rowLocationNode,
-                        getContextManager());
+        rowLocationColumn = new ResultColumn("", rowLocationNode, getContextManager());
         rowLocationColumn.markGenerated();
 
         /* Append to the ResultColumnList */
@@ -3375,10 +3364,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                                     getLanguageConnectionContext(),
                                     getCompilerContext()));
                 }else{
-                    rc.setExpression(
-                            (ValueNode)getNodeFactory().getNode(
-                                    C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
-                                    getContextManager()));
+                    rc.setExpression(new UntypedNullConstantNode(getContextManager()));
                     rc.setWasDefaultColumn(true);
                 }
                 rc.setDefaultColumn(false);
@@ -3453,19 +3439,12 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
     }
 
     private ResultColumn makeColumnFromName(String columnName) throws StandardException{
-        return (ResultColumn)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,columnName,null,getContextManager());
+        return new ResultColumn(columnName, null, getContextManager());
     }
 
     private ResultColumn makeColumnReferenceFromName ( TableName tableName, String columnName ) throws StandardException{
         ContextManager cm=getContextManager();
-        NodeFactory nodeFactory=getNodeFactory();
-
-        return (ResultColumn)nodeFactory.getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                columnName,
-                nodeFactory.getNode(C_NodeTypes.COLUMN_REFERENCE, columnName, tableName, cm),
-                cm
-        );
+        return new ResultColumn(columnName, new ColumnReference(columnName, tableName, cm), cm);
     }
 
     /**

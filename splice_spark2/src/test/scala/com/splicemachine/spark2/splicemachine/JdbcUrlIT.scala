@@ -105,7 +105,7 @@ class JdbcUrlIT extends FunSuite with Matchers with BeforeAndAfterAll {
   test("JDBC Url Bad DB Name") {
     verify(
       defaultJDBCURL.replace( "splicedb" , "noDB" ) ,
-      expInvUseridPwd
+      "Database 'NODB' does not exist"
     )
   }
 

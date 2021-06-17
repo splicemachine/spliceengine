@@ -289,12 +289,12 @@ public class ColumnInfo {
         DynamicByteArrayOutputStream dbaos = new DynamicByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream( dbaos );
         try {
-        oos.writeObject( udt );
+            oos.writeObject(udt);
 
-        byte[] buffer = dbaos.getByteArray();
-        int length = dbaos.getUsed();
+            byte[] buffer = dbaos.getByteArray();
+            int length = dbaos.getUsed();
 
-        return StringUtil.toHexString( buffer, 0, length );
+            return StringUtil.toHexString(buffer, 0, length);
         } finally {
             oos.close();
             dbaos.close();

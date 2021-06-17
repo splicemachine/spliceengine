@@ -162,6 +162,13 @@ public interface DataDictionary{
     // general info
     String DATABASE_ID="derby.databaseID";
 
+    static String getDatabaseId(String dbName) {
+        if (dbName.equals(DatabaseDescriptor.STD_DB_NAME))
+            return DataDictionary.DATABASE_ID;
+        else
+            return DataDictionary.DATABASE_ID + "_" + dbName;
+    }
+
     // version ids
     /**
      * DataDictionaryVersion property indicates the updgrade level of the system catalogs.
@@ -206,42 +213,43 @@ public interface DataDictionary{
     int SYSTABLES_CATALOG_NUM=1;
     int SYSCOLUMNS_CATALOG_NUM=2;
     int SYSSCHEMAS_CATALOG_NUM=3;
+    int SYSDATABASES_CATALOG_NUM=4;
 
     /**
      * Catalog numbers for non core system catalogs.
      * All these entries are for system tables, not views.
      */
-    int SYSCONSTRAINTS_CATALOG_NUM=4;
-    int SYSKEYS_CATALOG_NUM=5;
-    int SYSPRIMARYKEYS_CATALOG_NUM=6;
-    int SYSDEPENDS_CATALOG_NUM=7;
-    int SYSALIASES_CATALOG_NUM=8;
-    int SYSVIEWS_CATALOG_NUM=9;
-    int SYSCHECKS_CATALOG_NUM=10;
-    int SYSFOREIGNKEYS_CATALOG_NUM=11;
-    int SYSSTATEMENTS_CATALOG_NUM=12;
-    int SYSFILES_CATALOG_NUM=13;
-    int SYSTRIGGERS_CATALOG_NUM=14;
-    int SYSTABLEPERMS_CATALOG_NUM=15;
-    int SYSCOLPERMS_CATALOG_NUM=16;
-    int SYSROUTINEPERMS_CATALOG_NUM=17;
-    int SYSROLES_CATALOG_NUM=18;
-    int SYSSEQUENCES_CATALOG_NUM=19;
-    int SYSPERMS_CATALOG_NUM=20;
-    int SYSUSERS_CATALOG_NUM=21;
-    int SYSBACKUP_CATALOG_NUM=22;
-    int SYSBACKUPITEMS_CATALOG_NUM=23;
-    int SYSCOLUMNSTATS_CATALOG_NUM=24;
-    int SYSPHYSICALSTATS_CATALOG_NUM=25;
-    int SYSTABLESTATS_CATALOG_NUM=26;
-    int SYSDUMMY1_CATALOG_NUM=27;
-    int SYSSCHEMAPERMS_CATALOG_NUM=28;
-    int SYSSOURCECODE_CATALOG_NUM=29;
-    int SYSSNAPSHOT_NUM=30;
-    int SYSTOKENS_NUM=31;
-    int SYSREPLICATION_CATALOG_NUM=32;
-    int INVALID_CATALOG_NUM=33; // was previously owned by MON_GET_CONNECTION which is now a table-valued function.
-    int SYSNATURALNUMBERS_CATALOG_NUM=34;
+    int SYSCONSTRAINTS_CATALOG_NUM=5;
+    int SYSKEYS_CATALOG_NUM=6;
+    int SYSPRIMARYKEYS_CATALOG_NUM=7;
+    int SYSDEPENDS_CATALOG_NUM=8;
+    int SYSALIASES_CATALOG_NUM=9;
+    int SYSVIEWS_CATALOG_NUM=10;
+    int SYSCHECKS_CATALOG_NUM=11;
+    int SYSFOREIGNKEYS_CATALOG_NUM=12;
+    int SYSSTATEMENTS_CATALOG_NUM=13;
+    int SYSFILES_CATALOG_NUM=14;
+    int SYSTRIGGERS_CATALOG_NUM=15;
+    int SYSTABLEPERMS_CATALOG_NUM=16;
+    int SYSCOLPERMS_CATALOG_NUM=17;
+    int SYSROUTINEPERMS_CATALOG_NUM=18;
+    int SYSROLES_CATALOG_NUM=19;
+    int SYSSEQUENCES_CATALOG_NUM=20;
+    int SYSPERMS_CATALOG_NUM=21;
+    int SYSUSERS_CATALOG_NUM=22;
+    int SYSBACKUP_CATALOG_NUM=23;
+    int SYSBACKUPITEMS_CATALOG_NUM=24;
+    int SYSCOLUMNSTATS_CATALOG_NUM=25;
+    int SYSPHYSICALSTATS_CATALOG_NUM=26;
+    int SYSTABLESTATS_CATALOG_NUM=27;
+    int SYSDUMMY1_CATALOG_NUM=28;
+    int SYSSCHEMAPERMS_CATALOG_NUM=29;
+    int SYSSOURCECODE_CATALOG_NUM=30;
+    int SYSSNAPSHOT_NUM=31;
+    int SYSTOKENS_NUM=32;
+    int SYSREPLICATION_CATALOG_NUM=33;
+    int INVALID_CATALOG_NUM=34; // was previously owned by MON_GET_CONNECTION which is now a table-valued function.
+    int SYSNATURALNUMBERS_CATALOG_NUM=35;
 
     /**
      * Catalog numbers for transient views, e.g. monitoring views.
@@ -265,6 +273,7 @@ public interface DataDictionary{
             "2", // SYSTABLES
             "2", // SYSCOLUMNS
             "2", // SYSSCHEMAS
+            "2", // SYSDATABASES XXX(arnaud multidb) change version
             "2", // SYSCONSTRAINTS
             "2", // SYSKEYS
             "2", // SYSPRIMARYKEYS
@@ -337,8 +346,9 @@ public interface DataDictionary{
      * Get authorizationID of Database Owner
      *
      * @return authorizationID
+     * @param dbId
      */
-    String getAuthorizationDatabaseOwner();
+    String getAuthorizationDatabaseOwner(UUID dbId);
 
     /**
      * Get authorization model in force, SqlStandard or legacy mode
@@ -376,6 +386,20 @@ public interface DataDictionary{
      */
     int getCollationTypeOfUserSchemas();
 
+
+    /**
+     * Get the descriptor for the named database.
+     */
+    DatabaseDescriptor getDatabaseDescriptor(String dbName,
+                                             TransactionController tc,
+                                             boolean raiseError) throws StandardException;
+
+    /**
+     * Get the descriptor for the named database.
+     */
+    DatabaseDescriptor getDatabaseDescriptor(String dbName,
+                                             TransactionController tc) throws StandardException;
+
     /**
      * Get the descriptor for the named schema.
      * Schema descriptors include authorization ids and schema ids.
@@ -390,7 +414,7 @@ public interface DataDictionary{
      * @throws StandardException Thrown on error
      */
 
-    SchemaDescriptor getSchemaDescriptor(String schemaName,
+    SchemaDescriptor getSchemaDescriptor(UUID dbId, String schemaName,
                                          TransactionController tc,
                                          boolean raiseError) throws StandardException;
 
@@ -440,6 +464,11 @@ public interface DataDictionary{
     PasswordHasher makePasswordHasher(Dictionary props) throws StandardException;
 
     /**
+     * Get the descriptor for the default splice database.
+     */
+    DatabaseDescriptor getSpliceDatabaseDescriptor();
+
+    /**
      * Get the descriptor for the system schema. Schema descriptors include
      * authorization ids and schema ids.
      * <p/>
@@ -447,9 +476,8 @@ public interface DataDictionary{
      * not support this.
      *
      * @return The descriptor for the schema.
-     * @throws StandardException Thrown on failure
      */
-    SchemaDescriptor getSystemSchemaDescriptor() throws StandardException;
+    SchemaDescriptor getSystemSchemaDescriptor();
 
     /**
      * Get the descriptor for the SYSIBM schema. Schema descriptors include
@@ -459,9 +487,8 @@ public interface DataDictionary{
      * not support this.
      *
      * @return The descriptor for the schema.
-     * @throws StandardException Thrown on failure
      */
-    SchemaDescriptor getSysIBMSchemaDescriptor() throws StandardException;
+    SchemaDescriptor getSysIBMSchemaDescriptor();
 
     /**
      * Get the descriptor for the SYSCS_UTIL schema. Schema descriptors include
@@ -483,11 +510,10 @@ public interface DataDictionary{
      * not support this.
      *
      * @return The descriptor for the schema.
-     * @throws StandardException Thrown on failure
      */
     //used in Splice, don't remove
     @SuppressWarnings("unused")
-    SchemaDescriptor getSysFunSchemaDescriptor() throws StandardException;
+    SchemaDescriptor getSysFunSchemaDescriptor();
 
     /**
      * Get the descriptor for the declared global temporary table schema which is always named "SESSION".
@@ -515,30 +541,33 @@ public interface DataDictionary{
      * @param roleName The name of the role to drop
      * @param grantee  The grantee
      * @param grantor  The grantor
+     * @param databaseId
      * @param tc       Transaction Controller
      * @throws StandardException Thrown on failure
      */
-    void dropRoleGrant(String roleName,String grantee,String grantor,TransactionController tc) throws StandardException;
+    void dropRoleGrant(String roleName, String grantee, String grantor, UUID databaseId, TransactionController tc) throws StandardException;
 
     /**
      * Drop all role grants corresponding to a grant of (any)
      * role to a named authentication identifier
      *
      * @param grantee The grantee
+     * @param databaseId
      * @param tc      Transaction Controller
      * @throws StandardException Thrown on failure
      */
-    void dropRoleGrantsByGrantee(String grantee,TransactionController tc) throws StandardException;
+    void dropRoleGrantsByGrantee(String grantee, UUID databaseId, TransactionController tc) throws StandardException;
 
     /**
      * Drop all role grants corresponding to a grant of the
      * named role to any authentication identifier
      *
      * @param roleName The role name granted
+     * @param databaseId
      * @param tc       Transaction Controller
      * @throws StandardException Thrown on failure
      */
-    void dropRoleGrantsByName(String roleName,TransactionController tc) throws StandardException;
+    void dropRoleGrantsByName(String roleName, UUID databaseId, TransactionController tc) throws StandardException;
 
     /**
      * This method creates a new iterator over the closure of role
@@ -555,11 +584,12 @@ public interface DataDictionary{
      *                closure of all roles granted <bold>to</bold> {@code role}. If
      *                {@code false}, we look at closure of all roles that have
      *                been granted {@code role}.
+     * @param databaseId
      * @throws StandardException
      */
     RoleClosureIterator createRoleClosureIterator(TransactionController tc,
                                                   String role,
-                                                  boolean inverse) throws StandardException;
+                                                  boolean inverse, UUID databaseId) throws StandardException;
 
     /**
      * Drop all permission descriptors corresponding to a grant to
@@ -569,17 +599,27 @@ public interface DataDictionary{
      * @param tc     Transaction Controller
      * @throws StandardException Thrown on failure
      */
-    void dropAllPermsByGrantee(String authid,TransactionController tc) throws StandardException;
+    void dropAllPermsByGrantee(String authid, UUID dbId, TransactionController tc) throws StandardException;
 
 
     /**
      * Drop the descriptor for a schema, given the schema's name
      *
+     * @param dbId       The UUID of the db that contains the schema to drop
      * @param schemaName The name of the schema to drop
      * @param tc         Transaction Controller
      * @throws StandardException Thrown on failure
      */
-    void dropSchemaDescriptor(String schemaName,TransactionController tc) throws StandardException;
+    void dropSchemaDescriptor(UUID dbId, String schemaName,TransactionController tc) throws StandardException;
+
+    /**
+     * Drop the descriptor for a database, given the database's name
+     *
+     * @param dbName The name of the schema to drop
+     * @param tc         Transaction Controller
+     * @throws StandardException Thrown on failure
+     */
+    void dropDatabaseDescriptor(String dbName, TransactionController tc) throws StandardException;
 
     /**
      * Indicate whether there is anything in the
@@ -592,6 +632,10 @@ public interface DataDictionary{
      * @throws StandardException on error
      */
     boolean isSchemaEmpty(SchemaDescriptor sd) throws StandardException;
+
+    ArrayList<SchemaDescriptor> getSchemasInDatabase(DatabaseDescriptor dbDesc) throws StandardException;
+    ArrayList<UserDescriptor> getUsersInDatabase(DatabaseDescriptor dbDesc) throws StandardException;
+    ArrayList<RoleGrantDescriptor> getRoleGrantsInDatabase(DatabaseDescriptor dbDesc) throws StandardException;
 
     /**
      * get the list of objects existing in the specified schema
@@ -607,6 +651,17 @@ public interface DataDictionary{
     ArrayList<FileInfoDescriptor> getFilesInSchema(String schemaId) throws StandardException;
 
     ArrayList<TriggerDescriptor> getTriggersInSchema(String schemaId) throws StandardException;
+
+    /**
+     * Indicate whether there is anything in the
+     * particular database.
+     * Checks for schemas, users, roles in the the database
+     *
+     * @param dd database descriptor
+     * @return true/false
+     * @throws StandardException on error
+     */
+    boolean isDatabaseEmpty(DatabaseDescriptor dd) throws StandardException;
 
     /**
      * Get the descriptor for the named table within the given schema.
@@ -920,12 +975,13 @@ public interface DataDictionary{
     /**
      * Locate the Schema Row
      *
+     * @param dbName
      * @param schemaName
      * @param tc
      * @return
      * @throws StandardException
      */
-    SchemaDescriptor locateSchemaRow(String schemaName, TransactionController tc) throws StandardException;
+    SchemaDescriptor locateSchemaRow(UUID dbId, String schemaName, TransactionController tc) throws StandardException;
 
     /**
      * Removes Column Statistics from SYSCOLUMNSTATS.
@@ -1555,16 +1611,6 @@ public interface DataDictionary{
     List<DependencyDescriptor> getProvidersDescriptorList(String providerID) throws StandardException;
 
     /**
-     * Build and return an List with DependencyDescriptors for
-     * all of the stored dependencies.
-     * This is useful for consistency checking.
-     *
-     * @return List        List of all DependencyDescriptors.
-     * @throws StandardException Thrown on failure
-     */
-    List<DependencyDescriptor> getAllDependencyDescriptorsList() throws StandardException;
-
-    /**
      * Drop a dependency from the data dictionary.
      *
      * @param dd The DependencyDescriptor.
@@ -1603,10 +1649,11 @@ public interface DataDictionary{
      * Get an AliasDescriptor given its UUID.
      *
      * @param uuid The UUID
+     * @param tc
      * @return The AliasDescriptor for method alias.
      * @throws StandardException Thrown on failure
      */
-    AliasDescriptor getAliasDescriptor(UUID uuid) throws StandardException;
+    AliasDescriptor getAliasDescriptor(UUID uuid, TransactionController tc) throws StandardException;
 
     /**
      * Get a AliasDescriptor by alias name and name space.
@@ -1615,10 +1662,11 @@ public interface DataDictionary{
      * @param schemaID  schema identifier
      * @param aliasName The alias name.
      * @param nameSpace The alias name space.
+     * @param tc
      * @return AliasDescriptor    AliasDescriptor for the alias name and name space
      * @throws StandardException Thrown on failure
      */
-    AliasDescriptor getAliasDescriptor(String schemaID,String aliasName,char nameSpace) throws StandardException;
+    AliasDescriptor getAliasDescriptor(String schemaID, String aliasName, char nameSpace, TransactionController tc) throws StandardException;
 
     /**
      * Get the list of routines matching the schema and routine name.
@@ -1648,19 +1696,23 @@ public interface DataDictionary{
     /**
      * Return the credentials descriptor for the named user.
      *
+     *
+     * @param databaseId
      * @param userName Name of the user whose credentials we want.
      * @throws StandardException Thrown on failure
      */
-    UserDescriptor getUser(String userName) throws StandardException;
+    UserDescriptor getUser(UUID databaseId, String userName) throws StandardException;
 
     /**
      * Drop a User from the DataDictionary
      *
+     *
+     * @param databaseId
      * @param userName The user to drop.
      * @param tc       The TransactionController
      * @throws StandardException Thrown on failure
      */
-    void dropUser(String userName,TransactionController tc) throws StandardException;
+    void dropUser(UUID databaseId, String userName, TransactionController tc) throws StandardException;
 
     /**
      * Get a FileInfoDescriptor given its id.
@@ -1763,7 +1815,7 @@ public interface DataDictionary{
      * Peek at the next value which will be returned by a sequence generator.
      * </p>
      */
-    Long peekAtSequence(String schemaName,String sequenceName) throws StandardException;
+    Long peekAtSequence(UUID dbId, String schemaName,String sequenceName) throws StandardException;
 
     /**
      * Returns the dependency manager for this DataDictionary. Associated with
@@ -2013,9 +2065,10 @@ public interface DataDictionary{
      * Get a role grant descriptor for a role definition.
      *
      * @param roleName The name of the role whose definition we seek
+     * @param databaseId
      * @throws StandardException error
      */
-    RoleGrantDescriptor getRoleDefinitionDescriptor(String roleName) throws StandardException;
+    RoleGrantDescriptor getRoleDefinitionDescriptor(String roleName, UUID databaseId) throws StandardException;
 
     /**
      * Get the role grant descriptor corresponding to the uuid provided
@@ -2031,9 +2084,10 @@ public interface DataDictionary{
      *
      * @param roleName The name of the role whose definition we seek
      * @param grantee  The grantee
+     * @param databaseId
      * @throws StandardException error
      */
-    RoleGrantDescriptor getRoleGrantDescriptor(String roleName,String grantee) throws StandardException;
+    RoleGrantDescriptor getRoleGrantDescriptor(String roleName, String grantee, UUID databaseId) throws StandardException;
 
 
     /**
@@ -2054,10 +2108,11 @@ public interface DataDictionary{
      * descriptor containing <code>authId</code> as its grantee.
      *
      * @param authId grantee for which a grant exists or not
+     * @param databaseId
      * @param tc     TransactionController for the transaction
      * @return boolean true if such a grant exists
      */
-    boolean existsGrantToAuthid(String authId,TransactionController tc) throws StandardException;
+    boolean existsGrantToAuthid(String authId, UUID databaseId, TransactionController tc) throws StandardException;
 
 
     /**
@@ -2072,21 +2127,27 @@ public interface DataDictionary{
      * Create or update a system stored procedure.  If the system stored procedure alreadys exists in the data dictionary,
      * the stored procedure will be dropped and then created again.
      *
+     *
+     * @param databaseName
      * @param schemaName the schema where the procedure does and/or will reside
      * @param procName   the procedure to create or update
      * @param tc         the xact
      * @throws StandardException
      */
-    void createOrUpdateSystemProcedure(String schemaName,String procName,TransactionController tc) throws StandardException;
+    void createOrUpdateSystemProcedure(String databaseName, String schemaName, String procName, TransactionController tc) throws StandardException;
 
     /**
      * Create or update all system stored procedures.  If the system stored procedure alreadys exists in the data dictionary,
      * the stored procedure will be dropped and then created again.
      *
+     *
+     * @param dbDesc
      * @param tc the xact
      * @throws StandardException
      */
-    void createOrUpdateAllSystemProcedures(TransactionController tc) throws StandardException;
+    void createOrUpdateAllSystemProcedures(DatabaseDescriptor dbDesc, TransactionController tc) throws StandardException;
+
+    void createOrUpdateAllSystemProceduresForAllDatabases(TransactionController tc) throws StandardException;
 
     /**
      * Drop a sequence descriptor.
@@ -2171,33 +2232,7 @@ public interface DataDictionary{
      * @param tc  TransactionController to use
      * @throws StandardException Thrown on failure
      */
-    void updateSystemSchemaAuthorization(String aid,TransactionController tc) throws StandardException;
-
-    /**
-     * Create a system stored procedure.
-     * PLEASE NOTE:
-     * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
-     * with tools to debug and repair databases and data dictionaries.
-     *
-     * @param schemaName name of the system schema
-     * @param procName   name of the system stored procedure
-     * @param tc         TransactionController to use
-     * @throws StandardException
-     */
-    void createSystemProcedure(String schemaName,String procName,TransactionController tc) throws StandardException;
-
-    /**
-     * Drop a system stored procedure.
-     * PLEASE NOTE:
-     * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
-     * with tools to debug and repair databases and data dictionaries.
-     *
-     * @param schemaName name of the system schema
-     * @param procName   name of the system stored procedure
-     * @param tc         TransactionController to use
-     * @throws StandardException
-     */
-    void dropSystemProcedure(String schemaName,String procName,TransactionController tc) throws StandardException;
+    void updateSystemSchemaAuthorization(UUID dbId, String aid,TransactionController tc) throws StandardException;
 
     DataDictionaryCache getDataDictionaryCache();
 
@@ -2230,11 +2265,13 @@ public interface DataDictionary{
     /**
      * Get default roles granted to a user
      *
+     *
+     * @param databaseId
      * @param username      the name of the user we want to find the default roles granted
      * @param tc            the transaction to use for dropping
      * @throws StandardException
      */
-    List<String> getDefaultRoles(String username, TransactionController tc) throws StandardException;
+    List<String> getDefaultRoles(UUID databaseId, String username, TransactionController tc) throws StandardException;
 
     /**
      * Get permissions for a routine (function or procedure).
@@ -2274,4 +2311,12 @@ public interface DataDictionary{
     long getSystablesMinRetentionPeriod();
 
     boolean useTxnAwareCache();
+
+    void createDbOwnerSchema(TransactionController tc, UUID databaseUuid, String dbOwner) throws StandardException;
+
+    UUID createNewDatabaseAndDatabaseOwner(TransactionController tc, String name, String dbOwner, String dbPassword) throws StandardException;
+
+    UUID createNewDatabaseAndDatabaseOwner(TransactionController tc, String dbName, UserDescriptor dbOwner) throws StandardException;
+
+    void enableMultiDatabase(boolean value) throws StandardException;
 }

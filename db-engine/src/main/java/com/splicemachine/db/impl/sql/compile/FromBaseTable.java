@@ -46,6 +46,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.compile.costing.ScanCostEstimator;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.conn.SQLSessionContext;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -253,8 +254,15 @@ public class FromBaseTable extends FromTable {
         return false;
     }
 
+    public FromBaseTable() {}
+
+    public FromBaseTable(ContextManager cm){
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.FROM_BASE_TABLE);
+    }
+
     /**
-     * Initializer for a table in a FROM list.
+     * Constructor for a table in a FROM list.
      * @param tableName The name of the table
      * @param correlationName The correlation name
      * @param rclOrUD update/delete flag or result column list
@@ -262,25 +270,43 @@ public class FromBaseTable extends FromTable {
      * @param isBulkDelete bulk delete flag or past tx id.
      * @param pastTxIdExpr the past transaction expression.
      */
+    public FromBaseTable(TableName tableName, String correlationName,Object rclOrUD,Object propsOrRcl, Object isBulkDelete, Object pastTxIdExpr,
+                         ContextManager cm){
+        this(cm);
+        init2(tableName, correlationName, rclOrUD, propsOrRcl, isBulkDelete, pastTxIdExpr);
+    }
+
+    public FromBaseTable(TableName tableName, String correlationName,Object rclOrUD,Object propsOrRcl, ContextManager cm) {
+        this(cm);
+        init2(tableName, correlationName, rclOrUD, propsOrRcl);
+    }
+
     @Override
-    public void init(Object tableName,Object correlationName,Object rclOrUD,Object propsOrRcl, Object isBulkDelete, Object pastTxIdExpr){
+    public void init(Object tableName, Object correlationName,Object rclOrUD,Object propsOrRcl, Object isBulkDelete, Object pastTxIdExpr){
+        init2((TableName)tableName, (String)correlationName, rclOrUD, propsOrRcl, isBulkDelete, pastTxIdExpr);
+    }
+
+    public void init(Object tableName, Object correlationName,Object rclOrUD,Object propsOrRcl){
+        init2((TableName) tableName, (String) correlationName, rclOrUD, propsOrRcl);
+    }
+
+    public void init2(TableName tableName, String correlationName,Object rclOrUD,Object propsOrRcl, Object isBulkDelete, Object pastTxIdExpr){
         this.isBulkDelete = (Boolean) isBulkDelete;
         if(pastTxIdExpr != null) {
             this.pastTxIdExpression = (ValueNode) pastTxIdExpr;
         }
-        init(tableName, correlationName, rclOrUD, propsOrRcl);
+        init2(tableName, correlationName, rclOrUD, propsOrRcl);
     }
 
-    @Override
-    public void init(Object tableName,Object correlationName,Object rclOrUD,Object propsOrRcl){
+    public void init2(TableName tableName, String correlationName,Object rclOrUD,Object propsOrRcl){
         if(rclOrUD instanceof Integer){
-            init(correlationName,null);
-            this.tableName=(TableName)tableName;
+            init2(correlationName, null);
+            this.tableName = tableName;
             this.updateOrDelete=(Integer)rclOrUD;
             resultColumns=(ResultColumnList)propsOrRcl;
         }else{
-            init(correlationName,propsOrRcl);
-            this.tableName=(TableName)tableName;
+            init2(correlationName, (Properties) propsOrRcl);
+            this.tableName = tableName;
             resultColumns=(ResultColumnList)rclOrUD;
         }
 
@@ -1081,18 +1107,8 @@ public class FromBaseTable extends FromTable {
                             null,
                             getContextManager());
         DMLStatementNode
-        stmt = (CursorNode) nodeFactory.getNode(
-                C_NodeTypes.CURSOR_NODE,
-                "SELECT",
-                selectNode,
-                null,
-                null,
-                null,
-                null,
-                Boolean.valueOf( false ),
-                ReuseFactory.getInteger(CursorNode.UNSPECIFIED),
-                null,
-                getContextManager());
+        stmt = new CursorNode("SELECT", selectNode, null, null, null, null,
+                Boolean.FALSE, ReuseFactory.getInteger(CursorNode.UNSPECIFIED), null, getContextManager());
         stmt.setUseSparkOverride(Boolean.valueOf(optimizer.isForSpark()));
         stmt.bindStatement();
         walkAST(getLanguageConnectionContext(), stmt, CompilationPhase.AFTER_BIND);
@@ -2020,8 +2036,8 @@ public class FromBaseTable extends FromTable {
         ResultColumnList derivedRCL=resultColumns;
 
         // make sure there's a restriction list
-        restrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
-        baseTableRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+        restrictionList = new PredicateList(getContextManager());
+        baseTableRestrictionList = new PredicateList(getContextManager());
 
         CompilerContext compilerContext=getCompilerContext();
 
@@ -2188,9 +2204,11 @@ public class FromBaseTable extends FromTable {
         boolean authorizeSYSTOKENS= dataDictionary.usesSqlAuthorization() &&
                 tableDescriptor.getUUID().toString().equals(SYSTOKENSRowFactory.SYSTOKENS_UUID);
         if(authorizeSYSUSERS || authorizeSYSTOKENS){
-            String databaseOwner=dataDictionary.getAuthorizationDatabaseOwner();
-            String currentUser=getLanguageConnectionContext().getStatementContext().getSQLSessionContext().getCurrentUser();
-            List<String> groupuserlist = getLanguageConnectionContext().getStatementContext().getSQLSessionContext().getCurrentGroupUser();
+            LanguageConnectionContext lcc = getLanguageConnectionContext();
+            SQLSessionContext context = lcc.getStatementContext().getSQLSessionContext();
+            String databaseOwner = lcc.getCurrentDatabase().getAuthorizationId();
+            String currentUser = context.getCurrentUser();
+            List<String> groupuserlist = context.getCurrentGroupUser();
 
             if(! (databaseOwner.equals(currentUser) || (groupuserlist != null && groupuserlist.contains(databaseOwner)))){
                 throw StandardException.newException(SQLState.DBO_ONLY);
@@ -2225,7 +2243,7 @@ public class FromBaseTable extends FromTable {
         // call is an indication that we are mapping to a no-argument VTI. Since
         // we have the table descriptor we do not need to pass in a TableName.
         // See NewInvocationNode for more.
-        QueryTreeNode newNode=(QueryTreeNode)getNodeFactory().getNode(
+        MethodCallNode newNode=(MethodCallNode)getNodeFactory().getNode(
                 C_NodeTypes.NEW_INVOCATION_NODE,
                 null, // TableName
                 td, // TableDescriptor
@@ -2236,25 +2254,13 @@ public class FromBaseTable extends FromTable {
         QueryTreeNode vtiNode;
 
         if(correlationName!=null){
-            vtiNode=(QueryTreeNode)getNodeFactory().getNode(
-                    C_NodeTypes.FROM_VTI,
-                    newNode,
-                    correlationName,
-                    resultColumns,
-                    tableProperties,
-                    cm);
+            vtiNode = new FromVTI(newNode, correlationName, resultColumns, tableProperties, cm);
         }else{
             TableName exposedName=newNode.makeTableName(td.getSchemaName(),
                     td.getDescriptorName());
 
-            vtiNode=(QueryTreeNode)getNodeFactory().getNode(
-                    C_NodeTypes.FROM_VTI,
-                    newNode,
-                    null,
-                    resultColumns,
-                    tableProperties,
-                    exposedName,
-                    cm);
+            vtiNode = new FromVTI(newNode, null,  /* correlationName */
+                                resultColumns, tableProperties, exposedName, cm);
         }
 
         return (ResultSetNode)vtiNode;
@@ -2359,7 +2365,7 @@ public class FromBaseTable extends FromTable {
     TableDescriptor bindTableDescriptor()
             throws StandardException{
         String schemaName=tableName.getSchemaName();
-        SchemaDescriptor sd=getSchemaDescriptor(schemaName);
+        SchemaDescriptor sd=getSchemaDescriptor(null, schemaName);
 
         tableDescriptor=getTableDescriptor(tableName.getTableName(),sd);
 
@@ -2375,7 +2381,7 @@ public class FromBaseTable extends FromTable {
                 throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND,tableName.toString());
 
             tableName=synonymTab;
-            sd=getSchemaDescriptor(tableName.getSchemaName());
+            sd=getSchemaDescriptor(null, tableName.getSchemaName());
 
             tableDescriptor=getTableDescriptor(synonymTab.getTableName(),sd);
             if(tableDescriptor==null)
@@ -2436,21 +2442,11 @@ public class FromBaseTable extends FromTable {
                 return;
             }
 
-            ValueNode rowLocationNode=(ValueNode)getNodeFactory().getNode(
-                    C_NodeTypes.CURRENT_ROW_LOCATION_NODE,
-                    getContextManager());
-
+            ValueNode rowLocationNode = new CurrentRowLocationNode(getContextManager());
             rowLocationNode.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
-                            false        /* Not nullable */
-                    )
-            );
+                                                            false /* Not nullable */ ));
 
-            rowIdColumn=(ResultColumn)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    colName,
-                    rowLocationNode,
-                    getContextManager());
-
+            rowIdColumn = new ResultColumn(colName, rowLocationNode, getContextManager());
             rowIdColumn.markGenerated();
         }
     }
@@ -2487,9 +2483,7 @@ public class FromBaseTable extends FromTable {
         if(exposedTableName.getSchemaName()==null && correlationName==null)
             exposedTableName.bind(this.getDataDictionary());
 
-        TableName temporaryTableName = (TableName) getNodeFactory().getNode(
-                                           C_NodeTypes.TABLE_NAME,
-                                           exposedTableName.getSchemaName(),
+        TableName temporaryTableName = new TableName(exposedTableName.getSchemaName(),
                                            getLanguageConnectionContext().mangleTableName(exposedTableName.getTableName()),
                                            exposedTableName.getContextManager());
         /*
@@ -2691,9 +2685,9 @@ public class FromBaseTable extends FromTable {
         ** best join strategy.
         */
         ContextManager ctxMgr=getContextManager();
-        storeRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
-        nonStoreRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
-        requalificationRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
+        storeRestrictionList = new PredicateList(ctxMgr);
+        nonStoreRestrictionList = new PredicateList(ctxMgr);
+        requalificationRestrictionList = new PredicateList(ctxMgr);
         trulyTheBestJoinStrategy.divideUpPredicateLists(
                 this,
                 joinedTableSet,
@@ -3041,10 +3035,7 @@ public class FromBaseTable extends FromTable {
             boolean cloneRCs)
             throws StandardException{
         IndexRowGenerator irg=idxCD.getIndexDescriptor();
-        ResultColumnList newCols =
-                (ResultColumnList) getNodeFactory().getNode(
-                        C_NodeTypes.RESULT_COLUMN_LIST,
-                        getContextManager());
+        ResultColumnList newCols = new ResultColumnList(getContextManager());
 
         if (irg.isOnExpression()) {
             assert !oldColumns.isEmpty();
@@ -3052,11 +3043,7 @@ public class FromBaseTable extends FromTable {
             ValueNode[] exprAsts = irg.getParsedIndexExpressions(getLanguageConnectionContext(), this);
 
             for (int i = 0; i < indexColumnTypes.length; i++) {
-                ResultColumn rc = (ResultColumn) getNodeFactory().getNode(
-                        C_NodeTypes.RESULT_COLUMN,
-                        indexColumnTypes[i],
-                        null,
-                        getContextManager());
+                ResultColumn rc = new ResultColumn(indexColumnTypes[i], null, getContextManager());
                 rc.setIndexExpression(exprAsts[i]);
                 rc.setReferenced();
                 rc.setVirtualColumnId(i + 1);  // virtual column IDs are 1-based
@@ -3672,9 +3659,7 @@ public class FromBaseTable extends FromTable {
         exposedName=getExposedTableName();
 
         /* Add all of the columns in the table */
-        rcList=(ResultColumnList)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        rcList = new ResultColumnList(getContextManager());
         ColumnDescriptorList cdl=tableDescriptor.getColumnDescriptorList();
         int cdlSize=cdl.size();
 
@@ -3694,11 +3679,7 @@ public class FromBaseTable extends FromTable {
                     exposedName,
                     colDesc.getType(),
                     getContextManager());
-            resultColumn=(ResultColumn)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    colDesc,
-                    valueNode,
-                    getContextManager());
+            resultColumn = new ResultColumn(colDesc, valueNode, getContextManager());
 
             /* Build the ResultColumnList to return */
             rcList.addResultColumn(resultColumn);
@@ -3736,9 +3717,7 @@ public class FromBaseTable extends FromTable {
         exposedName=getExposedTableName();
 
         /* Add all of the columns in the table */
-        ResultColumnList newRcl=(ResultColumnList)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        ResultColumnList newRcl = new ResultColumnList(getContextManager());
         ColumnDescriptorList cdl=tableDescriptor.getColumnDescriptorList();
         int cdlSize=cdl.size();
 
@@ -3752,17 +3731,9 @@ public class FromBaseTable extends FromTable {
             }
 
             if((resultColumn=inputRcl.getResultColumn(position))==null){
-                valueNode=(ValueNode)getNodeFactory().getNode(
-                        C_NodeTypes.COLUMN_REFERENCE,
-                        cd.getColumnName(),
-                        exposedName,
-                        getContextManager());
-                resultColumn=(ResultColumn)getNodeFactory().
-                        getNode(
-                                C_NodeTypes.RESULT_COLUMN,
-                                cd,
-                                valueNode,
-                                getContextManager());
+                valueNode = new ColumnReference(cd.getColumnName(),
+                        exposedName, getContextManager());
+                resultColumn = new ResultColumn(cd, valueNode, getContextManager());
             }
 
             /* Build the ResultColumnList to return */
@@ -3896,9 +3867,7 @@ public class FromBaseTable extends FromTable {
             return false;
 
         if(trulyTheBestJoinStrategy.isHashJoin()){
-            pl=(PredicateList)getNodeFactory().getNode(
-                    C_NodeTypes.PREDICATE_LIST,
-                    getContextManager());
+            pl = new PredicateList(getContextManager());
             if(storeRestrictionList!=null){
                 pl.nondestructiveAppend(storeRestrictionList);
             }
@@ -4797,9 +4766,7 @@ public class FromBaseTable extends FromTable {
     }
 
     private PredicateList translateBetweenHelper(PredicateList predList) throws StandardException {
-        PredicateList newList = (PredicateList)getNodeFactory().getNode(
-                C_NodeTypes.PREDICATE_LIST,
-                getContextManager());
+        PredicateList newList = new PredicateList(getContextManager());
         boolean translated = false;
 
         for (int i = 0; i < predList.size(); i++) {
@@ -4823,10 +4790,7 @@ public class FromBaseTable extends FromTable {
                 }
                 newList.addOptPredicate(le);
 
-                BooleanConstantNode trueNode = (BooleanConstantNode)getNodeFactory().getNode(
-                        C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                        Boolean.TRUE,
-                        getContextManager());
+                BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
                 newAnd.setRightOperand(trueNode);
 
                 Predicate ge = (Predicate)getNodeFactory().getNode(
@@ -4892,9 +4856,7 @@ public class FromBaseTable extends FromTable {
 
     public FromBaseTable shallowClone() throws StandardException {
         FromBaseTable
-           fromBaseTable = (FromBaseTable) getNodeFactory().getNode(
-                                        C_NodeTypes.FROM_BASE_TABLE,
-                                        tableName,
+           fromBaseTable = new FromBaseTable(tableName,
                                         correlationName,
                                         resultColumns,
                                         null,
