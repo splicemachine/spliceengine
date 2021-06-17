@@ -493,4 +493,24 @@ public class Subquery_Flattening_InList_IT extends SpliceUnitTest {
         assertUnorderedResult(methodWatcher.getOrCreateConnection(),
                               sql, ONE_SUBQUERY_NODE , expected);
     }
+
+    @Test
+    public void testMultiColumnInListWithoutSubqueryInvalid() throws Exception {
+        String sql = "select a1, a2 from A\n" +
+                "WHERE (a1, a2) in %s";
+
+        try (ResultSet rs = methodWatcher.executeQuery(format(sql, "(1, 1)"))) {
+            Assert.fail("should fail due to invalid syntax");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X01", e.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("Multicolumn IN predicate requires a subquery"));
+        }
+
+        try (ResultSet rs = methodWatcher.executeQuery(format(sql, "((1, 1), (2, 2))"))) {
+            Assert.fail("should fail due to invalid syntax");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X01", e.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("Multicolumn IN predicate requires a subquery"));
+        }
+    }
 }
