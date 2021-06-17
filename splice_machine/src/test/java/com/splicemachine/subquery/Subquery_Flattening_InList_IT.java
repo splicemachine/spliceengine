@@ -43,9 +43,11 @@ public class Subquery_Flattening_InList_IT extends SpliceUnitTest {
         classWatcher.executeUpdate("create table A(a1 int, a2 int)");
         classWatcher.executeUpdate("create table B(b1 int, b2 int)");
         classWatcher.executeUpdate("create table C(name varchar(20), surname varchar(20))");
+        classWatcher.executeUpdate("create table D(a1 int, a2 varchar(3))");
         classWatcher.executeUpdate("insert into A values(0,0),(1,10),(2,20),(3,30),(4,40),(5,50)");
         classWatcher.executeUpdate("insert into B values(0,0),(0,0),(1,10),(1,10),(2,20),(2,20),(3,30),(3,30),(4,40),(4,40),(5,50),(5,50),(NULL,NULL)");
         classWatcher.executeUpdate("insert into C values('Jon', 'Snow'),('Eddard', 'Stark'),('Robb', 'Stark'), ('Jon', 'Arryn')");
+        classWatcher.executeUpdate("insert into D values(1,'x11'),(1,'not'),(1,'x14'),(2,'x22'),(404,'x42'),(505,'not')");
     }
 
     @Test
@@ -456,4 +458,23 @@ public class Subquery_Flattening_InList_IT extends SpliceUnitTest {
 
     }
 
+    @Test
+    public void testMultiColumnInListWithoutSubqueryInvalid() throws Exception {
+        String sql = "select a1, a2 from A\n" +
+                "WHERE (a1, a2) in %s";
+
+        try (ResultSet rs = methodWatcher.executeQuery(format(sql, "(1, 1)"))) {
+            Assert.fail("should fail due to invalid syntax");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X01", e.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("Multicolumn IN predicate requires a subquery"));
+        }
+
+        try (ResultSet rs = methodWatcher.executeQuery(format(sql, "((1, 1), (2, 2))"))) {
+            Assert.fail("should fail due to invalid syntax");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X01", e.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("Multicolumn IN predicate requires a subquery"));
+        }
+    }
 }
