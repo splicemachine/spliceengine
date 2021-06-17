@@ -3068,4 +3068,18 @@ public class SelectNode extends ResultSetNode {
             return true;
         return false;
     }
+
+    @Override
+    public String toString2() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("SelectNode\n");
+        Node.append2(sb, "fromList", "  ", fromList);
+        Node.append2(sb, "resultColumns", "  ", resultColumns);
+        Node.append2(sb, "whereClause", "  ", whereClause);
+        Node.append2(sb, "groupByList", "  ", groupByList);
+        Node.append2(sb, "havingClause", "  ", havingClause);
+        Node.append2(sb, "windowDefList", "  ", windowDefinitionList);
+        Node.append2(sb, "orderByList", "  ", orderByList);
+        return sb.toString();
+    }
 }

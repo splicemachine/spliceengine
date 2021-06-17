@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.Node;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
@@ -846,6 +847,22 @@ public class CursorNode extends DMLStatementNode{
                 }
                 sb.append(attrDelim).append("updateMode=").append(updateModeString(updateMode))
                 .append(")");
+        return sb.toString();
+    }
+
+    @Override
+    public String toString2() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("CursorNode\n");
+        Node.append2(sb,"name", "  ", name);
+        Node.append2(sb,"statementType", "  ",statementType);
+        Node.append2(sb,"orderByList", "  ",orderByList);
+        Node.append2(sb,"offset", "  ",offset);
+        Node.append2(sb,"fetchFirst", "  ",fetchFirst);
+        Node.append2(sb,"hasJDBClimitClause", "  ",hasJDBClimitClause);
+        Node.append2(sb,"updateMode", "  ",updateMode);
+        Node.append2(sb,"updatableColumns", "  ",updatableColumns);
+        sb.append(super.toString2());
         return sb.toString();
     }
 

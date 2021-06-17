@@ -3996,4 +3996,11 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         return false;
     }
 
+    @Override
+    public String toString2() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("ResultColumnList:\n");
+        sb.append(super.toString2());
+        return sb.toString();
+    }
 }
