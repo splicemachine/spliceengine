@@ -695,4 +695,16 @@ public class MergeNode extends DMLStatementNode
     {
         return "MERGE";
     }
+
+    @Override
+    public String toString2() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("MergeNode\n");
+        Node.append2(sb, "targetTable", "  ", _targetTable);
+        Node.append2(sb, "sourceTable", "  ", _sourceTable);
+        Node.append2(sb, "searchCondition", "  ", _searchCondition);
+        sb.append("  matchingClauses\n");
+        Node.printList(sb, _matchingClauses, "  ");
+        return sb.toString();
+    }
 }

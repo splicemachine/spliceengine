@@ -634,4 +634,16 @@ public class MatchingClauseNode extends QueryTreeNode {
         else { return "DELETE"; }
     }
 
+    @Override
+    public String toString2() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("MatchingClauseNode, type = " + getType() + "\n");
+        Node.append2(sb, "matchingRefinement", "  ", _matchingRefinement);
+        Node.append2(sb, "updateColumns", "  ", _updateColumns);
+        Node.append2(sb, "insertColumns", "  ", _insertColumns);
+        Node.append2(sb, "insertValues", "  ", _insertValues);
+        Node.append2(sb, "dml", "  ", _dml);
+        return sb.toString();
+    }
+
 }
