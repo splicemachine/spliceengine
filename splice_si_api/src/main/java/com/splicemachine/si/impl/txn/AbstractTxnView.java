@@ -404,4 +404,19 @@ public abstract class AbstractTxnView implements TxnView {
     public TaskId getTaskId() {
         return null;
     }
+
+    @Override
+    public UUID getParentQueryIdForTrigger() {
+        return null;
+    }
+
+    @Override
+    public void setCurrentQueryId(UUID uuid) {
+
+    }
+
+    @Override
+    public UUID getCurrentQueryId() {
+        return null;
+    }
 }

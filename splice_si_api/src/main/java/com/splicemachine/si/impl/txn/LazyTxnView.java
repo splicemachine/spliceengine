@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Iterator;
+import java.util.UUID;
 
 /**
  * @author Scott Fines
@@ -108,6 +109,21 @@ public class LazyTxnView implements TxnView {
     public TaskId getTaskId() {
         lookup(false);
         return delegate.getTaskId();
+    }
+
+    @Override
+    public UUID getParentQueryIdForTrigger() {
+        return null;
+    }
+
+    @Override
+    public void setCurrentQueryId(UUID uuid) {
+
+    }
+
+    @Override
+    public UUID getCurrentQueryId() {
+        return null;
     }
 
     @Override

@@ -16,7 +16,6 @@ package com.splicemachine.si.api.txn;
 
 import com.carrotsearch.hppc.LongHashSet;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.impl.txn.AbstractTxn;
 import com.splicemachine.utils.ByteSlice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -210,6 +209,21 @@ public interface Txn extends TxnView{
 
         @Override
         public TaskId getTaskId() {
+            return null;
+        }
+
+        @Override
+        public UUID getParentQueryIdForTrigger() {
+            return null;
+        }
+
+        @Override
+        public void setCurrentQueryId(UUID uuid) {
+
+        }
+
+        @Override
+        public UUID getCurrentQueryId() {
             return null;
         }
     };

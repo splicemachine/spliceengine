@@ -617,6 +617,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             triggerInfos = new ArrayList<>(queryIdToTriggerInfoMap.values());
         }
     }
+
+    @Override
+    public java.util.UUID getLatestQueryId() {
+        return null;
+    }
+
     @Override
     public void initialize() throws StandardException{
         interruptedException = null;

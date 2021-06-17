@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -38,6 +39,16 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
     protected Set<Txn> children = ConcurrentHashMap.newKeySet();
     protected Txn parentReference;
     private boolean subtransactionsAllowed = true;
+
+    public UUID getCurrentQueryId() {
+        return currentQueryId;
+    }
+
+    public void setCurrentQueryId(UUID currentQueryId) {
+        this.currentQueryId = currentQueryId;
+    }
+
+    private UUID currentQueryId = null;
 
     protected AbstractTxn(){
     }
@@ -55,6 +66,23 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
         if (getSubId() == 0) {
             counter = new AtomicLong(0);
         }
+    }
+
+    public UUID getParentQueryIdForTrigger() {
+        AbstractTxn parent;
+        if (parentReference == null || parentReference.getCurrentQueryId() == null) {
+            try {
+                parent = (AbstractTxn) getParentTxnView();
+                if (parent.getCurrentQueryId() == null) {
+                    return null; // maybe should throw an error here
+                } else {
+                    return parent.getCurrentQueryId();
+                }
+            } catch (Exception ignore) {
+                return null;
+            }
+        }
+        return parentReference.getCurrentQueryId();
     }
 
     @Override

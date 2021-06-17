@@ -487,6 +487,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             if (!(this instanceof ExplainOperation || activation.isMaterialized()))
                 activation.materialize();
             long txnId=getCurrentTransaction().getTxnId();
+            getCurrentTransaction().setCurrentQueryId(uuid);
 
             // initialize displayed trigger info
             if (getTriggerHandler() != null) {
@@ -611,7 +612,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         UUID parentId = null;
 
         try {
-            parentId = getCurrentTransaction().getParentForTrigger().getCurrentQueryId();
+            parentId = getCurrentTransaction().getParentQueryIdForTrigger();
         } catch (Exception ignored) {}
 
         String parentIdString = parentId == null ? "" : parentId.toString();
