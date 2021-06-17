@@ -893,12 +893,12 @@ public abstract class GenericConstantActionFactory {
 
     public abstract ConstantAction[] createConstraintConstantActionArray(int size);
 
-    public abstract ConstantAction getMatchingClauseConstantAction(int clauseType,
-                                                          String matchRefinementName,
-                                                          int[] thenColumns,
-                                                          String resultSetFieldName,
-                                                          String actionMethodName,
-                                                          ConstantAction thenAction);
+//    public abstract ConstantAction getMatchingClauseConstantAction(int clauseType,
+//                                                          String matchRefinementName,
+//                                                          int[] thenColumns,
+//                                                          String resultSetFieldName,
+//                                                          String actionMethodName,
+//                                                          ConstantAction thenAction);
 
     public abstract ConstantAction getMatchingClauseConstantAction(
             int    clauseType,

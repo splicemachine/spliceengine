@@ -227,6 +227,7 @@ public class MergeOperation extends NoRowsOperation
 
             if ( matchingClause != null )
             {
+
                 _thenRows[ clauseIdx ] = matchingClause.bufferThenRow( activation, _thenRows[ clauseIdx ], _row );
                 _rowCount++;
             }
@@ -256,4 +257,9 @@ public class MergeOperation extends NoRowsOperation
     public int[] getRootAccessedCols(long tableNumber) throws StandardException {
         return new int[0]; // todo
     }
+    @Override
+    public boolean returnsRows() {
+        return false;
+    }
+
 }
