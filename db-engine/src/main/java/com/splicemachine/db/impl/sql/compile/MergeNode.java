@@ -236,7 +236,7 @@ public class MergeNode extends DMLStatementNode
 
         for ( MatchingClauseNode mcn : _matchingClauses )
         {
-            mcn.bindResultSetNumbers( this, _leftJoinFromList );
+            mcn.bind( dd, this, dummyFromList, dummyTargetTable );
         }
 
         bindLeftJoin( dd );
@@ -245,7 +245,7 @@ public class MergeNode extends DMLStatementNode
         // from the driving left join.
         for ( MatchingClauseNode mcn : _matchingClauses )
         {
-            mcn.bindRefinement( this, _leftJoinFromList );
+            mcn.bindResultSetNumbers( this, _leftJoinFromList );
         }
 
         for ( MatchingClauseNode mcn : _matchingClauses )
