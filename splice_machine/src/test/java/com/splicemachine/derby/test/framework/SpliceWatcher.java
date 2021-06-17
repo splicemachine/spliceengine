@@ -135,7 +135,15 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
             delegate.setCurrentFunctionPath(currentFunctionPath);
             return this;
         }
+        public ConnectionBuilder snapshot(long snapshot) {
+            delegate.snapshot(snapshot);
+            return this;
+        }
 
+        public ConnectionBuilder autoCommit(boolean autoCommit) {
+            delegate.autoCommit(autoCommit);
+            return this;
+        }
         /**
          * Always creates a new connection, replacing this class's reference to the current connection, if any.
          */

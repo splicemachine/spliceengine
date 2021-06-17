@@ -35,10 +35,15 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
+import com.splicemachine.db.impl.ast.CorrelatedColRefCollectingVisitor;
 import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.sql.compile.*;
 
 import java.util.List;
+
+import static com.splicemachine.db.iapi.sql.compile.C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE;
+import static com.splicemachine.db.impl.sql.compile.AndNode.newAndNode;
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
 public class GroupByUtil {
 
@@ -62,23 +67,107 @@ public class GroupByUtil {
      * (actually the correlated subquery predicate(s) are removed from the subquery tree before we get here but I left
      * one in the above example for clarity)
      */
-    public static void addGroupByNodes(SelectNode subquerySelectNode,
-                                       List<BinaryRelationalOperatorNode> correlatedSubqueryPreds) throws StandardException {
+    public static ColumnReference addGroupByNodes(SelectNode subquerySelectNode,
+                                       List<BinaryRelationalOperatorNode> correlatedSubqueryPreds,
+                                       List<BinaryRelationalOperatorNode> correlatedSubqueryInequalityPreds,
+                                       int outerNestingLevel,
+                                       SelectNode outerSelectNode) throws StandardException {
 
         /*
          * Nominal case: subquery is correlated, has one or more correlated predicates.  We will group by the subquery
          * columns that are compared to the outer query columns.
          */
+        ColumnReference outerColumnReference = null;
         if (!correlatedSubqueryPreds.isEmpty()) {
             int subqueryNestingLevel = subquerySelectNode.getNestingLevel();
 
             for (BinaryRelationalOperatorNode bro : correlatedSubqueryPreds) {
                 if (PredicateUtils.isLeftColRef(bro, subqueryNestingLevel)) {
                     addGroupByNodes(subquerySelectNode, bro.getLeftOperand());
+                    outerColumnReference = (ColumnReference)bro.getRightOperand();
                 } else if (PredicateUtils.isRightColRef(bro, subqueryNestingLevel)) {
                     addGroupByNodes(subquerySelectNode, bro.getRightOperand());
-                } else {
+                    outerColumnReference = (ColumnReference)bro.getLeftOperand();
+                }
+            }
+        }
+        else if (!correlatedSubqueryInequalityPreds.isEmpty()) {
+            for (BinaryRelationalOperatorNode bro : correlatedSubqueryInequalityPreds) {
+                CorrelatedColRefCollectingVisitor correlatedColRefCollectingVisitor
+                    = new CorrelatedColRefCollectingVisitor<>(1, outerNestingLevel);
+                bro.accept(correlatedColRefCollectingVisitor);
+                if (correlatedColRefCollectingVisitor.getCollected().isEmpty())
                     throw new IllegalArgumentException("Did not find correlated column ref on either side of BRON");
+
+                ColumnReference subqueryColRef, correlatedColumnReference;
+                correlatedColumnReference =
+                    (ColumnReference)correlatedColRefCollectingVisitor.getCollected().get(0);
+
+                FromTable fromTable;
+                String tableName = correlatedColumnReference.getTableName();
+                String schemaName = correlatedColumnReference.getSchemaName();
+                if (tableName == null || schemaName == null) {
+                    fromTable = outerSelectNode.getFromList().getFromTableByTableNumber(correlatedColumnReference.getTableNumber());
+                    correlatedColumnReference.setTableNameNode(fromTable.getTableName());
+                }
+                else
+                    fromTable = outerSelectNode.getFromList().
+                                     getFromTableByName(correlatedColumnReference.getTableName(),
+                                                        correlatedColumnReference.getSchemaName(), true);
+                // subqueryColRef is the version of the correlatedColumnReference pushed into the join
+                //                in the new generated outer_table.col = inner_table.col predicate.
+                // outerColumnReference is the version of the correlatedColumnReference
+                //                      in the new generated outer_table.col = inner_table.col predicate,
+                //                      but cloned so that it has memory separate from the original
+                //                      correlated inequality predicate.
+                subqueryColRef = (ColumnReference)correlatedColumnReference.getClone();
+                outerColumnReference = (ColumnReference)correlatedColumnReference.getClone();
+
+                if (fromTable instanceof FromBaseTable) {
+                    FromBaseTable fromBaseTable = (FromBaseTable)fromTable;
+                    FromTable alreadyPushedTable =
+                        subquerySelectNode.getFromList().
+                         getFromTableByName(fromBaseTable.getTableName().getTableName(),
+                                            fromBaseTable.getTableName().getSchemaName(), true);
+
+                    if (alreadyPushedTable == null) {
+                        FromBaseTable pushedFromBaseTable = fromBaseTable.shallowClone();
+                        pushedFromBaseTable =
+                            (FromBaseTable) subquerySelectNode.getFromList().
+                                            bindExtraTableAndAddToFromClause(pushedFromBaseTable);
+                        pushedFromBaseTable.setLevel(subquerySelectNode.getNestingLevel());
+                    }
+                    subqueryColRef = (ColumnReference) subquerySelectNode.bindExtraExpressions(subqueryColRef);
+
+                    BinaryRelationalOperatorNode bron =
+                        (BinaryRelationalOperatorNode)
+                        subqueryColRef.getNodeFactory().getNode(
+                            BINARY_EQUALS_OPERATOR_NODE,
+                            subqueryColRef,
+                            outerColumnReference,
+                            subqueryColRef.getContextManager());
+
+                    bron.bindExpression(subquerySelectNode.getFromList(), null, null);
+                    // rebind one of the columns to refer to the outer table.
+                    outerSelectNode.bindExtraExpressions(outerColumnReference);
+
+                    // Append new predicate to correlatedSubqueryPredsD as we need
+                    // to process the generated equality condition in the same manner
+                    // as in subqueries with correlated equality join conditions.
+                    correlatedSubqueryPreds.add(bron);
+
+                    // Re-bind the correlated column reference in bro, so it points
+                    // to the column in copy of the table that was pushed into
+                    // the subquery.
+                    subquerySelectNode.bindExtraExpressions(correlatedColumnReference);
+                    AndNode andNode = newAndNode(bro, true);
+                    appendAndConditionToWhereClause(subquerySelectNode, andNode);
+
+                    addGroupByNodes(subquerySelectNode, subqueryColRef);
+                }
+                else {
+                    throw StandardException.newException(LANG_INTERNAL_ERROR,
+                        "Unable to build new predicate during subquery flattening.");
                 }
             }
         }
@@ -93,7 +182,33 @@ public class GroupByUtil {
             ConstantNode one = (ConstantNode) subquerySelectNode.getNodeFactory().getNode(C_NodeTypes.INT_CONSTANT_NODE, 1, subquerySelectNode.getContextManager());
             addGroupByNodes(subquerySelectNode, one);
         }
+        return outerColumnReference;
+    }
 
+    private static void appendAndConditionToWhereClause(SelectNode selectNode, AndNode andNode) throws StandardException {
+        if (selectNode.getWhereClause() == null) {
+            selectNode.setWhereClause(andNode);
+            return;
+        }
+        ValueNode whereClause = selectNode.getWhereClause();
+        if (!(whereClause instanceof AndNode)) {
+            AndNode newWhereClause = newAndNode(whereClause, true);
+            newWhereClause.setRightOperand(andNode);
+            selectNode.setWhereClause(newWhereClause);
+        }
+        else {
+            AndNode whereClauseAnd = (AndNode)whereClause;
+            while (whereClauseAnd.getRightOperand() instanceof AndNode)
+                whereClauseAnd = (AndNode)whereClauseAnd.getRightOperand();
+            if (whereClauseAnd.getRightOperand().isBooleanTrue()) {
+                whereClauseAnd.setRightOperand(andNode);
+            }
+            else {
+                AndNode newAndNode = newAndNode(whereClauseAnd.getRightOperand(), true);
+                newAndNode.setRightOperand(andNode);
+                whereClauseAnd.setRightOperand(newAndNode);
+            }
+        }
     }
 
     /**
@@ -107,7 +222,7 @@ public class GroupByUtil {
         //
         // PART 1: Add column ref to subquery result columns
         //
-        ResultColumn rc = newResultColumn(subquerySelectNode.getNodeFactory(), subquerySelectNode.getContextManager(), groupByCol);
+        ResultColumn rc = newResultColumn(subquerySelectNode.getContextManager(), groupByCol);
 
         if (groupByCol instanceof ColumnReference) {
             ColumnReference colRef = (ColumnReference) groupByCol;
@@ -116,7 +231,7 @@ public class GroupByUtil {
                 rc.setSourceTableName(colRef.getTableNameNode().getTableName());
             }
         } else {
-            /* We are grouping by 1, give he column a name.  This just for the benefit of EXPLAIN plan readability. */
+            /* We are grouping by 1, give the column a name.  This is just for the benefit of EXPLAIN plan readability. */
             rc.setName("subqueryGroupByCol");
             rc.setNameGenerated(true);
         }
@@ -131,7 +246,7 @@ public class GroupByUtil {
 
         // Create GroupByList if there isn't already one in the subquery.
         if (subquerySelectNode.getGroupByList() == null) {
-            GroupByList groupByList = newGroupByList(subquerySelectNode.getNodeFactory(), subquerySelectNode.getContextManager());
+            GroupByList groupByList = new GroupByList(subquerySelectNode.getContextManager());
             subquerySelectNode.setGroupByList(groupByList);
         }
 
@@ -146,18 +261,10 @@ public class GroupByUtil {
     // nodes
     // - - - -
 
-    private static ResultColumn newResultColumn(NodeFactory nodeFactory, ContextManager contextManager, ValueNode groupByCol) throws StandardException {
-        ResultColumn rc = (ResultColumn) nodeFactory.getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                groupByCol.getColumnName(),
-                groupByCol,
-                contextManager);
+    private static ResultColumn newResultColumn(ContextManager contextManager, ValueNode groupByCol) throws StandardException {
+        ResultColumn rc = new ResultColumn(groupByCol.getColumnName(), groupByCol, contextManager);
         rc.setColumnDescriptor(null);
         return rc;
-    }
-
-    private static GroupByList newGroupByList(NodeFactory nodeFactory, ContextManager contextManager) throws StandardException {
-        return (GroupByList) nodeFactory.getNode(C_NodeTypes.GROUP_BY_LIST, contextManager);
     }
 
     private static GroupByColumn newGroupByColumn(NodeFactory nodeFactory, ValueNode groupByCol, ResultColumn rc) throws StandardException {

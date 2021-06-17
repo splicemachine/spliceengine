@@ -19,7 +19,7 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
@@ -256,6 +256,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             boolean              unique,
             boolean              uniqueWithDuplicateNulls,
             String               indexType,
+            UUID                 dbId,
             String               schemaName,
             String               indexName,
             String               tableName,
@@ -282,7 +283,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             ByteArray[]          exprBytecode,
             String[]             generatedClassNames,
             Properties           properties) {
-        super(tableId, indexName, tableName, schemaName);
+        super(tableId, indexName, tableName, schemaName, dbId);
         SpliceLogUtils.trace(LOG, "CreateIndexConstantOperation for table %s.%s with index named %s for columns %s",schemaName,tableName,indexName,Arrays.toString(columnNames));
         this.forCreateTable             = forCreateTable;
         this.unique                     = unique;
@@ -333,7 +334,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
      * for details on when that is necessary.
      */
     CreateIndexConstantOperation(ConglomerateDescriptor srcCD, TableDescriptor td, Properties properties) {
-        super(td.getUUID(),srcCD.getConglomerateName(), td.getName(), td.getSchemaName());
+        super(td.getUUID(),srcCD.getConglomerateName(), td.getName(), td.getSchemaName(), td.getSchemaDescriptor().getDatabaseId());
         SpliceLogUtils.trace(LOG, "CreateIndexConstantOperation for conglomerate {%s} and table {%s} with properties {%s}", srcCD,td,properties);
         this.forCreateTable = false;
 
@@ -408,7 +409,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         TransactionController userTransaction = lcc.getTransactionExecute();
 
         dd.startWriting(lcc);
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, userTransaction, true) ;
+        SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, userTransaction, true) ;
         ConglomerateDescriptor existingIndex = dd.getConglomerateDescriptor(indexName, sd, false);
         if (existingIndex != null) {
             throw StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
@@ -624,7 +625,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             FormatableBitSet zeroBasedBitSet = RowUtil.shift(bitSet, 1);
 
             ExecRow baseRow = activation.getExecutionFactory().getValueRow(maxBaseColumnPosition);
-            ExecIndexRow indexRow = indexRowGenerator.getIndexRowKeyTemplate();
+            ExecIndexRow indexRow = indexRowGenerator.getIndexRowKeyTemplate(true);
             ExecRow compactBaseRow = activation.getExecutionFactory().getValueRow(baseColumnPositions.length);
 
             indexTemplateRow = indexRow;//indexRows[0];
@@ -949,9 +950,9 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
 
             OperationContext operationContext = dsp.createOperationContext(activation);
             ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds);
-            boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
+            boolean quotedEmptyIsNull = !PropertyUtil.getCachedBoolean(
                 operationContext.getActivation().getLanguageConnectionContext(),
-                Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
+                GlobalDBProperties.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
             boolean oneLineRecord = false;
             boolean preserveLineEndings = false;
             DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,

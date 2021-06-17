@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import java.sql.Types;
 
@@ -88,7 +89,7 @@ public class SYSPHYSICALSTATISTICSRowFactory extends CatalogRowFactory {
     }
 
     @Override
-    public TupleDescriptor buildDescriptor(ExecRow row, TupleDescriptor parentTuple, DataDictionary dataDictionary) throws StandardException {
+    public TupleDescriptor buildDescriptor(ExecRow row, TupleDescriptor parentTuple, DataDictionary dataDictionary, TransactionController tc) throws StandardException {
 
         DataValueDescriptor col = row.getColumn(HOSTNAME);
         String hostName = col.getString();

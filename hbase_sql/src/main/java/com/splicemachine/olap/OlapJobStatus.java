@@ -17,8 +17,10 @@ package com.splicemachine.olap;
 import akka.remote.FailureDetector;
 import akka.remote.FailureDetector$;
 import akka.remote.PhiAccrualFailureDetector;
+import com.splicemachine.db.shared.ProgressInfo;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -31,6 +33,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author Scott Fines
  *         Date: 4/1/16
  */
+@SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE") // todo: results.offer return ignored, is that correct?
 public class OlapJobStatus implements OlapStatus{
     private static final Logger LOG = Logger.getLogger(OlapJobStatus.class);
 
@@ -40,6 +43,7 @@ public class OlapJobStatus implements OlapStatus{
     private volatile AtomicReference<OlapStatus.State> currentState = new AtomicReference<>(State.NOT_SUBMITTED);
     private ArrayBlockingQueue<OlapResult> results;
     private volatile OlapResult cachedResult;
+    private ProgressInfo progressInfo;
 
     public OlapJobStatus(long tickTime,int numTicks){
         //TODO -sf- remove the constants
@@ -158,6 +162,17 @@ public class OlapJobStatus implements OlapStatus{
          * Returns true if the job is still considered to be running (i.e. the client is still checking in regularly)
          */
         return currentState()==State.RUNNING;
+    }
+
+    @Override
+    public void setProgress(ProgressInfo progress) {
+        this.progressInfo = progress;
+    }
+
+    @Override
+    public String getProgressString()
+    {
+        return progressInfo == null ? "" : progressInfo.serializeToString();
     }
 
     @Override

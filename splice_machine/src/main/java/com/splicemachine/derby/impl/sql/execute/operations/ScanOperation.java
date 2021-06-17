@@ -312,7 +312,8 @@ public abstract class ScanOperation extends SpliceBaseOperation {
                 ((BaseActivation)activation).getKeyRows(),
                 ((BaseActivation)activation).getScanKeyPrefix(),
                 ((BaseActivation)activation).getSameStartStopScanKeyPrefix(),
-                ((BaseActivation)activation).getFirstIndexColumnKeys());
+                ((BaseActivation)activation).getFirstIndexColumnKeys(),
+                ((BaseActivation)activation).getSkipBuildOfFirstKeyColumn());
     }
 
     @Override

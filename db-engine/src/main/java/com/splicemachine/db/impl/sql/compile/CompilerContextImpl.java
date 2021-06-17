@@ -222,6 +222,14 @@ public class CompilerContextImpl extends ContextImpl
         projectionPruningEnabled = onOff;
     }
 
+    public int getMaxDerivedCNFPredicates() {
+        return maxDerivedCNFPredicates;
+    }
+
+    public void setMaxDerivedCNFPredicates(int newValue) {
+        maxDerivedCNFPredicates = newValue;
+    }
+
     public int getMaxMulticolumnProbeValues() {
         return maxMulticolumnProbeValues;
     }
@@ -250,6 +258,14 @@ public class CompilerContextImpl extends ContextImpl
 
     public boolean getDisablePredicateSimplification() {
         return disablePredicateSimplification;
+    }
+
+    public void setDisableConstantFolding(boolean newValue) {
+        disableConstantFolding = newValue;
+    }
+
+    public boolean getDisableConstantFolding() {
+        return disableConstantFolding;
     }
 
     public void setSparkVersion(SparkVersion newValue) {
@@ -300,6 +316,24 @@ public class CompilerContextImpl extends ContextImpl
     }
 
     public boolean getDisablePrefixIteratorMode() { return disablePrefixIteratorMode; }
+
+    public void setDisableSubqueryFlattening(boolean newValue) {
+        disableSubqueryFlattening = newValue;
+    }
+
+    public boolean getDisableSubqueryFlattening() { return disableSubqueryFlattening; }
+
+    public void setDisableUnionedIndexScans(boolean newValue) {
+        disableUnionedIndexScans = newValue;
+    }
+
+    public boolean getDisableUnionedIndexScans() { return disableUnionedIndexScans; }
+
+    public void setFavorUnionedIndexScans(boolean newValue) {
+        favorUnionedIndexScans = newValue;
+    }
+
+    public boolean getFavorUnionedIndexScans() { return favorUnionedIndexScans; }
 
     public void setVarcharDB2CompatibilityMode(boolean newValue) {
         varcharDB2CompatibilityMode = newValue;
@@ -1221,9 +1255,11 @@ public class CompilerContextImpl extends ContextImpl
     private       boolean                             selectivityEstimationIncludingSkewedDefault  = false;
     private       boolean                             projectionPruningEnabled;
     private       int                                 maxMulticolumnProbeValues                    = DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
+    private       int                                 maxDerivedCNFPredicates                      = DEFAULT_MAX_DERIVED_CNF_PREDICATES;
     private       boolean                             multicolumnInlistProbeOnSparkEnabled         = DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
     private       boolean                             convertMultiColumnDNFPredicatesToInList      = DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST;
     private       boolean                             disablePredicateSimplification               = DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION;
+    private       boolean                             disableConstantFolding                       = DEFAULT_DISABLE_CONSTANT_FOLDING;
     private       SparkVersion                        sparkVersion                                 = DEFAULT_SPLICE_SPARK_VERSION;
     private       boolean                             sparkVersionInitialized                      = false;
     private       CompilerContext.NativeSparkModeType nativeSparkAggregationMode                   = DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
@@ -1242,6 +1278,9 @@ public class CompilerContextImpl extends ContextImpl
     private       NewMergeJoinExecutionType           newMergeJoin                                 = DEFAULT_SPLICE_NEW_MERGE_JOIN;
     private       boolean                             disablePerParallelTaskJoinCosting            = DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING;
     private       boolean                             disablePrefixIteratorMode                    = DEFAULT_DISABLE_INDEX_PREFIX_ITERATION;
+    private       boolean                             disableSubqueryFlattening                    = DEFAULT_DISABLE_SUBQUERY_FLATTENING;
+    private       boolean                             disableUnionedIndexScans                     = DEFAULT_DISABLE_UNIONED_INDEX_SCANS;
+    private       boolean                             favorUnionedIndexScans                       = DEFAULT_FAVOR_UNIONED_INDEX_SCANS;
     private       boolean                             varcharDB2CompatibilityMode                  = DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE;
     /**
      * Saved execution time default schema, if we need to change it

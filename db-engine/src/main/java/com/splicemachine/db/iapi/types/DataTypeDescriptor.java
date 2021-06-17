@@ -1278,6 +1278,8 @@ public class DataTypeDescriptor implements Formatable{
         if(typeId.isStringTypeId()){
             if((compareWithTypeID.isDateTimeTimeStampTypeID() || compareWithTypeID.isBooleanTypeId()))
                 return true;
+            if (compareWithTypeID.getJDBCTypeId()==Types.REF && typeId.getJDBCTypeId()==Types.CHAR)
+                return true;
             //If both the types are string types, then we need to make sure
             //they have the same collation set on them
             return compareWithTypeID.isStringTypeId() && compareCollationInfo(compareWithDTD);

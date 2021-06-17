@@ -36,8 +36,9 @@ public class HBaseDropIndexConstantOperation extends AbstractDropIndexConstantOp
                                            String tableName,
                                            String schemaName,
                                            UUID tableId,
-                                           long tableConglomerateId){
-        super(fullIndexName,indexName,tableName,schemaName,tableId,tableConglomerateId);
+                                           long tableConglomerateId,
+                                           UUID dbId){
+        super(fullIndexName,indexName,tableName,schemaName,tableId,tableConglomerateId, dbId);
     }
 
 }

@@ -31,17 +31,31 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.util.ReuseFactory;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.List;
 
 public final class CharConstantNode extends ConstantNode
 {
+	public CharConstantNode() {}
+	public CharConstantNode(String val, ContextManager cm) throws StandardException {
+		setContextManager(cm);
+		setNodeType(C_NodeTypes.CHAR_CONSTANT_NODE);
+		init(val);
+	}
+	public CharConstantNode(TypeId val, ContextManager cm) throws StandardException {
+		setContextManager(cm);
+		setNodeType(C_NodeTypes.CHAR_CONSTANT_NODE);
+		init(val);
+	}
 	/**
 	 * Initializer for a CharConstantNode.
 	 *
@@ -83,6 +97,7 @@ public final class CharConstantNode extends ConstantNode
 	 *
 	 * @exception StandardException
 	 */
+	@SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
 	public void init(Object newValue, Object newLength) throws StandardException
 	{
 		StringBuilder val = new StringBuilder((String) newValue);

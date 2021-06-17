@@ -73,14 +73,10 @@ implements NoPutResultSet
 	/* Modified during the life of this object */
     protected boolean isOpen;
     protected boolean finished;
-	protected ExecRow	  currentRow;
 	protected boolean isTopResultSet;
 	private SQLWarning	warnings;
 
 	/* Run time statistics variables */
-	public int numOpens;
-	public int rowsSeen;
-	public int rowsFiltered;
 	protected long startExecutionTime;
 	protected long endExecutionTime;
 	public long beginTime;
@@ -100,7 +96,7 @@ implements NoPutResultSet
 	// Set in the constructor and not modified
 	protected final Activation	    activation;
 	@SuppressFBWarnings("SS_SHOULD_BE_STATIC")
-	private final boolean				statisticsTimingOn = false;
+	private final boolean statisticsTimingOn;
 
 	ResultDescription resultDescription;
 
@@ -121,7 +117,7 @@ implements NoPutResultSet
 	 *	@param	optimizerEstimatedCost		The optimizer's estimated cost for
 	 *										this result set
 	 */
-	@SuppressFBWarnings("URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD")
+	@SuppressFBWarnings("URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD") // for optimizerEstimatedCost
 	BasicNoPutResultSetImpl(ResultDescription resultDescription,
 							Activation activation,
 							double optimizerEstimatedRowCount,
@@ -131,6 +127,7 @@ implements NoPutResultSet
 		this.resultDescription = resultDescription;
 		this.optimizerEstimatedRowCount = optimizerEstimatedRowCount;
 		this.optimizerEstimatedCost = optimizerEstimatedCost;
+		statisticsTimingOn = SanityManager.DEBUG ? true : false;
 	}
 	
 	/**
@@ -166,7 +163,7 @@ implements NoPutResultSet
 	public void reopenCore() throws StandardException
 	{
 		close();
-		openCore();	
+		openCore();
 	}
 
 	/**

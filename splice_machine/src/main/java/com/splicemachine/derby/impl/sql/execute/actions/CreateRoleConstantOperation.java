@@ -27,8 +27,6 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.jdbc.authentication.BasicAuthenticationServiceImpl;
 import com.splicemachine.db.shared.common.reference.SQLState;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 import org.apache.log4j.Logger;
@@ -46,7 +44,7 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
      *  @param roleName     The name of the role being created
      */
     public CreateRoleConstantOperation(String roleName) {
-    	SpliceLogUtils.trace(LOG, "CreateRoleConstantOperation with role name {%s}",roleName);
+        SpliceLogUtils.trace(LOG, "CreateRoleConstantOperation with role name {%s}",roleName);
         this.roleName = roleName;
     }
 
@@ -58,7 +56,7 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
      * @exception StandardException     Thrown on failure
      */
     public void executeConstantAction(Activation activation) throws StandardException {
-    	SpliceLogUtils.trace(LOG, "executeConstantAction with activation {%s}",activation);
+        SpliceLogUtils.trace(LOG, "executeConstantAction with activation {%s}",activation);
         noGrantCheck();
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
@@ -83,7 +81,7 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
         //
         // Check if this role already exists. If it does, throw.
         //
-        RoleGrantDescriptor rdDef = dd.getRoleDefinitionDescriptor(roleName);
+        RoleGrantDescriptor rdDef = dd.getRoleDefinitionDescriptor(roleName, lcc.getDatabaseId());
 
         if (rdDef != null) {
             throw StandardException.
@@ -101,18 +99,18 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
                              "User", roleName);
         }
 
-        DDLMessage.DDLChange change = ProtoUtil.createAddRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), roleName);
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(change));
 
+        notifyMetadataChange(tc, ProtoUtil.createAddRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), roleName));
 
         rdDef = ddg.newRoleGrantDescriptor(
             dd.getUUIDFactory().createUUID(),
             roleName,
             currentAuthId,// grantee
             Authorizer.SYSTEM_AUTHORIZATION_ID,// grantor
-            true,         // with admin option
-            true,
-            false);        // is definition
+            true, // with admin option
+            true, // is definition
+            false,
+            lcc.getDatabaseId());
 
         dd.addDescriptor(rdDef,
                          null,  // parent
@@ -148,9 +146,9 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
                               DataDictionary dd,
                               TransactionController tc)
             throws StandardException {
-    	SpliceLogUtils.trace(LOG, "knownUser called with role %s and currentUser %s",roleName, currentUser);
+        SpliceLogUtils.trace(LOG, "knownUser called with role %s and currentUser %s",roleName, currentUser);
         //
-        AuthenticationService s = lcc.getDatabase().getAuthenticationService();
+        AuthenticationService s = lcc.getSpliceInstance().getAuthenticationService();
 
         if (currentUser.equals(roleName)) {
             return true;
@@ -172,7 +170,7 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
         // Goto through all grants to see if there is a grant to an
         // authorization identifier which is not a role (hence, it
         // must be a user).
-        if (dd.existsGrantToAuthid(roleName, tc)) {
+        if (dd.existsGrantToAuthid(roleName, lcc.getDatabaseId(), tc)) {
             return true;
         }
 

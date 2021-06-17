@@ -259,7 +259,7 @@ abstract class DDLStatementNode extends StatementNode
         String schemaName = objectName.getSchemaName();
         //boolean needError = !(implicitCreateSchema || (schemaName == null));
         boolean needError = !implicitCreateSchema;
-        SchemaDescriptor sd = getSchemaDescriptor(schemaName, needError);
+        SchemaDescriptor sd = getSchemaDescriptor(null, schemaName, needError);
         CompilerContext cc = getCompilerContext();
 
         if (sd == null) {
@@ -270,8 +270,10 @@ abstract class DDLStatementNode extends StatementNode
                     statementToString(),
                     schemaName);
 
-            sd  = new SchemaDescriptor(getDataDictionary(), schemaName,
-                (String) null, (UUID)null, false);
+            DataDictionary dd = getDataDictionary();
+
+            sd  = new SchemaDescriptor(dd, schemaName,
+                    null, null, getLanguageConnectionContext().getDatabaseId(), false);
 
             if (isPrivilegeCollectionRequired())
                 cc.addRequiredSchemaPriv(schemaName, null, Authorizer.CREATE_SCHEMA_PRIV);
@@ -370,7 +372,7 @@ abstract class DDLStatementNode extends StatementNode
     throws StandardException
     {
         String schemaName = tableName.getSchemaName();
-        SchemaDescriptor sd = getSchemaDescriptor(schemaName);
+        SchemaDescriptor sd = getSchemaDescriptor(null, schemaName);
 
         TableDescriptor td = getTableDescriptor(tableName.getTableName(), sd);
 
@@ -383,7 +385,7 @@ abstract class DDLStatementNode extends StatementNode
                                                      tableName.toString());
 
             tableName=  synonymTab;
-            sd = getSchemaDescriptor(tableName.getSchemaName());
+            sd = getSchemaDescriptor(null, tableName.getSchemaName());
 
             td = getTableDescriptor(synonymTab.getTableName(),sd);
             if (td == null)
@@ -475,47 +477,19 @@ abstract class DDLStatementNode extends StatementNode
         if (tableName.getSchemaName() == null)
         { tableName.setSchemaName(getSchemaDescriptor().getSchemaName()); }
         
-        FromList fromList = (FromList) getNodeFactory().getNode
-            (
-             C_NodeTypes.FROM_LIST,
-             getNodeFactory().doJoinOrderOptimization(),
-             getContextManager()
-             );
-        FromBaseTable table = (FromBaseTable) getNodeFactory().getNode
-            (
-             C_NodeTypes.FROM_BASE_TABLE,
-             tableName,
-             null,
-             null,
-             null,
-             getContextManager()
-             );
+        FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
+        FromBaseTable table = new FromBaseTable(tableName, null, null, null, getContextManager());
 
         if ( creatingTable )
         {
             table.setTableNumber(0);
             fromList.addFromTable(table);
-            table.setResultColumns
-                ((ResultColumnList) getNodeFactory().getNode
-                 (
-                  C_NodeTypes.RESULT_COLUMN_LIST,
-                  getContextManager()
-                  )
-                 );
+            table.setResultColumns(new ResultColumnList(getContextManager()));
         }
         else // ALTER TABLE
         {
             fromList.addFromTable(table);
-            fromList.bindTables
-                (
-                 dd,
-                 (FromList) getNodeFactory().getNode
-                 (
-                  C_NodeTypes.FROM_LIST,
-                  getNodeFactory().doJoinOrderOptimization(),
-                  getContextManager()
-                  )
-                 );
+            fromList.bindTables(dd, new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager()));
         }
         
         tableElementList.appendNewColumnsToRCL(table);

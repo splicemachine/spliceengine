@@ -468,6 +468,11 @@ public abstract class InternalDriver implements ModuleControl {
         else
             dbname = url.substring(Attribute.PROTOCOL.length(), attributeStart);
 
+        // check if we have dbname or host:port/dbname:
+        int dbnameStart = dbname.indexOf('/');
+        if (dbnameStart != -1)
+            dbname = dbname.substring(dbnameStart + 1);
+
         // For security reasons we rely on here an non-null string being
         // taken as the database name, before the databaseName connection
         // attribute. Specifically, even if dbname is blank we still we
@@ -481,7 +486,7 @@ public abstract class InternalDriver implements ModuleControl {
         }
         // Beetle 4653 - trim database name to remove blanks that might make a difference on finding the database
         // on unix platforms
-        dbname = dbname.trim();
+        dbname = dbname.trim().toUpperCase();
 
         return dbname;
     }

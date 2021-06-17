@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.compile.costing;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -37,14 +38,23 @@ public class V1ScanCostEstimator extends AbstractScanCostEstimator {
      *
      * </pre>
      */
-    public V1ScanCostEstimator(Optimizable baseTable, ConglomerateDescriptor cd, StoreCostController scc, CostEstimate scanCost, ResultColumnList resultColumns, DataValueDescriptor[] scanRowTemplate, BitSet baseColumnsInScan, BitSet baseColumnsInLookup, boolean forUpdate, HashSet<Integer> usedNoStatsColumnIds) throws StandardException {
+    public V1ScanCostEstimator(Optimizable baseTable,
+                               ConglomerateDescriptor cd,
+                               StoreCostController scc,
+                               CostEstimate scanCost,
+                               ResultColumnList resultColumns,
+                               DataValueDescriptor[] scanRowTemplate,
+                               BitSet baseColumnsInScan,
+                               BitSet baseColumnsInLookup,
+                               boolean forUpdate,
+                               HashSet<Integer> usedNoStatsColumnIds) throws StandardException {
         super(baseTable, cd, scc, scanCost, resultColumns, scanRowTemplate, baseColumnsInScan, baseColumnsInLookup, forUpdate, usedNoStatsColumnIds);
     }
 
     /**
      * {@inheritDoc}
      */
-    public void addPredicate(Predicate p, double defaultSelectivityFactor) throws StandardException{
+    public void addPredicate(Predicate p, double defaultSelectivityFactor, Optimizer optimizer) throws StandardException{
         if (p.isMultiProbeQualifier(indexColumns)) {// MultiProbeQualifier against keys (BASE)
             addSelectivity(new InListSelectivity(scc, p, isIndexOnExpression ? indexColumns : null, QualifierPhase.BASE, defaultSelectivityFactor), SCAN);
             collectNoStatsColumnsFromInListPred(p);
@@ -59,22 +69,22 @@ public class V1ScanCostEstimator extends AbstractScanCostEstimator {
             collectNoStatsColumnsFromInListPred(p);
         }
         else if ( (p.isStartKey() || p.isStopKey()) && scanPredicatePossible) { // Range Qualifier on Start/Stop Keys (BASE)
-            performQualifierSelectivity(p, QualifierPhase.BASE, isIndexOnExpression, defaultSelectivityFactor, SCAN);
+            performQualifierSelectivity(p, QualifierPhase.BASE, isIndexOnExpression, defaultSelectivityFactor, SCAN, optimizer);
             if (!p.isStartKey() || !p.isStopKey()) // Only allows = to further restrict BASE scan numbers
                 scanPredicatePossible = false;
             collectNoStatsColumnsFromUnaryAndBinaryPred(p);
         }
         else if (p.isQualifier()) { // Qualifier in Base Table (FILTER_BASE)
-            performQualifierSelectivity(p, QualifierPhase.FILTER_BASE, isIndexOnExpression, defaultSelectivityFactor, SCAN);
+            performQualifierSelectivity(p, QualifierPhase.FILTER_BASE, isIndexOnExpression, defaultSelectivityFactor, SCAN, optimizer);
             collectNoStatsColumnsFromUnaryAndBinaryPred(p);
         }
         else if (PredicateList.isQualifier(p,baseTable,cd,false)) { // Qualifier on Base Table After Index Lookup (FILTER_PROJECTION)
-            performQualifierSelectivity(p, QualifierPhase.FILTER_PROJECTION, isIndexOnExpression, defaultSelectivityFactor, TOP);
+            performQualifierSelectivity(p, QualifierPhase.FILTER_PROJECTION, isIndexOnExpression, defaultSelectivityFactor, TOP, optimizer);
             accumulateExprEvalCost(p);
             collectNoStatsColumnsFromUnaryAndBinaryPred(p);
         }
         else { // Project Restrict Selectivity Filter
-            addSelectivity(new DefaultPredicateSelectivity(p, baseTable, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor), TOP);
+            addSelectivity(new DefaultPredicateSelectivity(p, baseTable, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor, optimizer), TOP);
             accumulateExprEvalCost(p);
         }
     }
@@ -146,8 +156,17 @@ public class V1ScanCostEstimator extends AbstractScanCostEstimator {
         double congAverageWidth = scc.getConglomerateAvgRowWidth();
         double baseCost = openLatency+closeLatency;
         assert numFirstIndexColumnProbes >= 0;
+
         baseCost += (numFirstIndexColumnProbes*2)*localLatency*(1+congAverageWidth/100d);
         baseCost += (totalRowCount*baseTableSelectivity*localLatency*(1+congAverageWidth/100d));
+        if (isIndexOnExpression && baseColumnsInLookup == null) {
+            // covering index on expression
+            // This is a trick to prefer a covering index on expressions over table scan. We have to
+            // do it this way because in current optimizer framework, best plan is decided in costing
+            // from tables. But an index expression may be evaluated later, for example, as a grouping
+            // expression or a select expression.
+            baseCost *= 0.9999;
+        }
         assert congAverageWidth >= 0 : "congAverageWidth cannot be negative -> " + congAverageWidth;
         assert baseCost >= 0 : "baseCost cannot be negative -> " + baseCost;
         scanCost.setFromBaseTableRows(Math.round(filterBaseTableSelectivity * totalRowCount));

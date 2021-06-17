@@ -19,8 +19,6 @@ import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.services.context.Context;
-import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultDescription;
@@ -93,8 +91,6 @@ public class TriggerHandler {
     private byte[] token;
     private boolean hasSpecialFromTableTrigger;
     private SPSDescriptor fromTableDmlSpsDescriptor;
-    boolean cleanup1Done = false;
-    boolean cleanup2Done = false;
     protected TriggerInfo triggerInfo;
 
     private Function<Function<LanguageConnectionContext,Void>, Callable> withContext;
@@ -181,17 +177,16 @@ public class TriggerHandler {
         this.token = token;
         Properties properties = new Properties();
         if (hasStatementTriggerWithReferencingClause) {
-            // Use the smaller of ControlExecutionRowLimit or 1000000 to determine when to switch to spark execution.
-            // Hard cap at 1 million despite the setting of controlExecutionRowLimit since we don't want to exhaust
-            // memory if the sysadmin cranked this setting really high.
+            // Triggers with temporary rows in a DataSet must stay in spark
+            // if they started from spark.
+            if (this.getTriggerExecutionContext().isFromSparkExecution())
+                this.isSpark = true;
+            // Honor the controlExecutionRowLimit.
             int switchToSparkThreshold = EngineDriver.driver().getConfiguration().getControlExecutionRowLimit() <= Integer.MAX_VALUE ?
             (int) EngineDriver.driver().getConfiguration().getControlExecutionRowLimit() : Integer.MAX_VALUE;
 
             if (switchToSparkThreshold < 0)
                 switchToSparkThreshold = 0;
-            else if (switchToSparkThreshold > 1000000)
-                switchToSparkThreshold = 1000000;
-
 
             long doubleDetermineSparkRowThreshold = 2 * getLcc().getOptimizerFactory().getDetermineSparkRowThreshold();
             int inMemoryLimit = switchToSparkThreshold;
@@ -204,20 +199,31 @@ public class TriggerHandler {
             // executing in control.
             int overflowToConglomThreshold =
                  doubleDetermineSparkRowThreshold > inMemoryLimit ? (int)doubleDetermineSparkRowThreshold :
-                 doubleDetermineSparkRowThreshold < 0 ? 0 :
+                 inMemoryLimit < 0 ? 0 :
                  inMemoryLimit;
 
             // Spark doesn't support use of an in-memory TriggerRowHolderImpl, so we
             // set overflowToConglomThreshold to zero and always use a conglomerate.
-            if (isSpark) {
+            if (this.isSpark) {
                 switchToSparkThreshold = 0;
                 overflowToConglomThreshold = 0;
             }
 
+            // Single row batched updates and inserts may allocate the trigger
+            // row holder again and again, creating the row buffer multiple times
+            // causing memory pressure.  Try to reuse the row holder if possible:
+            if (triggerRowHolder != null) {
+                if (triggerRowHolder.canBeReused(this.isSpark, ConglomID)) {
+                    triggerRowHolder.setTxn(txn);
+                    triggerRowHolder.setTriggerExecutionContext(this.getTriggerExecutionContext());
+                    triggerRowHolder.setActivation(activation);
+                    return;
+                }
+            }
             triggerRowHolder =
                 new TriggerRowHolderImpl(activation, properties, writeInfo.getResultDescription(),
                                          overflowToConglomThreshold, switchToSparkThreshold,
-                                         templateRow, tableVersion, isSpark, txn, token, ConglomID,
+                                         templateRow, tableVersion, this.isSpark, txn, token, ConglomID,
                                           this.getTriggerExecutionContext());
         }
 
@@ -265,8 +271,9 @@ public class TriggerHandler {
                 }
             };
             final boolean sparkExecution =
-                !SpliceClient.isRegionServer ||
-                activation.datasetProcessorType().isOlap();
+                !EngineDriver.isMemPlatform() &&
+                (!SpliceClient.isRegionServer ||
+                 activation.datasetProcessorType().isOlap());
             this.triggerActivator = new TriggerEventActivator(constantAction.getTargetUUID(),
                     constantAction.getTriggerInfo(),
                     activation,
@@ -305,19 +312,11 @@ public class TriggerHandler {
     }
 
     public void cleanup() throws StandardException {
-        // If an Exception is encountered, some resources may be closed more than
-        // once during unwinding of the call stack we want to make sure that
-        // full cleanup isn't indefinitely deferred, and isn't unnecessarily
-        // called multiple times, so add cleanup1Done and cleanup2Done
-        // flags to test if we've gotten here before.
-        if (triggerActivator != null && !cleanup1Done) {
-            cleanup1Done = true;
+        if (triggerActivator != null) {
             triggerActivator.cleanup(false);
         }
-        if (triggerRowHolder != null && !cleanup2Done) {
-            cleanup2Done = true;
+        if (triggerRowHolder != null)
             triggerRowHolder.close();
-        }
     }
 
     public void fireBeforeRowTriggers(ExecRow row) throws StandardException {

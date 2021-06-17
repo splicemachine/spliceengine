@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
@@ -202,8 +203,7 @@ public class SelfReferenceNode extends FromTable {
         prRCList.doProjection(false);
 
         /* Finally, we create the new ProjectRestrictNode */
-        return (ResultSetNode)getNodeFactory().getNode(
-                C_NodeTypes.PROJECT_RESTRICT_NODE,
+        return new ProjectRestrictNode(
                 this,
                 prRCList,
                 null,    /* Restriction */
@@ -244,9 +244,8 @@ public class SelfReferenceNode extends FromTable {
     }
 
     @Override
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
-        setDepth(depth);
-        tree.add(this);
+    public void buildTree(Collection<Pair<QueryTreeNode,Integer>> tree, int depth) throws StandardException {
+        addNodeToExplainTree(tree, this, depth);
     }
 
     public String getExposedName(){

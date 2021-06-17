@@ -32,6 +32,8 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 
 /**
@@ -41,6 +43,13 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
  */
 
 public class SubqueryList extends QueryTreeNodeVector<SubqueryNode>{
+    public SubqueryList() {}
+
+    public SubqueryList(ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.SUBQUERY_LIST);
+    }
+
     /**
      * Add a subquery to the list.
      *

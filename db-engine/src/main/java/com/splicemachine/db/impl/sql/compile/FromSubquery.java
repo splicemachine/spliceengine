@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
@@ -48,6 +49,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Properties;
 
 
 /**
@@ -74,6 +76,14 @@ public class FromSubquery extends FromTable
      * current compilation schema at view definition time.
      */
     private SchemaDescriptor origCompilationSchema = null;
+
+    public FromSubquery(){}
+    public FromSubquery(ResultSetNode subquery, OrderByList orderByList, ValueNode offset, ValueNode fetchFirst, Boolean hasJDBClimitClause,
+                        String correlationName, Object derivedRCL, Properties tableProperties, ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.FROM_SUBQUERY);
+        init(subquery, orderByList, offset, fetchFirst, hasJDBClimitClause, correlationName, derivedRCL, tableProperties);
+    }
 
     /**
      * Initializer for a table in a FROM list.
@@ -256,11 +266,7 @@ public class FromSubquery extends FromTable
     public void bindExpressions(FromList fromListParam)
                     throws StandardException
     {
-        FromList            emptyFromList =
-                                (FromList) getNodeFactory().getNode(
-                                    C_NodeTypes.FROM_LIST,
-                                    getNodeFactory().doJoinOrderOptimization(),
-                                    getContextManager());
+        FromList            emptyFromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
         ResultColumnList    derivedRCL = resultColumns;
         ResultColumnList    subqueryRCL;
         FromList            nestedFromList;
@@ -419,7 +425,7 @@ public class FromSubquery extends FromTable
     {
 
         if(subquery != null && subquery instanceof SelectNode){
-            ResultColumnList rcl = subquery.resultColumns;
+            ResultColumnList rcl = subquery.getResultColumns();
             HashMap<String, ResultColumn> hs = new HashMap<>();
 
             for(ResultColumn rc : rcl){
@@ -526,8 +532,7 @@ public class FromSubquery extends FromTable
         JBitSet          newJBS;
         ResultSetNode newPRN;
 
-        newPRN = (ResultSetNode) getNodeFactory().getNode(
-                                C_NodeTypes.PROJECT_RESTRICT_NODE,
+        newPRN = new ProjectRestrictNode(
                                 subquery,        /* Child ResultSet */
                                 resultColumns,    /* Projection */
                                 null,            /* Restriction */
@@ -535,7 +540,7 @@ public class FromSubquery extends FromTable
                                 null,            /* Subquerys in Projection */
                                 null,            /* Subquerys in Restriction */
                                 tableProperties,
-                                getContextManager()     );
+                                getContextManager() );
 
         /* Set up the PRN's referencedTableMap */
         newJBS = new JBitSet(numTables);
@@ -723,9 +728,7 @@ public class FromSubquery extends FromTable
          */
         exposedName = makeTableName(null, correlationName);
 
-        rcList = (ResultColumnList) getNodeFactory().getNode(
-                                        C_NodeTypes.RESULT_COLUMN_LIST,
-                                        getContextManager());
+        rcList = new ResultColumnList(getContextManager());
 
         /* Build a new result column list based off of resultColumns.
          * NOTE: This method will capture any column renaming due to
@@ -758,16 +761,8 @@ public class FromSubquery extends FromTable
 
             tableName = exposedName;
 
-            valueNode = (ValueNode) getNodeFactory().getNode(
-                                            C_NodeTypes.COLUMN_REFERENCE,
-                                            columnName,
-                                            tableName,
-                                            getContextManager());
-            resultColumn = (ResultColumn) getNodeFactory().getNode(
-                                            C_NodeTypes.RESULT_COLUMN,
-                                            columnName,
-                                            valueNode,
-                                            getContextManager());
+            valueNode = new ColumnReference(columnName,tableName, getContextManager());
+            resultColumn = new ResultColumn(columnName, valueNode, getContextManager());
 
             resultColumn.setNameGenerated(isNameGenerated);
             // Build the ResultColumnList to return //

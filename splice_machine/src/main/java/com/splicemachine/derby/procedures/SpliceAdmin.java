@@ -22,6 +22,7 @@ import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.iapi.db.PropertyInfo;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
@@ -52,7 +53,6 @@ import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.utils.*;
@@ -74,7 +74,6 @@ import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.DbEngineUtils;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.logging.Logging;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
@@ -90,13 +89,13 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.SecureRandom;
 import java.sql.*;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.*;
 
@@ -1048,32 +1047,6 @@ public class SpliceAdmin extends BaseAdminProcedures {
         return congloms;
     }
 
-
-    private static class Trip<T,U,V>{
-        private final T first;
-        private final U second;
-        private final V third;
-
-        public Trip(T first,U second,V third){
-            this.first=first;
-            this.second=second;
-            this.third=third;
-        }
-
-        public T getFirst(){
-            return first;
-        }
-
-        public U getSecond(){
-            return second;
-        }
-
-        public V getThird(){
-            return third;
-        }
-
-    }
-
     @SuppressFBWarnings("IIL_PREPARE_STATEMENT_IN_LOOP") // intentional (different servers)
     public static void SYSCS_GET_GLOBAL_DATABASE_PROPERTY(final String key,final ResultSet[] resultSet) throws SQLException{
 
@@ -1116,10 +1089,6 @@ public class SpliceAdmin extends BaseAdminProcedures {
             DataDictionary dd = lcc.getDataDictionary();
             dd.startWriting(lcc);
             String previous = PropertyUtil.getCachedDatabaseProperty(lcc, key);
-            PropertyInfo.setDatabaseProperty(key, value);
-
-            DDLMessage.DDLChange ddlChange = ProtoUtil.createSetDatabaseProperty(tc.getActiveStateTxn().getTxnId(), key);
-            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 
             ResultHelper resultHelper = new ResultHelper();
 
@@ -1132,23 +1101,32 @@ public class SpliceAdmin extends BaseAdminProcedures {
             resultHelper.newRow();
             c1.set("PREVIOUS VALUE");  c2.set(previous);
 
-            if( !PropertyHelper.getAllProperties().contains(key) ) {
+            Optional<GlobalDBProperties.PropertyType> p = PropertyHelper.getAllProperties()
+                    .filter( prop -> prop.getName().equals(key)).findFirst();
+            if(p.isPresent()) {
+                String str = p.get().validate(value);
+                if (!str.isEmpty())
+                    throw new SQLException(str);
+                resultHelper.newRow();
+                c1.set("INFO");
+                c2.set(p.get().getInformation());
+            }
+            else
+            {
                 resultHelper.newRow();
                 resultHelper.newRow();
                 c1.set("!!! WARNING !!!");
                 c2.set("Database Property '" + key + "' seems to be unknown!");
+            }
+            PropertyInfo.setDatabaseProperty(key, value);
 
-                SpliceLogUtils.warn(LOG, "Database Property '" + key + "' was set, but it seems to be unknown");
-            }
-            else {
-                // reserved to add information about properties later
-                resultHelper.newRow();
-                c1.set("INFO");
-                c2.set("");
-            }
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createSetDatabaseProperty(tc.getActiveStateTxn().getTxnId(), key);
+            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
             resultSet[0] = resultHelper.getResultSet();
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
+        } catch (SQLException e) {
+            throw e;
         } catch (Exception e) {
             throw new SQLException(e);
         }
@@ -1161,19 +1139,26 @@ public class SpliceAdmin extends BaseAdminProcedures {
         ResultHelper resultHelper = new ResultHelper();
         ResultHelper.VarcharColumn colProperty = resultHelper.addVarchar("PROPERTY_NAME", -1);
         ResultHelper.VarcharColumn colValue    = resultHelper.addVarchar("VALUE", -1);
-        ResultHelper.VarcharColumn colInfo     = resultHelper.addVarchar("INFO", 50);
+        ResultHelper.VarcharColumn colInfo     = resultHelper.addVarchar("INFO", 100);
         if( filter != null ) {
             filter = DbEngineUtils.getJavaRegexpFilterFromAsteriskFilter(filter);
         }
 
-        for(String property : PropertyHelper.getAllProperties()) {
-            if( filter != null && filter.length() > 0 && !property.matches(filter) ) continue;
-            String value = PropertyUtil.getCachedDatabaseProperty(lcc, property);
+        Stream<GlobalDBProperties.PropertyType> propertyStream = PropertyHelper.getAllProperties();
+        if( filter != null && filter.length() > 0) {
+            String finalFilter = filter;
+            propertyStream = propertyStream.filter(p -> p.getName().matches(finalFilter));
+        }
+
+        List<GlobalDBProperties.PropertyType> propertiesList = propertyStream.collect(Collectors.toList());
+        propertiesList.sort(Comparator.comparing(GlobalDBProperties.PropertyType::getName));
+        for(GlobalDBProperties.PropertyType property : propertiesList) {
+            String value = PropertyUtil.getCachedDatabaseProperty(lcc, property.getName());
             if( showNonNullOnly && value == null ) continue;
             resultHelper.newRow();
-            colProperty.set(property);
+            colProperty.set(property.getName());
             colValue.set(value);
-            colInfo.set(""); // reserved to add information about properties later
+            colInfo.set(property.getInformation());
         }
         resultSet[0] = resultHelper.getResultSet();
     }
@@ -1191,6 +1176,23 @@ public class SpliceAdmin extends BaseAdminProcedures {
         } catch (Exception e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
+    }
+
+    private static void SYSCS_ENABLE_MULTIDABASE(boolean value) throws SQLException {
+        try {
+            LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+            lcc.getDataDictionary().enableMultiDatabase(value);
+        } catch (Exception e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+    }
+
+    public static void SYSCS_ENABLE_MULTIDATABASE() throws SQLException {
+        SYSCS_ENABLE_MULTIDABASE(true);
+    }
+
+    public static void SYSCS_DISABLE_MULTIDATABASE() throws SQLException {
+        SYSCS_ENABLE_MULTIDABASE(false);
     }
 
     public static void SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE() throws SQLException{
@@ -1307,12 +1309,17 @@ public class SpliceAdmin extends BaseAdminProcedures {
             SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
             DataDictionary dd = lcc.getDataDictionary();
             dd.startWriting(lcc);
-            SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, /* raiseError= */true);
-            if (dd.getUser(ownerName) == null) {
+            SchemaDescriptor sd = dd.getSchemaDescriptor(lcc.getDatabaseId(), schemaName, tc, /* raiseError= */true);
+            if (dd.getUser(lcc.getDatabaseId(), ownerName) == null) {
                 throw StandardException.newException(String.format("User '%s' does not exist.", ownerName));
             }
-            ((DataDictionaryImpl)dd).updateSchemaAuth(schemaName, ownerName, tc);
-            DDLMessage.DDLChange ddlChange = ProtoUtil.createUpdateSchemaOwner(tc.getActiveStateTxn().getTxnId(), schemaName, ownerName, (BasicUUID)sd.getUUID());
+            ((DataDictionaryImpl)dd).updateSchemaAuth(sd.getDatabaseId().toString(), schemaName, ownerName, tc);
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createUpdateSchemaOwner(
+                    tc.getActiveStateTxn().getTxnId(),
+                    schemaName,
+                    ownerName,
+                    (BasicUUID)sd.getUUID(),
+                    (BasicUUID)sd.getDatabaseId());
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
@@ -1334,7 +1341,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
         LanguageConnectionContext lcc = defaultConn.getLanguageConnection();
         DataDictionary dd = lcc.getDataDictionary();
         if (dd.usesSqlAuthorization()) {
-            String databaseOwner = dd.getAuthorizationDatabaseOwner();
+            String databaseOwner = lcc.getCurrentDatabase().getAuthorizationId();
             String currentUser = lcc.getStatementContext().getSQLSessionContext().getCurrentUser();
             List<String> groupUserlist = lcc.getStatementContext().getSQLSessionContext().getCurrentGroupUser();
             if (!(databaseOwner.equals(currentUser) || (groupUserlist != null && groupUserlist.contains(databaseOwner)))) {
@@ -1375,8 +1382,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         TransactionController tc  = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
-
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, tc, true);
         if (sd == null)
         {
             throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
@@ -1420,7 +1426,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         TransactionController tc = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(lcc.getDatabaseId(), schemaName, tc, true);
         if (sd == null) {
             throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
         }
@@ -1493,8 +1499,6 @@ public class SpliceAdmin extends BaseAdminProcedures {
         tableName = EngineUtils.validateTable(tableName);
         EngineUtils.checkSchemaVisibility(schemaName);
 
-        EngineUtils.checkSchemaVisibility(schemaName);
-
         TableDescriptor td = DataDictionaryUtils.getTableDescriptor(lcc, schemaName, tableName);
         if (td.isExternal())
             throw StandardException.newException(SQLState.SNAPSHOT_EXTERNAL_TABLE_UNSUPPORTED, tableName);
@@ -1514,7 +1518,6 @@ public class SpliceAdmin extends BaseAdminProcedures {
             throw e;
         }
     }
-
 
     /**
      * delete a snapshot
@@ -1698,70 +1701,12 @@ public class SpliceAdmin extends BaseAdminProcedures {
         resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
     }
 
-    private static final GenericColumnDescriptor[] runningOpsDescriptors = {
-            new GenericColumnDescriptor("UUID", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
-            new GenericColumnDescriptor("USER", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
-            new GenericColumnDescriptor("HOSTNAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
-            new GenericColumnDescriptor("SESSION", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
-            new GenericColumnDescriptor("SQL", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
-            new GenericColumnDescriptor("SUBMITTED", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
-            new GenericColumnDescriptor("ELAPSED", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
-            new GenericColumnDescriptor("ENGINE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
-            new GenericColumnDescriptor("JOBTYPE", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,40)),
-    };
-
-    public static void SYSCS_GET_RUNNING_OPERATIONS(final ResultSet[] resultSet) throws SQLException {
-        List<ExecRow> rows = getRunningOperations();
-
-        EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, runningOpsDescriptors, lastActivation);
-        try {
-            resultsToWrap.openCore();
-        } catch (StandardException se) {
-            throw PublicAPI.wrapStandardException(se);
-        }
-        resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
-    }
-
     public static void SYSCS_GET_OLDEST_ACTIVE_TRANSACTION(ResultSet[] resultSet) throws SQLException{
         ResultHelper res = new ResultHelper();
         ResultHelper.BigintColumn col = res.addBigint("transactoinId", 10);
         res.newRow();
         col.set(getOldestActiveTransaction());
         resultSet[0] = res.getResultSet();
-    }
-
-    private static List<ExecRow> getRunningOperations() throws SQLException {
-        List<ExecRow> rows = new ArrayList<>();
-        for (HostAndPort server : getServers() ) {
-            try (Connection connection = RemoteUser.getConnection(server.toString())) {
-                try (Statement stmt = connection.createStatement()) {
-                    try (ResultSet rs = stmt.executeQuery("call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL()")) {
-                        while (rs.next()) {
-                            ExecRow row = new ValueRow(9);
-
-                            if ("call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS_LOCAL()".equalsIgnoreCase(rs.getString(5))) {
-                                // Filter out the nested calls to SYSCS_GET_RUNNING_OPERATIONS_LOCAL triggered by this stored procedure
-                                continue;
-                            }
-
-                            row.setColumn(1, new SQLVarchar(rs.getString(1)));
-                            row.setColumn(2, new SQLVarchar(rs.getString(2)));
-                            row.setColumn(3, new SQLVarchar(rs.getString(3)));
-                            row.setColumn(4, new SQLInteger(rs.getInt(4)));
-                            row.setColumn(5, new SQLVarchar(rs.getString(5)));
-                            row.setColumn(6, new SQLVarchar(rs.getString(6)));
-                            row.setColumn(7, new SQLVarchar(rs.getString(7)));
-                            row.setColumn(8, new SQLVarchar(rs.getString(8)));
-                            row.setColumn(9, new SQLVarchar(rs.getString(9)));
-                            rows.add(row);
-                        }
-                    }
-                }
-            }
-        }
-        return rows;
     }
 
     public static String getCurrentUserId() throws SQLException {
@@ -1842,169 +1787,6 @@ public class SpliceAdmin extends BaseAdminProcedures {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
     }
-
-    public static void SYSCS_GET_RUNNING_OPERATIONS_LOCAL(final ResultSet[] resultSet) throws SQLException{
-        EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-        String userId = lastActivation.getLanguageConnectionContext().getCurrentUserId(lastActivation);
-        String dbo = lastActivation.getLanguageConnectionContext().getDataDictionary().getAuthorizationDatabaseOwner();
-        if (userId != null && userId.equals(dbo)) {
-            userId = null;
-        }
-
-        List<Pair<UUID, RunningOperation>> operations = EngineDriver.driver().getOperationManager().runningOperations(userId);
-
-        SConfiguration config=EngineDriver.driver().getConfiguration();
-        String host_port = NetworkUtils.getHostname(config) + ":" + config.getNetworkBindPort();
-        final String timeStampFormat = SQLTimestamp.defaultTimestampFormatString;
-
-        List<ExecRow> rows = new ArrayList<>(operations.size());
-        for (Pair<UUID, RunningOperation> pair : operations)
-        {
-            UUID uuid = pair.getFirst();
-            RunningOperation ro = pair.getSecond();
-            ExecRow row = new ValueRow(9);
-            Activation activation = ro.getOperation().getActivation();
-            assert activation.getPreparedStatement() != null:"Prepared Statement is null";
-            row.setColumn(1, new SQLVarchar(uuid.toString())); // UUID
-            row.setColumn(2, new SQLVarchar(activation.getLanguageConnectionContext().getCurrentUserId(activation))); // USER
-            row.setColumn(3, new SQLVarchar(host_port) ); // HOSTNAME
-            row.setColumn(4, new SQLInteger(activation.getLanguageConnectionContext().getInstanceNumber())); // SESSION
-            ExecPreparedStatement ps = activation.getPreparedStatement();
-            row.setColumn(5, new SQLVarchar(ps == null ? null : ps.getSource())); // SQL
-            String submittedTime = new SimpleDateFormat(timeStampFormat).format(ro.getSubmittedTime());
-            row.setColumn(6, new SQLVarchar(submittedTime)); // SUBMITTED
-
-            row.setColumn(7, new SQLVarchar(getElapsedTimeStr(ro.getSubmittedTime(),new Date()))); // ELAPSED
-            row.setColumn(8, new SQLVarchar(ro.getEngineName())); // ENGINE
-            row.setColumn(9, new SQLVarchar(ro.getOperation().getScopeName())); // JOBTYPE
-            rows.add(row);
-        }
-
-        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, runningOpsDescriptors, lastActivation);
-        try {
-            resultsToWrap.openCore();
-        } catch (StandardException se) {
-            throw PublicAPI.wrapStandardException(se);
-        }
-        resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
-    }
-
-    private static String getElapsedTimeStr(Date begin, Date end)
-    {
-        long between  = (end.getTime() - begin.getTime()) / 1000;
-        long day = between / (24 * 3600);
-        long hour = between % (24 * 3600) / 3600;
-        long minute = between % 3600 / 60;
-        long second = between % 60;
-        StringBuilder elapsedStr = new StringBuilder();
-        if (day > 0) {
-            elapsedStr.append(day + " day(s) ").append(hour + " hour(s) ").append(minute + " min(s) ").append(second + " sec(s)");
-        } else if (hour > 0) {
-            elapsedStr.append(hour + " hour(s) ").append(minute + " min(s) ").append(second + " sec(s)");
-        } else if (minute > 0) {
-            elapsedStr.append(minute + " min(s) ").append(second + " sec(s)");
-        } else {
-            elapsedStr.append(second + " sec(s)");
-        }
-        return elapsedStr.toString();
-    }
-
-    public static void SYSCS_KILL_DRDA_OPERATION(final String token) throws SQLException {
-        String[] parts = token.split("#");
-        String uuidString = parts[0];
-        String hostname = parts[1];
-        HostAndPort needle = null;
-        for (HostAndPort hap : getServers() ) {
-            if (hap.toString().equals(hostname)) {
-                needle = hap;
-                break;
-            }
-        }
-        if (needle == null)
-            throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_NO_SUCH_RUNNING_OPERATION, token));
-
-        try (Connection connection = RemoteUser.getConnection(hostname)) {
-            try (PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_KILL_DRDA_OPERATION_LOCAL(?)")) {
-                ps.setString(1, uuidString);
-                ps.execute();
-            }
-        }
-    }
-
-    public static void SYSCS_KILL_OPERATION(final String uuidString) throws SQLException {
-        ExecRow needle = null;
-        for (ExecRow row : getRunningOperations()) {
-                try {
-                    if (row.getColumn(1).getString().equals(uuidString)) {
-                        needle = row;
-                        break;
-                    }
-                } catch (StandardException se) {
-                    throw PublicAPI.wrapStandardException(se);
-                }
-        }
-        if (needle == null)
-            throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_NO_SUCH_RUNNING_OPERATION, uuidString));
-
-        try {
-            String server = needle.getColumn(3).getString();
-
-            try (Connection connection = RemoteUser.getConnection(server)) {
-                try (PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_KILL_OPERATION_LOCAL(?)")) {
-                    ps.setString(1, uuidString);
-                    ps.execute();
-                }
-            }
-        } catch (StandardException e) {
-            throw PublicAPI.wrapStandardException(e);
-        }
-    }
-
-    public static void SYSCS_KILL_DRDA_OPERATION_LOCAL(final String rdbIntTkn) throws SQLException{
-
-        EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        LanguageConnectionContext lcc = conn.getLanguageConnection();
-        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-
-        String userId = lcc.getCurrentUserId(lastActivation);
-
-        boolean killed;
-        try {
-            killed = EngineDriver.driver().getOperationManager().killDRDAOperation(rdbIntTkn, userId);
-        } catch (StandardException se) {
-            throw PublicAPI.wrapStandardException(se);
-        }
-
-        if (!killed)
-            throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_NO_SUCH_RUNNING_OPERATION, rdbIntTkn));
-    }
-
-    public static void SYSCS_KILL_OPERATION_LOCAL(final String uuidString) throws SQLException{
-
-        EmbedConnection conn = (EmbedConnection)getDefaultConn();
-        LanguageConnectionContext lcc = conn.getLanguageConnection();
-        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-
-        String userId = lcc.getCurrentUserId(lastActivation);
-
-        UUID uuid;
-        try {
-            uuid = UUID.fromString(uuidString);
-        } catch (IllegalArgumentException e) {
-            throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_INVALID_FUNCTION_ARGUMENT, uuidString, "SYSCS_KILL_OPERATION"));
-        }
-        boolean killed;
-        try {
-            killed = EngineDriver.driver().getOperationManager().killOperation(uuid, userId);
-        } catch (StandardException se) {
-            throw PublicAPI.wrapStandardException(se);
-        }
-
-        if (!killed)
-            throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_NO_SUCH_RUNNING_OPERATION, uuidString));
-    }
-
 
     public static void SYSCS_HDFS_OPERATION(final String path, final String operation, final ResultSet[] resultSet) throws SQLException {
         try {
@@ -2237,7 +2019,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
             DDLMessage.DDLChange ddlChange = ProtoUtil.createUpdateSystemProcedure(activeTransaction.getTxnId());
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 
-            dd.createOrUpdateAllSystemProcedures(tc);
+            dd.createOrUpdateAllSystemProcedures(lcc.getCurrentDatabase(), tc);
 
         }catch(StandardException se){
             throw PublicAPI.wrapStandardException(se);
@@ -2275,7 +2057,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 
             schemaName = EngineUtils.validateSchema(schemaName);
-            dd.createOrUpdateSystemProcedure(schemaName,procName,tc);
+            dd.createOrUpdateSystemProcedure(null, schemaName, procName, tc);
         }catch(StandardException se){
             throw PublicAPI.wrapStandardException(se);
         }

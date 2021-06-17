@@ -26,11 +26,8 @@ import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.shared.common.reference.SQLState;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
-import com.splicemachine.si.impl.driver.SIDriver;
 
 import java.util.Iterator;
 import java.util.List;
@@ -68,7 +65,7 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
         DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
         final String grantor = lcc.getCurrentUserId(activation);
         final List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
-        String dbo = lcc.getDataDictionary().getAuthorizationDatabaseOwner();
+        String dbo = lcc.getCurrentDatabase().getAuthorizationId();
 
         dd.startWriting(lcc);
         for (Iterator rIter = roleNames.iterator(); rIter.hasNext();) {
@@ -84,7 +81,7 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
 
                 // check that role exists
                 RoleGrantDescriptor rdDef =
-                    dd.getRoleDefinitionDescriptor(role);
+                    dd.getRoleDefinitionDescriptor(role, lcc.getDatabaseId());
 
                 if (rdDef == null) {
                     throw StandardException.
@@ -124,7 +121,7 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
 
                 // Has it already been granted?
                 RoleGrantDescriptor rgd =
-                    dd.getRoleGrantDescriptor(role, grantee);
+                    dd.getRoleGrantDescriptor(role, grantee, lcc.getDatabaseId());
 
                 if (rgd != null &&
                         withAdminOption && !rgd.isWithAdminOption()) {
@@ -152,17 +149,15 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
                     /* we need to invalidate the defaultRole cache as the grantee's defaultRole list has changed;
                        also we need to invalidate the roleGrant cache
                      */
-                    DDLMessage.DDLChange ddlChange =
-                            ProtoUtil.createGrantRevokeRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
-                                    role, grantee, grantor, true);
-                    tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+                    notifyMetadataChange(tc, ProtoUtil.createGrantRevokeRole(
+                            ((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), role, grantee, grantor, true));
                 } else if (rgd == null) {
                     // Check if the grantee is a role (if not, it is a user)
                     RoleGrantDescriptor granteeDef =
-                        dd.getRoleDefinitionDescriptor(grantee);
+                        dd.getRoleDefinitionDescriptor(grantee, lcc.getDatabaseId());
 
                     if (granteeDef != null) {
-                        checkCircularity(role, grantee, tc, dd);
+                        checkCircularity(role, grantee, tc, dd, lcc);
                     }
 
                     rgd = ddg.newRoleGrantDescriptor(
@@ -171,8 +166,9 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
                         grantee,
                         grantor, // dbo for now
                         withAdminOption,
-                        false,
-                        isDefaultRole);  // not definition
+                        false, // not definition
+                        isDefaultRole,
+                        lcc.getDatabaseId());
                     dd.addDescriptor(
                         rgd,
                         null,  // parent
@@ -183,10 +179,8 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
                     /* we need to invalidate the defaultRole cache as the grantee's defaultRole list has changed;
                        also we need to invalidate the roleGrant cache
                      */
-                    DDLMessage.DDLChange ddlChange =
-                            ProtoUtil.createGrantRevokeRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
-                                    role, grantee, grantor, true);
-                    tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+                    notifyMetadataChange(tc, ProtoUtil.createGrantRevokeRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
+                                    role, grantee, grantor, true));
 
                 } // else exists already, no need to add
             }
@@ -207,7 +201,8 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
     private void checkCircularity(String role,
                                   String grantee,
                                   TransactionController tc,
-                                  DataDictionary dd)
+                                  DataDictionary dd,
+                                  LanguageConnectionContext lcc)
             throws StandardException {
 
         // The grantee is role, not a user id, so we need to check for
@@ -217,7 +212,7 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
 
         // Via grant closure of grantee
         RoleClosureIterator rci =
-            dd.createRoleClosureIterator(tc, grantee, false);
+            dd.createRoleClosureIterator(tc, grantee, false, lcc.getDatabaseId());
 
         String r;
         while ((r = rci.next()) != null) {

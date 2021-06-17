@@ -122,9 +122,7 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
     @Override
     public ValueNode replaceCallWithColumnReference(int tableNumber, int nestingLevel) throws StandardException {
         ColumnReference node = (ColumnReference) aggregateFunction.replaceAggregatesWithColumnReferences(
-                (ResultColumnList) getNodeFactory().getNode(
-                        C_NodeTypes.RESULT_COLUMN_LIST,
-                        getContextManager()),
+                new ResultColumnList(getContextManager()),
                 tableNumber);
 
         // Mark the ColumnReference as being generated to replace a call to

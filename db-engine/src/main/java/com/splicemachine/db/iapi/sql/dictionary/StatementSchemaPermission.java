@@ -92,7 +92,9 @@ public class StatementSchemaPermission extends StatementPermission
         DataDictionary dd =    lcc.getDataDictionary();
         TransactionController tc = lcc.getTransactionExecute();
         String currentUserId = lcc.getCurrentUserId(activation);
-        List<String> currentGroupuserlist = lcc.getCurrentGroupUser(activation);
+        List<String> currentGroupUserList = lcc.getCurrentGroupUser(activation);
+        String dbOwner = lcc.getCurrentDatabase().getAuthorizationId();
+        boolean isDbOwner = currentUserId.equals(dbOwner) || (currentGroupUserList != null && currentGroupUserList.contains(dbOwner));
 
         SchemaDescriptor sd;
         switch ( privType )
@@ -103,9 +105,20 @@ public class StatementSchemaPermission extends StatementPermission
                 if (sd == null)
                     return;
 
+                boolean schemaInCurrentDb = sd.getDatabaseId().equals(lcc.getCurrentDatabase().getUUID());
+
+                if (schemaInCurrentDb && isDbOwner) {
+                    return;
+                }
+
+                if (sd.isSYSIBM() && isDbOwner) {
+                    return;
+                }
+
                 // if current user is owner, it can access the schema
-                if (currentUserId.equals(sd.getAuthorizationId()) ||
-                        currentGroupuserlist != null && currentGroupuserlist.contains(sd.getAuthorizationId()))
+                if (schemaInCurrentDb &&
+                        (currentUserId.equals(sd.getAuthorizationId()) ||
+                        currentGroupUserList != null && currentGroupUserList.contains(sd.getAuthorizationId())))
                     return;
 
                 if (!hasPermissionOnSchema(lcc, dd, activation, forGrant))
@@ -113,14 +126,23 @@ public class StatementSchemaPermission extends StatementPermission
                             SQLState.LANG_SCHEMA_DOES_NOT_EXIST,
                             sd.getSchemaName());
                 break;
+
             case Authorizer.MODIFY_SCHEMA_PRIV:
-                sd = dd.getSchemaDescriptor(schemaName, tc, false);
+                sd = dd.getSchemaDescriptor(null, schemaName, tc, false);
                 if (sd == null)
                     return;
 
+                // Since we fetch the schema by name, we are guaranteed to get a schema that belongs to
+                // the current database.
+                assert sd.getDatabaseId().equals(lcc.getCurrentDatabase().getUUID());
+
+                if (isDbOwner) {
+                    return;
+                }
+
                 // if current user is owner, it can modify the schema
                 if (currentUserId.equals(sd.getAuthorizationId()) ||
-                        currentGroupuserlist != null && currentGroupuserlist.contains(sd.getAuthorizationId()))
+                        currentGroupUserList != null && currentGroupUserList.contains(sd.getAuthorizationId()))
                     return;
 
                 schemaUUID = sd.getUUID();
@@ -132,12 +154,20 @@ public class StatementSchemaPermission extends StatementPermission
 
                 break;
             case Authorizer.DROP_SCHEMA_PRIV:
-                sd = dd.getSchemaDescriptor(schemaName, tc, false);
+                sd = dd.getSchemaDescriptor(null, schemaName, tc, false);
                 // If schema hasn't been created already, no need to check
                 // for drop schema, an exception will be thrown if the schema
                 // does not exists.
                 if (sd == null)
                     return;
+
+                // Since we fetch the schema by name, we are guaranteed to get a schema that belongs to
+                // the current database.
+                assert sd.getDatabaseId().equals(lcc.getCurrentDatabase().getUUID());
+
+                if (isDbOwner) {
+                    return;
+                }
 
                 if (!currentUserId.equals(sd.getAuthorizationId()))
                     throw StandardException.newException(
@@ -147,6 +177,9 @@ public class StatementSchemaPermission extends StatementPermission
                 break;
 
             case Authorizer.CREATE_SCHEMA_PRIV:
+                if (isDbOwner) {
+                    return;
+                }
                 // Non-DBA Users can only create schemas that match their
                 // currentUserId Also allow only DBA to set currentUserId to
                 // another user Note that for DBA, check interface wouldn't be
@@ -204,16 +237,16 @@ public class StatementSchemaPermission extends StatementPermission
                 // session, is lazily set to none when it is attempted
                 // used.
                 RoleGrantDescriptor rd = dd.getRoleGrantDescriptor
-                        (role, currentUserId);
+                        (role, currentUserId, lcc.getDatabaseId());
 
                 if (rd == null) {
                     rd = dd.getRoleGrantDescriptor(
                             role,
-                            Authorizer.PUBLIC_AUTHORIZATION_ID);
+                            Authorizer.PUBLIC_AUTHORIZATION_ID, lcc.getDatabaseId());
                 }
                 if (rd == null && currentGroupuserlist != null) {
                     for (String currentGroupuser : currentGroupuserlist) {
-                        rd = dd.getRoleGrantDescriptor(role, currentGroupuser);
+                        rd = dd.getRoleGrantDescriptor(role, currentGroupuser, lcc.getDatabaseId());
                         if (rd != null)
                             break;
                     }
@@ -236,7 +269,7 @@ public class StatementSchemaPermission extends StatementPermission
                     RoleClosureIterator rci =
                             dd.createRoleClosureIterator
                                     (activation.getTransactionController(),
-                                            role, true /* inverse relation*/);
+                                            role, true /* inverse relation*/, lcc.getDatabaseId());
 
                     String r;
 
@@ -254,7 +287,7 @@ public class StatementSchemaPermission extends StatementPermission
                         // if the current role changes).
                         DependencyManager dm = dd.getDependencyManager();
                         RoleGrantDescriptor rgd =
-                                dd.getRoleDefinitionDescriptor(role);
+                                dd.getRoleDefinitionDescriptor(role, lcc.getDatabaseId());
                         ContextManager cm = lcc.getContextManager();
 
                         dm.addDependency(ps, rgd, cm);
@@ -277,7 +310,7 @@ public class StatementSchemaPermission extends StatementPermission
 
         String priv = null;
 
-        switch( privType)
+        switch(privType)
         {
             case Authorizer.SELECT_PRIV:
             case Authorizer.MIN_SELECT_PRIV:
@@ -308,7 +341,7 @@ public class StatementSchemaPermission extends StatementPermission
                 break;
         }
 
-        return "Y".equals(priv) || (!forGrant) && "y".equals( priv) ?  AUTHORIZED : UNAUTHORIZED;
+        return "Y".equals(priv) || (!forGrant) && "y".equals(priv) ?  AUTHORIZED : UNAUTHORIZED;
     } // end of hasPermissionOnTable
 
     /**

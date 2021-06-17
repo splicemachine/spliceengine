@@ -17,7 +17,6 @@ package com.splicemachine.procedures.external;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
-import org.apache.spark.sql.types.StructType;
 
 import java.util.concurrent.Callable;
 
@@ -49,7 +48,8 @@ public class GetSchemaExternalJob implements Callable<Void> {
         dsp.setJobGroup(request.getJobGroup(), "");
 
         GetSchemaExternalResult externalSchema = dsp.getExternalFileSchema(request.getStoredAs(), request.getLocation(),
-                request.mergeSchema(), request.getCsvOptions(), request.getNonPartitionColumns(), request.getPartitionColumns() );
+                request.mergeSchema(), request.getCsvOptions(), request.getNonPartitionColumns(), request.getPartitionColumns(),
+                jobStatus);
         jobStatus.markCompleted(externalSchema);
         return null;
     }

@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.utils.Pair;
 
@@ -199,14 +200,15 @@ public class SYSSEQUENCESRowFactory extends CatalogRowFactory
      * @param row                   a SYSSEQUENCES row
      * @param parentTupleDescriptor unused
      * @param dd                    dataDictionary
+     * @param tc
      * @return a  descriptor equivalent to a SYSSEQUENCES row
      * @throws com.splicemachine.db.iapi.error.StandardException
      *          thrown on failure
      */
     public TupleDescriptor buildDescriptor
-            (ExecRow row,
-             TupleDescriptor parentTupleDescriptor,
-             DataDictionary dd)
+    (ExecRow row,
+     TupleDescriptor parentTupleDescriptor,
+     DataDictionary dd, TransactionController tc)
             throws StandardException {
 
         DataValueDescriptor col;
@@ -299,7 +301,6 @@ public class SYSSEQUENCESRowFactory extends CatalogRowFactory
         throws StandardException
     {
         return new SystemColumn[]{
-
                 SystemColumnImpl.getUUIDColumn("SEQUENCEID", false),
                 SystemColumnImpl.getIdentifierColumn("SEQUENCENAME", false),
                 SystemColumnImpl.getUUIDColumn("SCHEMAID", false),
@@ -325,7 +326,7 @@ public class SYSSEQUENCESRowFactory extends CatalogRowFactory
                     "create view SYSSEQUENCESVIEW as SELECT " +
                     "SEQUENCEID,\n" +
                     "SEQUENCENAME,\n" +
-                    "SCHEMAID,\n" +
+                    "SEQ.SCHEMAID,\n" +
                     "cast(SEQUENCEDATATYPE as CHAR(32)) AS SEQUENCEDATATYPE,\n" +
                     "CURRENTVALUE,\n" +
                     "STARTVALUE,\n" +
@@ -333,7 +334,8 @@ public class SYSSEQUENCESRowFactory extends CatalogRowFactory
                     "MAXIMUMVALUE,\n" +
                     "INCREMENT,\n" +
                     "CYCLEOPTION\n" +
-                    "FROM sys.SYSSEQUENCES" );
+                    "FROM sys.SYSSEQUENCES AS SEQ, SYSVW.SYSSCHEMASVIEW AS SCH\n" +
+                    "WHERE SEQ.SCHEMAID = SCH.SCHEMAID" );
 
     private ColumnDescriptor[] getSYSVW_SYSSEQUENCESVIEW_SQL_ColumnDescriptor(TableDescriptor view, UUID viewId) {
         return new ColumnDescriptor[]{

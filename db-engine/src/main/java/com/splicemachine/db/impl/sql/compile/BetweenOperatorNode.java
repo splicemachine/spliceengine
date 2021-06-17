@@ -144,11 +144,7 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		rightBCO.bindComparisonOperator();
 
 		/* Create and return the OR */
-		newOr = (OrNode) nodeFactory.getNode(
-												C_NodeTypes.OR_NODE,
-												leftBCO,
-												rightBCO,
-												cm);
+		newOr = new OrNode(leftBCO, rightBCO, cm);
 		newOr.postBindFixup();
 
 		/* Tell optimizer to use the between selectivity instead of >= * <= selectivities */
@@ -226,10 +222,7 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		NodeFactory nodeFactory = getNodeFactory();
 		ContextManager cm = getContextManager();
 
-		QueryTreeNode trueNode = (QueryTreeNode) nodeFactory.getNode(
-				C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-				Boolean.TRUE,
-				cm);
+		BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE,cm);
 
 		/* Create the AND <= */
 		BinaryComparisonOperatorNode lessEqual =
@@ -244,11 +237,7 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		lessEqual.setOuterJoinLevel(getOuterJoinLevel());
 
 		/* Create the AND */
-		AndNode newAnd = (AndNode) nodeFactory.getNode(
-				C_NodeTypes.AND_NODE,
-				lessEqual,
-				trueNode,
-				cm);
+		AndNode newAnd = new AndNode(lessEqual, trueNode, cm);
 		newAnd.postBindFixup();
 
 		/* Create the AND >= */
@@ -264,11 +253,7 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		greaterEqual.setOuterJoinLevel(getOuterJoinLevel());
 
 		/* Create the AND */
-		newAnd = (AndNode) nodeFactory.getNode(
-				C_NodeTypes.AND_NODE,
-				greaterEqual,
-				newAnd,
-				cm);
+		newAnd = new AndNode(greaterEqual, newAnd, cm);
 		newAnd.postBindFixup();
 
 		/* Tell optimizer to use the between selectivity instead of >= * <= selectivities */
@@ -342,11 +327,7 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		rightBCO.bindComparisonOperator();
 
 		/* Create and return the AND */
-		newAnd = (AndNode) nodeFactory.getNode(
-												C_NodeTypes.AND_NODE,
-												leftBCO,
-												rightBCO,
-												cm);
+		newAnd = new AndNode(leftBCO, rightBCO, cm);
 		newAnd.postBindFixup();
 		newAnd.generateExpression(acb, mb);
 	}

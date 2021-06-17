@@ -25,11 +25,8 @@ import com.splicemachine.db.iapi.sql.dictionary.RoleClosureIterator;
 import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.shared.common.reference.SQLState;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
-import com.splicemachine.si.impl.driver.SIDriver;
 
 import java.util.Iterator;
 import java.util.List;
@@ -70,7 +67,7 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
         TransactionController tc = lcc.getTransactionExecute();
         final String grantor = lcc.getCurrentUserId(activation);
         final List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
-        String dbo = lcc.getDataDictionary().getAuthorizationDatabaseOwner();
+        String dbo = lcc.getCurrentDatabase().getAuthorizationId();
 
         dd.startWriting(lcc);
         for (Iterator rIter = roleNames.iterator(); rIter.hasNext();) {
@@ -86,7 +83,7 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
 
                 // check that role exists
                 RoleGrantDescriptor rdDef =
-                    dd.getRoleDefinitionDescriptor(role);
+                    dd.getRoleDefinitionDescriptor(role, lcc.getDatabaseId());
 
                 if (rdDef == null) {
                     throw StandardException.
@@ -125,7 +122,7 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
                 }
 
                 RoleGrantDescriptor rd =
-                    dd.getRoleGrantDescriptor(role, grantee);
+                    dd.getRoleGrantDescriptor(role, grantee, lcc.getDatabaseId());
 
                 if (rd != null && withAdminOption) {
                     // NOTE: Never called yet, withAdminOption not yet
@@ -180,11 +177,11 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
                     RoleClosureIterator rci =
                         dd.createRoleClosureIterator
                         (activation.getTransactionController(),
-                         role, false);
+                         role, false, lcc.getDatabaseId());
 
                     String r;
                     while ((r = rci.next()) != null) {
-                        rdDef = dd.getRoleDefinitionDescriptor(r);
+                        rdDef = dd.getRoleDefinitionDescriptor(r, lcc.getDatabaseId());
 
                         dd.getDependencyManager().invalidateFor
                             (rdDef, DependencyManager.REVOKE_ROLE, lcc);
@@ -194,11 +191,8 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
 
                     /* we need to invalidate the defaultRole cache if the grantee's defaultRole list is changed,
                      * also invalidate the roleGrantCache */
-                    DDLMessage.DDLChange ddlChange =
-                            ProtoUtil.createGrantRevokeRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
-                                    role, grantee, grantor, false);
-                    tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
-
+                    notifyMetadataChange(tc, ProtoUtil.createGrantRevokeRole(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
+                                    role, grantee, grantor, false));
                 } else {
                     activation.addWarning
                         (StandardException.newWarning

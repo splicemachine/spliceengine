@@ -99,7 +99,8 @@ public class Scans extends SpliceUtils {
                                      boolean rowIdKey,
                                      SpliceConglomerate conglomerate,
                                      List<Pair<ExecRow, ExecRow>> keyRows,
-                                     List<ExecRow> firstIndexColumnKeys) throws StandardException {
+                                     List<ExecRow> firstIndexColumnKeys,
+                                     boolean skipBuildOfFirstKeyColumn) throws StandardException {
         assert dataValueFactory != null;
         DataScan scan =SIDriver.driver().getOperationFactory().newDataScan(txn);//SpliceUtils.createScan(txn, scanColumnList != null && scanColumnList.anySetBit() == -1); // Here is the count(*) piece
         scan.returnAllVersions();
@@ -123,7 +124,7 @@ public class Scans extends SpliceUtils {
                     sortOrder, scannedRow, keyTablePositionMap, keyDecodingMap,
                     dataValueFactory, tableVersion, rowIdKey,
                     conglomerate.getFormat_ids(),
-                    keyRows, firstIndexColumnKeys);
+                    keyRows, firstIndexColumnKeys, skipBuildOfFirstKeyColumn);
 
             if (!rowIdKey) {
                 buildPredicateFilter(qualifiers, scanColumnList, scan, keyDecodingMap);
@@ -147,7 +148,8 @@ public class Scans extends SpliceUtils {
                                  String tableVersion,
                                  boolean rowIdKey,
                                  ExecRow templateRow,
-                                 DataValueDescriptor scanKeyPrefix) throws StandardException {
+                                 DataValueDescriptor scanKeyPrefix,
+                                 boolean skipBuildOfFirstKeyColumn) throws StandardException {
         assert dataValueFactory != null;
         try {
             if (rowIdKey) {
@@ -167,7 +169,7 @@ public class Scans extends SpliceUtils {
                               stopKeyValue, stopKeyPrefix, stopSearchOperator,
                               sortOrder, formatIds, keyTablePositionMap, keyDecodingMap,
                               dataValueFactory, tableVersion, rowIdKey,
-                              templateRow, scanKeyPrefix);
+                              templateRow, scanKeyPrefix, skipBuildOfFirstKeyColumn);
 
 //            if (!rowIdKey) {
 //                buildPredicateFilter(qualifiers, scanColumnList, scan, keyDecodingMap);
@@ -196,7 +198,7 @@ public class Scans extends SpliceUtils {
                                  SpliceConglomerate conglomerate) throws StandardException {
         return setupScan(startKeyValue, startSearchOperator, stopKeyValue, null, stopSearchOperator, qualifiers,
                 sortOrder, scanColumnList, txn, sameStartStopPosition, scannedRow, keyDecodingMap,
-                keyTablePositionMap, dataValueFactory, tableVersion, rowIdKey, conglomerate, null, null);
+                keyTablePositionMap, dataValueFactory, tableVersion, rowIdKey, conglomerate, null, null, false);
     }
 
     public static void buildPredicateFilter(Qualifier[][] qualifiers,
@@ -256,7 +258,8 @@ public class Scans extends SpliceUtils {
                            int[] keyDecodingMap,
                            DataValueFactory dataValueFactory,
                            String tableVersion,
-                           boolean rowIdKey) throws IOException {
+                           boolean rowIdKey,
+                           boolean skipBuildOfFirstKeyColumn) throws IOException {
 
         boolean generateStartKey = false;
         boolean generateStopKey = false;
@@ -279,8 +282,8 @@ public class Scans extends SpliceUtils {
 
                     // we just rely on key table positions
                     if (!isEmpty(keyDecodingMap) && keyDecodingMap[i] >= 0 && !isEmpty(keyTablePositionMap)) {
-                        DataValueDescriptor targetDesc = scannedRow.getColumn(keyTablePositionMap[keyDecodingMap[i]] + 1); // the maps are 0-based, get Column is 1-based
                         if (!rowIdKey) {
+                            DataValueDescriptor targetDesc = scannedRow.getColumn(keyTablePositionMap[keyDecodingMap[i]] + 1); // the maps are 0-based, get Column is 1-based
                             startKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(startDesc, targetDesc, dataValueFactory, true);
                         }
                     }
@@ -300,8 +303,8 @@ public class Scans extends SpliceUtils {
 
                     //  we just rely on key table positions
                     if (!isEmpty(keyDecodingMap) && !isEmpty(keyTablePositionMap)) {
-                        DataValueDescriptor targetDesc = scannedRow.getColumn(keyTablePositionMap[keyDecodingMap[i]] + 1);
                         if (!rowIdKey) {
+                            DataValueDescriptor targetDesc = scannedRow.getColumn(keyTablePositionMap[keyDecodingMap[i]] + 1);
                             stop[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc, targetDesc, dataValueFactory, false);
                         }
                     }
@@ -309,13 +312,15 @@ public class Scans extends SpliceUtils {
             }
 
             if (generateStartKey) {
-                startRow = DerbyBytesUtil.generateScanKeyForIndex(startKeyValue, startSearchOperator, sortOrder, tableVersion, rowIdKey);
+                startRow = DerbyBytesUtil.generateScanKeyForIndex(startKeyValue, startSearchOperator, sortOrder,
+                                                                  tableVersion, rowIdKey, skipBuildOfFirstKeyColumn);
 
                 if (startRow == null)
                     startRow = SIConstants.EMPTY_BYTE_ARRAY;
             }
             if (generateStopKey) {
-                stopRow = DerbyBytesUtil.generateScanKeyForIndex(stop, stopSearchOperator, sortOrder, tableVersion, rowIdKey);
+                stopRow = DerbyBytesUtil.generateScanKeyForIndex(stop, stopSearchOperator, sortOrder,
+                                                                 tableVersion, rowIdKey, skipBuildOfFirstKeyColumn);
                 if (stopKeyPrefix != null) {
                     stopRow = Bytes.unsignedCopyAndIncrement(stopRow);
                 }
@@ -342,7 +347,8 @@ public class Scans extends SpliceUtils {
                                        boolean rowIdKey,
                                        int[] columnTypes,
                                        List<Pair<ExecRow, ExecRow>> keyRows,
-                                       List<ExecRow> firstIndexColumnKeys) throws IOException, StandardException {
+                                       List<ExecRow> firstIndexColumnKeys,
+                                       boolean skipBuildOfFirstKeyColumn) throws IOException, StandardException {
         Pair<byte[], byte[]> startStopKeys;
         DataValueDescriptor[] startKeyDVDs = null, stopKeyDVDs = null;
         byte[] startKey;
@@ -359,7 +365,8 @@ public class Scans extends SpliceUtils {
                     keyDecodingMap,
                     dataValueFactory,
                     tableVersion,
-                    rowIdKey);
+                    rowIdKey,
+                    skipBuildOfFirstKeyColumn);
 
             startKey = startStopKeys.getFirst();
             stopKey = startStopKeys.getSecond();
@@ -390,7 +397,7 @@ public class Scans extends SpliceUtils {
 
                 startKeyDVDs[0] = keyPrefixRow.getColumn(1);
                 stopKeyDVDs[0]  = keyPrefixRow.getColumn(1);
-                startStopKeys =
+                 startStopKeys =
                   buildStartAndStopKeys(startKeyDVDs, ScanController.GE,
                                         stopKeyDVDs, null,
                                         GT,
@@ -400,7 +407,8 @@ public class Scans extends SpliceUtils {
                                         keyDecodingMap,
                                         dataValueFactory,
                                         tableVersion,
-                                        false);
+                                        false,
+                                        skipBuildOfFirstKeyColumn);
                 startKey = startStopKeys.getFirst();
                 stopKey = startStopKeys.getSecond();
                 if (startKey != null && stopKey != null)
@@ -408,7 +416,7 @@ public class Scans extends SpliceUtils {
             }
             // Convert the list of keys into a MultiRowRangeFilter.
             if (!keys.isEmpty())
-                scan.addRowkeyRangesFilter(keys);
+                scan.addRowkeyRangesFilter(keys, skipBuildOfFirstKeyColumn);
         }
 
         if (keyRows != null && !isMemPlatform()) {
@@ -433,7 +441,8 @@ public class Scans extends SpliceUtils {
                                         keyDecodingMap,
                                         dataValueFactory,
                                         tableVersion,
-                                        false);
+                                        false,
+                                        skipBuildOfFirstKeyColumn);
                 startKey = startStopKeys.getFirst();
                 stopKey = startStopKeys.getSecond();
                 if (startKey != null && stopKey != null)
@@ -442,7 +451,7 @@ public class Scans extends SpliceUtils {
 
             // Convert the list of keys into a MultiRowRangeFilter.
             if (!keys.isEmpty())
-                scan.addRowkeyRangesFilter(keys);
+                scan.addRowkeyRangesFilter(keys, skipBuildOfFirstKeyColumn);
         }
 
     }
@@ -458,7 +467,8 @@ public class Scans extends SpliceUtils {
                                                   String tableVersion,
                                                   boolean rowIdKey,
                                                   ExecRow templateRow,
-                                                  DataValueDescriptor scanKeyPrefix) throws IOException, StandardException {
+                                                  DataValueDescriptor scanKeyPrefix,
+                                                  boolean skipBuildOfFirstKeyColumn) throws IOException, StandardException {
         byte[] startRow;
         byte[] stopRow;
         try {
@@ -479,9 +489,8 @@ public class Scans extends SpliceUtils {
 
                     // we just rely on key table positions
                     if (!isEmpty(keyDecodingMap) && keyDecodingMap[i] >= 0 && !isEmpty(keyTablePositionMap)) {
-                        int targetColFormatId = columnTypes[keyTablePositionMap[keyDecodingMap[i]]];
-                        DataValueDescriptor targetDesc = templateRow.getColumn(keyTablePositionMap[keyDecodingMap[i]] + 1); // the maps are 0-based, get Column is 1-based
                         if (!rowIdKey) {
+                            DataValueDescriptor targetDesc = templateRow.getColumn(keyTablePositionMap[keyDecodingMap[i]] + 1); // the maps are 0-based, get Column is 1-based
                             startKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(startDesc, targetDesc, dataValueFactory, true);
                         }
                     }
@@ -511,9 +520,8 @@ public class Scans extends SpliceUtils {
 
                     //  we just rely on key table positions
                     if (!isEmpty(keyDecodingMap) && !isEmpty(keyTablePositionMap)) {
-                        int targetColFormatId = columnTypes[keyTablePositionMap[keyDecodingMap[i]]];
-                        DataValueDescriptor targetDesc = templateRow.getColumn(keyTablePositionMap[keyDecodingMap[i]] + 1); // the maps are 0-based, get Column is 1-based
                         if (!rowIdKey) {
+                            DataValueDescriptor targetDesc = templateRow.getColumn(keyTablePositionMap[keyDecodingMap[i]] + 1); // the maps are 0-based, get Column is 1-based
                             stop[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc, targetDesc, dataValueFactory, false);
                         }
                     }
@@ -521,7 +529,7 @@ public class Scans extends SpliceUtils {
             }
 
             if (generateStartKey) {
-                startRow = DerbyBytesUtil.generateScanKeyForIndex(startKeyValue, startSearchOperator, sortOrder, tableVersion, rowIdKey);
+                startRow = DerbyBytesUtil.generateScanKeyForIndex(startKeyValue, startSearchOperator, sortOrder, tableVersion, rowIdKey, skipBuildOfFirstKeyColumn);
                 if (startRow == null)
                     throw StandardException.newException(PARAMETER_CANNOT_BE_NULL, "startRow");
             }
@@ -529,7 +537,7 @@ public class Scans extends SpliceUtils {
                 throw StandardException.newException(PARAMETER_CANNOT_BE_NULL, "startRow");
 
             if (generateStopKey) {
-                stopRow = DerbyBytesUtil.generateScanKeyForIndex(stop, stopSearchOperator, sortOrder, tableVersion, rowIdKey);
+                stopRow = DerbyBytesUtil.generateScanKeyForIndex(stop, stopSearchOperator, sortOrder, tableVersion, rowIdKey, skipBuildOfFirstKeyColumn);
                 if (stopKeyPrefix != null) {
                     stopRow = Bytes.unsignedCopyAndIncrement(stopRow);
                 }
