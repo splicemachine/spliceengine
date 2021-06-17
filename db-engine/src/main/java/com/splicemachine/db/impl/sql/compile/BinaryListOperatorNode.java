@@ -87,7 +87,13 @@ public abstract class BinaryListOperatorNode extends ValueNode{
                      Object operator,Object methodName) throws StandardException{
         singleLeftOperand = false;
         if (leftOperand != null) {
-            if (leftOperand instanceof ValueNode) {
+            if (leftOperand instanceof ValueTupleNode) {
+                this.leftOperandList = ((ValueTupleNode) leftOperand).toValueNodeList();
+                if (this.leftOperandList.size() == 1) {
+                    singleLeftOperand = true;
+                }
+            }
+            else if (leftOperand instanceof ValueNode) {
                 ValueNodeList vnl = (ValueNodeList) getNodeFactory().getNode(
                                      C_NodeTypes.VALUE_NODE_LIST,
                                      getContextManager());
@@ -226,8 +232,10 @@ public abstract class BinaryListOperatorNode extends ValueNode{
                 leftOperandList.setElementAt(getLeftOperand().genSQLJavaSQLTree(), 0);
             }
         }
-        else
-            THROWASSERT("Multicolumn IN list in SQL statement not currently supported.");
+        else {
+            throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                                                 "Multicolumn IN predicate requires a subquery on the right-hand side.");
+        }
 
         /* Generate bound conversion trees for those elements in the rightOperandList
          * that are not built-in types.
