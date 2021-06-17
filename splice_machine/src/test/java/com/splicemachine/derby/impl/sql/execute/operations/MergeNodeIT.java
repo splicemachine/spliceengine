@@ -1,22 +1,28 @@
+/*
+ * Copyright (c) 2012 - 2021 Splice Machine, Inc.
+ *
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.test_tools.TableCreator;
-import com.sun.org.apache.xalan.internal.xsltc.compiler.util.ErrorMsg;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
-
-import static com.splicemachine.test_tools.Rows.row;
-import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.*;
 
 public class MergeNodeIT
@@ -174,7 +180,6 @@ public class MergeNodeIT
                 " 1 |10 | 5 |");
     }
 
-    //@Ignore // fails Nullpointer Except
     @Test
     public void testSimpleUpdate2() throws Exception {
         test(   "(1, 11, 111), (4, 44, 444)", // src
@@ -188,6 +193,32 @@ public class MergeNodeIT
                 " 1 |11 | 3 |\n" +
                 " 2 |20 | 3 |");
     }
+
+    @Test
+    public void testMultiClauseInsertDeleteUpdate() throws Exception {
+        test(   "(1, 11, 111), (2, 0, 0), (4, 44, 444), (5, 55, 555)", // src
+                "(1, 10, 3), (2, 20, 3), (-1, -1, -1)", // dest
+
+                "merge into T_dest using T_src on (T_dest.i = T_src.i) " +
+                        // will match (4,44,444) -> insert (4,44,5)
+                        "when not matched AND T_src.i = 4 then INSERT (i, j, k) VALUES (T_src.i, T_src.j, 5) " +
+                        // matches (5,55,555) -> insert (5, 55, 7)
+                        // would also match (4,44,444), but first clause is executed first (exclusively)
+                        "when not matched AND T_src.i > 2 then INSERT (i, j, k) VALUES (T_src.i, T_src.j, 7)" +
+                        // deletes (2, 20, 3) from dest
+                        "when matched AND T_src.i > 1 then DELETE " +
+                        // matches (1, 11, 111) <-> (1, 11, 111), so will update (1, 10 -> 11, 111).
+                        // also matches (2, ) but already DELETEd
+                        "when matched then UPDATE SET T_dest.j = T_src.j",
+
+                "I | J | K |\n" +
+                "------------\n" +
+                "-1 |-1 |-1 |\n" +
+                " 1 |11 | 3 |\n" +
+                " 4 |44 | 5 |\n" +
+                " 5 |55 | 7 |");
+    }
+
 
     public void checkGrammar(String sql) {
         try

@@ -1665,13 +1665,11 @@ public class JoinNode extends TableOperatorNode{
         //noinspection Convert2Diamond
         aggregateVector=new ArrayList<AggregateNode>();
 
-        CompilerContext cc=getCompilerContext();
-
         /* ON clause */
         if(joinClause!=null){
             /* JoinNode.deferredBindExpressions() may be called again after the outer join rewrite
                optimization, at this stage, we don't want to simplify the ON clause predicate again, especially
-               the top AND node with a boolean true.
+               the top AND node with a boolean trufoe.
              */
             if (!joinClauseNormalized) {
                 if (!getCompilerContext().getDisableConstantFolding()) {

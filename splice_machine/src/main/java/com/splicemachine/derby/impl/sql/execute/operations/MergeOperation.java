@@ -22,8 +22,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.iapi.types.SQLRef;
-import com.splicemachine.db.impl.sql.compile.MatchingClauseNode;
 import com.splicemachine.db.impl.sql.execute.TemporaryRowHolderImpl;
 import com.splicemachine.derby.impl.sql.execute.actions.MatchingClauseConstantAction;
 import com.splicemachine.db.shared.common.reference.SQLState;
@@ -57,13 +55,15 @@ public class MergeOperation extends NoRowsOperation
     private ExecRow             _row;
     private long                _rowCount;
 
-    private TemporaryRowHolderImpl[]    _thenRows;
+    private TemporaryRowHolderImpl[]    _thenRows; // todo: maybe put thenRows into MatchingClauseConstantAction
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
     // CONSTRUCTOR
     //
     ///////////////////////////////////////////////////////////////////////////////////
+
+    public MergeOperation() {} // needed for Externizable
 
     /**
      * Construct from a driving left join and an Activation.
@@ -105,9 +105,7 @@ public class MergeOperation extends NoRowsOperation
         }
 
         // now execute the INSERT/UPDATE/DELETE actions
-        int         clauseCount = _constants.matchingClauseCount();
-        for ( int i = 0; i < clauseCount; i++ )
-        {
+        for ( int i = 0; i < _constants.matchingClauseCount(); i++ ) {
             _constants.getMatchingClause( i ).executeConstantAction( activation, _thenRows[ i ] );
         }
 
@@ -120,10 +118,8 @@ public class MergeOperation extends NoRowsOperation
     {
         super.setup();
 
-        int         clauseCount = _constants.matchingClauseCount();
-        for ( int i = 0; i < clauseCount; i++ )
-        {
-            _constants.getMatchingClause( i ).init();
+        for (MatchingClauseConstantAction clause : _constants.getMatchingClauses()) {
+            clause.init();
         }
 
         _rowCount = 0L;
@@ -197,38 +193,27 @@ public class MergeOperation extends NoRowsOperation
                 }
             }
 
-            // find the first clause which applies to this row
-            MatchingClauseConstantAction    matchingClause = null;
-            int         clauseCount = _constants.matchingClauseCount();
-            int         clauseIdx = 0;
-            for ( ; clauseIdx < clauseCount; clauseIdx++ )
+            // find the first (!) clause which applies to this row
+            MatchingClauseConstantAction matchingClause = null;
+            int clauseIdx = 0;
+
+            for ( ; clauseIdx < _constants.matchingClauseCount(); clauseIdx++ )
             {
-                MatchingClauseConstantAction    candidate = _constants.getMatchingClause( clauseIdx );
-                boolean isWhenMatchedClause = false;
+                MatchingClauseConstantAction candidate = _constants.getMatchingClause( clauseIdx );
+                // if we have a match, consider a clause if it is WHEN MATCHED THEN xxx
+                // else (we have a non-match), consider a clause if it's not a WHEN MATCHED (e.g. WHEN NOT MATCHED THEN INSERT)
+                if(matched != candidate.isWhenMatchedClause())
+                    continue;
 
-                switch ( candidate.clauseType() )
+                if ( candidate.satisfiesMatchingRefinement( activation ) )
                 {
-                    case MatchingClauseNode.WHEN_MATCHED_THEN_UPDATE:
-                    case MatchingClauseNode.WHEN_MATCHED_THEN_DELETE:
-                        isWhenMatchedClause = true;
-                        break;
-                }
-
-                boolean considerClause = (matched == isWhenMatchedClause);
-
-                if ( considerClause )
-                {
-                    if ( candidate.evaluateRefinementClause( activation ) )
-                    {
-                        matchingClause = candidate;
-                        break;
-                    }
+                    matchingClause = candidate;
+                    break;
                 }
             }
 
             if ( matchingClause != null )
             {
-
                 _thenRows[ clauseIdx ] = matchingClause.bufferThenRow( activation, _thenRows[ clauseIdx ], _row );
                 _rowCount++;
             }

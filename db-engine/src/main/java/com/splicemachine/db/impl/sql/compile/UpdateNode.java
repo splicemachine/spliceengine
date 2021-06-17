@@ -207,7 +207,6 @@ public final class UpdateNode extends DMLModStatementNode
         ValueNode         rowLocationNode;
         TableName         cursorTargetTableName = null;
         CurrentOfNode     currentOfNode = null;
-        FromList          resultFromList;
         ResultColumnList  afterColumns = null;
 
         DataDictionary dataDictionary = getDataDictionary();
@@ -425,9 +424,10 @@ public final class UpdateNode extends DMLModStatementNode
         ** Get the result FromTable, which should be the only table in the
          ** from list.
         */
+
         // Splice fork - don't enforce this if special subquery syntax
         if (!isUpdateWithSubquery && !inMatchingClause()) {
-            resultFromList = resultSet.getFromList();
+            FromList resultFromList = resultSet.getFromList();
             if (SanityManager.DEBUG) {
                 SanityManager.ASSERT(resultFromList.size() == 1,
                         "More than one table in result from list in an update.");

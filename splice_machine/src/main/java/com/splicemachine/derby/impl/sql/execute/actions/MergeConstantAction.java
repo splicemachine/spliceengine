@@ -21,7 +21,6 @@ import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
-import com.splicemachine.derby.impl.sql.execute.actions.MatchingClauseConstantAction;
 
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
@@ -93,6 +92,8 @@ public class MergeConstantAction implements ConstantAction, Formatable
     /** Get the ith (0-based) matching clause */
     public  MatchingClauseConstantAction  getMatchingClause( int idx )  { return _matchingClauses[ idx ]; }
 
+    public MatchingClauseConstantAction[] getMatchingClauses() { return _matchingClauses; }
+
     ///////////////////////////////////////////////////////////////////////////////////
     //
     // ConstantAction BEHAVIOR
@@ -121,7 +122,8 @@ public class MergeConstantAction implements ConstantAction, Formatable
             throws IOException, ClassNotFoundException
     {
         // as the persistent form evolves, switch on this value
-        int oldVersion = in.readInt();
+        //int oldVersion =
+                in.readInt();
 
         _matchingClauses = new MatchingClauseConstantAction[ in.readInt() ];
         for ( int i = 0; i < _matchingClauses.length; i++ )
