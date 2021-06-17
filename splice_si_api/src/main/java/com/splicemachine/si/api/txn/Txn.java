@@ -15,8 +15,6 @@
 package com.splicemachine.si.api.txn;
 
 import com.carrotsearch.hppc.LongHashSet;
-import com.splicemachine.db.iapi.sql.dictionary.DisplayedTriggerInfo;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.ByteSlice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -67,16 +65,6 @@ public interface Txn extends TxnView{
         @Override
         public long getTxnId(){
             return -1l;
-        }
-
-        @Override
-        public void setCurrentQueryId(java.util.UUID id) {
-
-        }
-
-        @Override
-        public UUID getCurrentQueryId() {
-            return null;
         }
 
         @Override
@@ -222,22 +210,6 @@ public interface Txn extends TxnView{
         @Override
         public TaskId getTaskId() {
             return null;
-        }
-
-        @Override
-        public void recordQueryInfoForTriggerInfo(TriggerDescriptor[] tds) {}
-
-        @Override
-        public void addTriggerInfoFromChild(HashMap<com.splicemachine.db.catalog.UUID, DisplayedTriggerInfo> triggerInfoMap) {}
-
-        @Override
-        public ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo() {
-            return null;
-        }
-
-        @Override
-        public void initTriggerInfo(TriggerDescriptor[] tds) {
-
         }
     };
 

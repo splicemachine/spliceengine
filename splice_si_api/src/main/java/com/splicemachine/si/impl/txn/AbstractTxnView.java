@@ -14,8 +14,6 @@
 
 package com.splicemachine.si.impl.txn;
 
-import com.splicemachine.db.iapi.sql.dictionary.DisplayedTriggerInfo;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.si.api.txn.ConflictType;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
@@ -107,36 +105,6 @@ public abstract class AbstractTxnView implements TxnView {
     @Override
     public boolean allowsWrites() {
         return false;
-    }
-
-    @Override
-    public void setCurrentQueryId(java.util.UUID id) {
-
-    }
-
-    @Override
-    public UUID getCurrentQueryId() {
-        return null;
-    }
-
-    @Override
-    public void recordQueryInfoForTriggerInfo(TriggerDescriptor[] tds) {
-
-    }
-
-    @Override
-    public void addTriggerInfoFromChild(HashMap<com.splicemachine.db.catalog.UUID, DisplayedTriggerInfo> triggerInfoMap) {
-
-    }
-
-    @Override
-    public ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo() {
-        return null;
-    }
-
-    @Override
-    public void initTriggerInfo(TriggerDescriptor[] tds) {
-
     }
 
     @Override

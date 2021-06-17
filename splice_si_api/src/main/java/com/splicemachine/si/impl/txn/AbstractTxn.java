@@ -15,8 +15,6 @@
 package com.splicemachine.si.impl.txn;
 
 import com.carrotsearch.hppc.LongHashSet;
-import com.splicemachine.db.iapi.sql.dictionary.DisplayedTriggerInfo;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
@@ -25,10 +23,7 @@ import com.splicemachine.si.constants.SIConstants;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -43,8 +38,6 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
     protected Set<Txn> children = ConcurrentHashMap.newKeySet();
     protected Txn parentReference;
     private boolean subtransactionsAllowed = true;
-    private java.util.UUID currentQueryId;
-    private HashMap<com.splicemachine.db.catalog.UUID, DisplayedTriggerInfo> triggerIdToTriggerInfoMap = new HashMap<>();
 
     protected AbstractTxn(){
     }
@@ -63,62 +56,6 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
             counter = new AtomicLong(0);
         }
     }
-
-    @Override
-    public void setCurrentQueryId(UUID id) {
-        currentQueryId = id;
-    }
-
-    @Override
-    public java.util.UUID getCurrentQueryId() {
-        return currentQueryId;
-    }
-
-    public AbstractTxn getParentForTrigger() {
-        AbstractTxn parent;
-        if (parentReference == null || parentReference.getCurrentQueryId() == null) {
-            try {
-                parent = (AbstractTxn) getParentTxnView();
-                if (parent.getCurrentQueryId() == null) {
-                    return null; // maybe should throw an error here
-                }
-            } catch (Exception ignore) {
-                return null;
-            }
-        } else {
-            parent = (AbstractTxn) parentReference;
-        }
-        return parent;
-    }
-    @Override
-    public void recordQueryInfoForTriggerInfo(TriggerDescriptor[] tds) {
-        AbstractTxn parent = getParentForTrigger();
-        if (parent == null)
-            return;
-
-        for (TriggerDescriptor td : tds) {
-            parent.triggerIdToTriggerInfoMap.get(td.getUUID()).setTxnId(txnId);
-            parent.triggerIdToTriggerInfoMap.get(td.getUUID()).setQueryId(currentQueryId);
-        }
-    }
-
-    @Override
-    public ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo() {
-        return new ArrayList<>(triggerIdToTriggerInfoMap.values());
-    }
-
-    @Override
-    public void addTriggerInfoFromChild(HashMap<com.splicemachine.db.catalog.UUID, DisplayedTriggerInfo> triggerInfoMap) {
-        this.triggerIdToTriggerInfoMap.putAll(triggerInfoMap);
-    }
-
-    @Override
-    public void initTriggerInfo(TriggerDescriptor[] tds) {
-        for (TriggerDescriptor td : tds) {
-            triggerIdToTriggerInfoMap.put(td.getUUID(), new DisplayedTriggerInfo(td.getUUID(), td.getName(), -1, null, currentQueryId));
-        }
-    }
-
 
     @Override
     public void readExternal(ObjectInput input) throws IOException, ClassNotFoundException{
@@ -234,13 +171,5 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
     @Override
     public TaskId getTaskId() {
         return null;
-    }
-
-    @Override
-    public void commit() throws IOException{
-        AbstractTxn parent = getParentForTrigger();
-        if (parent != null) {
-            parent.addTriggerInfoFromChild(triggerIdToTriggerInfoMap);
-        }
     }
 }

@@ -14,8 +14,6 @@
 
 package com.splicemachine.si.impl.txn;
 
-import com.splicemachine.db.iapi.sql.dictionary.DisplayedTriggerInfo;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.ConflictType;
 import com.splicemachine.si.api.txn.TaskId;
@@ -29,10 +27,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.UUID;
 
 /**
  * @author Scott Fines
@@ -124,43 +119,13 @@ public class LazyTxnView implements TxnView {
     @Override
     public Txn.IsolationLevel getIsolationLevel() {
         if(isolationLevel!=null) return isolationLevel;
-        lookup(false); //isolation levl never changes
+        lookup(false); //isolation level never changes
         return delegate.getIsolationLevel();
     }
 
     @Override
     public long getTxnId() {
         return txnId;
-    }
-
-    @Override
-    public void setCurrentQueryId(UUID id) {
-
-    }
-
-    @Override
-    public UUID getCurrentQueryId() {
-        return null;
-    }
-
-    @Override
-    public void recordQueryInfoForTriggerInfo(TriggerDescriptor[] tds) {
-
-    }
-
-    @Override
-    public void addTriggerInfoFromChild(HashMap<com.splicemachine.db.catalog.UUID, DisplayedTriggerInfo> triggerInfoMap) {
-
-    }
-
-    @Override
-    public ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo() {
-        return null;
-    }
-
-    @Override
-    public void initTriggerInfo(TriggerDescriptor[] tds) {
-
     }
 
     @Override

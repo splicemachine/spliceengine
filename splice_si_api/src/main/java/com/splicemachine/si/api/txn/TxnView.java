@@ -14,15 +14,10 @@
 
 package com.splicemachine.si.api.txn;
 
-import com.splicemachine.db.iapi.sql.dictionary.DisplayedTriggerInfo;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.utils.ByteSlice;
 
 import java.io.Externalizable;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.UUID;
 
 /**
  * Represents an unmodifiable view of a transaction.
@@ -48,14 +43,6 @@ public interface TxnView extends Externalizable {
      * @return the unique transaction id for this transaction.
      */
     long getTxnId();
-
-
-    void setCurrentQueryId(java.util.UUID id);
-    UUID getCurrentQueryId();
-    void recordQueryInfoForTriggerInfo(TriggerDescriptor[] tds);
-    void addTriggerInfoFromChild(HashMap<com.splicemachine.db.catalog.UUID, DisplayedTriggerInfo> triggerInfoMap);
-    ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo();
-    void initTriggerInfo(TriggerDescriptor[] tds);
 
     boolean allowsSubtransactions();
 

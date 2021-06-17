@@ -486,7 +486,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             String sql = activation.getPreparedStatement().getSource();
             if (!(this instanceof ExplainOperation || activation.isMaterialized()))
                 activation.materialize();
-            getCurrentTransaction().setCurrentQueryId(uuid);
             long txnId=getCurrentTransaction().getTxnId();
 
             // initialize displayed trigger info
