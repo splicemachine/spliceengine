@@ -118,9 +118,10 @@ public interface LanguageConnectionContext extends Context {
     char LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_CHAR = '_';
     int LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_NUM_CHAR = 20;
 
-    void setDisplayedTriggerInfo(ArrayList<DisplayedTriggerInfo> triggerInfos);
+    void initTriggerInfo(TriggerDescriptor[] tds, java.util.UUID currentQueryId, long txnId);
     ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo();
     void recordAdditionalDisplayedTriggerInfo(long elapsedTime, long modifiedRows, java.util.UUID queryId);
+    void recordTriggerInfoWhileFiring(UUID triggerId);
 
     /**
      * Initialize. For use after pushing the contexts that initialization needs.

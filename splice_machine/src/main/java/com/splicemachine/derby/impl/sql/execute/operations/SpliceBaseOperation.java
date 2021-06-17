@@ -491,7 +491,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
             // initialize displayed trigger info
             if (getTriggerHandler() != null) {
-                getCurrentTransaction().initTriggerInfo(getTriggerHandler().triggerInfo.getTriggerDescriptors());
+                activation.getLanguageConnectionContext().initTriggerInfo(getTriggerHandler().triggerInfo.getTriggerDescriptors(), uuid, txnId);
+            } else {
+                activation.getLanguageConnectionContext().initTriggerInfo(null, uuid, txnId);
             }
 
             sql=sql==null?this.toString():sql;
@@ -503,7 +505,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
                 dsp.setJobGroup(jobName, sql);
             }
             this.execRowIterator =getDataSet(dsp).toLocalIterator();
-            activation.getLanguageConnectionContext().setDisplayedTriggerInfo(getCurrentTransaction().getDisplayedTriggerInfo());
         } catch (ResubmitDistributedException e) {
             resubmitDistributed(e);
         }catch(Exception e){ // This catches all the iterator errors for things that are not lazy

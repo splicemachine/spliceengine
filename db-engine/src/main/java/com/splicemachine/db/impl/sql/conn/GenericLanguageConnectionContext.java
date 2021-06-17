@@ -556,28 +556,60 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      */
     private String sessionUser = null;
     private ArrayList<DisplayedTriggerInfo> triggerInfos = new ArrayList<>();
+    private HashMap<com.splicemachine.db.catalog.UUID, DisplayedTriggerInfo> triggerIdToTriggerInfoMap = new HashMap<>();
+    private HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap = new HashMap<>();
+    private Stack<Pair<java.util.UUID, Long>> queryTxnIdStack = new Stack<>();
+
     // Map with key of queryId and value Pair<Timespent, nRowsModified>
-    private HashMap<java.util.UUID, Pair<Long, Long>> queryTimeMap = new HashMap<>();
+//    private HashMap<java.util.UUID, Pair<Long, Long>> queryTimeMap = new HashMap<>();
 
     @Override
-    public void setDisplayedTriggerInfo(ArrayList<DisplayedTriggerInfo> triggerInfos) {
-        this.triggerInfos = triggerInfos;
-        for (DisplayedTriggerInfo dti : this.triggerInfos) {
-            Pair<Long, Long> additionalInfo = this.queryTimeMap.get(dti.getQueryId());
-            dti.setElapsedTime(additionalInfo.getFirst());
-            dti.setModifiedRowCount(additionalInfo.getSecond());
+    public void initTriggerInfo(TriggerDescriptor[] tds, java.util.UUID currentQueryId, long txnId) {
+        if (queryTxnIdStack.empty()) {
+            triggerIdToTriggerInfoMap = new HashMap<>();
+//            queryTimeMap = new HashMap<>();
+            queryIdToTriggerInfoMap = new HashMap<>();
+        }
+
+        queryTxnIdStack.push(new Pair<>(currentQueryId, txnId));
+
+        if (tds != null) {
+            for (TriggerDescriptor td : tds) {
+                triggerIdToTriggerInfoMap.put(td.getUUID(), new DisplayedTriggerInfo(td.getUUID(), td.getName(), -1, null, currentQueryId));
+            }
         }
     }
 
     @Override
     public ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo() {
-        queryTimeMap = new HashMap<>();
+//        queryTimeMap = new HashMap<>();
         return triggerInfos;
     }
 
     @Override
+    public void recordTriggerInfoWhileFiring(UUID triggerId) {
+        Pair<java.util.UUID, Long> pair = queryTxnIdStack.peek();
+        DisplayedTriggerInfo info = triggerIdToTriggerInfoMap.get(triggerId);
+        info.setQueryId(pair.getFirst());
+        info.setTxnId(pair.getSecond());
+
+        queryIdToTriggerInfoMap.put(pair.getFirst(), info);
+    }
+
+
+    @Override
     public void recordAdditionalDisplayedTriggerInfo(long elapsedTime, long modifiedRows, java.util.UUID queryId) {
-        queryTimeMap.put(queryId, Pair.newPair(elapsedTime, modifiedRows));
+        assert queryTxnIdStack.peek().getFirst() == queryId;
+        queryTxnIdStack.pop();
+        if (queryIdToTriggerInfoMap.containsKey(queryId)) {
+            queryIdToTriggerInfoMap.get(queryId).setElapsedTime(elapsedTime);
+            queryIdToTriggerInfoMap.get(queryId).setModifiedRowCount(modifiedRows);
+        }
+
+        if (queryTxnIdStack.empty()) {
+            triggerInfos = new ArrayList<>(queryIdToTriggerInfoMap.values());
+        }
+//        queryTimeMap.put(queryId, Pair.newPair(elapsedTime, modifiedRows));
     }
     @Override
     public void initialize() throws StandardException {

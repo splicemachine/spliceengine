@@ -337,7 +337,6 @@ public class TriggerHandler {
                 }
             }
             triggerActivator.notifyRowEvent(beforeEvent, triggeringResultSet, null, hasStatementTriggerWithReferencingClause);
-            txn.recordQueryInfoForTriggerInfo(triggerActivator.getTriggerDescriptorsByEvent(beforeEvent, true, false));
         }
     }
 
@@ -421,7 +420,6 @@ public class TriggerHandler {
         if (row != null && hasAfterRow) {
             SingleRowCursorResultSet triggeringResultSet = new SingleRowCursorResultSet(resultDescription, row);
             triggerActivator.notifyRowEvent(afterEvent, triggeringResultSet, null, hasStatementTriggerWithReferencingClause);
-            txn.recordQueryInfoForTriggerInfo(triggerActivator.getTriggerDescriptorsByEvent(afterEvent, true, false));
         }
     }
 
@@ -439,7 +437,6 @@ public class TriggerHandler {
         if (hasBeforeStatement) {
             CursorResultSet triggeringResultSet = triggerRowHolder == null ? null : triggerRowHolder.getResultSet();
             triggerActivator.notifyStatementEvent(beforeEvent, triggeringResultSet, hasStatementTriggerWithReferencingClause);
-            txn.recordQueryInfoForTriggerInfo(triggerActivator.getTriggerDescriptorsByEvent(beforeEvent, false, false));
         }
     }
 
@@ -447,7 +444,6 @@ public class TriggerHandler {
         if (hasAfterStatement) {
             CursorResultSet triggeringResultSet = triggerRowHolder == null ? null : triggerRowHolder.getResultSet();
             triggerActivator.notifyStatementEvent(afterEvent, triggeringResultSet, hasStatementTriggerWithReferencingClause);
-            txn.recordQueryInfoForTriggerInfo(triggerActivator.getTriggerDescriptorsByEvent(afterEvent, false, false));
         }
     }
 
