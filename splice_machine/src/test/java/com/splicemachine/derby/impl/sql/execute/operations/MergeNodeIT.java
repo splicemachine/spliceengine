@@ -148,7 +148,6 @@ public class MergeNodeIT
 
     // delete
 
-    //@Ignore // fails Nullpointer Except
     @Test
     public void testSimpleDelete() throws Exception {
         test(   "(1, 11, 111), (4, 44, 444)", // src
@@ -175,7 +174,6 @@ public class MergeNodeIT
                 " 1 |10 | 5 |");
     }
 
-    //@Ignore // fails Nullpointer Except
     @Test
     public void testSimpleUpdate2() throws Exception {
         test(   "(1, 11, 111), (4, 44, 444)", // src
@@ -188,6 +186,31 @@ public class MergeNodeIT
                 "------------\n" +
                 " 1 |11 | 3 |\n" +
                 " 2 |20 | 3 |");
+    }
+
+    @Test
+    public void testMultiClauseInsertDeleteUpdate() throws Exception {
+        test(   "(1, 11, 111), (2, 0, 0), (4, 44, 444), (5, 55, 555)", // src
+                "(1, 10, 3), (2, 20, 3), (-1, -1, -1)", // dest
+
+                "merge into T_dest using T_src on (T_dest.i = T_src.i) " +
+                        // will match (4,44,444) -> insert (4,44,5)
+                        "when not matched AND T_src.i = 4 then INSERT (i, j, k) VALUES (T_src.i, T_src.j, 5) " +
+                        // matches (5,55,555) -> insert (5, 55, 7)
+                        // would also match (4,44,444), but first clause is executed first (exclusively)
+                        "when not matched AND T_src.i > 2 then INSERT (i, j, k) VALUES (T_src.i, T_src.j, 7)" +
+                        // deletes (2, 20, 3) from dest
+                        "when matched AND T_src.i > 1 then DELETE " +
+                        // matches (1, 11, 111) <-> (1, 11, 111), so will update (1, 10 -> 11, 111).
+                        // also matches (2, ) but already DELETEd
+                        "when matched then UPDATE SET T_dest.j = T_src.j",
+
+                "I | J | K |\n" +
+                "------------\n" +
+                "-1 |-1 |-1 |\n" +
+                " 1 |11 | 3 |\n" +
+                " 4 |44 | 5 |\n" +
+                " 5 |55 | 7 |");
     }
 
 
