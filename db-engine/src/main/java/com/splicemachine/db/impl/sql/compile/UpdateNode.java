@@ -290,7 +290,7 @@ public final class UpdateNode extends DMLModStatementNode
         // the table descriptor should always be found.
         verifyTargetTable();
 
-        if (sel.getFromList().size() > 1) {
+        if (sel.getFromList().size() > 1 && matchingClause  == null) {
             // Select items of the subquery may be expressions. However, a FromSubquery
             // is not flattenable if it selects expressions. There are other restrictions
             // that prevent a FromSubquery from being flattened, but this one can be

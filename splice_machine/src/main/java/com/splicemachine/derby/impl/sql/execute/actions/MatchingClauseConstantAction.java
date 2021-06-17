@@ -11,12 +11,14 @@ import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.db.impl.sql.compile.MatchingClauseNode;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.db.impl.sql.execute.TemporaryRowHolderImpl;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.sql.execute.operations.RowOperation;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -134,6 +136,13 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
         if ( thenRows == null ) { return; }
 
         CursorResultSet sourceRS = thenRows.getResultSet();
+
+        sourceRS.open();
+        ExecRow row = sourceRS.getNextRow();
+
+        RowOperation ro = new RowOperation(activation, row, true, 0, 0, 0 );
+        ro.getActivation().setResultDescription( _thenColumnSignature ); // this is weird, but needed because result description was taken from HOJN
+
         GeneratedMethod actionGM = ((BaseActivation) activation).getMethod( _actionMethodName );
 
         //
@@ -150,7 +159,7 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
                 // an argument to the INSERT/UPDATE/DELETE action.
                 //
                 Field resultSetField = activation.getClass().getField( _resultSetFieldName );
-                resultSetField.set( activation, sourceRS );
+                resultSetField.set( activation, ro );
 
                 Activation  cursorActivation = sourceRS.getActivation();
 

@@ -274,12 +274,12 @@ public class MatchingClauseNode extends QueryTreeNode {
         SelectNode  selectNode = new SelectNode
                 (
                         _updateColumns,
-                        fullFromList,
+                        null, // aggregate vector
+                        fullFromList, // fromList
                         null,      // where clause
                         null,      // group by list
                         null,      // having clause
                         null,      // window list
-                        null,      // optimizer plan override
                         getContextManager()
                 );
         _dml = new UpdateNode( targetTable.getTableName(), selectNode, false, this, getContextManager() );
@@ -418,12 +418,12 @@ public class MatchingClauseNode extends QueryTreeNode {
         SelectNode  selectNode = new SelectNode
                 (
                         _insertValues,      // select list
-                        fullFromList,
-                        null,      // where clause
-                        null,      // group by list
+                        null,  // aggregateVector
+                        fullFromList,      // where clause
+                        null,      // where Clause
+                        null,      // groupByList
                         null,      // having clause
                         null,      // window list
-                        null,      // optimizer plan override
                         getContextManager()
                 );
         _dml = new InsertNode
