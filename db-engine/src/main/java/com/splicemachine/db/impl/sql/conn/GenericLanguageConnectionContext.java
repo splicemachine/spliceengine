@@ -566,14 +566,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap = new HashMap<>();
     private Stack<Pair<java.util.UUID, Long>> queryTxnIdStack = new Stack<>();
 
-    // Map with key of queryId and value Pair<Timespent, nRowsModified>
-//    private HashMap<java.util.UUID, Pair<Long, Long>> queryTimeMap = new HashMap<>();
-
     @Override
     public void initTriggerInfo(TriggerDescriptor[] tds, java.util.UUID currentQueryId, long txnId) {
         if (queryTxnIdStack.empty()) {
             triggerIdToTriggerInfoMap = new HashMap<>();
-//            queryTimeMap = new HashMap<>();
             queryIdToTriggerInfoMap = new HashMap<>();
         }
 
@@ -588,7 +584,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo() {
-//        queryTimeMap = new HashMap<>();
         return triggerInfos;
     }
 
@@ -596,10 +591,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void recordTriggerInfoWhileFiring(UUID triggerId) {
         Pair<java.util.UUID, Long> pair = queryTxnIdStack.peek();
         DisplayedTriggerInfo info = triggerIdToTriggerInfoMap.get(triggerId);
-        info.setQueryId(pair.getFirst());
-        info.setTxnId(pair.getSecond());
-
         queryIdToTriggerInfoMap.put(pair.getFirst(), info);
+
+        if (queryIdToTriggerInfoMap.containsKey(pair.getFirst())) {
+            queryIdToTriggerInfoMap.put(pair.getFirst(), new DisplayedTriggerInfo(triggerId, info.getName(), pair.getSecond(), pair.getFirst(), info.getParentQueryId()));
+        } else {
+            info.setQueryId(pair.getFirst());
+            info.setTxnId(pair.getSecond());
+            queryIdToTriggerInfoMap.put(pair.getFirst(), info);
+        }
+
     }
 
 
@@ -615,7 +616,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         if (queryTxnIdStack.empty()) {
             triggerInfos = new ArrayList<>(queryIdToTriggerInfoMap.values());
         }
-//        queryTimeMap.put(queryId, Pair.newPair(elapsedTime, modifiedRows));
     }
     @Override
     public void initialize() throws StandardException{
