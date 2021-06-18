@@ -22,7 +22,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.impl.sql.execute.TemporaryRowHolderImpl;
+import com.splicemachine.db.iapi.types.SQLRef;
 import com.splicemachine.derby.impl.sql.execute.actions.MatchingClauseConstantAction;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.impl.sql.execute.actions.MergeConstantAction;
@@ -55,8 +55,6 @@ public class MergeOperation extends NoRowsOperation
     private ExecRow             _row;
     private long                _rowCount;
 
-    private TemporaryRowHolderImpl[]    _thenRows; // todo: maybe put thenRows into MatchingClauseConstantAction
-
     ///////////////////////////////////////////////////////////////////////////////////
     //
     // CONSTRUCTOR
@@ -78,7 +76,6 @@ public class MergeOperation extends NoRowsOperation
         super( activation );
         _drivingLeftJoin = drivingLeftJoin;
         _constants = (MergeConstantAction) activation.getConstantAction();
-        _thenRows = new TemporaryRowHolderImpl[ _constants.matchingClauseCount() ];
     }
 
     ///////////////////////////////////////////////////////////////////////////////////
@@ -99,14 +96,13 @@ public class MergeOperation extends NoRowsOperation
         setup();
 
         boolean rowsFound = collectAffectedRows();
-        if ( !rowsFound )
-        {
+        if ( !rowsFound ) {
             activation.addWarning( StandardException.newWarning( SQLState.LANG_NO_ROW_FOUND ) );
         }
 
         // now execute the INSERT/UPDATE/DELETE actions
-        for ( int i = 0; i < _constants.matchingClauseCount(); i++ ) {
-            _constants.getMatchingClause( i ).executeConstantAction( activation, _thenRows[ i ] );
+        for (MatchingClauseConstantAction clause : _constants.getMatchingClauses()) {
+            clause.executeConstantAction(activation);
         }
 
         cleanUp();
@@ -135,17 +131,8 @@ public class MergeOperation extends NoRowsOperation
 
     public void cleanUp() throws StandardException
     {
-        int         clauseCount = _constants.matchingClauseCount();
-        for ( int i = 0; i < clauseCount; i++ )
-        {
-            TemporaryRowHolderImpl  thenRows = _thenRows[ i ];
-            if ( thenRows != null )
-            {
-                thenRows.close();
-                _thenRows[ i ] = null;
-            }
-
-            _constants.getMatchingClause( i ).cleanUp();
+        for (MatchingClauseConstantAction clause : _constants.getMatchingClauses()) {
+            clause.cleanUp();
         }
     }
 
@@ -162,10 +149,7 @@ public class MergeOperation extends NoRowsOperation
      */
     boolean  collectAffectedRows() throws StandardException
     {
-        DataValueDescriptor     rlColumn;
-        RowLocation             baseRowLocation;
         boolean rowsFound = false;
-
         while ( true )
         {
             // may need to objectify stream columns here.
@@ -173,54 +157,53 @@ public class MergeOperation extends NoRowsOperation
             _row =  _drivingLeftJoin.getNextRowCore();
             if ( _row == null ) { break; }
 
-            // By convention, the last column for the driving left join contains a data value
-            // containing the RowLocation of the target row.
-
             rowsFound = true;
 
-            rlColumn = _row.getColumn( _row.nColumns() );
-
-            // todo: not clear what this does
-            baseRowLocation = null;
-
-            boolean matched = false;
-            if ( rlColumn != null )
-            {
-                if ( !rlColumn.isNull() )
-                {
-                    matched = true;
-                    //baseRowLocation = (RowLocation)((SQLRef) rlColumn).getObject(); //.getObject(); // todo what is this
-                }
-            }
+            boolean matched = rowLocationColumnIsNotNull(_row);
 
             // find the first (!) clause which applies to this row
-            MatchingClauseConstantAction matchingClause = null;
-            int clauseIdx = 0;
-
-            for ( ; clauseIdx < _constants.matchingClauseCount(); clauseIdx++ )
-            {
-                MatchingClauseConstantAction candidate = _constants.getMatchingClause( clauseIdx );
+            for (MatchingClauseConstantAction clause : _constants.getMatchingClauses()) {
                 // if we have a match, consider a clause if it is WHEN MATCHED THEN xxx
                 // else (we have a non-match), consider a clause if it's not a WHEN MATCHED (e.g. WHEN NOT MATCHED THEN INSERT)
-                if(matched != candidate.isWhenMatchedClause())
+                if(matched != clause.isWhenMatchedClause())
                     continue;
 
-                if ( candidate.satisfiesMatchingRefinement( activation ) )
+                // check if matching refinement is satisfied
+                if ( clause.satisfiesMatchingRefinement( activation ) )
                 {
-                    matchingClause = candidate;
+                    // buffer the row for later execution
+                    clause.bufferThenRow( activation, _row );
+                    _rowCount++;
+                    // only execute first match/nonmatch
                     break;
                 }
-            }
-
-            if ( matchingClause != null )
-            {
-                _thenRows[ clauseIdx ] = matchingClause.bufferThenRow( activation, _thenRows[ clauseIdx ], _row );
-                _rowCount++;
             }
         }
 
         return rowsFound;
     }
+
+    /**
+     * By convention, the last column for the driving left join contains a data value
+     * containing the RowLocation of the target row.
+     * @return true if we have a valid row locaition
+     * @throws StandardException
+     */
+    static private boolean rowLocationColumnIsNotNull(ExecRow row) throws StandardException {
+        if( row.size() != row.nColumns() )
+            throw new RuntimeException("Error in MergeOperation: not enough columns for RowLocation");
+        DataValueDescriptor rlColumn = row.getColumn( row.nColumns() );
+        if(rlColumn == null)
+            return false;
+
+        // todo: not clear why this is sometimes RowLocation, and sometimes SQLRef (then with RowLocation as getObject()).
+        if( !(rlColumn instanceof RowLocation) && !(rlColumn instanceof SQLRef))
+            throw new RuntimeException("Error in MergeOperation: last column type is " + rlColumn.getClass().getName());
+
+        return !rlColumn.isNull();
+    }
+
+
     ////////////////////////////////////////////////////////////////////////////////////////////////
     // to implement methods new in splicemachine
 
