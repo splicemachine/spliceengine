@@ -77,10 +77,10 @@ public class MergeNodeIT
         methodWatcher.execute("drop table T_dest if exists");
     }
 
-    void test(String src, String dest, String sql, String res) throws Exception {
+    void test(String src, String dest, String sql, int expectedCount, String res) throws Exception {
         try {
             createTables(src, dest);
-            methodWatcher.execute(sql);
+            Assert.assertEquals(expectedCount, methodWatcher.executeUpdate(sql));
             methodWatcher.assertStrResult( res, "select * from T_dest", true);
         }
         finally {
@@ -95,6 +95,8 @@ public class MergeNodeIT
 
                  "merge into T_dest using T_src on (T_dest.i = T_src.i) " +
                          "when not matched then INSERT (i, j, k) VALUES (T_src.i, T_src.j, 5)",
+
+                 1, // 1 inserted row
 
                  "I | J | K |\n" +
                  "------------\n" +
@@ -112,6 +114,8 @@ public class MergeNodeIT
                 "merge into T_dest using T_src on (T_dest.i = T_src.i) " +
                         "when not matched then INSERT (i, j, k) VALUES (T_src.i, T_src.j, 5)",
 
+                2, // 2 inserted rows
+
                 "I | J | K |\n" +
                 "------------\n" +
                 " 1 |10 | 3 |\n" +
@@ -128,6 +132,8 @@ public class MergeNodeIT
                 "merge into T_dest using T_src on (T_dest.i = T_src.i) " +
                         "when not matched AND T_src.i > 4 then INSERT (i, j, k) VALUES (T_src.i, T_src.j, 5)",
 
+                1, // 1 inserted row
+
                 "I | J | K |\n" +
                 "------------\n" +
                 " 1 |10 | 3 |\n" +
@@ -143,6 +149,8 @@ public class MergeNodeIT
                 "merge into T_dest using T_src on (T_dest.i = T_src.i) " +
                         "when not matched AND T_src.i > 4 then INSERT (i, j, k) VALUES (T_src.i, T_src.j, 5) " +
                         "when not matched AND T_src.i < 5 then INSERT (i, j, k) VALUES (T_src.i, T_src.j, 7)",
+
+                2, // 2 inserted row
 
                 "I | J | K |\n" +
                 "------------\n" +
@@ -162,6 +170,8 @@ public class MergeNodeIT
                 "merge into T_dest using T_src on (T_dest.i = T_src.i) " +
                         "when matched then DELETE",
 
+                1, // 1 deleted row
+
                 "I | J | K |\n" +
                 "------------\n" +
                 " 2 |20 | 3 |");
@@ -175,6 +185,8 @@ public class MergeNodeIT
                 "merge into T_dest using T_src on (T_dest.i = T_src.i) " +
                         "when matched then UPDATE SET k = 5",
 
+                1, // 1 updated row
+
                 "I | J | K |\n" +
                 "------------\n" +
                 " 1 |10 | 5 |");
@@ -187,6 +199,8 @@ public class MergeNodeIT
 
                 "merge into T_dest using T_src on (T_dest.i = T_src.i) " +
                         "when matched then UPDATE SET T_dest.j = T_src.j",
+
+                1, // 1 updated row
 
                 "I | J | K |\n" +
                 "------------\n" +
@@ -210,6 +224,8 @@ public class MergeNodeIT
                         // matches (1, 11, 111) <-> (1, 11, 111), so will update (1, 10 -> 11, 111).
                         // also matches (2, ) but already DELETEd
                         "when matched then UPDATE SET T_dest.j = T_src.j",
+
+                4, // 1 deleted + 2 inserted, 1 updated
 
                 "I | J | K |\n" +
                 "------------\n" +
