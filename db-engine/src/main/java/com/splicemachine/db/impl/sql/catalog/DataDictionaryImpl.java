@@ -338,6 +338,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     SYSCONGLOMERATESRowFactory.SYSCONGLOMERATES_INDEX3_ID,
                     getBootParameter(startParams,CFG_SYSCONGLOMERATES_INDEX3_ID,true));
 
+            coreInfo[SYSCONGLOMERATES_CORE_NUM].setIndexConglomerate(
+                    SYSCONGLOMERATESRowFactory.SYSCONGLOMERATES_INDEX4_ID,
+                    getBootParameter(startParams, CFG_SYSCONGLOMERATES_INDEX4_ID, false));
+
 
             // SYSSCHEMAS
             coreInfo[SYSSCHEMAS_CORE_NUM].setHeapConglomerate(
@@ -5618,7 +5622,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ConglomerateDescriptor[] cda=new ConglomerateDescriptor[cdl.size()];
         cdl.toArray(cda);
         return cda;
-
     }
 
     /**
@@ -5661,26 +5664,20 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         DataValueDescriptor conglomNumberOrderable;
         TabInfoImpl ti=coreInfo[SYSCONGLOMERATES_CORE_NUM];
 
+        ConglomerateDescriptorList cdl = new ConglomerateDescriptorList();
         conglomNumberOrderable=new SQLLongint(conglomerateNumber);
-
-        ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(1);
-        scanQualifier[0][0].setQualifier(
-                SYSCONGLOMERATESRowFactory.SYSCONGLOMERATES_CONGLOMERATENUMBER-1,    /* column number */
-                conglomNumberOrderable,
-                Orderable.ORDER_OP_EQUALS,
-                false,
-                false,
+        ExecIndexRow keyRow = exFactory.getIndexableRow(1);
+        keyRow.setColumn(1, conglomNumberOrderable);
+        getDescriptorViaIndex(SYSCONGLOMERATESRowFactory.SYSCONGLOMERATES_INDEX4_ID,
+                keyRow,
+                null,
+                ti,
+                null,
+                cdl,
                 false);
 
-        ConglomerateDescriptorList cdl=new ConglomerateDescriptorList();
-        getDescriptorViaHeap(null,scanQualifier,ti,null,cdl);
 
-        int size=cdl.size();
-        ConglomerateDescriptor[] cda=new ConglomerateDescriptor[size];
-        for(int index=0;index<size;index++)
-            cda[index]=cdl.get(index);
-
-        return cda;
+        return cdl.stream().toArray(ConglomerateDescriptor[]::new);
     }
 
 
@@ -5927,7 +5924,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         DataValueDescriptor conglomIDOrderable;
         TabInfoImpl ti=coreInfo[SYSCONGLOMERATES_CORE_NUM];
         SYSCONGLOMERATESRowFactory rf=(SYSCONGLOMERATESRowFactory)ti.getCatalogRowFactory();
-        boolean[] bArray={false,false,false};
+        boolean[] bArray={false,false,false, true};
 
         for(ConglomerateDescriptor cd : cds){
             /* Use conglomIDOrderable in both start
@@ -6618,6 +6615,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 Long.toString(
                         coreInfo[SYSCONGLOMERATES_CORE_NUM].getIndexConglomerate(
                                 SYSCONGLOMERATESRowFactory.SYSCONGLOMERATES_INDEX3_ID)));
+        params.put(CFG_SYSCONGLOMERATES_INDEX4_ID,
+                Long.toString(
+                        coreInfo[SYSCONGLOMERATES_CORE_NUM].getIndexConglomerate(
+                                SYSCONGLOMERATESRowFactory.SYSCONGLOMERATES_INDEX4_ID)));
 
         params.put(CFG_SYSSCHEMAS_ID,Long.toString(coreInfo[SYSSCHEMAS_CORE_NUM].getHeapConglomerate()));
         params.put(CFG_SYSSCHEMAS_INDEX1_ID,
@@ -7963,6 +7964,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
 
         return retval;
+    }
+
+    public TabInfoImpl getTabInfoByNumber(int catalogNumber) throws StandardException {
+        if (catalogNumber < coreInfo.length) {
+            return coreInfo[catalogNumber];
+        } else {
+            return getNonCoreTIByNumber(catalogNumber);
+        }
     }
 
     protected void initSystemIndexVariables(TabInfoImpl ti) throws StandardException{

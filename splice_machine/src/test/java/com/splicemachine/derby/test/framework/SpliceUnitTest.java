@@ -1236,4 +1236,24 @@ public class SpliceUnitTest {
             return ((Boolean)rs.getObject(1));
         }
     }
+
+    protected void testExplainContains(String sqlText,
+                                       SpliceWatcher methodWatcher,
+                                       List<String> containedStrings,
+                                       List<String> notContainedStrings) throws Exception {
+        String explainQuery = "explain " + sqlText;
+        try (ResultSet rs = methodWatcher.executeQuery(explainQuery)){
+            String explainText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            if (containedStrings != null)
+                for (String containedString : containedStrings) {
+                    assertTrue(format("\n" + explainQuery + "\n\n" + "Expected to contain: %s\n", containedString),
+                            explainText.contains(containedString));
+                }
+            if (notContainedStrings != null)
+                for (String notContainedString : notContainedStrings) {
+                    assertTrue(format("\n" + explainQuery + "\n\n" + "Expected not to contain: %s\n", notContainedString),
+                            !explainText.contains(notContainedString));
+                }
+        }
+    }
 }
