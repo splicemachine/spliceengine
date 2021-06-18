@@ -654,7 +654,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         String query ="explain select * from t3";
         String[] expected = {
                 "Table statistics are missing or skipped for the following tables",
-                CLASS_NAME + ".T3"
+                "\"" + CLASS_NAME + "\".\"T3\""
         };
         rowContainsQuery(new int[]{4, 5}, query, spliceClassWatcher, expected);
 
@@ -671,7 +671,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
         String[] expected = {
                 "Table statistics are missing or skipped for the following tables",
-                CLASS_NAME + ".T5"
+                "\"" + CLASS_NAME + "\".\"T5\""
         };
         rowContainsQuery(new int[]{4, 5}, query, spliceClassWatcher, expected);
     }
@@ -684,7 +684,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
         String[] expected = {
                 "Column statistics are missing or skipped for the following columns",
-                CLASS_NAME + ".T5.E5"
+                "\"" + CLASS_NAME + "\".\"T5\".E5"
         };
 
         // only columns used for estimating selectivity/cost but missing statistics are reported
@@ -710,8 +710,8 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
         String[] expected = {
                 "Column statistics are missing or skipped for the following columns",
-                CLASS_NAME + ".T1.C2",
-                CLASS_NAME + ".T2.C1"
+                "\"" + CLASS_NAME + "\".\"T1\".C2",
+                "\"" + CLASS_NAME + "\".\"T2\".C1"
         };
 
         ResultSet rs  = methodWatcher.executeQuery(query);
