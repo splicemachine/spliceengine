@@ -11,7 +11,6 @@ import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.db.impl.sql.compile.MatchingClauseNode;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
@@ -68,6 +67,8 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
     private transient GeneratedMethod _matchRefinementMethod;
     private transient   GeneratedMethod _rowMakingMethod;
     private transient ResultSet _actionRS;
+
+    private TemporaryRowHolderImpl _thenRows;
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -129,17 +130,13 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-    public void	executeConstantAction( Activation activation )
-            throws StandardException
-    {}
-
-    public void executeConstantAction( Activation activation, TemporaryRowHolderImpl thenRows )
+    public void executeConstantAction( Activation activation )
             throws StandardException
     {
         // nothing to do if no rows qualified
-        if ( thenRows == null ) { return; }
+        if ( _thenRows == null ) { return; }
 
-        CursorResultSet sourceRS = thenRows.getResultSet();
+        CursorResultSet sourceRS = _thenRows.getResultSet();
         sourceRS.open();
         while(sourceRS.getNextRow() != null) {
             ExecRow row = sourceRS.getCurrentRow();
@@ -228,14 +225,13 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
      * of the MERGE statement's driving left join.
      * </p>
      */
-    public TemporaryRowHolderImpl  bufferThenRow
+    public void bufferThenRow
     (
             Activation activation,
-            TemporaryRowHolderImpl thenRows,
             ExecRow selectRow
     ) throws StandardException
     {
-        if ( thenRows == null ) { thenRows = createThenRows( activation ); }
+        if ( _thenRows == null ) { _thenRows = createThenRows( activation ); }
 
         ExecRow thenRow;
 
@@ -246,13 +242,11 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
                 break;
 
             default:
-                thenRow = bufferThenRow( activation, selectRow );
+                thenRow = bufferThenRowInternal( activation, selectRow );
                 break;
         }
 
-        thenRows.insert( thenRow );
-
-        return thenRows;
+        _thenRows.insert( thenRow );
     }
 
     /**
@@ -286,7 +280,7 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
      * action corresponding to this [ NOT ] MATCHED clause.
      * </p>
      */
-    ExecRow    bufferThenRow
+    ExecRow bufferThenRowInternal
     (
             Activation activation,
             ExecRow row)
@@ -315,6 +309,13 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
 
         _matchRefinementMethod = null;
         _rowMakingMethod = null;
+
+        if ( _thenRows != null )
+        {
+            _thenRows.close();
+            _thenRows = null;
+        }
+
     }
 
 
