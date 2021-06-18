@@ -42,37 +42,38 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value="MS_PKGPROTECT")
 public abstract class BaseDataDictionary implements DataDictionary, ModuleControl, ModuleSupportable,java.security.PrivilegedAction {
-    protected static final String        CFG_SYSTABLES_ID = "SystablesIdentifier";
-    protected static final String        CFG_SYSTABLES_INDEX1_ID = "SystablesIndex1Identifier";
-    protected static final String        CFG_SYSTABLES_INDEX2_ID = "SystablesIndex2Identifier";
-    protected static final String        CFG_SYSCOLUMNS_ID = "SyscolumnsIdentifier";
-    protected static final String        CFG_SYSCOLUMNS_INDEX1_ID = "SyscolumnsIndex1Identifier";
-    protected static final String        CFG_SYSCOLUMNS_INDEX2_ID = "SyscolumnsIndex2Identifier";
-    protected static final String        CFG_SYSCONGLOMERATES_ID = "SysconglomeratesIdentifier";
-    protected static final String        CFG_SYSCONGLOMERATES_INDEX1_ID = "SysconglomeratesIndex1Identifier";
-    protected static final String        CFG_SYSCONGLOMERATES_INDEX2_ID = "SysconglomeratesIndex2Identifier";
-    protected static final String        CFG_SYSCONGLOMERATES_INDEX3_ID = "SysconglomeratesIndex3Identifier";
-    protected static final String        CFG_SYSSCHEMAS_ID = "SysschemasIdentifier";
-    protected static final String        CFG_SYSSCHEMAS_INDEX1_ID = "SysschemasIndex1Identifier";
-    protected static final String        CFG_SYSSCHEMAS_INDEX2_ID = "SysschemasIndex2Identifier";
+    protected static final String       CFG_SYSTABLES_ID = "SystablesIdentifier";
+    protected static final String       CFG_SYSTABLES_INDEX1_ID = "SystablesIndex1Identifier";
+    protected static final String       CFG_SYSTABLES_INDEX2_ID = "SystablesIndex2Identifier";
+    protected static final String       CFG_SYSCOLUMNS_ID = "SyscolumnsIdentifier";
+    protected static final String       CFG_SYSCOLUMNS_INDEX1_ID = "SyscolumnsIndex1Identifier";
+    protected static final String       CFG_SYSCOLUMNS_INDEX2_ID = "SyscolumnsIndex2Identifier";
+    protected static final String       CFG_SYSCONGLOMERATES_ID = "SysconglomeratesIdentifier";
+    protected static final String       CFG_SYSCONGLOMERATES_INDEX1_ID = "SysconglomeratesIndex1Identifier";
+    protected static final String       CFG_SYSCONGLOMERATES_INDEX2_ID = "SysconglomeratesIndex2Identifier";
+    protected static final String       CFG_SYSCONGLOMERATES_INDEX3_ID = "SysconglomeratesIndex3Identifier";
+    protected static final String       CFG_SYSCONGLOMERATES_INDEX4_ID = "SysconglomeratesIndex4Identifier";
+    protected static final String       CFG_SYSSCHEMAS_ID = "SysschemasIdentifier";
+    protected static final String       CFG_SYSSCHEMAS_INDEX1_ID = "SysschemasIndex1Identifier";
+    protected static final String       CFG_SYSSCHEMAS_INDEX2_ID = "SysschemasIndex2Identifier";
     protected static final String        CFG_SYSDATABASES_ID = "SysdatabasesIdentifier";
     protected static final String        CFG_SYSDATABASES_INDEX1_ID = "SysdatabasesIndex1Identifier";
     protected static final String        CFG_SYSDATABASES_INDEX2_ID = "SysdatabasesIndex2Identifier";
     public static final String           CFG_ALLOW_MULTIDATABASE = "AllowMultidatabase";
-    protected static final int           SYSCONGLOMERATES_CORE_NUM = 0;
-    protected static final int           SYSTABLES_CORE_NUM = 1;
-    protected static final int           SYSCOLUMNS_CORE_NUM = 2;
-    protected static final int           SYSSCHEMAS_CORE_NUM = 3;
+    protected static final int          SYSCONGLOMERATES_CORE_NUM = 0;
+    protected static final int          SYSTABLES_CORE_NUM = 1;
+    protected static final int          SYSCOLUMNS_CORE_NUM = 2;
+    protected static final int          SYSSCHEMAS_CORE_NUM = 3;
     protected static final int           SYSDATABASES_CORE_NUM = 4;
     protected static final int           NUM_CORE = 5;
 
-	@SuppressFBWarnings(value = "MS_CANNOT_BE_FINAL", justification = "intentional")
-	public static boolean READ_NEW_FORMAT = true;
+    @SuppressFBWarnings(value = "MS_CANNOT_BE_FINAL", justification = "intentional")
+    public static boolean READ_NEW_FORMAT = true;
 
-	@SuppressFBWarnings(value = "MS_CANNOT_BE_FINAL", justification = "intentional")
-	public static boolean WRITE_NEW_FORMAT = true;
+    @SuppressFBWarnings(value = "MS_CANNOT_BE_FINAL", justification = "intentional")
+    public static boolean WRITE_NEW_FORMAT = true;
 
-	public static int SERDE_UPGRADE_SPRINT = 2003;
+    public static int SERDE_UPGRADE_SPRINT = 2003;
     /**
     * SYSFUN functions. Table of functions that automatically appear
     * in the SYSFUN schema. These functions are resolved to directly
@@ -178,8 +179,8 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
             "SYSTOKENS",
             "SYSDUMMY1",
             "SYSREPLICATION",
-			"", // invalid entry for the removed system table MON_GET_CONNECTION which is now a table-valued function.
-			"SYSNATURALNUMBERS"
+            "", // invalid entry for the removed system table MON_GET_CONNECTION which is now a table-valued function.
+            "SYSNATURALNUMBERS"
     };
 
     protected    static final int        NUM_NONCORE = nonCoreNames.length;
