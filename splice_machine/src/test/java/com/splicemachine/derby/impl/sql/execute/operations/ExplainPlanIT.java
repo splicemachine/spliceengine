@@ -825,6 +825,30 @@ public class ExplainPlanIT extends SpliceUnitTest  {
     }
 
     @Test
+    public void testReportMissingColumnStatisticsNoAliasNoDuplicates() throws Exception {
+        methodWatcher.execute("create table if not exists t11 (a int, b int, c int)");
+        methodWatcher.execute("create table if not exists t21 (a int, b int, c int)");
+        methodWatcher.execute("create table if not exists t31 (a int, b int, c int)");
+
+        String query = "explain select * from t11" +
+                "         inner join t21 as aliast2 on (aliast2.c = t11.b)\n" +
+                "where t11.b is null\n" +
+                "  and aliast2.c = 0";
+
+        // no ALIAST2 in missing stats report
+        String[] expected = {
+                "Table statistics are missing or skipped for the following tables",
+                "\"" + CLASS_NAME + "\".\"T11\"",
+                "\"" + CLASS_NAME + "\".\"T21\"",
+                "Column statistics are missing or skipped for the following columns",
+                CLASS_NAME + ".T21.C",
+                CLASS_NAME + ".T11.B"
+        };
+
+        rowContainsQuery(new int[]{6,7,7,8,9,9}, query, methodWatcher, expected);
+    }
+
+    @Test
     public void testPlanPrinterBugDB11341() throws Exception {
         try (ResultSet rs = methodWatcher.executeQuery("call syscs_util.syscs_get_logger_level('com.splicemachine.db.impl.ast.PlanPrinter')")) {
             rs.next();
