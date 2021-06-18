@@ -30,6 +30,7 @@
  */
 
 package com.splicemachine.db.iapi.services.io;
+import com.splicemachine.db.iapi.types.SQLDecimal;
 
 /**
         Registration of TypedFormat classes.
@@ -50,15 +51,14 @@ package com.splicemachine.db.iapi.services.io;
                  setFormatId() method with format id it is registered as.
         </UL>
 */
-
-public interface RegisteredFormatIds {
+public class RegisteredFormatIds {
 
 /* one byte  format identifiers never used
 String[] OneByte = {
 };
 */
 
-String[] TwoByte = {
+private static String[] TwoByte = {
         /* 0 */         null, // null marker
         /* 1 */         null, // String marker
         /* 2 */         null, // Serializable marker
@@ -548,4 +548,18 @@ String[] TwoByte = {
         /* 477 */       "com.splicemachine.derby.impl.sql.execute.actions.MergeConstantAction",
 
 };
+
+    public static int getLength() {
+        return TwoByte.length;
+    }
+
+    public static String get(int index) {
+        assert index >= 0;
+        assert index < TwoByte.length;
+        return TwoByte[index];
+    }
+
+    public static void initSqlDecimal() {
+        TwoByte[StoredFormatIds.SQL_DECIMAL_ID] = SQLDecimal.class.getName();
+    }
 }
