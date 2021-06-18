@@ -1569,6 +1569,9 @@ public class TernaryOperatorNode extends OperatorNode
             if(operatorType == TIMESTAMPADD) {
                 DataValueFactory dvf = getLanguageConnectionContext().getDataValueFactory();
                 DataValueDescriptor sourceValue = (getReceiver()).evaluateConstantExpressions().getKnownConstantValue();
+                if(sourceValue == null) {// e.g. in case of CURRENT_TIMESTAMP
+                    return super.evaluateConstantExpressions();
+                }
                 DateTimeDataValue destValue = dvf.getNullTimestamp(null);
                 if (!sourceValue.isNull()) {
                     DataValueDescriptor leftDvd = getLeftOperand().evaluateConstantExpressions().getKnownConstantValue();
