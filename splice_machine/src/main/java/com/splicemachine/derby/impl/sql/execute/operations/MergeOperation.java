@@ -248,4 +248,8 @@ public class MergeOperation extends NoRowsOperation
         return false;
     }
 
+    @Override
+    public long[] modifiedRowCount() {
+        return new long[] { _rowCount };
+    }
 }
