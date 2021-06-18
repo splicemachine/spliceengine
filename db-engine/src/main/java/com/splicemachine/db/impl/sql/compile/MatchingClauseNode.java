@@ -686,8 +686,6 @@ public class MatchingClauseNode extends QueryTreeNode {
             throws StandardException
     {
         int     bufferedCount = _thenColumns.size();
-        int     selectCount = selectList.size();
-
         _deleteColumnOffsets = new int[ bufferedCount ];
 
         for ( int bidx = 0; bidx < bufferedCount; bidx++ )
@@ -1266,8 +1264,7 @@ public class MatchingClauseNode extends QueryTreeNode {
         if ( isRowLocation( lastRC ) )
         {
             ResultColumn    lastLeftJoinRC = leftJoinResult.elementAt( leftJoinResult.size() - 1 );
-            ValueNode       value = lastLeftJoinRC.getExpression();
-            String              columnName = lastLeftJoinRC.exposedName;
+            String          columnName = lastLeftJoinRC.exposedName;
             ColumnReference rowLocationCR = new ColumnReference
                     ( columnName, hojn.getTableName(), getContextManager() );
 

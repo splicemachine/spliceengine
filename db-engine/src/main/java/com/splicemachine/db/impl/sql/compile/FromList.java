@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.*;
 
@@ -552,6 +553,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
      * @throws StandardException Thrown on error
      * @return ResultColumn    The matching ResultColumn
      */
+    @SuppressFBWarnings({"RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE"})
     public ValueNode bindColumnReference(ColumnReference columnReference) throws StandardException{
         boolean columnNameMatch=false;
         boolean tableNameMatch=false;

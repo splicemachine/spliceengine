@@ -119,6 +119,10 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
     /** Get the clause type: WHEN_NOT_MATCHED_THEN_INSERT, WHEN_MATCHED_THEN_UPDATE, WHEN_MATCHED_THEN_DELETE */
     public  int clauseType() { return _clauseType; }
 
+    public  boolean isWhenMatchedClause() {
+        return _clauseType == MatchingClauseNode.WHEN_MATCHED_THEN_UPDATE ||
+                _clauseType == MatchingClauseNode.WHEN_MATCHED_THEN_DELETE; }
+
     ///////////////////////////////////////////////////////////////////////////////////
     //
     // ConstantAction BEHAVIOR
@@ -201,7 +205,7 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
      * evaluates to true.
      * </p>
      */
-    public boolean evaluateRefinementClause(Activation activation)
+    public boolean satisfiesMatchingRefinement(Activation activation)
             throws StandardException
     {
         if ( _matchRefinementName == null ) { return true; }
@@ -344,7 +348,8 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
             throws IOException, ClassNotFoundException
     {
         // as the persistent form evolves, switch on this value
-        int oldVersion = in.readInt();
+        // int oldVersion =
+                in.readInt();
 
         _clauseType = in.readInt();
         _matchRefinementName = (String) in.readObject();
