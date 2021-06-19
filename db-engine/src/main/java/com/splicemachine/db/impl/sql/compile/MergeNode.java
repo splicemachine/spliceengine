@@ -380,14 +380,21 @@ public class MergeNode extends DMLStatementNode
         return selectList;
     }
 
+    boolean IsRowLocation(ValueNode node) {
+        String lastColName = node.getColumnName();
+        return (lastColName.equals(UpdateNode.COLUMNNAME) || lastColName.equals(DeleteNode.COLUMNNAME));
+    }
+
     /** Add the target table's row location to the left join's select list */
     private void    addTargetRowLocation( ResultColumnList selectList )
             throws StandardException
     {
         if(selectList.size() > 0) {
-            String lastColName = selectList.elementAt(selectList.size() - 1).getExpression().getColumnName();
-            if (lastColName.equals(UpdateNode.COLUMNNAME) || lastColName.equals(DeleteNode.COLUMNNAME))
+            if( IsRowLocation( selectList.elementAt(selectList.size() - 1).getExpression() ))
+            {
+                // last column is already RowLocation, no need to add one
                 return;
+            }
         }
         // tell the target table to generate a row location column
         _targetTable.setRowLocationColumnName( TARGET_ROW_LOCATION_NAME );
@@ -482,45 +489,40 @@ public class MergeNode extends DMLStatementNode
     {
         String[]    columnNames = getColumns( getExposedName( fromTable ), drivingColumnMap );
 
-        for ( int i = 0; i < columnNames.length; i++ )
+        for ( String columnName : columnNames )
         {
             ColumnReference cr = new ColumnReference
-                    ( columnNames[ i ], fromTable.getTableName(), getContextManager() );
-            ResultColumn    rc = new ResultColumn( (String) null, cr, getContextManager() );
+                    ( columnName, fromTable.getTableName(), getContextManager() );
+            ResultColumn rc = new ResultColumn( (String) null, cr, getContextManager() );
             selectList.addResultColumn( rc );
         }
     }
 
     /** Get the column names from the table with the given table number, in sorted order */
-    private String[]    getColumns( String exposedName, HashMap<String,ColumnReference> map )
+    private String[] getColumns( String exposedName, HashMap<String,ColumnReference> map )
     {
-        ArrayList<String>   list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> rlColumns = new ArrayList<String>();
 
-        ColumnReference rowLocationToUpdate = null;
-
+        // todo: we can have here update AND delete columns, do we need both?
         for ( ColumnReference cr : map.values() )
         {
             if ( !exposedName.equals( cr.getTableName() ) )
                 continue;
-            if(cr.getColumnName().equals(UpdateNode.COLUMNNAME))
-                rowLocationToUpdate = cr;
+            if( IsRowLocation(cr) )
+                rlColumns.add( cr.getColumnName() );
             else
                 list.add( cr.getColumnName() );
 
         }
-        if(rowLocationToUpdate != null)
-            list.add( rowLocationToUpdate.getColumnName() );
 
-        String[]    retval = new String[ list.size() ];
-        list.toArray( retval );
-        //Arrays.sort( retval );
-
-        return retval;
+        // make sure RowLocation are LAST column
+        list.addAll( rlColumns );
+        return list.toArray( new String[ list.size() ] );
     }
 
     /** Add the columns in the matchingRefinement clause to the evolving map */
-    void    getColumnsInExpression
-    ( HashMap<String,ColumnReference> map, ValueNode expression )
+    void getColumnsInExpression( HashMap<String,ColumnReference> map, ValueNode expression )
             throws StandardException
     {
         if ( expression == null ) { return; }
@@ -534,8 +536,7 @@ public class MergeNode extends DMLStatementNode
     }
 
     /** Add a list of columns to the the evolving map */
-    private void    getColumnsFromList
-    ( HashMap<String,ColumnReference> map, ResultColumnList rcl )
+    private void getColumnsFromList( HashMap<String,ColumnReference> map, ResultColumnList rcl )
             throws StandardException
     {
         CollectNodesVisitor getCRs = new CollectNodesVisitor( ColumnReference.class );
@@ -547,8 +548,7 @@ public class MergeNode extends DMLStatementNode
     }
 
     /** Add a list of columns to the the evolving map */
-    private void    getColumnsFromList
-    ( HashMap<String,ColumnReference> map, List<ColumnReference> colRefs )
+    private void getColumnsFromList( HashMap<String,ColumnReference> map, List<ColumnReference> colRefs )
             throws StandardException
     {
         for ( ColumnReference cr : colRefs )
@@ -558,21 +558,17 @@ public class MergeNode extends DMLStatementNode
     }
 
     /** Add a column to the evolving map of referenced columns */
-    void    addColumn
-    (
-            HashMap<String,ColumnReference> map,
-            ColumnReference    cr
-    )
+    void addColumn(HashMap<String,ColumnReference> map, ColumnReference cr)
             throws StandardException
     {
         if ( cr.getTableName() == null )
         {
-            ValueNode    rc = _leftJoinFromList.bindColumnReference( cr );
-            TableName       tableName = new TableName( null, rc.getTableName(), getContextManager() );
+            ValueNode rc = _leftJoinFromList.bindColumnReference( cr );
+            TableName tableName = new TableName( null, rc.getTableName(), getContextManager() );
             cr = new ColumnReference( cr.getColumnName(), tableName, getContextManager() );
         }
 
-        String  key = makeDCMKey( cr.getTableName(), cr.getColumnName() );
+        String key = makeDCMKey( cr.getTableName(), cr.getColumnName() );
         if ( map.get( key ) == null )
         {
             map.put( key, cr );
@@ -580,7 +576,7 @@ public class MergeNode extends DMLStatementNode
     }
 
     /** Make a HashMap key for a column in the driving column map of the LEFT JOIN */
-    private String  makeDCMKey( String tableName, String columnName )
+    private String makeDCMKey( String tableName, String columnName )
     {
         return IdUtil.mkQualifiedName( tableName, columnName );
     }
@@ -595,12 +591,9 @@ public class MergeNode extends DMLStatementNode
         try {
             cc.setReliability( previousReliability | CompilerContext.SQL_IN_ROUTINES_ILLEGAL );
 
-            value.bindExpression
-                    (
-                            fromList,
-                            new SubqueryList( getContextManager() ),
-                            new ArrayList<AggregateNode>()
-                    );
+            value.bindExpression(fromList,
+                    new SubqueryList( getContextManager() ),
+                    new ArrayList<AggregateNode>() );
         }
         finally
         {
