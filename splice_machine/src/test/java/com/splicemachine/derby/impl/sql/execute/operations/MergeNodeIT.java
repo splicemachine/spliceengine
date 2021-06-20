@@ -77,13 +77,23 @@ public class MergeNodeIT
         methodWatcher.execute("drop table T_dest if exists");
     }
 
-    void test(String src, String dest, String sql, int expectedCount, String res) throws Exception {
+    void test(String src, String dest, String sql,
+              int expectedCount, String res) throws Exception {
+        test(src, dest, null, null, sql, expectedCount, res);
+
+    }
+    void test(String src, String dest, String sqlBefore, String sqlAfter, String sql,
+               int expectedCount, String res) throws Exception {
         try {
             createTables(src, dest);
+            if(sqlBefore != null)
+                methodWatcher.execute(sqlBefore);
             Assert.assertEquals(expectedCount, methodWatcher.executeUpdate(sql));
             methodWatcher.assertStrResult( res, "select * from T_dest", true);
         }
         finally {
+            if(sqlAfter != null)
+                methodWatcher.execute(sqlAfter);
             dropTables();
         }
     }
@@ -105,7 +115,6 @@ public class MergeNodeIT
                  " 4 |44 | 5 |");
     }
 
-    //@Ignore // fails
     @Test
     public void testSimpleInsertTwoRows() throws Exception {
         test(   "(1, 11, 111), (4, 44, 444), (5, 55, 555)", // src
@@ -122,6 +131,33 @@ public class MergeNodeIT
                 " 2 |20 | 3 |\n" +
                 " 4 |44 | 5 |\n" +
                 " 5 |55 | 5 |");
+    }
+
+    @Test
+    public void testInsertWithTrigger() throws Exception {
+        test(   "(1, 11, 111), (4, 44, 444), (5, 55, 555)", // src
+                "(1, 10, 3), (2, 20, 3)", // dest
+
+                "CREATE TRIGGER mytrig\n" +
+                "   BEFORE INSERT\n" +
+                "   ON T_dest\n" +
+                "   REFERENCING NEW AS N\n" +
+                "   FOR EACH ROW\n" +
+                "BEGIN ATOMIC\n" +
+                "SET N.j = 222;\n" +
+                "END\n",
+                "DROP TRIGGER mytrig",
+
+                "merge into T_dest using T_src on (T_dest.i = T_src.i) " +
+                        "when not matched then INSERT (i, j, k) VALUES (T_src.i, T_src.j, 5)",
+                2,
+
+                "I | J  | K |\n" +
+                "-------------\n" +
+                " 1 |10  | 3 |\n" +
+                " 2 |20  | 3 |\n" +
+                " 4 |222 | 5 |\n" +
+                " 5 |222 | 5 |");
     }
 
     @Test
@@ -190,6 +226,40 @@ public class MergeNodeIT
                 "I | J | K |\n" +
                 "------------\n" +
                 " 1 |10 | 5 |");
+    }
+
+    @Test
+    public void testUpdateWithTrigger() throws Exception {
+        createTables(
+                "(1, 11, 111)", // src
+                "(1, 10, 3)" // dest
+        );
+        methodWatcher.execute("CREATE TABLE AUDIT_TABLE (T TIMESTAMP, MSG VARCHAR(255))");
+        methodWatcher.execute("CREATE TRIGGER mytrig\n" +
+                        "   AFTER UPDATE\n" +
+                        "   ON T_Dest\n" +
+                        "   FOR EACH STATEMENT\n" +
+                        "       INSERT INTO AUDIT_TABLE VALUES (CURRENT_TIMESTAMP, 'TARGET_TABLE was updated')" );
+
+        Assert.assertEquals(1, methodWatcher.executeUpdate(
+                "merge into T_dest using T_src on (T_dest.i = T_src.i) " +
+                "when matched then UPDATE SET k = 5"));
+
+        methodWatcher.assertStrResult(
+                "I | J | K |\n" +
+                "------------\n" +
+                " 1 |10 | 5 |",
+                "select * from T_dest", true);
+        methodWatcher.assertStrResult(
+                "MSG           |\n" +
+                "--------------------------\n" +
+                "TARGET_TABLE was updated |",
+                "select MSG from AUDIT_TABLE", true);
+
+        methodWatcher.execute("DROP TRIGGER mytrig");
+        methodWatcher.execute("DROP TABLE AUDIT_TABLE");
+        dropTables();
+
     }
 
     @Test
