@@ -26,11 +26,10 @@ public class SpliceCatalogUpgradeScriptsTest {
             "VERSION4.1992: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForTablePriorities\n" +
             "VERSION4.2003: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeStoredObjects\n";
 
-    // Those must run before other upgrade scripts
-    // see DB-11296, UpgradeConglomerateTable; see DB-10193, UpgradeScriptToAddMultiDatabase
-    String s3 = "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeConglomerateTable\n" +
-                "VERSION4.2020: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddMultiDatabaseSupport\n";
-
+    // see DB-12144 / DB-11296 / DB-10193 Those scripts must run before other upgrade scripts
+    String s3 = "VERSION4.2020: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeAddConglomerateNumberIndex\n" +
+            "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeConglomerateTable\n" +
+            "VERSION4.2020: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddMultiDatabaseSupport\n";
     // add more scripts here
 
     private String replaceVersions(String s) {

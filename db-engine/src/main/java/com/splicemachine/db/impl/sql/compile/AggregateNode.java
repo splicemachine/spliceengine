@@ -163,11 +163,7 @@ public class AggregateNode extends UnaryOperatorNode {
             String generatedColName;
             CompilerContext cc = getCompilerContext();
             generatedColName = "SQLCol" + cc.getNextColumnNumber();
-            generatedRC = (ResultColumn) getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    generatedColName,
-                    this,
-                    getContextManager());
+            generatedRC = new ResultColumn(generatedColName, this, getContextManager());
             generatedRC.markGenerated();
 
             /*
@@ -583,11 +579,7 @@ public class AggregateNode extends UnaryOperatorNode {
          ** Create a result column with this new node below
          ** it.
          */
-        return (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                aggregateName,
-                nullNode,
-                getContextManager());
+        return new ResultColumn(aggregateName, nullNode, getContextManager());
     }
 
 
@@ -612,12 +604,7 @@ public class AggregateNode extends UnaryOperatorNode {
                 this.getNewNullResultExpression() :
                 getOperand();
 
-
-        return (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                "##aggregate expression",
-                node,
-                getContextManager());
+        return new ResultColumn("##aggregate expression", node, getContextManager());
     }
 
     /**

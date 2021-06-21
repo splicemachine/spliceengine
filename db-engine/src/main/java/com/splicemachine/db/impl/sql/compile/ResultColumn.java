@@ -145,26 +145,35 @@ public class ResultColumn extends ValueNode
     private ValueNode indexExpression = null;
 
     public ResultColumn() {}
+    public ResultColumn(ContextManager contextManager) {
+        super(contextManager, C_NodeTypes.RESULT_COLUMN);
+    }
     public ResultColumn(String rowLocationColumnName, CurrentRowLocationNode rowLocationNode,
                         ContextManager contextManager) throws StandardException {
-        super(contextManager);
-        setNodeType(C_NodeTypes.RESULT_COLUMN);
+        super(contextManager, C_NodeTypes.RESULT_COLUMN);
         init(rowLocationColumnName, rowLocationNode);
     }
 
     public ResultColumn(ColumnReference cr,
                         ValueNode expression,
-                        ContextManager cm) {
-        super(cm);
-        setNodeType(C_NodeTypes.RESULT_COLUMN);
-        initFromColumnReference(expression, cr);
+                        ContextManager contextManager) throws StandardException {
+        super(contextManager, C_NodeTypes.RESULT_COLUMN);
+        init(cr, expression);
     }
 
-    public ResultColumn(String columnName, ValueNode expression, ContextManager contextManager) {
-        super(contextManager);
-        setNodeType(C_NodeTypes.RESULT_COLUMN);
-        this.name = this.exposedName = columnName;
-        setExpression(expression);
+    public ResultColumn(String columnName, ValueNode expression, ContextManager contextManager) throws StandardException {
+        super(contextManager, C_NodeTypes.RESULT_COLUMN);
+        init(columnName, expression);
+    }
+
+    public ResultColumn(DataTypeDescriptor a1, ValueNode expression, ContextManager contextManager) throws StandardException {
+        super(contextManager, C_NodeTypes.RESULT_COLUMN);
+        init(a1, expression);
+    }
+
+    public ResultColumn(ColumnDescriptor colDesc, ValueNode vn, ContextManager contextManager) throws StandardException {
+        super(contextManager, C_NodeTypes.RESULT_COLUMN);
+        init(colDesc, vn);
     }
 
     /**
@@ -1622,21 +1631,11 @@ public class ResultColumn extends ValueNode
         /* If a columnDescriptor exists, then we must propagate it */
         if (columnDescriptor != null)
         {
-            newResultColumn = (ResultColumn) getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    columnDescriptor,
-                    expression,
-                    getContextManager());
+            newResultColumn = new ResultColumn(columnDescriptor, expression, getContextManager());
             newResultColumn.setExpression(cloneExpr);
         }
-        else
-        {
-
-            newResultColumn = (ResultColumn) getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    getName(),
-                    cloneExpr,
-                    getContextManager());
+        else {
+            newResultColumn = new ResultColumn(getName(), cloneExpr, getContextManager());
         }
 
         /* Set the VirtualColumnId and name in the new node */

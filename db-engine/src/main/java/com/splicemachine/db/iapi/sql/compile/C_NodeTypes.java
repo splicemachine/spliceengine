@@ -53,7 +53,6 @@ public interface C_NodeTypes
     // 10 available
     int SUBQUERY_LIST = 11;
     int TABLE_ELEMENT_LIST = 12;
-    int UNTYPED_NULL_CONSTANT_NODE = 13;
     int TABLE_ELEMENT_NODE = 14;
     int VALUE_NODE_LIST = 15;
     int ALL_RESULT_COLUMN = 16;
@@ -258,10 +257,7 @@ public interface C_NodeTypes
     int WINDOW_RESULTSET_NODE = 230;
     int DENSERANK_FUNCTION_NODE = 232;
     int RANK_FUNCTION_NODE = 233;
-    int EXPLAIN_NODE = 234;
 
-    int EXPORT_NODE = 250;
-    int TRUNC_NODE = 251;
     int FIRST_LAST_VALUE_FUNCTION_NODE = 253;
     int LEAD_LAG_FUNCTION_NODE = 254;
 

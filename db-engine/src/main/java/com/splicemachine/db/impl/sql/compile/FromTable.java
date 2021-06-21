@@ -152,8 +152,12 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      */
     @Override
     public void init(Object correlationName,Object tableProperties){
-        this.correlationName=(String)correlationName;
-        this.tableProperties=(Properties)tableProperties;
+        init2((String)correlationName, (Properties)tableProperties);
+    }
+
+    public void init2(String correlationName, Properties tableProperties){
+        this.correlationName = correlationName;
+        this.tableProperties = tableProperties;
         tableNumber=-1;
         bestPlanMap=null;
         outerJoinLevel = 0;
@@ -1061,11 +1065,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
                     columnName,
                     exposedName,
                     getContextManager());
-            resultColumn=(ResultColumn)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    columnName,
-                    valueNode,
-                    getContextManager());
+            resultColumn = new ResultColumn(columnName, valueNode, getContextManager());
 
             // Build the ResultColumnList to return //
             rcList.addResultColumn(resultColumn);
@@ -1490,8 +1490,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             ResultColumn newResultColumn;
             if (rc.getExpression() instanceof CurrentRowLocationNode) {
                 //add a dummy value for the rowlocation reference, this value won't be used
-                newResultColumn = (ResultColumn) getNodeFactory().getNode
-                        (C_NodeTypes.RESULT_COLUMN, DataTypeDescriptor.INTEGER, getNullNode(DataTypeDescriptor.INTEGER), getContextManager());
+                newResultColumn = new ResultColumn(DataTypeDescriptor.INTEGER, getNullNode(DataTypeDescriptor.INTEGER), getContextManager());
             } else {
                 ColumnDescriptor colDesc = rc.columnDescriptor;
                 DataTypeDescriptor colType = colDesc.getType();
@@ -1521,8 +1520,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
                     defaultTree = getNullNode(colType);
                 }
 
-                newResultColumn = (ResultColumn) getNodeFactory().getNode
-                        (C_NodeTypes.RESULT_COLUMN, defaultTree.getTypeServices(), defaultTree, getContextManager());
+                newResultColumn = new ResultColumn(defaultTree.getTypeServices(), defaultTree, getContextManager());
             }
 
             defaultRow.addResultColumn(newResultColumn);

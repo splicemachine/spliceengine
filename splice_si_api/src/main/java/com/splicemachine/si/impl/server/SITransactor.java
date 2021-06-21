@@ -39,6 +39,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
 import com.splicemachine.storage.*;
+import com.splicemachine.storage.util.UpdateUtils;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -367,6 +368,13 @@ public class SITransactor implements Transactor{
                     assert possibleConflicts.userData() != null;
                     addFirstOccurrenceToken = possibleConflicts.firstWriteToken().version() == possibleConflicts.userData().version();
                 }
+            }
+
+            // Merge incoming update with existing data to materialize all values at the beginning of the MVCC history
+            if (possibleConflicts != null && possibleConflicts.userData() != null) {
+                DataCell data = possibleConflicts.userData();
+                if (supplier.getTransaction(data.version()).getEffectiveState() != Txn.State.ROLLEDBACK)
+                    UpdateUtils.mergeUpdate(kvPair, data);
             }
 
             DataPut mutationToRun = getMutationToRun(
