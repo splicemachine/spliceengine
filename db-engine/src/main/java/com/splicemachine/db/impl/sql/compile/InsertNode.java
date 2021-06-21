@@ -407,18 +407,13 @@ public final class InsertNode extends DMLModStatementNode {
         ** columns for the whole table, since the columns in the result set
         ** correspond to the target column list.
         */
-        if (targetColumnList != null) {
-            if (resultSet.getResultColumns().visibleSize() > targetColumnList.size())
-                throw StandardException.newException(SQLState.LANG_DB2_INVALID_COLS_SPECIFIED);
-            resultSet.bindUntypedNullsToResultColumns(targetColumnList);
-            resultSet.setTableConstructorTypes(targetColumnList);
+        ResultColumnList rcl = targetColumnList != null ? targetColumnList : resultColumnList;
+        if (resultSet.getResultColumns().visibleSize() > rcl.size()) {
+            throw StandardException.newException(SQLState.LANG_DB2_INVALID_COLS_SPECIFIED2,
+                    rcl.size(), resultSet.getResultColumns().visibleSize());
         }
-        else {
-            if (resultSet.getResultColumns().visibleSize() > resultColumnList.size())
-                throw StandardException.newException(SQLState.LANG_DB2_INVALID_COLS_SPECIFIED);
-            resultSet.bindUntypedNullsToResultColumns(resultColumnList);
-            resultSet.setTableConstructorTypes(resultColumnList);
-        }
+        resultSet.bindUntypedNullsToResultColumns(rcl);
+        resultSet.setTableConstructorTypes(rcl);
 
         /* Bind the columns of the result set to their expressions */
         resultSet.bindResultColumns(fromList);
@@ -429,13 +424,15 @@ public final class InsertNode extends DMLModStatementNode {
         DataDictionary dd = getDataDictionary();
         if (targetColumnList != null) {
             if (targetColumnList.size() != resCols)
-                throw StandardException.newException(SQLState.LANG_DB2_INVALID_COLS_SPECIFIED);
+                throw StandardException.newException(SQLState.LANG_DB2_INVALID_COLS_SPECIFIED2,
+                        targetColumnList.size(), resCols );
         }
         else
         {
             if (targetTableDescriptor != null &&
                         targetTableDescriptor.getNumberOfColumns() != resCols)
-                throw StandardException.newException(SQLState.LANG_DB2_INVALID_COLS_SPECIFIED);
+                throw StandardException.newException(SQLState.LANG_DB2_INVALID_COLS_SPECIFIED2,
+                        targetTableDescriptor.getNumberOfColumns(), resCols);
         }
 
         /* See if the ResultSet's RCL needs to be ordered to match the target

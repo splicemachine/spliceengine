@@ -1278,6 +1278,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             if (se.getMessageId().equals(SQLState.LANG_COLUMN_NOT_FOUND)||
                     (se.getMessageId().equals(SQLState.LANG_COLUMN_NOT_FOUND_IN_TABLE) ||
                             (se.getMessageId().equals(SQLState.LANG_DB2_INVALID_COLS_SPECIFIED) ||
+                             se.getMessageId().equals(SQLState.LANG_DB2_INVALID_COLS_SPECIFIED2) ||
                                     (se.getMessageId().equals(SQLState.LANG_TABLE_NOT_FOUND))))) {
                 if (cascade) {
                     trd.drop(lcc);
