@@ -752,7 +752,8 @@ public class MatchingClauseNode extends QueryTreeNode {
     {
         if ( _insertColumns.size() != _insertValues.size() )
         {
-            throw StandardException.newException( SQLState.LANG_DB2_INVALID_COLS_SPECIFIED );
+            throw StandardException.newException( SQLState.LANG_DB2_INVALID_COLS_SPECIFIED2,
+                    _insertColumns.size(), _insertValues.size());
         }
 
         TableDescriptor td = targetTable.getTableDescriptor();
