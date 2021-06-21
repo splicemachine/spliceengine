@@ -31,8 +31,9 @@ public class SpliceCatalogUpgradeScriptsTest {
     String s2 = "VERSION4.1989: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddIndexColUseViewInSYSCAT\n" +
             "VERSION4.1992: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForTablePriorities\n";
 
-    // see DB-11296, UpgradeConglomerateTable must run before other upgrade scripts
-    String s3 = "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeConglomerateTable\n";
+    // see DB-12144 / DB-11296, Those scripts must run before other upgrade scripts
+    String s3 = "VERSION4.2020: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeAddConglomerateNumberIndex\n" +
+            "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeConglomerateTable\n";
     // add more scripts here
 
     private String replaceVersions(String s) {

@@ -27,6 +27,7 @@ import org.junit.runner.Description;
 import splice.com.google.common.base.Joiner;
 
 import java.sql.*;
+import java.util.Collections;
 import java.util.List;
 
 import static junit.framework.TestCase.assertTrue;
@@ -2599,6 +2600,16 @@ public class IndexIT extends SpliceUnitTest{
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
     }
+
+    @Test
+    public void testConglomeratesIndex() throws Exception {
+        testExplainContains(
+                "select conglomeratenumber from sys.sysconglomerates where conglomeratenumber=32",
+                methodWatcher,
+                Collections.singletonList("IndexScan"),
+                null);
+    }
+
 
     @Test
     public void testNonCoveringIoEHashableJoinNotFeasible() throws Exception {
