@@ -218,7 +218,7 @@ public class LazyTxnView implements TxnView {
     @Override
     public boolean equivalent(TxnView o) {
         if (this == o) return true;
-        if (!(o instanceof TxnView)) return false;
+        if (o == null) return false;
         if (o instanceof PastTxn) return false;
         return (txnId & SIConstants.TRANSANCTION_ID_MASK) == (o.getTxnId() & SIConstants.TRANSANCTION_ID_MASK);
     }
