@@ -88,12 +88,12 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
     public boolean isCurrentTimestamp() { return whichType == CURRENT_TIMESTAMP; }
     public boolean isCurrentTimezone() { return whichType == CURRENT_TIMEZONE; }
 
-    public CurrentDatetimeOperatorNode(int type, ContextManager contextManager) {
+    public CurrentDatetimeOperatorNode(int type, ContextManager contextManager) throws StandardException {
         setContextManager(contextManager);
         setNodeType(C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE);
         init( ReuseFactory.getInteger(type) );
     }
-    public void init(Object whichType) {
+    public void init(Object whichType) throws StandardException {
         if (whichType instanceof Integer) {
             this.whichType = (Integer) whichType;
         } else {
@@ -117,6 +117,19 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
 
         if (SanityManager.DEBUG)
             SanityManager.ASSERT(this.whichType >= 0 && this.whichType <= 3);
+
+        switch(this.whichType) {
+            case CURRENT_DATE: // fallthrough
+            case CURRENT_TIME: // fallthrough
+            case CURRENT_TIMESTAMP: // fallthrough
+                setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(jdbcTypeId[this.whichType], false /* Not nullable */));
+                break;
+            case CURRENT_TIMEZONE:
+                setType(DataTypeDescriptor.getSQLDataTypeDescriptor("java.math.BigDecimal", 6, 0, true, 6));
+                break;
+            default:
+                assert false;
+        }
     }
 
     //
@@ -143,24 +156,6 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
                                     SubqueryList subqueryList,
                                     List<AggregateNode>    aggregateVector) throws StandardException {
         checkReliability( methodName[whichType], CompilerContext.DATETIME_ILLEGAL );
-
-        switch(whichType) {
-            case CURRENT_DATE: // fallthrough
-            case CURRENT_TIME: // fallthrough
-            case CURRENT_TIMESTAMP: // fallthrough
-                setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(
-                        jdbcTypeId[whichType],
-                        false        /* Not nullable */
-                        )
-                );
-                break;
-            case CURRENT_TIMEZONE:
-                setType(DataTypeDescriptor.getSQLDataTypeDescriptor("java.math.BigDecimal", 6, 0, true, 6));
-                break;
-            default:
-                assert false;
-        }
-
         addSPSPropertyDependency();
 
         return this;

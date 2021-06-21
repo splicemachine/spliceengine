@@ -23,6 +23,9 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.util.Date;
+
 import static org.junit.Assert.*;
 
 public class MergeNodeIT
@@ -67,9 +70,11 @@ public class MergeNodeIT
     private void createTables(String src, String dest) throws Exception {
         dropTables();
         methodWatcher.execute("create table T_src ( i integer, j integer, m integer)");
-        methodWatcher.execute("insert into T_src values " + src);
+        if(src != null)
+            methodWatcher.execute("insert into T_src values " + src);
         methodWatcher.execute("create table T_dest ( i integer, j integer, k integer)");
-        methodWatcher.execute("insert into T_dest values " + dest);
+        if(dest != null)
+            methodWatcher.execute("insert into T_dest values " + dest);
     }
 
     private void dropTables() throws Exception {
@@ -229,6 +234,21 @@ public class MergeNodeIT
     }
 
     @Test
+    public void testSimpleUpdateNoMatch() throws Exception {
+        test(   "(2, 22, 222)", // src
+                "(1, 10, 3)", // dest
+
+                "merge into T_dest using T_src on (T_dest.i = T_src.i) " +
+                        "when matched then UPDATE SET k = 5",
+
+                0, // 1 updated row
+
+                "I | J | K |\n" +
+                "------------\n" +
+                " 1 |10 | 3 |");
+    }
+
+    @Test
     public void testUpdateWithTrigger() throws Exception {
         createTables(
                 "(1, 11, 111)", // src
@@ -280,10 +300,8 @@ public class MergeNodeIT
 
     @Test
     public void testMultiClauseInsertDeleteUpdate() throws Exception {
-        test(   "(1, 11, 111), (2, 0, 0), (4, 44, 444), (5, 55, 555)", // src
-                "(1, 10, 3), (2, 20, 3), (-1, -1, -1)", // dest
-
-                "merge into T_dest using T_src on (T_dest.i = T_src.i) " +
+        String mergeStatement =
+                        "merge into T_dest using T_src on (T_dest.i = T_src.i) " +
                         // will match (4,44,444) -> insert (4,44,5)
                         "when not matched AND T_src.i = 4 then INSERT (i, j, k) VALUES (T_src.i, T_src.j, 5) " +
                         // matches (5,55,555) -> insert (5, 55, 7)
@@ -293,7 +311,12 @@ public class MergeNodeIT
                         "when matched AND T_src.i > 1 then DELETE " +
                         // matches (1, 11, 111) <-> (1, 11, 111), so will update (1, 10 -> 11, 111).
                         // also matches (2, ) but already DELETEd
-                        "when matched then UPDATE SET T_dest.j = T_src.j",
+                        "when matched then UPDATE SET T_dest.j = T_src.j";
+
+        test(   "(1, 11, 111), (2, 0, 0), (4, 44, 444), (5, 55, 555)", // src
+                "(1, 10, 3), (2, 20, 3), (-1, -1, -1)", // dest
+
+                mergeStatement,
 
                 4, // 1 deleted + 2 inserted, 1 updated
 
@@ -303,6 +326,19 @@ public class MergeNodeIT
                 " 1 |11 | 3 |\n" +
                 " 4 |44 | 5 |\n" +
                 " 5 |55 | 7 |");
+
+        test(   null, // src empty table
+                "(1, 10, 3), (2, 20, 3), (-1, -1, -1)", // dest
+
+                mergeStatement,
+
+                0, // 1 deleted + 2 inserted, 1 updated
+
+                "I | J | K |\n" +
+                "------------\n" +
+                "-1 |-1 |-1 |\n" +
+                " 1 |10 | 3 |\n" +
+                " 2 |20 | 3 |");
     }
 
 
@@ -316,6 +352,56 @@ public class MergeNodeIT
                     e.getMessage().startsWith("Syntax error"));
         }
     }
+
+
+    @Test
+    public void testColumnDefault() throws Exception {
+        try {
+            methodWatcher.execute("create table T_src ( i integer, j integer, k integer)");
+            methodWatcher.execute("insert into T_src values (1, 10, 100), (2, 20, 200), (3, 30, 300)");
+            methodWatcher.execute(
+                    "CREATE TABLE T_destDef (i INTEGER, j INTEGER,\n" +
+                            " date DATE DEFAULT CURRENT_DATE,\n" +
+                            " k INTEGER default 55)");
+            methodWatcher.execute("insert into T_destDef (i, j) values (1, 11)");
+
+            Date d1 = null;
+            try( ResultSet rs = methodWatcher.executeQuery("VALUES CURRENT_DATE")) {
+                Assert.assertTrue(rs.next());
+                d1 = rs.getDate(1);
+            }
+
+            Assert.assertEquals(2, methodWatcher.executeUpdate("merge into T_destDef using T_src on (T_destDef.i = T_src.i) " +
+                    "when not matched then INSERT (i, j) VALUES (T_src.i, T_src.j)"));
+
+            methodWatcher.assertStrResult(
+                    "I | J | K |\n" +
+                    "------------\n" +
+                    " 1 |11 |55 |\n" +
+                    " 2 |20 |55 |\n" +
+                    " 3 |30 |55 |",
+                    "select i, j, k from T_destDef", true);
+
+
+
+            try( ResultSet rs = methodWatcher.executeQuery("select date, CURRENT_DATE from T_destDef {limit 1}") ) {
+                Assert.assertTrue(rs.next());
+                Date res = rs.getDate(1);
+                Date d2 = rs.getDate(2);
+                // preventing the very rare sporadic around midnight, where d1 can differ from d2, and therefore also res.
+                if(d1.equals(d2)) {
+                    Assert.assertTrue(d1.equals(res) && d2.equals(res));
+                }
+                else
+                    Assert.assertTrue(d1.equals(res) || d2.equals(res));
+            }
+        }
+        finally{
+            methodWatcher.execute("drop table T_destDef if exists");
+            methodWatcher.execute("drop table T_src if exists");
+        }
+    }
+
     @Test
     public void testGrammar() throws Exception {
         // when matched UPDATE
