@@ -1786,7 +1786,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             if (cd != null)
                 dropConglomerateDescriptor(cd, tc);
             cd = bootstrapOneIndex(systemSchemaDesc, tc, ddg, tabInfo, indexId, tabInfo.getHeapConglomerate());
-            addDescriptor(cd, systemSchemaDesc, SYSCONGLOMERATES_CATALOG_NUM, false, tc, false);
 
             // Cache may have that system table descriptor without the new index info
             dataDictionaryCache.clearNameTdCache();
@@ -1818,13 +1817,15 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                     scanController.fetchLocation(rowLocationList[i % batch]);
                     i++;
                     if (i % batch == 0) {
-                        tabInfo.insertIndexRowListImpl(rowList, rowLocationList, tc, indexId, batch);
+                        insertIndex(tc, tabInfo, indexId, cd, rowList, rowLocationList, batch);
                     }
                 }
                 // insert last batch
-                if (i % batch > 0)
-                    tabInfo.insertIndexRowListImpl(rowList, rowLocationList, tc, indexId, i % batch);
+                if (i % batch > 0) {
+                    insertIndex(tc, tabInfo, indexId, cd, rowList, rowLocationList, i % batch);
+                }
             }
+            addDescriptor(cd, systemSchemaDesc, SYSCONGLOMERATES_CATALOG_NUM, false, tc, false);
         }
 
         if (catalogNumber >= NUM_CORE) {
@@ -1834,4 +1835,17 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
     }
 
+    private void insertIndex(TransactionController tc,
+                             TabInfoImpl tabInfo,
+                             int indexId,
+                             ConglomerateDescriptor cd,
+                             ExecRow[] rowList,
+                             RowLocation[] rowLocationList,
+                             int numRows) throws StandardException {
+        int retCode = tabInfo.insertIndexRowListImpl(rowList, rowLocationList, tc, indexId, numRows);
+        if (retCode != TabInfoImpl.ROWNOTDUPLICATE) {
+            throw StandardException.newException(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT,
+                    cd.getDescriptorName(), tabInfo.getTableName());
+        }
+    }
 }
