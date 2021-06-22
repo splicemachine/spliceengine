@@ -26,6 +26,7 @@ public class ijImpl extends ijCommands {
 
     boolean elapsedTime = true;
     boolean showProgressBar = false;
+    boolean displayTriggerinfo = false;
 
     String urlCheck = null;
 
