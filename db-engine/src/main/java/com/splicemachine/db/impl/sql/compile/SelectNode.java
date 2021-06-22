@@ -2054,6 +2054,12 @@ public class SelectNode extends ResultSetNode {
                         getContextManager()
                         );
             }
+            for (ResultColumn rc : this.getResultColumns()) {
+                rc.setJoinResultset(null);
+                rc.setRightOuterJoinUsingClause(false);
+                joinNode.isJoinColumnForRightOuterJoin(rc);
+            }
+
             joinNode.setCostEstimate(rightResultSet.getCostEstimate());
 
             ResultSetNode newPRNode = joinNode.genProjectRestrict();
