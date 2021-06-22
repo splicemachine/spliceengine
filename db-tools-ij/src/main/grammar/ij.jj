@@ -171,7 +171,7 @@ MORE :
 
 TOKEN [IGNORE_CASE] :
 {    /* ij Keywords */
-    <ABSOLUTE: "absolute">
+     <ABSOLUTE: "absolute">
 |    <AFTER: "after">
 |    <ALIASES: "aliases">
 |    <ALL: "all">
@@ -182,11 +182,11 @@ TOKEN [IGNORE_CASE] :
 |    <BANG: "!">
 |    <BEFORE: "before">
 |    <CLOSE: "close">
-|     <COMMIT: "commit">
-|     <CONNECT: "connect">
-|     <CONNECTION: "connection">
-|     <CONNECTIONS: "connections">
-|     <CREATE: "create">
+|    <COMMIT: "commit">
+|    <CONNECT: "connect">
+|    <CONNECTION: "connection">
+|    <CONNECTIONS: "connections">
+|    <CREATE: "create">
 |    <CURRENT: "current">
 |    <CURSOR: "cursor">
 |    <DATABASES: "databases">
@@ -213,7 +213,7 @@ TOKEN [IGNORE_CASE] :
 |    <INSENSITIVE: "insensitive">
 |    <INTO: "into">
 |    <LAST: "last">
-|   <LOCAL: "local">
+|    <LOCAL: "local">
 |    <LOCALIZEDDISPLAY: "localizeddisplay">
 |    <MAXIMUMDISPLAYWIDTH: "maximumdisplaywidth">
 |    <NAME: "name">
@@ -226,13 +226,14 @@ TOKEN [IGNORE_CASE] :
 |    <PERIOD: ".">
 |    <PREPARE: "prepare">
 |    <PREVIOUS: "previous">
-|   <PRIMARYKEYS: "primarykeys">
+|    <PRIMARYKEYS: "primarykeys">
 |    <PROCEDURE: "procedure">
 |    <PROCEDURES: "procedures">
-|   <PROCEDURECOLS: "procedurecols">
+|    <PROCEDURECOLS: "procedurecols">
 |    <PROPERTIES: "properties">
 |    <PROTOCOL: "protocol">
-| <PROGRESSBAR: "progressbar">
+|    <PROGRESSBAR: "progressbar">
+|    <DISPLAYTRIGGERINFO: "displaytriggerinfo">
 |    <QUIT: "quit">
 |    <READONLY: "readonly">
 |    <RELATIVE: "relative">
@@ -256,7 +257,7 @@ TOKEN [IGNORE_CASE] :
 |    <TABLES: "tables">
 |    <USER: "user">
 |    <USING: "using">
-|   <VERSION: "version">
+|    <VERSION: "version">
 |    <VIEWS: "views">
 |    <WAIT: "wait">
 |    <WITH: "with">
@@ -287,15 +288,15 @@ TOKEN [IGNORE_CASE] :
 |    <CP_GETCONNECTION: "CP_getconnection">
 |    <CP_DISCONNECT: "CP_disconnect">
 |    <WORK : "work">
-|   <JSON: "JSON">
-| <SPOOL: "SPOOL">
-| <STOP: "STOP">
-| <CLEAR: "CLEAR">
-| <PROMPT: "prompt">
-| <CLOCK: "clock">
-| <WITHOUT: "WITHOUT">
-| <HEADER: "HEADER">
-| <TERMINATOR: "TERMINATOR">
+|    <JSON: "JSON">
+|    <SPOOL: "SPOOL">
+|    <STOP: "STOP">
+|    <CLEAR: "CLEAR">
+|    <PROMPT: "prompt">
+|    <CLOCK: "clock">
+|    <WITHOUT: "WITHOUT">
+|    <HEADER: "HEADER">
+|    <TERMINATOR: "TERMINATOR">
 }
 
 TOKEN :
