@@ -104,6 +104,11 @@ public class AllResultColumn extends ResultColumn
         return tableName;
     }
 
+    /**
+     * because super = ResultColumn, and ResultColumn.equals(Object o) { return this == o; }
+     * AllResultColumn.equals is the same.
+     * so for this to be fully functional, ResultColumn.equals has to be a full equal implementation
+     */
     public boolean equals(Object o){
         if(o == this) return true;
         if(o instanceof AllResultColumn) {
