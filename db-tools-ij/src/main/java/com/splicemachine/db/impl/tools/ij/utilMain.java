@@ -606,6 +606,13 @@ public class utilMain implements java.security.PrivilegedAction {
                 out.println(langUtil.getTextMessage("IJ_ElapTime0Mil_4",
                         langUtil.getNumberAsString(endTime - beginTime)));
             }
+
+            boolean triggerInfoOn = ijParser.getDisplayTriggerInfoState();
+            /* Call the triggerInfo if appropriate */
+            if (triggerInfoOn) {
+                result = ijParser.executeImmediate("call syscs_util.SYSCS_GET_TRIGGER_EXEC()");
+                displayResult(out, result, connEnv[currCE].getConnection());
+            }
             return true;
 
         } catch (SQLException e) {

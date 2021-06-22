@@ -182,6 +182,14 @@ public class ijImpl extends ijCommands {
     }
 
     /**
+     * Get the "displayTriggerinfo state".
+     */
+    boolean getDisplayTriggerInfoState()
+    {
+        return displayTriggerinfo;
+    }
+
+    /**
      this removes the outside quotes from the string.
      it will also swizzle the special characters
      into their actual characters, like '' for ', etc.
