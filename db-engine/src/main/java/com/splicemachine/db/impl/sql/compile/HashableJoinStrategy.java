@@ -617,14 +617,25 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         // Build a Vector of all the hash key columns
         Vector hashKeyVector = new Vector();
         if (cd != null && cd.isIndex() && cd.getIndexDescriptor().isOnExpression()) {
-            IndexRowGenerator irg = cd.getIndexDescriptor();
-            assert innerTable instanceof QueryTreeNode;
-            QueryTreeNode inner = (QueryTreeNode) innerTable;
+            if (innerTable.isCoveringIndex(cd)) {
+                // Check for hash keys only for covering IoEs. If not covering, expressions in
+                // predicates won't be replaced with column references. Consequently, we could
+                // have an expression such as "col1 + col2" as a hash key. Currently, we don't
+                // support this kind of hash key because in preparing for execution (fillResultSet),
+                // we need to get a row template for a projection. For that we need to invoke
+                // the projection generated method. If there contains something more than
+                // plain column references like arithmetic ops, it causes an NPE because data
+                // is not yet there. In theory, we should be able to support an expression as
+                // a hash key. But then we need to tune our code generation logic.
+                IndexRowGenerator irg = cd.getIndexDescriptor();
+                assert innerTable instanceof QueryTreeNode;
+                QueryTreeNode inner = (QueryTreeNode) innerTable;
 
-            ValueNode[] exprAsts = irg.getParsedIndexExpressions(inner.getLanguageConnectionContext(), innerTable);
-            for (int colIdx = 0; colIdx < exprAsts.length; colIdx++) {
-                if (predList.hasOptimizableEquijoin(innerTable, exprAsts[colIdx], joinedTableSet)) {
-                    hashKeyVector.add(colIdx);
+                ValueNode[] exprAsts = irg.getParsedIndexExpressions(inner.getLanguageConnectionContext(), innerTable);
+                for (int colIdx = 0; colIdx < exprAsts.length; colIdx++) {
+                    if (predList.hasOptimizableEquijoin(innerTable, exprAsts[colIdx], joinedTableSet)) {
+                        hashKeyVector.add(colIdx);
+                    }
                 }
             }
         } else {
