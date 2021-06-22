@@ -2036,6 +2036,27 @@ ProgressbarStatement() :
 }
 
 /**
+ * <p>
+ * Syntax:
+ *   DISPLAYTRIGGERINFO [ ON | OFF ] ;
+ */
+ijResult
+DisplayTriggerInfoStatement() :
+{
+    Token on=null;
+}
+{
+    <DISPLAYTRIGGERINFO>
+    ( on=<ON>
+    | <OFF>
+    )
+    {
+        displayTriggerinfo = (on != null);
+        return null;
+    }
+}
+
+/**
  * MaximumDisplayWidth EXACT_NUMERIC changes the maximum display width for
  * java.lang.String to the specified EXACT_NUMERIC.
  * This is only used by the console view.
