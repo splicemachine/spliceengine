@@ -105,6 +105,19 @@ public class AllResultColumn extends ResultColumn
     }
 
     public boolean equals(Object o){
-        return this == o;
+        if(o == this) return true;
+        if(o instanceof AllResultColumn) {
+            AllResultColumn arc = (AllResultColumn) o;
+            return arc.tableName.equals(tableName) &&
+                    super.equals(o);
+        }
+        else {
+            return false;
+        }
+    }
+
+    public int hashCode() {
+        int result = super.hashCode();
+        return 31 * result + (tableName == null ? 0 : tableName.hashCode());
     }
 }
