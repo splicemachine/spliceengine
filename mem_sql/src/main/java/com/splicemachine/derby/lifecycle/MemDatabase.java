@@ -25,11 +25,13 @@ import com.splicemachine.access.util.ReflectingConfigurationSource;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.concurrent.ConcurrentTicker;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
+import com.splicemachine.derby.impl.sql.execute.actions.CreateTableConstantOperation;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.si.MemSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.MPartitionFactory;
 import com.splicemachine.storage.MTxnPartitionFactory;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
@@ -39,6 +41,12 @@ import java.io.IOException;
  */
 public class MemDatabase{
 
+    public static void setOptionFromLog4j(String name)
+    {
+        if(Logger.getLogger(name).isTraceEnabled())
+            System.setProperty(name, Boolean.TRUE.toString());
+    }
+
     public static void main(String...args) throws Exception{
         //load SI
         SpliceClient.isRegionServer = true;
@@ -46,6 +54,13 @@ public class MemDatabase{
         SConfiguration config = new ConfigurationBuilder().build(new HConfigurationDefaultsList().addConfig(new MemDatabaseTestConfig()),
                                                                  new ReflectingConfigurationSource());
         MemSIEnvironment env=new MemSIEnvironment(tableFactory,new ConcurrentTicker(0L),config);
+
+        setOptionFromLog4j("com.splicemachine.enableLegacyAsserts");
+        setOptionFromLog4j("splice.debug.dumpClassFile");
+        setOptionFromLog4j("splice.debug.compile.dumpBindTree");
+        setOptionFromLog4j("splice.debug.compile.dumpOptimizedTree");
+
+
         MemSIEnvironment.INSTANCE = env;
         if (config.debugDumpClassFile()) {
             System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());

@@ -99,6 +99,8 @@ class DRDAConnThread extends Thread {
 
     private static final Logger LOG = Logger.getLogger(DRDAConnThread.class);
 
+    private static final Logger TRACE_LOG = Logger.getLogger("trace.DRDAConnThread" );
+
     private static final Pattern PARSE_TIMESTAMP_PATTERN =
             Pattern.compile("[-.]");
 
@@ -8921,8 +8923,12 @@ class DRDAConnThread extends Thread {
      */
     protected  void trace(String value)
     {
-        if (SanityManager.DEBUG && server.debugOutput)
-            server.consoleMessage(value, true);
+        if (SanityManager.DEBUG ) {
+            if (server.debugOutput)
+                server.consoleMessage(value, true);
+            TRACE_LOG.trace(value);
+        }
+
     }
 
 

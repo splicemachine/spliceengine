@@ -267,7 +267,7 @@ public final class NetworkServerControlImpl {
     private int maxPoolSize;            //maximum pool size for pooled connections
     private Object poolSync = new Object();    // object to use for syning reading
 
-    protected boolean debugOutput = false;
+    protected boolean debugOutput = true; //false;
     private boolean cleanupOnStart = false;    // Should we clean up when starting the server?
     private boolean restartFlag = false;
 

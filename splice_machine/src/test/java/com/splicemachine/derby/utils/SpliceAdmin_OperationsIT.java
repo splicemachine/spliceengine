@@ -214,6 +214,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
         String uuid = null;
         while(opsRs.next()) {
             count++;
+            System.out.println(opsRs.getString(1));
             if (opsRs.getString(5).equals(sql)) {
                 uuid = opsRs.getString(1);
             }
@@ -268,6 +269,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
 
                 try (ResultSet opsRs = connection.query(opsCall)) {
                     while (opsRs.next()) {
+                        System.out.println(opsRs.getString(1));
                         if (opsRs.getString(5).equals(sql)) {
                             uuid = opsRs.getString(1);
                         }
@@ -376,6 +378,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
         String uuid = null;
         while(opsRs.next()) {
             count++;
+            System.out.println(opsRs.getString(1));
             if (opsRs.getString(5).equals(sql)) {
                 uuid = opsRs.getString(1);
             }

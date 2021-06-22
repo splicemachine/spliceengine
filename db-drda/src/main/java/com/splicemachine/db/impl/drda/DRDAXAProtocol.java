@@ -46,7 +46,7 @@ import com.splicemachine.db.shared.common.reference.MessageId;
  * library requirements
  */
 
-class DRDAXAProtocol {
+class ExportBuilder builderXAProtocol {
 
 	private DRDAConnThread connThread;
 	private DDMReader reader;
