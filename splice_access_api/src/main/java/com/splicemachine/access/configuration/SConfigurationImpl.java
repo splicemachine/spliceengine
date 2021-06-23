@@ -132,7 +132,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  String sparkIoCompressionCodec;
     private final int sparkResultStreamingBatches;
     private final int sparkResultStreamingBatchSize;
-    private final boolean sparkResultStreamingThrottleEnabled;
+    private final int sparkResultStreamingThrottleMaxWait;
     private final int sparkSlowResultStreamingBatches;
     private final int sparkSlowResultStreamingBatchSize;
     private final int olapCompactionMaximumWait;
@@ -581,8 +581,8 @@ public final class SConfigurationImpl implements SConfiguration {
     }
 
     @Override
-    public boolean getSparkResultStreamingThrottleEnabled() {
-        return sparkResultStreamingThrottleEnabled;
+    public int getSparkResultStreamingThrottleMaxWait() {
+        return sparkResultStreamingThrottleMaxWait;
     }
 
     @Override
@@ -1129,7 +1129,7 @@ public final class SConfigurationImpl implements SConfiguration {
         sparkAccumulatorsEnabled = builder.sparkAccumulatorsEnabled;
         sparkResultStreamingBatches = builder.sparkResultStreamingBatches;
         sparkResultStreamingBatchSize = builder.sparkResultStreamingBatchSize;
-        sparkResultStreamingThrottleEnabled = builder.sparkResultStreamingThrottleEnabled;
+        sparkResultStreamingThrottleMaxWait = builder.sparkResultStreamingThrottleMaxWait;
         sparkSlowResultStreamingBatches = builder.sparkSlowResultStreamingBatches;
         sparkSlowResultStreamingBatchSize = builder.sparkSlowResultStreamingBatchSize;
         olapCompactionMaximumWait = builder.olapCompactionMaximumWait;
