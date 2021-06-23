@@ -45,13 +45,12 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     private static final Object RETRY = new Object();
     private final int queueSize;
     private final int batchSize;
-    private final int parallelPartitions;
     private final UUID uuid;
     private long limit;
     private long offset;
 
-    private final Map<Channel, PartitionState> partitionMap = new ConcurrentHashMap<>();
-    private final ConcurrentMap<Integer, PartitionState> partitionStateMap = new ConcurrentHashMap<>();
+    private Map<Channel, PartitionState> partitionMap = new ConcurrentHashMap<>();
+    private ConcurrentMap<Integer, PartitionState> partitionStateMap = new ConcurrentHashMap<>();
 
     private T currentResult;
     private int currentQueue = -1;
@@ -62,9 +61,6 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     private volatile Throwable failure;
     private volatile boolean canBlock = true;
     private volatile boolean stopped = false;
-    private Channel olapChannel;
-    private volatile boolean paused = false;
-    private boolean throttleEnabled;
 
     StreamListener() {
         this(-1, 0);
@@ -75,9 +71,6 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     }
 
     public StreamListener(long limit, long offset, int batches, int batchSize) {
-        this(limit, offset, batches, batchSize, StreamableRDD.DEFAULT_PARALLEL_PARTITIONS, true);
-    }
-    public StreamListener(long limit, long offset, int batches, int batchSize, int parallelPartitions, boolean throttleEnabled) {
         this.offset = offset;
         this.limit = limit;
         this.batchSize = batchSize;
@@ -88,12 +81,6 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         first.initialized = true;
         this.partitionStateMap.put(-1, first);
         this.uuid = UUID.randomUUID();
-        this.parallelPartitions = parallelPartitions;
-        this.throttleEnabled = throttleEnabled;
-    }
-
-    public void setOlapChannel(Channel olapChannel) {
-        this.olapChannel = olapChannel;
     }
 
     public Iterator<T> getIterator() {
@@ -128,23 +115,10 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
             // We can't block here, we negotiate throughput with the server to guarantee it
             state.messages.add(SENTINEL);
             // Let server know it can close the connection
-            ctx.writeAndFlush(new StreamProtocol.ConfirmClose());
-            ctx.close().sync();
+            state.readyToClose = true;
         } else if (msg instanceof StreamProtocol.ConfirmClose) {
             ctx.close().sync();
             partitionMap.remove(channel);
-        } else if (msg instanceof StreamProtocol.InitOlapStream) {
-            //Main handler is in StreamListenerServer, but if InitOlapStream message
-            //comes later, then Init message and channel is redirected to the StreamListener
-            //already
-            if (LOG.isTraceEnabled())
-                LOG.trace("Received " + msg + " from " + channel);
-            if (this.olapChannel != null) {
-                StreamProtocol.InitOlapStream init = (StreamProtocol.InitOlapStream) msg;
-                if (this.uuid.equals(init.uuid)) {
-                    this.setOlapChannel(ctx.channel());
-                }
-            }
         } else {
             // Data or StreamProtocol.Skipped
             // We can't block here, we negotiate throughput with the server to guarantee it
@@ -213,8 +187,7 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                     }
                 } else if (msg == SENTINEL) {
                     // This queue is finished, start reading from the next queue
-                    if (LOG.isTraceEnabled())
-                        LOG.trace("Moving queues");
+                    LOG.trace("Moving queues");
 
                     clearCurrentQueue();
 
@@ -271,11 +244,15 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         }
     }
 
-    private void clearCurrentQueue() {
+    private void clearCurrentQueue() throws InterruptedException {
         PartitionState ps = partitionStateMap.remove(currentQueue);
-        if (ps != null && ps.channel != null)
+        if (ps != null && ps.channel != null) {
             partitionMap.remove(ps.channel);
-        manageStreaming();
+            if (ps.readyToClose) {
+                ps.channel.writeAndFlush(new StreamProtocol.ConfirmClose());
+                ps.channel.close().sync();
+            }
+        }
     }
 
     /**
@@ -347,7 +324,6 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
         }
 
         ctx.pipeline().addLast(this);
-        manageStreaming();
     }
 
     private void close() {
@@ -369,9 +345,6 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
                     lastException = e;
                 }
             }
-        }
-        if (olapChannel != null) {
-            olapChannel.close();
         }
         if (lastException != null) {
             throw new RuntimeException(lastException);
@@ -433,44 +406,6 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     public Throwable getFailure() {
         return failure;
     }
-    
-    private void manageStreaming() {
-        if (!this.throttleEnabled)
-            return;
-        if (partitionStateMap.size() >= parallelPartitions * PARTITION_BUFFER_FACTOR) {
-           pauseStreaming();
-        } else if (partitionStateMap.size() < parallelPartitions * PARTITION_BUFFER_FACTOR) {
-           continueStreaming();
-        }
-    }
-
-    private void pauseStreaming() {
-        if (olapChannel != null && !paused) {
-            synchronized (olapChannel) {
-                if (!paused) {
-                    if (LOG.isTraceEnabled())
-                        LOG.trace(String.format("StreamListener has already %s partitions to process and could be overloaded, " +
-                                "pause streaming", partitionStateMap.size()));
-                    olapChannel.writeAndFlush(new StreamProtocol.PauseStream());
-                    paused = true;
-                }
-            }
-        }
-    }
-
-    private void continueStreaming() {
-        if (olapChannel != null && paused) {
-            synchronized (olapChannel) {
-                if (paused) {
-                    if (LOG.isTraceEnabled())
-                        LOG.trace(String.format("StreamListener has already %s partitions to process and can continue to consume " +
-                                "stream messages", partitionStateMap.size()));
-                    olapChannel.writeAndFlush(new StreamProtocol.ContinueStream());
-                    paused = false;
-                }
-            }
-        }
-    }
 }
 
 class PartitionState {
@@ -480,6 +415,7 @@ class PartitionState {
     long consumed;
     long readTotal;
     boolean initialized;
+    boolean readyToClose;
     volatile PartitionState next = null; // used when a task is retried after a failure
 
     PartitionState(int partition, int queueSize) {
