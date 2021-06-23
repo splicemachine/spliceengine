@@ -484,4 +484,25 @@ public class SqlshellIT {
                 "5:\tL_QUANTITY DECIMAL(15,2),\n" +
                 ".\n");
     }
+
+    @Test
+    public void testDisplayTriggerInfo() {
+        // Display trigger info should be by default off
+        execute("SELECT * FROM ABC;\n",
+                "DEF        \n" +
+                        "-----------\n" +
+                        "\n" +
+                        "0 rows selected\n");
+        // set display trigger info on and display it.
+        execute("displaytriggerinfo on;\n", "");
+        execute("SELECT * FROM ABC;\n",
+                "DEF        \n" +
+                        "-----------\n" +
+                        "\n" +
+                        "0 rows selected\n" +
+                        "triggerName                                                                                                                     |triggerId                           |txnId               |queryId                             |parentQueryId                       |timeSpent           |numRowsModified     \n" +
+                        "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                        "\n" +
+                        "0 rows selected\n");
+    }
 }
