@@ -166,7 +166,6 @@ public class StreamProtocol implements Serializable {
         public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         }
     }
-
     public static class ConfirmClose implements Serializable, Externalizable {
         public ConfirmClose() {}
         public void writeExternal(ObjectOutput out) throws IOException {
@@ -177,52 +176,5 @@ public class StreamProtocol implements Serializable {
         }
     }
 
-    public static class InitOlapStream implements Serializable, Externalizable {
-        public UUID uuid;
-
-        public InitOlapStream(){}
-
-        public InitOlapStream(UUID uuid) {
-            this.uuid = uuid;
-        }
-
-        @Override
-        public void writeExternal(ObjectOutput out) throws IOException {
-            out.writeLong(uuid.getMostSignificantBits());
-            out.writeLong(uuid.getLeastSignificantBits());
-        }
-
-        @Override
-        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-            this.uuid = new UUID(in.readLong(),in.readLong());
-        }
-
-        @Override
-        public String toString() {
-            return "InitStream{" +
-                    "uuid=" + uuid +
-                    '}';
-        }
-    }
-
-    public static class PauseStream implements Serializable, Externalizable {
-        public PauseStream() {}
-        public void writeExternal(ObjectOutput out) throws IOException {
-        }
-
-        @Override
-        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        }
-    }
-
-    public static class ContinueStream implements Serializable, Externalizable {
-        public ContinueStream() {}
-        public void writeExternal(ObjectOutput out) throws IOException {
-        }
-
-        @Override
-        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        }
-    }
 }
 
