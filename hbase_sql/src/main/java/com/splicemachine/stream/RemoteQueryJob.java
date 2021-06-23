@@ -38,11 +38,13 @@ public class RemoteQueryJob extends DistributedJob {
     int streamingBatchSize;
     int parallelPartitions;
     Integer shufflePartitions;
+    int streamingThrottleMaxWait;
 
 
     public RemoteQueryJob(ActivationHolder ah, int rootResultSetNumber, UUID uuid, String host, int port,
                           String session, String userId, String sql,
-                          int streamingBatches, int streamingBatchSize, int parallelPartitions, Integer shufflePartitionsProperty) {
+                          int streamingBatches, int streamingBatchSize, int parallelPartitions, Integer shufflePartitionsProperty,
+                          int streamingThrottleMaxWait) {
         this.ah = ah;
         this.rootResultSetNumber = rootResultSetNumber;
         this.uuid = uuid;
@@ -55,6 +57,7 @@ public class RemoteQueryJob extends DistributedJob {
         this.streamingBatchSize = streamingBatchSize;
         this.parallelPartitions = parallelPartitions;
         this.shufflePartitions = shufflePartitionsProperty;
+        this.streamingThrottleMaxWait = streamingThrottleMaxWait;
     }
 
     @Override
