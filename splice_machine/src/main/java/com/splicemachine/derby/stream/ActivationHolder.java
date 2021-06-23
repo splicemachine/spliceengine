@@ -118,6 +118,10 @@ public class ActivationHolder implements Externalizable {
             operationsList.add(operation);
             serializeOperationList = true;
         }
+//        if(activation.getResultSet() instanceof MergeOperation) {
+//            operationsList.add(operation);
+//            serializeOperationList = true;
+//        }
 
         for (Field field : activation.getClass().getDeclaredFields()) {
             if(!field.getType().isAssignableFrom(SpliceOperation.class)) continue; //ignore qualifiers

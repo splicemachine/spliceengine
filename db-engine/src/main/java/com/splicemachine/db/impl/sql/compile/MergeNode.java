@@ -43,8 +43,11 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.iapi.sql.execute.ResultSetFactory;
 import com.splicemachine.db.iapi.util.IdUtil;
+import org.apache.avro.util.ClassUtils;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -624,7 +627,7 @@ public class MergeNode extends DMLStatementNode
 
         acb.pushGetResultSetFactoryExpression( mb );
 
-        // arg 1: the driving left join
+        // getMergeResultSet arg 1: the driving left join
         _leftJoinCursor.generate( acb, mb );
 
         // dig up the actual result set which was generated and which will drive the MergeResultSet

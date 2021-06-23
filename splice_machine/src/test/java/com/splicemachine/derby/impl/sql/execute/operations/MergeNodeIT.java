@@ -122,7 +122,7 @@ public class MergeNodeIT
 
     @Test
     public void testSimpleInsertTwoRows() throws Exception {
-        test(   "(1, 11, 111), (4, 44, 444), (5, 55, 555)", // src
+        test("(1, 11, 111), (4, 44, 444), (5, 55, 555)", // src
                 "(1, 10, 3), (2, 20, 3)", // dest
 
                 "merge into T_dest using T_src on (T_dest.i = T_src.i) " +
@@ -136,6 +136,23 @@ public class MergeNodeIT
                 " 2 |20 | 3 |\n" +
                 " 4 |44 | 5 |\n" +
                 " 5 |55 | 5 |");
+    }
+
+    @Test
+    public void testSimpleInsertAs() throws Exception {
+        test(   "(1, 11, 111), (4, 44, 444)", // src
+                "(1, 10, 3), (2, 20, 3)", // dest
+
+                "merge into T_dest using T_src AS B on (T_dest.i = B.i) " +
+                        "when not matched then INSERT (i, j, k) VALUES (B.i, B.j, 5)",
+
+                1, // 1 inserted row
+
+                "I | J | K |\n" +
+                "------------\n" +
+                " 1 |10 | 3 |\n" +
+                " 2 |20 | 3 |\n" +
+                " 4 |44 | 5 |");
     }
 
     @Test
@@ -427,6 +444,94 @@ public class MergeNodeIT
         checkGrammar("merge into A_dest dest using A_src src on (src.i = src.j)" +
                 " when NOT matched then INSERT VALUES (5, 5)");
 
+    }
+
+    public void testMergeInTrigger(boolean useTrigger) throws Exception {
+        try {
+
+            methodWatcher.execute(
+                    "CREATE TABLE FTable\n" +
+                            "( entity_key INTEGER PRIMARY KEY,\n" +
+                            "  last_update_ts TIMESTAMP,\n" +
+                            "  feature1 DOUBLE,\n" +
+                            "  feature2 DOUBLE)");
+
+            methodWatcher.execute(
+                    "CREATE TABLE FTable_History\n" +
+                            "( entity_key INTEGER,\n" +
+                            "  asof_ts TIMESTAMP,\n" +
+                            "  ingest_ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n" +
+                            "  feature1 DOUBLE,\n" +
+                            "  feature2 DOUBLE\n" +
+                            //"    PRIMARY KEY ( entity_key, asof_ts)\n" +
+                            ")");
+
+            methodWatcher.execute("INSERT INTO FTable_History (entity_key, asof_ts, feature1, feature2) VALUES " +
+                    "(11, '2011-11-11', 0.100, 0.10), (55, '2025-05-05', 0.15, 0.25)");
+
+            //methodWatcher.execute("INSERT INTO FTable_History (entity_key, asof_ts, feature1, feature2) VALUES (11, '1999-9-9', 0.9, 0.99)");
+
+            // the MERGE INTO statement, used in a trigger (useTrigger == true) or directly used
+            // (not we have to fill in the SRC table)
+            String mergeInto =
+                    "MERGE INTO FTable_History USING %s on FTable_History.entity_key = SRC.entity_key\n" +
+                            "        WHEN MATCHED THEN UPDATE SET\n" +
+                            "           FTable_History.asof_ts = SRC.last_update_ts,\n" +
+                            "           FTable_History.feature1 = SRC.feature1\n" + // don't update f2 on purpose
+                            "        WHEN NOT MATCHED THEN INSERT (entity_key, asof_ts, feature1, feature2) VALUES\n" +
+                            "           (SRC.entity_key,\n" +
+                            "            SRC.last_update_ts,\n" +
+                            "            SRC.feature1,\n" +
+                            "            SRC.feature2)";
+
+            if (useTrigger) {
+                // SRC table in this case is a VTI
+                methodWatcher.execute("CREATE TRIGGER FTable_INSERTS\n" +
+                        "AFTER INSERT ON FTable\n" +
+                        "REFERENCING NEW_TABLE AS SRC\n" +
+                        "FOR EACH STATEMENT\n" +
+                        "    " + String.format(mergeInto, "SRC"));
+            }
+
+            // if useTrigger=true, this also causes the merge to happen
+            methodWatcher.execute("INSERT INTO FTable (entity_key, last_update_ts, feature1, feature2) VALUES " +
+                    "(11, '2011-01-01', 0.11, 0.21), (22, '2022-02-02', 0.12, 0.22), (33, '2013-03-03', 0.13, 0.23)");
+
+            if (!useTrigger) {
+                methodWatcher.execute(String.format(mergeInto, "FTable AS SRC"));
+            }
+
+            methodWatcher.assertStrResult(
+                    "ENTITY_KEY |   LAST_UPDATE_TS     |FEATURE1 |FEATURE2 |\n" +
+                            "-------------------------------------------------------\n" +
+                            "    11     |2011-01-01 00:00:00.0 |  0.11   |  0.21   |\n" +
+                            "    22     |2022-02-02 00:00:00.0 |  0.12   |  0.22   |\n" +
+                            "    33     |2013-03-03 00:00:00.0 |  0.13   |  0.23   |",
+                    "select * from FTable", true);
+
+            methodWatcher.assertStrResult(
+                    "ENTITY_KEY |       ASOF_TS        |FEATURE1 |FEATURE2 |\n" +
+                            "-------------------------------------------------------\n" +
+                            "    11     |2011-01-01 00:00:00.0 |  0.11   |   0.1   |\n" +
+                            "    22     |2022-02-02 00:00:00.0 |  0.12   |  0.22   |\n" +
+                            "    33     |2013-03-03 00:00:00.0 |  0.13   |  0.23   |\n" +
+                            "    55     |2025-05-05 00:00:00.0 |  0.15   |  0.25   |",
+                    "select entity_key, asof_ts, feature1, feature2 from FTable_History", true);
+        }
+        finally {
+            methodWatcher.execute("DROP TABLE FTable IF EXISTS");
+            methodWatcher.execute("DROP TABLE FTable_History IF EXISTS");
+        }
+    }
+
+    @Test
+    public void testMergeInTrigger() throws Exception {
+        testMergeInTrigger(true);
+    }
+
+    @Test
+    public void testMergeDirect() throws Exception {
+        testMergeInTrigger(false);
     }
 
     @Test
