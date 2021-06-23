@@ -186,7 +186,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
         case e: Throwable => ;
       }
       try {
-        kafkaTopics.cleanup(60*1000)
+        kafkaTopics.shutdown
       } catch {
         case e: Throwable => ;  // no-op, undeleted topics should be handled by separate cleanup process
       }
