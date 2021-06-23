@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
+import com.splicemachine.db.iapi.ast.ISpliceVisitor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
@@ -47,8 +48,10 @@ import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.ast.JoinConditionVisitor;
 import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
+import com.splicemachine.db.impl.ast.SpliceDerbyVisitorAdapter;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -1979,11 +1982,29 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
     @Override
     public void acceptChildren(Visitor v) throws StandardException{
         super.acceptChildren(v);
+
+        JoinConditionVisitor jcv = null;
+        if (v instanceof JoinConditionVisitor) {
+            jcv = (JoinConditionVisitor) v;
+        } else if (v instanceof SpliceDerbyVisitorAdapter && v.getBaseVisitor() instanceof JoinConditionVisitor) {
+            jcv = (JoinConditionVisitor) v.getBaseVisitor();
+        }
+
+        if (jcv != null && hasSubqueries()) {
+            // if this PRN has subqueries, correlated predicates in those subqueries can
+            // access childResult
+            jcv.addResultSetNumbers(childResult.getResultSetNumber());
+        }
+
         if(restriction!=null){
             restriction=(ValueNode)restriction.accept(v, this);
         }
         if(restrictionList!=null){
             restrictionList=(PredicateList)restrictionList.accept(v, this);
+        }
+
+        if (jcv != null && hasSubqueries()) {
+            jcv.removeResultSetNumbers(childResult.getResultSetNumber());
         }
     }
 
