@@ -50,16 +50,15 @@ public class ShowCreateViewProcedure extends BaseAdminProcedures {
     public static void SHOW_CREATE_VIEW(String schemaName, String tableName, ResultSet[] resultSet)
             throws SQLException, StandardException
     {
-        List<String> ddls = SHOW_CREATE_VIEW_CORE(schemaName, tableName);
-        resultSet[0] = ProcedureUtils.generateResult("DDL", ddls.get(0) + ";");
+        String ddl = SHOW_CREATE_VIEW_CORE(schemaName, tableName);
+        resultSet[0] = ProcedureUtils.generateResult("DDL", ddl + ";");
     }
 
-    public static List<String> SHOW_CREATE_VIEW_CORE(String schemaName, String viewName) throws SQLException {
+    public static String SHOW_CREATE_VIEW_CORE(String schemaName, String viewName) throws SQLException {
         Connection connection = getDefaultConn();
 
         schemaName = EngineUtils.validateSchema(schemaName);
         viewName = EngineUtils.validateTable(viewName);
-        List<String> ddls = Lists.newArrayList();
         try {
             TableDescriptor td = EngineUtils.verifyTableExists(connection, schemaName, viewName);
 
@@ -73,8 +72,7 @@ public class ShowCreateViewProcedure extends BaseAdminProcedures {
             }
 
             ViewDescriptor vd = ((EmbedConnection)connection).getLanguageConnection().getDataDictionary().getViewDescriptor(td);
-            ddls.add(vd.getViewText());
-            return ddls;
+            return vd.getViewText();
         } catch (StandardException e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
