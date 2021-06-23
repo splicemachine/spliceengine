@@ -1463,7 +1463,7 @@ public class GroupByNode extends SingleChildResultSetNode{
         List<ColumnReference> columnRefNodes = cnv.getList();
         for (ColumnReference cr : columnRefNodes) {
             if (!cr.useRealColumnStatistics())
-                noStatsColumns.add(cr.getSource().getSchemaName() + "." + cr.getSource().getFullName());
+                noStatsColumns.add(cr.getSchemaQualifiedColumnName());
         }
         return noStatsColumns;
     }

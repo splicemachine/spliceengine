@@ -204,7 +204,7 @@ public class ExplainNode extends DMLStatementNode {
         node.accept(cnv);
         List<FromBaseTable> baseTableNodes = cnv.getList();
         for (FromBaseTable t : baseTableNodes) {
-            String tableName = t.getExposedName();
+            String tableName = t.getTableDescriptor().getQualifiedName();
             if (!t.useRealTableStats()) {
                 noStatsTables.add(new SQLVarchar(tableName));
             } else if (!t.getNoStatsColumnIds().isEmpty()) {
