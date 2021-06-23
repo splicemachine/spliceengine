@@ -112,7 +112,7 @@ public class LazyTxnView implements TxnView {
     }
 
     @Override
-    public UUID getParentQueryIdForTrigger() {
+    public UUID getParentQueryIdForTrigger(UUID currentId) {
         return null;
     }
 

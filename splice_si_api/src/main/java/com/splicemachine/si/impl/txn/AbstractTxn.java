@@ -15,6 +15,8 @@
 package com.splicemachine.si.impl.txn;
 
 import com.carrotsearch.hppc.LongHashSet;
+import com.splicemachine.db.iapi.error.SQLWarningFactory;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
@@ -23,6 +25,7 @@ import com.splicemachine.si.constants.SIConstants;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.sql.SQLWarning;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -68,18 +71,17 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
         }
     }
 
-    public UUID getParentQueryIdForTrigger() {
+    public UUID getParentQueryIdForTrigger(UUID currentId) throws SQLWarning {
         AbstractTxn parent;
         if (parentReference == null || parentReference.getCurrentQueryId() == null) {
             try {
                 parent = (AbstractTxn) getParentTxnView();
                 if (parent.getCurrentQueryId() == null) {
                     return null; // maybe should throw an error here
-                } else {
-                    return parent.getCurrentQueryId();
                 }
+                return parent.getCurrentQueryId();
             } catch (Exception ignore) {
-                return null;
+                throw SQLWarningFactory.newSQLWarning( SQLState.TRIGGER_CALLER_NOT_LOGGED, currentId );
             }
         }
         return parentReference.getCurrentQueryId();

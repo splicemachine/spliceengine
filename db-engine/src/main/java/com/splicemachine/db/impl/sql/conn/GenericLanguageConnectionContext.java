@@ -619,11 +619,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public java.util.UUID getLatestQueryId() {
-        return null;
-    }
-
-    @Override
     public void initialize() throws StandardException{
         interruptedException = null;
         sessionUser = IdUtil.getUserAuthorizationId(userName);

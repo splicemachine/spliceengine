@@ -17,6 +17,7 @@ package com.splicemachine.si.api.txn;
 import com.splicemachine.utils.ByteSlice;
 
 import java.io.Externalizable;
+import java.sql.SQLWarning;
 import java.util.Iterator;
 import java.util.UUID;
 
@@ -227,7 +228,7 @@ public interface TxnView extends Externalizable {
 
     TaskId getTaskId();
 
-    UUID getParentQueryIdForTrigger();
+    UUID getParentQueryIdForTrigger(UUID currentId) throws SQLWarning;
 
     void setCurrentQueryId(UUID uuid);
 

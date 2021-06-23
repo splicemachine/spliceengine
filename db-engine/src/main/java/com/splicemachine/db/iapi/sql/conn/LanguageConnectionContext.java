@@ -122,7 +122,6 @@ public interface LanguageConnectionContext extends Context {
     ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo();
     void recordAdditionalDisplayedTriggerInfo(long elapsedTime, long modifiedRows, java.util.UUID queryId);
     void recordTriggerInfoWhileFiring(UUID triggerId);
-    java.util.UUID getLatestQueryId();
 
     /**
      * Initialize. For use after pushing the contexts that initialization needs.

@@ -612,7 +612,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         UUID parentId = null;
 
         try {
-            parentId = getCurrentTransaction().getParentQueryIdForTrigger();
+            parentId = getCurrentTransaction().getParentQueryIdForTrigger(uuid);
         } catch (Exception ignored) {}
 
         String parentIdString = parentId == null ? "" : parentId.toString();

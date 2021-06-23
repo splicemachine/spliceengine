@@ -24,6 +24,7 @@ import com.splicemachine.utils.ByteSlice;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.sql.SQLWarning;
 import java.util.*;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -406,7 +407,7 @@ public abstract class AbstractTxnView implements TxnView {
     }
 
     @Override
-    public UUID getParentQueryIdForTrigger() {
+    public UUID getParentQueryIdForTrigger(UUID currentId) throws SQLWarning {
         return null;
     }
 

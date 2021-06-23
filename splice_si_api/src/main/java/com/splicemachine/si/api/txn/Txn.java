@@ -213,7 +213,7 @@ public interface Txn extends TxnView{
         }
 
         @Override
-        public UUID getParentQueryIdForTrigger() {
+        public UUID getParentQueryIdForTrigger(UUID currentId) {
             return null;
         }
 
