@@ -968,7 +968,7 @@ public final class UpdateNode extends DMLModStatementNode
             resultSet.generate( acb, mb );
         }
 
-        if( null != targetVTI)
+        if( null != targetVTI  && !inMatchingClause() )
         {
             targetVTI.assignCostEstimate(resultSet.getNewCostEstimate());
             mb.push((double)this.resultSet.getFinalCostEstimate(false).getEstimatedRowCount());
