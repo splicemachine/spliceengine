@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
@@ -44,11 +45,21 @@ import splice.com.google.common.base.Joiner;
 import splice.com.google.common.collect.Lists;
 
 import java.util.List;
+import java.util.Properties;
 
 /**
  * Created by yxia on 11/26/19.
  */
 public class FullOuterJoinNode extends JoinNode {
+
+    public FullOuterJoinNode() {}
+    public FullOuterJoinNode(ResultSetNode leftResult, ResultSetNode rightResult, Object onClause, Object usingClause,
+                             Properties tableProperties,
+                             ContextManager contextManager) throws StandardException {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.FULL_OUTER_JOIN_NODE);
+        init(leftResult, rightResult, onClause, usingClause, tableProperties);
+    }
     /**
      * Initializer for a FullOuterJoinNode.
      *

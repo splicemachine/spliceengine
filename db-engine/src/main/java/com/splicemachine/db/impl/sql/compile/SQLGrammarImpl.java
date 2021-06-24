@@ -858,7 +858,6 @@ class SQLGrammarImpl {
                         Boolean delimitedIdentifier)
             throws StandardException
     {
-        int nodeType = C_NodeTypes.CREATE_ALIAS_NODE;
         String methodName = null;
 
         if (
@@ -895,15 +894,8 @@ class SQLGrammarImpl {
             }
         }
 
-        return (StatementNode) getNodeFactory().getNode(
-                nodeType,
-                aliasName,
-                targetName,
-                methodName,
-                aliasSpecificInfo,
-                Character.valueOf(aliasType),
-                delimitedIdentifier,
-                cm );
+        return new CreateAliasNode(aliasName, targetName, methodName, aliasSpecificInfo,
+                Character.valueOf(aliasType), delimitedIdentifier, cm );
     }
 
     /**
@@ -1104,46 +1096,25 @@ class SQLGrammarImpl {
         switch(joinType)
         {
             case JoinNode.INNERJOIN:
-                return new JoinNode(leftRSN,
-                        rightRSN,
-                        onClause,
-                        usingClause,
-                        null,
-                        null,
-                        null,
+                return new JoinNode(leftRSN, rightRSN,
+                        onClause, usingClause,
+                        null /* selectList */, null /* tableProperties */,
+                        null /* joinOrderStrategyProperties */,
                         getContextManager());
 
             case JoinNode.LEFTOUTERJOIN:
-                return (JoinNode) nodeFactory.getNode(
-                        C_NodeTypes.HALF_OUTER_JOIN_NODE,
-                        leftRSN,
-                        rightRSN,
-                        onClause,
-                        usingClause,
-                        Boolean.FALSE,
-                        null,
-                        getContextManager());
+                return new HalfOuterJoinNode(leftRSN, rightRSN,
+                        onClause, usingClause, Boolean.FALSE /* rightOuterJoin */,
+                        null, null, getContextManager());
 
             case JoinNode.RIGHTOUTERJOIN:
-                return (JoinNode) nodeFactory.getNode(
-                        C_NodeTypes.HALF_OUTER_JOIN_NODE,
-                        leftRSN,
-                        rightRSN,
-                        onClause,
-                        usingClause,
-                        Boolean.TRUE,
-                        null,
-                        getContextManager());
+                return new HalfOuterJoinNode(leftRSN, rightRSN,
+                        onClause, usingClause, Boolean.TRUE /* rightOuterJoin */,
+                        null, null, getContextManager());
 
             case JoinNode.FULLOUTERJOIN:
-                return (JoinNode) nodeFactory.getNode(
-                        C_NodeTypes.FULL_OUTER_JOIN_NODE,
-                        leftRSN,
-                        rightRSN,
-                        onClause,
-                        usingClause,
-                        null,
-                        getContextManager());
+                return new FullOuterJoinNode(leftRSN, rightRSN,
+                        onClause, usingClause, null, getContextManager());
 
             default:
                 if (SanityManager.DEBUG)
@@ -1207,14 +1178,12 @@ class SQLGrammarImpl {
             // date... probably
             String opStr = ((UnaryOperatorNode)operandNode).getOperatorString();
             if ("date".equals(opStr)) {
-                truncateOperand = (ValueNode) nodeFactory.getNode(
-                        C_NodeTypes.UNARY_DATE_TIMESTAMP_OPERATOR_NODE,
+                truncateOperand = new UnaryDateTimestampOperatorNode(
                         operandNode,
                         DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DATE),
                         getContextManager());
             } else if ("timestamp".equals(opStr)) {
-                truncateOperand = (ValueNode) nodeFactory.getNode(
-                        C_NodeTypes.UNARY_DATE_TIMESTAMP_OPERATOR_NODE,
+                truncateOperand = new UnaryDateTimestampOperatorNode(
                         operandNode,
                         DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP),
                         getContextManager());
@@ -1223,8 +1192,7 @@ class SQLGrammarImpl {
             // timestamp... likely
             String opStr = ((BinaryOperatorNode)operandNode).getOperatorString();
             if ("timestamp".equals(opStr)) {
-                truncateOperand = (ValueNode) nodeFactory.getNode(
-                        C_NodeTypes.UNARY_DATE_TIMESTAMP_OPERATOR_NODE,
+                truncateOperand = new UnaryDateTimestampOperatorNode(
                         operandNode,
                         DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP),
                         getContextManager());

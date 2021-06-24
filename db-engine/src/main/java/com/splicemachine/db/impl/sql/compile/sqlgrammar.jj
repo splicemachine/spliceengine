@@ -8258,11 +8258,8 @@ dateTimeScalarFunction() throws StandardException :
 |
         <DATE> <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
     {
-        return (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.UNARY_DATE_TIMESTAMP_OPERATOR_NODE,
-                                                        value,
-                                                        DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.DATE),
-                                                        getContextManager());
+        return new UnaryDateTimestampOperatorNode(value,
+                    DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.DATE), getContextManager());
     }
 |
         <TIMESTAMP> <LEFT_PAREN> value = additiveExpression(null,0) timestampNode = timestampFunctionCompletion( value)
@@ -8374,11 +8371,8 @@ timestampFunctionCompletion( ValueNode firstArg) throws StandardException :
 {
         <RIGHT_PAREN>
     {
-        return (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.UNARY_DATE_TIMESTAMP_OPERATOR_NODE,
-                                                        firstArg,
-                                                        DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.TIMESTAMP),
-                                                        getContextManager());
+        return new UnaryDateTimestampOperatorNode(firstArg, 
+              DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.TIMESTAMP), getContextManager());
         }
 |
         <COMMA> timeValue = additiveExpression(null,0) <RIGHT_PAREN>

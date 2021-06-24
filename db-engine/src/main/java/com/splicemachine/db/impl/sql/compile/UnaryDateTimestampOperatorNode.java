@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.*;
@@ -55,6 +56,13 @@ public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
     private static final String TIMESTAMP_METHOD_NAME="getTimestamp";
     private static final String DATE_METHOD_NAME="getDate";
 
+    public UnaryDateTimestampOperatorNode() {}
+    public UnaryDateTimestampOperatorNode(ValueNode operandNode, DataTypeDescriptor targetType, ContextManager cm)
+            throws StandardException {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.UNARY_DATE_TIMESTAMP_OPERATOR_NODE);
+        init(operandNode, targetType);
+    }
     /**
      * @param operand    The operand of the function
      * @param targetType The type of the result. Timestamp or Date.

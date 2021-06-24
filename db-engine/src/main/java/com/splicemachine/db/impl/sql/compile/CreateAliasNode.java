@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
@@ -127,6 +128,9 @@ public class CreateAliasNode extends DDLStatementNode{
 
     private AliasInfo aliasInfo;
 
+    public CreateAliasNode(){
+    }
+
     /**
      * Constructor
      *
@@ -139,9 +143,6 @@ public class CreateAliasNode extends DDLStatementNode{
      * @param cm                The context manager
      * @throws StandardException Thrown on error
      */
-    public CreateAliasNode(){
-    }
-
     public CreateAliasNode(TableName aliasName,
                            Object targetObject,
                            String methodName,
@@ -152,6 +153,18 @@ public class CreateAliasNode extends DDLStatementNode{
         super(aliasName,cm);
         init(aliasName,targetObject,methodName,
                 aliasSpecificInfo, aliasType,(Object)Boolean.FALSE);
+    }
+
+    public CreateAliasNode(Object aliasName,
+                           Object targetObject,
+                           String methodName,
+                           Object aliasSpecificInfo,
+                           Character aliasType,
+                           Boolean delimitedIdentifier,
+                           ContextManager cm) throws StandardException {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.CREATE_ALIAS_NODE);
+        init(aliasName, targetObject, methodName, aliasSpecificInfo, aliasType, delimitedIdentifier);
     }
 
 
