@@ -20,6 +20,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
@@ -54,9 +55,11 @@ public class SetNode extends MiscellaneousStatementNode {
      *
      * @param columnList The specification of column values to alter.
      */
-    public void init(Object columnList, Object newValuesList) throws StandardException {
-        assignedColumnsList = (ValueNodeList) columnList;
-        this.newValuesList = (ValueNodeList) newValuesList;
+    public void SetNode(ValueNodeList columnList, ValueNodeList newValuesList, ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.SET_NODE);
+        assignedColumnsList = columnList;
+        this.newValuesList = newValuesList;
     }
 
     /**
