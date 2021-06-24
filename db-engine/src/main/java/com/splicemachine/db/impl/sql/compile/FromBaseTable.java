@@ -2840,9 +2840,7 @@ public class FromBaseTable extends FromTable {
             heapReferencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,true,false,false);
         }
         ResultColumnList heapRCL=resultColumns.compactColumns(cursorTargetTable,false);
-        retval=(ResultSetNode)getNodeFactory().getNode(
-                C_NodeTypes.INDEX_TO_BASE_ROW_NODE,
-                this,
+        retval = new IndexToBaseRowNode(this,
                 baseConglomerateDescriptor,
                 heapRCL,
                 cursorTargetTable,

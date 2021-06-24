@@ -63,6 +63,8 @@ public final class NumericConstantNode extends ConstantNode
         this.setType(type);
     }
 
+    class Integer extends NumericConstantNode
+
     /**
      * Initializer for a typed null node
      *

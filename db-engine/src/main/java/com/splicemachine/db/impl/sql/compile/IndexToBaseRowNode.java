@@ -36,11 +36,9 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.sql.compile.AccessPath;
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.compile.RequiredRowOrdering;
-import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.commons.lang3.tuple.Pair;
@@ -64,7 +62,7 @@ public class IndexToBaseRowNode extends FromTable{
     private FormatableBitSet allReferencedCols;
     private FormatableBitSet heapOnlyReferencedCols;
 
-    public void init(
+    public IndexToBaseRowNode(
             Object source,
             Object baseCD,
             Object resultColumns,
@@ -73,7 +71,9 @@ public class IndexToBaseRowNode extends FromTable{
             Object indexReferencedCols,
             Object restrictionList,
             Object forUpdate,
-            Object tableProperties){
+            Object tableProperties, ContextManager cm){
+        setNodeType(C_NodeTypes.INDEX_TO_BASE_ROW_NODE);
+        setContextManager(cm);
         super.init(null,tableProperties);
         this.source=(FromBaseTable)source;
         this.baseCD=(ConglomerateDescriptor)baseCD;
