@@ -112,6 +112,12 @@ public class BinaryRelationalOperatorNode
          }
      }
 
+     public static class GreaterEquals extends BinaryRelationalOperatorNode {
+         public GreaterEquals(ValueNode leftOperand, ValueNode rightOperand, ContextManager cm) {
+             super(C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE, leftOperand, rightOperand, cm);
+         }
+     }
+
     public BinaryRelationalOperatorNode(int nodeType, ValueNode leftOperand, ValueNode rightOperand, ContextManager cm) {
         setNodeType(nodeType);
         setContextManager(cm);

@@ -118,12 +118,8 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		ContextManager cm = getContextManager();
 
 		/* leftO < rightOList.elementAt(0) */
-		leftBCO = (BinaryComparisonOperatorNode) 
-					nodeFactory.getNode(
-									C_NodeTypes.BINARY_LESS_THAN_OPERATOR_NODE,
-									getLeftOperand(),
-								 	rightOperandList.elementAt(0),
-									cm);
+		leftBCO = new BinaryRelationalOperatorNode(C_NodeTypes.BINARY_LESS_THAN_OPERATOR_NODE,
+									getLeftOperand(), (ValueNode) rightOperandList.elementAt(0), cm);
 		/* Set type info for the operator node */
 		leftBCO.bindComparisonOperator();
 
@@ -134,12 +130,8 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
             getLeftOperand().getClone() : getLeftOperand();
 
 		/* leftO > rightOList.elementAt(1) */
-		rightBCO = (BinaryComparisonOperatorNode) 
-					nodeFactory.getNode(
-								C_NodeTypes.BINARY_GREATER_THAN_OPERATOR_NODE,
-								leftClone,
-								rightOperandList.elementAt(1),
-								cm);
+		rightBCO = new BinaryRelationalOperatorNode(C_NodeTypes.BINARY_GREATER_THAN_OPERATOR_NODE,
+								leftClone, (ValueNode) rightOperandList.elementAt(1), cm);
 		/* Set type info for the operator node */
 		rightBCO.bindComparisonOperator();
 
@@ -225,12 +217,8 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE,cm);
 
 		/* Create the AND <= */
-		BinaryComparisonOperatorNode lessEqual =
-				(BinaryComparisonOperatorNode) nodeFactory.getNode(
-						C_NodeTypes.BINARY_LESS_EQUALS_OPERATOR_NODE,
-						leftClone1,
-						rightOperandList.elementAt(1),
-						cm);
+		BinaryComparisonOperatorNode lessEqual = new BinaryRelationalOperatorNode(C_NodeTypes.BINARY_LESS_EQUALS_OPERATOR_NODE,
+						leftClone1, (ValueNode) rightOperandList.elementAt(1), cm);
 
 		/* Set type info for the operator node */
 		lessEqual.bindComparisonOperator();
@@ -241,12 +229,8 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		newAnd.postBindFixup();
 
 		/* Create the AND >= */
-		BinaryComparisonOperatorNode greaterEqual =
-				(BinaryComparisonOperatorNode) nodeFactory.getNode(
-						C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE,
-						getLeftOperand(),
-						rightOperandList.elementAt(0),
-						cm);
+		BinaryComparisonOperatorNode greaterEqual = new BinaryRelationalOperatorNode.GreaterEquals(
+					getLeftOperand(), (ValueNode) rightOperandList.elementAt(0), cm);
 
 		/* Set type info for the operator node */
 		greaterEqual.bindComparisonOperator();
@@ -307,22 +291,14 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		ContextManager cm = getContextManager();
 
 		/* leftO >= rightOList.elementAt(0) */
-		leftBCO = (BinaryComparisonOperatorNode) 
-					nodeFactory.getNode(
-							C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE,
-							getLeftOperand(),
-							rightOperandList.elementAt(0),
-							cm);
+		leftBCO = new BinaryRelationalOperatorNode.GreaterEquals(getLeftOperand(),
+				(ValueNode) rightOperandList.elementAt(0), cm);
 		/* Set type info for the operator node */
 		leftBCO.bindComparisonOperator();
 
 		/* leftO <= rightOList.elementAt(1) */
-		rightBCO = (BinaryComparisonOperatorNode) 
-					nodeFactory.getNode(
-						C_NodeTypes.BINARY_LESS_EQUALS_OPERATOR_NODE,
-						getLeftOperand(),
-						rightOperandList.elementAt(1),
-						cm);
+		rightBCO = new BinaryRelationalOperatorNode(C_NodeTypes.BINARY_LESS_EQUALS_OPERATOR_NODE,
+						getLeftOperand(), (ValueNode) rightOperandList.elementAt(1), cm);
 		/* Set type info for the operator node */
 		rightBCO.bindComparisonOperator();
 

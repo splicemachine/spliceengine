@@ -670,12 +670,9 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
                 likeLTopt = new CharConstantNode(lessThanString, getContextManager());
             }
 
-            BinaryComparisonOperatorNode lessThan = 
-                (BinaryComparisonOperatorNode) getNodeFactory().getNode(
-                    C_NodeTypes.BINARY_LESS_THAN_OPERATOR_NODE,
-                    getReceiver().getClone(),
-                    likeLTopt,
-                    getContextManager());
+            BinaryComparisonOperatorNode lessThan = new BinaryRelationalOperatorNode(
+                            C_NodeTypes.BINARY_LESS_THAN_OPERATOR_NODE,
+                            getReceiver().getClone(), (ValueNode) likeLTopt, getContextManager());
 
             // Disable comparability checks
             lessThan.setForQueryRewrite(true);
@@ -720,12 +717,8 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
         //       >=
         //      /   \
         //  reciever pattern
-        BinaryComparisonOperatorNode greaterEqual = 
-            (BinaryComparisonOperatorNode) getNodeFactory().getNode(
-                C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE,
-                getReceiver().getClone(),
-                likeGEopt,
-                getContextManager());
+        BinaryComparisonOperatorNode greaterEqual = new BinaryRelationalOperatorNode.GreaterEquals(
+                getReceiver().getClone(), likeGEopt, getContextManager());
 
 
         // Disable comparability checks

@@ -10969,10 +10969,10 @@ aggregateExpression(String aggName, Class aggClass) throws StandardException :
 ValueNode
 stringAggregateExpression(String aggName, Class aggClass) throws StandardException :
 {
-    boolean     distinct = false;
-    ValueNode   value;
-    ValueNode   param = null;
-    OrderByList orderCols = null;
+    boolean      distinct = false;
+    ValueNode    value;
+    ConstantNode param = null;
+    OrderByList  orderCols = null;
 }
 {
     [ distinct = setQuantifier() ] value = additiveExpression(null, 0)
@@ -14458,14 +14458,9 @@ valueSpecification() throws StandardException :
         thenElseList.addElement(new UntypedNullConstantNode(cm));
         thenElseList.addElement(leftExpression);
 
-        return new ConditionalNode( (ValueNode) nodeFactory.getNode(
-                                                        C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
-                                                        leftExpression,
-                                                        rightExpression,
-                                                        cm),
-                                            thenElseList,
-                                            Boolean.TRUE,//this node is for nullif
-                                            cm);
+        return new ConditionalNode( new BinaryRelationalOperatorNode.Equals(leftExpression, rightExpression, cm),
+                                    thenElseList, Boolean.TRUE, // this node is for nullif
+                                    cm);
     }
 |
     // CASE WHEN P1 THEN [T1 | NULL] (WHEN Pi THEN [Ti | NULL])* [ELSE E | NULL] END
@@ -14592,11 +14587,7 @@ whenThenExpression(ValueNode compareTo) throws StandardException :
         thenElseList.addElement(elseExpr); // else
 
         if (compareTo != null) {
-            expr = ((ValueNode) nodeFactory.getNode(
-                        C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
-                        compareTo,
-                        expr,
-                        cm));
+            expr = new BinaryRelationalOperatorNode.Equals(compareTo, expr, cm);
         }
         return new ConditionalNode(expr, thenElseList, Boolean.FALSE, cm);
     }
