@@ -3007,11 +3007,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
                                /* Create the AND */
                     ValueNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
-                    AndNode newAnd = (AndNode)getNodeFactory().getNode(
-                            C_NodeTypes.AND_NODE,
-                            roClone,
-                            trueNode,
-                            getContextManager());
+                    AndNode newAnd = new AndNode((ValueNode) roClone, trueNode, getContextManager());
                     newAnd.postBindFixup();
                     // Add a new predicate to both the search clauses and this list
                     JBitSet tableMap=new JBitSet(getCompilerContext().getMaximalPossibleTableCount());

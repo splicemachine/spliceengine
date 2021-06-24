@@ -1757,11 +1757,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
                 C_NodeTypes.BOOLEAN_CONSTANT_NODE,
                 Boolean.TRUE,
                 getContextManager());
-        AndNode newAnd = (AndNode) getNodeFactory().getNode(
-				C_NodeTypes.AND_NODE,
-				booleanExpression,
-				trueNode,
-				getContextManager());
+        AndNode newAnd = new AndNode(booleanExpression, trueNode, getContextManager());
         return newAnd;
      }
 

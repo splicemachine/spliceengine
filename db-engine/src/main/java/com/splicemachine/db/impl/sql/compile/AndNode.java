@@ -411,16 +411,9 @@ public class AndNode extends BinaryLogicalOperatorNode{
     }
 
     public static AndNode newAndNode(ValueNode left, boolean doPostBindFixup) throws StandardException {
-        ValueNode trueNode=(ValueNode)left.getNodeFactory().getNode(
-                C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                Boolean.TRUE,
-                left.getContextManager());
+        ValueNode trueNode = new BooleanConstantNode(Boolean.TRUE, left.getContextManager());
         AndNode    andNode;
-        andNode = (AndNode) left.getNodeFactory().getNode(
-                                                    C_NodeTypes.AND_NODE,
-                                                    left,
-                                                    trueNode,
-                                                    left.getContextManager());
+        andNode = new AndNode(left, trueNode, left.getContextManager());
         if (doPostBindFixup)
             andNode.postBindFixup();
         return andNode;
@@ -438,11 +431,7 @@ public class AndNode extends BinaryLogicalOperatorNode{
         ValueNode left = getLeftOperand();
         ValueNode right = getRightOperand();
         AndNode    andNode;
-        andNode = (AndNode) left.getNodeFactory().getNode(
-                                                    C_NodeTypes.AND_NODE,
-                                                    left,
-                                                    right,
-                                                    left.getContextManager());
+        andNode = new AndNode(left, right, left.getContextManager());
         andNode.postBindFixup();
         return andNode;
     }
