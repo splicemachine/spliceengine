@@ -363,9 +363,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                 ValueNode leftOperand = (ValueNode) leftOperandList.elementAt(i);
                 if (srcVal instanceof ListValueNode)
                     srcVal = ((ListValueNode)srcVal).getValue(i);
-                ParameterNode pNode =
-                    (ParameterNode) getNodeFactory().getNode(
-                        C_NodeTypes.PARAMETER_NODE,
+                ParameterNode pNode = new ParameterNode(
                         0,
                         null, // default value
                         getContextManager());

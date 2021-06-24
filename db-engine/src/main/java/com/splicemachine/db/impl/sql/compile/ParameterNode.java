@@ -129,7 +129,7 @@ public class ParameterNode extends ValueNode
     {
     }
 
-    public ParameterNode(ContextManager cm, Integer parameterNumber, DataValueDescriptor defaultValue)
+    public ParameterNode(Integer parameterNumber, DataValueDescriptor defaultValue, ContextManager cm)
     {
         setContextManager(cm);
         setNodeType(C_NodeTypes.PARAMETER_NODE);

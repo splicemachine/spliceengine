@@ -433,9 +433,8 @@ class SQLGrammarImpl {
         {
             sdv = (DataValueDescriptor) paramDefaults[parameterNumber];
         }
-        parm = new ParameterNode(getContextManager(),
-                ReuseFactory.getInteger(parameterNumber),
-                sdv);
+        parm = new ParameterNode(ReuseFactory.getInteger(parameterNumber),
+                sdv, getContextManager());
 
         parameterNumber++;
         parameterList.addElement(parm);
