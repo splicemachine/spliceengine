@@ -195,8 +195,9 @@ public class SqlshellIT {
             "-------------------------------------------------------------------------------------------------------\n" +
             "SQLSHELLIT          |VX1                                               |NULL      |                    \n" +
             "SQLSHELLIT          |V_1                                               |NULL      |                    \n" +
+            "SQLSHELLIT          |V_2                                               |NULL      |                    \n" +
             "\n" +
-            "2 rows selected\n");
+            "3 rows selected\n");
     }
 
 
