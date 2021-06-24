@@ -116,9 +116,9 @@ node('splice-standalone') {
     def releases = []
     def artifact_branch = source_branch[-2..-1]
     if ( "$artifact_branch" == ".7" ) {
-        releases = ["cdh5.16.1","hdp2.5.6"]
+        releases = ["cdh5.16.1","hdp2.6.5"]
     } else if ( "$artifact_branch" == ".8" ) {
-        releases = ["cdh5.16.1","hdp2.5.6"]
+        releases = ["cdh5.16.1","hdp2.6.5"]
     } else if ( "$artifact_branch" == ".0" ) {
         releases = ["cdh6.3.0","dbaas3.0","dbaas3.1","hdp3.1.0","hdp3.1.5"]
     } else if ( "$artifact_branch" == ".1" ) {
