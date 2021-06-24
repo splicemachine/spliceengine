@@ -76,9 +76,6 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
         if (parentReference == null || parentReference.getCurrentQueryId() == null) {
             try {
                 parent = (AbstractTxn) getParentTxnView();
-                if (parent.getCurrentQueryId() == null) {
-                    return null; // maybe should throw an error here
-                }
                 return parent.getCurrentQueryId();
             } catch (Exception ignore) {
                 throw SQLWarningFactory.newSQLWarning( SQLState.TRIGGER_CALLER_NOT_LOGGED, currentId );
