@@ -14191,38 +14191,24 @@ setSchemaValues() throws StandardException :
 {
     schemaName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
     {
-        return (StatementNode) nodeFactory.getNode(
-                                C_NodeTypes.SET_SCHEMA_NODE,
-                                schemaName,
-                                null,
-                                getContextManager());
+        return new SetSchemaNode(schemaName, null, getContextManager());
     }
 |
     <USER>
     {
-        return (StatementNode) nodeFactory.getNode(
-                                C_NodeTypes.SET_SCHEMA_NODE,
-                                null,
-                                ReuseFactory.getInteger(StatementType.SET_SCHEMA_USER),
+        return new SetSchemaNode(null, ReuseFactory.getInteger(StatementType.SET_SCHEMA_USER),
                                 getContextManager());
     }
 |   dynamicParameterSpecification()
     {
-        return (StatementNode) nodeFactory.getNode(
-                                C_NodeTypes.SET_SCHEMA_NODE,
-                                null,
-                                ReuseFactory.getInteger(StatementType.SET_SCHEMA_DYNAMIC),
+        return new SetSchemaNode(null, ReuseFactory.getInteger(StatementType.SET_SCHEMA_DYNAMIC),
                                 getContextManager());
     }
 |    schemaName = string()
     {
         /* Max length for schema name is Limits.MAX_IDENTIFIER_LENGTH */
         IdUtil.checkIdentifierLengthLimit(schemaName, Limits.MAX_IDENTIFIER_LENGTH);
-        return (StatementNode) nodeFactory.getNode(
-                                C_NodeTypes.SET_SCHEMA_NODE,
-                                schemaName,
-                                null,
-                                getContextManager());
+        return new SetSchemaNode(schemaName, null, getContextManager());
     }
 }
 

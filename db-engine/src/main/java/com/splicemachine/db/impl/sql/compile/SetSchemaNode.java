@@ -31,16 +31,15 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.StatementType;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 
@@ -68,11 +67,13 @@ public class SetSchemaNode extends MiscellaneousStatementNode
      * @param type            Type of schema name could be USER or dynamic parameter
      *
      */
-    public void init(Object schemaName, Object type)
+    public SetSchemaNode(String schemaName, Integer type, ContextManager cm)
     {
-        this.name = (String) schemaName;
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.SET_SCHEMA_NODE);
+        this.name = schemaName;
         if (type != null)
-            this.type = (Integer) type;
+            this.type = type;
     }
 
     /**
