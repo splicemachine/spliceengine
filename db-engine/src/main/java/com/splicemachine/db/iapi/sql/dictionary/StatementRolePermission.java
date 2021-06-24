@@ -68,11 +68,10 @@ public class StatementRolePermission extends StatementPermission
                       Activation activation
                       ) throws StandardException
     {
-        DataDictionary dd = lcc.getDataDictionary();
-        TransactionController tc = lcc.getTransactionExecute();
-
-        // For now, only allowed for database owner, and this check
-        // is never called for dbo, so always throw.
+        // For now, only allowed for database owner
+        if (lcc.currentUserIsDatabaseOwner(activation)) {
+            return;
+        }
         switch (privType) {
         case Authorizer.CREATE_ROLE_PRIV:
             throw StandardException.newException

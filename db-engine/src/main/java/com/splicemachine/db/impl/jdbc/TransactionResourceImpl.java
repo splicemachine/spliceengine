@@ -287,7 +287,7 @@ public final class TransactionResourceImpl
     {
         // setting up local connection
         lcc = database.setupConnection(cm, username, groupuserlist, drdaID, dbname, rdbIntTkn, useSpark, useNativeSpark,
-                skipStats, defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
+                    skipStats, defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
     }
 
     /**
@@ -525,7 +525,7 @@ public final class TransactionResourceImpl
 
             try {
                 StandardException se = (StandardException) thrownException;
-                LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+                LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC(false);
                 if (lcc != null) {
                     String s = lcc.getTransactionCompile().getActiveStateTxIdString();
                     if (s != null) {

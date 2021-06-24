@@ -80,6 +80,10 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     ValueNode(ContextManager cm) {
         super(cm);
     }
+    ValueNode(ContextManager cm, int nodeType) {
+        super(cm);
+        setNodeType(nodeType);
+    }
 
     /**
      * Set this node's type from type components.
@@ -352,7 +356,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     protected final void setCollationUsingCompilationSchema(int collationDerivation)
     throws StandardException {
         setCollationInfo(
-                getSchemaDescriptor(null, false).getCollationType(),
+                getSchemaDescriptor(null, null, false).getCollationType(),
                 collationDerivation);
     }
 
@@ -622,14 +626,8 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     public ValueNode putAndsOnTop()
                     throws StandardException
     {
-        NodeFactory        nodeFactory = getNodeFactory();
-
-        QueryTreeNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
-        AndNode andNode = (AndNode) nodeFactory.getNode(
-                                        C_NodeTypes.AND_NODE,
-                                        this,
-                                        trueNode,
-                                        getContextManager());
+        BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
+        AndNode andNode = new AndNode(this, trueNode, getContextManager());
         andNode.postBindFixup();
         return andNode;
     }

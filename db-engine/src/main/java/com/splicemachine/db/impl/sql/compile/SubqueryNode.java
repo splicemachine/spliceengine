@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
@@ -192,9 +193,10 @@ public class SubqueryNode extends ValueNode{
 
     private boolean hintNotFlatten=false;
 
+    public SubqueryNode() {}
+
     /**
-     * Initializer.
-     *
+     * Constructor
      * @param resultSet          The ResultSetNode for the subquery
      * @param subqueryType       The type of the subquery
      * @param leftOperand        The left operand, if any, of the subquery
@@ -203,6 +205,18 @@ public class SubqueryNode extends ValueNode{
      * @param fetchFirst         FETCH FIRST n ROWS ONLY
      * @param hasJDBClimitClause True if the offset/fetchFirst clauses come from JDBC limit/offset escape syntax
      */
+    public SubqueryNode(ResultSetNode resultSet,
+            Integer subqueryType,
+            ValueNode leftOperand,
+            OrderByList orderCols,
+            ValueNode offset,
+            ValueNode fetchFirst,
+            Boolean hasJDBClimitClause, ContextManager cm) throws StandardException
+    {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.SUBQUERY_NODE);
+        init(resultSet, subqueryType, leftOperand, orderCols, offset, fetchFirst, hasJDBClimitClause);
+    }
 
     public void init(
             Object resultSet,
@@ -211,7 +225,8 @@ public class SubqueryNode extends ValueNode{
             Object orderCols,
             Object offset,
             Object fetchFirst,
-            Object hasJDBClimitClause){
+            Object hasJDBClimitClause)
+    {
         this.resultSet=(ResultSetNode)resultSet;
         this.subqueryType= (Integer) subqueryType;
         this.orderByList=(OrderByList)orderCols;
@@ -2276,8 +2291,7 @@ public class SubqueryNode extends ValueNode{
             ResultColumn firstRC = resultSet.getResultColumns().elementAt(0);
             return firstRC.getExpression();
         } else {
-            ValueTupleNode items = (ValueTupleNode) getNodeFactory()
-                    .getNode(C_NodeTypes.VALUE_TUPLE_NODE, getContextManager());
+            ValueTupleNode items = new ValueTupleNode(getContextManager());
             for (ResultColumn rc : resultSet.getResultColumns()) {
                 if (!rc.isGenerated() && !rc.pulledupOrderingColumn()) {
                     items.addValueNode(rc.getExpression());
@@ -2371,36 +2385,10 @@ public class SubqueryNode extends ValueNode{
         joinCondition=getNewJoinCondition(leftOperand,rightOperand);
 
         ValueNode andLeft=joinCondition;
-
-        /* For NOT IN or ALL, and if either side of the comparison is nullable, and the
-         * subquery can not be flattened (because of that), we need to add IS NULL node
-         * on top of the nullables, such that the behavior is (beetle 5173):
-         *
-         *    (1) If we have nulls in right operand, no row is returned.
-         *    (2) If subquery result is empty before applying join predicate, every
-         *          left row (including NULLs) is returned.
-         *      (3) Otherwise, return {all left row} - {NULLs}
-         */
-        if(isNOT_IN() || isALL()){
-            if (leftOperand instanceof ValueTupleNode && rightOperand instanceof ValueTupleNode) {
-                ValueTupleNode leftItems = (ValueTupleNode) leftOperand;
-                ValueTupleNode rightItems = (ValueTupleNode) rightOperand;
-
-                for (int i = 0; i < leftItems.size(); i++) {
-                    andLeft = fixPredicateForNotInAndAll(andLeft, leftItems.get(i), rightItems.get(i));
-                }
-                andLeft = SelectNode.normExpressions(andLeft);
-            } else {
-                andLeft = fixPredicateForNotInAndAll(andLeft, leftOperand, rightOperand);
-            }
-        }
+        andLeft = SelectNode.normExpressions(andLeft);
 
         /* Place an AndNode above the <BinaryComparisonOperator> */
-        andNode=(AndNode)getNodeFactory().getNode(
-                C_NodeTypes.AND_NODE,
-                andLeft,
-                getTrueNode(),
-                getContextManager());
+        andNode = new AndNode(andLeft, getTrueNode(), getContextManager());
 
         /* Build the referenced table map for the new predicate */
         tableMap=new JBitSet(numTables);
@@ -2473,11 +2461,7 @@ public class SubqueryNode extends ValueNode{
         if (leftNullable || rightNullable) {
             /* Create a normalized structure */
             BooleanConstantNode falseNode = new BooleanConstantNode(Boolean.FALSE,getContextManager());
-            OrNode newOr = (OrNode) getNodeFactory().getNode(
-                    C_NodeTypes.OR_NODE,
-                    newTop,
-                    falseNode,
-                    getContextManager());
+            OrNode newOr = new OrNode(newTop, falseNode, getContextManager());
             newOr.postBindFixup();
             newTop = newOr;
 
@@ -2488,11 +2472,7 @@ public class SubqueryNode extends ValueNode{
                                 leftItem,
                                 getContextManager());
                 leftIsNull.bindComparisonOperator();
-                newOr = (OrNode) getNodeFactory().getNode(
-                        C_NodeTypes.OR_NODE,
-                        leftIsNull,
-                        newTop,
-                        getContextManager());
+                newOr = new OrNode(leftIsNull, newTop, getContextManager());
                 newOr.postBindFixup();
                 newTop = newOr;
             }
@@ -2503,11 +2483,7 @@ public class SubqueryNode extends ValueNode{
                                 rightItem,
                                 getContextManager());
                 rightIsNull.bindComparisonOperator();
-                newOr = (OrNode) getNodeFactory().getNode(
-                        C_NodeTypes.OR_NODE,
-                        rightIsNull,
-                        newTop,
-                        getContextManager());
+                newOr = new OrNode(rightIsNull, newTop, getContextManager());
                 newOr.postBindFixup();
                 newTop = newOr;
             }
@@ -2608,17 +2584,13 @@ public class SubqueryNode extends ValueNode{
             ValueTupleNode leftItems = (ValueTupleNode) leftOperand;
             ValueTupleNode rightItems = (ValueTupleNode) rightOperand;
 
-            BinaryComparisonOperatorNode bcoNode =
+            ValueNode singleCondition =
                     getSingleComparisonJoinCondition(nodeType, leftItems.get(0), rightItems.get(0));
 
-            ValueNode tree = bcoNode;
+            ValueNode tree = singleCondition;
             for (int i = 1; i < leftItems.size(); i++) {
-                bcoNode = getSingleComparisonJoinCondition(nodeType, leftItems.get(i), rightItems.get(i));
-                tree = (AndNode) getNodeFactory().getNode(
-                        C_NodeTypes.AND_NODE,
-                        tree,
-                        bcoNode,
-                        getContextManager());
+                singleCondition = getSingleComparisonJoinCondition(nodeType, leftItems.get(i), rightItems.get(i));
+                tree = new AndNode(tree, singleCondition, getContextManager());
                 ((AndNode) tree).postBindFixup();
             }
             return tree;
@@ -2627,7 +2599,7 @@ public class SubqueryNode extends ValueNode{
         }
     }
 
-    private BinaryComparisonOperatorNode getSingleComparisonJoinCondition(int nodeType, ValueNode left, ValueNode right)
+    private ValueNode getSingleComparisonJoinCondition(int nodeType, ValueNode left, ValueNode right)
             throws StandardException
     {
         BinaryComparisonOperatorNode bcoNode = (BinaryComparisonOperatorNode)
@@ -2637,7 +2609,28 @@ public class SubqueryNode extends ValueNode{
                         right,
                         getContextManager());
         bcoNode.bindComparisonOperator();
-        return bcoNode;
+
+        ValueNode result = bcoNode;
+
+        /* For NOT IN or ALL, and if either side of the comparison is nullable, and the
+         * subquery can not be flattened (because of that), we need to add IS NULL node
+         * on top of the nullables, such that the behavior is (beetle 5173):
+         *
+         *    (1) If we have nulls in right operand, no row is returned.
+         *    (2) If subquery result is empty before applying join predicate, every
+         *          left row (including NULLs) is returned.
+         *      (3) Otherwise, return {all left row} - {NULLs}
+         *
+         * Although getNewJoinCondition() is called in different flattening scenarios,
+         * the following code snippet for NOT_IN and ALL is only called in
+         * pushNewPredicate() code path because all other cases has preconditions like
+         * isIN(). Also, canAllBeFlattened() prevents NOT_IN subquery and ALL subquery
+         * being flattened if any elements in tuple is nullable.
+         */
+        if(isNOT_IN() || isALL()){
+            result = fixPredicateForNotInAndAll(result, left, right);
+        }
+        return result;
     }
 
     /*
@@ -2957,7 +2950,7 @@ public class SubqueryNode extends ValueNode{
             ResultColumn rc = resultColumns.elementAt(0);
             rightOperand = toColRef(rc, tableNumber);
         } else {
-            ValueTupleNode items = (ValueTupleNode) getNodeFactory().getNode(C_NodeTypes.VALUE_TUPLE_NODE, getContextManager());
+            ValueTupleNode items = new ValueTupleNode(getContextManager());
             for (ResultColumn rc : resultColumns) {
                 if (!rc.isGenerated() && !rc.pulledupOrderingColumn()) {
                     items.addValueNode(toColRef(rc, tableNumber));

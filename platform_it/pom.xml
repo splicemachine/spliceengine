@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.2.0.2019-SNAPSHOT</version>
+        <version>3.2.0.2022-SNAPSHOT</version>
     </parent>
     <properties>
         <!--Skip server startup-->
@@ -1207,6 +1207,14 @@
         </profile>
         <profile>
             <id>dbaas3.0</id>
+            <properties>
+                <extraDependency>splice_sentry</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
+            <id>dbaas3.1</id>
             <properties>
                 <extraDependency>splice_sentry</extraDependency>
                 <extraDependency2>splice_ee</extraDependency2>

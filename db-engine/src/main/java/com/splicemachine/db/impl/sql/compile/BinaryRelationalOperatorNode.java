@@ -1665,11 +1665,7 @@ public class BinaryRelationalOperatorNode
         ColumnReference baseColumnRef = baseColumnRefs.get(0);
 
         // build a fake ResultColumn
-        ResultColumn rc = (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                irg.getIndexColumnTypes()[indexColumnPosition],
-                operand,
-                getContextManager());
+        ResultColumn rc = new ResultColumn(irg.getIndexColumnTypes()[indexColumnPosition], operand, getContextManager());
         rc.setIndexExpression(operand);
         rc.setReferenced();
         // virtual column IDs are 1-based, set to conglomerate index column position
@@ -1907,7 +1903,7 @@ public class BinaryRelationalOperatorNode
 
          List<ColumnReference> crList = expr.getHashableJoinColumnReference();
          assert crList != null && !crList.isEmpty();
-         return !selfComparison(crList.get(0),false) && !implicitVarcharComparison();
+         return !selfComparison(crList.get(0),true) && !implicitVarcharComparison();
 
      }
 

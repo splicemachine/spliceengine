@@ -37,10 +37,12 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.iapi.util.ReuseFactory;
 
 import java.sql.Types;
 import java.util.Collections;
@@ -86,6 +88,11 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
     public boolean isCurrentTimestamp() { return whichType == CURRENT_TIMESTAMP; }
     public boolean isCurrentTimezone() { return whichType == CURRENT_TIMEZONE; }
 
+    public CurrentDatetimeOperatorNode(int type, ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE);
+        init( ReuseFactory.getInteger(type) );
+    }
     public void init(Object whichType) {
         if (whichType instanceof Integer) {
             this.whichType = (Integer) whichType;

@@ -572,18 +572,15 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
         if(andNode.getLeftOperand() instanceof OrNode){
             QueryTreeNode node = andNode.getLeftOperand();
-            QueryTreeNode trueNode;
+            ValueNode trueNode;
             AndNode tempAnd = null;
 
             IndexRowGenerator irg = cd == null ? null : cd.getIndexDescriptor();
             boolean isOnExpression = irg != null && irg.isOnExpression();
             if (isOnExpression) {
                 trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
-                tempAnd = (AndNode) getNodeFactory().getNode(
-                        C_NodeTypes.AND_NODE,
-                        trueNode,  // to be replaced later
-                        trueNode,
-                        getContextManager());
+                tempAnd = new AndNode(trueNode,  // to be replaced later
+                        trueNode, getContextManager());
             }
 
             while(node instanceof OrNode){
@@ -1078,11 +1075,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
         // Create and bind a new AND node in CNF form,
         // i.e. "<newOpNode> AND TRUE".
-        AndNode newAnd=(AndNode)getNodeFactory().getNode(
-                C_NodeTypes.AND_NODE,
-                newOpNode,
-                trueNode,
-                getContextManager());
+        AndNode newAnd = new AndNode(newOpNode, trueNode, getContextManager());
         newAnd.postBindFixup();
 
         // Categorize the new AND node; among other things, this
@@ -1543,12 +1536,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     public static Predicate generateUnsatPredicate(int numTables, NodeFactory nf, ContextManager cm) throws StandardException{
         BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE,cm);
         BooleanConstantNode falseNode = new BooleanConstantNode(Boolean.FALSE,cm);
-        AndNode andNode = (AndNode)nf.
-                getNode(C_NodeTypes.AND_NODE,
-                        falseNode,
-                        trueNode,
-                        cm);
-        JBitSet newJBitSet=new JBitSet(numTables);
+        AndNode andNode = new AndNode(falseNode, trueNode, cm);
+        JBitSet newJBitSet = new JBitSet(numTables);
 
         return (Predicate)nf.
                 getNode(C_NodeTypes.PREDICATE,

@@ -35,10 +35,12 @@ import com.splicemachine.db.catalog.ReferencedColumns;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 
@@ -72,6 +74,25 @@ public class DataDescriptorGenerator
     /**
      * Create a descriptor for the named schema with a null UUID.
      *
+     * @param dbName    The name of the schema we're interested in.
+     *            If the name is NULL, get the descriptor for the
+     *            current schema.
+     * @param aid    The authorization ID associated with the schema.
+     *        The owner of the schema.
+     *
+     * @param oid    The object ID
+     *
+     * @return    The descriptor for the schema.
+     * @exception StandardException        Thrown on failure
+     */
+    public DatabaseDescriptor newDatabaseDescriptor(String dbName, String aid, UUID oid) throws StandardException
+    {
+        return new DatabaseDescriptor(dataDictionary, dbName, aid, oid);
+    }
+
+    /**
+     * Create a descriptor for the named schema with a null UUID.
+     *
      * @param schemaName    The name of the schema we're interested in.
      *            If the name is NULL, get the descriptor for the
      *            current schema.
@@ -84,11 +105,11 @@ public class DataDescriptorGenerator
      * @exception StandardException        Thrown on failure
      */
     public SchemaDescriptor    newSchemaDescriptor(String schemaName,
-        String aid, UUID oid)
+        String aid, UUID oid, UUID dbid)
         throws StandardException
     {
         return new SchemaDescriptor(
-            dataDictionary, schemaName, aid, oid, 
+            dataDictionary, schemaName, aid, oid, dbid,
             dataDictionary.isSystemSchemaName(schemaName));
     }
 
@@ -454,15 +475,34 @@ public class DataDescriptorGenerator
                 dataDictionary, id, sd, sqlName, generationId);
     }
 
-    public UserDescriptor newUserDescriptor
-        (
-         String userName,
-         String hashingScheme,
-         char[] password,
-         Timestamp lastModified
-         )
+    public UserDescriptor newUserDescriptor (
+            String userName,
+            String hashingScheme,
+            char[] password,
+            Timestamp lastModified,
+            UUID databaseId)
     {
-        return new UserDescriptor( dataDictionary, userName, hashingScheme, password, lastModified );
+        return new UserDescriptor( dataDictionary, userName, hashingScheme, password, lastModified, databaseId);
+    }
+
+    public UserDescriptor makeUserDescriptor (
+            TransactionController tc,
+            String userName,
+            String password,
+            UUID databaseId) throws StandardException{
+        PasswordHasher hasher=dataDictionary.makePasswordHasher(tc.getProperties());
+
+        if(hasher==null){
+            throw StandardException.newException(SQLState.WEAK_AUTHENTICATION);
+        }
+
+        String hashingScheme=hasher.encodeHashingScheme();
+        String hashedPassword=hasher.hashPasswordIntoString(userName,password);
+
+        Timestamp currentTimestamp=new Timestamp((new java.util.Date()).getTime());
+
+        return this.newUserDescriptor
+                (userName,hashingScheme,hashedPassword.toCharArray(),currentTimestamp, databaseId);
     }
 
     public TablePermsDescriptor  newTablePermsDescriptor( TableDescriptor td,
@@ -575,7 +615,7 @@ public class DataDescriptorGenerator
         return new RoutinePermsDescriptor( dataDictionary,
                                            (String) null,
                                            grantor,
-                                           ad.getUUID());
+                                           ad.getUUID(), null);
     }
 
 
@@ -601,7 +641,8 @@ public class DataDescriptorGenerator
                                                       String grantor,
                                                       boolean withadminoption,
                                                       boolean isDef,
-                                                      boolean isDefaultRole)
+                                                      boolean isDefaultRole,
+                                                      UUID databaseId)
         throws StandardException
     {
         return new RoleGrantDescriptor(dataDictionary,
@@ -611,7 +652,8 @@ public class DataDescriptorGenerator
                                        grantor,
                                        withadminoption,
                                        isDef,
-                                       isDefaultRole);
+                                       isDefaultRole,
+                                       databaseId);
     }
 
     /**

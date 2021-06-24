@@ -37,7 +37,7 @@ import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
 import com.splicemachine.pipeline.config.RollforwardWriteConfiguration;
 import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.pipeline.utils.PipelineUtils;
-import com.splicemachine.pipeline.writehandler.UpdateUtils;
+import com.splicemachine.storage.util.UpdateUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
@@ -234,7 +234,7 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
                         byte[] oldLocation=((RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
                         if(!Bytes.equals(oldLocation,element.getRowKey())){
                             bufferToTransform.add(new KVPair(oldLocation,SIConstants.EMPTY_BYTE_ARRAY,KVPair.Type.DELETE));
-                            element = UpdateUtils.getBaseUpdateMutation(element);
+                            element = UpdateUtils.updateFromWrite(element);
                             element.setType(KVPair.Type.INSERT);
                         }else{
                             element.setType(KVPair.Type.UPDATE);

@@ -396,11 +396,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
          * since they are peers.
          */
         if(resultColumns.elementAt(0) instanceof AllResultColumn){
-            resultColumn=(ResultColumn)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    "",
-                    null,
-                    getContextManager());
+            resultColumn= new ResultColumn("", null, getContextManager());
         }else if(onlyConvertAlls){
             return this;
         }else{
@@ -1617,10 +1613,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
                 }
                 if (defaultValue != null)
                 {
-                    newResultColumn = (ResultColumn) getNodeFactory().getNode(
-                            C_NodeTypes.RESULT_COLUMN,
-                            colType,
-                            getConstantNode(colType, defaultValue),
+                    newResultColumn = new ResultColumn(colType, getConstantNode(colType, defaultValue),
                             getContextManager());
                 } else {
                     if(colDesc.hasGenerationClause()){
@@ -1633,8 +1626,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
                         ValueNode defaultTree=parseDefault(defaultText);
                         defaultTree=defaultTree.bindExpression
                                 (getFromList(),(SubqueryList)null,(Vector)null);
-                        newResultColumn=(ResultColumn)getNodeFactory().getNode
-                                (C_NodeTypes.RESULT_COLUMN,defaultTree.getTypeServices(),defaultTree,getContextManager());
+                        newResultColumn = new ResultColumn(defaultTree.getTypeServices(), defaultTree, getContextManager());
                     }
 
                     DefaultDescriptor defaultDescriptor=colDesc.getDefaultDescriptor(dataDictionary);
@@ -1645,19 +1637,10 @@ public abstract class ResultSetNode extends QueryTreeNode{
                     getCompilerContext().createDependency(defaultDescriptor);
                 }
             }else if(colDesc.isAutoincrement()){
-                newResultColumn=
-                        (ResultColumn)getNodeFactory().getNode(
-                                C_NodeTypes.RESULT_COLUMN,
-                                colDesc,null,
-                                getContextManager());
+                newResultColumn = new ResultColumn(colDesc, null, getContextManager());
                 newResultColumn.setAutoincrementGenerated();
             }else{
-                newResultColumn=(ResultColumn)getNodeFactory().getNode(
-                        C_NodeTypes.RESULT_COLUMN,
-                        colType,
-                        getNullNode(colType),
-                        getContextManager()
-                );
+                newResultColumn = new ResultColumn(colType, getNullNode(colType), getContextManager());
             }
         }
 
@@ -1716,11 +1699,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
                 // column descriptors into the result, we grab it from there.
                 // alternatively, we could do what the else clause does,
                 // and look it up in the DD again.
-                newResultColumn=(ResultColumn)getNodeFactory().getNode(
-                        C_NodeTypes.RESULT_COLUMN,
-                        oldResultColumn.getType(),
-                        newColumnReference,
-                        getContextManager());
+                newResultColumn = new ResultColumn(oldResultColumn.getType(), newColumnReference, getContextManager());
             }else{
                 newResultColumn=genNewRCForInsert(
                         target.targetTableDescriptor,
@@ -1762,10 +1741,8 @@ public abstract class ResultSetNode extends QueryTreeNode{
             ColumnDescriptor colDesc
     )
             throws StandardException{
-        ValueNode dummy=(ValueNode)getNodeFactory().getNode
-                (C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,getContextManager());
-        ResultColumn newResultColumn=(ResultColumn)getNodeFactory().getNode
-                (C_NodeTypes.RESULT_COLUMN,colDesc.getType(),dummy,getContextManager());
+        ValueNode dummy = new UntypedNullConstantNode(getContextManager());
+        ResultColumn newResultColumn = new ResultColumn(colDesc.getType(),dummy,getContextManager());
         newResultColumn.setColumnDescriptor(targetTD,colDesc);
 
         return newResultColumn;
