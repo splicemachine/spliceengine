@@ -35,6 +35,7 @@ import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -59,6 +60,19 @@ import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.fromStri
 public class StringAggregateNode extends AggregateNode {
     private DataValueDescriptor parameter;
     private OrderByList orderByList;
+
+    public StringAggregateNode() {}
+    public StringAggregateNode(ValueNode operand,
+                               Object uadClass,
+                               Boolean distinct,
+                               String aggregateName,
+                               ConstantNode separator,
+                               OrderByList orderByList,
+                               ContextManager cm) throws StandardException {
+        setNodeType(C_NodeTypes.STRING_AGGREGATE_NODE);
+        setContextManager(cm);
+        init(operand, uadClass, distinct, aggregateName, separator, orderByList);
+    }
 
     /**
      * Intializer.  Used for user defined and internally defined aggregates.

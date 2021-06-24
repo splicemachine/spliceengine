@@ -35,6 +35,7 @@ import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -83,6 +84,14 @@ public class AggregateNode extends UnaryOperatorNode {
     protected ColumnReference generatedRef;
 
     private boolean isWindowFunction;
+
+    public AggregateNode() {}
+    public AggregateNode(ValueNode operand, Object uadClass, Boolean distinct,
+                         String aggregateName, ContextManager contextManager) throws StandardException {
+        setNodeType(C_NodeTypes.AGGREGATE_NODE);
+        setContextManager(contextManager);
+        init(operand, uadClass, distinct, aggregateName);
+    }
 
     /**
      * Intializer.  Used for user defined and internally defined aggregates.

@@ -361,15 +361,9 @@ public class StaticMethodCallNode extends MethodCallNode {
      */
     private boolean handleAggregate() throws StandardException {
         if ((ad != null) && (ad.getAliasType() == AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR)) {
-            resolvedAggregate = (AggregateNode) getNodeFactory().getNode
-                    (
-                            C_NodeTypes.AGGREGATE_NODE,
-                            ((SQLToJavaValueNode) methodParms[0]).getSQLValueNode(),
-                            new UserAggregateDefinition(ad),
-                            Boolean.FALSE,
-                            ad.getJavaClassName(),
-                            getContextManager()
-                    );
+            resolvedAggregate = new AggregateNode( ((SQLToJavaValueNode) methodParms[0]).getSQLValueNode(),
+                                        new UserAggregateDefinition(ad), Boolean.FALSE, ad.getJavaClassName(),
+                                        getContextManager() );
             // The parser may have noticed that this aggregate is invoked in a
             // GROUP BY clause. That is not allowed.
             if (appearsInGroupBy) {

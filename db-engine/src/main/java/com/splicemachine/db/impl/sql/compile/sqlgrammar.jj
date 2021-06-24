@@ -8585,13 +8585,8 @@ distinctUDA() throws StandardException :
         // non-distinct aggregates. That has to be figured out at
         // bind() time.
         //
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.AGGREGATE_NODE,
-                                value,
-                                aggName,
-                                Boolean.TRUE,
-                                "",
-                                getContextManager());
+        return new AggregateNode(value, aggName, Boolean.TRUE,
+                                "", getContextManager());
     }
 }
 
@@ -9767,13 +9762,10 @@ tableExpression(ResultColumnList selectList) throws StandardException :
         // fix for HAVING without GROUP BY, makes sure we get one
         // aggregate operator by adding a count(*), this fixes beetle 5853, 5890
         if (havingClause != null && groupByList == null) {
-            ValueNode vn = (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.AGGREGATE_NODE,
-                                null,
+            ValueNode vn = new AggregateNode(null,
                                 com.splicemachine.db.impl.sql.compile.CountAggregateDefinition.class,
                                 Boolean.FALSE, // distinct Boolean.TRUE?
-                                "COUNT(*)",
-                                getContextManager());
+                                "COUNT(*)", getContextManager());
             AggregateNode n = (AggregateNode) vn;
             n.replaceAggregatesWithColumnReferences(selectList, 0);
         }
@@ -10685,9 +10677,7 @@ getNearestTransaction() throws StandardException :
        <COUNT> <LEFT_PAREN>
        ( <ASTERISK>
        {
-               winOrAgg = (ValueNode) nodeFactory.getNode(
-                                   C_NodeTypes.AGGREGATE_NODE,
-                                   null,
+               winOrAgg = new AggregateNode(null,
                                    CountAggregateDefinition.class,
                                    Boolean.FALSE,
                                    "COUNT(*)",
@@ -10977,13 +10967,9 @@ aggregateExpression(String aggName, Class aggClass) throws StandardException :
 {
     [ distinct = setQuantifier() ] value = additiveExpression(null, 0)
     {
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.AGGREGATE_NODE,
-                                value,
-                                aggClass,
+        return new AggregateNode(value, aggClass,
                                 distinct ? Boolean.TRUE : Boolean.FALSE,
-                                aggName,
-                                getContextManager());
+                                aggName, getContextManager());
     }
 }
 
@@ -11004,13 +10990,11 @@ stringAggregateExpression(String aggName, Class aggClass) throws StandardExcepti
             throw StandardException.newException(
                     SQLState.LANG_SYNTAX_ERROR, "ORDER BY clause not yet supported");
         }
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.STRING_AGGREGATE_NODE,
-                                value,
+        return new StringAggregateNode(value,
                                 aggClass,
                                 distinct ? Boolean.TRUE : Boolean.FALSE,
                                 aggName,
-                                param,
+                                (ConstantNode) param,
                                 orderCols,
                                 getContextManager());
     }
