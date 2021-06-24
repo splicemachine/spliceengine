@@ -240,12 +240,8 @@ public final class CurrentOfNode extends FromTable {
             /* Build a ResultColumn/BaseColumnNode pair for the column */
             ColumnDescriptor colDesc = (ColumnDescriptor) cdl.elementAt(index);
 
-            BaseColumnNode bcn = (BaseColumnNode) getNodeFactory().getNode(
-                                            C_NodeTypes.BASE_COLUMN_NODE,
-                                            colDesc.getColumnName(),
-                                              exposedTableName,
-                                            colDesc.getType(),
-                                            getContextManager());
+            BaseColumnNode bcn = new BaseColumnNode(colDesc.getColumnName(), exposedTableName,
+                                                    colDesc.getType(), getContextManager());
             ResultColumn rc = new ResultColumn(colDesc, bcn, getContextManager());
 
             /* Build the ResultColumnList to return */

@@ -2861,12 +2861,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
      */
     public void addColumn(TableName tableName,String columnName,DataTypeDescriptor dts)
             throws StandardException{
-        ValueNode bcn=(ValueNode)getNodeFactory().getNode(
-                C_NodeTypes.BASE_COLUMN_NODE,
-                columnName,
-                tableName,
-                dts,
-                getContextManager());
+        ValueNode bcn = new BaseColumnNode(columnName, tableName, dts, getContextManager());
         ResultColumn rc = new ResultColumn(columnName, bcn, getContextManager());
         rc.setType(dts);
         addResultColumn(rc);

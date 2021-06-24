@@ -997,10 +997,7 @@ public class FromBaseTable extends FromTable {
         // not currently support rowid join, that may be a good future enhancement).
         baseTable.setIndexFriendlyJoinsOnly(true);
 
-        FromList fromList = (FromList) nodeFactory.getNode(
-                            C_NodeTypes.FROM_LIST,
-                            getNodeFactory().doJoinOrderOptimization(),
-                            getContextManager());
+        FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
 
         // Nested loop join (and merge join) requires the index join keys
         // to be applied on the inner table, so force the UNION of RowIds
@@ -1491,10 +1488,7 @@ public class FromBaseTable extends FromTable {
            throw StandardException.newException(LANG_INTERNAL_ERROR,
                 "Expected a base table source while processing unioned index scan.");
 
-       FromList fromList = (FromList) getNodeFactory().getNode(
-                                    C_NodeTypes.FROM_LIST,
-                                    getNodeFactory().doJoinOrderOptimization(),
-                                    getContextManager());
+       FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
 
        FromBaseTable innerTableCopy = ((FromBaseTable)source).shallowClone();
        innerTableCopy.setIndexFriendlyJoinsOnly(true);
@@ -3592,12 +3586,8 @@ public class FromBaseTable extends FromTable {
             //to get ResultSetMetaData.getTableName & ResultSetMetaData.getSchemaName
             colDesc.setTableDescriptor(tableDescriptor);
 
-            valueNode=(ValueNode)getNodeFactory().getNode(
-                    C_NodeTypes.BASE_COLUMN_NODE,
-                    colDesc.getColumnName(),
-                    exposedName,
-                    colDesc.getType(),
-                    getContextManager());
+            valueNode = new BaseColumnNode(colDesc.getColumnName(), exposedName,
+                                            colDesc.getType(), getContextManager());
             resultColumn = new ResultColumn(colDesc, valueNode, getContextManager());
 
             /* Build the ResultColumnList to return */

@@ -580,13 +580,7 @@ public class TableElementList extends QueryTreeNodeVector {
                 ValueNode        valueNode;
 
                 /* Build a ResultColumn/BaseColumnNode pair for the column */
-                valueNode = (ValueNode) getNodeFactory().getNode(
-                                            C_NodeTypes.BASE_COLUMN_NODE,
-                                            cdn.getColumnName(),
-                                              exposedName,
-                                            cdn.getType(),
-                                            getContextManager());
-
+                valueNode = new BaseColumnNode(cdn.getColumnName(), exposedName, cdn.getType(), getContextManager());
                 resultColumn = new ResultColumn(cdn.getType(), valueNode, getContextManager());
                 resultColumn.setName(cdn.getColumnName());
                 rcl.addElement(resultColumn);

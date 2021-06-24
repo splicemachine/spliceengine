@@ -760,13 +760,8 @@ public class CursorNode extends DMLStatementNode{
             origCol=rcl.elementAt(index);
 
             // Build a ResultColumn/BaseColumnNode pair for the column
-            newNode=(ValueNode)getNodeFactory().getNode(
-                    C_NodeTypes.BASE_COLUMN_NODE,
-                    origCol.getName(),
-                    makeTableName(origCol.getSchemaName(),
-                            origCol.getTableName()),
-                    origCol.getTypeServices(),
-                    getContextManager());
+            newNode = new BaseColumnNode(origCol.getName(), makeTableName(origCol.getSchemaName(),
+                                origCol.getTableName()), origCol.getTypeServices(), getContextManager());
             newCol = new ResultColumn(origCol.columnDescriptor, newNode, getContextManager());
 
             /* Build the ResultColumnList to return */

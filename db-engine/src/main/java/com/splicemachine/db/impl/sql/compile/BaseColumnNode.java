@@ -34,7 +34,9 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
@@ -61,6 +63,15 @@ public class BaseColumnNode extends ValueNode
     ** user specifies a column without a table name.
     */
     private TableName    tableName;
+
+    public BaseColumnNode() {}
+    public BaseColumnNode(String columnName,
+                          TableName tableName,
+                          DataTypeDescriptor dts, ContextManager cm) throws StandardException {
+        setNodeType(C_NodeTypes.BASE_COLUMN_NODE);
+        setContextManager(cm);
+        init(columnName, tableName, dts);
+    }
 
     /**
      * Initializer for when you only have the column name.

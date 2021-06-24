@@ -1901,12 +1901,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
             colDesc = (ColumnDescriptor) cdl.elementAt(index);
             colDesc.setTableDescriptor(td);
 
-            valueNode = (ValueNode) getNodeFactory().getNode(
-                    C_NodeTypes.BASE_COLUMN_NODE,
-                    colDesc.getColumnName(),
-                    exposedName,
-                    colDesc.getType(),
-                    getContextManager());
+            valueNode = new BaseColumnNode(colDesc.getColumnName(), exposedName, colDesc.getType(), getContextManager());
             resultColumn = new ResultColumn(colDesc, valueNode, getContextManager());
 
             /* Build the ResultColumnList to return */
