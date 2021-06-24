@@ -55,7 +55,7 @@ public class SetNode extends MiscellaneousStatementNode {
      *
      * @param columnList The specification of column values to alter.
      */
-    public void SetNode(ValueNodeList columnList, ValueNodeList newValuesList, ContextManager cm) {
+    public SetNode(ValueNodeList columnList, ValueNodeList newValuesList, ContextManager cm) {
         setContextManager(cm);
         setNodeType(C_NodeTypes.SET_NODE);
         assignedColumnsList = columnList;

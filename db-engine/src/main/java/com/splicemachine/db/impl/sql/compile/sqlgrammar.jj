@@ -14349,11 +14349,7 @@ setStatement(Token[] tokenHolder) throws StandardException :
   LOOKAHEAD( { javaClassFollows(1) } )
   <SET> setClauseValueList(assignedColumnsList, newValuesList, null)
   {
-        return (StatementNode) nodeFactory.getNode(
-                                        C_NodeTypes.SET_NODE,
-                                        assignedColumnsList,
-                                        newValuesList,
-                                        getContextManager());
+        return new SetNode(assignedColumnsList, newValuesList, getContextManager());
   }
 }
 
@@ -14381,11 +14377,7 @@ setStatementInCreateTrigger(Token[] tokenHolder, HashSet<String> hs) throws Stan
               } )
   <SET> setClauseValueList(assignedColumnsList, newValuesList, hs)
   {
-        return (StatementNode) nodeFactory.getNode(
-                                        C_NodeTypes.SET_NODE,
-                                        assignedColumnsList,
-                                        newValuesList,
-                                        getContextManager());
+        return new SetNode(assignedColumnsList, newValuesList, getContextManager());
   }
 }
 
@@ -14476,9 +14468,7 @@ valueSpecification() throws StandardException :
         thenElseList.addElement(new UntypedNullConstantNode(cm));
         thenElseList.addElement(leftExpression);
 
-        return (ValueNode) nodeFactory.getNode(
-                                            C_NodeTypes.CONDITIONAL_NODE,
-                                            (ValueNode) nodeFactory.getNode(
+        return new ConditionalNode( (ValueNode) nodeFactory.getNode(
                                                         C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
                                                         leftExpression,
                                                         rightExpression,
@@ -14618,11 +14608,7 @@ whenThenExpression(ValueNode compareTo) throws StandardException :
                         expr,
                         cm));
         }
-        return ((ValueNode) nodeFactory.getNode(C_NodeTypes.CONDITIONAL_NODE,
-                                                expr,
-                                                thenElseList,
-                                                Boolean.FALSE,
-                                                cm));
+        return new ConditionalNode(expr, thenElseList, Boolean.FALSE, cm));
     }
 }
 

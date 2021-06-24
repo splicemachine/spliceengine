@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
@@ -72,11 +73,13 @@ public class ConditionalNode extends ValueNode
      * @param thenElseList        ValueNodeList with then and else expressions
      */
 
-    public void init(Object testCondition, Object thenElseList, Object thisIsNullIfNode)
+    public ConditionalNode(ValueNode testCondition, ValueNodeList thenElseList, Boolean thisIsNullIfNode, ContextManager cm)
     {
-        this.testCondition = (ValueNode) testCondition;
-        this.thenElseList = (ValueNodeList) thenElseList;
-        this.thisIsNullIfNode = (Boolean) thisIsNullIfNode;
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.CONDITIONAL_NODE);
+        this.testCondition = testCondition;
+        this.thenElseList = thenElseList;
+        this.thisIsNullIfNode = thisIsNullIfNode;
     }
 
     public ValueNode getTestCondition() { return testCondition; }
