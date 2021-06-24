@@ -5032,23 +5032,21 @@ nonJoinQueryTerm(ResultSetNode leftSide, int operatorType, ValueNode[] topNOut) 
             return term;
 
         case UNION_OP:
-            return (ResultSetNode) nodeFactory.getNode(
-                C_NodeTypes.UNION_NODE,
-                leftSide,
-                term,
-                Boolean.FALSE,
-                Boolean.FALSE,
-                null,
+            return new UnionNode(
+                leftSide,      // leftResult
+                term,          // rightResult
+                Boolean.FALSE, // all
+                Boolean.FALSE, // tableConstructor
+                null,          // tableProperties
                 getContextManager());
 
         case UNION_ALL_OP:
-            return (ResultSetNode) nodeFactory.getNode(
-                C_NodeTypes.UNION_NODE,
-                leftSide,
-                term,
-                Boolean.TRUE,
-                Boolean.FALSE,
-                null,
+            return new UnionNode(
+                leftSide,      // leftResult
+                term,          // rightResult
+                Boolean.TRUE,  // all
+                Boolean.FALSE, // tableConstructor
+                null,          // tableProperties
                 getContextManager());
 
         case EXCEPT_OP:
@@ -9430,13 +9428,11 @@ rowValueConstructor(ResultSetNode leftRSN) throws StandardException :
                 throw StandardException.newException(SQLState.LANG_ROW_VALUE_CONSTRUCTOR_UNMATCHED_COLUMNS);
             }
 
-            newRSN = (ResultSetNode) nodeFactory.getNode(
-                                    C_NodeTypes.UNION_NODE,
-                                    leftRSN,
-                                    newRSN,
-                                    Boolean.TRUE,
-                                    Boolean.TRUE,
-                                    null,
+            newRSN = new UnionNode(leftRSN,       // leftResult
+                                    newRSN,       // rightResult
+                                    Boolean.TRUE, // all
+                                    Boolean.TRUE, // tableConstructor
+                                    null,         // tableProperties
                                     getContextManager());
         }
         return newRSN;
@@ -9458,13 +9454,11 @@ rowValueConstructor(ResultSetNode leftRSN) throws StandardException :
                 throw StandardException.newException(SQLState.LANG_ROW_VALUE_CONSTRUCTOR_UNMATCHED_COLUMNS);
             }
 
-            newRSN = (ResultSetNode) nodeFactory.getNode(
-                                    C_NodeTypes.UNION_NODE,
-                                    leftRSN,
-                                    newRSN,
-                                    Boolean.TRUE,
-                                    Boolean.TRUE,
-                                    null,
+            newRSN = new UnionNode(leftRSN,        // leftResult
+                                    newRSN,        // rightResult
+                                    Boolean.TRUE,  // all
+                                    Boolean.TRUE,  // tableConstructor
+                                    null,          // tableProperties
                                     getContextManager());
         }
         return newRSN;

@@ -100,6 +100,12 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     private boolean hasCorrelatedSubquery;
     private boolean hasCorrelatedSubquerySet;
 
+    public Predicate(AndNode andNode, JBitSet referencedSet, ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.PREDICATE);
+        init(andNode, referencedSet);
+    }
+
     public ReferencedColumnsMap getReferencedColumns() {
         return referencedColumns;
     }
@@ -130,7 +136,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * @param referencedSet Bit map of referenced tables
      */
 
-    public void init(Object andNode,Object referencedSet){
+    public void init(Object andNode, Object referencedSet){
         this.andNode=(AndNode)andNode;
         pushable=false;
         this.referencedSet=(JBitSet)referencedSet;
@@ -592,10 +598,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
                     if (isOnExpression) {
                         tempAnd.setLeftOperand(or_node.getLeftOperand());
                         tempAnd.postBindFixup();
-                        Predicate tempPred = (Predicate) getNodeFactory().getNode(
-                                C_NodeTypes.PREDICATE,
-                                tempAnd,
-                                or_node.getLeftOperand().getTablesReferenced(),
+                        Predicate tempPred = new Predicate(tempAnd, or_node.getLeftOperand().getTablesReferenced(),
                                 getContextManager());
                         boolean skipProbePreds = PredicateList.skipProbePreds(optTable, pushPreds);
                         Integer position = PredicateList.isIndexUseful(tempPred, optTable, pushPreds, skipProbePreds, cd);
@@ -1087,10 +1090,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         newAnd.categorize(tableMap, columnsMap, false);
 
         // Now put the pieces together to get a new predicate.
-        Predicate newPred=(Predicate)getNodeFactory().getNode(C_NodeTypes.PREDICATE,
-                newAnd,
-                tableMap,
-                getContextManager());
+        Predicate newPred = new Predicate(newAnd, tableMap, getContextManager());
 
         // Copy all of this predicates other fields into the new predicate.
         newPred.clearScanFlags();
@@ -1538,12 +1538,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         BooleanConstantNode falseNode = new BooleanConstantNode(Boolean.FALSE,cm);
         AndNode andNode = new AndNode(falseNode, trueNode, cm);
         JBitSet newJBitSet = new JBitSet(numTables);
-
-        return (Predicate)nf.
-                getNode(C_NodeTypes.PREDICATE,
-                        andNode,
-                        newJBitSet,
-                        cm);
+        return new Predicate(andNode, newJBitSet, cm);
     }
     
 
@@ -1631,9 +1626,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         AndNode andNode = booleanExpression instanceof AndNode ?
                           (AndNode) booleanExpression :
                           AndNode.newAndNode(booleanExpression, true);
-        Predicate newPred =
-            (Predicate) getNodeFactory().getNode(C_NodeTypes.PREDICATE,
-                                         andNode, newJBitSet, getContextManager());
+        Predicate newPred = new Predicate(andNode, newJBitSet, getContextManager());
         return newPred;
     }
 
@@ -1772,13 +1765,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         return newAnd;
      }
 
-    private Predicate getNewAndedPredicate(AndNode andNode) throws StandardException {
-        Predicate newPred = (Predicate)getNodeFactory().getNode(
-            C_NodeTypes.PREDICATE,
-            andNode,
-            getReferencedSet(),
-            getContextManager());
-        return newPred;
+    private Predicate getNewAndedPredicate(AndNode andNode) {
+        return new Predicate(andNode, getReferencedSet(),getContextManager());
     }
 
     @Override

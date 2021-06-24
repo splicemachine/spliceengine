@@ -1220,9 +1220,7 @@ public class FromBaseTable extends FromTable {
         AndNode andNode = AndNode.newAndNode(whereClause, false);
 
         JBitSet newJBitSet=new JBitSet(getCompilerContext().getNumTables());
-        Predicate
-        newPred=(Predicate)getNodeFactory().getNode(C_NodeTypes.PREDICATE,
-                  andNode, newJBitSet, getContextManager());
+        Predicate newPred = new Predicate(andNode, newJBitSet, getContextManager());
         newPred.setOuterJoinLevel(whereClause.getOuterJoinLevel());
         if (aboveResultSetNode instanceof ProjectRestrictNode) {
             ProjectRestrictNode prn = (ProjectRestrictNode)aboveResultSetNode;
@@ -1685,9 +1683,7 @@ public class FromBaseTable extends FromTable {
        if (rightTree == null)
            return null;
 
-       return
-        (UnionNode) getNodeFactory().getNode(
-                C_NodeTypes.UNION_NODE,
+       return new UnionNode(
                 leftTree,
                 rightTree,
                 Boolean.FALSE,
@@ -4750,11 +4746,7 @@ public class FromBaseTable extends FromTable {
                 BetweenOperatorNode bon = (BetweenOperatorNode) pred.getAndNode().getLeftOperand();
                 AndNode newAnd = bon.translateToGEAndLE();
 
-                Predicate le = (Predicate)getNodeFactory().getNode(
-                        C_NodeTypes.PREDICATE,
-                        newAnd.getRightOperand(),
-                        pred.getReferencedSet(),
-                        getContextManager());
+                Predicate le = new Predicate( (AndNode) newAnd.getRightOperand(), pred.getReferencedSet(), getContextManager());
                 le.copyFields(pred, false);
                 le.clearScanFlags();
                 if (pred.isStopKey()) {
@@ -4768,11 +4760,7 @@ public class FromBaseTable extends FromTable {
                 BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
                 newAnd.setRightOperand(trueNode);
 
-                Predicate ge = (Predicate)getNodeFactory().getNode(
-                        C_NodeTypes.PREDICATE,
-                        newAnd,
-                        pred.getReferencedSet(),
-                        getContextManager());
+                Predicate ge = new Predicate(newAnd, pred.getReferencedSet(), getContextManager());
                 ge.copyFields(pred, false);
                 ge.clearScanFlags();
                 if (pred.isStartKey()) {

@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
@@ -45,6 +46,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.lang.reflect.Modifier;
+import java.util.Properties;
 
 /**
  * A UnionNode represents a UNION in a DML statement.  It contains a boolean
@@ -66,6 +68,13 @@ public class UnionNode extends SetOperatorNode{
     boolean isRecursive;
     /* the description of the result columns */
     TableDescriptor viewDescriptor;
+
+    public UnionNode(ResultSetNode leftResult, ResultSetNode rightResult, Boolean unionAll, Boolean tableConstructor,
+                     Properties tableProperties, ContextManager contextManager) throws StandardException {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.UNION_NODE);
+        init(leftResult, rightResult, unionAll, tableConstructor, tableProperties);
+    }
 
 
     /**

@@ -1357,8 +1357,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 if (andNode instanceof AndNode) {
                     multiColumnInListBuilt = true;
                     JBitSet newJBitSet = new JBitSet(usefulPredicates[firstPred].getReferencedSet().size());
-                    Predicate newPred = (Predicate) getNodeFactory().getNode(C_NodeTypes.PREDICATE,
-                            andNode, newJBitSet, getContextManager());
+                    Predicate newPred = new Predicate((AndNode)andNode, newJBitSet, getContextManager());
 
                     saveOriginalInListPreds(newPred, predsForNewInList);
 
@@ -1669,11 +1668,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     AndNode andCopy= new AndNode(thisPred.getAndNode().getLeftOperand(),
                             thisPred.getAndNode().getRightOperand(), getContextManager());
                     andCopy.copyFields(thisPred.getAndNode());
-                    Predicate predCopy=(Predicate)getNodeFactory().getNode(
-                            C_NodeTypes.PREDICATE,
-                            andCopy,
-                            thisPred.getReferencedSet(),
-                            getContextManager());
+                    Predicate predCopy = new Predicate(andCopy, thisPred.getReferencedSet(), getContextManager());
                     predCopy.copyFields(thisPred, false);
                     predToPush=predCopy;
                 }else{
@@ -2067,8 +2062,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                      * in the probe set as a single predicate.
                      */
                     newJBitSet=new JBitSet(numTables);
-                    newPred=(Predicate)getNodeFactory().getNode(C_NodeTypes.PREDICATE,
-                              firstAndInProbeSet != null ? firstAndInProbeSet : thisAnd,
+                    newPred = new Predicate(firstAndInProbeSet != null ? firstAndInProbeSet : thisAnd,
                               newJBitSet, contextManager);
                     newPred.setOuterJoinLevel(thisAnd.getLeftOperand().getOuterJoinLevel());
                     addPredicate(newPred);
@@ -2083,7 +2077,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
                   /* Add the last top AndNode to the PredicateList */
             newJBitSet=new JBitSet(numTables);
-            newPred=(Predicate)getNodeFactory().getNode( C_NodeTypes.PREDICATE, topAnd, newJBitSet, contextManager);
+            newPred = new Predicate(topAnd, newJBitSet, contextManager);
             newPred.setOuterJoinLevel(topAnd.getLeftOperand().getOuterJoinLevel());
             addPredicate(newPred);
         }
@@ -2307,7 +2301,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 JBitSet tableMap=new JBitSet(select.referencedTableMap.size());
 
                 // Use newly constructed predicate
-                predicate=(Predicate)getNodeFactory().getNode(C_NodeTypes.PREDICATE,newAnd,tableMap, contextManager);
+                predicate = new Predicate(newAnd,tableMap, contextManager);
             }else{
                 // keep the counters up to date when removing a predicate
                 if(predicate.isStartKey())
@@ -2790,11 +2784,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     JBitSet tableMap=new JBitSet(numTables);
                     ReferencedColumnsMap columnsMap = new ReferencedColumnsMap();
                     newAnd.categorize(tableMap, columnsMap,false);
-                    Predicate newPred=(Predicate)getNodeFactory().getNode(
-                            C_NodeTypes.PREDICATE,
-                            newAnd,
-                            tableMap,
-                            getContextManager());
+                    Predicate newPred = new Predicate(newAnd, tableMap, getContextManager());
                     newPred.setReferencedColumns(columnsMap);
                     newPred.setEquivalenceClass(outerEC);
                     addPredicate(newPred);
@@ -3027,11 +3017,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     JBitSet tableMap=new JBitSet(getCompilerContext().getMaximalPossibleTableCount());
                     ReferencedColumnsMap columnsMap = new ReferencedColumnsMap();
                     newAnd.categorize(tableMap, columnsMap, false);
-                    Predicate newPred=(Predicate)getNodeFactory().getNode(
-                            C_NodeTypes.PREDICATE,
-                            newAnd,
-                            tableMap,
-                            getContextManager());
+                    Predicate newPred = new Predicate(newAnd, tableMap, getContextManager());
                     newPred.setReferencedColumns(columnsMap);
                     addPredicate(newPred);
                     searchClauses.addElement(newPred);

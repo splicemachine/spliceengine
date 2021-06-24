@@ -2389,11 +2389,7 @@ public class SubqueryNode extends ValueNode{
         andNode.postBindFixup();
 
         /* Put the AndNode under a Predicate */
-        predicate=(Predicate)getNodeFactory().getNode(
-                C_NodeTypes.PREDICATE,
-                andNode,
-                tableMap,
-                getContextManager());
+        predicate = new Predicate(andNode, tableMap, getContextManager());
         predicate.categorize();
 
         /* Push the new Predicate to the subquery's list */
