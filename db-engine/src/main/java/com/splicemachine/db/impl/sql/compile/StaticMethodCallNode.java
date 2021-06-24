@@ -334,11 +334,8 @@ public class StaticMethodCallNode extends MethodCallNode {
 
                     ValueNode returnValueToSQL = new JavaToSQLValueNode(this, getContextManager());
 
-                    ValueNode returnValueCastNode = (ValueNode) getNodeFactory().getNode(
-                                    C_NodeTypes.CAST_NODE,
-                                    returnValueToSQL,
-                                    returnValueDtd,
-                                    getContextManager());
+                    ValueNode returnValueCastNode = new CastNode(returnValueToSQL,
+                                    returnValueDtd, getContextManager());
 
                     // DERBY-2972  Match the collation of the RoutineAliasInfo
                     returnValueCastNode.setCollationInfo(

@@ -132,6 +132,13 @@ public class CastNode extends ValueNode
         setType(castTarget);
     }
 
+    public CastNode(ValueNode castOperand, Integer charType, Integer charLength, Integer stringFormat, ContextManager cm)
+            throws StandardException {
+        super(cm);
+        setNodeType(C_NodeTypes.CAST_NODE);
+        init(castOperand, charType, charLength, stringFormat);
+    }
+
     public CastNode() {
     }
 

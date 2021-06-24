@@ -617,11 +617,7 @@ public class RowResultSetNode extends FromTable {
          * the order by.
          */
         if (orderByList != null) {
-            treeTop = (ResultSetNode) getNodeFactory().getNode(C_NodeTypes.ORDER_BY_NODE,
-                                            treeTop,
-                                            orderByList,
-                                            tableProperties,
-                                            getContextManager());
+            treeTop = new OrderByNode(treeTop, orderByList, tableProperties, getContextManager());
         }
 
         if (offset != null || fetchFirst != null) {

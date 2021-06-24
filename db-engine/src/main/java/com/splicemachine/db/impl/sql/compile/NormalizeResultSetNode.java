@@ -37,10 +37,14 @@ import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+
+import java.util.Properties;
 
 /**
  *
@@ -540,6 +544,14 @@ public class NormalizeResultSetNode extends SingleChildResultSetNode
 	 * normalize these values. 
 	 */
 	private boolean forUpdate;
+
+	public NormalizeResultSetNode() {}
+	public NormalizeResultSetNode(ResultSetNode childResult, ResultColumnList targetResultColumnList,
+								  Properties tableProperties, Boolean forUpdate, ContextManager contextManager) throws StandardException {
+		setNodeType(C_NodeTypes.NORMALIZE_RESULT_SET_NODE);
+		setContextManager(contextManager);
+		init(childResult, targetResultColumnList, tableProperties, forUpdate);
+	}
 
 	/**
 	 * Initializer for a NormalizeResultSetNode.

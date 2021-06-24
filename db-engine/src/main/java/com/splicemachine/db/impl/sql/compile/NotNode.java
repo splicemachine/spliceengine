@@ -106,13 +106,9 @@ public final class NotNode extends UnaryLogicalOperatorNode
                 return getOperand();
             } else if (op instanceof BooleanConstantNode) {
                 if (op.isBooleanTrue()) {
-                    return (ValueNode) getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                            Boolean.FALSE,
-                            getContextManager());
+                    return new BooleanConstantNode(Boolean.FALSE, getContextManager());
                 } else {
-                    return (ValueNode) getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                            Boolean.TRUE,
-                            getContextManager());
+                    return new BooleanConstantNode(Boolean.TRUE, getContextManager());
                 }
             }
         }
@@ -165,10 +161,7 @@ public final class NotNode extends UnaryLogicalOperatorNode
     public ValueNode getClone() throws StandardException
     {
         ValueNode left = getOperand();
-        NotNode notNode = (NotNode) left.getNodeFactory().getNode(
-                                                    C_NodeTypes.NOT_NODE,
-                                                    left,
-                                                    left.getContextManager());
+        NotNode notNode = new NotNode(left, left.getContextManager());
         notNode.postBindFixup();
         return notNode;
     }

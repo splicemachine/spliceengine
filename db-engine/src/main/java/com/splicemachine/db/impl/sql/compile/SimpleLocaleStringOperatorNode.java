@@ -130,12 +130,7 @@ public class SimpleLocaleStringOperatorNode extends BinaryOperatorNode
                             true,
                             width);
 
-                    setLeftOperand((ValueNode)
-                        getNodeFactory().getNode(
-                            C_NodeTypes.CAST_NODE,
-                            getLeftOperand(),
-                            dtd,
-                            getContextManager()));
+                    setLeftOperand(new CastNode(getLeftOperand(), dtd, getContextManager()));
 
                     // DERBY-2910 - Match current schema collation for implicit cast as we do for
                     // explicit casts per SQL Spec 6.12 (10)

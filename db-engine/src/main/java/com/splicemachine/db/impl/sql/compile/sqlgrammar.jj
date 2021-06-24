@@ -7505,11 +7505,7 @@ ValueNode
 |
      dts = numericFunctionType() <LEFT_PAREN> operand = additiveExpression(null,0) <RIGHT_PAREN>
       {
-            value = (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.CAST_NODE,
-                                    operand,
-                                    dts,
-                                    getContextManager());
+            value = new CastNode(operand, dts, getContextManager());
             ((CastNode) value).setForDataTypeFunction(true);
             ((CastNode) value).setForExternallyGeneratedCASTnode();
 
@@ -7529,13 +7525,8 @@ ValueNode
     {
         // Always check db2 limits for this function. It's new
         checkTypeLimits(charType,length);
-        value = (ValueNode) nodeFactory.getNode(
-                                                C_NodeTypes.CAST_NODE,
-                                                operand,
-                                                new Integer(charType),
-                                                new Integer(length),
-                                                new Integer(format),
-                                                getContextManager());
+        value = new CastNode(operand, new Integer(charType), new Integer(length),
+                                new Integer(format), getContextManager());
 
         ((CastNode) value).setForDataTypeFunction(true);
         ((CastNode) value).setForExternallyGeneratedCASTnode();
@@ -8147,11 +8138,8 @@ dateTimeScalarFunction() throws StandardException :
      */
         <TIME> <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
     {
-        ValueNode castValue = (ValueNode) nodeFactory.getNode(
-                            C_NodeTypes.CAST_NODE,
-                                                        value,
-                                                        DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.TIME),
-                                                        getContextManager());
+        ValueNode castValue = new CastNode(value, 
+                  DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.TIME), getContextManager());
         ((CastNode) castValue).setForExternallyGeneratedCASTnode();
         return castValue;
     }
@@ -11094,11 +11082,7 @@ castSpecification() throws StandardException :
 {
     <CAST> <LEFT_PAREN> value = castOperand() <AS> dts = dataTypeCast(forSbcsData) <RIGHT_PAREN>
     {
-        treeTop = (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.CAST_NODE,
-                                    value,
-                                    dts,
-                                    getContextManager());
+        treeTop = new CastNode(value, dts, getContextManager());
         ((CastNode) treeTop).setForExternallyGeneratedCASTnode();
         ((CastNode) treeTop).setForSbcsData(forSbcsData.toBoolean());
 

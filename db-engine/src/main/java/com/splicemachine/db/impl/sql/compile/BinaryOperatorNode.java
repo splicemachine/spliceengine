@@ -470,11 +470,7 @@ public class BinaryOperatorNode extends OperatorNode
             } else {
                 scale = Math.max(Math.min(3, leftScale + rightScale), 38 - (leftPrecision - leftScale + rightPrecision - rightScale));
             }
-            ValueNode castToDecimal = (ValueNode)
-                getNodeFactory().getNode(
-                        C_NodeTypes.CAST_NODE,
-                        multiplication,
-                        DataTypeDescriptor.getSQLDataTypeDescriptor(
+            ValueNode castToDecimal = new CastNode(multiplication, DataTypeDescriptor.getSQLDataTypeDescriptor(
                                 "java.math.BigDecimal", precision, scale, true, precision),
                         getContextManager());
             ((CastNode) castToDecimal).bindCastNodeOnly();

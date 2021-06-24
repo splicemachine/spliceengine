@@ -970,6 +970,6 @@ public final class InListOperatorNode extends BinaryListOperatorNode
             }
         }
 
-        return (ValueNode) getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE, constantResult, getContextManager());
+        return new BooleanConstantNode(constantResult, getContextManager());
     }
 }

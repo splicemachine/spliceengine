@@ -45,7 +45,8 @@ public class OrderByNode extends SingleChildResultSetNode {
     OrderByList		orderByList;
 
     public OrderByNode() {}
-    public OrderByNode(ResultSetNode prnRSN, OrderByList orderByList, Properties tableProperties, ContextManager contextManager) throws StandardException {
+    public OrderByNode(ResultSetNode prnRSN, OrderByList orderByList, Properties tableProperties,
+                       ContextManager contextManager) throws StandardException {
         setContextManager(contextManager);
         setNodeType(C_NodeTypes.ORDER_BY_NODE);
         init(prnRSN, orderByList, tableProperties);

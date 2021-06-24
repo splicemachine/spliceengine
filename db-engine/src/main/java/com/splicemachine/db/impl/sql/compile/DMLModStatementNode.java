@@ -410,13 +410,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
 
                 // insert CAST in case column data type is not same as the
                 // resolved type of the generation clause
-                generationClause = (ValueNode) getNodeFactory().getNode
-                    (
-                     C_NodeTypes.CAST_NODE,
-                     generationClause,
-                     dtd,
-                     getContextManager()
-                     );
+                generationClause = new CastNode(generationClause, dtd, getContextManager());
                 
                 // Assignment semantics of implicit cast here:
                 // Section 9.2 (Store assignment). There, General Rule 

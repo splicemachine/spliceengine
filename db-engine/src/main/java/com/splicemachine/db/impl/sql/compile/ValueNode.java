@@ -1596,21 +1596,13 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
         assert !leftTypeId.isStringTypeId();
         assert rightTypeId.isStringTypeId();
         if (leftTypeId.isBooleanTypeId() || leftTypeId.isDateTimeTimeStampTypeId()) {
-            rightOperand = (ValueNode)
-                    getNodeFactory().getNode(
-                            C_NodeTypes.CAST_NODE,
-                            rightOperand,
-                            new DataTypeDescriptor(
-                                    leftTypeId,
-                                    true, leftOperand.getTypeServices().getMaximumWidth()),
+            rightOperand = new CastNode(rightOperand,
+                            new DataTypeDescriptor(leftTypeId,true, leftOperand.getTypeServices().getMaximumWidth()),
                             getContextManager());
             rightOperand = ((CastNode) rightOperand).bindImplicitCast();
         } else if (leftTypeId.isNumericTypeId() && rightTypeId.isCharOrVarChar()) {
-            rightOperand = (ValueNode) getNodeFactory().getNode(
-                    C_NodeTypes.CAST_NODE,
-                    rightOperand,
-                    DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE),
-                    getContextManager());
+            rightOperand = new CastNode(rightOperand,
+                    DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE), getContextManager());
             rightOperand = ((CastNode) rightOperand).bindImplicitCast();
         }
         return rightOperand;

@@ -884,13 +884,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
         ValueNode java2SQL = new JavaToSQLValueNode(methodCall, getContextManager());
         java2SQL = (ValueNode) java2SQL.bindExpression(null, null, null);
 
-        CastNode likeOpt = (CastNode)
-        getNodeFactory().getNode(
-            C_NodeTypes.CAST_NODE,
-            java2SQL,
-            parameterNode.getTypeServices(),
-            getContextManager());
-
+        CastNode likeOpt = new CastNode(java2SQL, parameterNode.getTypeServices(), getContextManager());
         likeOpt.bindCastNodeOnly();
 
         return likeOpt;

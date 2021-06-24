@@ -334,11 +334,7 @@ public class ConditionalNode extends ValueNode
     private QueryTreeNode recastNullNode(ValueNode nodeToCast,
         DataTypeDescriptor typeToUse) throws StandardException
     {
-        return (QueryTreeNode) getNodeFactory().getNode(
-                    C_NodeTypes.CAST_NODE,
-                    ((CastNode)nodeToCast).castOperand,
-                    typeToUse,
-                    getContextManager());
+        return new CastNode(((CastNode)nodeToCast).castOperand, typeToUse, getContextManager());
     }
 
     /**
@@ -378,9 +374,7 @@ public class ConditionalNode extends ValueNode
              * The untyped NULL should have a data type descriptor
              * that allows its value to be nullable.
              */
-            QueryTreeNode cast = (QueryTreeNode) getNodeFactory().getNode(
-                        C_NodeTypes.CAST_NODE,
-                        thenElseList.elementAt(0),
+            QueryTreeNode cast = new CastNode((ValueNode) thenElseList.elementAt(0),
                         bcon.getLeftOperand().getTypeServices().getNullabilityType(true),
                         getContextManager());
 
@@ -500,9 +494,7 @@ public class ConditionalNode extends ValueNode
          */
         if (thenTypeId.typePrecedence() != condTypeId.typePrecedence())
         {
-            ValueNode cast = (ValueNode) getNodeFactory().getNode(
-                                C_NodeTypes.CAST_NODE,
-                                thenElseList.elementAt(0),
+            ValueNode cast = new CastNode((ValueNode) thenElseList.elementAt(0),
                                 getTypeServices(),    // cast to dominant type
                                 getContextManager());
             cast = cast.bindExpression(fromList,
@@ -514,9 +506,7 @@ public class ConditionalNode extends ValueNode
 
         else if (elseTypeId.typePrecedence() != condTypeId.typePrecedence())
         {
-            ValueNode cast = (ValueNode) getNodeFactory().getNode(
-                                C_NodeTypes.CAST_NODE,
-                                thenElseList.elementAt(1),
+            ValueNode cast = new CastNode((ValueNode) thenElseList.elementAt(1),
                                 getTypeServices(),    // cast to dominant type
                                 getContextManager());
             cast = cast.bindExpression(fromList,

@@ -99,12 +99,7 @@ public class PosStrOperatorNode extends BinaryOperatorNode
                             true,
                             width);
 
-                    ValueNode castNode = (ValueNode)
-                        getNodeFactory().getNode(
-                            C_NodeTypes.CAST_NODE,
-                            operand,
-                            dtd,
-                            getContextManager());
+                    ValueNode castNode = new CastNode(operand, dtd, getContextManager());
                     castNode.setCollationUsingCompilationSchema();
                     ((CastNode) castNode).bindCastNodeOnly();
 

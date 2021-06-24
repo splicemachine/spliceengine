@@ -71,7 +71,7 @@ public abstract class SingleChildResultSetNode extends FromTable{
     @Override
     public void init(Object childResult,Object tableProperties){
         /* correlationName is always null */
-        super.init(null,tableProperties);
+        super.init(null, tableProperties);
         this.childResult=(ResultSetNode)childResult;
 
         /* Propagate the child's referenced table map, if one exists */

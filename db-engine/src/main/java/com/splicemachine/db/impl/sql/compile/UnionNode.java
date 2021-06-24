@@ -448,12 +448,7 @@ public class UnionNode extends SetOperatorNode{
              * won't get generated above the PRN.)
              */
             if(!columnTypesAndLengthsMatch()){
-                treeTop= (ResultSetNode)getNodeFactory().getNode(C_NodeTypes.NORMALIZE_RESULT_SET_NODE,
-                        treeTop,
-                        null,
-                        null,
-                        Boolean.FALSE,
-                        getContextManager());
+                treeTop = new NormalizeResultSetNode(treeTop, null, null, Boolean.FALSE, getContextManager());
             }
 
             treeTop = new DistinctNode(treeTop.genProjectRestrict(),
@@ -474,11 +469,7 @@ public class UnionNode extends SetOperatorNode{
          * the order by.
          */
         if(orderByList!=null){
-            treeTop=(ResultSetNode)getNodeFactory().getNode(C_NodeTypes.ORDER_BY_NODE,
-                    treeTop,
-                    orderByList,
-                    tableProperties,
-                    getContextManager());
+            treeTop = new OrderByNode(treeTop, orderByList, tableProperties, getContextManager());
         }
 
 

@@ -511,11 +511,7 @@ public final class InsertNode extends DMLModStatementNode {
         if (! resultColumnList.columnTypesAndLengthsMatch(
                                                 resultSet.getResultColumns())) {
             
-            resultSet =
-            (ResultSetNode) getNodeFactory().getNode(
-            C_NodeTypes.NORMALIZE_RESULT_SET_NODE, resultSet,
-            resultColumnList, null, Boolean.FALSE,
-            getContextManager());
+            resultSet = new NormalizeResultSetNode(resultSet, resultColumnList, null, Boolean.FALSE, getContextManager());
         }
 
         if (targetTableDescriptor != null) {
