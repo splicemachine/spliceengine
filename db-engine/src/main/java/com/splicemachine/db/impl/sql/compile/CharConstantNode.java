@@ -56,6 +56,13 @@ public final class CharConstantNode extends ConstantNode
 		setNodeType(C_NodeTypes.CHAR_CONSTANT_NODE);
 		init(val);
 	}
+
+	public CharConstantNode(String value, Integer length, ContextManager cm) throws StandardException {
+		setContextManager(cm);
+		setNodeType(C_NodeTypes.CHAR_CONSTANT_NODE);
+		init(value, length);
+	}
+
 	/**
 	 * Initializer for a CharConstantNode.
 	 *

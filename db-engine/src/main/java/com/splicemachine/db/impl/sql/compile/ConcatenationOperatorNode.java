@@ -109,10 +109,7 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
             assert resultValue != null;
             resultValue.concatenate(leftValue, rightValue, resultValue);
 
-            return (ValueNode) getNodeFactory().getNode(
-                    C_NodeTypes.CHAR_CONSTANT_NODE,
-                    resultValue.getString(),
-                    getContextManager());
+            return new CharConstantNode(resultValue.getString(), getContextManager());
         }
 
         return this;
