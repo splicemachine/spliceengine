@@ -15121,14 +15121,8 @@ alterTableBody(TableName tableName) throws StandardException :
         //syscs_util.SYSCS_UPDATE_STATISTICS procedure
         checkInternalFeature("UPDATE STATISTICS");
         changeType[0] = DDLStatementNode.UPDATE_STATISTICS;
-        return (StatementNode) nodeFactory.getNode(
-                            C_NodeTypes.ALTER_TABLE_NODE,
-                            tableName,
-                            changeType,
-                            Boolean.FALSE,
-                            indexName,
-                            null,
-                            getContextManager());
+        return new AlterTableNode(tableName, changeType, Boolean.FALSE,
+                            indexName, null, getContextManager());
     }
 |
     <STATISTICS> <DROP>
@@ -15142,14 +15136,8 @@ alterTableBody(TableName tableName) throws StandardException :
         //syscs_util.SYSCS_UPDATE_STATISTICS procedure
         checkInternalFeature("DROP STATISTICS");
         changeType[0] = DDLStatementNode.DROP_STATISTICS;
-        return (StatementNode) nodeFactory.getNode(
-                            C_NodeTypes.ALTER_TABLE_NODE,
-                            tableName,
-                            changeType,
-                            Boolean.FALSE,
-                            indexName,
-                            null,
-                            getContextManager());
+        return new AlterTableNode(tableName, changeType, Boolean.FALSE,
+                            indexName, null, getContextManager());
     }
 |
     <DROP>
@@ -15164,14 +15152,8 @@ alterTableBody(TableName tableName) throws StandardException :
 |
     lockGranularity = alterTableAction( tableElementList, changeType, behavior )
     {
-        return (StatementNode) nodeFactory.getNode(
-                            C_NodeTypes.ALTER_TABLE_NODE,
-                            tableName,
-                            changeType,
-                            tableElementList,
-                            new Character(lockGranularity),
-                            behavior,
-                            getContextManager());
+        return new AlterTableNode(tableName, changeType, tableElementList,
+                            new Character(lockGranularity), behavior, getContextManager());
     }
 }
 
@@ -15198,14 +15180,8 @@ dropStatistics(TableName tableName) throws StandardException :
         checkInternalFeature("DROP STATISTICS");
         int[] changeType = new int[1];
         changeType[0] = DDLStatementNode.DROP_STATISTICS;
-        return (StatementNode) nodeFactory.getNode(
-                            C_NodeTypes.ALTER_TABLE_NODE,
-                            tableName,
-                            changeType,
-                            Boolean.TRUE,
-                            null,
-                            null,
-                            getContextManager());
+        return new AlterTableNode(tableName, changeType, Boolean.TRUE,
+                            null, null, getContextManager());
     }
 }
 
@@ -15232,14 +15208,8 @@ updateStatistics(TableName tableName) throws StandardException :
         checkInternalFeature("UPDATE STATISTICS");
         int[] changeType = new int[1];
         changeType[0] = DDLStatementNode.UPDATE_STATISTICS;
-        return (StatementNode) nodeFactory.getNode(
-                            C_NodeTypes.ALTER_TABLE_NODE,
-                            tableName,
-                            changeType,
-                            Boolean.TRUE,
-                            null,
-                            null,
-                            getContextManager());
+        return new AlterTableNode(tableName, changeType, Boolean.TRUE,
+                            null, null, getContextManager());
     }
 }
 
@@ -15259,12 +15229,8 @@ inplaceCompress(TableName tableName) throws StandardException :
         )
     {
         checkInternalFeature("COMPRESS");
-        return (StatementNode) nodeFactory.getNode(
-                            C_NodeTypes.ALTER_TABLE_NODE,
-                            tableName,
-                            new Boolean(purge != null),
-                            new Boolean(defragment != null),
-                            new Boolean(truncate != null),
+        return new AlterTableNode(tableName, new Boolean(purge != null),
+                            new Boolean(defragment != null), new Boolean(truncate != null),
                             getContextManager());
     }
 }
@@ -15280,11 +15246,7 @@ sequentialCompress(TableName tableName) throws StandardException :
     [ tok = <SEQUENTIAL> ]
     {
         checkInternalFeature("COMPRESS");
-        return (StatementNode) nodeFactory.getNode(
-                            C_NodeTypes.ALTER_TABLE_NODE,
-                            tableName,
-                            new Boolean(tok != null),
-                            getContextManager());
+        return new AlterTableNode(tableName, new Boolean(tok != null), getContextManager());
     }
 }
 
@@ -15404,14 +15366,8 @@ dropColumnDefinition(TableName tableName, TableElementList tableElementList, int
                         getContextManager());
         changeType[0] = DDLStatementNode.DROP_TYPE;
         tableElementList.addTableElement(tableElement);
-        return (StatementNode) nodeFactory.getNode(
-                            C_NodeTypes.ALTER_TABLE_NODE,
-                            tableName,
-                            changeType,
-                            tableElementList,
-                            new Character('\0'),
-                            behavior,
-                            getContextManager());
+        return new AlterTableNode(tableName, changeType, tableElementList,
+                            new Character('\0'), behavior, getContextManager());
     }
 }
 
@@ -15555,14 +15511,8 @@ dropTableConstraintDefinitionCore(TableName tableName, TableElementList tableEle
         {
         changeType[0] = DDLStatementNode.DROP_TYPE;
         tableElementList.addTableElement(tableElement);
-        return (StatementNode) nodeFactory.getNode(
-                            C_NodeTypes.ALTER_TABLE_NODE,
-                            tableName,
-                            changeType,
-                            tableElementList,
-                            new Character('\0'),
-                            behavior,
-                            getContextManager());
+        return new AlterTableNode(tableName, changeType, tableElementList,
+                            new Character('\0'), behavior, getContextManager());
         }
 }
 
@@ -15789,10 +15739,7 @@ truncateTableStatement() throws StandardException :
 {
     <TRUNCATE> <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
     {
-        return (StatementNode) nodeFactory.getNode(
-                            C_NodeTypes.ALTER_TABLE_NODE,
-                            tableName,
-                            getContextManager());
+        return new AlterTableNode(tableName, getContextManager());
     }
 }
 

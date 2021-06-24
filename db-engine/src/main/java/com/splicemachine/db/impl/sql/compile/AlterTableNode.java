@@ -34,11 +34,13 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.Limits;
 
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -112,6 +114,10 @@ public class AlterTableNode extends DDLStatementNode
 
 	protected	SchemaDescriptor			schemaDescriptor = null;
 
+	public AlterTableNode(ContextManager cm) {
+		setContextManager(cm);
+		setNodeType(C_NodeTypes.ALTER_TABLE_NODE);
+	}
 
 	/**
 	 * Initializer for a TRUNCATE TABLE
@@ -120,9 +126,10 @@ public class AlterTableNode extends DDLStatementNode
 	 * @exception StandardException		Thrown on error
 	 */
 
-	public void init(Object objectName)
+	public AlterTableNode(Object objectName, ContextManager cm)
 		throws StandardException
-	{		
+	{
+		this(cm);
 		initAndCheck(objectName);
 		/* For now, this init() only called for truncate table */
 		truncateTable = true;
@@ -139,10 +146,11 @@ public class AlterTableNode extends DDLStatementNode
 	 * @exception StandardException		Thrown on error
 	 */
 
-	public void init(Object objectName,
-					 Object sequential)
+	public AlterTableNode(Object objectName,
+					 Object sequential, ContextManager cm)
 		throws StandardException
 	{
+		this(cm);
 		initAndCheck(objectName);
 
 		this.sequential = (Boolean) sequential;
@@ -163,12 +171,13 @@ public class AlterTableNode extends DDLStatementNode
 	 * @exception StandardException		Thrown on error
 	 */
 
-	public void init(Object objectName,
+	public AlterTableNode(Object objectName,
 			 Object purge,
 			 Object defragment,
-			 Object truncateEndOfTable)
+			 Object truncateEndOfTable, ContextManager cm)
 		throws StandardException
 	{
+		this(cm);
 		initAndCheck(objectName);
 
 		this.purge = (Boolean) purge;
@@ -204,14 +213,15 @@ public class AlterTableNode extends DDLStatementNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void init(
-							Object objectName,
+	public AlterTableNode(Object objectName,
 							Object changeType,
 							Object param1,
 							Object param2,
-							Object param3 )
+							Object param3,
+							ContextManager cm)
 		throws StandardException
 	{
+		this(cm);
 		initAndCheck(objectName);
 
 		
