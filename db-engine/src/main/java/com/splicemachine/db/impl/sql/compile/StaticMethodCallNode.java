@@ -343,10 +343,7 @@ public class StaticMethodCallNode extends MethodCallNode {
                             StringDataValue.COLLATION_DERIVATION_IMPLICIT);
 
 
-                    JavaValueNode returnValueToJava = (JavaValueNode) getNodeFactory().getNode(
-                                        C_NodeTypes.SQL_TO_JAVA_VALUE_NODE,
-                                        returnValueCastNode,
-                                        getContextManager());
+                    JavaValueNode returnValueToJava = new SQLToJavaValueNode(returnValueCastNode, getContextManager());
                     returnValueToJava.setCollationType(returnType.getCollationType());
                     return returnValueToJava.bindExpression(fromList, subqueryList, aggregateVector);
                 }
@@ -694,11 +691,7 @@ public class StaticMethodCallNode extends MethodCallNode {
                             );
 
 
-                    methodParms[p] = (JavaValueNode) getNodeFactory().getNode(
-                            C_NodeTypes.SQL_TO_JAVA_VALUE_NODE,
-                            castNode,
-                            getContextManager());
-
+                    methodParms[p] = new SQLToJavaValueNode(castNode, getContextManager());
                     methodParms[p] = methodParms[p].bindExpression(fromList, subqueryList, aggregateVector);
                 }
 
@@ -824,7 +817,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 
                 pyCodeNode = (QueryTreeNode) cc.getNodeFactory().getNode(C_NodeTypes.BLOB_CONSTANT_NODE,
                         hexCompiledPyCodeStr, compiledPyCode.length,cm);
-                pyCodeNode = (QueryTreeNode) cc.getNodeFactory().getNode(C_NodeTypes.SQL_TO_JAVA_VALUE_NODE, pyCodeNode,cm);
+                pyCodeNode = new SQLToJavaValueNode(pyCodeNode, cm);
             } catch(Exception e){
                 // Fill in Exception Handling
                 throw StandardException.plainWrapException(e);

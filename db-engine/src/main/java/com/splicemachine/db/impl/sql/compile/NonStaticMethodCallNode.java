@@ -94,11 +94,7 @@ public class NonStaticMethodCallNode extends MethodCallNode
 		}
 		else
 		{
-			this.receiver = (JavaValueNode) getNodeFactory().
-								getNode(
-									C_NodeTypes.SQL_TO_JAVA_VALUE_NODE,
-									receiver,
-									getContextManager());
+			this.receiver = new SQLToJavaValueNode(receiver, getContextManager());
 //            System.out.println("NonStaticMethodCallNode.init() receiver = "+receiver);
 // get nulpointer because not .bind?
 //            System.out.println("\ttypecompiler = "+((ValueNode)receiver).getTypeCompiler());

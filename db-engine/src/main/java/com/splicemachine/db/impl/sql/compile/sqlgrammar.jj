@@ -11091,7 +11091,7 @@ castSpecification() throws StandardException :
          */
         if (dts.getTypeId().userType())
         {
-            treeTop = new JavaToSQLValueNode( nodeFactory.getNode(C_NodeTypes.SQL_TO_JAVA_VALUE_NODE,treeTop, getContextManager()), getContextManager());
+            treeTop = new JavaToSQLValueNode(new SQLToJavaValueNode(treeTop, getContextManager()), getContextManager());
         }
 
         return treeTop;

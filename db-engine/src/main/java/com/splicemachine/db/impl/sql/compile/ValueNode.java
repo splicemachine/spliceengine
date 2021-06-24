@@ -457,10 +457,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
                 "genSQLJavaSQLTree() only expected to be called on user types");
         }
 
-        JavaValueNode stjvn = (JavaValueNode) getNodeFactory().getNode(
-                                    C_NodeTypes.SQL_TO_JAVA_VALUE_NODE,
-                                    this,
-                                    getContextManager());
+        JavaValueNode stjvn = new SQLToJavaValueNode(this, getContextManager());
 
         ValueNode jtsvn = new JavaToSQLValueNode(stjvn, getContextManager());
         DataTypeDescriptor  resultType;

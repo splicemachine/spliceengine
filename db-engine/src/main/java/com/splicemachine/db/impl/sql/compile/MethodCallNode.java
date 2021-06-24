@@ -178,12 +178,8 @@ public abstract class MethodCallNode extends JavaValueNode
             ** SQLValueNode. But if the parameter is already in Java domain
             ** format, then we don't need to do anything.
             */
-            if ( ! (qt instanceof JavaValueNode))
-            {
-                qt = (QueryTreeNode) getNodeFactory().getNode(
-                        C_NodeTypes.SQL_TO_JAVA_VALUE_NODE,
-                        qt,
-                        getContextManager());
+            if ( ! (qt instanceof JavaValueNode)) {
+                qt = new SQLToJavaValueNode(qt, getContextManager());
             }
 
             methodParms[index] = (JavaValueNode) qt;
@@ -1355,10 +1351,7 @@ public abstract class MethodCallNode extends JavaValueNode
          */
         if ( ! (qt instanceof JavaValueNode))
         {
-            qt = (QueryTreeNode) getNodeFactory().getNode(
-                    C_NodeTypes.SQL_TO_JAVA_VALUE_NODE,
-                    qt,
-                    getContextManager());
+            qt = new SQLToJavaValueNode(qt, getContextManager());
         }
         for(int i = 0; i < methodParms.length; ++i){
             newMethodParms[i] = methodParms[i];
