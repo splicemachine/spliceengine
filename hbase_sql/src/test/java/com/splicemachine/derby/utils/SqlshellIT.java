@@ -484,4 +484,93 @@ public class SqlshellIT {
                 "5:\tL_QUANTITY DECIMAL(15,2),\n" +
                 ".\n");
     }
+
+    /*
+      This testcase essentially test whether the function executes without error.
+      It can also perform correctness test to some extent, e.g., number of trigger records returned should match expectation
+      and trigger name returned should be reasonable.
+      One should manually check the correctness in the returned trigger info according to the specific comments in the testcase below.
+     */
+    @Test
+    public void testCallGetTriggerExec() {
+        execute("CREATE TABLE TABLEA (COL1 INT);\n");
+        execute("CREATE TRIGGER TR1 BEFORE INSERT ON TABLEA REFERENCING NEW AS NEW FOR EACH ROW SET NEW.COL1=NEW.COL1*100;\n");
+        execute("CREATE TRIGGER TR2 BEFORE INSERT ON TABLEA REFERENCING NEW AS NEW FOR EACH ROW SET NEW.COL1=NEW.COL1*20;\n");
+        execute("INSERT INTO TABLEA VALUES(1), (2);");
+         // One single event triggering two triggers; they should have same parentQueryId and txnId but different queryId and elapsedTime
+         // There will be a row for each query executed during trigger execution, meaning, trigger1 and trigger 2 should each have two queries/rows displayed
+        executeR("CALL SYSCS_UTIL.SYSCS_GET_TRIGGER_EXEC();\n",
+
+                "triggerName                                                                                                                     \\|triggerId                           \\|txnId               \\|queryId                             \\|parentQueryId                       \\|timeSpent           \\|numRowsModified     \n" +
+                        "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                        "TR[12]                                                                                                                             \\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|0                   \n" +
+                        "TR[12]                                                                                                                             \\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|0                   \n" +
+                        "TR[12]                                                                                                                             \\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|0                   \n" +
+                        "TR[12]                                                                                                                             \\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|0                   \n" +
+                        "\n" +
+                        "4 rows selected\n");
+
+
+        // Any statement that does not trigger a trigger should reset the trigger info
+        execute("CALL SYSCS_UTIL.SYSCS_GET_TRIGGER_EXEC();\n",
+                "triggerName                                                                                                                     |triggerId                           |txnId               |queryId                             |parentQueryId                       |timeSpent           |numRowsModified     \n" +
+                        "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                        "\n" +
+                        "0 rows selected\n");
+
+        execute("CREATE TABLE TABLEB (COL2 INT);\n");
+        execute("CREATE TRIGGER TR3 AFTER INSERT ON TABLEA FOR EACH STATEMENT INSERT INTO TABLEB VALUES(2);\n");
+        execute("CREATE TRIGGER TR4 BEFORE INSERT ON TABLEB REFERENCING NEW AS NEW FOR EACH ROW SET NEW.COL2=NEW.COL2*20;\n");
+        execute("INSERT INTO TABLEA VALUES(3);\n");
+
+        // Single level nested trigger: Tr1-3 should be triggered by the original insert statement; tr4 should be triggered by tr3
+        executeR("CALL SYSCS_UTIL.SYSCS_GET_TRIGGER_EXEC();\n",
+                "triggerName                                                                                                                     \\|triggerId                           \\|txnId               \\|queryId                             \\|parentQueryId                       \\|timeSpent           \\|numRowsModified     \n" +
+                        "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                        "TR[1-4]                                                                                                                             \\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|[10]                   \n" +
+                        "TR[1-4]                                                                                                                             \\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|[10]                   \n" +
+                        "TR[1-4]                                                                                                                             \\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|[10]                   \n" +
+                        "TR[1-4]                                                                                                                             \\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|[10]                   \n" +
+                        "\n" +
+                        "4 rows selected\n");
+
+
+        execute("CREATE TABLE TABLEC (COL3 INT);\n");
+        execute("CREATE TABLE TABLED (COL4 INT);\n");
+        execute("CREATE TRIGGER TR5 AFTER INSERT ON TABLEC REFERENCING NEW AS NEW FOR EACH ROW WHEN (NEW.COL3=5) INSERT INTO TABLED VALUES(4);\n");
+        execute("CREATE TRIGGER TR6 AFTER INSERT ON TABLED REFERENCING NEW AS NEW FOR EACH ROW INSERT INTO TABLEB VALUES (NEW.COL4*40);\n");
+        execute("INSERT INTO TABLEC VALUES(5);\n");
+
+        // Double level nested trigger: Tr6 should be triggered by tr5; tr4 should be triggered by tr6. Two queries of tr5 are expected
+        executeR("CALL SYSCS_UTIL.SYSCS_GET_TRIGGER_EXEC();\n",
+                "triggerName                                                                                                                     \\|triggerId                           \\|txnId               \\|queryId                             \\|parentQueryId                       \\|timeSpent           \\|numRowsModified     \n" +
+                        "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                        "TR[4-6]                                                                                                                             \\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|[10]                   \n" +
+                        "TR[4-6]                                                                                                                             \\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|[10]                   \n" +
+                        "TR[4-6]                                                                                                                             \\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|[10]                   \n" +
+                        "TR[4-6]                                                                                                                             \\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|[10]                   \n" +
+                        "\n" +
+                        "4 rows selected\n");
+
+        execute("INSERT INTO TABLEC VALUES(7);\n");
+        // Only tr5 is triggered; since the when clause is not satisfied, tr5 won't do the insertion or trigger tr6
+        executeR("CALL SYSCS_UTIL.SYSCS_GET_TRIGGER_EXEC();\n",
+                "triggerName                                                                                                                     \\|triggerId                           \\|txnId               \\|queryId                             \\|parentQueryId                       \\|timeSpent           \\|numRowsModified     \n" +
+                        "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                        "TR5                                                                                                                             \\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|0                   \n" +
+                        "\n" +
+                        "1 row selected\n");
+
+        execute("CREATE TABLE TABLEE (COL5 INT);\n");
+        execute("CREATE TRIGGER TR7 BEFORE INSERT ON TABLEE FOR EACH STATEMENT CALL SYSCS_UTIL.SYSCS_GET_VERSION_INFO();\n");
+        execute("INSERT INTO TABLEE VALUES(9);\n");
+        // Only tr7 is triggered; test before statement trigger
+        executeR("CALL SYSCS_UTIL.SYSCS_GET_TRIGGER_EXEC();\n",
+                "triggerName                                                                                                                     \\|triggerId                           \\|txnId               \\|queryId                             \\|parentQueryId                       \\|timeSpent           \\|numRowsModified     \n" +
+                        "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                        "TR7                                                                                                                             \\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\|\\d+\\s*\\|0                   \n" +
+                        "\n" +
+                        "1 row selected\n");
+    }
+
 }
