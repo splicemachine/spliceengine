@@ -1760,12 +1760,7 @@ public class JoinNode extends TableOperatorNode{
                 fromListParam.removeElementAt(0);
 
                 /* Create and insert the new = condition */
-                equalsNode=(BinaryComparisonOperatorNode)
-                        getNodeFactory().getNode(
-                                C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
-                                leftCR,
-                                rightCR,
-                                getContextManager());
+                equalsNode = new BinaryRelationalOperatorNode.Equals(leftCR, rightCR, getContextManager());
                 equalsNode.bindComparisonOperator();
 
                 // Create a new join clause by ANDing the new = condition and

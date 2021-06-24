@@ -41,7 +41,6 @@ import com.splicemachine.db.impl.sql.compile.*;
 
 import java.util.List;
 
-import static com.splicemachine.db.iapi.sql.compile.C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE;
 import static com.splicemachine.db.impl.sql.compile.AndNode.newAndNode;
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
@@ -139,13 +138,8 @@ public class GroupByUtil {
                     }
                     subqueryColRef = (ColumnReference) subquerySelectNode.bindExtraExpressions(subqueryColRef);
 
-                    BinaryRelationalOperatorNode bron =
-                        (BinaryRelationalOperatorNode)
-                        subqueryColRef.getNodeFactory().getNode(
-                            BINARY_EQUALS_OPERATOR_NODE,
-                            subqueryColRef,
-                            outerColumnReference,
-                            subqueryColRef.getContextManager());
+                    BinaryRelationalOperatorNode bron = new BinaryRelationalOperatorNode.Equals(
+                            subqueryColRef, outerColumnReference, subqueryColRef.getContextManager());
 
                     bron.bindExpression(subquerySelectNode.getFromList(), null, null);
                     // rebind one of the columns to refer to the outer table.

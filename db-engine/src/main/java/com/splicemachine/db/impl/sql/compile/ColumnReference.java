@@ -715,15 +715,8 @@ public class ColumnReference extends ValueNode {
     public ValueNode putAndsOnTop()
             throws StandardException
     {
-        NodeFactory        nodeFactory = getNodeFactory();
-
         BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE, getContextManager());
-        BinaryComparisonOperatorNode equalsNode = (BinaryComparisonOperatorNode)
-                nodeFactory.getNode(
-                        C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
-                        this,
-                        trueNode,
-                        getContextManager());
+        BinaryComparisonOperatorNode equalsNode = new BinaryRelationalOperatorNode.Equals(this, trueNode, getContextManager());
         /* Set type info for the operator node */
         equalsNode.bindComparisonOperator();
         AndNode andNode = new AndNode(equalsNode, trueNode, getContextManager());

@@ -992,5 +992,33 @@ public class BinaryOperatorNode extends OperatorNode
         this.rightMatchIndexExprColumnPosition = other.rightMatchIndexExprColumnPosition;
         this.xmlQuery = other.xmlQuery;
     }
+
+    public static int getBinaryOperatorNodeType(int compOp) {
+        switch (compOp)
+        {
+            case BinaryOperatorNode.EQ:
+                return C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE;
+
+            case BinaryOperatorNode.NE:
+                return C_NodeTypes.BINARY_NOT_EQUALS_OPERATOR_NODE;
+
+            case BinaryOperatorNode.LT:
+                return C_NodeTypes.BINARY_LESS_THAN_OPERATOR_NODE;
+
+            case BinaryOperatorNode.GT:
+                return C_NodeTypes.BINARY_GREATER_THAN_OPERATOR_NODE;
+
+            case BinaryOperatorNode.LE:
+                return C_NodeTypes.BINARY_LESS_EQUALS_OPERATOR_NODE;
+
+            case BinaryOperatorNode.GE:
+                return C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE;
+
+            default:
+                if (SanityManager.DEBUG)
+                    SanityManager.THROWASSERT("Unknown comparison operator " + compOp);
+                return 0;
+        }
+    }
 }
 

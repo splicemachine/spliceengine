@@ -406,9 +406,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
                     //       =
                     //     /   \
                     //  column  'Derby'
-                    BinaryComparisonOperatorNode equals = 
-                        (BinaryComparisonOperatorNode) getNodeFactory().getNode(
-                            C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
+                    BinaryComparisonOperatorNode equals = new BinaryRelationalOperatorNode.Equals(
                             leftClone, 
                             (ValueNode) getNodeFactory().getNode(
                                 C_NodeTypes.CHAR_CONSTANT_NODE,

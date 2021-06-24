@@ -5696,114 +5696,16 @@ additiveExpression(ValueNode farLeftOperand, int compOp) throws StandardExceptio
 {
     ValueNode    leftOperand;
     int            operator;
-    int            nodeType;
 }
 {
     leftOperand = multiplicativeExpression(null, 0)
             (operator = additiveOperator()
                 leftOperand = multiplicativeExpression(leftOperand, operator) )*
     {
-        if (farLeftOperand == null)
-            return leftOperand;
-
-        switch (compOp)
-        {
-          case BinaryOperatorNode.EQ:
-            nodeType = C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE;
-            break;
-
-          case BinaryOperatorNode.NE:
-            nodeType = C_NodeTypes.BINARY_NOT_EQUALS_OPERATOR_NODE;
-            break;
-
-          case BinaryOperatorNode.LT:
-              nodeType = C_NodeTypes.BINARY_LESS_THAN_OPERATOR_NODE;
-            break;
-
-          case BinaryOperatorNode.GT:
-            nodeType = C_NodeTypes.BINARY_GREATER_THAN_OPERATOR_NODE;
-            break;
-
-          case BinaryOperatorNode.LE:
-            nodeType = C_NodeTypes.BINARY_LESS_EQUALS_OPERATOR_NODE;
-            break;
-
-          case BinaryOperatorNode.GE:
-            nodeType = C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE;
-            break;
-
-          default:
-            if (SanityManager.DEBUG)
-            SanityManager.THROWASSERT("Unknown comparison operator " + compOp);
-            nodeType = 0;
-            break;
-        }
-
-        if (leftOperand instanceof ValueTupleNode) {
-            if (!(farLeftOperand instanceof ValueTupleNode)) {
-                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
-                    "Cannot compare tuple with non tuple");
-            }
-            return additiveExpressionTuple(
-                    nodeType,
-                    (ValueTupleNode)farLeftOperand,
-                    (ValueTupleNode)leftOperand);
-        } else {
-            if (farLeftOperand instanceof ValueTupleNode) {
-                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
-                    "Cannot compare tuple with non tuple");
-            }
-            return (ValueNode) nodeFactory.getNode(
-                                nodeType,
-                                farLeftOperand,
-                                leftOperand,
-                                getContextManager());
-        }
+        return additiveExpression(farLeftOperand, compOp, leftOperand );
     }
 }
 
-/*
- * <A NAME="additiveExpressionTuple">additiveExpressionTuple</A>
- */
-ValueNode
-additiveExpressionTuple(
-        int nodeType,
-        ValueTupleNode leftTuple,
-        ValueTupleNode rightTuple) throws StandardException :
-{
-}
-{
-    {
-        if (leftTuple.size() != rightTuple.size()) {
-            throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
-                "Cannot compare tuples of different sizes");
-        }
-        switch (nodeType)
-        {
-            case C_NodeTypes.BINARY_LESS_THAN_OPERATOR_NODE:
-            case C_NodeTypes.BINARY_GREATER_THAN_OPERATOR_NODE:
-            case C_NodeTypes.BINARY_LESS_EQUALS_OPERATOR_NODE:
-            case C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE:
-                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
-                    "Tuple lexicographical comparison not supported");
-        }
-        ValueNode value = (ValueNode) nodeFactory.getNode(
-                        nodeType,
-                        leftTuple.get(0),
-                        rightTuple.get(0),
-                        getContextManager());
-        for (int i = 1; i < leftTuple.size(); ++i) {
-            value = new AndNode(value,
-                            (ValueNode) nodeFactory.getNode(
-                                nodeType,
-                                leftTuple.get(i),
-                                rightTuple.get(i),
-                                getContextManager()),
-                            getContextManager());
-        }
-        return value;
-    }
-}
 
 /*
  * <A NAME="additiveOperator">additiveOperator</A>

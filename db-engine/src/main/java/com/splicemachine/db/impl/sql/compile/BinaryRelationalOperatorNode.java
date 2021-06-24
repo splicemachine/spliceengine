@@ -35,6 +35,7 @@ package com.splicemachine.db.impl.sql.compile;
  import com.splicemachine.db.iapi.error.StandardException;
  import com.splicemachine.db.iapi.reference.ClassName;
  import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+ import com.splicemachine.db.iapi.services.context.ContextManager;
  import com.splicemachine.db.iapi.services.sanity.SanityManager;
  import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
  import com.splicemachine.db.iapi.sql.compile.Optimizable;
@@ -98,6 +99,31 @@ public class BinaryRelationalOperatorNode
     private HashSet<String> noStatsColumns;
 
     public BinaryRelationalOperatorNode() { }
+
+    public static class Equals extends BinaryRelationalOperatorNode {
+         public Equals(ValueNode leftOperand, ValueNode rightOperand, ContextManager cm) {
+             super(C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE, leftOperand, rightOperand, cm);
+         }
+     }
+
+     public static class NotEquals extends BinaryRelationalOperatorNode {
+         public NotEquals(ValueNode leftOperand, ValueNode rightOperand, ContextManager cm) {
+             super(C_NodeTypes.BINARY_NOT_EQUALS_OPERATOR_NODE, leftOperand, rightOperand, cm);
+         }
+     }
+
+    public BinaryRelationalOperatorNode(int nodeType, ValueNode leftOperand, ValueNode rightOperand, ContextManager cm) {
+        setNodeType(nodeType);
+        setContextManager(cm);
+        init(leftOperand, rightOperand);
+    }
+
+     public BinaryRelationalOperatorNode(int nodeType, ValueNode leftOperand, ValueNode rightOperand,
+                                         InListOperatorNode inListOp, ContextManager cm) {
+         setNodeType(nodeType);
+         setContextManager(cm);
+         init(leftOperand, rightOperand, inListOp);
+     }
 
     public void init(Object leftOperand,Object rightOperand){
         String methodName="";

@@ -1045,13 +1045,8 @@ public class FromBaseTable extends FromTable {
                                 getContextManager());
 
         // Set up the rowid = rowid predicate to join back to the base table.
-        BinaryRelationalOperatorNode whereClause =
-                (BinaryRelationalOperatorNode)
-                nodeFactory.getNode(
-                        C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
-                        ridCol2,
-                        ridCol1,
-                        getContextManager());
+        BinaryRelationalOperatorNode whereClause = new BinaryRelationalOperatorNode.Equals(
+                        ridCol2, ridCol1, getContextManager());
 
         // Include all referenced columns.
         ResultColumnList finalResultColumns = new ResultColumnList(getContextManager());
@@ -1217,13 +1212,8 @@ public class FromBaseTable extends FromTable {
                                                ));
 
         // Set up the rowid = rowid predicate to join back to the base table.
-        BinaryRelationalOperatorNode whereClause =
-                (BinaryRelationalOperatorNode)
-                nodeFactory.getNode(
-                        C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
-                        ridCol1,
-                        ridCol2,
-                        getContextManager());
+        BinaryRelationalOperatorNode whereClause = new BinaryRelationalOperatorNode.Equals(
+                        ridCol1, ridCol2, getContextManager());
 
         whereClause.bindComparisonOperator();
 

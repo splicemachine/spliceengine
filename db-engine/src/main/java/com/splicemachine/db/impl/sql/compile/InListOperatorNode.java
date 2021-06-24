@@ -157,9 +157,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                     ValueNodeList.rightPadCharConstantNode((CharConstantNode) value, maxSize);
                 }
             }
-            BinaryComparisonOperatorNode equal =
-                (BinaryComparisonOperatorNode) getNodeFactory().getNode(
-                        C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
+            BinaryComparisonOperatorNode equal = new BinaryRelationalOperatorNode.Equals(
                         getLeftOperand(),
                         value,
                         getContextManager());
@@ -261,13 +259,13 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                  * therefore lead to an incorrect sort order. DERBY-2256.
                  */
                 ArrayList targetTypes = new ArrayList<DataTypeDescriptor>();
-                
+
                 for (int j = 0; j < leftOperandList.size(); j++) {
                     ValueNode leftOperand = (ValueNode) leftOperandList.elementAt(j);
                     DataTypeDescriptor targetType = leftOperand.getTypeServices();
-                    
+
                     TypeId judgeTypeId = targetType.getTypeId();
-                    
+
                     if (!rightOperandList.allSamePrecendence(
                         judgeTypeId.typePrecedence(), j)) {
                         /* Iterate through the entire list of values to find out
@@ -287,13 +285,13 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                     targetTypes.add(targetType);
                 }
                 rightOperandList.eliminateDuplicates(targetTypes);
-                
+
                 /* Now sort the list in ascending order using the dominant
                  * type found above.
                  */
-                
+
                 DataValueDescriptor judgeODV;
-                
+
                 if (singleLeftOperand) {
                     judgeODV = ((DataTypeDescriptor) targetTypes.get(0)).getNull();
                     if ((judgeODV instanceof SQLVarchar) && DB2CompatibilityMode) {
@@ -322,9 +320,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                 if (rightOperandList.size() == 1 && singleLeftOperand)
                 {
                     ValueNode value = (ValueNode)rightOperandList.elementAt(0);
-                    BinaryComparisonOperatorNode equal =
-                        (BinaryComparisonOperatorNode)getNodeFactory().getNode(
-                            C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
+                    BinaryComparisonOperatorNode equal = new BinaryRelationalOperatorNode.Equals(
                             getLeftOperand(),
                             value,
                             getContextManager());
@@ -334,7 +330,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                     return equal;
                 }
             }
-            
+
             BinaryComparisonOperatorNode equal = null;
             ValueNode andNode = null;
             ValueNode lastAnd = null;
@@ -367,10 +363,10 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                         0,
                         null, // default value
                         getContextManager());
-    
+
                 DataTypeDescriptor pType = srcVal.getTypeServices();
                 pNode.setType(pType);
-    
+
                 /* If we choose to use the new predicate for execution-time
                  * probing then the right operand will function as a start-key
                  * "place-holder" into which we'll store the different IN-list
@@ -389,7 +385,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                  * during execution.
                  */
                 pNode.setValueToGenerate(srcVal);
-    
+
                 /* Finally, create the "column = ?" equality that serves as the
                  * basis for the probe predicate.  We store a reference to "this"
                  * node inside the probe predicate so that, if we later decide
@@ -398,29 +394,26 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                  * to "this").
                  */
 
-                equal =
-                    (BinaryComparisonOperatorNode) getNodeFactory().getNode(
-                        C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
-                        leftOperand,
-                        pNode,
-                        this,
+                equal = new BinaryRelationalOperatorNode(C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
+                        leftOperand, // leftOperand
+                        pNode,       // rightOperand
+                        this,        // inListOp
                         getContextManager());
-    
+
                 /* Set type info for the operator node */
                 equal.bindComparisonOperator();
                 equal.setOuterJoinLevel(getOuterJoinLevel());
-    
+
                 // Build a chain of AND'ed binary comparisons for each
                 // of the columns in a multicolumn IN list.
                 if (!isSingleLeftOperand()) {
-                    NodeFactory nodeFactory = getNodeFactory();
                     BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
                     ValueNode temp;
                     temp = new AndNode(equal, trueNode, getContextManager());
                     ((AndNode) temp).postBindFixup();
                     if (lastAnd != null)
                         ((AndNode) lastAnd).setRightOperand(temp);
-        
+
                     lastAnd = temp;
                     if (andNode == null)
                         andNode = temp;
@@ -489,12 +482,8 @@ public final class InListOperatorNode extends BinaryListOperatorNode
          * requires each <> node to have a separate object.
          */
         ValueNode leftClone = (getLeftOperand() instanceof ColumnReference) ? getLeftOperand().getClone() : getLeftOperand();
-        leftBCO = (BinaryComparisonOperatorNode)
-                    getNodeFactory().getNode(
-                        C_NodeTypes.BINARY_NOT_EQUALS_OPERATOR_NODE,
-                        leftClone,
-                        (ValueNode) rightOperandList.elementAt(0),
-                        getContextManager());
+        leftBCO = new BinaryRelationalOperatorNode.NotEquals(
+                leftClone, (ValueNode) rightOperandList.elementAt(0), getContextManager());
         /* Set type info for the operator node */
         leftBCO.bindComparisonOperator();
 
@@ -505,12 +494,8 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 
             /* leftO <> rightOList.elementAt(elemsDone) */
             leftClone = (getLeftOperand() instanceof ColumnReference) ? getLeftOperand().getClone() : getLeftOperand();
-            rightBCO = (BinaryComparisonOperatorNode)
-                        getNodeFactory().getNode(
-                            C_NodeTypes.BINARY_NOT_EQUALS_OPERATOR_NODE,
-                            leftClone,
-                            (ValueNode) rightOperandList.elementAt(elemsDone),
-                            getContextManager());
+            rightBCO = new BinaryRelationalOperatorNode.NotEquals(
+                            leftClone, (ValueNode) rightOperandList.elementAt(elemsDone), getContextManager());
             /* Set type info for the operator node */
             rightBCO.bindComparisonOperator();
 

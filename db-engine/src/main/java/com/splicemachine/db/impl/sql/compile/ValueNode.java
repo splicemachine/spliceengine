@@ -565,17 +565,9 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
         NodeFactory                nodeFactory = getNodeFactory();
 
         falseNode = new BooleanConstantNode(Boolean.FALSE,getContextManager());
-        equalsNode = (BinaryRelationalOperatorNode)
-                            nodeFactory.getNode(
-                                C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
-                                this,
-                                falseNode,
-                                getContextManager());
+        equalsNode = new BinaryRelationalOperatorNode.Equals(this, falseNode, getContextManager());
         nullableResult = getTypeServices().isNullable();
-        equalsNode.setType(new DataTypeDescriptor(
-                                    TypeId.BOOLEAN_ID,
-                                    nullableResult)
-                          );
+        equalsNode.setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, nullableResult));
         return equalsNode;
     }
 

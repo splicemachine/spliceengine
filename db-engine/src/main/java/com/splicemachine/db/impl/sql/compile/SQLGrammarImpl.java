@@ -1333,4 +1333,61 @@ class SQLGrammarImpl {
 
         }
     }
+
+    ValueNode additiveExpression(ValueNode farLeftOperand, int compOp, ValueNode leftOperand)
+            throws StandardException
+    {
+        if (farLeftOperand == null)
+            return leftOperand;
+
+        int nodeType = BinaryOperatorNode.getBinaryOperatorNodeType(compOp);
+
+        if (leftOperand instanceof ValueTupleNode) {
+            if (!(farLeftOperand instanceof ValueTupleNode)) {
+                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                        "Cannot compare tuple with non tuple");
+            }
+            return additiveExpressionTuple(
+                    nodeType,
+                    (ValueTupleNode)farLeftOperand,
+                    (ValueTupleNode)leftOperand);
+        } else {
+            if (farLeftOperand instanceof ValueTupleNode) {
+                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                        "Cannot compare tuple with non tuple");
+            }
+            return new BinaryRelationalOperatorNode(nodeType, farLeftOperand, leftOperand, getContextManager());
+        }
+    }
+
+    /*
+     * <A NAME="additiveExpressionTuple">additiveExpressionTuple</A>
+     */
+    ValueNode
+    additiveExpressionTuple(int nodeType, ValueTupleNode leftTuple, ValueTupleNode rightTuple)
+            throws StandardException
+    {
+        {
+            if (leftTuple.size() != rightTuple.size()) {
+                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                        "Cannot compare tuples of different sizes");
+            }
+            switch (nodeType) {
+                case C_NodeTypes.BINARY_LESS_THAN_OPERATOR_NODE:
+                case C_NodeTypes.BINARY_GREATER_THAN_OPERATOR_NODE:
+                case C_NodeTypes.BINARY_LESS_EQUALS_OPERATOR_NODE:
+                case C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE:
+                    throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                            "Tuple lexicographical comparison not supported");
+            }
+            ValueNode value = new BinaryRelationalOperatorNode(nodeType, leftTuple.get(0), rightTuple.get(0), cm);
+
+            for (int i = 1; i < leftTuple.size(); ++i) {
+                value = new AndNode(value,
+                        new BinaryRelationalOperatorNode(nodeType, leftTuple.get(i), rightTuple.get(i), cm),
+                        cm);
+            }
+            return value;
+        }
+    }
 }

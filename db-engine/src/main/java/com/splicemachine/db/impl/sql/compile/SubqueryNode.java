@@ -2596,12 +2596,8 @@ public class SubqueryNode extends ValueNode{
     private ValueNode getSingleComparisonJoinCondition(int nodeType, ValueNode left, ValueNode right)
             throws StandardException
     {
-        BinaryComparisonOperatorNode bcoNode = (BinaryComparisonOperatorNode)
-                getNodeFactory().getNode(
-                        nodeType,
-                        left,
-                        right,
-                        getContextManager());
+        BinaryComparisonOperatorNode bcoNode = new BinaryRelationalOperatorNode(nodeType,
+                left, right, getContextManager());
         bcoNode.bindComparisonOperator();
 
         ValueNode result = bcoNode;
@@ -2749,58 +2745,37 @@ public class SubqueryNode extends ValueNode{
     private void changeToCorrespondingExpressionType() throws StandardException{
         BinaryOperatorNode bcon=null;
 
+        int nodeType = 0;
         switch(subqueryType){
             case EQ_ANY_SUBQUERY:
             case IN_SUBQUERY:
-                bcon=(BinaryOperatorNode)getNodeFactory().getNode(
-                        C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
-                        leftOperand,
-                        this,
-                        getContextManager());
+                nodeType = C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE;
                 break;
 
             case NE_ANY_SUBQUERY:
-                bcon=(BinaryOperatorNode)getNodeFactory().getNode(
-                        C_NodeTypes.BINARY_NOT_EQUALS_OPERATOR_NODE,
-                        leftOperand,
-                        this,
-                        getContextManager());
+                nodeType = C_NodeTypes.BINARY_NOT_EQUALS_OPERATOR_NODE;
                 break;
 
             case LE_ANY_SUBQUERY:
-                bcon=(BinaryOperatorNode)getNodeFactory().getNode(
-                        C_NodeTypes.BINARY_LESS_EQUALS_OPERATOR_NODE,
-                        leftOperand,
-                        this,
-                        getContextManager());
+                nodeType = C_NodeTypes.BINARY_LESS_EQUALS_OPERATOR_NODE;
                 break;
 
             case LT_ANY_SUBQUERY:
-                bcon=(BinaryOperatorNode)getNodeFactory().getNode(
-                        C_NodeTypes.BINARY_LESS_THAN_OPERATOR_NODE,
-                        leftOperand,
-                        this,
-                        getContextManager());
+                nodeType = C_NodeTypes.BINARY_LESS_THAN_OPERATOR_NODE;
                 break;
 
             case GE_ANY_SUBQUERY:
-                bcon=(BinaryOperatorNode)getNodeFactory().getNode(
-                        C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE,
-                        leftOperand,
-                        this,
-                        getContextManager());
+                nodeType = C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE;
                 break;
 
             case GT_ANY_SUBQUERY:
-                bcon=(BinaryOperatorNode)getNodeFactory().getNode(
-                        C_NodeTypes.BINARY_GREATER_THAN_OPERATOR_NODE,
-                        leftOperand,
-                        this,
-                        getContextManager());
+                nodeType = C_NodeTypes.BINARY_GREATER_THAN_OPERATOR_NODE;
                 break;
             default:
                 assert false;
         }
+
+        bcon = new BinaryRelationalOperatorNode(nodeType, leftOperand, this, getContextManager());
         // clean up the state of the tree to reflect a bound expression subquery
         subqueryType=EXPRESSION_SUBQUERY;
         setDataTypeServices(resultSet.getResultColumns());
