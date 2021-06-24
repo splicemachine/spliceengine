@@ -136,4 +136,7 @@ public class SpliceDerbyVisitorAdapter implements ASTVisitor {
     public boolean skipChildren(Visitable node) throws StandardException {
         return v.skipChildren(node);
     }
+
+    @Override
+    public ISpliceVisitor getBaseVisitor() { return v.getVisitor(); }
 }
