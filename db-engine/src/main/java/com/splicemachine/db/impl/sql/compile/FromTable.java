@@ -1060,11 +1060,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         for(int index=0;index<inputSize;index++){
             // Build a ResultColumn/ColumnReference pair for the column //
             columnName=inputRcl.elementAt(index).getName();
-            valueNode=(ValueNode)getNodeFactory().getNode(
-                    C_NodeTypes.COLUMN_REFERENCE,
-                    columnName,
-                    exposedName,
-                    getContextManager());
+            valueNode = new ColumnReference(columnName, exposedName, getContextManager());
             resultColumn = new ResultColumn(columnName, valueNode, getContextManager());
 
             // Build the ResultColumnList to return //

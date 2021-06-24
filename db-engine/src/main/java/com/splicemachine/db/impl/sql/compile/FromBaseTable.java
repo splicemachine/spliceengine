@@ -1032,17 +1032,8 @@ public class FromBaseTable extends FromTable {
         fromList.addFromTable(fromSubquery);
 
         // Build a baseTable.BASEROWID = UIS_Statement_Tree.BASEROWID join predicate.
-        ColumnReference ridCol1 = (ColumnReference) nodeFactory.getNode(
-                                C_NodeTypes.COLUMN_REFERENCE,
-                                BASEROWID,
-                                this.getExposedTableName(),
-                                getContextManager());
-        ColumnReference ridCol2 =
-        (ColumnReference) nodeFactory.getNode(
-                                C_NodeTypes.COLUMN_REFERENCE,
-                                BASEROWID,
-                                fromSubquery.getTableName(),
-                                getContextManager());
+        ColumnReference ridCol1 = new ColumnReference(BASEROWID, this.getExposedTableName(), getContextManager());
+        ColumnReference ridCol2 = new ColumnReference(BASEROWID, fromSubquery.getTableName(), getContextManager());
 
         // Set up the rowid = rowid predicate to join back to the base table.
         BinaryRelationalOperatorNode whereClause = new BinaryRelationalOperatorNode.Equals(
@@ -1054,11 +1045,7 @@ public class FromBaseTable extends FromTable {
         for (ResultColumn rc : resultColumns) {
             if (!rc.isReferenced())
                 continue;
-            ColumnReference newCol = (ColumnReference) nodeFactory.getNode(
-                                    C_NodeTypes.COLUMN_REFERENCE,
-                                    rc.getName(),
-                                    this.getExposedTableName(),
-                                    getContextManager());
+            ColumnReference newCol = new ColumnReference(rc.getName(), this.getExposedTableName(), getContextManager());
             ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
                     C_NodeTypes.RESULT_COLUMN,
                     rc.getName(),
@@ -1073,11 +1060,7 @@ public class FromBaseTable extends FromTable {
         // to maintain unique column names.  This RowID refers to the outer table,
         // not the current FromBaseTable object we're sitting in.
         if (unionOfIndexes.resultColumns.getResultColumn(BASEROWID2) != null) {
-            ColumnReference newCol = (ColumnReference) nodeFactory.getNode(
-                                    C_NodeTypes.COLUMN_REFERENCE,
-                                    BASEROWID2,
-                                    fromSubquery.getTableName(),
-                                    getContextManager());
+            ColumnReference newCol = new ColumnReference(BASEROWID2, fromSubquery.getTableName(), getContextManager());
             baseRowId2RC = (ResultColumn) getNodeFactory().getNode(
                     C_NodeTypes.RESULT_COLUMN,
                     BASEROWID2,
@@ -1190,22 +1173,13 @@ public class FromBaseTable extends FromTable {
         FromBaseTable outerBaseTable = (FromBaseTable)outerTable;
 
         NodeFactory nodeFactory = getNodeFactory();
-        ColumnReference ridCol1 = (ColumnReference) nodeFactory.getNode(
-                                C_NodeTypes.COLUMN_REFERENCE,
-                                BASEROWID2,
-                                uisResultSet.getTableName(),
-                                getContextManager());
+        ColumnReference ridCol1 = new ColumnReference(BASEROWID2, uisResultSet.getTableName(), getContextManager());
         ridCol1.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
                                                false    /* Not nullable */
                                                ));
         ridCol1.setSource(baseRowId2RC);
 
-        ColumnReference ridCol2 =
-        (ColumnReference) nodeFactory.getNode(
-                                C_NodeTypes.COLUMN_REFERENCE,
-                                BASEROWID,
-                                outerBaseTable.getExposedTableName(),
-                                getContextManager());
+        ColumnReference ridCol2 = new ColumnReference(BASEROWID, outerBaseTable.getExposedTableName(), getContextManager());
         ridCol2 = (ColumnReference)fromList.bindColumnReference(ridCol2);
         ridCol2.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
                                                false    /* Not nullable */
@@ -1484,11 +1458,7 @@ public class FromBaseTable extends FromTable {
     // RCL with a single BASEROWID.
     ResultColumnList singleRowIdColumnResultColumnList() throws StandardException {
         String columnName = BASEROWID;
-        ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
-                                C_NodeTypes.COLUMN_REFERENCE,
-                                columnName,
-                                getExposedTableName(),
-                                getContextManager());
+        ColumnReference columnReference = new ColumnReference(columnName, getExposedTableName(), getContextManager());
 
         ResultColumn rowIdResultColumn =
             (ResultColumn)getNodeFactory().getNode(
@@ -1507,11 +1477,7 @@ public class FromBaseTable extends FromTable {
         String columnName = BASEROWID;
         TableName outerTableName = outerTable instanceof FromBaseTable ?
                                    ((FromBaseTable) outerTable).getExposedTableName() : outerTable.getTableName();
-        ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
-                                C_NodeTypes.COLUMN_REFERENCE,
-                                columnName,
-                                outerTableName,
-                                getContextManager());
+        ColumnReference columnReference = new ColumnReference(columnName, outerTableName, getContextManager());
         ResultColumn rowIdResultColumn =
             (ResultColumn)getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
