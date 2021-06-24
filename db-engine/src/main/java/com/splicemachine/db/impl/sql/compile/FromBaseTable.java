@@ -1046,11 +1046,7 @@ public class FromBaseTable extends FromTable {
             if (!rc.isReferenced())
                 continue;
             ColumnReference newCol = new ColumnReference(rc.getName(), this.getExposedTableName(), getContextManager());
-            ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    rc.getName(),
-                    newCol,
-                    getContextManager());
+            ResultColumn newRC = new ResultColumn(rc.getName(), newCol, getContextManager());
             finalResultColumns.addResultColumn(newRC);
         }
 
@@ -1061,11 +1057,7 @@ public class FromBaseTable extends FromTable {
         // not the current FromBaseTable object we're sitting in.
         if (unionOfIndexes.resultColumns.getResultColumn(BASEROWID2) != null) {
             ColumnReference newCol = new ColumnReference(BASEROWID2, fromSubquery.getTableName(), getContextManager());
-            baseRowId2RC = (ResultColumn) getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    BASEROWID2,
-                    newCol,
-                    getContextManager());
+            baseRowId2RC = new ResultColumn(BASEROWID2, newCol, getContextManager());
             finalResultColumns.addResultColumn(baseRowId2RC);
         }
 
@@ -1460,12 +1452,7 @@ public class FromBaseTable extends FromTable {
         String columnName = BASEROWID;
         ColumnReference columnReference = new ColumnReference(columnName, getExposedTableName(), getContextManager());
 
-        ResultColumn rowIdResultColumn =
-            (ResultColumn)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                columnName,
-                columnReference,
-                getContextManager());
+        ResultColumn rowIdResultColumn = new ResultColumn(columnName, columnReference, getContextManager());
         ResultColumnList newList = new ResultColumnList(getContextManager());
 
         newList.addResultColumn(rowIdResultColumn);
@@ -1478,12 +1465,7 @@ public class FromBaseTable extends FromTable {
         TableName outerTableName = outerTable instanceof FromBaseTable ?
                                    ((FromBaseTable) outerTable).getExposedTableName() : outerTable.getTableName();
         ColumnReference columnReference = new ColumnReference(columnName, outerTableName, getContextManager());
-        ResultColumn rowIdResultColumn =
-            (ResultColumn)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                BASEROWID2,
-                columnReference,
-                getContextManager());
+        ResultColumn rowIdResultColumn = new ResultColumn(BASEROWID2, columnReference, getContextManager());
 
         resultColumnList.addResultColumn(rowIdResultColumn);
     }
