@@ -609,13 +609,13 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
                 stmtForLogging = ps.getSourceTxt();
         }
 
-        UUID parentId = null;
-
+        String parentIdString = "";
         try {
-            parentId = getCurrentTransaction().getParentQueryIdForTrigger(uuid);
-        } catch (Exception ignored) {}
-
-        String parentIdString = parentId == null ? "" : parentId.toString();
+            UUID parentId = getCurrentTransaction().getParentQueryIdForTrigger(uuid);
+            parentIdString = parentId.toString();
+        } catch (SQLWarning w) {
+            addWarning(w);
+        } catch (StandardException ignored) {}
 
         activation.getLanguageConnectionContext().logStartExecuting(
                 uuid.toString(), dsp.getType().toString(), stmtForLogging,
