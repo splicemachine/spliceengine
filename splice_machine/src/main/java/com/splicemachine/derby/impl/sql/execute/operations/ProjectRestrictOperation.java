@@ -172,7 +172,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         cloneMap = ((boolean[]) statement.getSavedObject(cloneMapItem));
 
         if (restrictionMethodName != null)
-            restriction = new SpliceMethod<>(restrictionMethodName, activation);
+            restriction = new SpliceMethod<>(restrictionMethodName, source.getActivation());
         if (projectionMethodName != null)
             projection = new SpliceMethod<>(projectionMethodName, activation);
     }
@@ -324,6 +324,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
+
+        if (restriction != null && restriction.getActivation() != source.getActivation())
+            restriction = new SpliceMethod<>(restrictionMethodName, source.getActivation());
 
         if (parameterInConstantRestriction) {
             evaluateConstantRestriction();

@@ -1484,6 +1484,8 @@ public class SubqueryNode extends ValueNode{
                 ((ProjectRestrictNode)resultSet).setChildResult(materialSubNode);
 
                 // add materialize...() call to execute() method
+                // Don't regenerate the subquery operation tree if it
+                // already exists.
                 executeMB.getField(subRS);
                 executeMB.conditionalIfNull();
                 subNode.generate(acb, executeMB);
