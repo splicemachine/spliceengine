@@ -338,7 +338,7 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
     /** @see ValueNode#evaluateConstantExpressions */
     @Override
     ValueNode evaluateConstantExpressions() throws StandardException {
-        if (isConstantExpression()) {
+        if (getLeftOperand() instanceof ConstantNode && getRightOperand() instanceof ConstantNode) {
             ConstantNode lhs = (ConstantNode) getLeftOperand();
             ConstantNode rhs = (ConstantNode) getRightOperand();
 
