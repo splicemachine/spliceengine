@@ -861,10 +861,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
         if (escapeNode != null)
             param.add(escapeNode);
 
-        QueryTreeNode maxWidthNode = (QueryTreeNode) getNodeFactory().getNode(
-            C_NodeTypes.INT_CONSTANT_NODE,
-                maxWidth,
-            getContextManager());
+        QueryTreeNode maxWidthNode = new NumericConstantNode.Integer(maxWidth, getContextManager());
         param.add(maxWidthNode);
 
         methodCall.addParms(param);

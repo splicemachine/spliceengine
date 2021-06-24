@@ -17,7 +17,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
-import org.python.antlr.op.Param;
 
 import java.sql.Types;
 import java.util.Arrays;
@@ -476,9 +475,7 @@ class SQLGrammarImpl {
         // first, see if it might be an integer
         try
         {
-            return new NumericConstantNode(cm,
-                    C_NodeTypes.INT_CONSTANT_NODE,
-                    Integer.valueOf(num));
+            return new NumericConstantNode.Integer(Integer.valueOf(num), cm);
         }
         catch (NumberFormatException nfe)
         {
@@ -488,9 +485,8 @@ class SQLGrammarImpl {
         // next, see if it might be a long
         try
         {
-            return new NumericConstantNode(cm,
-                    C_NodeTypes.LONGINT_CONSTANT_NODE,
-                    Long.valueOf(num));
+            return new NumericConstantNode(C_NodeTypes.LONGINT_CONSTANT_NODE, Long.valueOf(num), cm
+            );
         }
         catch (NumberFormatException nfe)
         {
@@ -501,7 +497,7 @@ class SQLGrammarImpl {
         }
 
         NumericConstantNode ncn =
-            new NumericConstantNode(cm, C_NodeTypes.DECIMAL_CONSTANT_NODE, num);
+            new NumericConstantNode(C_NodeTypes.DECIMAL_CONSTANT_NODE, num, cm);
         if (ncn != null) {
             int precision = ncn.getTypeServices().getPrecision();
             if (precision > TypeCompiler.MAX_DECIMAL_PRECISION_SCALE)
@@ -1011,9 +1007,7 @@ class SQLGrammarImpl {
 
     ValueNode getJdbcIntervalNode( int intervalType) throws StandardException
     {
-        return (ValueNode) nodeFactory.getNode( C_NodeTypes.INT_CONSTANT_NODE,
-                ReuseFactory.getInteger( intervalType),
-                getContextManager());
+        return new NumericConstantNode.Integer(ReuseFactory.getInteger( intervalType), getContextManager());
     }
 
     /**
@@ -1202,9 +1196,7 @@ class SQLGrammarImpl {
 
             // default to zero if truncValue null or not numeric
             if (! (truncValue instanceof NumericConstantNode)) {
-                truncValue = new NumericConstantNode(cm, C_NodeTypes.INT_CONSTANT_NODE,
-                        0  // default to zero
-                        );
+                truncValue = new NumericConstantNode.Integer(0, cm);
             }
 
             truncateOperand = operandNode;

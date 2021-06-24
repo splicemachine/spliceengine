@@ -445,19 +445,19 @@ public class CastNode extends ValueNode
                 }
 
             case Types.DATE:
-                return (ValueNode) getNodeFactory().getNode(
+                return new NumericConstantNode(
                         C_NodeTypes.USERTYPE_CONSTANT_NODE,
                         getDataValueFactory().getDateValue(cleanCharValue, false),
                         getContextManager());
 
             case Types.TIMESTAMP:
-                return (ValueNode) getNodeFactory().getNode(
+                return new NumericConstantNode(
                         C_NodeTypes.USERTYPE_CONSTANT_NODE,
                         getDataValueFactory().getTimestampValue(cleanCharValue, false),
                         getContextManager());
 
             case Types.TIME:
-                return (ValueNode) getNodeFactory().getNode(
+                return new NumericConstantNode(
                         C_NodeTypes.USERTYPE_CONSTANT_NODE,
                         getDataValueFactory().getTimeValue(cleanCharValue, false),
                         getContextManager());
@@ -487,10 +487,7 @@ public class CastNode extends ValueNode
                 {
                     throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, "float");
                 }
-                return (ValueNode) getNodeFactory().getNode(
-                        C_NodeTypes.FLOAT_CONSTANT_NODE,
-                        floatValue,
-                        getContextManager());
+                return new NumericConstantNode.Float(floatValue, getContextManager());
             case Types.DOUBLE:
                 Double doubleValue;
                 try
@@ -501,10 +498,7 @@ public class CastNode extends ValueNode
                 {
                     throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, "double");
                 }
-                return (ValueNode) getNodeFactory().getNode(
-                        C_NodeTypes.DOUBLE_CONSTANT_NODE,
-                        doubleValue,
-                        getContextManager());
+                return new NumericConstantNode.Double(doubleValue, getContextManager());
         }
 
         return retNode;
@@ -546,7 +540,7 @@ public class CastNode extends ValueNode
                 {
                     throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "TINYINT");
                 }
-                return (ValueNode) getNodeFactory().getNode(
+                return new NumericConstantNode(
                         C_NodeTypes.TINYINT_CONSTANT_NODE,
                         ReuseFactory.getByte((byte) longValue),
                         getContextManager());
@@ -557,7 +551,7 @@ public class CastNode extends ValueNode
                 {
                     throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "SHORT");
                 }
-                return (ValueNode) getNodeFactory().getNode(
+                return new NumericConstantNode(
                         C_NodeTypes.SMALLINT_CONSTANT_NODE,
                         ReuseFactory.getShort(
                                 (short) longValue),
@@ -569,14 +563,10 @@ public class CastNode extends ValueNode
                 {
                     throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "INTEGER");
                 }
-                return (ValueNode) getNodeFactory().getNode(
-                        C_NodeTypes.INT_CONSTANT_NODE,
-                        ReuseFactory.getInteger(
-                                (int) longValue),
-                        getContextManager());
+                return new NumericConstantNode.Integer(ReuseFactory.getInteger((int) longValue), getContextManager());
 
             case Types.BIGINT:
-                return (ValueNode) getNodeFactory().getNode(
+                return new NumericConstantNode(
                         C_NodeTypes.LONGINT_CONSTANT_NODE,
                         ReuseFactory.getLong(longValue),
                         getContextManager());
@@ -586,16 +576,10 @@ public class CastNode extends ValueNode
                 {
                     throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "REAL");
                 }
-                return (ValueNode) getNodeFactory().getNode(
-                        C_NodeTypes.FLOAT_CONSTANT_NODE,
-                        (float) longValue,
-                        getContextManager());
+                return new NumericConstantNode.Float((float) longValue, getContextManager());
 
             case Types.DOUBLE:
-                return (ValueNode) getNodeFactory().getNode(
-                        C_NodeTypes.DOUBLE_CONSTANT_NODE,
-                        (double) longValue,
-                        getContextManager());
+                return new NumericConstantNode.Double((double) longValue, getContextManager());
         }
 
         return retNode;
@@ -667,7 +651,7 @@ public class CastNode extends ValueNode
                 return this;
         }
 
-        return (ValueNode) getNodeFactory().getNode(
+        return new NumericConstantNode(
                 nodeType,
                 constantObject,
                 getContextManager());

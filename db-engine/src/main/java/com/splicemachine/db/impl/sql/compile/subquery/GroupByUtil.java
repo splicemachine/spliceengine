@@ -173,7 +173,7 @@ public class GroupByUtil {
          * </pre>
          */
         else {
-            ConstantNode one = (ConstantNode) subquerySelectNode.getNodeFactory().getNode(C_NodeTypes.INT_CONSTANT_NODE, 1, subquerySelectNode.getContextManager());
+            ConstantNode one = new NumericConstantNode.Integer(1, subquerySelectNode.getContextManager());
             addGroupByNodes(subquerySelectNode, one);
         }
         return outerColumnReference;

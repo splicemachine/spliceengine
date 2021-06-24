@@ -318,9 +318,7 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
             methodNode.addParms(parameterList);
             return new JavaToSQLValueNode(methodNode, getContextManager()).bindExpression(fromList, subqueryList, aggregateVector);
         } else if (base.getTypeId().getJDBCTypeId() == Types.TIMESTAMP) {
-            ValueNode intervalType = (ValueNode) getNodeFactory().getNode( C_NodeTypes.INT_CONSTANT_NODE,
-                    ReuseFactory.getInteger(timespan.getUnit()),
-                    getContextManager());
+            ValueNode intervalType = new NumericConstantNode.Integer(ReuseFactory.getInteger(timespan.getUnit()), getContextManager());
 
             ValueNode value = timespan.getValue();
             if ("-".equals(operator)) {

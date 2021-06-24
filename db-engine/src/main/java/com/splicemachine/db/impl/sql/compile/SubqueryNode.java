@@ -801,10 +801,7 @@ public class SubqueryNode extends ValueNode{
 
             // add limit 1 clause or overwrite the original fetchFirst with limit 1
             if (!(resultSet instanceof RowResultSetNode)) {
-                this.fetchFirst = (ValueNode) getNodeFactory().getNode(
-                        C_NodeTypes.INT_CONSTANT_NODE,
-                        Integer.valueOf(1),
-                        getContextManager());
+                this.fetchFirst = new NumericConstantNode.Integer(1, getContextManager());
             }
 
             // convert to an expression subquery and generate isNull/isNotNull predicate

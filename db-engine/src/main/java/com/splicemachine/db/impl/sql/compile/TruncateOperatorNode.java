@@ -134,7 +134,7 @@ public class TruncateOperatorNode extends BinaryOperatorNode {
         // Default right side to integer (zero) when trunc decimal column ref
         // This is the first place we can verify this because a column ref's type is not known until bind time
         if (this.methodName.equals(TRUNC_DECIMAL) && getRightOperand().getTypeId().getJDBCTypeId() != Types.INTEGER) {
-            setRightOperand((ValueNode) getCompilerContext().getNodeFactory().getNode(C_NodeTypes.INT_CONSTANT_NODE, 0, getContextManager()));
+            setRightOperand(new NumericConstantNode.Integer(0, getContextManager()));
         }
 
         //Set the type if there is a parameter involved here

@@ -40,30 +40,45 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.info.JVMInfo;
 import com.splicemachine.db.iapi.types.*;
 
-import java.awt.event.ContainerEvent;
 import java.sql.Types;
 
-public final class NumericConstantNode extends ConstantNode
+public class NumericConstantNode extends ConstantNode
 {
     public NumericConstantNode() {}
 
-    private NumericConstantNode(ContextManager cm, int nodeType) {
+    private NumericConstantNode(int nodeType, ContextManager cm) {
         setContextManager(cm);
         setNodeType(nodeType);
     }
 
-    public NumericConstantNode(ContextManager cm, int nodeType, Object arg1) throws StandardException {
-        this(cm, nodeType);
+    public NumericConstantNode(int nodeType, Object arg1, ContextManager cm) throws StandardException {
+        this(nodeType, cm);
         init(arg1);
     }
 
-    public NumericConstantNode(ContextManager cm, int nodeType, NumberDataValue numberDataValue, DataTypeDescriptor type) throws StandardException {
-        this(cm, nodeType);
+    public NumericConstantNode(int nodeType, DataTypeDescriptor type, NumberDataValue numberDataValue, ContextManager cm) throws StandardException {
+        this(nodeType, cm);
         this.setValue(numberDataValue);
         this.setType(type);
     }
 
-    class Integer extends NumericConstantNode
+    public static class Integer extends NumericConstantNode {
+        public Integer(java.lang.Integer val, ContextManager cm) throws StandardException {
+            super(C_NodeTypes.INT_CONSTANT_NODE, val, cm);
+        }
+    }
+
+    public static class Float extends NumericConstantNode {
+        public Float(java.lang.Float val, ContextManager cm) throws StandardException {
+            super(C_NodeTypes.FLOAT_CONSTANT_NODE, val, cm);
+        }
+    }
+
+    public static class Double extends NumericConstantNode {
+        public Double(java.lang.Double val, ContextManager cm) throws StandardException {
+            super(C_NodeTypes.DOUBLE_CONSTANT_NODE, val, cm);
+        }
+    }
 
     /**
      * Initializer for a typed null node
@@ -115,7 +130,7 @@ public final class NumericConstantNode extends ConstantNode
             {
                 maxwidth = TypeId.INT_MAXWIDTH;
                 typeid = Types.INTEGER;
-                setValue(new SQLInteger((Integer) arg1));
+                setValue(new SQLInteger((java.lang.Integer) arg1));
             }
             break;
 
@@ -181,7 +196,7 @@ public final class NumericConstantNode extends ConstantNode
             {
                 maxwidth = TypeId.DOUBLE_MAXWIDTH;
                 typeid = Types.DOUBLE;
-                setValue(new SQLDouble((Double) arg1));
+                setValue(new SQLDouble((java.lang.Double) arg1));
             }
             break;
 
@@ -192,7 +207,7 @@ public final class NumericConstantNode extends ConstantNode
             {
                 maxwidth = TypeId.REAL_MAXWIDTH;
                 typeid = Types.REAL;
-                setValue(new SQLReal((Float) arg1));
+                setValue(new SQLReal((java.lang.Float) arg1));
             }
             break;
 

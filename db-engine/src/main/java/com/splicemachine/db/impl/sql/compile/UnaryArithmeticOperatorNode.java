@@ -45,8 +45,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.sql.Types;
 import java.util.List;
 
-import static com.splicemachine.db.iapi.reference.ClassName.NumberDataValue;
-
 /**
  * This node represents a unary arithmetic operator
  */
@@ -134,10 +132,8 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
                         return getOperand();
                     } else {
                         return new NumericConstantNode(
-                                getContextManager(),
-                                op.getNodeType(),
-                                ((NumberDataValue) op.getValue()).minus(null),
-                                null);
+                                op.getNodeType(), null, ((NumberDataValue) op.getValue()).minus(null), getContextManager()
+                        );
                     }
                 }
             }
