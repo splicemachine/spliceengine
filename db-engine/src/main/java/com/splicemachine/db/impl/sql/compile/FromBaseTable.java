@@ -1129,12 +1129,8 @@ public class FromBaseTable extends FromTable {
 
         SelectNode selectNode = new SelectNode(
                             finalResultColumns,
-                            null,         /* AGGREGATE list */
                             fromList,
                             whereClause,
-                            null,
-                            null,
-                            null,
                             getContextManager());
         DMLStatementNode
         stmt = new CursorNode("SELECT", selectNode, null, null, null, null,
@@ -1669,12 +1665,8 @@ public class FromBaseTable extends FromTable {
 
        SelectNode selectNode = new SelectNode(
                             resultColumnList,
-                            null,
                             fromList,
                             whereClause,
-                            null,
-                            null,
-                            null,
                             getContextManager());
        return selectNode;
     }

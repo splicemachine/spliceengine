@@ -46,7 +46,6 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.util.IdUtil;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -269,12 +268,12 @@ public class MergeNode extends DMLStatementNode
 
             _hojn = new HalfOuterJoinNode
                     (
-                            _sourceTable,
-                            _targetTable,
-                            _searchCondition,
-                            null,
-                            false,
-                            null,
+                            _sourceTable,      // leftResult
+                            _targetTable,      // rightResult
+                            _searchCondition,  // onClause
+                            null,              // usingClause
+                            false,             // rightOuterJoin
+                            null,              // tableProperties
                             getContextManager()
                     );
 
@@ -312,29 +311,16 @@ public class MergeNode extends DMLStatementNode
                 mcn.bindThenColumns( _selectList );
             }
 
-            resultSet = new SelectNode
-                    (
-                            selectList,
-                            null, // aggregateVector
-                            topFromList, // fromList
-                            null,      // where clause
-                            null,      // group by list
-                            null,      // having clause
-                            null,      // window list
-                            getContextManager()
-                    );
+            resultSet = new SelectNode(selectList, topFromList, null, getContextManager());
 
             // Wrap the SELECT in a CursorNode in order to finish binding it.
             _leftJoinCursor = new CursorNode
                     (
-                            "SELECT",
-                            resultSet,
-                            null,
-                            null,
-                            null,
-                            null,
-                            false,
-                            CursorNode.READ_ONLY,
+                            "SELECT",  // statementType
+                            resultSet, // resultSet
+                            null, null, null, null,
+                            false,     // hasJDBClimitClause
+                            CursorNode.READ_ONLY, // updateMode
                             null,
                             getContextManager()
                     );
@@ -479,20 +465,14 @@ public class MergeNode extends DMLStatementNode
      * Add to an evolving select list the columns from the indicated table.
      * </p>
      */
-    private void    addColumns
-    (
-            FromTable  fromTable,
-            HashMap<String,ColumnReference> drivingColumnMap,
-            ResultColumnList   selectList
-    )
-            throws StandardException
+    private void addColumns(FromTable fromTable, HashMap<String,ColumnReference> drivingColumnMap,
+                            ResultColumnList selectList) throws StandardException
     {
-        String[]    columnNames = getColumns( getExposedName( fromTable ), drivingColumnMap );
+        String[] columnNames = getColumns( getExposedName( fromTable ), drivingColumnMap );
 
         for ( String columnName : columnNames )
         {
-            ColumnReference cr = new ColumnReference
-                    ( columnName, fromTable.getTableName(), getContextManager() );
+            ColumnReference cr = new ColumnReference( columnName, fromTable.getTableName(), getContextManager() );
             ResultColumn rc = new ResultColumn( (String) null, cr, getContextManager() );
             selectList.addResultColumn( rc );
         }
@@ -504,7 +484,7 @@ public class MergeNode extends DMLStatementNode
         ArrayList<String> list = new ArrayList<String>();
         ArrayList<String> rlColumns = new ArrayList<String>();
 
-        // todo: we can have here update AND delete columns, do we need both?
+        // todo: we can have here update AND delete RowLocation columns, do we need both?
         for ( ColumnReference cr : map.values() )
         {
             if ( !exposedName.equals( cr.getTableName() ) )
@@ -637,7 +617,7 @@ public class MergeNode extends DMLStatementNode
     public void generate( ActivationClassBuilder acb, MethodBuilder mb )
             throws StandardException
     {
-        int     clauseCount = _matchingClauses.size();
+        int clauseCount = _matchingClauses.size();
 
         /* generate the parameters */
         generateParameterValueSet(acb);
@@ -661,8 +641,7 @@ public class MergeNode extends DMLStatementNode
         }
         _constantAction = getGenericConstantActionFactory().getMergeConstantAction( clauseActions );
 
-        mb.callMethod
-                ( VMOpcode.INVOKEINTERFACE, (String) null, "getMergeResultSet", ClassName.ResultSet, 1 );
+        mb.callMethod( VMOpcode.INVOKEINTERFACE, (String) null, "getMergeResultSet", ClassName.ResultSet, 1 );
     }
 
     @Override

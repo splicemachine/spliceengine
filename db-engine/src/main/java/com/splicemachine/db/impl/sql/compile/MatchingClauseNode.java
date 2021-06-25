@@ -114,7 +114,7 @@ public class MatchingClauseNode extends QueryTreeNode {
             ResultColumnList   insertColumns,
             ResultColumnList   insertValues,
             ContextManager     cm
-    ) throws StandardException
+    )
     {
         super( cm );
 
@@ -206,9 +206,9 @@ public class MatchingClauseNode extends QueryTreeNode {
     {
         _thenColumns = new ResultColumnList( getContextManager() );
 
-        if ( isDeleteClause() ) { bindDelete( dd, fullFromList, targetTable ); }
-        if ( isUpdateClause() ) { bindUpdate( dd, fullFromList, targetTable ); }
-        if ( isInsertClause() ) { bindInsert( dd, mergeNode, fullFromList, targetTable ); }
+        if ( isDeleteClause() ) { bindDelete( targetTable ); }
+        if ( isUpdateClause() ) { bindUpdate( fullFromList, targetTable ); }
+        if ( isInsertClause() ) { bindInsert( mergeNode, fullFromList, targetTable ); }
     }
 
     /** Bind the optional refinement condition in the MATCHED clause */
@@ -271,7 +271,6 @@ public class MatchingClauseNode extends QueryTreeNode {
     /** Bind a WHEN MATCHED ... THEN UPDATE clause */
     private void    bindUpdate
     (
-            DataDictionary dd,
             FromList fullFromList,
             FromTable targetTable
     )
@@ -279,17 +278,11 @@ public class MatchingClauseNode extends QueryTreeNode {
     {
         bindSetClauses( fullFromList, targetTable );
 
-        SelectNode  selectNode = new SelectNode
-                (
-                        _updateColumns,
-                        null, // aggregate vector
-                        fullFromList, // fromList
-                        null,      // where clause
-                        null,      // group by list
-                        null,      // having clause
-                        null,      // window list
-                        getContextManager()
-                );
+        SelectNode selectNode = new SelectNode(
+                                    _updateColumns, // selectList
+                                    fullFromList, // fromList
+                                    null, getContextManager()
+                                );
         _dml = new UpdateNode( targetTable.getTableName(), selectNode, false, this, getContextManager() );
 
         _dml.bindStatement();
@@ -604,29 +597,19 @@ public class MatchingClauseNode extends QueryTreeNode {
     ////////////////////// DELETE ///////////////////////////////
 
     /** Bind a WHEN MATCHED ... THEN DELETE clause */
-    private void    bindDelete
-    (
-            DataDictionary dd,
-            FromList fullFromList,
-            FromBaseTable targetTable
-    )
+    private void    bindDelete(FromBaseTable targetTable)
             throws StandardException
     {
         CurrentOfNode   currentOfNode = CurrentOfNode.makeForMerge
                 ( CURRENT_OF_NODE_NAME, targetTable, getContextManager() );
-        FromList        fromList = new FromList( getContextManager() );
+        FromList fromList = new FromList( getContextManager() );
         fromList.addFromTable( currentOfNode );
-        SelectNode      selectNode = new SelectNode
-                (
-                        null, /* selectList */
-                        null, /* aggregateVector */
-                        fromList, /* fromList */
-                        null, /* whereClause */
-                        null, /* groupByList */
-                        null, /* havingClause */
-                        null, /* windowDefinitionList */
-                        getContextManager()
-                );
+
+        SelectNode selectNode = new SelectNode(
+                                        null, // selectList
+                                        fromList, // fromList
+                                        null, getContextManager()
+                                );
         Properties tableProperties = null; // todo
         _dml = new DeleteNode( targetTable.getTableName(), selectNode, false,
                 tableProperties, this, getContextManager() );
@@ -695,7 +678,6 @@ public class MatchingClauseNode extends QueryTreeNode {
     /** Bind a WHEN NOT MATCHED ... THEN INSERT clause */
     private void    bindInsert
     (
-            DataDictionary dd,
             MergeNode  mergeNode,
             FromList fullFromList,
             FromTable targetTable
@@ -713,17 +695,11 @@ public class MatchingClauseNode extends QueryTreeNode {
             mergeNode.bindExpression( _matchingRefinement, targetTableFromList );
         }
 
-        SelectNode  selectNode = new SelectNode
-                (
-                        _insertValues,      // select list
-                        null,  // aggregateVector
-                        fullFromList,      // where clause
-                        null,      // where Clause
-                        null,      // groupByList
-                        null,      // having clause
-                        null,      // window list
-                        getContextManager()
-                );
+        SelectNode selectNode = new SelectNode(
+                                            _insertValues, // selectList
+                                            fullFromList, // fromList
+                                            null, getContextManager()
+                                    );
         _dml = new InsertNode
                 (
                         targetTable.getTableName(),
@@ -1275,7 +1251,6 @@ public class MatchingClauseNode extends QueryTreeNode {
 
         return false;
     }
-
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
