@@ -42,6 +42,8 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
 
@@ -673,6 +675,33 @@ public class ConditionalNode extends ValueNode
         elseExpression = (ValueNode) thenElseList.elementAt(1);
         thenElseList.setElementAt(elseExpression, 0);
         thenElseList.setElementAt(thenExpression, 1);
+
+        return this;
+    }
+
+    ValueNode evaluateConstantExpressions() throws StandardException{
+        if (testCondition instanceof ConstantNode) {
+            ConstantNode constantCondition = (ConstantNode) testCondition;
+            if (constantCondition.isNull()) {
+                ValueNode nullNode = new UntypedNullConstantNode(getContextManager());
+                nullNode.setType(thenElseList.getDominantTypeServices());
+                return nullNode;
+            } else if (constantCondition instanceof BooleanConstantNode) {
+                int index;
+                if (((SQLBoolean) constantCondition.getValue()).getBoolean()) {
+                    index = 0;
+                } else {
+                    index = 1;
+                }
+                if (isNullNode((ValueNode)thenElseList.elementAt(index))) {
+                    ValueNode nullNode = new UntypedNullConstantNode(getContextManager());
+                    nullNode.setType(thenElseList.getDominantTypeServices());
+                    return nullNode;
+                } else {
+                    return (ValueNode) thenElseList.elementAt(index);
+                }
+            }
+        }
 
         return this;
     }
