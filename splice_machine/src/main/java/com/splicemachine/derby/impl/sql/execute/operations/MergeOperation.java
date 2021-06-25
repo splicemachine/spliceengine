@@ -1,17 +1,32 @@
 /*
-   Derby - Class org.apache.derby.impl.sql.execute.MergeResultSet
-   Licensed to the Apache Software Foundation (ASF) under one or more
-   contributor license agreements.  See the NOTICE file distributed with
-   this work for additional information regarding copyright ownership.
-   The ASF licenses this file to you under the Apache License, Version 2.0
-   (the "License"); you may not use this file except in compliance with
-   the License.  You may obtain a copy of the License at
-      http://www.apache.org/licenses/LICENSE-2.0
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Some parts of this source code are based on Apache Derby, and the following notices apply to
+ * Apache Derby:
+ *
+ * Apache Derby is a subproject of the Apache DB project, and is licensed under
+ * the Apache License, Version 2.0 (the "License"); you may not use these files
+ * except in compliance with the License. You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed
+ * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ * Splice Machine, Inc. has modified the Apache Derby code in this file.
+ *
+ * All such Splice Machine modifications are Copyright 2012 - 2020 Splice Machine, Inc.,
+ * and are licensed to you under the GNU Affero General Public License.
  */
 
 package com.splicemachine.derby.impl.sql.execute.operations;
@@ -28,6 +43,7 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.impl.sql.execute.actions.MergeConstantAction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import org.apache.commons.lang.NotImplementedException;
 
 /**
  * INSERT/UPDATE/DELETE a target table based on how it outer joins
@@ -43,13 +59,15 @@ public class MergeOperation extends NoRowsOperation
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
+    protected static final String NAME = MergeOperation.class.getSimpleName().replaceAll("Operation","");
+
     ///////////////////////////////////////////////////////////////////////////////////
     //
     // STATE
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-    private NoPutResultSet      _drivingLeftJoin;
+    private SpliceBaseOperation _drivingLeftJoin;
     private MergeConstantAction _constants;
 
     private ExecRow             _row;
@@ -74,7 +92,7 @@ public class MergeOperation extends NoRowsOperation
             throws StandardException
     {
         super( activation );
-        _drivingLeftJoin = drivingLeftJoin;
+        _drivingLeftJoin = ((SpliceBaseOperation) drivingLeftJoin);
         _constants = (MergeConstantAction) activation.getConstantAction();
     }
 
@@ -100,13 +118,12 @@ public class MergeOperation extends NoRowsOperation
             activation.addWarning( StandardException.newWarning( SQLState.LANG_NO_ROW_FOUND ) );
         }
 
-        // now execute the INSERT/UPDATE/DELETE actions
+        // now execute the INSERT/UPDATE/DELETE actions with the rows that have been buffered for execution
         for (MatchingClauseConstantAction clause : _constants.getMatchingClauses()) {
             clause.executeConstantAction(activation);
         }
 
         cleanUp();
-        //endTime = getCurrentTimeMillis();
     }
 
     @Override
@@ -147,14 +164,14 @@ public class MergeOperation extends NoRowsOperation
      * Loop through the rows in the driving left join.
      * </p>
      */
-    boolean  collectAffectedRows() throws StandardException
+    boolean collectAffectedRows() throws StandardException
     {
         boolean rowsFound = false;
         while ( true )
         {
             // may need to objectify stream columns here.
             // see DMLWriteResultSet.getNextRowCoure(NoPutResultSet)
-            _row =  _drivingLeftJoin.getNextRowCore();
+            _row = _drivingLeftJoin.getNextRowCore();
             if ( _row == null ) { break; }
 
             rowsFound = true;
@@ -209,28 +226,33 @@ public class MergeOperation extends NoRowsOperation
 
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        return null; // todo
+        throw new NotImplementedException("MergeOperation.getDataSet");
     }
 
     @Override
     public boolean isReferencingTable(long tableNumber) {
-        return false; // todo
+        // todo: what else are we referencing? tables that are needed for triggers?
+        return _drivingLeftJoin.isReferencingTable(tableNumber);
     }
 
     @Override
     public String getName() {
-        return null; // todo
+        return NAME;
     }
 
     @Override
     public int[] getRootAccessedCols(long tableNumber) throws StandardException {
-        return new int[0]; // todo
+        return _drivingLeftJoin.getRootAccessedCols(tableNumber);
     }
+
     @Override
     public boolean returnsRows() {
         return false;
     }
 
+    /**
+     * @return modified rows for "XXX rows inserted/updated/deleted"
+     */
     @Override
     public long[] modifiedRowCount() {
         return new long[] { _rowCount };
