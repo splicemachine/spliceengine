@@ -174,6 +174,13 @@ public class SelectNode extends ResultSetNode {
         this.init(selectList, aggregateVector, fromList, whereClause, groupByList, havingClause, windowDefinitionList);
     }
 
+    public SelectNode(ResultColumnList selectList,
+                      FromList fromList,
+                      ValueNode whereClause,
+                      ContextManager cm) throws StandardException {
+        this(selectList, null, fromList, whereClause, null, null, null, cm);
+    }
+
     public void init(Object selectList,
                      Object aggregateVector,
                      Object fromList,

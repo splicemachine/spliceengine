@@ -1829,17 +1829,12 @@ public class JoinNode extends TableOperatorNode{
     }
 
     /** Make a FromList for binding */
-    public  FromList    makeFromList
-    (
-            boolean    useLeftChild,
-            boolean    useRightChild
-    )
-            throws StandardException
+    public FromList makeFromList(boolean useLeftChild, boolean useRightChild)
     {
         FromList fromList = new FromList( getNodeFactory().doJoinOrderOptimization(), getContextManager() );
 
-        if ( useLeftChild ) { fromList.addElement((FromTable) leftResultSet); }
-        if ( useRightChild ) { fromList.addElement((FromTable) rightResultSet); }
+        if ( useLeftChild ) { fromList.addElement(leftResultSet); }
+        if ( useRightChild ) { fromList.addElement(rightResultSet); }
 
         return fromList;
     }
