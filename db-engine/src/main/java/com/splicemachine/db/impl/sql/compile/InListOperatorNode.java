@@ -37,10 +37,10 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.types.*;
 
@@ -66,9 +66,11 @@ public final class InListOperatorNode extends BinaryListOperatorNode
      * @param rightOperandList    The right operand list of the node
      */
 
-    public void init(Object leftOperand, Object rightOperandList) throws StandardException
-    {
-        init(leftOperand, rightOperandList, "IN", "in");
+    public InListOperatorNode(Object leftOperand, ValueNodeList rightOperandList,
+                              ContextManager cm) throws StandardException {
+        setNodeType(C_NodeTypes.IN_LIST_OPERATOR_NODE);
+        setContextManager(cm);
+        super.init(leftOperand, rightOperandList, "IN", "in");
     }
 
     /**
@@ -98,13 +100,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
      */
     protected InListOperatorNode shallowCopy() throws StandardException
     {
-        InListOperatorNode ilon =
-             (InListOperatorNode)getNodeFactory().getNode(
-                C_NodeTypes.IN_LIST_OPERATOR_NODE,
-                leftOperandList,
-                rightOperandList,
-                getContextManager());
-
+        InListOperatorNode ilon = new InListOperatorNode(leftOperandList, rightOperandList, getContextManager());
         ilon.copyFields(this);
         ilon.markAsOrdered(isOrdered);
 

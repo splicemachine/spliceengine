@@ -1341,12 +1341,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                         vnl.addValueNode(colRef instanceof ColumnReference ? colRef.getClone() : colRef);
                     }
                 }
-                ilon =
-                    (InListOperatorNode) getNodeFactory().getNode(
-                        C_NodeTypes.IN_LIST_OPERATOR_NODE,
-                        vnl,
-                        groupedConstants,
-                        getContextManager());
+                ilon = new InListOperatorNode(vnl, groupedConstants, getContextManager());
         
                 boolean nullableResult = ilon.leftOperandList.isNullable() ||
                                          ilon.rightOperandList.isNullable();

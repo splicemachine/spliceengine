@@ -411,12 +411,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
                     addNewInListNode(on.getLeftOperand(), columnMap, vnl);
                 }
 
-                InListOperatorNode ilon =
-                            (InListOperatorNode) getNodeFactory().getNode(
-                                            C_NodeTypes.IN_LIST_OPERATOR_NODE,
-                                            crList,
-                                            vnl,
-                                            getContextManager());
+                InListOperatorNode ilon = new InListOperatorNode(crList, vnl, getContextManager());
 
                 ilon.setType(getTypeServices());
 

@@ -9587,11 +9587,7 @@ inValueList(ValueNode leftOperand) throws StandardException:
 {
     inElement(inList) ( <COMMA> inElement(inList) ) *
     {
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.IN_LIST_OPERATOR_NODE,
-                                leftOperand,
-                                inList,
-                                getContextManager());
+        return new InListOperatorNode(leftOperand, inList, getContextManager());
     }
 }
 
@@ -14608,7 +14604,7 @@ whenThenExpression(ValueNode compareTo) throws StandardException :
                         expr,
                         cm));
         }
-        return new ConditionalNode(expr, thenElseList, Boolean.FALSE, cm));
+        return new ConditionalNode(expr, thenElseList, Boolean.FALSE, cm);
     }
 }
 
