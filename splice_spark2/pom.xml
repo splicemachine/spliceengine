@@ -317,10 +317,6 @@
                             </artifactSet>
                             <relocations>
                                 <relocation>
-                                    <pattern>com.fasterxml</pattern>
-                                    <shadedPattern>splice.com.fasterxml</shadedPattern>
-                                </relocation>
-                                <relocation>
                                     <pattern>org.codehaus.jackson</pattern>
                                     <shadedPattern>splice.org.codehaus.jackson</shadedPattern>
                                 </relocation>
