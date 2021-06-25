@@ -158,4 +158,20 @@ public class SpliceRSRpcServices extends SpliceMessage.SpliceRSRpcServices imple
         writeResponse.setOldestActiveTransaction(oldestActiveTransaction);
         callback.run(writeResponse.build());
     }
+
+    @Override
+    public void getActiveSessions(RpcController controller,
+                                  SpliceMessage.SpliceActiveSessionsRequest request,
+                                  RpcCallback<SpliceMessage.SpliceActiveSessionsResponse> callback) {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "getActiveSessions");
+        SpliceMessage.SpliceActiveSessionsResponse.Builder writeResponse =
+                SpliceMessage.SpliceActiveSessionsResponse.newBuilder();
+
+        // Client sent SpliceActiveSessionsRequest to all RSs. For this RS, return our
+        // local active sessions. The client aggregates all local active sessions.
+        Set<Long> activeSessionIds = SIDriver.driver().getSessionsWatcher().getLocalActiveSessions();
+        writeResponse.addAllActiveSessionIds(activeSessionIds);
+        callback.run(writeResponse.build());
+    }
 }

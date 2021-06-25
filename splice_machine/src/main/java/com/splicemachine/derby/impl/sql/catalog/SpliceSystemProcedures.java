@@ -741,6 +741,16 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         procedures.add(getActiveTxn);
 
         /*
+         * Procedure to get all active session id
+         */
+        Procedure getActiveSessions = Procedure.newBuilder().name("SYSCS_GET_ACTIVE_SESSIONS")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(spliceAdminClass)
+                .build();
+        procedures.add(getActiveSessions);
+
+        /*
          * Procedure to list a directory
          */
         Procedure ANALYZE_EXTERNAL_TABLE = Procedure.newBuilder().name("ANALYZE_EXTERNAL_TABLE")

@@ -176,6 +176,8 @@ public class SpliceDatabase extends BasicDatabase{
                 drdaID, dbname, rdbIntTkn, dspt, sparkExecutionType, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
 
         setupASTVisitors(lctx);
+
+        SIDriver.driver().getSessionsWatcher().registerSession(lctx.getInstanceNumber());
         return lctx;
     }
 
@@ -677,4 +679,8 @@ public class SpliceDatabase extends BasicDatabase{
                 Monitor.bootServiceModule(create, this, AuthenticationService.MODULE, props);
     }
 
+    @Override
+    public void unregisterSession(long sessionId) {
+        SIDriver.driver().getSessionsWatcher().unregisterSession(sessionId);
+    }
 }

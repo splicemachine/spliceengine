@@ -23,8 +23,10 @@ import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.access.hbase.HFilesystemAdmin;
 import com.splicemachine.access.hbase.HSnowflakeFactory;
 import com.splicemachine.access.util.ByteComparisons;
+import com.splicemachine.hbase.SessionsWatcherImpl;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.si.api.server.ClusterHealth;
+import com.splicemachine.si.api.session.SessionsWatcher;
 import com.splicemachine.si.data.hbase.rollforward.HBaseRollForward;
 import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import com.splicemachine.si.impl.store.IgnoreTxnSupplierImpl;
@@ -72,6 +74,8 @@ public class HBaseSIEnvironment implements SIEnvironment{
     private final TimestampSource timestampSource;
     private final PartitionFactory<TableName> partitionFactory;
     private final OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory;
+    private final ActiveSessionsTaskFactory activeSessionsTaskFactory;
+    private final SessionsWatcher sessionsWatcher;
     private final TxnStore txnStore;
     private final TxnSupplier txnSupplier;
     private final IgnoreTxnSupplier ignoreTxnSupplier;
@@ -113,6 +117,8 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.partitionCache = PartitionCacheService.loadPartitionCache(config);
         this.partitionFactory = TableFactoryService.loadTableFactory(clock,this.config,partitionCache);
         this.oldestActiveTransactionTaskFactory = new HOldestActiveTransactionTaskFactory();
+        this.activeSessionsTaskFactory = new HActiveSessionsTaskFactory();
+        this.sessionsWatcher = SessionsWatcherImpl.INSTANCE;
         TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer(this.config);
         this.opFactory = HOperationFactory.INSTANCE;
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory(),opFactory);
@@ -146,6 +152,8 @@ public class HBaseSIEnvironment implements SIEnvironment{
         this.partitionCache = PartitionCacheService.loadPartitionCache(config);
         this.partitionFactory = TableFactoryService.loadTableFactory(clock, this.config,partitionCache);
         this.oldestActiveTransactionTaskFactory = new HOldestActiveTransactionTaskFactory();
+        this.activeSessionsTaskFactory = new HActiveSessionsTaskFactory();
+        this.sessionsWatcher = SessionsWatcherImpl.INSTANCE;
         TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer(this.config);
         this.opFactory = HOperationFactory.INSTANCE;
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory(),opFactory);
@@ -181,6 +189,16 @@ public class HBaseSIEnvironment implements SIEnvironment{
     @Override
     public OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory(){
         return oldestActiveTransactionTaskFactory;
+    }
+
+    @Override
+    public ActiveSessionsTaskFactory allActiveSessionsTaskFactory(){
+        return activeSessionsTaskFactory;
+    }
+
+    @Override
+    public SessionsWatcher sessionsWatcher() {
+        return sessionsWatcher;
     }
 
     @Override
