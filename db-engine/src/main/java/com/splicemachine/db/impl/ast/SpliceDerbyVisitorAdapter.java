@@ -67,28 +67,18 @@ public class SpliceDerbyVisitorAdapter implements ASTVisitor {
 
     private static Visitable invokeVisit(ISpliceVisitor visitor, Visitable node) throws StandardException {
         final Class<? extends Visitable> nClass = node.getClass();
+
+        Method m;
         try {
-            Method m = methods.get(nClass, new Callable<Method>() {
-                @Override
-                public Method call() throws Exception {
+            m = ISpliceVisitor.class.getMethod("visit", nClass);
+        } catch(NoSuchMethodException e) {
+            return visitor.defaultVisit(node);
+        }
 
-                    Method m = null;
-                    try {
-                        m = ISpliceVisitor.class.getMethod("visit", nClass);
-                    } catch(NoSuchMethodException e) {
-                        m = ISpliceVisitor.class.getMethod("defaultVisit", Visitable.class);
-                    }
-                    m.setAccessible(true);
-
-                    return m;
-                }
-            });
+        try {
+            m.setAccessible(true);
             return (Visitable) m.invoke(visitor, node);
 
-        } catch (ExecutionException e) {
-            throw StandardException.newException(MessageId.SPLICE_GENERIC_EXCEPTION, e,
-                                                    String.format("Problem finding ISpliceVisitor visit method for %s",
-                                                                     nClass));
         } catch (IllegalAccessException | InvocationTargetException e) {
              throw StandardException.newException(MessageId.SPLICE_GENERIC_EXCEPTION, e,
                                                     String.format("Problem invoking ISpliceVisitor visit method for %s",
