@@ -398,9 +398,9 @@ public class Scans extends SpliceUtils {
                 startKeyDVDs[0] = keyPrefixRow.getColumn(1);
                 stopKeyDVDs[0]  = keyPrefixRow.getColumn(1);
                  startStopKeys =
-                  buildStartAndStopKeys(startKeyDVDs, ScanController.GE,
+                  buildStartAndStopKeys(startKeyDVDs, startSearchOperator,
                                         stopKeyDVDs, null,
-                                        GT,
+                                        stopSearchOperator,
                                         sortOrder,
                                         scannedRow, //template row
                                         keyTablePositionMap, //the location in the ENTIRE row of the key columns

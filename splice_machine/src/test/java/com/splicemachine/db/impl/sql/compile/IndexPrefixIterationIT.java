@@ -156,6 +156,51 @@ public class IndexPrefixIterationIT  extends SpliceUnitTest {
         notContainedStrings = Arrays.asList("IndexPrefixIteratorMode");
         testQuery(query, expected, methodWatcher);
         testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+        methodWatcher.execute("set session_property disablePredsForIndexOrPkAccessPath=false");
+
+        methodWatcher.execute("set session_property favorIndexPrefixIteration=true");
+        
+        // Values with b1 == 1 should be excluded.
+        query = format("select * from t1 --SPLICE-PROPERTIES useSpark=%s\n" +
+                                "where\n" +
+                                "b1 >= -1 and b1 < 1\n", useSpark);
+        expected =
+            "A1 |B1 |C1 |D1 |E1 |F1 |G1 |            H1             |\n" +
+            "--------------------------------------------------------\n" +
+            "-1 |-1 |-1 |-1 |-1 |-1 |-1 |2018-12-31 15:59:59.321111 |";
+
+        containedStrings = Arrays.asList("TableScan", "IndexPrefixIteratorMode");
+        notContainedStrings = null;
+        testQuery(query, expected, methodWatcher);
+        testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+
+        // All values should be excluded.
+        query = format("select * from t1 --SPLICE-PROPERTIES useSpark=%s\n" +
+                                "where\n" +
+                                "b1 > -1 and b1 < 1\n", useSpark);
+        expected =
+            "";
+
+        containedStrings = Arrays.asList("TableScan", "IndexPrefixIteratorMode");
+        notContainedStrings = null;
+        testQuery(query, expected, methodWatcher);
+        testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+
+        // Only include b1 == 1 values.
+        query = format("select count(*) from t1 --SPLICE-PROPERTIES useSpark=%s\n" +
+                                "where\n" +
+                                "b1 > -1 and b1 <= 1\n", useSpark);
+        expected =
+            "1  |\n" +
+            "-----\n" +
+            "576 |";
+
+        containedStrings = Arrays.asList("TableScan", "IndexPrefixIteratorMode");
+        notContainedStrings = null;
+        testQuery(query, expected, methodWatcher);
+        testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+
+        methodWatcher.execute("set session_property favorIndexPrefixIteration=false");
 
     }
 
