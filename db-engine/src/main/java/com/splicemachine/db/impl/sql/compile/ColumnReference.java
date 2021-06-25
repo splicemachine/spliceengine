@@ -716,7 +716,7 @@ public class ColumnReference extends ValueNode {
             throws StandardException
     {
         BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE, getContextManager());
-        BinaryComparisonOperatorNode equalsNode = new BinaryRelationalOperatorNode.Equals(this, trueNode, getContextManager());
+        BinaryComparisonOperatorNode equalsNode = BinaryRelationalOperatorNode.newEquals(this, trueNode, getContextManager());
         /* Set type info for the operator node */
         equalsNode.bindComparisonOperator();
         AndNode andNode = new AndNode(equalsNode, trueNode, getContextManager());

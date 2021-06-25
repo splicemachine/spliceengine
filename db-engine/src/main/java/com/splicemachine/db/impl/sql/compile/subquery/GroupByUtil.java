@@ -138,7 +138,7 @@ public class GroupByUtil {
                     }
                     subqueryColRef = (ColumnReference) subquerySelectNode.bindExtraExpressions(subqueryColRef);
 
-                    BinaryRelationalOperatorNode bron = new BinaryRelationalOperatorNode.Equals(
+                    BinaryRelationalOperatorNode bron = BinaryRelationalOperatorNode.newEquals(
                             subqueryColRef, outerColumnReference, subqueryColRef.getContextManager());
 
                     bron.bindExpression(subquerySelectNode.getFromList(), null, null);

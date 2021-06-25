@@ -153,7 +153,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                     ValueNodeList.rightPadCharConstantNode((CharConstantNode) value, maxSize);
                 }
             }
-            BinaryComparisonOperatorNode equal = new BinaryRelationalOperatorNode.Equals(
+            BinaryComparisonOperatorNode equal = BinaryRelationalOperatorNode.newEquals(
                         getLeftOperand(),
                         value,
                         getContextManager());
@@ -316,7 +316,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                 if (rightOperandList.size() == 1 && singleLeftOperand)
                 {
                     ValueNode value = (ValueNode)rightOperandList.elementAt(0);
-                    BinaryComparisonOperatorNode equal = new BinaryRelationalOperatorNode.Equals(
+                    BinaryComparisonOperatorNode equal = BinaryRelationalOperatorNode.newEquals(
                             getLeftOperand(),
                             value,
                             getContextManager());
@@ -478,7 +478,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
          * requires each <> node to have a separate object.
          */
         ValueNode leftClone = (getLeftOperand() instanceof ColumnReference) ? getLeftOperand().getClone() : getLeftOperand();
-        leftBCO = new BinaryRelationalOperatorNode.NotEquals(
+        leftBCO = BinaryRelationalOperatorNode.newNotEquals(
                 leftClone, (ValueNode) rightOperandList.elementAt(0), getContextManager());
         /* Set type info for the operator node */
         leftBCO.bindComparisonOperator();
@@ -490,7 +490,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 
             /* leftO <> rightOList.elementAt(elemsDone) */
             leftClone = (getLeftOperand() instanceof ColumnReference) ? getLeftOperand().getClone() : getLeftOperand();
-            rightBCO = new BinaryRelationalOperatorNode.NotEquals(
+            rightBCO = BinaryRelationalOperatorNode.newNotEquals(
                             leftClone, (ValueNode) rightOperandList.elementAt(elemsDone), getContextManager());
             /* Set type info for the operator node */
             rightBCO.bindComparisonOperator();

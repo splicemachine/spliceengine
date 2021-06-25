@@ -1033,7 +1033,7 @@ public class FromBaseTable extends FromTable {
         ColumnReference ridCol2 = new ColumnReference(BASEROWID, fromSubquery.getTableName(), getContextManager());
 
         // Set up the rowid = rowid predicate to join back to the base table.
-        BinaryRelationalOperatorNode whereClause = new BinaryRelationalOperatorNode.Equals(
+        BinaryRelationalOperatorNode whereClause = BinaryRelationalOperatorNode.newEquals(
                         ridCol2, ridCol1, getContextManager());
 
         // Include all referenced columns.
@@ -1175,7 +1175,7 @@ public class FromBaseTable extends FromTable {
                                                ));
 
         // Set up the rowid = rowid predicate to join back to the base table.
-        BinaryRelationalOperatorNode whereClause = new BinaryRelationalOperatorNode.Equals(
+        BinaryRelationalOperatorNode whereClause = BinaryRelationalOperatorNode.newEquals(
                         ridCol1, ridCol2, getContextManager());
 
         whereClause.bindComparisonOperator();

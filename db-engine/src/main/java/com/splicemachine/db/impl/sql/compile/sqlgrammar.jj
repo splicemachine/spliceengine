@@ -14458,7 +14458,7 @@ valueSpecification() throws StandardException :
         thenElseList.addElement(new UntypedNullConstantNode(cm));
         thenElseList.addElement(leftExpression);
 
-        return new ConditionalNode( new BinaryRelationalOperatorNode.Equals(leftExpression, rightExpression, cm),
+        return new ConditionalNode( BinaryRelationalOperatorNode.newEquals(leftExpression, rightExpression, cm),
                                     thenElseList, Boolean.TRUE, // this node is for nullif
                                     cm);
     }
@@ -14587,7 +14587,7 @@ whenThenExpression(ValueNode compareTo) throws StandardException :
         thenElseList.addElement(elseExpr); // else
 
         if (compareTo != null) {
-            expr = new BinaryRelationalOperatorNode.Equals(compareTo, expr, cm);
+            expr = BinaryRelationalOperatorNode.newEquals(compareTo, expr, cm);
         }
         return new ConditionalNode(expr, thenElseList, Boolean.FALSE, cm);
     }

@@ -406,7 +406,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
                     //       =
                     //     /   \
                     //  column  'Derby'
-                    BinaryComparisonOperatorNode equals = new BinaryRelationalOperatorNode.Equals(
+                    BinaryComparisonOperatorNode equals = BinaryRelationalOperatorNode.newEquals(
                             leftClone,
                             new CharConstantNode(newPattern, getContextManager()),
                             getContextManager());
@@ -717,7 +717,7 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
         //       >=
         //      /   \
         //  reciever pattern
-        BinaryComparisonOperatorNode greaterEqual = new BinaryRelationalOperatorNode.GreaterEquals(
+        BinaryComparisonOperatorNode greaterEqual = BinaryRelationalOperatorNode.newGreaterEquals(
                 getReceiver().getClone(), likeGEopt, getContextManager());
 
 

@@ -100,22 +100,16 @@ public class BinaryRelationalOperatorNode
 
     public BinaryRelationalOperatorNode() { }
 
-    public static class Equals extends BinaryRelationalOperatorNode {
-         public Equals(ValueNode leftOperand, ValueNode rightOperand, ContextManager cm) {
-             super(C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE, leftOperand, rightOperand, cm);
-         }
+    public static BinaryRelationalOperatorNode newEquals(ValueNode leftOperand, ValueNode rightOperand, ContextManager cm) {
+        return new BinaryRelationalOperatorNode(C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE, leftOperand, rightOperand, cm);
+    }
+
+     public static BinaryRelationalOperatorNode newNotEquals(ValueNode leftOperand, ValueNode rightOperand, ContextManager cm) {
+         return new BinaryRelationalOperatorNode(C_NodeTypes.BINARY_NOT_EQUALS_OPERATOR_NODE, leftOperand, rightOperand, cm);
      }
 
-     public static class NotEquals extends BinaryRelationalOperatorNode {
-         public NotEquals(ValueNode leftOperand, ValueNode rightOperand, ContextManager cm) {
-             super(C_NodeTypes.BINARY_NOT_EQUALS_OPERATOR_NODE, leftOperand, rightOperand, cm);
-         }
-     }
-
-     public static class GreaterEquals extends BinaryRelationalOperatorNode {
-         public GreaterEquals(ValueNode leftOperand, ValueNode rightOperand, ContextManager cm) {
-             super(C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE, leftOperand, rightOperand, cm);
-         }
+     public static BinaryRelationalOperatorNode newGreaterEquals(ValueNode leftOperand, ValueNode rightOperand, ContextManager cm) {
+         return new BinaryRelationalOperatorNode(C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE, leftOperand, rightOperand, cm);
      }
 
     public BinaryRelationalOperatorNode(int nodeType, ValueNode leftOperand, ValueNode rightOperand, ContextManager cm) {

@@ -229,7 +229,7 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		newAnd.postBindFixup();
 
 		/* Create the AND >= */
-		BinaryComparisonOperatorNode greaterEqual = new BinaryRelationalOperatorNode.GreaterEquals(
+		BinaryComparisonOperatorNode greaterEqual = BinaryRelationalOperatorNode.newGreaterEquals(
 					getLeftOperand(), (ValueNode) rightOperandList.elementAt(0), cm);
 
 		/* Set type info for the operator node */
@@ -291,7 +291,7 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		ContextManager cm = getContextManager();
 
 		/* leftO >= rightOList.elementAt(0) */
-		leftBCO = new BinaryRelationalOperatorNode.GreaterEquals(getLeftOperand(),
+		leftBCO = BinaryRelationalOperatorNode.newGreaterEquals(getLeftOperand(),
 				(ValueNode) rightOperandList.elementAt(0), cm);
 		/* Set type info for the operator node */
 		leftBCO.bindComparisonOperator();

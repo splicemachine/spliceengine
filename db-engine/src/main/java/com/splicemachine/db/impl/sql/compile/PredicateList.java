@@ -2768,7 +2768,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
                     // No match, add new equijoin
                     // Build a new predicate
-                    BinaryRelationalOperatorNode newEquals = new BinaryRelationalOperatorNode.Equals(
+                    BinaryRelationalOperatorNode newEquals = BinaryRelationalOperatorNode.newEquals(
                                     outerCR.getClone(), innerCR.getClone(), getContextManager());
                     newEquals.bindComparisonOperator();
                                /* Create the AND */
