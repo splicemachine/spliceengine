@@ -65,7 +65,7 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
 
     // faulted in or built at run-time
     private transient GeneratedMethod _matchRefinementMethod;
-    private transient   GeneratedMethod _rowMakingMethod;
+    private transient GeneratedMethod _rowMakingMethod;
     private transient ResultSet _actionRS;
 
     private TemporaryRowHolderImpl _thenRows;
@@ -91,11 +91,11 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
      */
     public  MatchingClauseConstantAction
     (
-            int    clauseType,
+            int clauseType,
             String matchRefinementName,
-            ResultDescription  thenColumnSignature,
+            ResultDescription thenColumnSignature,
             String rowMakingMethodName,
-            int[]  thenColumns,
+            int[] thenColumns,
             String resultSetFieldName,
             String actionMethodName,
             ConstantAction thenAction
@@ -120,9 +120,11 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
     /** Get the clause type: WHEN_NOT_MATCHED_THEN_INSERT, WHEN_MATCHED_THEN_UPDATE, WHEN_MATCHED_THEN_DELETE */
     public  int clauseType() { return _clauseType; }
 
-    public  boolean isWhenMatchedClause() {
+    public  boolean isWhenMatchedClause()
+    {
         return _clauseType == MatchingClauseNode.WHEN_MATCHED_THEN_UPDATE ||
-                _clauseType == MatchingClauseNode.WHEN_MATCHED_THEN_DELETE; }
+               _clauseType == MatchingClauseNode.WHEN_MATCHED_THEN_DELETE;
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -130,6 +132,9 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * executes the INSERT/UPDATE/DELETE actions with the rows that have been buffered for execution in _thenRows
+     */
     public void executeConstantAction( Activation activation )
             throws StandardException
     {
@@ -189,7 +194,7 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
      * a previous use.
      * </p>
      */
-    public void    init()  throws StandardException
+    public void init() throws StandardException
     {
         _actionRS = null;
     }
@@ -225,25 +230,16 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
      * of the MERGE statement's driving left join.
      * </p>
      */
-    public void bufferThenRow
-    (
-            Activation activation,
-            ExecRow selectRow
-    ) throws StandardException
+    public void bufferThenRow(Activation activation, ExecRow selectRow) throws StandardException
     {
         if ( _thenRows == null ) { _thenRows = createThenRows( activation ); }
 
         ExecRow thenRow;
-
-        switch( _clauseType )
-        {
-            case MatchingClauseNode.WHEN_MATCHED_THEN_DELETE:
-                thenRow = bufferThenRowForDelete( activation, selectRow );
-                break;
-
-            default:
-                thenRow = bufferThenRowInternal( activation, selectRow );
-                break;
+        if(_clauseType == MatchingClauseNode.WHEN_MATCHED_THEN_DELETE) {
+            thenRow = copyRowWithOffsets(selectRow, _deleteColumnOffsets);
+        }
+        else {
+            thenRow = bufferThenRowInternal( activation, selectRow );
         }
 
         _thenRows.insert( thenRow );
@@ -251,46 +247,35 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
 
     /**
      * <p>
-     * Construct and buffer a row for the DELETE
-     * action corresponding to this MATCHED clause. The buffered row
-     * is built from columns in the passed-in row. The passed-in row is the SELECT list
-     * of the MERGE statement's driving left join.
+     * Construct a ValueRow by creating a copy with column offsets.
+     * This is used when buffering a row for DELETE
+     * The passed-in row is the SELECT list of the MERGE statement's driving left join.
      * </p>
      */
-    ExecRow    bufferThenRowForDelete
-    (
-            Activation activation,
-            ExecRow selectRow
-    )
-            throws StandardException
+    public static ExecRow copyRowWithOffsets(ExecRow selectRow, int[] offsets) throws StandardException
     {
-        int             thenRowLength = _thenColumnSignature.getColumnCount();
-        ValueRow    thenRow = new ValueRow( thenRowLength );
-        for ( int i = 0; i < thenRowLength; i++ )
-        {
-            thenRow.setColumn( i + 1, selectRow.getColumn( _deleteColumnOffsets[ i ] ) );
+        int rowLength = offsets.length;
+        ValueRow thenRow = new ValueRow( rowLength );
+        for ( int i = 0; i < rowLength; i++ ) {
+            thenRow.setColumn( i + 1, selectRow.getColumn( offsets[ i ] ) );
         }
-
         return thenRow;
     }
 
     /**
      * <p>
-     * Construct and buffer a row for the INSERT/UPDATE/DELETE
-     * action corresponding to this [ NOT ] MATCHED clause.
+     * Construct and buffer a row for the INSERT/UPDATE
+     * action corresponding to this MATCHED clause.
      * </p>
      */
-    ExecRow bufferThenRowInternal
-    (
-            Activation activation,
-            ExecRow row)
+    ExecRow bufferThenRowInternal(Activation activation, ExecRow row)
             throws StandardException
     {
-        if ( _rowMakingMethod == null )
-        {
+        if ( _rowMakingMethod == null ) {
             _rowMakingMethod = ((BaseActivation) activation).getMethod( _rowMakingMethodName );
         }
 
+        // we get the row in the generated code from the activation
         return (ExecRow) _rowMakingMethod.invoke( activation );
     }
 
@@ -299,7 +284,7 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
      * Release resources at the end.
      * </p>
      */
-    public void    cleanUp()   throws StandardException
+    public void cleanUp() throws StandardException
     {
         if ( _actionRS != null )
         {
@@ -325,8 +310,7 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
      * for bulk-processing after the driving left join completes.
      * </p>
      */
-    private TemporaryRowHolderImpl  createThenRows( Activation activation )
-            throws StandardException
+    private TemporaryRowHolderImpl createThenRows( Activation activation )
     {
         return new TemporaryRowHolderImpl( activation, new Properties(), _thenColumnSignature );
     }
@@ -389,6 +373,6 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
      *
      *	@return	the formatID of this class
      */
-    public	int	getTypeFormatId()	{ return StoredFormatIds.MATCHING_CLAUSE_CONSTANT_ACTION_V01_ID; }
+    public int getTypeFormatId() { return StoredFormatIds.MATCHING_CLAUSE_CONSTANT_ACTION_V01_ID; }
 
 }

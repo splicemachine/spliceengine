@@ -28,6 +28,7 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.impl.sql.execute.actions.MergeConstantAction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import org.apache.commons.lang.NotImplementedException;
 
 /**
  * INSERT/UPDATE/DELETE a target table based on how it outer joins
@@ -43,13 +44,15 @@ public class MergeOperation extends NoRowsOperation
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
+    protected static final String NAME = MergeOperation.class.getSimpleName().replaceAll("Operation","");
+
     ///////////////////////////////////////////////////////////////////////////////////
     //
     // STATE
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-    private NoPutResultSet      _drivingLeftJoin;
+    private SpliceBaseOperation _drivingLeftJoin;
     private MergeConstantAction _constants;
 
     private ExecRow             _row;
@@ -74,7 +77,7 @@ public class MergeOperation extends NoRowsOperation
             throws StandardException
     {
         super( activation );
-        _drivingLeftJoin = drivingLeftJoin;
+        _drivingLeftJoin = ((SpliceBaseOperation) drivingLeftJoin);
         _constants = (MergeConstantAction) activation.getConstantAction();
     }
 
@@ -100,13 +103,12 @@ public class MergeOperation extends NoRowsOperation
             activation.addWarning( StandardException.newWarning( SQLState.LANG_NO_ROW_FOUND ) );
         }
 
-        // now execute the INSERT/UPDATE/DELETE actions
+        // now execute the INSERT/UPDATE/DELETE actions with the rows that have been buffered for execution
         for (MatchingClauseConstantAction clause : _constants.getMatchingClauses()) {
             clause.executeConstantAction(activation);
         }
 
         cleanUp();
-        //endTime = getCurrentTimeMillis();
     }
 
     @Override
@@ -147,14 +149,14 @@ public class MergeOperation extends NoRowsOperation
      * Loop through the rows in the driving left join.
      * </p>
      */
-    boolean  collectAffectedRows() throws StandardException
+    boolean collectAffectedRows() throws StandardException
     {
         boolean rowsFound = false;
         while ( true )
         {
             // may need to objectify stream columns here.
             // see DMLWriteResultSet.getNextRowCoure(NoPutResultSet)
-            _row =  _drivingLeftJoin.getNextRowCore();
+            _row = _drivingLeftJoin.getNextRowCore();
             if ( _row == null ) { break; }
 
             rowsFound = true;
@@ -209,28 +211,33 @@ public class MergeOperation extends NoRowsOperation
 
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        return null; // todo
+        throw new NotImplementedException("MergeOperation.getDataSet");
     }
 
     @Override
     public boolean isReferencingTable(long tableNumber) {
-        return false; // todo
+        // todo: what else are we referencing? tables that are needed for triggers?
+        return _drivingLeftJoin.isReferencingTable(tableNumber);
     }
 
     @Override
     public String getName() {
-        return null; // todo
+        return NAME;
     }
 
     @Override
     public int[] getRootAccessedCols(long tableNumber) throws StandardException {
-        return new int[0]; // todo
+        return _drivingLeftJoin.getRootAccessedCols(tableNumber);
     }
+
     @Override
     public boolean returnsRows() {
         return false;
     }
 
+    /**
+     * @return modified rows for "XXX rows inserted/updated/deleted"
+     */
     @Override
     public long[] modifiedRowCount() {
         return new long[] { _rowCount };

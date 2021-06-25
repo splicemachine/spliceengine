@@ -358,7 +358,6 @@ public class MergeNodeIT
                 " 2 |20 | 3 |");
     }
 
-
     public void checkGrammar(String sql) {
         try
         {
@@ -369,7 +368,6 @@ public class MergeNodeIT
                     e.getMessage().startsWith("Syntax error"));
         }
     }
-
 
     @Test
     public void testColumnDefault() throws Exception {
@@ -399,8 +397,6 @@ public class MergeNodeIT
                     " 3 |30 |55 |",
                     "select i, j, k from T_destDef", true);
 
-
-
             try( ResultSet rs = methodWatcher.executeQuery("select date, CURRENT_DATE from T_destDef {limit 1}") ) {
                 Assert.assertTrue(rs.next());
                 Date res = rs.getDate(1);
@@ -420,7 +416,7 @@ public class MergeNodeIT
     }
 
     @Test
-    public void testGrammar() throws Exception {
+    public void testGrammar() {
         // when matched UPDATE
         checkGrammar("merge into A_dest dest using A_src src on (src.i = src.j) when matched then update set dest.i = src.j");
 
