@@ -113,7 +113,7 @@ public class QueryRewriteVisitor extends AbstractSpliceVisitor {
                 // the query to a TOP 1 query.
                 if (fromList.size() == 1) {
                     NumericConstantNode
-                      numberOne = new NumericConstantNode.Integer(1, selectNode.getContextManager());
+                      numberOne = NumericConstantNode.newInteger(1, selectNode.getContextManager());
                     selectNode.setFetchFirst(numberOne);
                 }
                 else {
@@ -127,7 +127,7 @@ public class QueryRewriteVisitor extends AbstractSpliceVisitor {
     private void constructExistsCondition(SelectNode selectNode, FromTable fromTable) throws StandardException {
         ContextManager cm = fromTable.getContextManager();
 
-        NumericConstantNode numberOne = new NumericConstantNode.Integer(Integer.valueOf(1), cm);
+        NumericConstantNode numberOne = NumericConstantNode.newInteger(1, cm);
 
         ResultColumn rc = new ResultColumn((String)null, numberOne, cm);
         ResultColumnList resultColumns = new ResultColumnList(cm);

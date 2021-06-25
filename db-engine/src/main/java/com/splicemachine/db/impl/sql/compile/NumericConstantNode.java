@@ -62,22 +62,16 @@ public class NumericConstantNode extends ConstantNode
         this.setType(type);
     }
 
-    public static class Integer extends NumericConstantNode {
-        public Integer(java.lang.Integer val, ContextManager cm) throws StandardException {
-            super(C_NodeTypes.INT_CONSTANT_NODE, val, cm);
-        }
+    public static NumericConstantNode newInteger(java.lang.Integer val, ContextManager cm) throws StandardException {
+        return new NumericConstantNode(C_NodeTypes.INT_CONSTANT_NODE, val, cm);
     }
 
-    public static class Float extends NumericConstantNode {
-        public Float(java.lang.Float val, ContextManager cm) throws StandardException {
-            super(C_NodeTypes.FLOAT_CONSTANT_NODE, val, cm);
-        }
+    public static NumericConstantNode newFloat(java.lang.Float val, ContextManager cm) throws StandardException {
+        return new NumericConstantNode(C_NodeTypes.FLOAT_CONSTANT_NODE, val, cm);
     }
 
-    public static class Double extends NumericConstantNode {
-        public Double(java.lang.Double val, ContextManager cm) throws StandardException {
-            super(C_NodeTypes.DOUBLE_CONSTANT_NODE, val, cm);
-        }
+    public static NumericConstantNode newDouble(java.lang.Double val, ContextManager cm) throws StandardException {
+        return new NumericConstantNode(C_NodeTypes.DOUBLE_CONSTANT_NODE, val, cm);
     }
 
     /**

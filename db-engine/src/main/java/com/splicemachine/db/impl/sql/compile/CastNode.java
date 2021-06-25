@@ -487,7 +487,7 @@ public class CastNode extends ValueNode
                 {
                     throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, "float");
                 }
-                return new NumericConstantNode.Float(floatValue, getContextManager());
+                return NumericConstantNode.newFloat(floatValue, getContextManager());
             case Types.DOUBLE:
                 Double doubleValue;
                 try
@@ -498,7 +498,7 @@ public class CastNode extends ValueNode
                 {
                     throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, "double");
                 }
-                return new NumericConstantNode.Double(doubleValue, getContextManager());
+                return NumericConstantNode.newDouble(doubleValue, getContextManager());
         }
 
         return retNode;
@@ -563,7 +563,7 @@ public class CastNode extends ValueNode
                 {
                     throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "INTEGER");
                 }
-                return new NumericConstantNode.Integer(ReuseFactory.getInteger((int) longValue), getContextManager());
+                return NumericConstantNode.newInteger(ReuseFactory.getInteger((int) longValue), getContextManager());
 
             case Types.BIGINT:
                 return new NumericConstantNode(
@@ -576,10 +576,10 @@ public class CastNode extends ValueNode
                 {
                     throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "REAL");
                 }
-                return new NumericConstantNode.Float((float) longValue, getContextManager());
+                return NumericConstantNode.newFloat((float) longValue, getContextManager());
 
             case Types.DOUBLE:
-                return new NumericConstantNode.Double((double) longValue, getContextManager());
+                return NumericConstantNode.newDouble((double) longValue, getContextManager());
         }
 
         return retNode;

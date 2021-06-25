@@ -6850,7 +6850,7 @@ characterValueFunction() throws StandardException :
                             C_NodeTypes.LOCATE_FUNCTION_NODE,
                             str1,
                             str2,
-                            (value == null) ? new NumericConstantNode.Integer(1, getContextManager() )
+                            (value == null) ? NumericConstantNode.newInteger(1, getContextManager() )
                                             : value,
                             ReuseFactory.getInteger(TernaryOperatorNode.LOCATE),
                             null,
@@ -13525,7 +13525,7 @@ numericLiteral(String sign) throws StandardException :
         if (Double.isNaN(dv) || Double.isInfinite(dv))
             throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, TypeId.DOUBLE_NAME);
 
-        return new NumericConstantNode.Double(doubleValue, getContextManager());
+        return NumericConstantNode.newDouble(doubleValue, getContextManager());
     }
 }
 

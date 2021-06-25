@@ -580,7 +580,7 @@ public final class UpdateNode extends DMLModStatementNode
         }
         else
         {
-            rowLocationNode = new NumericConstantNode.Integer(ReuseFactory.getInteger(0), getContextManager());
+            rowLocationNode = NumericConstantNode.newInteger(ReuseFactory.getInteger(0), getContextManager());
         }
 
 

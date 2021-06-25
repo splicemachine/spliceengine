@@ -475,7 +475,7 @@ class SQLGrammarImpl {
         // first, see if it might be an integer
         try
         {
-            return new NumericConstantNode.Integer(Integer.valueOf(num), cm);
+            return NumericConstantNode.newInteger(Integer.valueOf(num), cm);
         }
         catch (NumberFormatException nfe)
         {
@@ -1007,7 +1007,7 @@ class SQLGrammarImpl {
 
     ValueNode getJdbcIntervalNode( int intervalType) throws StandardException
     {
-        return new NumericConstantNode.Integer(ReuseFactory.getInteger( intervalType), getContextManager());
+        return NumericConstantNode.newInteger(ReuseFactory.getInteger( intervalType), getContextManager());
     }
 
     /**
@@ -1196,7 +1196,7 @@ class SQLGrammarImpl {
 
             // default to zero if truncValue null or not numeric
             if (! (truncValue instanceof NumericConstantNode)) {
-                truncValue = new NumericConstantNode.Integer(0, cm);
+                truncValue = NumericConstantNode.newInteger(0, cm);
             }
 
             truncateOperand = operandNode;

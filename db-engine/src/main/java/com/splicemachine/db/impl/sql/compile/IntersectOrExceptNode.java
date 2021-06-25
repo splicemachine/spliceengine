@@ -211,7 +211,7 @@ public class IntersectOrExceptNode extends SetOperatorNode
         {
             OrderByColumn orderByColumn = (OrderByColumn)
               nf.getNode( C_NodeTypes.ORDER_BY_COLUMN,
-              new NumericConstantNode.Integer(ReuseFactory.getInteger( intermediateOrderByColumns[i] + 1), cm),
+              NumericConstantNode.newInteger(ReuseFactory.getInteger( intermediateOrderByColumns[i] + 1), cm),
               cm);
             if( intermediateOrderByDirection[i] < 0)
                 orderByColumn.setDescending();
