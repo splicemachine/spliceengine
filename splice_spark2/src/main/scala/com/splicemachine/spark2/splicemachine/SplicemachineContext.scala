@@ -179,7 +179,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
   SparkSession.builder.getOrCreate.sparkContext.addSparkListener(new SparkListener {
     override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd): Unit = {
-      println(s"Cleaning up SplicemachineContext.")
+      println(s"Cleaning up SplicemachineContext resources before shutdown.")
       try {
         connectionManager.shutdown
       } catch {
@@ -190,7 +190,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       } catch {
         case e: Throwable => ;  // no-op, undeleted topics should be handled by separate cleanup process
       }
-      println(s"Clean up of SplicemachineContext Completed.")
     }
   })
 

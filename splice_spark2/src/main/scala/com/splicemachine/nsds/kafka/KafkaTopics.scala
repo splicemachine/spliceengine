@@ -43,9 +43,7 @@ class KafkaTopics(
   private def deleteTopics(): Unit = {
     val toDelete = collection.mutable.Set.empty[String]
     unneeded.drainTo(toDelete.asJava)
-    println(s"Deleting topics $toDelete")  // todo remove println
-    admin.deleteTopics(toDelete, 60*1000)  // todo will admin.deleteTopics accept an empty toDelete when there are no topics?
-    println(s"Delete done")  // todo remove println
+    admin.deleteTopics(toDelete, 60*1000)
   }
   
   if(continuousCleanup) {
@@ -53,7 +51,7 @@ class KafkaTopics(
       override def run {
         while (processing.get) {
           deleteTopics
-          Thread.sleep(60 * 1000)
+          Thread.sleep(60*1000)
         }
         deleteTopics
       }
