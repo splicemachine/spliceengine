@@ -42,11 +42,11 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
 import com.splicemachine.si.api.rollforward.RollForward;
 import com.splicemachine.si.api.server.ClusterHealth;
+import com.splicemachine.si.api.session.SessionsWatcher;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
-import com.splicemachine.si.data.hbase.coprocessor.HOldestActiveTransactionTaskFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
 import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
@@ -64,7 +64,6 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
 
     private final SIEnvironment delegate;
     private final PipelineExceptionFactory pipelineExceptionFactory;
-    private final OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory;
     private final ContextFactoryDriver contextFactoryLoader;
     private final SConfiguration pipelineConfiguration;
     private final PipelineCompressor compressor;
@@ -93,7 +92,6 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
                                      PipelineExceptionFactory pef){
         this.delegate = env;
         this.pipelineExceptionFactory = pef;
-        this.oldestActiveTransactionTaskFactory = new HOldestActiveTransactionTaskFactory();
         this.contextFactoryLoader = ctxFactoryLoader;
         this.pipelineConfiguration = env.configuration();
         this.pipelineFactory = new AvailablePipelineFactory();
@@ -122,7 +120,17 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
 
     @Override
     public OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory(){
-        return oldestActiveTransactionTaskFactory;
+        return delegate.oldestActiveTransactionTaskFactory();
+    }
+
+    @Override
+    public ActiveSessionsTaskFactory allActiveSessionsTaskFactory(){
+        return delegate.allActiveSessionsTaskFactory();
+    }
+
+    @Override
+    public SessionsWatcher sessionsWatcher() {
+        return delegate.sessionsWatcher();
     }
 
     @Override public TxnStore txnStore(){ return delegate.txnStore(); }
