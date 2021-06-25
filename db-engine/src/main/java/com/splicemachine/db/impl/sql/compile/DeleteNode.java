@@ -923,14 +923,10 @@ public class DeleteNode extends DMLModStatementNode
         ((FromBaseTable) fromTable).setTableProperties(targetProperties);
 
         fromList.addFromTable(fromTable);
-        SelectNode resultSet = new SelectNode( null,
-                                                     null,   /* AGGREGATE list */
-                                                     fromList, /* FROM list */
-                                                     whereClause, /* WHERE clause */
-                                                     null, /* GROUP BY list */
-                                                     null, /* having clause */
-                                                     null, /* windows */
-                                                     getContextManager());
+        SelectNode resultSet = new SelectNode( null, /* selectList */
+                                               fromList, /* FROM list */
+                                               whereClause, /* WHERE clause */
+                                               getContextManager());
 
         return new DeleteNode(tableName, resultSet, getContextManager());
 
@@ -963,12 +959,8 @@ public class DeleteNode extends DMLModStatementNode
         fromList.addFromTable(fromTable);
 
         SelectNode resultSet = new SelectNode(getSetClause(tableName, cdl),
-                                                     null,   /* AGGREGATE list */
                                                      fromList, /* FROM list */
                                                      whereClause, /* WHERE clause */
-                                                     null, /* GROUP BY list */
-                                                     null, /* having clause */
-                                                     null, /* windows */
                                                      getContextManager());
 
         return new UpdateNode( tableName, resultSet, cursorDelete, null, getContextManager());

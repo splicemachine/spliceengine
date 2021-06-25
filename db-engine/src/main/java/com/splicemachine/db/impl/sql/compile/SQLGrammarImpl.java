@@ -527,13 +527,9 @@ class SQLGrammarImpl {
 
         fromList.addFromTable(fromTable);
         SelectNode resultSet = new SelectNode(
-                null,
-                null,     /* AGGREGATE list */
-                fromList, /* FROM list */
+                null,        /* selectList */
+                fromList,    /* FROM list */
                 whereClause, /* WHERE clause */
-                null, /* GROUP BY list */
-                null, /* having clause */
-                null, /* window list */
                 getContextManager());
 
         DeleteNode dn = new DeleteNode(tableName, resultSet, fromTable instanceof CurrentOfNode, targetProperties, null, getContextManager());
@@ -558,13 +554,9 @@ class SQLGrammarImpl {
         fromList.addFromTable(fromTable);
 
         SelectNode resultSet = new SelectNode(
-                setClause, /* SELECT list */
-                null,     /* AGGREGATE list */
-                fromList, /* FROM list */
+                setClause,   /* SELECT list */
+                fromList,    /* FROM list */
                 whereClause, /* WHERE clause */
-                null, /* GROUP BY list */
-                null, /* having clause */
-                null, /* window list */
                 getContextManager());
 
         UpdateNode node = new UpdateNode(
@@ -664,12 +656,8 @@ class SQLGrammarImpl {
 
         SelectNode resultSet = new SelectNode(
                 setClause, /* SELECT list */
-                null,   /* AGGREGATE list */
                 fromList, /* FROM list */
                 alteredWhereClause, /* WHERE clause */
-                null, /* GROUP BY list */
-                null, /* having clause */
-                null, /* window list */
                 getContextManager() );
 
         UpdateNode node = new UpdateNode(
@@ -706,12 +694,8 @@ class SQLGrammarImpl {
 
         SelectNode selectNode = new SelectNode(
                 innerRCL,  /* SELECT list */
-                null, /* AGGREGATE list */
                 fromList,  /* FROM list */
-                null, /* WHERE clause */
-                null, /* GROUP BY list */
-                null, /* having clause */
-                null, /* window list */
+                null,      /* WHERE clause */
                 getContextManager());
 
         return new SubqueryNode(selectNode,
