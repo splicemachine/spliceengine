@@ -870,10 +870,11 @@ public abstract class EmbedConnection implements EngineConnection
      */
     private void checkUserIsNotARole() throws SQLException {
         TransactionResourceImpl tr = getTR();
+        LanguageConnectionContext lcc = null;
 
         try {
             tr.startTransaction();
-            LanguageConnectionContext lcc = tr.getLcc();
+            lcc = tr.getLcc();
             String username = lcc.getSessionUserId();
 
             DataDictionary dd = lcc.getDataDictionary();
@@ -895,6 +896,13 @@ public abstract class EmbedConnection implements EngineConnection
             }
 
             throw handleException(e);
+        } finally {
+            if (lcc != null) {
+                try {
+                    lcc.resetFromPool();
+                } catch (StandardException ignored) {
+                }
+            }
         }
 
     }
