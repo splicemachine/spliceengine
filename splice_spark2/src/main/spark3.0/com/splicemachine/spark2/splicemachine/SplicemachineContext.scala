@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2020 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2021 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -177,13 +177,12 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
   SparkSession.builder.getOrCreate.sparkContext.addSparkListener(new SparkListener {
     override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd): Unit = {
-      println(s"Cleaning up SplicemachineContext.")
+      println(s"Cleaning up SplicemachineContext resources before shutdown.")
       try {
-        kafkaTopics.cleanup(60*1000)
+        kafkaTopics.shutdown
       } catch {
         case e: Throwable => ;  // no-op, undeleted topics should be handled by separate cleanup process
       }
-      println(s"Clean up of SplicemachineContext Completed.")
     }
   })
 
