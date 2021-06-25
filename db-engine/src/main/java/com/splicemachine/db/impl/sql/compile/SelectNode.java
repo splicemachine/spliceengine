@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.properties.PropertyRegistry;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.ast.CollectingVisitor;
@@ -52,6 +53,8 @@ import splice.com.google.common.base.Predicates;
 
 import java.sql.Types;
 import java.util.*;
+
+import static java.beans.DesignMode.PROPERTYNAME;
 
 /**
  * A SelectNode represents the result set for any of the basic DML
@@ -2276,7 +2279,7 @@ public class SelectNode extends ResultSetNode {
      */
     void pushExpressionsIntoSelect(Predicate predicate) throws StandardException {
         wherePredicates.pullExpressions(referencedTableMap.size(), predicate.getAndNode());
-        Boolean disableTC = (Boolean) getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
+        Boolean disableTC = (Boolean) getLanguageConnectionContext().getSessionProperties().getProperty(PropertyRegistry.PROPERTYNAME.DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
         if (disableTC == null || !disableTC) {
             if (fromList.size() > 1) {
                 performTransitiveClosure();

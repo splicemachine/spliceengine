@@ -51,6 +51,7 @@ import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
+import com.splicemachine.db.iapi.sql.properties.PropertyRegistry;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
@@ -340,7 +341,7 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
         String role = lcc.getReplicationRole();
         if (!lcc.isCompilingFromTableTempTrigger() &&
             !dd.isReadOnlyUpgrade() && role.compareToIgnoreCase("REPLICA") != 0 &&
-                lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.SNAPSHOT_TIMESTAMP) == null) {
+                lcc.getSessionProperties().getProperty(PropertyRegistry.PROPERTYNAME.SNAPSHOT_TIMESTAMP) == null) {
 
             dd.startWriting(lcc);
 
@@ -953,7 +954,7 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
 
         String role = lcc.getReplicationRole();
         if (dd.isReadOnlyUpgrade() || role.compareToIgnoreCase("REPLICA") == 0 ||
-                lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.SNAPSHOT_TIMESTAMP) != null)
+                lcc.getSessionProperties().getProperty(PropertyRegistry.PROPERTYNAME.SNAPSHOT_TIMESTAMP) != null)
             return;
 
 

@@ -1524,7 +1524,7 @@ public interface LanguageConnectionContext extends Context {
                            ParameterValueSet pvs);
     void logEndExecuting(String uuid, long modifiedRows, long badRecords, long nanoTimeSpent);
 
-    void setSessionProperties(Properties newProperties);
+    void setSessionProperties(Properties newProperties) throws StandardException;
     SessionProperties getSessionProperties();
     String getCurrentSessionPropertyDelimited();
 

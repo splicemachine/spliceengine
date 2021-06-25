@@ -25,6 +25,7 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.properties.PropertyRegistry;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
@@ -135,7 +136,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
         Txn childTxn;
         try {
             LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-            Boolean sparkHint = (Boolean)lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USEOLAP);
+            Boolean sparkHint = (Boolean)lcc.getSessionProperties().getProperty(PropertyRegistry.PROPERTYNAME.USEOLAP);
 
             childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());
             ScanSetBuilder<ExecRow> builder = getIndexScanBuilder(td, indexTransaction, demarcationPoint,

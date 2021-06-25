@@ -27,6 +27,7 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.properties.PropertyRegistry;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.SQLVarchar;
@@ -405,7 +406,7 @@ public class SpliceTableAdmin {
         tc.elevate("check_table");
         TxnView txn = ((SpliceTransactionManager) tc).getActiveStateTxn();
         Activation activation = lcc.getLastActivation();
-        Boolean useSpark = (Boolean)lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USEOLAP);
+        Boolean useSpark = (Boolean)lcc.getSessionProperties().getProperty(PropertyRegistry.PROPERTYNAME.USEOLAP);
         String conglomId = Long.toString(tentativeIndexList.get(0).getTable().getConglomerate());
         Collection<PartitionLoad> partitionLoadCollection = EngineDriver.driver().partitionLoadWatcher().tableLoad(conglomId, true);
 

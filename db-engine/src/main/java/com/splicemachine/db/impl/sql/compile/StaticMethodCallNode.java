@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
+import com.splicemachine.db.iapi.sql.properties.PropertyRegistry;
 import com.splicemachine.db.iapi.types.JSQLType;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.StringDataValue;
@@ -70,6 +71,8 @@ import java.sql.Types;
 import java.util.Arrays;
 import java.util.List;
 import java.lang.reflect.Modifier;
+
+import static java.beans.DesignMode.PROPERTYNAME;
 
 /**
  * A StaticMethodCallNode represents a static method call from a Class
@@ -225,7 +228,7 @@ public class StaticMethodCallNode extends MethodCallNode {
             String schemaName = procedureName.getSchemaName();
             Object candidateSchemasProperty = getLanguageConnectionContext()
                     .getSessionProperties()
-                    .getProperty(SessionProperties.PROPERTYNAME.CURRENTFUNCTIONPATH);
+                    .getProperty(PropertyRegistry.PROPERTYNAME.CURRENTFUNCTIONPATH);
             SchemaDescriptor sd = null;
             if(candidateSchemasProperty != null) {
                 String[] candidateSchemas = (String[]) (candidateSchemasProperty);

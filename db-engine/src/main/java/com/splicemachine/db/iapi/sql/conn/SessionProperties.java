@@ -31,8 +31,8 @@
 package com.splicemachine.db.iapi.sql.conn;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.sql.compile.costing.CostModelRegistry;
+import com.splicemachine.db.iapi.sql.properties.Property;
+import com.splicemachine.db.iapi.sql.properties.PropertyRegistry;
 import com.splicemachine.utils.Pair;
 
 import java.sql.SQLException;
@@ -41,130 +41,26 @@ import java.sql.SQLException;
  * Created by yxia on 6/1/18.
  */
 public interface SessionProperties {
-    enum PROPERTYNAME{
-        USEOLAP(0),
-        DEFAULTSELECTIVITYFACTOR(1),
-        SKIPSTATS(2),
-        RECURSIVEQUERYITERATIONLIMIT(3),
-        OLAPQUEUE(4),
-        SNAPSHOT_TIMESTAMP(5),
-        DISABLE_TC_PUSHED_DOWN_INTO_VIEWS(6),
-        OLAPPARALLELPARTITIONS(7),
-        OLAPSHUFFLEPARTITIONS(8),
-        SPARK_RESULT_STREAMING_BATCHES(9),
-        SPARK_RESULT_STREAMING_BATCH_SIZE(10),
-        TABLELIMITFOREXHAUSTIVESEARCH(11),
-        DISABLE_NLJ_PREDICATE_PUSH_DOWN(12),
-        USE_NATIVE_SPARK(13),
-        MINPLANTIMEOUT(14),
-        CURRENTFUNCTIONPATH(15),
-        DISABLEPREDSFORINDEXORPKACCESSPATH(16),
-        ALWAYSALLOWINDEXPREFIXITERATION(17),
-        OLAPALWAYSPENALIZENLJ(18),
-        FAVORINDEXPREFIXITERATION(19),
-        COSTMODEL(20),
-        JOINSTRATEGY(21);
+    void setProperty(PropertyRegistry.PROPERTYNAME property, Object value) throws SQLException, StandardException;
 
-        public static final int COUNT = PROPERTYNAME.values().length;
+    Object getProperty(PropertyRegistry.PROPERTYNAME property);
 
-        private int id;
-
-        public int getId() {
-            return id;
-        }
-
-        PROPERTYNAME(int id) {
-            this.id = id;
-        }
-    };
-
-    void setProperty(PROPERTYNAME property, Object value) throws SQLException;
-
-    Object getProperty(PROPERTYNAME property);
-
-    String getPropertyString(PROPERTYNAME property);
+    String getPropertyString(PropertyRegistry.PROPERTYNAME property);
 
     String getAllProperties();
 
     void resetAll();
 
-    static Pair<PROPERTYNAME, String> validatePropertyAndValue(Pair<String, String> pair) throws StandardException {
+    static Pair<PropertyRegistry.PROPERTYNAME, String> validatePropertyAndValue(Pair<String, String> pair) throws StandardException {
         String propertyNameString = pair.getFirst();
-        SessionProperties.PROPERTYNAME property;
-        if( propertyNameString.equalsIgnoreCase("useSpark" ) )
-            propertyNameString = "USEOLAP";
-        try {
-            property = SessionProperties.PROPERTYNAME.valueOf(propertyNameString);
-        } catch (IllegalArgumentException e) {
-            throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY,propertyNameString,
-                "useOLAP, useSpark (deprecated), defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit, tableLimitForExhaustiveSearch, minPlanTimeout, currentFunctionPath, disablePredsForIndexOrPkAccessPath, alwaysAllowIndexPrefixIteration, olapAlwaysPenalizeNLJ, favorIndexPrefixIteration, costModel, joinStrategy");
-        }
+        Property property = PropertyRegistry.getInstance().getSessionProperty(propertyNameString);
 
         String valString = pair.getSecond();
         if (valString == null || valString.toLowerCase().equals("null"))
-            return new Pair(property, "null");
+            return Pair.newPair(property.getNameEnum(), "null");
 
-        switch (property) {
-            case USEOLAP:
-            case SKIPSTATS:
-            case DISABLE_TC_PUSHED_DOWN_INTO_VIEWS:
-            case DISABLE_NLJ_PREDICATE_PUSH_DOWN:
-            case USE_NATIVE_SPARK:
-            case OLAPALWAYSPENALIZENLJ:
-            case DISABLEPREDSFORINDEXORPKACCESSPATH:
-            case ALWAYSALLOWINDEXPREFIXITERATION:
-            case FAVORINDEXPREFIXITERATION:
-                try {
-                    Boolean.parseBoolean(valString);
-                } catch (Exception e) {
-                    throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "boolean or null");
-                }
+        property.verifySessionPropertyValue(valString);
 
-                break;
-            case DEFAULTSELECTIVITYFACTOR:
-                double defaultSelectivityFactor;
-                try {
-                    defaultSelectivityFactor = Double.parseDouble(valString);
-                } catch (Exception parseDoubleE) {
-                    throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value in the range(0,1] or null");
-                }
-                if (defaultSelectivityFactor <= 0 || defaultSelectivityFactor > 1.0)
-                    throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value in the range(0,1] or null");
-                break;
-            case RECURSIVEQUERYITERATIONLIMIT:
-            case SPARK_RESULT_STREAMING_BATCHES:
-            case SPARK_RESULT_STREAMING_BATCH_SIZE:
-            case OLAPPARALLELPARTITIONS:
-            case OLAPSHUFFLEPARTITIONS:
-            case TABLELIMITFOREXHAUSTIVESEARCH:
-                int value;
-                try {
-                    value = Integer.parseInt(valString);
-                } catch (Exception parseIntE) {
-                    throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value should be a positive integer or null");
-                }
-                if (value <= 0)
-                    throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value should be a positive integer or null");
-                break;
-            case SNAPSHOT_TIMESTAMP:
-            case MINPLANTIMEOUT:
-                long longValue;
-                try {
-                    longValue = Long.parseLong(valString);
-                    if (longValue <= 0)
-                        throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value should be a positive long");
-                } catch (NumberFormatException parseIntE) {
-                    throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value should be a positive long");
-                }
-                break;
-            case COSTMODEL:
-                if(!CostModelRegistry.exists(valString)) {
-                    throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, String.format("value should be one of %s", CostModelRegistry.modelNames()));
-                }
-            default:
-                break;
-        }
-
-        return new Pair(property, valString);
+        return Pair.newPair(property.getNameEnum(), valString);
     }
 }

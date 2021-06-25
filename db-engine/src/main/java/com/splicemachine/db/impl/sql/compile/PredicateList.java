@@ -47,6 +47,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.sql.properties.PropertyRegistry;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
@@ -3059,7 +3060,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             return;
         }
 
-        Boolean disableTC = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
+        Boolean disableTC = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(PropertyRegistry.PROPERTYNAME.DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
         if (disableTC == null || !disableTC) {
             /* do not remove equality join conditions, in the presence of 3 tables, this could still cause unconstaints join,
              * so return here directly */

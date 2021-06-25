@@ -30,127 +30,31 @@
  */
 package com.splicemachine.db.impl.sql.conn;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
+import com.splicemachine.db.iapi.sql.properties.PropertyRegistry;
 import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.db.shared.common.reference.SQLState;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static com.splicemachine.db.iapi.sql.conn.SessionProperties.PROPERTYNAME.*;
+import static com.splicemachine.db.iapi.sql.properties.PropertyRegistry.PROPERTYNAME.*;
 
 /**
  * Created by yxia on 6/1/18.
  */
 public class SessionPropertiesImpl implements SessionProperties {
-    Object[] properties = new Object[PROPERTYNAME.COUNT];
+    Object[] properties = new Object[PropertyRegistry.PROPERTYNAME.COUNT];
 
-    public void setProperty(PROPERTYNAME property, Object value) {
+    public void setProperty(PropertyRegistry.PROPERTYNAME property, Object value) throws StandardException {
         // the legal values have been checked at SetSessionpropertyNode.init(), so no need to check again
         String valString = String.valueOf(value);
-        if (valString == null || valString.equals("null")) {
-            properties[property.getId()] = null;
-            return;
-        }
-
-        switch (property) {
-            case USEOLAP:
-                boolean useOlapVal = Boolean.parseBoolean(valString);
-                properties[USEOLAP.getId()] = useOlapVal;
-                break;
-            case DEFAULTSELECTIVITYFACTOR:
-                double defaultSelectivityFactor = Double.parseDouble(valString);
-                properties[DEFAULTSELECTIVITYFACTOR.getId()] = defaultSelectivityFactor;
-                break;
-            case SKIPSTATS:
-                boolean skipStatsVal = Boolean.parseBoolean(valString);
-                properties[SKIPSTATS.getId()] = skipStatsVal;
-                break;
-            case OLAPQUEUE:
-                properties[OLAPQUEUE.getId()] = valString;
-                break;
-            case RECURSIVEQUERYITERATIONLIMIT:
-                int recursiveQueryIterationLimit = Integer.parseInt(valString);
-                properties[RECURSIVEQUERYITERATIONLIMIT.getId()] = recursiveQueryIterationLimit;
-                break;
-            case OLAPPARALLELPARTITIONS:
-                int parallelPartitions = Integer.parseInt(valString);
-                properties[OLAPPARALLELPARTITIONS.getId()] = parallelPartitions;
-                break;
-            case OLAPSHUFFLEPARTITIONS:
-                int shufflePartitions = Integer.parseInt(valString);
-                properties[OLAPSHUFFLEPARTITIONS.getId()] = shufflePartitions;
-                break;
-            case SNAPSHOT_TIMESTAMP:
-                long timestamp = Long.parseLong(valString);
-                properties[SNAPSHOT_TIMESTAMP.getId()] = timestamp;
-                break;
-            case DISABLE_TC_PUSHED_DOWN_INTO_VIEWS:
-                boolean disabled = Boolean.parseBoolean(valString);
-                properties[DISABLE_TC_PUSHED_DOWN_INTO_VIEWS.getId()] = disabled;
-                break;
-            case SPARK_RESULT_STREAMING_BATCHES:
-                int sparkResultStreamingBatches = Integer.parseInt(valString);
-                properties[SPARK_RESULT_STREAMING_BATCHES.getId()] = sparkResultStreamingBatches;
-                break;
-            case SPARK_RESULT_STREAMING_BATCH_SIZE:
-                int sparkResultStreamingBatchSize = Integer.parseInt(valString);
-                properties[SPARK_RESULT_STREAMING_BATCH_SIZE.getId()] = sparkResultStreamingBatchSize;
-                break;
-            case TABLELIMITFOREXHAUSTIVESEARCH:
-                int tableLimitForExhaustiveSearch = Integer.parseInt(valString);
-                properties[TABLELIMITFOREXHAUSTIVESEARCH.getId()] = tableLimitForExhaustiveSearch;
-                break;
-            case DISABLE_NLJ_PREDICATE_PUSH_DOWN:
-                boolean disablePushDown = Boolean.parseBoolean(valString);
-                properties[DISABLE_NLJ_PREDICATE_PUSH_DOWN.getId()] = disablePushDown;
-                break;
-            case USE_NATIVE_SPARK:
-                boolean useNativeSpark = Boolean.parseBoolean(valString);
-                properties[USE_NATIVE_SPARK.getId()] = useNativeSpark;
-                break;
-            case CURRENTFUNCTIONPATH:
-                properties[CURRENTFUNCTIONPATH.getId()] = parseCurrentFunctionPath(valString);
-                break;
-            case MINPLANTIMEOUT:
-                long minPlanTimeout = Long.parseLong(valString);
-                properties[MINPLANTIMEOUT.getId()] = minPlanTimeout;
-                break;
-            case OLAPALWAYSPENALIZENLJ:
-                boolean olapAlwaysPenalizeNLJ = Boolean.parseBoolean(valString);
-                properties[OLAPALWAYSPENALIZENLJ.getId()] = olapAlwaysPenalizeNLJ;
-                break;
-            case DISABLEPREDSFORINDEXORPKACCESSPATH:
-                boolean disablePredsForIndexOrPrimaryKeyAccessPath = Boolean.parseBoolean(valString);
-                properties[DISABLEPREDSFORINDEXORPKACCESSPATH.getId()] = disablePredsForIndexOrPrimaryKeyAccessPath;
-                break;
-            case ALWAYSALLOWINDEXPREFIXITERATION:
-                boolean alwaysAllowIndexPrefixIteration = Boolean.parseBoolean(valString);
-                properties[ALWAYSALLOWINDEXPREFIXITERATION.getId()] = alwaysAllowIndexPrefixIteration;
-                break;
-            case FAVORINDEXPREFIXITERATION:
-                boolean favorIndexPrefixIteration = Boolean.parseBoolean(valString);
-                properties[FAVORINDEXPREFIXITERATION.getId()] = favorIndexPrefixIteration;
-                break;
-            case COSTMODEL:
-                properties[COSTMODEL.getId()] = valString;
-                break;
-            case JOINSTRATEGY:
-                String joinStrategy = StringUtil.SQLToUpperCase(valString);
-                switch (joinStrategy) {
-                    case "CROSS":
-                    case "NESTEDLOOP":
-                    case "MERGE":
-                    case "SORTMERGE":
-                    case "BROADCAST":
-                        properties[JOINSTRATEGY.getId()] = joinStrategy;
-                        break;
-                    default:
-                        break;
-                }
-                break;
-            default:
-                assert false;
+        properties[property.getId()] = PropertyRegistry.getInstance().getSessionProperty(property)
+                .convertStringToValue(valString, SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE);
+        if (property.equals(CURRENTFUNCTIONPATH) && properties[CURRENTFUNCTIONPATH.getId()] != null) {
+            properties[CURRENTFUNCTIONPATH.getId()] = parseCurrentFunctionPath(valString);
         }
     }
 
@@ -199,11 +103,11 @@ public class SessionPropertiesImpl implements SessionProperties {
         return normalized;
     }
 
-    public Object getProperty(PROPERTYNAME property) {
+    public Object getProperty(PropertyRegistry.PROPERTYNAME property) {
         return properties[property.getId()];
     }
 
-    public String getPropertyString(PROPERTYNAME property) {
+    public String getPropertyString(PropertyRegistry.PROPERTYNAME property) {
         Object value = properties[property.getId()];
         return value==null?"null":value.toString();
     }
@@ -211,7 +115,7 @@ public class SessionPropertiesImpl implements SessionProperties {
     public String getAllProperties() {
         // only return string that is not null
         StringBuilder sb = new StringBuilder();
-        for (SessionProperties.PROPERTYNAME property: PROPERTYNAME.values()) {
+        for (PropertyRegistry.PROPERTYNAME property: PropertyRegistry.PROPERTYNAME.values()) {
             if (properties[property.getId()] != null)
                 sb.append(property.toString()).append("=").append(properties[property.getId()]).append("; ");
         }
@@ -220,7 +124,7 @@ public class SessionPropertiesImpl implements SessionProperties {
     }
 
     public void resetAll() {
-        for (int i=0; i<PROPERTYNAME.COUNT; i++)
+        for (int i = 0; i< PropertyRegistry.PROPERTYNAME.COUNT; i++)
             properties[i] = null;
     }
 }

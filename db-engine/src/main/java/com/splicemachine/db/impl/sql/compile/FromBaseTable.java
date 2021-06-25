@@ -51,6 +51,7 @@ import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
+import com.splicemachine.db.iapi.sql.properties.PropertyRegistry;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -78,6 +79,7 @@ import static com.splicemachine.db.impl.ast.RSUtils.isNLJ;
 import static com.splicemachine.db.impl.ast.RSUtils.isRSN;
 import static com.splicemachine.db.impl.sql.compile.ColumnReference.*;
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
+import static java.beans.DesignMode.PROPERTYNAME;
 
 // Temporary until user override for disposable stats has been removed.
 
@@ -709,19 +711,19 @@ public class FromBaseTable extends FromTable {
         }
 
         /* check if we need to inherit some property from the connection */
-        Boolean skipStatsObj = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.SKIPSTATS);
+        Boolean skipStatsObj = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(PropertyRegistry.PROPERTYNAME.SKIPSTATS);
         skipStats = skipStatsObj != null && skipStatsObj;
-        Double defaultSelectivityFactorObj = (Double)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR);
+        Double defaultSelectivityFactorObj = (Double)getLanguageConnectionContext().getSessionProperties().getProperty(PropertyRegistry.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR);
         defaultSelectivityFactor = defaultSelectivityFactorObj==null?-1d: defaultSelectivityFactorObj;
         boolean isCompilingTrigger = getCompilerContext().compilingTrigger();
         Boolean useSparkObj = isCompilingTrigger ? null :
-            (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USEOLAP);
+            (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(PropertyRegistry.PROPERTYNAME.USEOLAP);
         if (useSparkObj != null)
             dataSetProcessorType = dataSetProcessorType.combine(useSparkObj ?
                     DataSetProcessorType.SESSION_HINTED_OLAP :
                     DataSetProcessorType.SESSION_HINTED_OLTP);
         Boolean useNativeSparkObj = isCompilingTrigger ? null :
-            (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USE_NATIVE_SPARK);
+            (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(PropertyRegistry.PROPERTYNAME.USE_NATIVE_SPARK);
         if (useNativeSparkObj != null)
             sparkExecutionType = sparkExecutionType.combine(useNativeSparkObj ?
                     SparkExecutionType.SESSION_HINTED_NATIVE :

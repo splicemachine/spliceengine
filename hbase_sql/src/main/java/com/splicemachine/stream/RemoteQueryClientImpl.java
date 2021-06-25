@@ -16,6 +16,7 @@ package com.splicemachine.stream;
 
 import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import com.splicemachine.db.iapi.sql.properties.PropertyRegistry;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import splice.com.google.common.net.HostAndPort;
 import com.splicemachine.EngineDriver;
@@ -75,7 +76,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
         return server;
     }
 
-    private int getPropertyOrDefault(Activation activation, SessionProperties.PROPERTYNAME valueProperty, int defaultValue) {
+    private int getPropertyOrDefault(Activation activation, PropertyRegistry.PROPERTYNAME valueProperty, int defaultValue) {
         int value;
         Integer batchesProperty = (Integer) activation.getLanguageConnectionContext().getSessionProperties()
                 .getProperty(valueProperty);
@@ -96,9 +97,9 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             updateLimitOffset();
             SConfiguration config = HConfiguration.getConfiguration();
             boolean hasLOBs = hasLOBs(root);
-            int streamingBatches = getPropertyOrDefault(activation, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCHES,
+            int streamingBatches = getPropertyOrDefault(activation, PropertyRegistry.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCHES,
                     hasLOBs ? config.getSparkSlowResultStreamingBatches() : config.getSparkResultStreamingBatches());
-            int streamingBatchSize = getPropertyOrDefault(activation, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCH_SIZE,
+            int streamingBatchSize = getPropertyOrDefault(activation, PropertyRegistry.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCH_SIZE,
                     hasLOBs ? config.getSparkSlowResultStreamingBatchSize() : config.getSparkResultStreamingBatchSize());
             int throttleMaxWait = config.getSparkResultStreamingThrottleMaxWait();
             streamListener = new StreamListener(limit, offset, streamingBatches, streamingBatchSize);
@@ -118,7 +119,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
 
 
             Integer shufflePartitionsProperty = (Integer) lcc.getSessionProperties()
-                    .getProperty(SessionProperties.PROPERTYNAME.OLAPSHUFFLEPARTITIONS);
+                    .getProperty(PropertyRegistry.PROPERTYNAME.OLAPSHUFFLEPARTITIONS);
             String opUuid = root.getUuid() != null ? "," + root.getUuid().toString() : "";
             String session = hostname + ":" + localPort + "," + sessionId + opUuid;
             int parallelPartitions = getParallelPartitions(lcc);
@@ -128,7 +129,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
                     streamingBatches, streamingBatchSize, parallelPartitions,
                     shufflePartitionsProperty, throttleMaxWait, runningOperationUUID);
 
-            String requestedQueue = (String) lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE);
+            String requestedQueue = (String) lcc.getSessionProperties().getProperty(PropertyRegistry.PROPERTYNAME.OLAPQUEUE);
             String queue = chooseQueue(activation, requestedQueue, config.getOlapServerIsolatedRoles());
             olapFuture = EngineDriver.driver().getOlapClient().submit(jobRequest, queue);
             olapFuture.addListener(new Runnable() {
@@ -171,7 +172,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
     private int getParallelPartitions(LanguageConnectionContext lcc) {
         int parallelPartitions = StreamableRDD.DEFAULT_PARALLEL_PARTITIONS;
         Integer sessionPartitionsProperty = (Integer) lcc.getSessionProperties()
-                .getProperty(SessionProperties.PROPERTYNAME.OLAPPARALLELPARTITIONS);
+                .getProperty(PropertyRegistry.PROPERTYNAME.OLAPPARALLELPARTITIONS);
         if(sessionPartitionsProperty != null) {
             parallelPartitions = sessionPartitionsProperty;
         }

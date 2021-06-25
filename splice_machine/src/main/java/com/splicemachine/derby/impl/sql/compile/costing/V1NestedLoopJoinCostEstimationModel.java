@@ -20,6 +20,7 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.properties.PropertyRegistry;
 import com.splicemachine.db.impl.sql.compile.*;
 
 import static com.splicemachine.db.impl.sql.compile.JoinNode.INNERJOIN;
@@ -110,7 +111,7 @@ public class V1NestedLoopJoinCostEstimationModel implements StrategyJoinCostEsti
         QueryTreeNode queryTreeNode = (QueryTreeNode) table;
         LanguageConnectionContext lcc = queryTreeNode.getLanguageConnectionContext();
         Boolean olapAlwaysPenalizeNLJ = (Boolean)
-                lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPALWAYSPENALIZENLJ);
+                lcc.getSessionProperties().getProperty(PropertyRegistry.PROPERTYNAME.OLAPALWAYSPENALIZENLJ);
 
         if (olapAlwaysPenalizeNLJ == null || !olapAlwaysPenalizeNLJ.booleanValue()) {
             if (!isBaseTable(table))

@@ -58,6 +58,7 @@ import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.CursorActivation;
 import com.splicemachine.db.iapi.sql.execute.*;
+import com.splicemachine.db.iapi.sql.properties.PropertyRegistry;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.XATransactionController;
@@ -485,59 +486,59 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         sessionProperties = new SessionPropertiesImpl();
         // transfer setting of skipStats and defaultSelectivityFactor from jdbc connnection string to sessionProperties
         if (skipStats)
-            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.SKIPSTATS, Boolean.toString(skipStats));
+            this.sessionProperties.setProperty(PropertyRegistry.PROPERTYNAME.SKIPSTATS, Boolean.toString(skipStats));
         if (defaultSelectivityFactor > 0)
-            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR, Double.toString(defaultSelectivityFactor));
+            this.sessionProperties.setProperty(PropertyRegistry.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR, Double.toString(defaultSelectivityFactor));
         if (connectionProperties != null) {
-            setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_OLAP_QUEUE, SessionProperties.PROPERTYNAME.OLAPQUEUE);
-            setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_SNAPSHOT, SessionProperties.PROPERTYNAME.SNAPSHOT_TIMESTAMP);
-            setSessionFromConnectionProperty(connectionProperties, Property.OLAP_PARALLEL_PARTITIONS, SessionProperties.PROPERTYNAME.OLAPPARALLELPARTITIONS);
-            setSessionFromConnectionProperty(connectionProperties, Property.OLAP_SHUFFLE_PARTITIONS, SessionProperties.PROPERTYNAME.OLAPSHUFFLEPARTITIONS);
-            setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_MIN_PLAN_TIMEOUT, SessionProperties.PROPERTYNAME.MINPLANTIMEOUT);
-            setSessionFromConnectionProperty(connectionProperties, Property.CURRENT_FUNCTION_PATH, SessionProperties.PROPERTYNAME.CURRENTFUNCTIONPATH);
-            setSessionFromConnectionProperty(connectionProperties, Property.OLAP_ALWAYS_PENALIZE_NLJ, SessionProperties.PROPERTYNAME.OLAPALWAYSPENALIZENLJ);
-            setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_JOIN_STRATEGY, SessionProperties.PROPERTYNAME.JOINSTRATEGY);
+            setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_OLAP_QUEUE, PropertyRegistry.PROPERTYNAME.OLAPQUEUE);
+            setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_SNAPSHOT, PropertyRegistry.PROPERTYNAME.SNAPSHOT_TIMESTAMP);
+            setSessionFromConnectionProperty(connectionProperties, Property.OLAP_PARALLEL_PARTITIONS, PropertyRegistry.PROPERTYNAME.OLAPPARALLELPARTITIONS);
+            setSessionFromConnectionProperty(connectionProperties, Property.OLAP_SHUFFLE_PARTITIONS, PropertyRegistry.PROPERTYNAME.OLAPSHUFFLEPARTITIONS);
+            setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_MIN_PLAN_TIMEOUT, PropertyRegistry.PROPERTYNAME.MINPLANTIMEOUT);
+            setSessionFromConnectionProperty(connectionProperties, Property.CURRENT_FUNCTION_PATH, PropertyRegistry.PROPERTYNAME.CURRENTFUNCTIONPATH);
+            setSessionFromConnectionProperty(connectionProperties, Property.OLAP_ALWAYS_PENALIZE_NLJ, PropertyRegistry.PROPERTYNAME.OLAPALWAYSPENALIZENLJ);
+            setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_JOIN_STRATEGY, PropertyRegistry.PROPERTYNAME.JOINSTRATEGY);
 
             String disableAdvancedTC = connectionProperties.getProperty(Property.CONNECTION_DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
             if (disableAdvancedTC != null && disableAdvancedTC.equalsIgnoreCase("true")) {
-                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DISABLE_TC_PUSHED_DOWN_INTO_VIEWS, "TRUE".toString());
+                this.sessionProperties.setProperty(PropertyRegistry.PROPERTYNAME.DISABLE_TC_PUSHED_DOWN_INTO_VIEWS, "TRUE".toString());
             }
 
-            setSessionFromConnectionProperty(connectionProperties, Property.SPARK_RESULT_STREAMING_BATCHES, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCHES);
-            setSessionFromConnectionProperty(connectionProperties, Property.SPARK_RESULT_STREAMING_BATCH_SIZE, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCH_SIZE);
+            setSessionFromConnectionProperty(connectionProperties, Property.SPARK_RESULT_STREAMING_BATCHES, PropertyRegistry.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCHES);
+            setSessionFromConnectionProperty(connectionProperties, Property.SPARK_RESULT_STREAMING_BATCH_SIZE, PropertyRegistry.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCH_SIZE);
             String disableNestedLoopJoinPredicatePushDown = connectionProperties.getProperty(Property.CONNECTION_DISABLE_NLJ_PREDICATE_PUSH_DOWN);
             if (disableNestedLoopJoinPredicatePushDown != null &&
                 disableNestedLoopJoinPredicatePushDown.equalsIgnoreCase("true")) {
-                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DISABLE_NLJ_PREDICATE_PUSH_DOWN, "TRUE".toString());
+                this.sessionProperties.setProperty(PropertyRegistry.PROPERTYNAME.DISABLE_NLJ_PREDICATE_PUSH_DOWN, "TRUE".toString());
             }
 
             String disablePredsForIndexOrPkAccessPath = connectionProperties.getProperty(Property.CONNECTION_DISABLE_PREDS_FOR_INDEX_OR_PK_ACCESS_PATH);
             if (disablePredsForIndexOrPkAccessPath != null &&
                     disablePredsForIndexOrPkAccessPath.equalsIgnoreCase("true")) {
-                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DISABLEPREDSFORINDEXORPKACCESSPATH, "TRUE".toString());
+                this.sessionProperties.setProperty(PropertyRegistry.PROPERTYNAME.DISABLEPREDSFORINDEXORPKACCESSPATH, "TRUE".toString());
             }
             String alwaysAllowIndexPrefixIteration = connectionProperties.getProperty(Property.CONNECTION_ALWAYS_ALLOW_INDEX_PREFIX_ITERATION);
             if (alwaysAllowIndexPrefixIteration != null &&
                     alwaysAllowIndexPrefixIteration.equalsIgnoreCase("true")) {
-                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.ALWAYSALLOWINDEXPREFIXITERATION, "TRUE".toString());
+                this.sessionProperties.setProperty(PropertyRegistry.PROPERTYNAME.ALWAYSALLOWINDEXPREFIXITERATION, "TRUE".toString());
             }
             String favorIndexPrefixIteration = connectionProperties.getProperty(Property.CONNECTION_FAVOR_INDEX_PREFIX_ITERATION);
             if (favorIndexPrefixIteration != null &&
                     favorIndexPrefixIteration.equalsIgnoreCase("true")) {
-                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.FAVORINDEXPREFIXITERATION, "TRUE".toString());
+                this.sessionProperties.setProperty(PropertyRegistry.PROPERTYNAME.FAVORINDEXPREFIXITERATION, "TRUE".toString());
             }
             String costModel = connectionProperties.getProperty(Property.COST_MODEL);
             if(costModel != null && CostModelRegistry.exists(costModel)) {
-                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.COSTMODEL, costModel);
+                this.sessionProperties.setProperty(PropertyRegistry.PROPERTYNAME.COSTMODEL, costModel);
             }
         }
         if (type.isSessionHinted()) {
-            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USEOLAP, type.isOlap());
+            this.sessionProperties.setProperty(PropertyRegistry.PROPERTYNAME.USEOLAP, type.isOlap());
         } else {
             assert type.isDefaultOltp();
         }
         if (sparkExecutionType.isSessionHinted()) {
-            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USE_NATIVE_SPARK, sparkExecutionType.isNative());
+            this.sessionProperties.setProperty(PropertyRegistry.PROPERTYNAME.USE_NATIVE_SPARK, sparkExecutionType.isNative());
         } else {
             assert sparkExecutionType.isUnspecified();
         }
@@ -548,7 +549,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     }
 
-    private void setSessionFromConnectionProperty(Properties connectionProperties, String connectionPropName, SessionProperties.PROPERTYNAME sessionPropName) {
+    private void setSessionFromConnectionProperty(Properties connectionProperties, String connectionPropName, PropertyRegistry.PROPERTYNAME sessionPropName) throws StandardException {
         String value = connectionProperties.getProperty(connectionPropName);
         if (value != null) {
             this.sessionProperties.setProperty(sessionPropName, value);
@@ -727,7 +728,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public int getTableLimitForExhaustiveSearch() {
         Integer tableLimit = (Integer) sessionProperties.getProperty(
-            SessionProperties.PROPERTYNAME.TABLELIMITFOREXHAUSTIVESEARCH);
+            PropertyRegistry.PROPERTYNAME.TABLELIMITFOREXHAUSTIVESEARCH);
         if (tableLimit != null)
             return tableLimit;
         return tableLimitForExhaustiveSearch;
@@ -736,7 +737,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public long getMinPlanTimeout() {
         Long minPlanTimeout = (Long) sessionProperties.getProperty(
-            SessionProperties.PROPERTYNAME.MINPLANTIMEOUT);
+            PropertyRegistry.PROPERTYNAME.MINPLANTIMEOUT);
         if (minPlanTimeout != null)
             return minPlanTimeout;
         else
@@ -3622,9 +3623,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public void setSessionProperties(Properties newProperties) {
+    public void setSessionProperties(Properties newProperties) throws StandardException {
         for (Map.Entry<Object, Object> propertyEntry : newProperties.entrySet()) {
-            SessionProperties.PROPERTYNAME propertyName = (SessionProperties.PROPERTYNAME) propertyEntry.getKey();
+            PropertyRegistry.PROPERTYNAME propertyName = (PropertyRegistry.PROPERTYNAME) propertyEntry.getKey();
             sessionProperties.setProperty(propertyName, propertyEntry.getValue());
         }
 
@@ -4160,7 +4161,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     public boolean isNLJPredicatePushDownDisabled() {
-        Boolean disablePushDown = (Boolean) getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.DISABLE_NLJ_PREDICATE_PUSH_DOWN);
+        Boolean disablePushDown = (Boolean) getSessionProperties().getProperty(PropertyRegistry.PROPERTYNAME.DISABLE_NLJ_PREDICATE_PUSH_DOWN);
         if (disablePushDown != null) {
             return disablePushDown;
         }
@@ -4170,7 +4171,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public boolean isPredicateUsageForIndexOrPkAccessDisabled() {
-        Boolean disablePredsForIndexOrPkAccessPath = (Boolean) getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.DISABLEPREDSFORINDEXORPKACCESSPATH);
+        Boolean disablePredsForIndexOrPkAccessPath = (Boolean) getSessionProperties().getProperty(PropertyRegistry.PROPERTYNAME.DISABLEPREDSFORINDEXORPKACCESSPATH);
         if (disablePredsForIndexOrPkAccessPath != null) {
             return disablePredsForIndexOrPkAccessPath;
         }
@@ -4180,7 +4181,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public boolean alwaysAllowIndexPrefixIteration() {
-        Boolean alwaysAllowIndexPrefixIteration = (Boolean) getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.ALWAYSALLOWINDEXPREFIXITERATION);
+        Boolean alwaysAllowIndexPrefixIteration = (Boolean) getSessionProperties().getProperty(PropertyRegistry.PROPERTYNAME.ALWAYSALLOWINDEXPREFIXITERATION);
         if (alwaysAllowIndexPrefixIteration != null) {
             return alwaysAllowIndexPrefixIteration;
         }
@@ -4190,7 +4191,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public boolean favorIndexPrefixIteration() {
-        Boolean favorIndexPrefixIteration = (Boolean) getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.FAVORINDEXPREFIXITERATION);
+        Boolean favorIndexPrefixIteration = (Boolean) getSessionProperties().getProperty(PropertyRegistry.PROPERTYNAME.FAVORINDEXPREFIXITERATION);
         if (favorIndexPrefixIteration != null) {
             return favorIndexPrefixIteration;
         }
@@ -4200,7 +4201,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public CostModel getCostModel() {
-        String costModelName = getSessionProperties().getPropertyString(SessionProperties.PROPERTYNAME.COSTMODEL);
+        String costModelName = getSessionProperties().getPropertyString(PropertyRegistry.PROPERTYNAME.COSTMODEL);
         if(CostModelRegistry.exists(costModelName)) {
             return CostModelRegistry.getCostModel(costModelName);
         } else {
@@ -4357,6 +4358,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public String getHintedJoinStrategy() {
         return (String) sessionProperties.getProperty(
-            SessionProperties.PROPERTYNAME.JOINSTRATEGY);
+            PropertyRegistry.PROPERTYNAME.JOINSTRATEGY);
     }
 }

@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.iapi.sql.properties.PropertyRegistry;
 import com.splicemachine.utils.Pair;
 
 import java.util.ArrayList;
@@ -60,7 +61,7 @@ public class SetSessionPropertyNode extends MiscellaneousStatementNode {
     {
         List<Pair<String, String>> propertyList = (ArrayList)properties;
         for (Pair<String, String> pair: propertyList) {
-            Pair<SessionProperties.PROPERTYNAME, String> validatedPair = SessionProperties.validatePropertyAndValue(pair);
+            Pair<PropertyRegistry.PROPERTYNAME, String> validatedPair = SessionProperties.validatePropertyAndValue(pair);
             sessionProperties.put(validatedPair.getFirst(), validatedPair.getSecond());
         }
     }

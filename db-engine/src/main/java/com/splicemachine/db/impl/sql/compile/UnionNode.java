@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.properties.PropertyRegistry;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 
@@ -647,7 +648,7 @@ public class UnionNode extends SetOperatorNode{
         if (isRecursive) {
             // also pass down the recursion limit
             // get the loop limit from configuration
-            Integer maxIterationObject = (Integer)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.RECURSIVEQUERYITERATIONLIMIT);
+            Integer maxIterationObject = (Integer)getLanguageConnectionContext().getSessionProperties().getProperty(PropertyRegistry.PROPERTYNAME.RECURSIVEQUERYITERATIONLIMIT);
             int iterationLimit = maxIterationObject == null ? -1: maxIterationObject.intValue();
             mb.push(iterationLimit);
             numArgs ++;
