@@ -1239,7 +1239,8 @@ public interface ResultSetFactory {
             int defaultValueMapItem,
             GeneratedMethod pastTxFunctor,
             long minRetentionPeriod,
-            int numUnusedLeadingIndexFields)
+            int numUnusedLeadingIndexFields,
+            boolean canCacheResultSet)
             throws StandardException;
 
     NoPutResultSet getDistinctScanResultSet(
@@ -2320,7 +2321,8 @@ public interface ResultSetFactory {
             String explainPlan,
             GeneratedMethod pastTxFunctor,
             long minRetentionPeriod,
-            int numUnusedLeadingIndexFields
+            int numUnusedLeadingIndexFields,
+            boolean canCacheResultSet
     ) throws StandardException;
 
     NoPutResultSet getLastIndexKeyResultSet

@@ -67,8 +67,6 @@ public class TableScanOperation extends ScanOperation{
     protected static final String NAME=TableScanOperation.class.getSimpleName().replaceAll("Operation","");
     protected byte[] tableNameBytes;
     protected ExecRow firstRowOfIndexPrefixIteration = null;
-    protected boolean canCacheResultSet;
-    List<ExecRow> cachedResultSet;
 
     /**
      *
@@ -181,7 +179,7 @@ public class TableScanOperation extends ScanOperation{
                 sameStartStopPosition,rowIdKey,qualifiersField,resultRowAllocator,lockMode,tableLocked,isolationLevel,
                 colRefItem,indexColItem,oneRowScan,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion,
                 splits,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem,
-                pastTxFunctor, minRetentionPeriod, numUnusedLeadingIndexFields);
+                pastTxFunctor, minRetentionPeriod, numUnusedLeadingIndexFields, canCacheResultSet);
         SpliceLogUtils.trace(LOG,"instantiated for tablename %s or indexName %s with conglomerateID %d",
                 tableName,indexName,conglomId);
         this.forUpdate=forUpdate;
@@ -192,7 +190,6 @@ public class TableScanOperation extends ScanOperation{
         this.tableNameBytes=Bytes.toBytes(this.tableName);
         this.indexColItem=indexColItem;
         this.indexName=indexName;
-        this.canCacheResultSet = canCacheResultSet;
         init();
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"isTopResultSet=%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f",isTopResultSet,optimizerEstimatedCost,optimizerEstimatedRowCount);
@@ -330,7 +327,7 @@ public class TableScanOperation extends ScanOperation{
         assert currentTemplate!=null:"Current Template Cannot Be Null";
 
         if (cachedResultSet != null) {
-            return dataSetFromCachedResultSet();
+            return dataSetFromCachedResultSet(dsp);
         }
         DataSet<ExecRow> ds = getTableScannerBuilder(dsp);
         if (ds.isNativeSpark())
@@ -338,34 +335,13 @@ public class TableScanOperation extends ScanOperation{
         dsp.prependSpliceExplainString(this.explainPlan);
         if (ds.isNativeSpark())
             dsp.decrementOpDepth();
-        if (canCacheResultSet && dsp.getType().equals(DataSetProcessor.Type.CONTROL)) {
-            cachedResultSet = ds.map(new CloneFunction<>(null)).collect();
-            Activation parentActivation = activation.getParentActivation();
-            // When the triggering statement which fired the trigger closes, then
-            // release the cached result set.
-            if (parentActivation != null && parentActivation.getResultSet() instanceof SpliceBaseOperation) {
-                SpliceBaseOperation op = (SpliceBaseOperation) parentActivation.getResultSet();
-                op.registerCloseable(new AutoCloseable() {
-                    @Override
-                    public void close() throws Exception {
-                        if (cachedResultSet != null)
-                            cachedResultSet.clear();
-                        cachedResultSet = null;
-                    }
-                });
-            }
-          ds = dataSetFromCachedResultSet();
-        }
+
+        if (canCacheResultSet && dsp.getType().equals(DataSetProcessor.Type.CONTROL))
+            ds = makeCachedResultSetFromDataSet(dsp, ds);
 
         return ds;
     }
 
-    protected DataSet<ExecRow> dataSetFromCachedResultSet() {
-        DataSetProcessor controlDSP =
-            EngineDriver.driver().processorFactory().
-                         localProcessor(getOperation().getActivation(), this);
-        return controlDSP.createDataSet(cachedResultSet.iterator());
-    }
 
     /**
      * @return the string representation for TableScan.

@@ -61,11 +61,13 @@ public class LastIndexKeyOperation extends ScanOperation {
         String tableVersion,
         GeneratedMethod pastTxFunctor,
         long minRetentionPeriod,
-        int numUnusedLeadingIndexFields) throws StandardException {
+        int numUnusedLeadingIndexFields,
+        boolean canCacheResultSet) throws StandardException {
         super(conglomId, activation, resultSetNumber, null, -1, null, -1,
                 true, false, null, resultRowAllocator, lockMode, tableLocked, isolationLevel,
                 colRefItem, -1, false, optimizerEstimatedRowCount, optimizerEstimatedCost, tableVersion,
-                0, null, null, null, null, null, -1, null, -1, pastTxFunctor, minRetentionPeriod, numUnusedLeadingIndexFields);
+                0, null, null, null, null, null, -1, null, -1, pastTxFunctor, minRetentionPeriod,
+                numUnusedLeadingIndexFields, canCacheResultSet);
         this.tableName = Long.toString(scanInformation.getConglomerateId());
         this.tableDisplayName = tableName;
         this.indexName = indexName;
@@ -99,6 +101,10 @@ public class LastIndexKeyOperation extends ScanOperation {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
+        if (cachedResultSet != null) {
+            return dataSetFromCachedResultSet(dsp);
+        }
+
         dsp.prependSpliceExplainString(this.explainPlan);
         operationContext = dsp.createOperationContext(this);
         DataSet<ExecRow> scan = dsp.<LastIndexKeyOperation,ExecRow>newScanSet(this,tableName)
@@ -118,9 +124,12 @@ public class LastIndexKeyOperation extends ScanOperation {
                 .buildDataSet(this).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
 
         OperationContext<SpliceOperation> operationContext = dsp.<SpliceOperation>createOperationContext(this);
-        return scan.take(new TakeFunction<SpliceOperation, ExecRow>(operationContext,1))
+        scan = scan.take(new TakeFunction<SpliceOperation, ExecRow>(operationContext,1))
                 .coalesce(1,false)
                 .take(new TakeFunction<SpliceOperation, ExecRow>(operationContext,1));
+        if (canCacheResultSet && dsp.getType().equals(DataSetProcessor.Type.CONTROL))
+            scan = makeCachedResultSetFromDataSet(dsp, scan);
+        return scan;
     }
 }
 

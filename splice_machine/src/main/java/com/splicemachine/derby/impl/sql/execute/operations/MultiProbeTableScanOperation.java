@@ -215,6 +215,9 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             throw new IllegalStateException("Operation is not open");
 
         try {
+            if (cachedResultSet != null) {
+                return dataSetFromCachedResultSet(dsp);
+            }
             TxnView txn = getCurrentTransaction();
             List<DataScan> scans =
                 scanInformation.getScans(getCurrentTransaction(),
@@ -259,8 +262,12 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             // it is possible that all inlist elements are pruned
             if (datasets.isEmpty())
                 return dataSet;
-            else
-                return dataSet.parallelProbe(datasets, operationContext).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
+            else {
+                dataSet = dataSet.parallelProbe(datasets, operationContext).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
+                if (canCacheResultSet && dsp.getType().equals(DataSetProcessor.Type.CONTROL))
+                    dataSet = makeCachedResultSetFromDataSet(dsp, dataSet);
+                return dataSet;
+            }
         }
         catch (Exception e) {
                 throw StandardException.plainWrapException(e);

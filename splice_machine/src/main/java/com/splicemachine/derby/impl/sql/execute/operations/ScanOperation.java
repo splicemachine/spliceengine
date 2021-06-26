@@ -22,6 +22,9 @@ import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.stream.function.CloneFunction;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -48,6 +51,7 @@ import org.apache.logging.log4j.LogManager;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.List;
 
 import static com.splicemachine.si.constants.SIConstants.OLDEST_TIME_TRAVEL_TX;
 
@@ -81,6 +85,8 @@ public abstract class ScanOperation extends SpliceBaseOperation {
     protected long pastTx;
     protected int[] partitionColumnMap;
     protected ExecRow defaultRow;
+    protected boolean canCacheResultSet;
+    protected List<ExecRow> cachedResultSet;
     public static final int SCAN_CACHE_SIZE = 1000;
 
     public ScanOperation(){
@@ -103,7 +109,8 @@ public abstract class ScanOperation extends SpliceBaseOperation {
                          int splits, String delimited, String escaped, String lines,
                          String storedAs, String location, int partitionRefItem, GeneratedMethod defaultRowFunc,
                          int defaultValueMapItem, GeneratedMethod pastTxFunctor, long minRetentionPeriod,
-                         int numUnusedLeadingIndexFields
+                         int numUnusedLeadingIndexFields,
+                         boolean canCacheResultSet
     ) throws StandardException{
         super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
         this.lockMode=lockMode;
@@ -119,6 +126,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
         this.storedAs = storedAs;
         this.location = location;
         this.partitionRefItem = partitionRefItem;
+        this.canCacheResultSet = canCacheResultSet;
         this.scanInformation=new DerbyScanInformation(resultRowAllocator.getMethodName(),
                 startKeyGetter!=null?startKeyGetter.getMethodName():null,
                 stopKeyGetter!=null?stopKeyGetter.getMethodName():null,
@@ -509,4 +517,35 @@ public abstract class ScanOperation extends SpliceBaseOperation {
     public TxnView getCurrentTransaction() throws StandardException{
         return (pastTx >= 0) ? getPastTransaction(pastTx) : super.getCurrentTransaction();
     }
+
+    // If this operation is marked as cacheable,
+    // materialize ds into cachedResultSet (a list of rows) and return a DataSet
+    // referring to this row list.
+    protected DataSet<ExecRow> makeCachedResultSetFromDataSet(DataSetProcessor dsp, DataSet<ExecRow> ds) throws StandardException {
+        DataSet<ExecRow> newDataSet = ds;
+        if (canCacheResultSet) {
+            cachedResultSet = ds.map(new CloneFunction<>(null)).collect();
+            Activation parentActivation = activation.getParentActivation();
+            // When the triggering statement which fired the trigger closes, then
+            // release the cached result set.
+            if (parentActivation != null && parentActivation.getResultSet() instanceof SpliceBaseOperation) {
+                SpliceBaseOperation op = (SpliceBaseOperation) parentActivation.getResultSet();
+                op.registerCloseable(new AutoCloseable() {
+                    @Override
+                    public void close() throws Exception {
+                        if (cachedResultSet != null)
+                            cachedResultSet.clear();
+                        cachedResultSet = null;
+                    }
+                });
+            }
+          newDataSet = dataSetFromCachedResultSet(dsp);
+        }
+        return newDataSet;
+    }
+
+    protected DataSet<ExecRow> dataSetFromCachedResultSet(DataSetProcessor dsp) {
+        return dsp.createDataSet(cachedResultSet.iterator());
+    }
+
 }

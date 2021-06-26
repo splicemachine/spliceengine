@@ -3352,7 +3352,9 @@ public class FromBaseTable extends FromTable {
         generatePastTxFunc(acb, mb);
         mb.push(minRetentionPeriod);
         mb.push(numUnusedLeadingIndexFields);
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,18);
+        boolean canCacheResultSet = isCacheable(acb);
+        mb.push(canCacheResultSet);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,19);
 
     }
 
@@ -3434,8 +3436,10 @@ public class FromBaseTable extends FromTable {
         generatePastTxFunc(acb, mb);
         mb.push(minRetentionPeriod);
         mb.push(numUnusedLeadingIndexFields);
+        boolean canCacheResultSet = isCacheable(acb);
+        mb.push(canCacheResultSet);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getDistinctScanResultSet",
-                ClassName.NoPutResultSet,30);
+                ClassName.NoPutResultSet,31);
     }
 
     private void generatePastTxFunc(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
