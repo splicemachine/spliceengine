@@ -259,9 +259,9 @@ public class UnionNode extends SetOperatorNode{
         // getNextDecoratedPermutation() method.
         updateBestPlanMap(ADD_PLAN,this);
 
-        leftResultSet=optimizeSource(optimizer, leftResultSet, getLeftOptPredicateList(), null);
+        leftResultSet=optimizeSource(optimizer, leftResultSet, getLeftOptPredicateList(), null, null);
 
-        rightResultSet=optimizeSource(optimizer, rightResultSet, getRightOptPredicateList(), null);
+        rightResultSet=optimizeSource(optimizer, rightResultSet, getRightOptPredicateList(), null, null);
 
         CostEstimate leftCost = leftResultSet.getCostEstimate();
         CostEstimate rightCost = rightResultSet.getCostEstimate();
@@ -756,14 +756,5 @@ public class UnionNode extends SetOperatorNode{
 
     public void setViewDescreiptor(TableDescriptor viewDescreiptor) {
         this.viewDescriptor = viewDescreiptor;
-    }
-
-    @Override
-    public void setLevel(int level){
-        super.setLevel(level);
-        if (leftResultSet instanceof FromTable)
-            ((FromTable)leftResultSet).setLevel(level);
-        if (rightResultSet instanceof FromTable)
-            ((FromTable)rightResultSet).setLevel(level);
     }
 }

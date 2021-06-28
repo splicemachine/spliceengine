@@ -98,6 +98,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
                     hasLOBs ? config.getSparkSlowResultStreamingBatches() : config.getSparkResultStreamingBatches());
             int streamingBatchSize = getPropertyOrDefault(activation, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCH_SIZE,
                     hasLOBs ? config.getSparkSlowResultStreamingBatchSize() : config.getSparkResultStreamingBatchSize());
+            int throttleMaxWait = config.getSparkResultStreamingThrottleMaxWait();
             streamListener = new StreamListener(limit, offset, streamingBatches, streamingBatchSize);
             StreamListenerServer server = getServer();
             server.register(streamListener);
@@ -121,7 +122,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             String session = hostname + ":" + localPort + "," + sessionId + opUuid;
 
             RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), uuid, host, port, session, userId, sql,
-                    streamingBatches, streamingBatchSize, parallelPartitions, shufflePartitionsProperty);
+                    streamingBatches, streamingBatchSize, parallelPartitions, shufflePartitionsProperty, throttleMaxWait);
 
             String requestedQueue = (String) lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE);
             String queue = chooseQueue(activation, requestedQueue, config.getOlapServerIsolatedRoles());

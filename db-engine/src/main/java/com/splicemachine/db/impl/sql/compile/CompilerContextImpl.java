@@ -251,6 +251,14 @@ public class CompilerContextImpl extends ContextImpl
         return disablePredicateSimplification;
     }
 
+    public void setDisableConstantFolding(boolean newValue) {
+        disableConstantFolding = newValue;
+    }
+
+    public boolean getDisableConstantFolding() {
+        return disableConstantFolding;
+    }
+
     public void setSparkVersion(SparkVersion newValue) {
         sparkVersionInitialized = true;
         sparkVersion = newValue;
@@ -293,6 +301,12 @@ public class CompilerContextImpl extends ContextImpl
     }
 
     public boolean getDisablePerParallelTaskJoinCosting() { return disablePerParallelTaskJoinCosting; }
+
+    public void setDisablePrefixIteratorMode(boolean newValue) {
+        disablePrefixIteratorMode = newValue;
+    }
+
+    public boolean getDisablePrefixIteratorMode() { return disablePrefixIteratorMode; }
 
     public void setVarcharDB2CompatibilityMode(boolean newValue) {
         varcharDB2CompatibilityMode = newValue;
@@ -1191,6 +1205,7 @@ public class CompilerContextImpl extends ContextImpl
     private       boolean                             multicolumnInlistProbeOnSparkEnabled         = DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
     private       boolean                             convertMultiColumnDNFPredicatesToInList      = DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST;
     private       boolean                             disablePredicateSimplification               = DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION;
+    private       boolean                             disableConstantFolding                       = DEFAULT_DISABLE_CONSTANT_FOLDING;
     private       SparkVersion                        sparkVersion                                 = DEFAULT_SPLICE_SPARK_VERSION;
     private       boolean                             sparkVersionInitialized                      = false;
     private       CompilerContext.NativeSparkModeType nativeSparkAggregationMode                   = DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
@@ -1205,6 +1220,7 @@ public class CompilerContextImpl extends ContextImpl
     private       boolean                             ssqFlatteningForUpdateDisabled;
     private       NewMergeJoinExecutionType           newMergeJoin                                 = DEFAULT_SPLICE_NEW_MERGE_JOIN;
     private       boolean                             disablePerParallelTaskJoinCosting            = DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING;
+    private       boolean                             disablePrefixIteratorMode                    = DEFAULT_DISABLE_INDEX_PREFIX_ITERATION;
     private       boolean                             varcharDB2CompatibilityMode                  = DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE;
     /**
      * Saved execution time default schema, if we need to change it

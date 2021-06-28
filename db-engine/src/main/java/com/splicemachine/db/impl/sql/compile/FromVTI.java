@@ -98,6 +98,10 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
     private PredicateList restrictionList;
 
+    private boolean isTriggerInternalVTI;
+
+    private static String newTriggerRowsVTI = "com.splicemachine.derby.catalog.TriggerNewTransitionRows";
+    private static String oldTriggerRowsVTI = "com.splicemachine.derby.catalog.TriggerOldTransitionRows";
 
     /**
      Was a FOR UPDATE clause specified in a SELECT statement.
@@ -201,6 +205,9 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         ap.setMissingHashKeyOK(false);
         bestAp.setMissingHashKeyOK(false);
         bestSortAp.setMissingHashKeyOK(false);
+        ap.setNumUnusedLeadingIndexFields(0);
+        bestAp.setNumUnusedLeadingIndexFields(0);
+        bestSortAp.setNumUnusedLeadingIndexFields(0);
 
         /*
          ** Only need to do this for current access path, because the
@@ -247,6 +254,10 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
         this.methodCall = (MethodCallNode) invocation;
 
+        if (methodCall != null) {
+            isTriggerInternalVTI = newTriggerRowsVTI.equals(methodCall.getJavaClassName()) ||
+                                   oldTriggerRowsVTI.equals(methodCall.getJavaClassName());
+        }
         resultColumns = (ResultColumnList) derivedRCL;
         subqueryList = (SubqueryList) getNodeFactory().getNode(
                 C_NodeTypes.SUBQUERY_LIST,
@@ -2034,7 +2045,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                                    CostEstimate outerCost,
                                    RowOrdering rowOrdering) throws StandardException{
         optimizer.costOptimizable(this,null,
-                getCurrentAccessPath().getConglomerateDescriptor(),
+                getCurrentAccessPath(),
                 predList,
                 outerCost);
 
@@ -2061,4 +2072,6 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         this.tempTriggerName = triggerName;
     }
 
+    @Override
+    public boolean isTriggerVTI(){ return isTriggerInternalVTI; }
 }

@@ -217,6 +217,13 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
+    public DataSet<V> limit(int numRows, OperationContext context) {
+        Dataset<Row> result = dataset.limit(numRows);
+        return new NativeSparkDataSet<>(result, context);
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Override
     public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) throws StandardException {
         String varcharDB2CompatibilityModeString =
                 PropertyUtil.getCachedDatabaseProperty(context.getActivation().getLanguageConnectionContext(), Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
@@ -898,6 +905,8 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                     expr = i != 0 ? expr.and(joinEquality) : joinEquality;
                 }
             }
+            if (expr == null && rightJoinKeys.length == 0)
+                expr = lit(true);
             DataSet joinedSet;
 
             if (op.wasRightOuterJoin) {
@@ -1197,6 +1206,10 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
          return this;
     }
 
+    @Override
+    public DataSet convertNativeSparkToSparkDataSet() throws StandardException {
+        return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, this.context));
+    }
 
     /**
      * This function takes the current source NativeSparkDataSet ("this")

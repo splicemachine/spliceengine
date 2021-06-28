@@ -1646,6 +1646,18 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .ownerClass(UpgradeSystemProcedures.class.getCanonicalName())
                 .build();
         procedures.add(restartOlapServer);
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_BACKUP_METADATA")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .varchar("directory", 32672)
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_METADATA")
+                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                .varchar("directory", 32672)
+                .bigint("backupId")
+                .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                .build());
     }
 
     static public void getSYSFUN_PROCEDURES(List<Procedure> procedures)

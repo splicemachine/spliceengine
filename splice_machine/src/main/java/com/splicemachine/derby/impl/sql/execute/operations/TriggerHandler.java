@@ -181,17 +181,16 @@ public class TriggerHandler {
         this.token = token;
         Properties properties = new Properties();
         if (hasStatementTriggerWithReferencingClause) {
-            // Use the smaller of ControlExecutionRowLimit or 1000000 to determine when to switch to spark execution.
-            // Hard cap at 1 million despite the setting of controlExecutionRowLimit since we don't want to exhaust
-            // memory if the sysadmin cranked this setting really high.
+            // Triggers with temporary rows in a DataSet must stay in spark
+            // if they started from spark.
+            if (this.getTriggerExecutionContext().isFromSparkExecution())
+                this.isSpark = true;
+            // Honor the controlExecutionRowLimit.
             int switchToSparkThreshold = EngineDriver.driver().getConfiguration().getControlExecutionRowLimit() <= Integer.MAX_VALUE ?
             (int) EngineDriver.driver().getConfiguration().getControlExecutionRowLimit() : Integer.MAX_VALUE;
 
             if (switchToSparkThreshold < 0)
                 switchToSparkThreshold = 0;
-            else if (switchToSparkThreshold > 1000000)
-                switchToSparkThreshold = 1000000;
-
 
             long doubleDetermineSparkRowThreshold = 2 * getLcc().getOptimizerFactory().getDetermineSparkRowThreshold();
             int inMemoryLimit = switchToSparkThreshold;
@@ -204,12 +203,12 @@ public class TriggerHandler {
             // executing in control.
             int overflowToConglomThreshold =
                  doubleDetermineSparkRowThreshold > inMemoryLimit ? (int)doubleDetermineSparkRowThreshold :
-                 doubleDetermineSparkRowThreshold < 0 ? 0 :
+                 inMemoryLimit < 0 ? 0 :
                  inMemoryLimit;
 
             // Spark doesn't support use of an in-memory TriggerRowHolderImpl, so we
             // set overflowToConglomThreshold to zero and always use a conglomerate.
-            if (isSpark) {
+            if (this.isSpark) {
                 switchToSparkThreshold = 0;
                 overflowToConglomThreshold = 0;
             }
@@ -217,7 +216,7 @@ public class TriggerHandler {
             triggerRowHolder =
                 new TriggerRowHolderImpl(activation, properties, writeInfo.getResultDescription(),
                                          overflowToConglomThreshold, switchToSparkThreshold,
-                                         templateRow, tableVersion, isSpark, txn, token, ConglomID,
+                                         templateRow, tableVersion, this.isSpark, txn, token, ConglomID,
                                           this.getTriggerExecutionContext());
         }
 
@@ -265,8 +264,9 @@ public class TriggerHandler {
                 }
             };
             final boolean sparkExecution =
-                !SpliceClient.isRegionServer ||
-                activation.datasetProcessorType().isOlap();
+                !EngineDriver.isMemPlatform() &&
+                (!SpliceClient.isRegionServer ||
+                 activation.datasetProcessorType().isOlap());
             this.triggerActivator = new TriggerEventActivator(constantAction.getTargetUUID(),
                     constantAction.getTriggerInfo(),
                     activation,
@@ -401,8 +401,18 @@ public class TriggerHandler {
                 f.get(); // bubble up any exceptions
             }
         }
-        for (Future<Void> f : futures) {
-            f.get(); // bubble up any exceptions
+        try {
+            for (Future<Void> f : futures) {
+                f.get(); // bubble up any exceptions
+            }
+        }
+        catch (ExecutionException e) {
+            // Need to cancel the running futures so no further
+            // exceptions are hit.
+            for (Future<Void> f : futures) {
+                f.cancel(true);
+            }
+            throw e;
         }
         pendingAfterRows.clear();
     }
@@ -477,5 +487,17 @@ public class TriggerHandler {
                 return null;
             }
         };
+    }
+
+    public void setHasGeneratedColumn() {
+        triggerActivator.setHasGeneratedColumn();
+    }
+
+    public boolean hasGeneratedColumn() {
+        return triggerActivator.hasGeneratedColumn();
+    }
+
+    public boolean hasSpecialFromTableTrigger() {
+        return hasSpecialFromTableTrigger;
     }
 }

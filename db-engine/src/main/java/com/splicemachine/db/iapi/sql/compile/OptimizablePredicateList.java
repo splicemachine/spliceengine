@@ -78,15 +78,15 @@ public interface OptimizablePredicateList {
 
 	/**
 	 * Return true if this predicate list is useful for limiting the scan on
-	 * the given table using the given conglomerate.
+	 * the given table using the given access path.
 	 *
 	 * @param optTable An Optimizable for the table in question
-	 * @param cd A ConglomerateDescriptor for the conglomerate in question
+	 * @param accessPath The details of how to access the conglomerate in question
 	 *
 	 * @return	true if this predicate list can limit the scan
 	 * @exception StandardException		Thrown on error
 	 */
-	boolean useful(Optimizable optTable, ConglomerateDescriptor cd) throws StandardException;
+	boolean useful(Optimizable optTable, AccessPath accessPath) throws StandardException;
 
 	/**
 	 * Determine which predicates in this list are useful for limiting
@@ -113,14 +113,14 @@ public interface OptimizablePredicateList {
 	 *
 	 * @param optTable	The Optimizable table for which to classify
 	 *					the predicates in this list.
-	 * @param cd	The ConglomerateDescriptor for which to classify
-	 *				the predicates in this list.
+	 * @param accessPath	The access path and associated conglomerate for which to classify
+	 *				        the predicates in this list.
 	 * @param considerJoinPredicateAsKey For nestedloop join, it should be set to true, as join predicate can
 	 *              serve as key for the scan of the right table, for hashable join, it should be set to false
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	void classify(Optimizable optTable, ConglomerateDescriptor cd, boolean considerJoinPredicateAsKey) throws StandardException;
+	void classify(Optimizable optTable, AccessPath accessPath, boolean considerJoinPredicateAsKey) throws StandardException;
 
 	/**
 	 * Mark all of the predicates as Qualifiers and set the numberOfQualifiers
@@ -167,26 +167,28 @@ public interface OptimizablePredicateList {
 	/**
 	 * Is there an optimizable equijoin on the specified column?
 	 *
-	 * @param optTable		The optimizable the column comes from.
-	 * @param columnNumber	The column number within the base table.
-	 *
+	 * @param optTable        The optimizable the column comes from.
+	 * @param columnNumber    The column number within the base table.
+	 * @param joinedTableSet  The set of table numbers of the optimizables that
+	 *                        have been joined up to the current join position.
 	 * @return Whether or not there is an optimizable equijoin on the specified column.
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	boolean hasOptimizableEquijoin(Optimizable optTable, int columnNumber) throws StandardException;
+	boolean hasOptimizableEquijoin(Optimizable optTable, int columnNumber, JBitSet joinedTableSet) throws StandardException;
 
 	/**
 	 * Is there an optimizable equijoin on the specified expression?
 	 *
-	 * @param optTable		The optimizable the expression refers to.
-	 * @param expr			The expression itself.
-	 *
+	 * @param optTable        The optimizable the expression refers to.
+	 * @param expr            The expression itself.
+	 * @param joinedTableSet  The set of table numbers of the optimizables that
+	 *                        have been joined up to the current join position.
 	 * @return Whether or not there is an optimizable equijoin on the specified expression.
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	boolean hasOptimizableEquijoin(Optimizable optTable, ValueNode expr) throws StandardException;
+	boolean hasOptimizableEquijoin(Optimizable optTable, ValueNode expr, JBitSet joinedTableSet) throws StandardException;
 									
 
 	/**

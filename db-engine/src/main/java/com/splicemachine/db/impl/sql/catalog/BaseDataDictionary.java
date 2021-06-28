@@ -59,6 +59,14 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 	protected static final int		    SYSCOLUMNS_CORE_NUM = 2;
 	protected static final int		    SYSSCHEMAS_CORE_NUM = 3;
 	protected static final int          NUM_CORE = 4;
+
+	@SuppressFBWarnings(value = "MS_CANNOT_BE_FINAL", justification = "intentional")
+	public static boolean READ_NEW_FORMAT = true;
+
+	@SuppressFBWarnings(value = "MS_CANNOT_BE_FINAL", justification = "intentional")
+	public static boolean WRITE_NEW_FORMAT = true;
+
+	public static int SERDE_UPGRADE_SPRINT = 2004;
 	/**
 	* SYSFUN functions. Table of functions that automatically appear
 	* in the SYSFUN schema. These functions are resolved to directly
@@ -69,7 +77,7 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 	* </code>
 	* 
 	* Adding a function here is suitable when the function defintion
-	* can have a single return type and fixed parameter types.
+	* can have a single return type and fixed parameteIndexr types.
 	* 
 	* Functions that need to have a return type based upon the
 	* input type(s) are not supported here. Typically those are

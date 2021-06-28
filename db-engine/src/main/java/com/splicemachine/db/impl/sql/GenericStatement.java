@@ -467,6 +467,7 @@ public class GenericStatement implements Statement{
                 setAllowOverflowSensitiveNativeSparkExpressions(lcc, cc);
                 setNewMergeJoin(lcc, cc);
                 setDisableParallelTaskJoinCosting(lcc, cc);
+                setDisablePrefixIteratorMode(lcc, cc);
                 setCurrentTimestampPrecision(lcc, cc);
                 setTimestampFormat(lcc, cc);
                 setFloatingPointNotation(lcc, cc);
@@ -536,18 +537,8 @@ public class GenericStatement implements Statement{
     }
 
     private void setSSQFlatteningForUpdateDisabled(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
-        String ssqFlatteningForUpdateDisabledString =
-        PropertyUtil.getCachedDatabaseProperty(lcc, Property.SSQ_FLATTENING_FOR_UPDATE_DISABLED);
-        boolean ssqFlatteningForUpdateDisabled = CompilerContext.DEFAULT_SSQ_FLATTENING_FOR_UPDATE_DISABLED;
-        try {
-            if (ssqFlatteningForUpdateDisabledString != null)
-                ssqFlatteningForUpdateDisabled =
-                Boolean.parseBoolean(ssqFlatteningForUpdateDisabledString);
-        } catch (Exception e) {
-            // If the property value failed to convert to a boolean, don't throw an error,
-            // just use the default setting.
-        }
-        cc.setSSQFlatteningForUpdateDisabled(ssqFlatteningForUpdateDisabled);
+        boolean param = getBooleanParam(lcc, Property.SSQ_FLATTENING_FOR_UPDATE_DISABLED, CompilerContext.DEFAULT_SSQ_FLATTENING_FOR_UPDATE_DISABLED);
+        cc.setSSQFlatteningForUpdateDisabled(param);
     }
 
     private void setSparkVersion(CompilerContext cc) {
@@ -566,23 +557,14 @@ public class GenericStatement implements Statement{
     }
 
     private void setOuterJoinFlatteningDisabled(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
-        String outerJoinFlatteningDisabledString =
-        PropertyUtil.getCachedDatabaseProperty(lcc, Property.OUTERJOIN_FLATTENING_DISABLED);
-        boolean outerJoinFlatteningDisabled = CompilerContext.DEFAULT_OUTERJOIN_FLATTENING_DISABLED;
-        try {
-            if (outerJoinFlatteningDisabledString != null)
-                outerJoinFlatteningDisabled = Boolean.parseBoolean(outerJoinFlatteningDisabledString);
-        } catch (Exception e) {
-            // If the property value failed to convert to a boolean, don't throw an error,
-            // just use the default setting.
-        }
-        cc.setOuterJoinFlatteningDisabled(outerJoinFlatteningDisabled);
+        boolean param = getBooleanParam(lcc, Property.OUTERJOIN_FLATTENING_DISABLED, CompilerContext.DEFAULT_OUTERJOIN_FLATTENING_DISABLED);
+        cc.setOuterJoinFlatteningDisabled(param);
     }
 
     private void setSelectivityEstimationIncludingSkewedDefault(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
         /* get the selectivity estimation property so that we know what strategy to use to estimate selectivity */
-        String selectivityEstimationString = PropertyUtil.getServiceProperty(lcc.getTransactionCompile(),
-        Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED);
+        String selectivityEstimationString = PropertyUtil.getCachedDatabaseProperty(lcc,
+                Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED);
         Boolean selectivityEstimationIncludingSkewedDefault = Boolean.parseBoolean(selectivityEstimationString);
 
         cc.setSelectivityEstimationIncludingSkewedDefault(selectivityEstimationIncludingSkewedDefault);
@@ -623,44 +605,38 @@ public class GenericStatement implements Statement{
     }
 
     private void setMulticolumnInlistProbeOnSparkEnabled(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
-        String multicolumnInlistProbeOnSparkEnabledString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED);
-        boolean multicolumnInlistProbeOnSparkEnabled = CompilerContext.DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
-        try {
-            if (multicolumnInlistProbeOnSparkEnabledString != null)
-                multicolumnInlistProbeOnSparkEnabled = Boolean.parseBoolean(multicolumnInlistProbeOnSparkEnabledString);
-        } catch (Exception e) {
-            // If the property value failed to convert to a boolean, don't throw an error,
-            // just use the default setting.
-        }
+        String property = Property.MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
+        boolean defaultValue = CompilerContext.DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
+        boolean multicolumnInlistProbeOnSparkEnabled = getBooleanParam(lcc, property, defaultValue);
         cc.setMulticolumnInlistProbeOnSparkEnabled(multicolumnInlistProbeOnSparkEnabled);
     }
 
-    private void setConvertMultiColumnDNFPredicatesToInList(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
-        String convertMultiColumnDNFPredicatesToInListString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST);
-        boolean convertMultiColumnDNFPredicatesToInList = CompilerContext.DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST;
+    private boolean getBooleanParam(LanguageConnectionContext lcc, String property, boolean defaultValue) throws StandardException {
+        String paramString = PropertyUtil.getCachedDatabaseProperty(lcc, property);
+        boolean value = defaultValue;
         try {
-            if (convertMultiColumnDNFPredicatesToInListString != null)
-                convertMultiColumnDNFPredicatesToInList = Boolean.parseBoolean(convertMultiColumnDNFPredicatesToInListString);
+            if (paramString != null)
+                value = Boolean.parseBoolean(paramString);
         } catch (Exception e) {
             // If the property value failed to convert to a boolean, don't throw an error,
             // just use the default setting.
         }
-        cc.setConvertMultiColumnDNFPredicatesToInList(convertMultiColumnDNFPredicatesToInList);
+        return value;
+    }
+
+    private void setConvertMultiColumnDNFPredicatesToInList(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        boolean param = getBooleanParam(lcc, Property.CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST, CompilerContext.DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST);
+        cc.setConvertMultiColumnDNFPredicatesToInList(param);
     }
 
     private void setDisablePredicateSimplification(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
-        String disablePredicateSimplificationString =
-        PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_PREDICATE_SIMPLIFICATION);
-        boolean disablePredicateSimplification = CompilerContext.DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION;
-        try {
-            if (disablePredicateSimplificationString != null)
-                disablePredicateSimplification =
-                Boolean.parseBoolean(disablePredicateSimplificationString);
-        } catch (Exception e) {
-            // If the property value failed to convert to a boolean, don't throw an error,
-            // just use the default setting.
-        }
-        cc.setDisablePredicateSimplification(disablePredicateSimplification);
+        boolean param = getBooleanParam(lcc, Property.DISABLE_PREDICATE_SIMPLIFICATION, CompilerContext.DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION);
+        cc.setDisablePredicateSimplification(param);
+    }
+
+    private void setDisableConstantFolding(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        boolean param = getBooleanParam(lcc, Property.DISABLE_CONSTANT_FOLDING, CompilerContext.DEFAULT_DISABLE_CONSTANT_FOLDING);
+        cc.setDisablePredicateSimplification(param);
     }
 
     private void setNativeSparkAggregationMode(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
@@ -692,18 +668,8 @@ public class GenericStatement implements Statement{
     }
 
     private void setAllowOverflowSensitiveNativeSparkExpressions(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
-        String allowOverflowSensitiveNativeSparkExpressionsString =
-        PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS);
-        boolean allowOverflowSensitiveNativeSparkExpressions = CompilerContext.DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS;
-        try {
-            if (allowOverflowSensitiveNativeSparkExpressionsString != null)
-                allowOverflowSensitiveNativeSparkExpressions =
-                Boolean.parseBoolean(allowOverflowSensitiveNativeSparkExpressionsString);
-        } catch (Exception e) {
-            // If the property value failed to convert to a boolean, don't throw an error,
-            // just use the default setting.
-        }
-        cc.setAllowOverflowSensitiveNativeSparkExpressions(allowOverflowSensitiveNativeSparkExpressions);
+        boolean param = getBooleanParam(lcc, Property.SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS, CompilerContext.DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS);
+        cc.setAllowOverflowSensitiveNativeSparkExpressions(param);
     }
 
     private void setNewMergeJoin(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
@@ -728,19 +694,14 @@ public class GenericStatement implements Statement{
         cc.setNewMergeJoin(newMergeJoin);
     }
 
+    private void setDisablePrefixIteratorMode(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        boolean param = getBooleanParam(lcc, Property.DISABLE_INDEX_PREFIX_ITERATION, CompilerContext.DEFAULT_DISABLE_INDEX_PREFIX_ITERATION);
+        cc.setDisablePrefixIteratorMode(param);
+    }
+
     private void setDisableParallelTaskJoinCosting(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
-        String disablePerParallelTaskJoinCostingString =
-        PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_PARALLEL_TASKS_JOIN_COSTING);
-        boolean disablePerParallelTaskJoinCosting = CompilerContext.DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING;
-        try {
-            if (disablePerParallelTaskJoinCostingString != null)
-                disablePerParallelTaskJoinCosting =
-                Boolean.parseBoolean(disablePerParallelTaskJoinCostingString);
-        } catch (Exception e) {
-            // If the property value failed to convert to a boolean, don't throw an error,
-            // just use the default setting.
-        }
-        cc.setDisablePerParallelTaskJoinCosting(disablePerParallelTaskJoinCosting);
+        boolean param = getBooleanParam(lcc, Property.DISABLE_PARALLEL_TASKS_JOIN_COSTING, CompilerContext.DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING);
+        cc.setDisablePerParallelTaskJoinCosting(param);
     }
 
     private void setCurrentTimestampPrecision(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {

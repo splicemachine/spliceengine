@@ -181,6 +181,7 @@ public interface CompilerContext extends Context
     boolean DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED = true;
     boolean DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST = true;
     boolean DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION = false;
+    boolean DEFAULT_DISABLE_CONSTANT_FOLDING = false;
     SparkVersion DEFAULT_SPLICE_SPARK_VERSION = new SimpleSparkVersion("2.2.0");
     NativeSparkModeType DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE = NativeSparkModeType.SYSTEM;
     boolean DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS = true;
@@ -191,6 +192,7 @@ public interface CompilerContext extends Context
     boolean DEFAULT_SSQ_FLATTENING_FOR_UPDATE_DISABLED = false;
     NewMergeJoinExecutionType DEFAULT_SPLICE_NEW_MERGE_JOIN = NewMergeJoinExecutionType.SYSTEM;
     boolean DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING = false;
+    boolean DEFAULT_DISABLE_INDEX_PREFIX_ITERATION= false;
     boolean DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE = false;
 
     boolean DEFAULT_PRESERVE_LINE_ENDINGS = false;
@@ -714,6 +716,8 @@ public interface CompilerContext extends Context
 
     boolean getDisablePredicateSimplification();
 
+    boolean getDisableConstantFolding();
+
     void setSparkVersion(SparkVersion newValue);
 
     SparkVersion getSparkVersion();
@@ -757,6 +761,10 @@ public interface CompilerContext extends Context
     void setDisablePerParallelTaskJoinCosting(boolean newValue);
 
     boolean getDisablePerParallelTaskJoinCosting();
+
+    void setDisablePrefixIteratorMode(boolean newValue);
+
+    boolean getDisablePrefixIteratorMode();
 
     void setVarcharDB2CompatibilityMode(boolean newValue);
 

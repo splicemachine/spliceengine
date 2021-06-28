@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.sql.compile.AggregateNode;
 import com.splicemachine.db.impl.sql.compile.GroupByList;
 import com.splicemachine.db.impl.sql.compile.OrderByList;
+import com.splicemachine.db.impl.sql.compile.ResultSetNode;
 
 import java.util.List;
 
@@ -177,9 +178,8 @@ public interface Optimizer{
      *
      * @param optimizable The Optimizable
      * @param td          TableDescriptor of the Optimizable
-     * @param cd          The ConglomerateDescriptor for the conglom to cost
-     *                    (This should change to an object to represent
-     *                    access paths, but for now this is OK).
+     * @param accessPath  The AccessPath for the conglomerate to cost,
+     *                    which includes a ConglomerateDescriptor.
      * @param predList    The OptimizablePredicateList to apply
      * @param outerCost   The cost of the tables outer to the one being
      *                    optimizer - tells how many outer rows there are.
@@ -187,7 +187,7 @@ public interface Optimizer{
      */
     void costOptimizable(Optimizable optimizable,
                          TableDescriptor td,
-                         ConglomerateDescriptor cd,
+                         AccessPath accessPath,
                          OptimizablePredicateList predList,
                          CostEstimate outerCost) throws StandardException;
 
@@ -382,6 +382,10 @@ public interface Optimizer{
 
     OptimizableList getOptimizableList();
 
+    JBitSet getAssignedTableMap();
+
+    void setAssignedTableMap(JBitSet refMap);
+
     void updateBestPlanMaps(short action,Object planKey) throws StandardException;
 
     void addScopedPredicatesToList(OptimizablePredicateList predList) throws StandardException;
@@ -419,4 +423,9 @@ public interface Optimizer{
     int getJoinPosition();
 
     default boolean isMemPlatform() { return false; };
+
+    void setOuterTableOfJoin(ResultSetNode outerTableOfJoin);
+
+    ResultSetNode getOuterTable();
+
 }

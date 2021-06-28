@@ -222,7 +222,7 @@ public class JoinNode extends TableOperatorNode{
         // RESOLVE: NEED TO SET ROW ORDERING OF SOURCES IN THE ROW ORDERING
         // THAT WAS PASSED IN.
 
-        leftResultSet=optimizeSource(optimizer,leftResultSet,getLeftPredicateList(),null);
+        leftResultSet=optimizeSource(optimizer,leftResultSet,getLeftPredicateList(),null,null);
 
         /* Move all joinPredicates down to the right.
          * RESOLVE - When we consider the reverse join order then
@@ -257,7 +257,10 @@ public class JoinNode extends TableOperatorNode{
             lrsCE.setJoinType(INNERJOIN);
         double savedAccumulatedMemory = lrsCE.getAccumulatedMemory();
         lrsCE.setAccumulatedMemory(leftOptimizer.getAccumulatedMemory());
-        rightResultSet=optimizeSource(optimizer,rightResultSet,getRightPredicateList(),lrsCE);
+
+        optimizer.setOuterTableOfJoin(leftResultSet);
+        rightResultSet=optimizeSource(optimizer,rightResultSet,getRightPredicateList(),leftResultSet.getReferencedTableMap(),lrsCE);
+        optimizer.setOuterTableOfJoin(null);      
         lrsCE.setJoinType(INNERJOIN);
         lrsCE.setAccumulatedMemory(savedAccumulatedMemory);
         costEstimate=getCostEstimate(optimizer);
@@ -1644,9 +1647,11 @@ public class JoinNode extends TableOperatorNode{
                the top AND node with a boolean true.
              */
             if (!joinClauseNormalized) {
-                Visitor constantExpressionVisitor =
-                        new ConstantExpressionVisitor(SelectNode.class);
-                joinClause = (ValueNode) joinClause.accept(constantExpressionVisitor);
+                if (!getCompilerContext().getDisableConstantFolding()) {
+                    Visitor constantExpressionVisitor =
+                            new ConstantExpressionVisitor(SelectNode.class);
+                    joinClause = (ValueNode) joinClause.accept(constantExpressionVisitor);
+                }
 
                 if (!getCompilerContext().getDisablePredicateSimplification()) {
                     Visitor predSimplVisitor =
@@ -1979,7 +1984,7 @@ public class JoinNode extends TableOperatorNode{
             if(table!=null){
                 for(int i=table.nonStoreRestrictionList.size()-1;i>=0;i--){
                     Predicate op=(Predicate)table.nonStoreRestrictionList.getOptPredicate(i);
-                    if(op.isJoinPredicate() || op.getPulled() || op.isFullJoinPredicate()){
+                    if(op.isHashableJoinPredicate() || op.getPulled() || op.isFullJoinPredicate()){
                         table.nonStoreRestrictionList.removeOptPredicate(i);
                     }
                 }

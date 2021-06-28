@@ -478,6 +478,8 @@ com.splicemachine.hbase.BackupEndpointObserver</code>
    <property><name>hbase.wal.provider</name><value>multiwal</value></property>
    <property><name>hbase.wal.regiongrouping.numgroups</name><value>16</value></property>
    <property><name>hbase.zookeeper.property.tickTime</name><value>6000</value></property>
+   <property><name>hbase.mirror.table.state.to.zookeeper</name><value>false</value></property>
+   <property><name>hbase.migrate.table.state.from.zookeeper</name><value>false</value></property>
    <property><name>hfile.block.bloom.cacheonwrite</name><value>true</value></property>
    <property><name>io.storefile.bloom.error.rate</name><value>0.005</value></property>
    <property><name>splice.client.numConnections</name><value>1</value></property>
@@ -529,7 +531,9 @@ com.splicemachine.hbase.BackupEndpointObserver</code>
   <property><name>hbase.wal.disruptor.batch</name><value>true</value></property>                                     
   <property><name>hbase.wal.provider</name><value>multiwal</value></property>                                     
   <property><name>hbase.wal.regiongrouping.numgroups</name><value>16</value></property>                                     
-  <property><name>hbase.zookeeper.property.tickTime</name><value>6000</value></property>                                     
+  <property><name>hbase.zookeeper.property.tickTime</name><value>6000</value></property>  
+   <property><name>hbase.mirror.table.state.to.zookeeper</name><value>false</value></property>
+   <property><name>hbase.migrate.table.state.from.zookeeper</name><value>false</value></property>                                   
   <property><name>hfile.block.bloom.cacheonwrite</name><value>true</value></property>                                     
   <property><name>io.storefile.bloom.error.rate</name><value>0.005</value></property>                                     
   <property><name>splice.client.numConnections</name><value>1</value></property>                                     

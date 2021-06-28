@@ -47,6 +47,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.ast.CollectingVisitor;
 import com.splicemachine.db.impl.ast.ColumnCollectingVisitor;
 import com.splicemachine.db.impl.ast.LimitOffsetVisitor;
+import com.splicemachine.db.impl.ast.RepeatedPredicateVisitor;
 import splice.com.google.common.base.Predicates;
 
 import java.sql.Types;
@@ -531,12 +532,14 @@ public class SelectNode extends ResultSetNode{
         // selectivity 1.0.)
         // This is also done before predicate simplification to enable
         // more predicates to be pruned away.
+        if (!getCompilerContext().getDisableConstantFolding()) {
         Visitor constantExpressionVisitor =
                 new ConstantExpressionVisitor(SelectNode.class);
         if (whereClause != null)
             whereClause = (ValueNode)whereClause.accept(constantExpressionVisitor);
         if (havingClause != null)
             havingClause = (ValueNode)havingClause.accept(constantExpressionVisitor);
+        }
 
         // Perform predicate simplification.  Currently only
         // simple rewrites involving boolean TRUE/FALSE are done, such as:
@@ -561,10 +564,10 @@ public class SelectNode extends ResultSetNode{
                 havingClause = (ValueNode)havingClause.accept(predSimplVisitor);
         }
 
-        if (whereClause instanceof UntypedNullConstantNode) {
+        if (whereClause instanceof ConstantNode && ((ConstantNode)whereClause).isNull()) {
             whereClause = (ValueNode) getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE, false, getContextManager());
         }
-        if (havingClause instanceof UntypedNullConstantNode) {
+        if (havingClause instanceof ConstantNode && ((ConstantNode)havingClause).isNull()) {
             havingClause = (ValueNode) getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE, false, getContextManager());
         }
 
@@ -2162,7 +2165,13 @@ public class SelectNode extends ResultSetNode{
             wherePredicates=(PredicateList)wherePredicates.accept(v, this);
         }
         if(havingClause!=null){
+            if (v.getBaseVisitor() instanceof RepeatedPredicateVisitor)
+                ((RepeatedPredicateVisitor)v.getBaseVisitor()).setAggregateVector(havingAggregates);
+
             havingClause=(ValueNode)havingClause.accept(v, this);
+
+            if (v.getBaseVisitor() instanceof RepeatedPredicateVisitor)
+                ((RepeatedPredicateVisitor)v.getBaseVisitor()).setAggregateVector(null);
         }
     }
 

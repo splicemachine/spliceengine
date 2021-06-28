@@ -71,6 +71,7 @@ import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.utils.Pair;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import splice.com.google.common.base.Function;
 import splice.com.google.common.base.Optional;
@@ -253,6 +254,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param startParams The start-up parameters
      * @throws StandardException Thrown if the module fails to start
      */
+    @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification = "intentional")
     @Override
     public void boot(boolean create,Properties startParams) throws StandardException{
         softwareVersion=new DD_Version(this,DataDictionary.DD_VERSION_DERBY_10_9);
@@ -351,7 +353,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             coreInfo[SYSSCHEMAS_CORE_NUM].setIndexConglomerate(
                     SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX2_ID,
                     getBootParameter(startParams,CFG_SYSSCHEMAS_INDEX2_ID,true));
-
         }
 
         dataDictionaryCache = new DataDictionaryCache(startParams,this);
@@ -498,7 +499,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             }else{
                 // Get the ids for non-core tables
                 loadDictionaryTables(bootingTC,startParams);
-
+                BaseDataDictionary.READ_NEW_FORMAT = true;
+                BaseDataDictionary.WRITE_NEW_FORMAT= true;
                 String sqlAuth=PropertyUtil.getDatabaseProperty(bootingTC,
                         Property.SQL_AUTHORIZATION_PROPERTY);
 
@@ -531,7 +533,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     }
                 }
             }
-
             assert authorizationDatabaseOwner!=null:"Failed to get Database Owner authorization";
 
             // Update (or create) the system stored procedures if requested.
@@ -1239,7 +1240,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     @Override
-    public void addDescriptorArray(TupleDescriptor[] td,
+    public RowLocation[] addDescriptorArray(TupleDescriptor[] td,
                                    TupleDescriptor parent,
                                    int catalogNumber,
                                    boolean allowDuplicates,
@@ -1254,10 +1255,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             rl[index]=row;
         }
 
-        int insertRetCode=ti.insertRowList(rl,tc);
+        RowLocation[] rowLocations = new RowLocation[td.length];
+        int insertRetCode=ti.insertRowList(rl,tc, rowLocations);
         if(!allowDuplicates && insertRetCode!=TabInfoImpl.ROWNOTDUPLICATE){
             throw duplicateDescriptorException(td[insertRetCode],parent);
         }
+        return rowLocations;
     }
 
     @Override
@@ -2965,7 +2968,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param keyRow Start/stop position.
      * @throws StandardException Thrown on failure
      */
-    private void dropColumnPermDescriptor(TransactionController tc,ExecIndexRow keyRow) throws StandardException{
+    protected void dropColumnPermDescriptor(TransactionController tc,ExecIndexRow keyRow) throws StandardException{
         ExecRow curRow;
         PermissionsDescriptor perm;
         TabInfoImpl ti=getNonCoreTI(SYSCOLPERMS_CATALOG_NUM);
@@ -3680,7 +3683,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     if (i + 1 == SYSSTATEMENTSRowFactory.SYSSTATEMENTS_VALID)
                         replaceRow[i] = new SQLBoolean(false);
                     else if (i + 1 == SYSSTATEMENTSRowFactory.SYSSTATEMENTS_CONSTANTSTATE)
-                        replaceRow[i] = new UserType(null);
+                        replaceRow[i] = new UserType((Object)null);
                     else
                         replaceRow[i] = rowTemplate[i].cloneValue(false);
                 }
@@ -5444,7 +5447,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param tc           The TransactionController
      * @throws StandardException Thrown on failure
      */
-    private void dropSubCheckConstraint(UUID constraintId,TransactionController tc) throws StandardException{
+    protected void dropSubCheckConstraint(UUID constraintId,TransactionController tc) throws StandardException{
         ExecIndexRow checkRow1;
         DataValueDescriptor constraintIdOrderable;
         TabInfoImpl ti=getNonCoreTI(SYSCHECKS_CATALOG_NUM);
@@ -6405,6 +6408,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         boolean nativeAuthenticationEnabled=PropertyUtil.nativeAuthenticationEnabled(startParams);
         if(nativeAuthenticationEnabled){
             dictionaryVersion.checkVersion(DD_VERSION_DERBY_10_9,"NATIVE AUTHENTICATION");
+            dictionaryVersion.checkVersion(DD_VERSION_DERBY_10_9,"NATIVE AUTHENTICATION");
         }
 
         resetDatabaseOwner(tc);
@@ -6540,6 +6544,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
 
+    @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification = "intentional")
     protected void createDictionaryTables(Properties params,
                                           TransactionController tc,
                                           DataDescriptorGenerator ddg) throws StandardException{
@@ -6629,7 +6634,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         coreInfo[SYSSCHEMAS_CORE_NUM].getIndexConglomerate(
                                 SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX2_ID)));
 
-        //Add the SYSIBM Schema
+                //Add the SYSIBM Schema
         sysIBMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,SchemaDescriptor.SYSIBM_SCHEMA_UUID,tc);
 
         //Add the SYSIBMADM Schema
@@ -7386,7 +7391,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             return version.orNull();
 
         TransactionController tc = getTransactionCompile();
-        String v = tc.getCatalogVersion(conglomerateNumber);
+        String v = tc.getCatalogVersion(Long.toString(conglomerateNumber));
         dataDictionaryCache.catalogVersionCacheAdd(conglomerateNumber, v == null ? Optional.absent() : Optional.of(v));
         return v;
     }
@@ -8290,16 +8295,22 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     private RowLocation computeRowLocation(TransactionController tc,
                                            TableDescriptor td,
                                            String columnName) throws StandardException{
+
+        UUID tableUUID=td.getUUID();
+        return computeRowLocation(tc, tableUUID, columnName);
+    }
+
+    protected RowLocation computeRowLocation(TransactionController tc,
+                                             UUID tableUUID,
+                                             String columnName) throws StandardException{
         TabInfoImpl ti=coreInfo[SYSCOLUMNS_CORE_NUM];
         ExecIndexRow keyRow;
-        UUID tableUUID=td.getUUID();
 
         keyRow=exFactory.getIndexableRow(2);
         keyRow.setColumn(1,getIDValueAsCHAR(tableUUID));
         keyRow.setColumn(2,new SQLChar(columnName));
         return ti.getRowLocation(tc,keyRow,SYSCOLUMNSRowFactory.SYSCOLUMNS_INDEX1_ID);
     }
-
     /**
      * Computes the RowLocation in SYSSEQUENCES for a particular sequence. Also
      * constructs the sequence descriptor.
@@ -10835,7 +10846,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             rows[i] = ti.getCatalogRowFactory().makeRow(descriptor[i], null);
         }
 
-        int insertRetCode = ti.insertRowList(rows,tc);
+        int insertRetCode = ti.insertRowList(rows,tc, null);
         if (insertRetCode != TabInfoImpl.ROWNOTDUPLICATE)
             throw StandardException.newException(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT,
                     "SYSBACKUPITEMS_INDEX2", SYSBACKUPITEMSRowFactory.TABLENAME_STRING);

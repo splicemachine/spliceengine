@@ -632,7 +632,7 @@ public interface Property {
      * Externally visible.
      */
     String	LANG_SPS_CACHE_SIZE = "derby.language.spsCacheSize";
-    int		LANG_SPS_CACHE_SIZE_DEFAULT =32;
+    int		LANG_SPS_CACHE_SIZE_DEFAULT =256;
 
     /**
      * The size of the sequence generator cache
@@ -949,6 +949,10 @@ public interface Property {
 
     String AUTHENTICATION_PROVIDER_KERBEROS =
             "KERBEROS";
+
+    String AUTHENTICATION_PROVIDER_JWT_TOKEN =
+            "TOKEN";
+
     String AUTHENTICATION_SERVER_PARAMETER =
             "derby.authentication.server";
 
@@ -1395,6 +1399,9 @@ public interface Property {
     String DISABLE_PREDICATE_SIMPLIFICATION =
             "derby.database.disablePredicateSimplification";
 
+    String DISABLE_CONSTANT_FOLDING =
+            "splice.database.disableConstantFolding";
+
     String BULK_IMPORT_SAMPLE_FRACTION = "splice.bulkImport.sample.fraction";
 
     /**
@@ -1527,6 +1534,8 @@ public interface Property {
     String OLAP_SHUFFLE_PARTITIONS = "olapShufflePartitions";
     String CONNECTION_DISABLE_TC_PUSHED_DOWN_INTO_VIEWS = "disableAdvancedTC";
 
+    String OLAP_ALWAYS_PENALIZE_NLJ = "olapAlwaysPenalizeNLJ";
+
     String SPARK_RESULT_STREAMING_BATCHES = "sparkResultStreamingBatches";
 
     String SPARK_RESULT_STREAMING_BATCH_SIZE = "sparkResultStreamingBatchSize";
@@ -1548,5 +1557,34 @@ public interface Property {
      */
     String DISABLE_PARALLEL_TASKS_JOIN_COSTING =
             "splice.optimizer.disablePerParallelTaskJoinCosting";
+
+    /**
+     * If true, causes evaluation of all predicates via a ProjectRestrict node.
+     * In other words, all scans of a primary key or index will scan all rows.
+     */
+    String CONNECTION_DISABLE_PREDS_FOR_INDEX_OR_PK_ACCESS_PATH = "disablePredsForIndexOrPkAccessPath";
+
+    /**
+     * If true, skips statistics-based selection of IndexPrefixIteratorMode, and lets it
+     * always get considered by the optimizer as an access path, if legal.
+     * Cost-based selection of multiple index access paths is not altered, ie., a different
+     * index which does not use IndexPrefixIteratorMode can still get picked when
+     * alwaysAllowIndexPrefixIteration is true.
+     */
+    String CONNECTION_ALWAYS_ALLOW_INDEX_PREFIX_ITERATION = "alwaysAllowIndexPrefixIteration";
+
+    /**
+     * If true, causes the optimizer to choose IndexPrefixIteratorMode for a given
+     * index, if it is legal.
+     */
+    String CONNECTION_FAVOR_INDEX_PREFIX_ITERATION = "favorIndexPrefixIteration";
+
+    /**
+     * If true, disable IndexPrefixIteratorMode access paths.  All index or primary key access
+     * that uses a start key or stop key must then specify the first column of the index
+     * in an equality of IN list predicate.
+     */
+    String DISABLE_INDEX_PREFIX_ITERATION =
+            "splice.optimizer.disablePrefixIteratorMode";
 }
 

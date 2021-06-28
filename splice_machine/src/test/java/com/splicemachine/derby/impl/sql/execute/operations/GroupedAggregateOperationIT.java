@@ -265,4 +265,36 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
         rs.close();
     }
 
+    @Test()
+    public void testAggregateWithRepeatedPredicate() throws Exception {
+        String sqlText = format("SELECT\n" +
+                                "A.C1, SUM(A.DIFFERENZ)\n" +
+                                "FROM ( SELECT A1.C1,C2+1 AS DIFFERENZ FROM %s WHERE A1.C1 = 'A100001' ) A,\n" +
+                                "%s B\n" +
+                                "WHERE A.C1 = B.C1\n" +
+                                "GROUP BY A.C1\n" +
+                                "HAVING\n" +
+                                "(\n" +
+                                "(\n" +
+                                "SUM(DIFFERENZ) >= 4999\n" +
+                                "AND A.C1 <> 'A100001'\n" +
+                                ")\n" +
+                                "OR\n" +
+                                "(\n" +
+                                "SUM(DIFFERENZ) >= 4999\n" +
+                                "AND A.C1 = 'A100001'\n" +
+                                "AND '10' = '10'\n" +
+                                ")\n" +
+                                "OR ( SUM(DIFFERENZ) <= 1000 AND A.C1 = 'A100001' AND '10' <> '10')\n" +
+                                ")",spliceTableWatcher3,spliceTableWatcher3);
+
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+            "C1    |      2       |\n" +
+            "------------------------\n" +
+            "A100001 |6000001511955 |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
 }

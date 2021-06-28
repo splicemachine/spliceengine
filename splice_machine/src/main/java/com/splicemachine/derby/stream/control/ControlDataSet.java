@@ -197,6 +197,11 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public DataSet<V> limit(int numRows, OperationContext context){
+        return zipWithIndex(context).mapPartitions(new OffsetFunction<SpliceOperation, V>(context, 0, numRows));
+    }
+
+    @Override
     public DataSet<V> distinct(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
         return distinct(context);
     }
@@ -775,6 +780,11 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet upgradeToSparkNativeDataSet(OperationContext operationContext) {
+         return this;
+    }
+
+    @Override
+    public DataSet convertNativeSparkToSparkDataSet() {
          return this;
     }
 

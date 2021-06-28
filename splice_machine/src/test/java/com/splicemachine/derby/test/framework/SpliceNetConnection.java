@@ -135,6 +135,7 @@ public class SpliceNetConnection {
         private String ssl;
         private String useOLAP;
         private String useNativeSpark;
+        private String autoCommit;
 
         @Override
         public ConnectionBuilder clone() throws CloneNotSupportedException {
@@ -185,6 +186,10 @@ public class SpliceNetConnection {
             this.useNativeSpark = Boolean.toString(useNativeSpark);
             return this;
         }
+        public ConnectionBuilder autoCommit(boolean autoCommit) {
+            this.autoCommit = Boolean.toString(autoCommit);
+            return this;
+        }
 
         public Connection build() throws SQLException {
             Properties info = new Properties();
@@ -202,6 +207,9 @@ public class SpliceNetConnection {
                 info.put("useOLAP", useOLAP != null ? useOLAP : jdbcUseOLAP);
             if (useNativeSpark != null)
                 info.put("useNativeSpark", useNativeSpark);
+            if (autoCommit != null) {
+                info.put("autoCommit", autoCommit);
+            }
             StringBuilder url = new StringBuilder();
             if (host != null || port != null) {
                 url.append(URL_PREFIX);

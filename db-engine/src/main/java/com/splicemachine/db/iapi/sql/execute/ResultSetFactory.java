@@ -362,7 +362,7 @@ public interface ResultSetFactory {
                                                double optimizerEstimatedRowCount,
                                                double optimizerEstimatedCost,
                                                String explainPlan,
-                                               String filterPred,
+                                               String[] filterPred,
                                                String[] expressions,
                                                boolean hasGroupingFunction,
                                                String subqueryText) throws StandardException;
@@ -381,7 +381,7 @@ public interface ResultSetFactory {
                                                double optimizerEstimatedRowCount,
                                                double optimizerEstimatedCost,
                                                String explainPlan,
-                                               String filterPred,
+                                               String[] filterPred,
                                                String[] expressions,
                                                boolean hasGroupingFunction) throws StandardException;
 
@@ -400,7 +400,7 @@ public interface ResultSetFactory {
                                                double optimizerEstimatedRowCount,
                                                double optimizerEstimatedCost,
                                                String explainPlan,
-                                               String filterPred,
+                                               String[] filterPred,
                                                String[] expressions) throws StandardException;
 
     NoPutResultSet getProjectRestrictResultSet(NoPutResultSet source,
@@ -1036,46 +1036,134 @@ public interface ResultSetFactory {
      * @param minRetentionPeriod the minimum retention period for guaranteed correct time travel results.
 	 */
 	NoPutResultSet getTableScanResultSet(
-            Activation activation,
-            long conglomId,
-            int scociItem,
-            GeneratedMethod resultRowAllocator,
-            int resultSetNumber,
-            GeneratedMethod startKeyGetter,
-            int startSearchOperator,
-            GeneratedMethod stopKeyGetter,
-            int stopSearchOperator,
-            boolean sameStartStopPosition,
-            boolean rowIdKey,
-            String qualifiersField,
-            String tableName,
-            String userSuppliedOptimizerOverrides,
-            String indexName,
-            boolean isConstraint,
-            boolean forUpdate,
-            int colRefItem,
-            int indexColItem,
-            int lockMode,
-            boolean tableLocked,
-            int isolationLevel,
-            boolean oneRowScan,
-            double optimizerEstimatedRowCount,
-            double optimizerEstimatedCost,
-            String tableVersion,
-            String explainPlan,
-            int splits,
-            String delimited,
-            String escaped,
-            String lines,
-            String storedAs,
-            String location,
-            int partitionByRefItem,
-            GeneratedMethod defaultRowFunc,
-            int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor,
-            long minRetentionPeriod
-    )
-			throws StandardException;
+                        Activation activation,
+                        long conglomId,
+                        int scociItem,
+                        GeneratedMethod resultRowAllocator,
+                        int resultSetNumber,
+                        GeneratedMethod startKeyGetter,
+                        int startSearchOperator,
+                        GeneratedMethod stopKeyGetter,
+                        int stopSearchOperator,
+                        boolean sameStartStopPosition,
+                        boolean rowIdKey,
+                        String qualifiersField,
+                        String tableName,
+                        String userSuppliedOptimizerOverrides,
+                        String indexName,
+                        boolean isConstraint,
+                        boolean forUpdate,
+                        int colRefItem,
+                        int indexColItem,
+                        int lockMode,
+                        boolean tableLocked,
+                        int isolationLevel,
+                        boolean oneRowScan,
+                        double optimizerEstimatedRowCount,
+                        double optimizerEstimatedCost,
+                        String tableVersion,
+                        String explainPlan,
+                        int splits,
+                        String delimited,
+                        String escaped,
+                        String lines,
+                        String storedAs,
+                        String location,
+                        int partitionByRefItem,
+                        GeneratedMethod defaultRowFunc,
+                        int defaultValueMapItem,
+                        GeneratedMethod pastTxFunctor,
+                        long minRetentionPeriod,
+                        int numUnusedLeadingIndexFields
+                        )
+	        throws StandardException;
+
+    NoPutResultSet getIndexPrefixIteratorResultSet(
+                        NoPutResultSet sourceResultSet,
+                        int firstIndexColumnNumber,
+                        Activation activation,
+                        long conglomId,
+                        int scociItem,
+                        GeneratedMethod resultRowAllocator,
+                        int resultSetNumber,
+                        GeneratedMethod startKeyGetter,
+                        int startSearchOperator,
+                        GeneratedMethod stopKeyGetter,
+                        int stopSearchOperator,
+                        boolean sameStartStopPosition,
+                        boolean rowIdKey,
+                        String qualifiersField,
+                        String tableName,
+                        String userSuppliedOptimizerOverrides,
+                        String indexName,
+                        boolean isConstraint,
+                        boolean forUpdate,
+                        int colRefItem,
+                        int indexColItem,
+                        int lockMode,
+                        boolean tableLocked,
+                        int isolationLevel,
+                        boolean oneRowScan,
+                        double optimizerEstimatedRowCount,
+                        double optimizerEstimatedCost,
+                        String tableVersion,
+                        String explainPlan,
+                        int splits,
+                        String delimited,
+                        String escaped,
+                        String lines,
+                        String storedAs,
+                        String location,
+                        int partitionByRefItem,
+                        GeneratedMethod defaultRowFunc,
+                        int defaultValueMapItem,
+                        GeneratedMethod pastTxFunctor,
+                        long minRetentionPeriod,
+                        int numUnusedLeadingIndexFields
+                        )
+        throws StandardException;
+
+    NoPutResultSet getTableScanResultSet(
+                        Activation activation,
+                        long conglomId,
+                        int scociItem,
+                        GeneratedMethod resultRowAllocator,
+                        int resultSetNumber,
+                        GeneratedMethod startKeyGetter,
+                        int startSearchOperator,
+                        GeneratedMethod stopKeyGetter,
+                        int stopSearchOperator,
+                        boolean sameStartStopPosition,
+                        boolean rowIdKey,
+                        String qualifiersField,
+                        String tableName,
+                        String userSuppliedOptimizerOverrides,
+                        String indexName,
+                        boolean isConstraint,
+                        boolean forUpdate,
+                        int colRefItem,
+                        int indexColItem,
+                        int lockMode,
+                        boolean tableLocked,
+                        int isolationLevel,
+                        boolean oneRowScan,
+                        double optimizerEstimatedRowCount,
+                        double optimizerEstimatedCost,
+                        String tableVersion,
+                        String explainPlan,
+                        int splits,
+                        String delimited,
+                        String escaped,
+                        String lines,
+                        String storedAs,
+                        String location,
+                        int partitionByRefItem,
+                        GeneratedMethod defaultRowFunc,
+                        int defaultValueMapItem,
+                        GeneratedMethod pastTxFunctor,
+                        long minRetentionPeriod
+                        )
+        throws StandardException;
 
     /**
      * A distinct scan result set pushes duplicate elimination into
@@ -1143,9 +1231,41 @@ public interface ResultSetFactory {
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
             GeneratedMethod pastTxFunctor,
-            long minRetentionPeriod )
+            long minRetentionPeriod,
+            int numUnusedLeadingIndexFields)
             throws StandardException;
 
+    NoPutResultSet getDistinctScanResultSet(
+            Activation activation,
+            long conglomId,
+            int scociItem,
+            GeneratedMethod resultRowAllocator,
+            int resultSetNumber,
+            int hashKeyColumn,
+            String tableName,
+            String userSuppliedOptimizerOverrides,
+            String indexName,
+            boolean isConstraint,
+            int colRefItem,
+            int lockMode,
+            boolean tableLocked,
+            int isolationLevel,
+            double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            String tableVersion,
+            String explainPlan,
+            int splits,
+            String delimited,
+            String escaped,
+            String lines,
+            String storedAs,
+            String location,
+            int partitionByRefItem,
+            GeneratedMethod defaultRowFunc,
+            int defaultValueMapItem,
+            GeneratedMethod pastTxFunctor,
+            long minRetentionPeriod)
+            throws StandardException;
     /**
      * A multi-probe result set, used for probing an index with one or more
      * target values (probeValues) and returning the matching rows.  This
@@ -1201,10 +1321,56 @@ public interface ResultSetFactory {
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
             GeneratedMethod pastTxFunctor,
-            long minRetentionPeriod
+            long minRetentionPeriod,
+            int numUnusedLeadingIndexFields
     )
             throws StandardException;
 
+    NoPutResultSet getMultiProbeTableScanResultSet(
+            Activation activation,
+            long conglomId,
+            int scociItem,
+            GeneratedMethod resultRowAllocator,
+            int resultSetNumber,
+            GeneratedMethod startKeyGetter,
+            int startSearchOperator,
+            GeneratedMethod stopKeyGetter,
+            int stopSearchOperator,
+            boolean sameStartStopPosition,
+            boolean rowIdKey,
+            String qualifiersField,
+            GeneratedMethod getProbeValsFunc,
+            int sortRequired,
+            int inlistPosition,
+            int inlistTypeArrayItem,
+            String tableName,
+            String userSuppliedOptimizerOverrides,
+            String indexName,
+            boolean isConstraint,
+            boolean forUpdate,
+            int colRefItem,
+            int indexColItem,
+            int lockMode,
+            boolean tableLocked,
+            int isolationLevel,
+            boolean oneRowScan,
+            double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            String tableVersion,
+            String explainPlan,
+            int splits,
+            String delimited,
+            String escaped,
+            String lines,
+            String storedAs,
+            String location,
+            int partitionByRefItem,
+            GeneratedMethod defaultRowFunc,
+            int defaultValueMapItem,
+            GeneratedMethod pastTxFunctor,
+            long minRetentionPeriod
+    )
+            throws StandardException;
     /**
      * An index row to base row result set gets an index row from its source
      * and uses the RowLocation in its last column to get the row from the
@@ -2128,6 +2294,28 @@ public interface ResultSetFactory {
      * @throws StandardException thrown when unable to create the
      *                           result set
      */
+    NoPutResultSet getLastIndexKeyResultSet
+    (
+            Activation activation,
+            int resultSetNumber,
+            GeneratedMethod resultRowAllocator,
+            long conglomId,
+            String tableName,
+            String userSuppliedOptimizerOverrides,
+            String indexName,
+            int colRefItem,
+            int lockMode,
+            boolean tableLocked,
+            int isolationLevel,
+            double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            String tableVersion,
+            String explainPlan,
+            GeneratedMethod pastTxFunctor,
+            long minRetentionPeriod,
+            int numUnusedLeadingIndexFields
+    ) throws StandardException;
+
     NoPutResultSet getLastIndexKeyResultSet
     (
             Activation activation,

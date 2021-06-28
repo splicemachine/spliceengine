@@ -247,6 +247,56 @@ public class IndexIT extends SpliceUnitTest{
     }
 
     @Test
+    public void createIndexExcludeNullNotApplicable() throws Exception {
+        String tableName = "TEST_IDX_EXCLUDE_NULL";
+        methodWatcher.executeUpdate(format("create table %s (c1 char(5), c2 int not null, c3 varchar(5))", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('foo', 0, 'bar'), ('hello', 1, 'world')", tableName));
+        methodWatcher.executeUpdate(format("create index %1$s_IDX on %1$s (c2, c3) exclude null keys", tableName));
+
+        /* Old logic:
+         * Index exclude nulls, but query requires c2 is null, so index is not eligible. But it's hinted, so no valid plan.
+         * New logic:
+         * When creating the index, we see that c2 is not null. That means the "exclude null keys" on c2 has no effect.
+         * There is no need to mark this index's exclude null flag. It can be used for the following query.
+         * This is possible because for an index with multiple columns, only rows with NULL or default values on the
+         * leading index column are excluded.
+         */
+        try (ResultSet rs = methodWatcher.executeQuery(format("select c2, c3 from %1$s --splice-properties index=%1$s_IDX\n" +
+                "where c3 is not null", tableName))) {
+            String expected = "C2 | C3   |\n" +
+                    "-----------\n" +
+                    " 0 | bar  |\n" +
+                    " 1 |world |";
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void createIndexExcludeDefaultNotApplicable() throws Exception {
+        String tableName = "TEST_IDX_EXCLUDE_DEFAULT";
+        methodWatcher.executeUpdate(format("create table %s (c1 char(3), c2 varchar(3), c3 varchar(10))", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('zzz', 'ZzZ', 'zZz'), ('', 'EeE', 'eEe'), (null, 'NnN', 'nNn')", tableName));
+        methodWatcher.executeUpdate(format("create index %1$s_IDX on %1$s (c1, c2, c3) exclude default keys", tableName));
+
+        /* Old logic:
+         * Index exclude default values. When checking if the index is eligible or not, we try to get the default value
+         * of c1 but it's null (no default value defined), leading to NPE.
+         * New logic:
+         * Similar to exclude null case above. When defining the index, we see that c1 has no default values, so
+         * "exclude default keys" has no effect. The flag is not set and the index should qualify for the following
+         * .query
+         */
+        try (ResultSet rs = methodWatcher.executeQuery(format("select * from %s --splice-properties index=%1$s_IDX\n" +
+                "where c1 is not null", tableName))) {
+            String expected = "C1  |C2  |C3  |\n" +
+                    "---------------\n" +
+                    "    |EeE |eEe |\n" +
+                    "zzz |ZzZ |zZz |";
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
     public void createIndexesOnExpressionsNoDuplicateIndex() throws Exception{
         String tableName = "TEST_IDX_DUP";
         methodWatcher.executeUpdate(format("create table %s (vc varchar(10), i int not null)", tableName));

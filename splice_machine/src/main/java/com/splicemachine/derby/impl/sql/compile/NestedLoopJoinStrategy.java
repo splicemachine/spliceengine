@@ -20,6 +20,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -61,7 +63,37 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         if (outerCost != null && outerCost.getJoinType() == JoinNode.FULLOUTERJOIN)
             return false;
 
+        if (isJoinWithTriggerRows(innerTable, optimizer))
+            return false;
+
         return innerTable.isMaterializable() || innerTable.supportsMultipleInstantiations();
+    }
+
+    // Nested loop join on Spark does not work correctly when using a common
+    // Dataset to access the trigger REFERENCING NEW/OLD TABLE rows:
+    //         see useCommonDataSet in TriggerNewTransitionRows.
+    // The compilation of a trigger is saved as a stored prepared statement in
+    // the data dictionary, and reloaded/reused by each new triggering statement.
+    // Even if the trigger is compiled to run in OLTP mode, if the triggering
+    // statement runs in OLAP, the trigger must run in OLAP too.  Since we
+    // cannot tell from the SPSDescriptor whether the trigger was compiled
+    // to run on OLTP or OLAP, we would not be able to detect when an
+    // OLTP-compiled trigger which uses nested loop join would need to be
+    // recompiled as forced-OLAP, and avoid choosing nested loop join.
+    // Therefore we must always avoid nested loop join for statement triggers
+    // with a REFERENCING clause, even if compiled for OLTP execution.
+    private boolean isJoinWithTriggerRows(Optimizable innerTable, Optimizer optimizer) {
+        if (!isSingleTableScan(optimizer)) {
+            if (innerTable.isTriggerVTI())
+                return true;
+            ResultSetNode outerTable = optimizer.getOuterTable();
+            if (outerTable instanceof Optimizable) {
+                Optimizable outerOptimizable = (Optimizable)outerTable;
+                if (outerOptimizable.isTriggerVTI())
+                    return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -77,7 +109,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 
         if(predList!=null && basePredicates!=null){
             predList.transferAllPredicates(basePredicates);
-            basePredicates.classify(innerTable,innerTable.getCurrentAccessPath().getConglomerateDescriptor(), true);
+            basePredicates.classify(innerTable,innerTable.getCurrentAccessPath(), true);
         }
 
         return basePredicates;
@@ -194,7 +226,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
              * the table then storeRestrictionList should not have any
              * IN-list probing predicates.  Make sure that's the case.
              */
-            if(!genInListVals){
+            if(!genInListVals && !innerTable.hasIndexPrefixIterator()){
                 Predicate pred;
                 for(int i=storeRestrictionList.size()-1;i>=0;i--){
                     pred=(Predicate)storeRestrictionList.getOptPredicate(i);
@@ -285,7 +317,6 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         innerCost.setParallelism(outerCost.getParallelism());
         innerCost.setRowCount(totalRowCount);
         double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer);
-        remoteCostPerPartition += nljOnSparkPenalty;
         innerCost.setRemoteCost(remoteCostPerPartition);
         innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
         double joinCost = nestedLoopJoinStrategyLocalCost(innerCost, outerCost, totalRowCount, optimizer.isForSpark());
@@ -298,11 +329,11 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
     // Nested loop join is most useful if it can be used to
     // derive an index point-lookup predicate, otherwise it can be
     // very slow on Spark.
-    // NOTE: The following description of the behavior will
-    //       only be enabled once DB-11521 is fixed:
+    // NOTE: The following description of the behavior is
+    //       enabled if session property olapAlwaysPenalizeNLJ
+    //       is false, or not set:
     // Detect when no join predicates are present that have
     // both a start key and a stop key.  If none are present,
-    // or we're reading more than 10 rows from the outer table,
     // return a large cost penalty so we'll avoid such joins.
     private double getNljOnSparkPenalty(Optimizable table,
                                         OptimizablePredicateList predList,
@@ -319,20 +350,18 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         double multiplier = innerCost.getFromBaseTableRows();
         if (multiplier < 1d)
             multiplier = 1d;
-        // TODO:  Enable this code when DB-11521 is fixed.
-        //        Currently join cardinality is grossly underestimated,
-        //        so what we think is a safe nested loop join may in fact
-        //        be joining hundreds or thousands of rows from the left table.
-//        if (!isBaseTable(table))
-//            return NLJ_ON_SPARK_PENALTY * multiplier;
-//        if (hasJoinPredicateWithIndexKeyLookup(predList) && outerCost.rowCount() <= 10)
-//            return retval;
-        return NLJ_ON_SPARK_PENALTY * multiplier;
-    }
+        QueryTreeNode queryTreeNode = (QueryTreeNode) table;
+        LanguageConnectionContext lcc = queryTreeNode.getLanguageConnectionContext();
+        Boolean olapAlwaysPenalizeNLJ = (Boolean)
+            lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPALWAYSPENALIZENLJ);
 
-    private boolean isSingleTableScan(Optimizer optimizer) {
-        return optimizer.getJoinPosition() == 0   &&
-               optimizer.getJoinType() < INNERJOIN;
+        if (olapAlwaysPenalizeNLJ == null || !olapAlwaysPenalizeNLJ.booleanValue()) {
+            if (!isBaseTable(table))
+                return NLJ_ON_SPARK_PENALTY * multiplier;
+            if (hasJoinPredicateWithIndexKeyLookup(predList))
+                return retval;
+        }
+        return NLJ_ON_SPARK_PENALTY * multiplier;
     }
 
     private boolean isBaseTable(Optimizable table) {

@@ -25,7 +25,7 @@ public class SQLConfiguration implements ConfigurationDefault {
     public static final String SPLICE_DB = "splicedb";
     public static final String SPLICE_USER = "SPLICE";
     public static final String SPLICE_JDBC_DRIVER = "com.splicemachine.db.jdbc.ClientDriver";
-    public static final String CONGLOMERATE_TABLE_NAME = SIConfigurations.CONGLOMERATE_TABLE_NAME;
+    public static final String CONGLOMERATE_TABLE_NAME = HBaseConfiguration.CONGLOMERATE_TABLE_NAME;
     public static byte[] getConglomerateTableNameBytes() {
         return Bytes.toBytes(CONGLOMERATE_TABLE_NAME);
     }
@@ -223,7 +223,7 @@ public class SQLConfiguration implements ConfigurationDefault {
     private static final int DEFAULT_NESTEDLOOPJOIN_BATCH_SIZE = 25;
 
     public static final String CONTROL_EXECUTION_ROWS_LIMIT = "splice.controlExecution.rowsLimit";
-    private static final int DEFAULT_CONTROL_EXECUTION_ROWS_LIMIT = 1000000;
+    private static final int DEFAULT_CONTROL_EXECUTION_ROWS_LIMIT = 10000000;
 
     public static final String MAX_CHECK_TABLE_ERRORS="splice.max.checktable.error";
     private static final int DEFAULT_MAX_CHECK_TABLE_ERRORS = 1000;

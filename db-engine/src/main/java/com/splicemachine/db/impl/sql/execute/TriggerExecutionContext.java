@@ -108,6 +108,8 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
     private boolean fromSparkExecution;
     private TemporaryRowHolder temporaryRowHolder;
     private SPSDescriptor fromTableDmlSpsDescriptor;
+    private boolean hasGeneratedColumn;  // Does the trigger table have a generated column?
+
 
     /*
     ** Used to track all the result sets we have given out to
@@ -588,6 +590,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         out.writeBoolean(hasFromTableDmlSpsDescriptor);
         if (hasFromTableDmlSpsDescriptor)
             out.writeObject(fromTableDmlSpsDescriptor);
+        out.writeBoolean(hasGeneratedColumn);
     }
 
     @Override
@@ -622,6 +625,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         boolean hasFromTableDmlSpsDescriptor = in.readBoolean();
         if (hasFromTableDmlSpsDescriptor)
             fromTableDmlSpsDescriptor = (SPSDescriptor) in.readObject();
+        hasGeneratedColumn = in.readBoolean();
     }
 
     /**
@@ -774,5 +778,24 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         if (triggerd == null)
             return "";
         return triggerd.getName();
+    }
+
+    public void setHasGeneratedColumn() {
+        hasGeneratedColumn = true;
+    }
+
+    public boolean hasGeneratedColumn() {
+        return hasGeneratedColumn;
+    }
+
+    public boolean needsTemporaryConglomerate(boolean nestedTrigger) {
+        // The following cases do not function properly using an in-memory Spark Dataset
+        // to hold the trigger rows.  Return true so we still use a temporary conglomerate
+        // for these cases.
+        return nestedTrigger || hasSpecialFromTableTrigger() || hasGeneratedColumn || !fromSparkExecution;
+    }
+
+    public boolean isFromSparkExecution() {
+        return fromSparkExecution;
     }
 }

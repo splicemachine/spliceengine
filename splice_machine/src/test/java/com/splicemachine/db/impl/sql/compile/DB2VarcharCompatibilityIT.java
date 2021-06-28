@@ -117,6 +117,28 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
                         row(1, "a    "),
                         row(1, "a      ")))
                 .create();
+        new TableCreator(conn)
+                .withCreate("create table a ( v1 varchar(10) not null default '', v2 varchar(10) not null default '')")
+                .withIndex("create index idx1 on a (v2)")
+                .withIndex("create index idx2 on a (v2, v1)")
+                .withIndex("create index idx3 on a (v1)")
+                .withInsert("insert into a values(?,?)")
+                .withRows(rows(
+                        row("hello", "there")))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table AG (a int, b real, c bigint, d decimal(15,2))")
+                .withInsert("insert into AG(a, b, c, d) values(?,?,?,?)")
+                .withRows(rows(
+                        row(1, 1, 2, 3),
+                        row(2, 1, 2, 3),
+                        row(3, 1, 2, 3)))
+                .create();
+        spliceClassWatcher.execute("insert into AG select a, b+1, c+1, d+1 from AG");
+        spliceClassWatcher.execute("insert into AG select a, b+1, c+1, d+1 from AG");
+        spliceClassWatcher.execute("insert into AG select a, b+1, c+1, d+1 from AG");
+        spliceClassWatcher.execute("insert into AG select a, b+1, c+1, d+1 from AG");
     }
 
     @BeforeClass
@@ -130,6 +152,19 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
     public static void exitDB2CompatibilityMode() throws Exception {
         spliceClassWatcher.executeUpdate("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', null)");
         spliceClassWatcher.executeUpdate("call syscs_util.INVALIDATE_GLOBAL_DICTIONARY_CACHE()");
+    }
+
+    @Test
+    public void testAvgAggregator() throws Exception {
+        String sqlText = "select a, avg(b), avg(c), avg(d) from ag group by a order by a";
+        String expected =
+                "A | 2  | 3 |   4   |\n" +
+                "---------------------\n" +
+                " 1 |3.0 | 4 |5.0000 |\n" +
+                " 2 |3.0 | 4 |5.0000 |\n" +
+                " 3 |3.0 | 4 |5.0000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
     }
 
     @Test
@@ -451,6 +486,47 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
                  methodWatcher.prepareStatement(sqlText)) {
             loadParamsAndRun(ps, skipParamTwo, skipParamThree, sqlText, expected);
         }
+    }
+
+    private void testPreparedQuery2(String sqlTemplate,
+                                    String expected) throws Exception  {
+        String sqlText = format(sqlTemplate, "IDX1");
+        try (PreparedStatement ps =
+                 methodWatcher.prepareStatement(sqlText)) {
+            loadParamsAndRun2(ps, sqlText, expected);
+        }
+
+        sqlText = format(sqlTemplate, "IDX2");
+        try (PreparedStatement ps =
+                 methodWatcher.prepareStatement(sqlText)) {
+            loadParamsAndRun2(ps, sqlText, expected);
+        }
+        sqlText = format(sqlTemplate, "IDX3");
+        try (PreparedStatement ps =
+                 methodWatcher.prepareStatement(sqlText)) {
+            loadParamsAndRun2(ps, sqlText, expected);
+        }
+    }
+    private void loadParamsAndRun2(PreparedStatement ps,
+                                  String sqlText,
+                                  String expected) throws Exception {
+            ps.setString(1, "there ");
+            try (ResultSet rs = ps.executeQuery()) {
+                assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+    }
+
+    @Test
+    public void testParameterizedIndexLookup() throws Exception {
+        String sqlTemplate = "select v1 from a --splice-properties useSpark=" + useSpark.toString() +
+                             ", index=%s\n" +
+                             "where v2=?";
+        String expected =
+            "V1   |\n" +
+            "-------\n" +
+            "hello |";
+
+        testPreparedQuery2(sqlTemplate, expected);
     }
 
     @Test

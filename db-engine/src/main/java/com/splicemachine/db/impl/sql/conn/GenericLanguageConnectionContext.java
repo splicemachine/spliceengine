@@ -56,6 +56,7 @@ import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.CursorActivation;
 import com.splicemachine.db.iapi.sql.execute.*;
+import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.XATransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
@@ -63,6 +64,7 @@ import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.db.impl.db.BasicDatabase;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.catalog.ManagedCache;
@@ -366,6 +368,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private SparkSQLUtils sparkSQLUtils;
 
     /* constructor */
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Intentional")
     public GenericLanguageConnectionContext(
         ContextManager cm,
         TransactionController tranCtrl,
@@ -480,6 +483,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_SNAPSHOT, SessionProperties.PROPERTYNAME.SNAPSHOT_TIMESTAMP);
             setSessionFromConnectionProperty(connectionProperties, Property.OLAP_PARALLEL_PARTITIONS, SessionProperties.PROPERTYNAME.OLAPPARALLELPARTITIONS);
             setSessionFromConnectionProperty(connectionProperties, Property.OLAP_SHUFFLE_PARTITIONS, SessionProperties.PROPERTYNAME.OLAPSHUFFLEPARTITIONS);
+            setSessionFromConnectionProperty(connectionProperties, Property.OLAP_ALWAYS_PENALIZE_NLJ, SessionProperties.PROPERTYNAME.OLAPALWAYSPENALIZENLJ);
 
             String disableAdvancedTC = connectionProperties.getProperty(Property.CONNECTION_DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
             if (disableAdvancedTC != null && disableAdvancedTC.equalsIgnoreCase("true")) {
@@ -492,6 +496,22 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             if (disableNestedLoopJoinPredicatePushDown != null &&
                 disableNestedLoopJoinPredicatePushDown.equalsIgnoreCase("true")) {
                 this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DISABLE_NLJ_PREDICATE_PUSH_DOWN, "TRUE".toString());
+            }
+
+            String disablePredsForIndexOrPkAccessPath = connectionProperties.getProperty(Property.CONNECTION_DISABLE_PREDS_FOR_INDEX_OR_PK_ACCESS_PATH);
+            if (disablePredsForIndexOrPkAccessPath != null &&
+                    disablePredsForIndexOrPkAccessPath.equalsIgnoreCase("true")) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DISABLEPREDSFORINDEXORPKACCESSPATH, "TRUE".toString());
+            }
+            String alwaysAllowIndexPrefixIteration = connectionProperties.getProperty(Property.CONNECTION_ALWAYS_ALLOW_INDEX_PREFIX_ITERATION);
+            if (alwaysAllowIndexPrefixIteration != null &&
+                    alwaysAllowIndexPrefixIteration.equalsIgnoreCase("true")) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.ALWAYSALLOWINDEXPREFIXITERATION, "TRUE".toString());
+            }
+            String favorIndexPrefixIteration = connectionProperties.getProperty(Property.CONNECTION_FAVOR_INDEX_PREFIX_ITERATION);
+            if (favorIndexPrefixIteration != null &&
+                    favorIndexPrefixIteration.equalsIgnoreCase("true")) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.FAVORINDEXPREFIXITERATION, "TRUE".toString());
             }
         }
         if (type.isSessionHinted()) {
@@ -2015,6 +2035,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public TransactionController popNestedTransaction() {
         return nestedTransactions.remove(0);
     }
+
+    @Override
+    public boolean hasNestedTransaction() { return !nestedTransactions.isEmpty(); }
 
     /**
      * Get the data value factory to use with this language connection context.
@@ -4052,6 +4075,36 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public boolean isPredicateUsageForIndexOrPkAccessDisabled() {
+        Boolean disablePredsForIndexOrPkAccessPath = (Boolean) getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.DISABLEPREDSFORINDEXORPKACCESSPATH);
+        if (disablePredsForIndexOrPkAccessPath != null) {
+            return disablePredsForIndexOrPkAccessPath;
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean alwaysAllowIndexPrefixIteration() {
+        Boolean alwaysAllowIndexPrefixIteration = (Boolean) getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.ALWAYSALLOWINDEXPREFIXITERATION);
+        if (alwaysAllowIndexPrefixIteration != null) {
+            return alwaysAllowIndexPrefixIteration;
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean favorIndexPrefixIteration() {
+        Boolean favorIndexPrefixIteration = (Boolean) getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.FAVORINDEXPREFIXITERATION);
+        if (favorIndexPrefixIteration != null) {
+            return favorIndexPrefixIteration;
+        }
+
+        return false;
+    }
+
+    @Override
     public void setDB2VarcharCompatibilityModeNeedsReset(boolean newValue,
                                                          CharTypeCompiler charTypeCompiler) {
         db2VarcharCompatibilityModeNeedsReset = newValue;
@@ -4078,6 +4131,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public AccessFactory getSpliceAccessManager() {
+        if (db instanceof BasicDatabase) {
+            BasicDatabase basicDatabase = (BasicDatabase) db;
+            return basicDatabase.getAccessFactory();
+        }
+        return null;
+    }
+    
+    @Override      
     public boolean isSparkJob() {
         return sparkContext != null;
     }

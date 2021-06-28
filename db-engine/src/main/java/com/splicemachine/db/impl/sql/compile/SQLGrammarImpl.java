@@ -597,6 +597,10 @@ class SQLGrammarImpl {
         // even more hacky code.
         // The derived table flattening logic in preprocess will be triggered to
         // flatten the subquery.
+        if (!(subQuery instanceof SubqueryNode)) {
+            throw StandardException.newException(SQLState.LANG_INVALID_UPDATE_STATEMENT,
+                                                 "Expecting RHS to be a subquery when LHS of set clause is a tuple");
+        }
         SubqueryNode subq = (SubqueryNode) subQuery;
         FromTable fromSubq = (FromTable) nodeFactory.getNode(
                 C_NodeTypes.FROM_SUBQUERY,
@@ -1313,5 +1317,15 @@ class SQLGrammarImpl {
             buf.setLength(buf.length()-1);
         }
         return buf.toString();
+    }
+
+    ValueNode getNullForCase() throws StandardException {
+
+        ValueNode untypedNullConstantNode = (ValueNode) nodeFactory.getNode(C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE, cm);
+        DataTypeDescriptor type = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1);
+        ValueNode value = new CastNode(untypedNullConstantNode, type, cm);
+        ((CastNode) value).setForExternallyGeneratedCASTnode();
+        ((CastNode) value).setForNullsInConditionalNode();
+        return value;
     }
 }
