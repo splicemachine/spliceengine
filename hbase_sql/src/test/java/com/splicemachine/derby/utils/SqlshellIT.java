@@ -440,4 +440,56 @@ public class SqlshellIT {
         Assert.assertEquals(Arrays.toString(ijCommands.parseVersion("3.2.0.1992")), "[3, 2, 0, 1992]");
         Assert.assertEquals(Arrays.toString(ijCommands.parseVersion("2.8.0.1973-SNAPSHOT")), "[2, 8, 0, 1973]");
     }
+
+    public void testSyntaxErrorMessage() {
+        execute("CREATE TABLE MY_TABLE (\n" +
+                "L_ORDERKEY BIGINT NOT NULL,\n" +
+                "L_PARTKEY INTEGER NOT DECIMAL,\n" +
+                "L_SUPPKEY INTEGER NOT NULL,\n" +
+                "L_LINENUMBER INTEGER NOT NULL,\n" +
+                "L_QUANTITY DECIMAL(15,2),\n" +
+                "L_EXTENDEDPRICE DECIMAL(15,2),\n" +
+                "L_DISCOUNT DECIMAL(15,2)\n" +
+                ");\n",
+
+                "ERROR 42X01: Syntax error: Encountered \"DECIMAL\" at line 3, column 23.\n" +
+                "Was expecting:\n" +
+                "    \"null\" ...\n" +
+                "    \n" +
+                "0:\tCREATE TABLE MY_TABLE (\n" +
+                "1:\tL_ORDERKEY BIGINT NOT NULL,\n" +
+                "2:\tL_PARTKEY INTEGER NOT DECIMAL,\n" +
+                "   \t                      ^^^^^^^---------\n" +
+                "3:\tL_SUPPKEY INTEGER NOT NULL,\n" +
+                "4:\tL_LINENUMBER INTEGER NOT NULL,\n" +
+                "5:\tL_QUANTITY DECIMAL(15,2),\n" +
+                ".\n" +
+                "Issue the 'help' command for general information on Splice command syntax.\n" +
+                "Any unrecognized commands are treated as potential SQL commands and executed directly.\n" +
+                "Consult your DBMS server reference documentation for details of the SQL syntax supported by your server.\n");
+    }
+
+    @Test
+    public void testLexerErrorMessage() {
+        execute("CREATE TABLE MY_TABLE (\n" +
+                "L_ORDERKEY BIGINT NOT NULL,\n" +
+                "L_PARTKEY # INTEGER NOT NULL,\n" +
+                "L_SUPPKEY INTEGER NOT NULL,\n" +
+                "L_LINENUMBER INTEGER NOT NULL,\n" +
+                "L_QUANTITY DECIMAL(15,2),\n" +
+                "L_EXTENDEDPRICE DECIMAL(15,2),\n" +
+                "L_DISCOUNT DECIMAL(15,2)\n" +
+                ");\n",
+
+                "ERROR 42X02: Lexical error at line 3, column 11.  Encountered: \"#\" (35), after : \"\"\n" +
+                "\n" +
+                "0:\tCREATE TABLE MY_TABLE (\n" +
+                "1:\tL_ORDERKEY BIGINT NOT NULL,\n" +
+                "2:\tL_PARTKEY # INTEGER NOT NULL,\n" +
+                "   \t         ^^---------\n" +
+                "3:\tL_SUPPKEY INTEGER NOT NULL,\n" +
+                "4:\tL_LINENUMBER INTEGER NOT NULL,\n" +
+                "5:\tL_QUANTITY DECIMAL(15,2),\n" +
+                ".\n");
+    }
 }

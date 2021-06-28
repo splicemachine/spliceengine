@@ -463,6 +463,7 @@ public class GenericStatement implements Statement{
                 setMulticolumnInlistProbeOnSparkEnabled(lcc, cc);
                 setConvertMultiColumnDNFPredicatesToInList(lcc, cc);
                 setDisablePredicateSimplification(lcc, cc);
+        setDisableConstantFolding(lcc, cc);
                 setNativeSparkAggregationMode(lcc, cc);
                 setAllowOverflowSensitiveNativeSparkExpressions(lcc, cc);
                 setNewMergeJoin(lcc, cc);

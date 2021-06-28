@@ -146,4 +146,12 @@ public class ValueTupleNode extends ValueNode {
         }
         return false;
     }
+
+    public ValueNodeList toValueNodeList() {
+        ValueNodeList vnl = new ValueNodeList();
+        for (ValueNode vn : tuple) {
+            vnl.addValueNode(vn);
+        }
+        return vnl;
+    }
 }

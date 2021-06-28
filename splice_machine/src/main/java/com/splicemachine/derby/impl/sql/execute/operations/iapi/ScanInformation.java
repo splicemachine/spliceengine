@@ -88,4 +88,7 @@ public interface ScanInformation<T> {
     FormatableBitSet getDefaultValueMap() throws StandardException;
 
     boolean getSameStartStopPosition();
+
+    // Setting to true skips evaluation of the scan qualifiers.
+    void skipQualifiers(boolean skip);
 }

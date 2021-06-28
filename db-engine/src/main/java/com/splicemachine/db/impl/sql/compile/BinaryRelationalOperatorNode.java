@@ -42,6 +42,7 @@ package com.splicemachine.db.impl.sql.compile;
  import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
  import com.splicemachine.db.iapi.store.access.ScanController;
  import com.splicemachine.db.iapi.store.access.StoreCostController;
+ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
  import com.splicemachine.db.iapi.types.DataValueDescriptor;
  import com.splicemachine.db.iapi.types.Orderable;
  import com.splicemachine.db.iapi.types.TypeId;
@@ -1173,14 +1174,21 @@ public class BinaryRelationalOperatorNode
      * operator is known; otherwise, this operator node
      */
     ValueNode evaluateConstantExpressions() throws StandardException{
-        if(leftOperand instanceof ConstantNode &&
-                rightOperand instanceof ConstantNode){
-            ConstantNode leftOp=(ConstantNode)leftOperand;
-            ConstantNode rightOp=(ConstantNode)rightOperand;
-            DataValueDescriptor leftVal=leftOp.getValue();
-            DataValueDescriptor rightVal=rightOp.getValue();
+        if(getLeftOperand() instanceof ConstantNode &&
+                getRightOperand() instanceof ConstantNode){
+            ConstantNode leftOp=(ConstantNode)getLeftOperand();
+            ConstantNode rightOp=(ConstantNode)getRightOperand();
 
-            if(leftVal != null && !leftVal.isNull() && rightVal != null && !rightVal.isNull()){
+            if (leftOp.isNull() || rightOp.isNull()) {
+                ValueNode newNull = new UntypedNullConstantNode(getContextManager());
+                newNull.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN));
+                return newNull;
+            }
+
+            DataValueDescriptor leftVal = leftOp.getValue();
+            DataValueDescriptor rightVal = rightOp.getValue();
+
+            if(leftVal != null && !leftVal.isNull() && rightVal != null && !rightVal.isNull()) {
                 int comp=leftVal.compare(rightVal);
                 switch(operatorType){
                     case EQUALS_RELOP:
@@ -1901,7 +1909,7 @@ public class BinaryRelationalOperatorNode
 
          List<ColumnReference> crList = expr.getHashableJoinColumnReference();
          assert crList != null && !crList.isEmpty();
-         return !selfComparison(crList.get(0),false) && !implicitVarcharComparison();
+         return !selfComparison(crList.get(0),true) && !implicitVarcharComparison();
 
      }
 
