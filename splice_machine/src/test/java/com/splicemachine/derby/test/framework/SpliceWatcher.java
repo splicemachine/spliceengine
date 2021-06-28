@@ -452,6 +452,15 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
         return -1l;
     }
 
+    public int executeGetInt(String sql, int index) throws SQLException {
+        try( Statement s = getOrCreateConnection().createStatement();
+             ResultSet rs = s.executeQuery(sql))
+        {
+            Assert.assertTrue(rs.next());
+            return rs.getInt(index);
+        }
+    }
+
     public String executeGetString(String sql, int index) throws SQLException {
         try( Statement s = getOrCreateConnection().createStatement();
              ResultSet rs = s.executeQuery(sql))
