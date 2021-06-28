@@ -34,7 +34,7 @@ public class HGetActiveSessionsTask implements GetActiveSessionsTask {
     }
 
     @Override
-    public Set<Long> call() throws Exception{
+    public Set<String> call() throws Exception{
         SConfiguration configuration = HConfiguration.getConfiguration();
         Connection conn = HBaseConnectionFactory.getInstance(configuration).getConnection();
         Admin admin = conn.getAdmin();
