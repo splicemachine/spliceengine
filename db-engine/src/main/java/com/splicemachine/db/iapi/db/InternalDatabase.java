@@ -45,6 +45,7 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.UUID;
 
 /**
  * The com.splicemachine.db.iapi.db.Database
@@ -154,5 +155,5 @@ public interface InternalDatabase extends com.splicemachine.db.database.Database
 
 	long replaceJar(final InputStream is, JarUtil util) throws StandardException;
 
-	default void unregisterSession(long sessionId) {};
+	default void unregisterSession(UUID sessionId) {};
 }

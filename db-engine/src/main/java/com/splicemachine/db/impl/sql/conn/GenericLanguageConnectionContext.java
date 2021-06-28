@@ -155,6 +155,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private String drdaID;
     private String dbname;
     private String rdbIntTkn;
+    private final java.util.UUID sessionID;
 
     private Object lastQueryTree; // for debugging
 
@@ -204,7 +205,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     protected OptimizerFactory of;
     protected LanguageConnectionFactory connFactory;
 
-    /* 
+    /*
      * A statement context is "pushed" and "popped" at the beginning and
      * end of every statement so that only that statement is cleaned up
      * on a Statement Exception.  As a performance optimization, we only push
@@ -397,6 +398,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         this.drdaID=drdaID;
         this.dbname=dbname;
         this.rdbIntTkn=rdbIntTkn;
+        this.sessionID=java.util.UUID.randomUUID();
         this.commentStripper = lcf.newCommentStripper();
         this.defaultSchema = defaultSchema;
 
@@ -963,7 +965,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     /*Reset the connection before it is returned (indirectly) by a PooledConnection object. See EmbeddedConnection. */
     @Override
     public void resetFromPool() throws StandardException{
-        db.unregisterSession(instanceNumber);
+        db.unregisterSession(sessionID);
 
         interruptedException=null;
 
@@ -2146,7 +2148,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             if(!a.isInUse()){
                 continue;
             }
-            
+
             /* for this prepared statement */
             if(pStmt==a.getPreparedStatement()){
                 ResultSet rs=a.getResultSet();
@@ -2382,8 +2384,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                 cc.firstOnStack();
             }
         }else{
-            /* Reset the next column,table, subquery and ResultSet numbers at 
-            * the beginning of each statement 
+            /* Reset the next column,table, subquery and ResultSet numbers at
+            * the beginning of each statement
             */
             cc.resetContext();
         }
@@ -2398,10 +2400,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
          * Set the compilation schema when its UUID is available.
          * i.e.:  Schema may not have been physically created yet, so
          *        its UUID will be null.
-         * 
+         *
          * o For trigger SPS recompilation, the system must use its
-         *   compilation schema to recompile the statement. 
-         * 
+         *   compilation schema to recompile the statement.
+         *
          * o For view recompilation, we set the compilation schema
          *   for this compiler context if its UUID is available.
          *   Otherwise, the compilation schema will be determined
@@ -2962,7 +2964,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         ** If it isn't a StandardException, then assume
         ** session severity. It is probably an unexpected
         ** java error somewhere in the language.
-        ** Store layer treats JVM error as session severity, 
+        ** Store layer treats JVM error as session severity,
         ** hence to be consistent and to avoid getting rawstore
         ** protocol violation errors, we treat java errors here
         ** to be of session severity.
@@ -3326,6 +3328,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public void setDrdaID(String drdaID){
         this.drdaID=drdaID;
+    }
+
+    @Override
+    public java.util.UUID getSessionID() {
+        return sessionID;
     }
 
     @Override
