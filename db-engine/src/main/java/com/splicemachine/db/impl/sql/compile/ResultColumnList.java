@@ -770,10 +770,14 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             if( index >= firstOrderByIndex )
                 fromList.useAliases();
 
-            ValueNode vn=elementAt(index);
-            vn=vn.bindExpression(fromList,subqueryList,aggregateVector);
+            ValueNode vn = elementAt(index);
+            vn = vn.bindExpression(fromList,subqueryList,aggregateVector);
             //-sf- this cast is safe because ResultColumn returns a ResultColumn from bindExpression()
             ResultColumn rc = (ResultColumn)vn;
+            if (rc.getExpression() instanceof ValueTupleNode) {
+                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                                                     "Tuple values as a column in select list is not supported");
+            }
             setElementAt((ResultColumn)vn,index);
 
             // if we have aliases in the SELECT part, add them, so ORDER BY can resolve them later
