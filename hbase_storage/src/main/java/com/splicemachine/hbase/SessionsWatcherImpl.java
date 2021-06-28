@@ -31,7 +31,7 @@ public class SessionsWatcherImpl implements com.splicemachine.si.api.session.Ses
     private static final Logger LOG = Logger.getLogger(SessionsWatcherImpl.class);
     private final Set<Long> activeSessions = new ConcurrentHashSet<>();
 
-    public static SessionsWatcherImpl INSTANCE = new SessionsWatcherImpl();
+    public static final SessionsWatcherImpl INSTANCE = new SessionsWatcherImpl();
 
     private SessionsWatcherImpl(){}
 
