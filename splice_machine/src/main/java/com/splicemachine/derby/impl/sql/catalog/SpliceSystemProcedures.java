@@ -746,7 +746,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         Procedure getActiveSessions = Procedure.newBuilder().name("SYSCS_GET_ACTIVE_SESSIONS")
                 .numOutputParams(0)
                 .numResultSets(1)
-                .ownerClass(spliceAdminClass)
+                .ownerClass(SpliceAdmin.class.getCanonicalName())
                 .build();
         procedures.add(getActiveSessions);
 
