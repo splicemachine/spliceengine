@@ -43,11 +43,9 @@ import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.db.impl.sql.compile.MatchingClauseNode;
-import com.splicemachine.db.impl.sql.execute.BaseActivation;
-import com.splicemachine.db.impl.sql.execute.TemporaryRowHolderImpl;
+import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.impl.sql.execute.operations.RowOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.CursorOperation;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -172,43 +170,42 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
         if ( _thenRows == null ) { return; }
 
         CursorResultSet sourceRS = _thenRows.getResultSet();
-        sourceRS.open();
-        while(sourceRS.getNextRow() != null) {
-            ExecRow row = sourceRS.getCurrentRow();
+        CursorOperation co = new CursorOperation(activation, sourceRS);
 
-            RowOperation ro = new RowOperation(activation, row, true, 0, 0, 0);
-            ro.getActivation().setResultDescription(_thenColumnSignature); // this is weird, but needed because result description was taken from HOJN
+        // this is weird, but needed because result description was taken from HOJN
+        ResultDescription previousResultDesc = co.getActivation().getResultDescription();
+        co.getActivation().setResultDescription(_thenColumnSignature);
 
-            //
-            // Push the action-specific ConstantAction rather than the Merge statement's
-            // ConstantAction. The INSERT/UPDATE/DELETE expects the default ConstantAction
-            // to be appropriate to it.
-            //
+        //
+        // Push the action-specific ConstantAction rather than the Merge statement's
+        // ConstantAction. The INSERT/UPDATE/DELETE expects the default ConstantAction
+        // to be appropriate to it.
+        //
+        try {
+            activation.pushConstantAction(_thenAction);
+
             try {
-                activation.pushConstantAction(_thenAction);
+                //
+                // Poke the temporary table into the variable which will be pushed as
+                // an argument to the INSERT/UPDATE/DELETE action.
+                //
+                Field resultSetField = activation.getClass().getField(_resultSetFieldName);
+                resultSetField.set(activation, co);
 
-                try {
-                    //
-                    // Poke the temporary table into the variable which will be pushed as
-                    // an argument to the INSERT/UPDATE/DELETE action.
-                    //
-                    Field resultSetField = activation.getClass().getField(_resultSetFieldName);
-                    resultSetField.set(activation, ro);
-
-                    //
-                    // Now execute the generated method which creates an InsertResultSet,
-                    // UpdateResultSet, or DeleteResultSet.
-                    //
-                    Method actionMethod = activation.getClass().getMethod(_actionMethodName);
-                    _actionRS = (ResultSet) actionMethod.invoke(activation, null);
-                } catch (Exception e) {
-                    throw StandardException.plainWrapException(e);
-                }
-                // this is where the INSERT/UPDATE/DELETE is processed
-                _actionRS.open();
-            } finally {
-                activation.popConstantAction();
+                //
+                // Now execute the generated method which creates an InsertResultSet,
+                // UpdateResultSet, or DeleteResultSet.q
+                Method actionMethod = activation.getClass().getMethod(_actionMethodName);
+                _actionRS = (ResultSet) actionMethod.invoke(activation, null);
+            } catch (Exception e) {
+                throw StandardException.plainWrapException(e);
             }
+            // this is where the INSERT/UPDATE/DELETE is processed
+            _actionRS.open();
+        } finally {
+            activation.popConstantAction();
+            co.getActivation().setResultDescription(previousResultDesc);
+            co.close();
         }
     }
 
