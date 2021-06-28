@@ -152,7 +152,7 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter implements 
     public void close() throws IOException {
         try {
             if (channelFuture != null)
-                channelFuture.channel().closeFuture()
+                channelFuture.channel().closeFuture();
             if (workerGroup != null)
                 workerGroup.shutdownGracefully();
         } catch (Exception e) {
