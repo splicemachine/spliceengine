@@ -685,6 +685,14 @@ public class MatchingClauseNode extends QueryTreeNode {
     {
         bindInsertValues( fullFromList, targetTable );
 
+        // following is not supported:
+        //      NOT MATCHED THEN INSERT (i, j, k) VALUES (SOURCE.i, SOURCE.j, SOURCE.i+1)
+        // see DB-12286
+        for(ResultColumn iv : _insertValues) {
+            if(iv.getExpression() instanceof BinaryOperatorNode)
+                throw new RuntimeException("INSERT with expressions not supported");
+        }
+
         // the VALUES clause may not mention columns in the target table
         FromList    targetTableFromList = new FromList( getNodeFactory().doJoinOrderOptimization(), getContextManager() );
         targetTableFromList.addElement( fullFromList.elementAt( 0 ) );

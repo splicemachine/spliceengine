@@ -102,27 +102,10 @@ public class MergeOperation extends NoRowsOperation
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-//    @Override
-//    public final long modifiedRowCount() {
-//        // todo, see SpliceBaseOperation.computeModifiedRows()
-//        // return _rowCount + RowUtil.getRowCountBase();
-//        return 0;
-//    }
-
     public void open() throws StandardException
     {
         setup();
-
-        boolean rowsFound = collectAffectedRows();
-        if ( !rowsFound ) {
-            activation.addWarning( StandardException.newWarning( SQLState.LANG_NO_ROW_FOUND ) );
-        }
-
-        // now execute the INSERT/UPDATE/DELETE actions with the rows that have been buffered for execution
-        for (MatchingClauseConstantAction clause : _constants.getMatchingClauses()) {
-            clause.executeConstantAction(activation);
-        }
-
+        loopThroughDrivingLeftJoin();
         cleanUp();
     }
 
@@ -160,36 +143,25 @@ public class MergeOperation extends NoRowsOperation
     }
 
     /**
-     * <p>
-     * Loop through the rows in the driving left join.
-     * </p>
+     * For row in {driving left join}
+     *      for matchingClause in matchingClausesList:
+     *          if matchingClause.satisfiesMatchingRefinement(row)
+     *
+     * driving left join = SELECT selectList FROM sourceTable LEFT OUTER JOIN targetTable ON searchCondition
      */
-    boolean collectAffectedRows() throws StandardException
+    void loopThroughDrivingLeftJoin() throws StandardException
     {
         boolean rowsFound = false;
-        while ( true )
+        while ( (_row = _drivingLeftJoin.getNextRowCore()) != null )
         {
-            // may need to objectify stream columns here.
-            // see DMLWriteResultSet.getNextRowCoure(NoPutResultSet)
-            _row = _drivingLeftJoin.getNextRowCore();
-            if ( _row == null ) { break; }
-
             rowsFound = true;
-
             boolean matched = rowLocationColumnIsNotNull(_row);
 
             // find the first (!) clause which applies to this row
-            for (MatchingClauseConstantAction clause : _constants.getMatchingClauses()) {
-                // if we have a match, consider a clause if it is WHEN MATCHED THEN xxx
-                // else (we have a non-match), consider a clause if it's not a WHEN MATCHED (e.g. WHEN NOT MATCHED THEN INSERT)
-                if(matched != clause.isWhenMatchedClause())
-                    continue;
-
-                // check if matching refinement is satisfied
-                if ( clause.satisfiesMatchingRefinement( activation ) )
+            for (MatchingClauseConstantAction clause : _constants.getMatchingClauses())
+            {
+                if( clause.consumeRow(activation, _row, matched) )
                 {
-                    // buffer the row for later execution
-                    clause.bufferThenRow( activation, _row );
                     _rowCount++;
                     // only execute first match/nonmatch
                     break;
@@ -197,7 +169,15 @@ public class MergeOperation extends NoRowsOperation
             }
         }
 
-        return rowsFound;
+        // execute INSERT/UPDATE/DELETE actions with the rows that have been buffered for execution
+        // (note part of this might have already executed in bufferThenRows, this is executing the "remainder"
+        for (MatchingClauseConstantAction clause : _constants.getMatchingClauses()) {
+            clause.executeConstantAction(activation);
+        }
+
+        if ( !rowsFound ) {
+            activation.addWarning( StandardException.newWarning( SQLState.LANG_NO_ROW_FOUND ) );
+        }
     }
 
     /**
