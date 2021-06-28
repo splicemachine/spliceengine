@@ -46,6 +46,7 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.UUID;
 
 /**
  * The com.splicemachine.db.iapi.db.Database
@@ -157,5 +158,5 @@ public interface InternalDatabase extends com.splicemachine.db.database.Database
 
 	AccessFactory getAccessFactory();
 
-	default void unregisterSession(long sessionId) {};
+	default void unregisterSession(UUID sessionId) {};
 }

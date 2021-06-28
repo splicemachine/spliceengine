@@ -163,6 +163,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private final int instanceNumber;
     private String drdaID;
     private String rdbIntTkn;
+    private final java.util.UUID sessionID;
 
     private Object lastQueryTree; // for debugging
     private ManagedCache<UUID, SPSDescriptor> spsCache = null;
@@ -421,6 +422,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         this.instanceNumber = instanceNumber;
         this.drdaID = drdaID;
         this.rdbIntTkn = rdbIntTkn;
+        this.sessionID = java.util.UUID.randomUUID();
         this.commentStripper = lcf.newCommentStripper();
         this.defaultSchema = defaultSchema;
         this.spsCache = spsCache;
@@ -1041,7 +1043,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     /*Reset the connection before it is returned (indirectly) by a PooledConnection object. See EmbeddedConnection. */
     @Override
     public void resetFromPool() throws StandardException {
-        getSpliceInstance().unregisterSession(instanceNumber);
+        getSpliceInstance().unregisterSession(sessionID);
 
         interruptedException = null;
 
@@ -3436,6 +3438,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public void setDrdaID(String drdaID) {
         this.drdaID = drdaID;
+    }
+
+    @Override
+    public java.util.UUID getSessionID() {
+        return sessionID;
     }
 
     @Override

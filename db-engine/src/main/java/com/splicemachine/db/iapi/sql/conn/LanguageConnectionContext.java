@@ -1185,6 +1185,13 @@ public interface LanguageConnectionContext extends Context {
     void setDrdaID(String drdaID);
 
     /**
+     * Get the session ID of this LCC
+     *
+     * @return Session ID of this LCC.
+     */
+    java.util.UUID getSessionID();
+
+    /**
      * Get the database name of this LCC.
      *
      * @return database name of this LCC.

@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.impl.db;
 
-import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.AuthenticationConfiguration;
 import com.splicemachine.db.catalog.UUID;
@@ -24,9 +23,7 @@ import com.splicemachine.db.iapi.jdbc.AuthenticationService;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.daemon.Serviceable;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyFactory;
@@ -182,7 +179,7 @@ public class SpliceDatabase extends BasicDatabase{
 
         setupASTVisitors(lctx);
 
-        SIDriver.driver().getSessionsWatcher().registerSession(lctx.getInstanceNumber());
+        SIDriver.driver().getSessionsWatcher().registerSession(lctx.getSessionID());
         return lctx;
     }
 
@@ -567,7 +564,7 @@ public class SpliceDatabase extends BasicDatabase{
     }
 
     @Override
-    public void unregisterSession(long sessionId) {
+    public void unregisterSession(java.util.UUID sessionId) {
         SIDriver.driver().getSessionsWatcher().unregisterSession(sessionId);
     }
 }

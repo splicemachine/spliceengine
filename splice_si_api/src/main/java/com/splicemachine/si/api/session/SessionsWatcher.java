@@ -2,13 +2,14 @@ package com.splicemachine.si.api.session;
 
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 public interface SessionsWatcher {
-    Set<Long> getLocalActiveSessions();
+    Set<String> getLocalActiveSessions();
 
-    List<Long> getAllActiveSessions();
+    List<String> getAllActiveSessions();
 
-    void registerSession(long sessionId);
+    void registerSession(UUID sessionId);
 
-    void unregisterSession(long sessionId);
+    void unregisterSession(UUID sessionId);
 }

@@ -1686,11 +1686,13 @@ public class SpliceAdmin extends BaseAdminProcedures {
         ExecRow row = new ValueRow(2);
         row.setColumn(1, new SQLVarchar(hostname + ":" + port));
         row.setColumn(2, new SQLInteger(sessionNumber));
+        row.setColumn(3, new SQLVarchar(lcc.getSessionID().toString()));
         rows.add(row);
 
         IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, new GenericColumnDescriptor[]{
                 new GenericColumnDescriptor("HOSTNAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
                 new GenericColumnDescriptor("SESSION", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+                new GenericColumnDescriptor("SESSION_ID", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 36)),
         },
                 lastActivation);
         try {
@@ -1711,9 +1713,9 @@ public class SpliceAdmin extends BaseAdminProcedures {
 
     public static void SYSCS_GET_ACTIVE_SESSIONS(ResultSet[] resultSet) throws SQLException {
         ResultHelper res = new ResultHelper();
-        ResultHelper.BigintColumn col = res.addBigint("sessionId", 6);
-        List<Long> result = SIDriver.driver().getSessionsWatcher().getAllActiveSessions();
-        for (long sessionId : result) {
+        ResultHelper.VarcharColumn col = res.addVarchar("sessionId", 36);
+        List<String> result = SIDriver.driver().getSessionsWatcher().getAllActiveSessions();
+        for (String sessionId : result) {
             res.newRow();
             col.set(sessionId);
         }

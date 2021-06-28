@@ -26,23 +26,24 @@ import splice.com.google.common.collect.Lists;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 public class SessionsWatcherImpl implements com.splicemachine.si.api.session.SessionsWatcher {
     private static final Logger LOG = Logger.getLogger(SessionsWatcherImpl.class);
-    private final Set<Long> activeSessions = new ConcurrentHashSet<>();
+    private final Set<UUID> activeSessions = new ConcurrentHashSet<>();
 
     public static final SessionsWatcherImpl INSTANCE = new SessionsWatcherImpl();
 
     private SessionsWatcherImpl(){}
 
     @Override
-    public Set<Long> getLocalActiveSessions() {
-        return new HashSet<>(activeSessions);
+    public Set<String> getLocalActiveSessions() {
+        return activeSessions.stream().map(UUID::toString).collect(Collectors.toSet());
     }
 
     @Override
-    public List<Long> getAllActiveSessions() {
-        Set<Long> idSet = new HashSet<>(activeSessions);
+    public List<String> getAllActiveSessions() {
+        Set<String> idSet = getLocalActiveSessions();
         try {
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG, "fetch all active sessions");
@@ -51,33 +52,33 @@ public class SessionsWatcherImpl implements com.splicemachine.si.api.session.Ses
             ExecutorService executorService = SIDriver.driver().getExecutorService();
             Collection<PartitionServer> servers = pa.allServers();
 
-            List<Future<Set<Long>>> futures = Lists.newArrayList();
+            List<Future<Set<String>>> futures = Lists.newArrayList();
             for (PartitionServer server : servers) {
                 GetActiveSessionsTask task = SIDriver.driver().getAllActiveSessionsTaskFactory().get(
                         server.getHostname(), server.getPort(), server.getStartupTimestamp());
                 futures.add(executorService.submit(task));
             }
 
-            for (Future<Set<Long>> future : futures) {
-                Set<Long> localActiveSessions = future.get();
+            for (Future<Set<String>> future : futures) {
+                Set<String> localActiveSessions = future.get();
                 idSet.addAll(localActiveSessions);
             }
         } catch (IOException | ExecutionException | InterruptedException e) {
             SpliceLogUtils.error(LOG, "Unable to fetch all active sessions. " +
                     "Leaving local active session ID list untouched. Error cause by: %s", e);
         }
-        List<Long> result = new ArrayList<>(idSet);
+        List<String> result = new ArrayList<>(idSet);
         Collections.sort(result);
         return result;
     }
 
     @Override
-    public void registerSession(long sessionId) {
+    public void registerSession(UUID sessionId) {
         activeSessions.add(sessionId);
     }
 
     @Override
-    public void unregisterSession(long sessionId) {
+    public void unregisterSession(UUID sessionId) {
         activeSessions.remove(sessionId);
     }
 
