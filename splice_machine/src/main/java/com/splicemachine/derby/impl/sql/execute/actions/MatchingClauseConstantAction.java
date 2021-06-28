@@ -16,6 +16,7 @@ import com.splicemachine.db.impl.sql.compile.MatchingClauseNode;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.derby.impl.sql.execute.operations.CursorOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -44,6 +45,7 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
 
     // for versioning during (de)serialization
     private static final int FIRST_VERSION = 0;
+    public static final int _overflowToConglomThreshold = 10000;
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -64,7 +66,7 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
     // faulted in or built at run-time
     private transient GeneratedMethod _matchRefinementMethod;
     private transient GeneratedMethod _rowMakingMethod;
-    private transient ResultSet _actionRS;
+    private transient DMLWriteOperation _actionRS;
 
     private TemporaryRowHolderImpl _thenRows;
 
@@ -137,12 +139,12 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
             throws StandardException
     {
         // nothing to do if no rows qualified
-        if ( _thenRows == null ) { return; }
+        if ( _thenRows == null || _thenRows.getLastArraySlot() < 0) { return; }
 
         CursorResultSet sourceRS = _thenRows.getResultSet();
         CursorOperation co = new CursorOperation(activation, sourceRS);
 
-        // this is weird, but needed because result description was taken from HOJN
+        // this is weird, but needed because result description was taken from HalfOuterJoinNode
         ResultDescription previousResultDesc = co.getActivation().getResultDescription();
         co.getActivation().setResultDescription(_thenColumnSignature);
 
@@ -163,10 +165,10 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
                 resultSetField.set(activation, co);
 
                 //
-                // Now execute the generated method which creates an InsertResultSet,
-                // UpdateResultSet, or DeleteResultSet.q
+                // Now execute the generated method which creates an InsertOperation,
+                // UpdateOperation, or DeleteOperation
                 Method actionMethod = activation.getClass().getMethod(_actionMethodName);
-                _actionRS = (ResultSet) actionMethod.invoke(activation, null);
+                _actionRS = (DMLWriteOperation) actionMethod.invoke(activation, null);
             } catch (Exception e) {
                 throw StandardException.plainWrapException(e);
             }
@@ -177,6 +179,7 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
             co.getActivation().setResultDescription(previousResultDesc);
             co.close();
         }
+        _thenRows.truncate();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////
@@ -240,6 +243,12 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
         }
 
         _thenRows.insert( thenRow );
+        // prevent TemporaryRowHolderImpl from creating a conglomerate,
+        // which is currently not supported as it runs in read-only transaction
+        // maybe it's faster anyway to do it like this and not write to hbase
+        if(_thenRows.numRows() >= _overflowToConglomThreshold ) {
+            executeConstantAction(activation);
+        }
     }
 
     /**
@@ -309,7 +318,7 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
      */
     private TemporaryRowHolderImpl createThenRows( Activation activation )
     {
-        return new TemporaryRowHolderImpl( activation, new Properties(), _thenColumnSignature );
+        return new TemporaryRowHolderImpl( activation, new Properties(), _thenColumnSignature, _overflowToConglomThreshold );
     }
 
     ///////////////////////////////////////////////////////////////////////////////////
@@ -372,4 +381,27 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
      */
     public int getTypeFormatId() { return StoredFormatIds.MATCHING_CLAUSE_CONSTANT_ACTION_V01_ID; }
 
+    /**
+     * @param activation  the activation to use
+     * @param row         the row from the driving left join
+     * @param matched     true if this is a "matching" row (has RowLocation), false if it is a "not matched" row (no RowLocation)
+     * @return true if row has been consumed by this matching clause, otherwise false
+     */
+    public boolean consumeRow(Activation activation, ExecRow row, boolean matched) throws StandardException {
+
+        // if we have a match, consider a clause if it is WHEN MATCHED THEN xxx
+        // else (we have a non-match), consider a clause if it's not a WHEN MATCHED (e.g. WHEN NOT MATCHED THEN INSERT)
+        if(matched != isWhenMatchedClause())
+            return false;
+
+        // check if matching refinement is satisfied
+        if ( satisfiesMatchingRefinement( activation ) ) {
+            // buffer the row, execute if buffer exceeded (@sa MatchingClauseConstantAction._overflowToConglomThreshold)
+            bufferThenRow( activation, row );
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
 }
