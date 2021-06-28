@@ -24,7 +24,7 @@ public class MSessionsWatcherImpl implements SessionsWatcher {
     private static final Logger LOG = Logger.getLogger(MSessionsWatcherImpl.class);
     private final Set<Long> activeSessions = ConcurrentHashMap.newKeySet();
 
-    public static MSessionsWatcherImpl INSTANCE = new MSessionsWatcherImpl();
+    public static final MSessionsWatcherImpl INSTANCE = new MSessionsWatcherImpl();
 
     private MSessionsWatcherImpl(){}
 
