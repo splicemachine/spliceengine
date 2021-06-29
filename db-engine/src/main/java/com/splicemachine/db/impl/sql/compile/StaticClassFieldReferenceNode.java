@@ -272,6 +272,9 @@ public final class StaticClassFieldReferenceNode extends JavaValueNode {
         int result = getBaseHashCode();
         result = 31 * result + javaClassName.hashCode();
         result = 31 * result + fieldName.hashCode();
-        return Objects.hash(result, field.getModifiers());
+        if(field == null)
+            return result;
+        else
+            return Objects.hash(result, field.getModifiers());
     }
 }

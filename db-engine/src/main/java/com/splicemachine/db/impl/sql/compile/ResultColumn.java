@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.Node;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -48,6 +49,7 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.db.impl.ast.StringUtils;
 import org.apache.spark.sql.types.StructField;
 
 import java.sql.Types;
@@ -789,6 +791,15 @@ public class ResultColumn extends ValueNode
             }
         }
     }
+
+    public String toString2() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("ResultColumn " + StringUtils.printN("name", name) + "\n");
+        Node.append2(sb, "expression", "  ", expression);
+        Node.append2(sb, "reference", "  ", reference);
+        return sb.toString();
+    }
+
 
     /**
      * Bind this expression.  This means binding the sub-expressions.

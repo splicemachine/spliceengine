@@ -145,7 +145,12 @@ final public class GenericActivationHolder implements Activation
         ac.reset();
     }
 
-        public long getRowsSeen() {
+    @Override
+    public void setResultDescription(ResultDescription resultDescription) {
+        ac.setResultDescription(resultDescription);
+    }
+
+    public long getRowsSeen() {
                 return ac.getRowsSeen();
         }
 
@@ -790,6 +795,16 @@ final public class GenericActivationHolder implements Activation
     public boolean isCursorActivation()
     {
         return ac.isCursorActivation();
+    }
+
+    public  ConstantAction    pushConstantAction( ConstantAction newConstantAction )
+    {
+        return ac.pushConstantAction( newConstantAction );
+    }
+
+    public  ConstantAction    popConstantAction()
+    {
+        return ac.popConstantAction();
     }
 
     public ConstantAction getConstantAction() {

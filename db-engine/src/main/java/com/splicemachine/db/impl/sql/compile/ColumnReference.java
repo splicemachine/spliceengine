@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.Node;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -49,6 +50,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.ast.StringUtils;
 
 import java.util.Collections;
 import java.util.List;
@@ -213,6 +215,15 @@ public class ColumnReference extends ValueNode {
         this.tableName = (TableName) tableName;
         tableNumber = -1;
         remaps = null;
+    }
+
+    public String toString2() {
+        return "ColumnReference\n" +
+                "  columnName: " + columnName + ", tableNumber: " + tableNumber + "\n" +
+                "  columnNumber: " + columnNumber + ", replacesAggregate: " + replacesAggregate + "\n" +
+                "  replacesWindowFunctionCall: " + replacesWindowFunctionCall + ", tableName: " + ( ( tableName != null) ? tableName.toString() : "null") + "\n" +
+                "  nestingLevel: " + nestingLevel + ", sourceLevel: " + sourceLevel + "\n" +
+                super.toString();
     }
 
     /**

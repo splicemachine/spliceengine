@@ -217,4 +217,34 @@ public class StringUtils {
         buf.append(text.substring(start));
         return buf.toString();
     }
+
+    public static String indent(String s, String intend) {
+        StringBuilder sb = new StringBuilder();
+        String[] lines = s.split("\n");
+        for(String str : lines) {
+            sb.append(intend);
+            sb.append(str);
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+    public static String indent2(String s, String intend) {
+        String[] lines = s.split("\n");
+        if(lines.length > 1) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("\n");
+            for (String str : lines) {
+                sb.append(intend);
+                sb.append(str);
+                sb.append("\n");
+            }
+            return sb.toString();
+        }
+        else
+            return s + "\n";
+    }
+
+    public static String printN(String desc, Object o) {
+        return desc + ": " + (o == null ? "null" : o.toString());
+    }
 }

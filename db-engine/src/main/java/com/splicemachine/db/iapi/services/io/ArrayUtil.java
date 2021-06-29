@@ -34,6 +34,7 @@ package com.splicemachine.db.iapi.services.io;
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
   Utility class for constructing and reading and writing arrays from/to
@@ -398,5 +399,30 @@ public abstract class ArrayUtil
 		byte[] b = new byte[size];
 		in.readFully(b);
 		return b;
+	}
+
+	/** Copy an array of objects; the original array could be null */
+	public  static <T> T[] copy( T[] original )
+	{
+		return (original == null) ?
+				null :
+				Arrays.copyOf(original, original.length);
+	}
+	/** Copy a (possibly null) array of bytes */
+	public  static  byte[]   copy( byte[] original )
+	{
+		return (original == null) ? null : (byte[]) original.clone();
+	}
+
+	/** Copy a (possibly null) array of ints */
+	public  static  int[]   copy( int[] original )
+	{
+		return (original == null) ? null : (int[]) original.clone();
+	}
+
+	/** Copy a (possibly null) array of longs */
+	public  static  long[]   copy( long[] original )
+	{
+		return (original == null) ? null : (long[]) original.clone();
 	}
 }

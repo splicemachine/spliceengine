@@ -125,4 +125,9 @@ public class AllResultColumn extends ResultColumn
         int result = super.hashCode();
         return 31 * result + (tableName == null ? 0 : tableName.hashCode());
     }
+
+    @Override
+    public String toString2() {
+		return "AllResultColumn (*) " + tableName;
+	}
 }

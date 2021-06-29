@@ -1276,7 +1276,9 @@ public class CastNode extends ValueNode
 
     public int hashCode() {
         int result = getBaseHashCode();
-        result = 31 * result + getTypeServices().hashCode();
+        if(getTypeServices() != null)
+            result = 31 * result + getTypeServices().hashCode();
+        if(castOperand != null)
         result = 31 * result + castOperand.hashCode();
         return result;
     }

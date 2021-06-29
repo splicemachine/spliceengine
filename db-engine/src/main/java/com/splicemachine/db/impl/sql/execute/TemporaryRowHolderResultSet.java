@@ -257,7 +257,7 @@ public class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResult
      */
     @Override
     public int resultSetNumber() {
-        return 0;
+        return TEMPORARY_RESULT_SET_NUMBER;
     }
 
     /**

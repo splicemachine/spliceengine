@@ -1354,7 +1354,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         // final cost is that of the child.  Otherwise, this node must
         // hold "trulyTheBestAccessPath" for it's child so we pull
         // the final cost from there.
-        if(childResult instanceof Optimizable)
+        if(childResult instanceof Optimizable || getTrulyTheBestAccessPath() == null)
             finalCostEstimate = childResult.getFinalCostEstimate(true);
         else
             finalCostEstimate=getTrulyTheBestAccessPath().getCostEstimate();

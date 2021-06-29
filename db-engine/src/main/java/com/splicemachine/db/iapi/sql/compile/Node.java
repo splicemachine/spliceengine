@@ -32,6 +32,9 @@
 package com.splicemachine.db.iapi.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.ast.StringUtils;
+
+import java.util.List;
 
 /**
  * Interface implemented by the nodes created by a {@code NodeFactory}. Callers
@@ -168,5 +171,38 @@ public interface Node {
               Object arg11, Object arg12, Object arg13, Object arg14, Object arg15,
               Object arg16, Object arg17, Object arg18, Object arg19)
             throws StandardException;
+
+    default String toString2() {
+        return toString();
+    }
+
+    static void append2(StringBuilder sb, String desc, Node n) {
+        sb.append(desc + ": " + (n == null ? "null" : n.toString2() ) );
+    }
+
+    static void append2(StringBuilder sb, String desc, String indent, Object n) {
+        if(n == null)
+            sb.append(indent + desc + ": null\n");
+        else if(n instanceof Node)
+            sb.append(indent + desc + ":\n" + StringUtils.indent(((Node)n).toString2(), indent+indent));
+        else
+            sb.append(indent + desc + ": " + StringUtils.indent2(n.toString(), indent+indent));
+    }
+
+    static <T extends Node> void printList(StringBuilder sb, List<T> v, String indent) {
+        if(v == null) {
+            sb.append( indent + "null");
+            return;
+        }
+        for (int i = 0; i < v.size(); i++) {
+            sb.append(indent + "Node " + i + "\n");
+            T t = v.get(i);
+            if(t == null)
+                sb.append(indent+indent + "null\n");
+            else
+                sb.append(StringUtils.indent(t.toString2(), indent+indent));
+            sb.append("\n");
+        }
+    }
 
 }

@@ -49,6 +49,7 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.iapi.sql.execute.ResultSetFactory;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -89,6 +90,23 @@ import java.util.Properties;
 public final class InsertNode extends DMLModStatementNode {
 
     InsertNode() {}
+
+    InsertNode(
+            QueryTreeNode    targetName,
+            ResultColumnList insertColumns,
+            ResultSetNode    queryExpression,
+            MatchingClauseNode matchingClause,
+            Properties       targetProperties,
+            OrderByList      orderByList,
+            ValueNode        offset,
+            ValueNode        fetchFirst,
+            boolean          hasJDBClimitClause,
+            ContextManager   cm) {
+        this(targetName, insertColumns, queryExpression, targetProperties, orderByList,
+                offset, fetchFirst, hasJDBClimitClause, cm);
+        this.matchingClause = matchingClause;
+    }
+
     InsertNode(
             QueryTreeNode    targetName,
             ResultColumnList insertColumns,
@@ -389,18 +407,13 @@ public final class InsertNode extends DMLModStatementNode {
         ** columns for the whole table, since the columns in the result set
         ** correspond to the target column list.
         */
-        if (targetColumnList != null) {
-            if (resultSet.getResultColumns().visibleSize() > targetColumnList.size())
-                throw StandardException.newException(SQLState.LANG_DB2_INVALID_COLS_SPECIFIED);
-            resultSet.bindUntypedNullsToResultColumns(targetColumnList);
-            resultSet.setTableConstructorTypes(targetColumnList);
+        ResultColumnList rcl = targetColumnList != null ? targetColumnList : resultColumnList;
+        if (resultSet.getResultColumns().visibleSize() > rcl.size()) {
+            throw StandardException.newException(SQLState.LANG_DB2_INVALID_COLS_SPECIFIED2,
+                    rcl.size(), resultSet.getResultColumns().visibleSize());
         }
-        else {
-            if (resultSet.getResultColumns().visibleSize() > resultColumnList.size())
-                throw StandardException.newException(SQLState.LANG_DB2_INVALID_COLS_SPECIFIED);
-            resultSet.bindUntypedNullsToResultColumns(resultColumnList);
-            resultSet.setTableConstructorTypes(resultColumnList);
-        }
+        resultSet.bindUntypedNullsToResultColumns(rcl);
+        resultSet.setTableConstructorTypes(rcl);
 
         /* Bind the columns of the result set to their expressions */
         resultSet.bindResultColumns(fromList);
@@ -411,13 +424,15 @@ public final class InsertNode extends DMLModStatementNode {
         DataDictionary dd = getDataDictionary();
         if (targetColumnList != null) {
             if (targetColumnList.size() != resCols)
-                throw StandardException.newException(SQLState.LANG_DB2_INVALID_COLS_SPECIFIED);
+                throw StandardException.newException(SQLState.LANG_DB2_INVALID_COLS_SPECIFIED2,
+                        targetColumnList.size(), resCols );
         }
         else
         {
             if (targetTableDescriptor != null &&
                         targetTableDescriptor.getNumberOfColumns() != resCols)
-                throw StandardException.newException(SQLState.LANG_DB2_INVALID_COLS_SPECIFIED);
+                throw StandardException.newException(SQLState.LANG_DB2_INVALID_COLS_SPECIFIED2,
+                        targetTableDescriptor.getNumberOfColumns(), resCols);
         }
 
         /* See if the ResultSet's RCL needs to be ordered to match the target
@@ -902,7 +917,8 @@ public final class InsertNode extends DMLModStatementNode {
                   null,
                   null,
                   resultSet.isOneRowResultSet(),
-                  autoincRowLocation
+                  autoincRowLocation,
+                  inMatchingClause()
                   );
         }
         else
@@ -1044,7 +1060,14 @@ public final class InsertNode extends DMLModStatementNode {
         acb.pushGetResultSetFactoryExpression(mb);
 
         // arg 1
-        resultSet.generate(acb, mb);
+        if ( inMatchingClause() )
+        {
+            matchingClause.generateResultSetField( acb, mb );
+        }
+        else
+        {
+            resultSet.generate( acb, mb );
+        }
 
         // arg 2 generate code to evaluate generation clauses
         generateGenerationClauses( resultColumnList, resultSet.getResultSetNumber(), false, acb, mb );

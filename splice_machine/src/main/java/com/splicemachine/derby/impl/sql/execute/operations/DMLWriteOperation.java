@@ -32,9 +32,11 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
@@ -98,6 +100,24 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
     protected boolean exceptionHit = false;
     protected SPSDescriptor fromTableDmlSpsDescriptor;
     protected boolean hasGeneratedColumn = false;
+
+    // divined at run time
+    protected   ResultDescription resultDescription;
+    /**
+     * Returns the description of the inserted rows.
+     * REVISIT: Do we want this to return NULL instead?
+     */
+    public ResultDescription getResultDescription()
+    {
+        return resultDescription;
+    }
+
+    /**
+     * This array contains data value descriptors that can be used (and reused)
+     * to hold the normalized column values.
+     */
+    protected DataValueDescriptor[] cachedDestinations;
+
 
     public DMLWriteOperation(){
         super();
@@ -594,4 +614,60 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
     public boolean forFromTableStatement() {
         return fromTableDmlSpsDescriptor != null;
     }
+
+    /**
+     * <p>
+     * Normalize a row as part of the INSERT/UPDATE action of a MERGE statement.
+     * This applies logic usually found in a NormalizeResultSet, which is missing for
+     * the MERGE statement.
+     * </p>
+     */
+    protected   ExecRow normalizeRow(NoPutResultSet sourceResultSet, ExecRow row )
+            throws StandardException
+    {
+        //
+        // Make sure that the evaluated expressions fit in the base table row.
+        //
+        int count = resultDescription.getColumnCount();
+        if ( cachedDestinations == null )
+        {
+            cachedDestinations = new DataValueDescriptor[ count ];
+            for ( int i = 0; i < count; i++)
+            {
+                int         position = i + 1;
+                ResultColumnDescriptor  colDesc = resultDescription.getColumnDescriptor( position );
+                cachedDestinations[ i ] = colDesc.getType().getNull();
+            }
+        }
+
+        for ( int i = 0; i < count; i++ )
+        {
+            int         position = i + 1;
+            DataTypeDescriptor dtd = resultDescription.getColumnDescriptor( position ).getType();
+
+            if ( row.getColumn( position ) == null )
+            {
+                row.setColumn( position, dtd.getNull() );
+            }
+
+            row.setColumn
+                    (
+                            position,
+                            NormalizeOperation.normalizeColumn
+                                    (
+                                            dtd,
+                                            row,
+                                            position,
+                                            cachedDestinations[ i ],
+                                            resultDescription
+                                    )
+                    );
+        }
+
+        // put the row where expressions in constraints can access it
+        activation.setCurrentRow( row, sourceResultSet.resultSetNumber() );
+
+        return row;
+    }
+
 }

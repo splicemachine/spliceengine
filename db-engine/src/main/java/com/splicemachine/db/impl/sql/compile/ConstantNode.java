@@ -334,4 +334,11 @@ public abstract class ConstantNode extends ValueNode
     public DataValueDescriptor getKnownConstantValue() {
         return getValue();
     }
+
+    public String toString2() {
+        if(value != null)
+            return "ConstantNode " + value.getTypeName() + " " + value.toString();
+        else
+            return "ConstantNode " + toString();
+    }
 }

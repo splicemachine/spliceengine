@@ -1506,6 +1506,12 @@ Guide.
                 <name>42802</name>
                 <text>The number of values assigned is not the same as the number of specified or implied columns.</text>
             </msg>
+            <msg>
+                <name>42802.2</name>
+                <text>The number of values assigned ({0}) is not the same as the number of specified or implied columns ({1}).</text>
+                <arg>numValuesAssigned</arg>
+                <arg>numImpliedColumns</arg>
+            </msg>
 
             <msg>
                 <name>42803</name>

@@ -55,7 +55,7 @@ public class UpdatableVTIConstantOperation extends WriteCursorConstantOperation 
 	@SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
 	public	UpdatableVTIConstantOperation( int statementType, boolean deferred, int[] changedColumnIds) {
 		super(0, null, null, null, null, null, null, deferred, null, null, 0, null,	null,
-				null, null, null, null, false);
+				null, null, null, null, false, false);
         this.statementType = statementType;
         this.changedColumnIds = changedColumnIds;
 	}

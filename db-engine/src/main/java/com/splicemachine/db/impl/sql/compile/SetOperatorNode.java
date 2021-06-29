@@ -1027,12 +1027,8 @@ public abstract class SetOperatorNode extends TableOperatorNode
          */
         ResultSetNode result = new SelectNode(
                 rcl,      // ResultColumns
-                null,     // AGGREGATE list
                 fromList, // FROM list
-                null,     // WHERE clause
-                null,     // GROUP BY list
-                null,     // having clause
-                null, /* window list */
+                null, // where clause
                 getContextManager());
 
         /* And finally, transform the "*" in the new SELECT node

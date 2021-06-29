@@ -73,6 +73,7 @@ import  com.splicemachine.db.io.StorageFactory;
 import com.splicemachine.db.iapi.services.info.JVMInfo;
 import com.splicemachine.db.iapi.services.i18n.BundleFinder;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -106,6 +107,7 @@ import java.net.URL;
 
 */
 
+@SuppressFBWarnings({"DM_DEFAULT_ENCODING", "UPM_UNCALLED_PRIVATE_METHOD", "UWF_UNWRITTEN_FIELD"})
 abstract class BaseMonitor
 	implements ModuleFactory, BundleFinder {
 
@@ -608,14 +610,14 @@ abstract class BaseMonitor
 			off = fmtId - StoredFormatIds.MIN_TWO_BYTE_FORMAT_ID;
 			iga = rc2;
 			if (iga == null) {
-				iga = rc2 = new InstanceGetter[RegisteredFormatIds.TwoByte.length];
+				iga = rc2 = new InstanceGetter[RegisteredFormatIds.getLength()];
 			}
 
 			ig = iga[off];
 			if (ig != null) {
 				return ig;
 			}
-			className = RegisteredFormatIds.TwoByte[off];
+			className = RegisteredFormatIds.get(off);
 
 		} catch (ArrayIndexOutOfBoundsException aioobe) {
 			className = null;
@@ -687,8 +689,6 @@ abstract class BaseMonitor
 		throw StandardException.newException(SQLState.REGISTERED_CLASS_INSTANCE_ERROR,
 			t, identifier, "XX" /*ci.getClassName()*/);
 	}
-
-	private Boolean exceptionTrace;
 
 	/**
 		load a module instance.

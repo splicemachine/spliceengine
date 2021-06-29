@@ -96,7 +96,7 @@ public class UpdatableVTIConstantAction extends WriteCursorConstantAction
 			  null,
 			  null,
 			  // singleRowSource, irrelevant
-			  false
+			  false, false
 			  );
         this.statementType = statementType;
         this.changedColumnIds = changedColumnIds;

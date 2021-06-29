@@ -77,7 +77,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
          */
         public void boot(boolean create, Properties properties) throws StandardException {
 
-            RegisteredFormatIds.TwoByte[StoredFormatIds.SQL_DECIMAL_ID] = SQLDecimal.class.getName();
+            RegisteredFormatIds.initSqlDecimal();
 
             ModuleFactory monitor = Monitor.getMonitor();
             //The Locale on monitor has already been set by the boot code in

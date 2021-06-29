@@ -28,8 +28,8 @@ public class ExportBuilder {
     String compression;
     String replicationCount;
     String encoding;
-    String fieldSeparator;
-    String quoteCharacter;
+    String fieldSeparator; // = columnDelimiter. by default ','
+    String quoteCharacter; // = characterDelimiter
     String quoteMode;
     String floatingPointNotation;
     String timestampFormat;
@@ -70,6 +70,22 @@ public class ExportBuilder {
             return "null, ";
         else
             return "'" + s + "', ";
+    }
+
+    public String externalTableCsvOptions() {
+        /*
+         [ ROW FORMAT DELIMITED
+         [ FIELDS TERMINATED BY char [ESCAPED BY char] ]
+         [ LINES TERMINATED BY char ]
+         */
+        if(fieldSeparator == null) return "";
+        else return "ROW FORMAT DELIMITED FIELDS TERMINATED BY '" + fieldSeparator + "'";
+
+    }
+
+    public String externalTextfile(String table, String tableSchema) {
+        return "CREATE EXTERNAL TABLE " + table + " (" + tableSchema + ") " + externalTableCsvOptions()
+                + "stored as textfile location '" + path + "'";
     }
 
     public String importSql(String function, String schema, String table) {

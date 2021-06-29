@@ -189,6 +189,8 @@ public class TableScanOperation extends ScanOperation{
         init();
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"isTopResultSet=%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f",isTopResultSet,optimizerEstimatedCost,optimizerEstimatedRowCount);
+
+
     }
 
     /**

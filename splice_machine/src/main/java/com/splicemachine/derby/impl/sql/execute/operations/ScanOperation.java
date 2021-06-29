@@ -82,6 +82,9 @@ public abstract class ScanOperation extends SpliceBaseOperation {
     protected ExecRow defaultRow;
     public static final int SCAN_CACHE_SIZE = 1000;
 
+    /** true if the scan should pick up row locations */
+    protected boolean fetchRowLocations = false;
+
     public ScanOperation(){
         super();
     }
@@ -507,5 +510,18 @@ public abstract class ScanOperation extends SpliceBaseOperation {
     @Override
     public TxnView getCurrentTransaction() throws StandardException{
         return (pastTx >= 0) ? getPastTransaction(pastTx) : super.getCurrentTransaction();
+    }
+
+    /** Determine whether this scan should return row locations */
+    protected   void    setRowLocationsState()
+            throws StandardException
+    {
+        ExecRow candidate=scanInformation.getResultRow(); // todo: is that OK?
+        fetchRowLocations =
+                (
+                        (indexName == null) &&
+                                (candidate.nColumns() > 0) &&
+                                ( candidate.getColumn( candidate.nColumns() ) instanceof RowLocation )
+                );
     }
 }

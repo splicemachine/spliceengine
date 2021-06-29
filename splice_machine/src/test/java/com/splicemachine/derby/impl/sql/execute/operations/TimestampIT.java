@@ -35,10 +35,12 @@ import splice.com.google.common.collect.Lists;
 
 import java.io.File;
 import java.sql.*;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 
 import static org.junit.Assert.*;
@@ -998,5 +1000,56 @@ public class TimestampIT extends SpliceUnitTest {
     public void testCurrentTimezoneInvalidExpressions() throws Exception {
         verifyCurrentTimezoneInvalid("select current_timezone - current_timestamp from sysibm.sysdummy1");
         verifyCurrentTimezoneInvalid("select date('2020-10-10') - current_timezone from sysibm.sysdummy1");
+    }
+
+    @Test
+    public void testDefaultCurrentDate() throws Exception {
+        try {
+            methodWatcher.execute("CREATE TABLE t_current (i INTEGER, j INTEGER,\n" +
+                            " date DATE DEFAULT CURRENT_DATE)");
+            methodWatcher.execute("insert into t_current (i, j) values (1, 11)");
+
+            java.util.Date d1 = null;
+            try( ResultSet rs = methodWatcher.executeQuery("VALUES CURRENT_DATE")) {
+                Assert.assertTrue(rs.next());
+                d1 = rs.getDate(1);
+            }
+
+            try( ResultSet rs = methodWatcher.executeQuery("select date, CURRENT_DATE from t_current") ) {
+                Assert.assertTrue(rs.next());
+                java.util.Date res = rs.getDate(1);
+                Date d2 = rs.getDate(2);
+                // preventing the very rare sporadic around midnight, where d1 can differ from d2, and therefore also res.
+                if(d1.equals(d2)) {
+                    Assert.assertTrue(d1.equals(res) && d2.equals(res));
+                }
+                else
+                    Assert.assertTrue(d1.equals(res) || d2.equals(res));
+            }
+        }
+        finally{
+            methodWatcher.execute("drop table t_current if exists");
+        }
+    }
+    @Test
+    public void testDefaultCurrentTimestamp() throws Exception {
+        try {
+            long t1 = Instant.now().toEpochMilli();
+            methodWatcher.execute("CREATE TABLE t_current (i INTEGER, j INTEGER,\n" +
+                    " time TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+            methodWatcher.execute("insert into t_current (i, j) values (1, 11)");
+
+            try( ResultSet rs = methodWatcher.executeQuery("select time, CURRENT_DATE from t_current") ) {
+                Assert.assertTrue(rs.next());
+                Timestamp res = rs.getTimestamp(1);
+                long t2 = Instant.now().toEpochMilli();
+
+                Assert.assertTrue(t1 + " " + res.getTime(), t1 <= res.getTime());
+                Assert.assertTrue(res.getTime() + " " + t2, res.getTime() <= t2);
+            }
+        }
+        finally{
+            methodWatcher.execute("drop table t_current if exists");
+        }
     }
 }

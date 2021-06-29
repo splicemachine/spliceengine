@@ -834,6 +834,7 @@ public interface SQLState {
     String LANG_DB2_INVALID_CHECK_CONSTRAINT                           = "42621";
     String LANG_DB2_DUPLICATE_NAMES                                       = "42734";
     String LANG_DB2_INVALID_COLS_SPECIFIED                             = "42802";
+    String LANG_DB2_INVALID_COLS_SPECIFIED2                            = "42802.2";
         String LANG_DB2_INVALID_SELECT_COL_FOR_HAVING = "42803";
     String LANG_DB2_ADD_UNIQUE_OR_PRIMARY_KEY_ON_NULL_COLS               = "42831";
     String LANG_ADD_PRIMARY_KEY_ON_NULL_COLS                           = "42831.S.1";

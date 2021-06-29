@@ -34,9 +34,9 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.Node;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
 import java.util.Collections;
@@ -115,6 +115,14 @@ public class VirtualColumnNode extends ValueNode
             printLabel(depth, "sourceResultSet: ");
             sourceResultSet.treePrint(depth + 1);
         }
+    }
+
+    public String toString2() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("VirtualColumnNode columnId = " + columnId + "\n");
+        Node.append2(sb, "sourceColumn", "  ", sourceColumn);
+        Node.append2(sb, "sourceResultSet", "  ", sourceResultSet);
+        return sb.toString();
     }
 
     /**
