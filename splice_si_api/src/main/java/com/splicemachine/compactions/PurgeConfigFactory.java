@@ -14,19 +14,16 @@
 
 package com.splicemachine.compactions;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.regionserver.DefaultStoreFlusher;
-import org.apache.hadoop.hbase.regionserver.HStore;
+
+import com.splicemachine.si.impl.server.PurgeConfig;
 
 import java.io.IOException;
 
 /**
- * We use this class to pass the PurgeConfig down the stack to flush logic in SIObserver.
- * TODO(arnaud) remove this class entirely. DB-9876 made it obsolete
  */
-@Deprecated
-public class SpliceDefaultFlusher extends DefaultStoreFlusher {
-    public SpliceDefaultFlusher(Configuration conf, HStore store) throws IOException {
-        super(conf, store);
-    }
+public interface PurgeConfigFactory {
+
+    PurgeConfig compactionConfig(String tableName, boolean isMajor) throws IOException;
+    PurgeConfig flushConfig(String tableName, boolean tableNeedsSI, boolean regionIsClosing);
+    PurgeConfig memStoreCompactionConfig(String tableName, boolean tableNeedsSI, boolean regionIsClosing);
 }

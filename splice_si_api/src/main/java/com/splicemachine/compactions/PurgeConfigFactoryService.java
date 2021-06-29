@@ -14,19 +14,27 @@
 
 package com.splicemachine.compactions;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.regionserver.DefaultStoreFlusher;
-import org.apache.hadoop.hbase.regionserver.HStore;
+import org.apache.log4j.Logger;
 
-import java.io.IOException;
+import java.util.Iterator;
+import java.util.ServiceLoader;
 
 /**
- * We use this class to pass the PurgeConfig down the stack to flush logic in SIObserver.
- * TODO(arnaud) remove this class entirely. DB-9876 made it obsolete
  */
-@Deprecated
-public class SpliceDefaultFlusher extends DefaultStoreFlusher {
-    public SpliceDefaultFlusher(Configuration conf, HStore store) throws IOException {
-        super(conf, store);
+public class PurgeConfigFactoryService {
+    private static final Logger LOG = Logger.getLogger(PurgeConfigFactoryService.class);
+    public static PurgeConfigFactory loadPurgeConfigFactory() {
+        ServiceLoader<PurgeConfigFactory> loader = ServiceLoader.load(PurgeConfigFactory.class);
+        Iterator<PurgeConfigFactory> iter = loader.iterator();
+        if (!iter.hasNext()) {
+            LOG.error("No PurgeConfigFactory found!");
+            return null;
+        }
+        PurgeConfigFactory pcf = iter.next();
+        if (iter.hasNext()) {
+            LOG.error("More than one PurgeConfigFactory is found!");
+            return null;
+        }
+        return pcf;
     }
 }
