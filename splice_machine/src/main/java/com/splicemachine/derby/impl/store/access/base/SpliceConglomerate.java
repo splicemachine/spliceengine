@@ -56,6 +56,7 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
     protected int[] format_ids;
     protected int[] collation_ids;
     protected int[] columnOrdering; // Primary Key Information
+    protected int[] keyFormatIds;
     protected boolean hasCollatedTypes;
     protected long nextContainerId=System.currentTimeMillis();
     protected long containerId = -1l;
@@ -71,6 +72,7 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
             long input_containerid,
             DataValueDescriptor[] template,
             ColumnOrdering[] columnOrder,
+            int[] keyFormatIds,
             int[] collationIds,
             Properties properties,
             int conglom_format_id,
@@ -105,6 +107,7 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
         hasCollatedTypes=hasCollatedColumns(collation_ids);
         this.tmpFlag=tmpFlag;
 
+        this.keyFormatIds = keyFormatIds != null ? keyFormatIds : new int[0];
         try{
             ((BaseSpliceTransaction)rawtran).setActiveState(false,false,null);
         }catch(Exception e){
@@ -311,5 +314,30 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
     protected String getConglomerateVersion() throws IOException, StandardException {
         PartitionAdmin admin = partitionFactory.getAdmin();
         return admin.getCatalogVersion(SQLConfiguration.CONGLOMERATE_TABLE_NAME);
+    }
+
+    public int[] getKeyFormatIds() {
+        return keyFormatIds;
+    }
+
+    @Override
+    public void dropColumn(TransactionManager xact_manager,int storagePosition, int position) throws StandardException{
+        boolean dropColumnOrdering = false;
+        for (int pos : columnOrdering) {
+            if (pos == storagePosition - 1) {
+                dropColumnOrdering = true;
+                break;
+            }
+        }
+        if (dropColumnOrdering) {
+            columnOrdering = new int[0];
+        }
+
+        if (keyFormatIds == null) {
+            keyFormatIds = new int[columnOrdering.length];
+            for (int i = 0; i < keyFormatIds.length; ++i) {
+                keyFormatIds[i] = format_ids[columnOrdering[i]];
+            }
+        }
     }
 }

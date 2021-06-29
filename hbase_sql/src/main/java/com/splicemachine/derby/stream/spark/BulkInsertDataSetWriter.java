@@ -163,13 +163,10 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
                 if (searchCD.isIndex() && !searchCD.isPrimaryKey() && indexName != null &&
                         searchCD.getObjectName().compareToIgnoreCase(indexName) == 0) {
                     indexConglom = searchCD.getConglomerateNumber();
-                    DataValueDescriptor dvd =
-                            td.getColumnDescriptor(
-                                    searchCD.getIndexDescriptor().baseColumnPositions()[0]).getDefaultValue();
                     DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txn.getTxnId(),
                             activation.getLanguageConnectionContext(),
                             td.getHeapConglomerateId(), searchCD.getConglomerateNumber(),
-                            td, searchCD.getIndexDescriptor(),td.getDefaultValue(searchCD.getIndexDescriptor().baseColumnPositions()[0]));
+                            td, searchCD.getIndexDescriptor(),td.getDefaultValue(searchCD.getIndexDescriptor().baseColumnStoragePositions()[0]));
                     isUnique = searchCD.getIndexDescriptor().isUnique();
                     tentativeIndexList.add(ddlChange.getTentativeIndex());
                     allCongloms.add(searchCD.getConglomerateNumber());
@@ -190,7 +187,7 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
                     DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txn.getTxnId(),
                             activation.getLanguageConnectionContext(),
                             td.getHeapConglomerateId(), searchCD.getConglomerateNumber(),
-                            td, searchCD.getIndexDescriptor(),td.getDefaultValue(searchCD.getIndexDescriptor().baseColumnPositions()[0]));
+                            td, searchCD.getIndexDescriptor(),td.getDefaultValue(searchCD.getIndexDescriptor().baseColumnStoragePositions()[0]));
                     tentativeIndexList.add(ddlChange.getTentativeIndex());
                     allCongloms.add(searchCD.getConglomerateNumber());
                 }
@@ -302,7 +299,8 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
     private void revokeCreatePrivilege(Map<Long, Boolean> granted) throws StandardException{
         try {
             PartitionFactory tableFactory = SIDriver.driver().getTableFactory();
-            for (Long conglomId : granted.keySet()) {
+            for (Map.Entry<Long, Boolean> entry : granted.entrySet()) {
+                Long conglomId = entry.getKey();
                 if (granted.get(conglomId)) {
                     Partition partition = tableFactory.getTable(Long.toString(conglomId));
                     partition.revokeCreatePrivilege();

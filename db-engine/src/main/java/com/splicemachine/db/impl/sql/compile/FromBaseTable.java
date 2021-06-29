@@ -569,7 +569,7 @@ public class FromBaseTable extends FromTable {
             return areAllReferencingExprsCoveredByIndex(irg);
         }
 
-        int[] baseCols=irg.baseColumnPositions();
+        int[] baseCols=irg.baseColumnStoragePositions();
         int rclSize=resultColumns.size();
         boolean coveringIndex=true;
         int colPos;
@@ -591,7 +591,7 @@ public class FromBaseTable extends FromTable {
 
             coveringIndex=false;
 
-            colPos=rc.getColumnPosition();
+            colPos=rc.getStoragePosition();
 
             /* Is this column in the index? */
             for(int baseCol : baseCols){
@@ -1708,7 +1708,7 @@ public class FromBaseTable extends FromTable {
             if(resultColumn!=null){
                 columnReference.setTableNumber(tableNumber);
                 columnReference.setColumnNumber(
-                        resultColumn.getColumnPosition());
+                        resultColumn.getStoragePosition());
 
                 if(tableDescriptor!=null){
                     FormatableBitSet referencedColumnMap=tableDescriptor.getReferencedColumnMap();
@@ -2280,9 +2280,9 @@ public class FromBaseTable extends FromTable {
                 newCols.addResultColumn(rc);
             }
         } else {
-            int[] baseCols = irg.baseColumnPositions();
+            int[] baseCols = irg.baseColumnStoragePositions();
             for (int basePosition : baseCols) {
-                ResultColumn oldCol = oldColumns.getResultColumn(basePosition);
+                ResultColumn oldCol = oldColumns.getResultColumnByStoragePosition(basePosition);
                 ResultColumn newCol;
 
                 if (SanityManager.DEBUG) {
@@ -2689,10 +2689,10 @@ public class FromBaseTable extends FromTable {
         int indexColItem=-1;
         ConglomerateDescriptor cd=getTrulyTheBestAccessPath().getConglomerateDescriptor();
         if(cd.isIndex()){
-            int [] baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
+            int [] baseColumnPositions = cd.getIndexDescriptor().baseColumnStoragePositions();
             FormatableIntHolder[] fihArrayIndex = new FormatableIntHolder[baseColumnPositions.length];
             for (int index = 0; index < baseColumnPositions.length; index++) {
-                fihArrayIndex[index] = new FormatableIntHolder(tableDescriptor.getColumnDescriptor(baseColumnPositions[index]).getStoragePosition());
+                fihArrayIndex[index] = new FormatableIntHolder(tableDescriptor.getColumnDescriptorByStoragePosition(baseColumnPositions[index]).getStoragePosition());
             }
             FormatableArrayHolder hashKeyHolder=new FormatableArrayHolder(fihArrayIndex);
             indexColItem=acb.addItem(hashKeyHolder);
