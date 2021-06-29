@@ -20,7 +20,7 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import com.splicemachine.db.impl.sql.compile.JoinNode;
-import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
+import com.splicemachine.db.impl.sql.compile.selectivity.SelectivityUtil;
 
 public class V1BroadcastJoinCostEstimation implements StrategyJoinCostEstimation {
     @Override

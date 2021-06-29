@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.compile;
 import java.util.List;
 
 import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
+import com.splicemachine.db.impl.sql.compile.optimizer.OptimizerImpl;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -38,8 +39,8 @@ import com.splicemachine.db.iapi.store.access.AggregateCostController;
 import com.splicemachine.db.iapi.store.access.SortCostController;
 import com.splicemachine.db.impl.sql.compile.AggregateNode;
 import com.splicemachine.db.impl.sql.compile.GroupByList;
-import com.splicemachine.db.impl.sql.compile.Level2OptimizerImpl;
-import com.splicemachine.db.impl.sql.compile.Level2OptimizerTrace;
+import com.splicemachine.db.impl.sql.compile.optimizer.Level2OptimizerImpl;
+import com.splicemachine.db.impl.sql.compile.optimizer.Level2OptimizerTrace;
 import com.splicemachine.db.impl.sql.compile.OrderByList;
 import com.splicemachine.derby.impl.store.access.TempGroupedAggregateCostController;
 import com.splicemachine.derby.impl.store.access.TempScalarAggregateCostController;
@@ -48,7 +49,7 @@ import com.splicemachine.derby.impl.store.access.TempSortController;
 /**
  * This is the Level 2 Optimizer.
  *
- * {@link com.splicemachine.db.impl.sql.compile.OptimizerImpl} has a goofy
+ * {@link OptimizerImpl} has a goofy
  * way of considering optimizer permutations. What it does is consider all possible
  * join orderings, and <em>independently for each table</em> considers the
  * cost of index selection. As a result, we can get weird behavior, like in the following

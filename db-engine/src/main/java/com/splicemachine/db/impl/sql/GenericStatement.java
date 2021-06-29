@@ -53,7 +53,7 @@ import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
-import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
+import com.splicemachine.db.impl.sql.compile.TypeCompiler.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.compile.TriggerReferencingStruct;
@@ -77,7 +77,7 @@ import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_COMPILE_
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_VERSION;
 import static com.splicemachine.db.iapi.sql.compile.CompilerContext.MAX_DERIVED_CNF_PREDICATES_MAX_VALUE;
 import static com.splicemachine.db.iapi.sql.compile.CompilerContext.MAX_MULTICOLUMN_PROBE_VALUES_MAX_VALUE;
-import static com.splicemachine.db.impl.sql.compile.CharTypeCompiler.getCurrentCharTypeCompiler;
+import static com.splicemachine.db.impl.sql.compile.TypeCompiler.CharTypeCompiler.getCurrentCharTypeCompiler;
 
 @SuppressWarnings("SynchronizeOnNonFinalField")
 @SuppressFBWarnings(value = {"IS2_INCONSISTENT_SYNC", "ML_SYNC_ON_FIELD_TO_GUARD_CHANGING_THAT_FIELD"}, justification = "FIXME: DB-10223")

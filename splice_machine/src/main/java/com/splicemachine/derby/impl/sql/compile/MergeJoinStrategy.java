@@ -22,6 +22,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.db.impl.sql.compile.selectivity.SelectivityUtil;
 import com.splicemachine.utils.Pair;
 
 import java.util.Arrays;

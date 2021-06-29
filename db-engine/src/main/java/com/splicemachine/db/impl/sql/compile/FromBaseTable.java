@@ -65,6 +65,7 @@ import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.catalog.SYSTOKENSRowFactory;
 import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
+import com.splicemachine.db.impl.sql.compile.optimizer.AccessPathImpl;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.tuple.Pair;
 import splice.com.google.common.base.Joiner;

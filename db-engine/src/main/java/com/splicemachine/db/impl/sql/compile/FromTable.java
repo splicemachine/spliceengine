@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.db.impl.sql.compile.optimizer.AccessPathImpl;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.*;
@@ -930,7 +931,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return false;
     }
 
-    protected CostEstimate getCostEstimate(Optimizer optimizer){
+    public CostEstimate getCostEstimate(Optimizer optimizer){
         if(costEstimate==null){
             costEstimate=optimizer.newCostEstimate();
         }

@@ -31,7 +31,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -52,7 +51,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
 
-import static com.splicemachine.db.impl.sql.compile.CharTypeCompiler.getDB2CompatibilityModeStatic;
+import static com.splicemachine.db.impl.sql.compile.TypeCompiler.CharTypeCompiler.getDB2CompatibilityModeStatic;
 
 /**
  * This node type represents a ? parameter.

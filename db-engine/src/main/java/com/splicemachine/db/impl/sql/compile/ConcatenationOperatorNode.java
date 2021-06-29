@@ -48,6 +48,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.ClassName;
+import com.splicemachine.db.impl.sql.compile.TypeCompiler.UserDefinedTypeCompiler;
 import org.apache.commons.lang3.mutable.MutableInt;
 
 import java.sql.Types;

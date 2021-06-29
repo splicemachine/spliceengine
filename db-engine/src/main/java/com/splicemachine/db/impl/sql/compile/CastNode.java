@@ -47,6 +47,7 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.db.impl.sql.compile.TypeCompiler.NumericTypeCompiler;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;

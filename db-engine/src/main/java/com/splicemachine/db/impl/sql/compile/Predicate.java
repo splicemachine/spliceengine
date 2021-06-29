@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.sql.compile.selectivity.SelectivityUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.*;
@@ -317,7 +318,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     }
 
     @Override
-    public double joinSelectivity(Optimizable table,ConglomerateDescriptor cd, long innerRowCount, long outerRowCount,SelectivityUtil.SelectivityJoinType selectivityJoinType) throws StandardException{
+    public double joinSelectivity(Optimizable table, ConglomerateDescriptor cd, long innerRowCount, long outerRowCount, SelectivityUtil.SelectivityJoinType selectivityJoinType) throws StandardException{
         return andNode.getLeftOperand().joinSelectivity(table,cd,innerRowCount,outerRowCount,selectivityJoinType);
     }
 

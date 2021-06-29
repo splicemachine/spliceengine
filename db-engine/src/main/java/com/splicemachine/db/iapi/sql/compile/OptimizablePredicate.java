@@ -38,7 +38,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.sql.compile.FromBaseTable;
-import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
+import com.splicemachine.db.impl.sql.compile.selectivity.SelectivityUtil;
 
 import java.util.List;
 

@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.sql.compile.optimizer.OptimizerImpl;
 
 import java.util.Vector;
 
@@ -170,7 +171,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 
             if ((innerTable.isMaterializable() ||
                  innerTable.supportsMultipleInstantiations())                 &&
-                optimizer instanceof OptimizerImpl                            &&
+                optimizer instanceof OptimizerImpl &&
                 !(innerTable instanceof RowResultSetNode)                     &&
                 !(innerTable instanceof SetOperatorNode)) {
 

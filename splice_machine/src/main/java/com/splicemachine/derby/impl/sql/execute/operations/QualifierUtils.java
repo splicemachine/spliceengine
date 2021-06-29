@@ -25,7 +25,7 @@ import com.splicemachine.db.impl.sql.execute.GenericScanQualifier;
 import java.math.BigDecimal;
 import java.util.GregorianCalendar;
 
-import static com.splicemachine.db.impl.sql.compile.CharTypeCompiler.getDB2CompatibilityModeStatic;
+import static com.splicemachine.db.impl.sql.compile.TypeCompiler.CharTypeCompiler.getDB2CompatibilityModeStatic;
 
 /**
  * @author Scott Fines

@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.sql.compile.selectivity.SelectivityUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;

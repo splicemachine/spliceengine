@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.db.impl.sql.compile.selectivity.SelectivityUtil;
 
 import static com.splicemachine.db.impl.sql.compile.JoinNode.INNERJOIN;
 
