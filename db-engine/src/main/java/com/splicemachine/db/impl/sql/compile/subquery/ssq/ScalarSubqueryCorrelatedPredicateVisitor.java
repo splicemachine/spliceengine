@@ -111,14 +111,7 @@ public class ScalarSubqueryCorrelatedPredicateVisitor implements Visitor {
 
         /* add a new column in the subquery's RCL */
         ResultColumn subqueryRC = rc.cloneMe();
-
-        subqueryRC.setExpression((ValueNode)topSelect.getNodeFactory().getNode(
-                C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                subSelect,
-                rc,
-                ReuseFactory.getInteger(subqueryRCL.size()+1),
-                topSelect.getContextManager()));
-
+        subqueryRC.setExpression(new VirtualColumnNode(subSelect, rc, subqueryRCL.size()+1, topSelect.getContextManager()));
         subqueryRCL.addResultColumn(subqueryRC);
 
         /* return an ColumnReference to the newly added column */

@@ -1609,7 +1609,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         ResultColumnList newList;
 
         /* Create the new ResultColumnList */
-        newList=(ResultColumnList)getNodeFactory().getNode( C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
+        newList = new ResultColumnList(getContextManager());
 
         /* Walk the current list - for each ResultColumn in the list, make a copy
          * and add it to the new list.
@@ -1679,12 +1679,8 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             /* dts = resultColumn.getExpression().getTypeServices(); */
 
             /* Vectors are 0-based, VirtualColumnIds are 1-based */
-            resultColumn.expression=(ValueNode)getNodeFactory().getNode(
-                    C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                    sourceResultSet,
-                    sourceResultColumnList.elementAt(index),
-                    ReuseFactory.getInteger(index+1),
-                    getContextManager());
+            resultColumn.expression = new VirtualColumnNode(sourceResultSet, sourceResultColumnList.elementAt(index),
+                    index+1, getContextManager());
 
             /* Mark the ResultColumn as being referenced */
             if(markReferenced){
@@ -2240,7 +2236,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         int posn;
 
         /* Get a new ResultColumnList */
-        retval=(ResultColumnList)getNodeFactory().getNode( C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
+        retval = new ResultColumnList(getContextManager());
 
         /*
         ** Form a sorted array of the ResultColumns
@@ -3162,9 +3158,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             return this;
         }
 
-        ResultColumnList newCols=(ResultColumnList)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        ResultColumnList newCols = new ResultColumnList(getContextManager());
         newCols.setFromExprIndex(fromExprIndex);
 
         int size=size();

@@ -86,7 +86,7 @@ public class SubqueryNodeFactory {
                                               ResultSetNode subqueryResultSet,
                                               ResultColumnList newRcl,
                                               String subqueryAlias) throws StandardException {
-        FromSubquery fromSubquery = (FromSubquery) nodeFactory.getNode(C_NodeTypes.FROM_SUBQUERY,
+        FromSubquery fromSubquery = new FromSubquery(
                 subqueryResultSet,
                 null,                  // order by
                 null,                  // offset
