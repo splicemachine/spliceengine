@@ -179,18 +179,17 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
   SparkSession.builder.getOrCreate.sparkContext.addSparkListener(new SparkListener {
     override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd): Unit = {
-      println(s"Cleaning up SplicemachineContext.")
+      println(s"Cleaning up SplicemachineContext resources before shutdown.")
       try {
         connectionManager.shutdown
       } catch {
         case e: Throwable => ;
       }
       try {
-        kafkaTopics.cleanup(60*1000)
+        kafkaTopics.shutdown
       } catch {
         case e: Throwable => ;  // no-op, undeleted topics should be handled by separate cleanup process
       }
-      println(s"Clean up of SplicemachineContext Completed.")
     }
   })
 
@@ -304,7 +303,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     }
   }
 
-<<<<<<< HEAD:splice_spark2/src/main/spark2.4/com/splicemachine/spark2/splicemachine/SplicemachineContext.scala
   private[this] def getJdbcOptionsInWrite(schemaTableName: String): JdbcOptionsInWrite =
     new JdbcOptionsInWrite( Map(
       JDBCOptions.JDBC_URL -> url,
@@ -312,8 +310,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       JDBCOptions.JDBC_DRIVER_CLASS -> "com.splicemachine.db.jdbc.ClientDriver40"
     ))
 
-=======
->>>>>>> 3f54b1892fb982a7be73339a258c95a08af07a8f:splice_spark2/src/main/scala/com/splicemachine/spark2/splicemachine/SplicemachineContext.scala
   /**
    * Get JDBC connection
    */
@@ -578,11 +574,12 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   var insertSql: String => String = _
   
   /* Sets up insertSql to be used by insert_streaming */
-  def setTable(schemaTableName: String, schema: StructType): Unit = {
+  def setTable(schemaTableName: String, schema: StructType, upsert: Boolean = false): Unit = {
     val colList = columnList(schema) + fmColList
     val schStr = schemaStringWithoutNullable(schema, url)
+    val upsertProp = if(upsert) { "--splice-properties insertMode=UPSERT" } else { "" }
     // Line break at the end of the first line and before select is required, other line breaks aren't required
-    insertSql = (topicName: String) => s"""insert into $schemaTableName ($colList)
+    insertSql = (topicName: String) => s"""insert into $schemaTableName ($colList) $upsertProp
                                        select $colList from 
       new com.splicemachine.derby.vti.KafkaVTI('$topicName') 
       as SpliceDatasetVTI ($schStr$fmSchemaStr)"""
