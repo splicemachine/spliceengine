@@ -123,7 +123,7 @@ public final class FKConstraintDefinitionNode extends ConstraintDefinitionNode
             // Get the primary key columns
             int[] refCols = td.getPrimaryKey().getReferencedColumns();
             for (int refCol : refCols) {
-                ColumnDescriptor cd = td.getColumnDescriptor(refCol);
+                ColumnDescriptor cd = td.getColumnDescriptorByStoragePosition(refCol);
                 // Set tableDescriptor for this column descriptor. Needed for adding required table
                 // access permission. Column descriptors may not have this set already.
                 cd.setTableDescriptor(td);

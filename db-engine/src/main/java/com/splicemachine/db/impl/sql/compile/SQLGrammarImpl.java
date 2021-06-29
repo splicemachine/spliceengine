@@ -537,7 +537,7 @@ class SQLGrammarImpl {
                 null, /* window list */
                 getContextManager());
 
-        DeleteNode dn = new DeleteNode(getContextManager(), tableName, resultSet, fromTable instanceof CurrentOfNode, targetProperties);
+        DeleteNode dn = new DeleteNode(tableName, resultSet, fromTable instanceof CurrentOfNode, targetProperties, getContextManager());
         setUpAndLinkParameters();
         return dn;
     }
@@ -599,8 +599,7 @@ class SQLGrammarImpl {
                                                  "Expecting RHS to be a subquery when LHS of set clause is a tuple");
         }
         SubqueryNode subq = (SubqueryNode) subQuery;
-        FromTable fromSubq = (FromTable) nodeFactory.getNode(
-                C_NodeTypes.FROM_SUBQUERY,
+        FromTable fromSubq = new FromSubquery(
                 subq.getResultSet(),
                 subq.getOrderByList(),
                 subq.getOffset(),

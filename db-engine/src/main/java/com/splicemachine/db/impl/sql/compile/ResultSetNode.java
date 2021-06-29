@@ -886,8 +886,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
         prRCList.genVirtualColumnNodes(this,resultColumns);
 
         /* Finally, we create the new ProjectRestrictNode */
-        return (ResultSetNode)getNodeFactory().getNode(
-                C_NodeTypes.PROJECT_RESTRICT_NODE,
+        return new ProjectRestrictNode(
                 this,
                 prRCList,
                 null,    /* Restriction */
@@ -1271,8 +1270,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
          */
         prRCList.genVirtualColumnNodes(this,resultColumns,false);
         /* Finally, we create the new ProjectRestrictNode */
-        return (ResultSetNode)getNodeFactory().getNode(
-                C_NodeTypes.PROJECT_RESTRICT_NODE,
+        return new ProjectRestrictNode(
                 this,
                 prRCList,
                 null,    /* Restriction */
@@ -1720,8 +1718,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
          *           top of the query tree which has ColumnReferences under
          *           its ResultColumnList prior to expression push down.
          */
-        return (ResultSetNode)getNodeFactory().getNode(
-                C_NodeTypes.PROJECT_RESTRICT_NODE,
+        return new ProjectRestrictNode(
                 this,
                 newResultCols,
                 null,
