@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.ast;
 
 import com.carrotsearch.hppc.LongLongHashMap;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
@@ -486,36 +487,24 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                                                      JoinNode joinNode,
                                                      ResultSetNode resultSetNode) throws StandardException {
 
-        try {
-            LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-            NodeFactory nodeFactory = lcc.getLanguageConnectionFactory().
-                    getNodeFactory();
+        ContextManager cm = ContextService.getService().getCurrentContextManager();
+        ColumnReference generatedRef = new ColumnReference(resultColumn.getName(), null, cm);
+        VirtualColumnNode vnode = new VirtualColumnNode(resultSetNode, // source result set.
+                resultColumn, resultSetNode.getResultColumns().size(), cm);
 
-            ColumnReference generatedRef = new ColumnReference(resultColumn.getName(),
-                    null, ContextService.getService().getCurrentContextManager());
-            VirtualColumnNode vnode = (VirtualColumnNode) nodeFactory.getNode(C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                    resultSetNode, // source result set.
-                    resultColumn,
-                    resultSetNode.getResultColumns().size(),
-                    ContextService.getService().getCurrentContextManager());
-
-            resultColumn = new ResultColumn(resultColumn.getName(), vnode, ContextService.getService().getCurrentContextManager());
-            resultColumn.markGenerated();
-            resultColumn.setResultSetNumber(joinNode.getResultSetNumber());
-            generatedRef.setSource(resultColumn);
-            if (brop.getLeftOperand() == operand) {
-                setColumnReferenceFields(generatedRef, brop.getLeftOperand());
-                brop.setLeftOperand(generatedRef);
-            }
-            else {
-                setColumnReferenceFields(generatedRef, brop.getRightOperand());
-                brop.setRightOperand(generatedRef);
-            }
-            return resultColumn;
+        resultColumn = new ResultColumn(resultColumn.getName(), vnode, cm);
+        resultColumn.markGenerated();
+        resultColumn.setResultSetNumber(joinNode.getResultSetNumber());
+        generatedRef.setSource(resultColumn);
+        if (brop.getLeftOperand() == operand) {
+            setColumnReferenceFields(generatedRef, brop.getLeftOperand());
+            brop.setLeftOperand(generatedRef);
         }
-        catch (SQLException e) {
-            throw StandardException.newException(e.getSQLState());
+        else {
+            setColumnReferenceFields(generatedRef, brop.getRightOperand());
+            brop.setRightOperand(generatedRef);
         }
+        return resultColumn;
     }
 
     private static void setColumnReferenceFields(ColumnReference crToSet, ValueNode exprToExtract) {

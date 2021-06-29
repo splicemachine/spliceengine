@@ -142,7 +142,7 @@ public class ScalarSubqueryFlatteningVisitor extends AbstractSpliceVisitor imple
         /*
          * Insert the new FromSubquery into to origSelectNode's From list.
          */
-        FromSubquery fromSubquery = (FromSubquery) topSelectNode.getNodeFactory().getNode(C_NodeTypes.FROM_SUBQUERY,
+        FromSubquery fromSubquery = new FromSubquery(
                 subqueryResultSet,
                 null,                  // order by
                 null,                  // offset

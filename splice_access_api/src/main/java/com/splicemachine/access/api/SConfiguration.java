@@ -183,12 +183,10 @@ public interface SConfiguration {
 
     int getSparkResultStreamingBatches();
     int getSparkResultStreamingBatchSize();
-    boolean getSparkResultStreamingThrottleEnabled();
+    int getSparkResultStreamingThrottleMaxWait();
 
     int getSparkSlowResultStreamingBatches();
     int getSparkSlowResultStreamingBatchSize();
-
-    int getSparkResultStreamingThreads();
 
     double getBulkImportSampleFraction();
 

@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
@@ -52,6 +53,11 @@ import java.util.*;
 
 public class ValueNodeList extends QueryTreeNodeVector
 {
+    public ValueNodeList() {}
+    public ValueNodeList(ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.VALUE_NODE_LIST);
+    }
     /**
      * Add a ValueNode to the list.
      *
@@ -864,9 +870,7 @@ public class ValueNodeList extends QueryTreeNodeVector
     }
 
     public ValueNodeList replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
-        ValueNodeList newList = (ValueNodeList) getNodeFactory().getNode(
-                C_NodeTypes.VALUE_NODE_LIST,
-                getContextManager());
+        ValueNodeList newList = new ValueNodeList(getContextManager());
         for (int i = 0; i < size(); i++) {
             newList.addValueNode(((ValueNode) elementAt(i)).replaceIndexExpression(childRCL));
         }
