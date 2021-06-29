@@ -4936,7 +4936,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         int[] baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
         int columnNumber = baseColumnPositions[0];
 
-        DataValueDescriptor defaultValue = td.getDefaultValue(cd.getIndexDescriptor().baseColumnPositions()[0]);
+        DataValueDescriptor defaultValue = td.getDefaultValue(cd.getIndexDescriptor().baseColumnStoragePositions()[0]);
 
         if (defaultValue.isNull())
             return canSupportIndexExcludedNulls(tableNumber, cd, td);
