@@ -121,7 +121,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
         // views could be defined on other views/tables/aliases, and aliases could be on tables/views
 
         //get all the table/view/alias
-        ArrayList<TupleDescriptor> tableList = dd.getTablesInSchema(sd);
+        ArrayList<TableDescriptor> tableList = dd.getTablesInSchema(sd.getUUID().toString());
 
         // get all the table/view/alias and their dependents in the pendingDropList
         ArrayList<TupleDescriptor> pendingDropList = new ArrayList<>();

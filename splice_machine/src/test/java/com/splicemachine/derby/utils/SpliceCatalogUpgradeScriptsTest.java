@@ -34,8 +34,9 @@ public class SpliceCatalogUpgradeScriptsTest {
             "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddReferencesViewInSYSCAT\n" +
             "VERSION4.2004: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeStoredObjects\n";
 
-    // see DB-12144 / DB-11296, Those scripts must run before other upgrade scripts
+    // Those scripts must run before other upgrade scripts
     String s3 = "VERSION4.2020: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeAddConglomerateNumberIndex\n" +
+            "VERSION4.2023: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToPrioritizeSchemaIdInSystemIndices\n" +
             "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeConglomerateTable\n";
     // add more scripts here
 

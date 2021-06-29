@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.StreamStorable;
@@ -51,7 +52,6 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-import java.util.UUID;
 
 /**
  * A poor mans structure used in DataDictionaryImpl.java.
@@ -229,6 +229,11 @@ public class TabInfoImpl
     public String getTableName()
     {
         return crf.getCatalogName();
+    }
+
+    public UUID getTableUUID()
+    {
+        return crf.getCanonicalTableUUID();
     }
 
     /**
@@ -790,7 +795,7 @@ public class TabInfoImpl
 
         // Create a savepoint so that any subsequent writes to the rows we just deleted don't end up
         // with the same timestamp, see DB-9553
-        tc.setSavePoint("DD_SAVEPOINT-" + UUID.randomUUID().toString(), null);
+        tc.setSavePoint("DD_SAVEPOINT-" + java.util.UUID.randomUUID().toString(), null);
         tc.elevate("dictionary");
 
         return rowsDeleted;

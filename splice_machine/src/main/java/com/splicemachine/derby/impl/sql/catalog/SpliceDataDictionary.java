@@ -2254,15 +2254,10 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
     }
 
-    public TabInfoImpl getTableInfo(int catalogNum) throws StandardException{
-        TabInfoImpl ti = (catalogNum < NUM_CORE) ? coreInfo[catalogNum] : getNonCoreTI(catalogNum);
-        return ti;
-    }
-
     public void upgradeRecreateIndexesOfSystemTable(TransactionController tc, int catalogNumber, int[] indexIds) throws StandardException {
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
         TabInfoImpl tabInfo = getTabInfoByNumber(catalogNumber);
-        TableDescriptor td = getTableDescriptor(tabInfo.getTableName(), systemSchemaDesc, tc);
+        TableDescriptor td = getTableDescriptor(tabInfo.getTableUUID());
         CatalogRowFactory crf = tabInfo.getCatalogRowFactory();
 
         // Init the heap conglomerate here
