@@ -1383,6 +1383,9 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      * @return TableName the original or unbound tablename
      */
     public TableName getOrigTableName(){
+        // Do not try to set schemaName if origTableName.schemaName == null.
+        // isTransitionTable() in CreateTriggerNode.java relies on this to
+        // distinguish normal tables from transition tables.
         return this.origTableName;
     }
 

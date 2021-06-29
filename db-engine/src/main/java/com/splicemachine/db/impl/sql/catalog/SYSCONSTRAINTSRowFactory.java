@@ -356,7 +356,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
                 }
                 referencedConstraintId=((SubKeyConstraintDescriptor)
                         parentTupleDescriptor).getKeyConstraintId();
-                keyColumns=conglomDesc.getIndexDescriptor().baseColumnPositions();
+                keyColumns=conglomDesc.getIndexDescriptor().baseColumnStoragePositions();
                 break;
 
             case 'C':

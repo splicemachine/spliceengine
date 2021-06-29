@@ -156,6 +156,7 @@ message IndexDescriptorImpl {
   repeated string exprTexts = 10;
   repeated ByteArray exprBytecode = 11;
   repeated DataTypeDescriptor indexColumnTypes = 12;
+  repeated int32 baseColumnLogicalPositions = 13;
 }
 
 

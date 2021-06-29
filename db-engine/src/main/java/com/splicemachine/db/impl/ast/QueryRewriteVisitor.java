@@ -12,7 +12,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.db.impl.ast;;
+package com.splicemachine.db.impl.ast;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
@@ -128,12 +128,8 @@ public class QueryRewriteVisitor extends AbstractSpliceVisitor {
 
     private void constructExistsCondition(SelectNode selectNode, FromTable fromTable) throws StandardException {
         ContextManager cm = fromTable.getContextManager();
-        NodeFactory nodeFactory = fromTable.getNodeFactory();
 
-        NumericConstantNode numberOne
-           = new NumericConstantNode(cm,
-                    C_NodeTypes.INT_CONSTANT_NODE,
-                    Integer.valueOf(1));
+        NumericConstantNode numberOne = new NumericConstantNode(cm, C_NodeTypes.INT_CONSTANT_NODE, Integer.valueOf(1));
 
         ResultColumn rc = new ResultColumn((String)null, numberOne, cm);
         ResultColumnList resultColumns = new ResultColumnList(cm);
@@ -141,9 +137,7 @@ public class QueryRewriteVisitor extends AbstractSpliceVisitor {
 
         FromList fromList = new FromList(true, fromTable, cm);
 
-        SelectNode newSelectNode = (SelectNode) nodeFactory.getNode(
-                            C_NodeTypes.SELECT_NODE,
-                            resultColumns,
+        SelectNode newSelectNode = new SelectNode(resultColumns,
                             null,         /* AGGREGATE list */
                             fromList,
                             null,

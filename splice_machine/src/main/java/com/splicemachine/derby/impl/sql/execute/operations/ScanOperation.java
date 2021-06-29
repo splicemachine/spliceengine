@@ -221,7 +221,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
      * @throws StandardException
      */
     protected int[] getKeyFormatIds() throws StandardException{
-        return getKeyFormatIds(scanInformation.getColumnOrdering(),scanInformation.getConglomerate().getFormat_ids());
+        return scanInformation.getConglomerate().getKeyFormatIds();
     }
 
     public static int[] getKeyFormatIds(int[] keyColumnEncodingOrder, int[] formatIds) throws StandardException {

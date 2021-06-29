@@ -332,14 +332,15 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
             ** Create the conglomerate with the template row.
             */
             CID =
-                tc.createConglomerate(false,
-                 "heap",
-                 templateRow.getRowArray(),
-                 null, //column sort order - not required for heap
-                 null, //collation_ids
-                 properties,
-                 TransactionController.IS_TEMPORARY |
-                 TransactionController.IS_KEPT, Conglomerate.Priority.NORMAL);
+                    tc.createConglomerate(false,
+                            "heap",
+                            templateRow.getRowArray(),
+                            null, //column sort order - not required for heap
+                            null,
+                            null, //collation_ids
+                            properties,
+                            TransactionController.IS_TEMPORARY |
+                                    TransactionController.IS_KEPT, Conglomerate.Priority.NORMAL);
 
             LOG.trace(format("Created temporary conglomerate splice:%d", CID));
 
