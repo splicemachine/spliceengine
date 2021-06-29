@@ -4,10 +4,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test_tools.TableCreator;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -38,6 +35,13 @@ public class SQLWarningIT extends SpliceUnitTest {
                 .withRows(rows(
                         row(1),
                         row(2))).create();
+
+        new TableCreator(conn)
+                .withCreate("create table T1 (c1 char(250), c2 varchar(100), c3 varchar(100))")
+                .withInsert("insert into T1 values (?,?,?)")
+                .withRows(rows(
+                        row("a", "b", "c")))
+                .create();
     }
 
     @Test
@@ -83,6 +87,42 @@ public class SQLWarningIT extends SpliceUnitTest {
             s.execute("delete from a where c1 = 0");
             SQLWarning warning = s.getWarnings();
             Assert.assertTrue(warning == null);
+        }
+    }
+
+    @Test
+    public void testTruncateWarning1() throws Exception {
+        String query = "SELECT * FROM sysibm.sysdummy1 WHERE '?2,BL' NOT IN ( CAST('1969-12-16 17:40:41' AS VARCHAR(16)))";
+        try(Connection connection = spliceClassWatcher.getOrCreateConnection();
+            Statement s = connection.createStatement()) {
+            s.execute(query);
+            SQLWarning warning = s.getWarnings();
+            Assert.assertTrue(warning != null);
+            Assert.assertEquals("01004", warning.getSQLState());
+            Assert.assertEquals("Data truncation", warning.getMessage());
+        }
+    }
+
+    @Ignore
+    @Test
+    public void testTruncateWarning2() throws Exception {
+        String query = "select cast(c1 as char(5)), cast(c2 as char(5)), cast(c3 as char(5)) from t1";
+        try(Connection connection = spliceClassWatcher.getOrCreateConnection();
+            Statement s = connection.createStatement()) {
+            s.execute(query);
+            SQLWarning warning = s.getWarnings();
+            Assert.assertTrue(warning == null);
+
+            s.execute("update t1 set c2='abcdef'");
+            s.execute(query);
+            // We do have the data truncate warning set during s.execute(query) above. However, we receive
+            // a RDBRLLBCK code point (rollback) as the final step of s.execute(), which clears warnings.
+            // It might be related to test framework?
+            // This warning can be seen in sqlshell.
+            warning = s.getWarnings();
+            Assert.assertTrue(warning != null);
+            Assert.assertEquals("01004", warning.getSQLState());
+            Assert.assertEquals("Data truncation", warning.getMessage());
         }
     }
 }

@@ -1903,7 +1903,7 @@ public class BinaryRelationalOperatorNode
 
          List<ColumnReference> crList = expr.getHashableJoinColumnReference();
          assert crList != null && !crList.isEmpty();
-         return !selfComparison(crList.get(0),false) && !implicitVarcharComparison();
+         return !selfComparison(crList.get(0),true) && !implicitVarcharComparison();
 
      }
 

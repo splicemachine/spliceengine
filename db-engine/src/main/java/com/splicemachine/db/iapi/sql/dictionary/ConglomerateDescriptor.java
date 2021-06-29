@@ -75,7 +75,7 @@ public final class ConglomerateDescriptor extends TupleDescriptor
 	private transient String[]	columnNames;
 	private final boolean	indexable;
 	private final boolean	forConstraint;
-	private final IndexRowGenerator	indexRowGenerator;
+	private IndexRowGenerator	indexRowGenerator;
 	private final UUID	uuid;
 	private final UUID	tableID;
 	private final UUID	schemaID;
@@ -655,5 +655,9 @@ public final class ConglomerateDescriptor extends TupleDescriptor
 		}
 
 		return returnDesc;
+	}
+
+	public void setIndexRowGenerator(IndexRowGenerator indexRowGenerator) {
+		this.indexRowGenerator = indexRowGenerator;
 	}
 }

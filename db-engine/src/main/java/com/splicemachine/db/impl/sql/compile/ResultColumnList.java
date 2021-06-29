@@ -52,7 +52,6 @@ import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
@@ -208,6 +207,16 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         return null;
     }
 
+    public ResultColumn getResultColumnByStoragePosition(int position){
+        int size=size();
+        for(int index=0;index<size;index++){
+            ResultColumn rc=elementAt(index);
+            if(rc.getStoragePosition() == position){
+                return rc;
+            }
+        }
+        return null;
+    }
     /**
      * Take a column position and a ResultSetNode and find the ResultColumn
      * in this RCL whose source result set is the same as the received
@@ -772,10 +781,14 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             if( index >= firstOrderByIndex )
                 fromList.useAliases();
 
-            ValueNode vn=elementAt(index);
-            vn=vn.bindExpression(fromList,subqueryList,aggregateVector);
+            ValueNode vn = elementAt(index);
+            vn = vn.bindExpression(fromList,subqueryList,aggregateVector);
             //-sf- this cast is safe because ResultColumn returns a ResultColumn from bindExpression()
             ResultColumn rc = (ResultColumn)vn;
+            if (rc.getExpression() instanceof ValueTupleNode) {
+                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                                                     "Tuple values as a column in select list is not supported");
+            }
             setElementAt((ResultColumn)vn,index);
 
             // if we have aliases in the SELECT part, add them, so ORDER BY can resolve them later
@@ -1139,11 +1152,11 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             RowLocation rlTemplate = scc.newRowLocationTemplate();
             row.setColumn(indexColumnTypes.length + 1, rlTemplate);
         } else {
-            int[] baseCols = cd.getIndexDescriptor().baseColumnPositions();
+            int[] baseCols = cd.getIndexDescriptor().baseColumnStoragePositions();
             row = getExecutionFactory().getValueRow(baseCols.length + 1);
 
             for (int i = 0; i < baseCols.length; i++) {
-                ColumnDescriptor coldes = td.getColumnDescriptor(baseCols[i]);
+                ColumnDescriptor coldes = td.getColumnDescriptorByStoragePosition(baseCols[i]);
                 DataTypeDescriptor dataType = coldes.getType();
 
                 DataValueDescriptor dataValue = dataType.getNull();
@@ -1605,7 +1618,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         ResultColumnList newList;
 
         /* Create the new ResultColumnList */
-        newList=(ResultColumnList)getNodeFactory().getNode( C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
+        newList = new ResultColumnList(getContextManager());
 
         /* Walk the current list - for each ResultColumn in the list, make a copy
          * and add it to the new list.
@@ -1675,12 +1688,8 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             /* dts = resultColumn.getExpression().getTypeServices(); */
 
             /* Vectors are 0-based, VirtualColumnIds are 1-based */
-            resultColumn.expression=(ValueNode)getNodeFactory().getNode(
-                    C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                    sourceResultSet,
-                    sourceResultColumnList.elementAt(index),
-                    ReuseFactory.getInteger(index+1),
-                    getContextManager());
+            resultColumn.expression = new VirtualColumnNode(sourceResultSet, sourceResultColumnList.elementAt(index),
+                    index+1, getContextManager());
 
             /* Mark the ResultColumn as being referenced */
             if(markReferenced){
@@ -2236,7 +2245,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         int posn;
 
         /* Get a new ResultColumnList */
-        retval=(ResultColumnList)getNodeFactory().getNode( C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
+        retval = new ResultColumnList(getContextManager());
 
         /*
         ** Form a sorted array of the ResultColumns
@@ -3158,9 +3167,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             return this;
         }
 
-        ResultColumnList newCols=(ResultColumnList)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        ResultColumnList newCols = new ResultColumnList(getContextManager());
         newCols.setFromExprIndex(fromExprIndex);
 
         int size=size();

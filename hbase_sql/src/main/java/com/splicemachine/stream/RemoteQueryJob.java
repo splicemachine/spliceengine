@@ -42,15 +42,14 @@ public class RemoteQueryJob extends DistributedJob implements Serializable {
     int streamingBatchSize;
     int parallelPartitions;
     Integer shufflePartitions;
+    int streamingThrottleMaxWait;
     transient RunningOperation runningOperation = null;
-    int partitionExecutorThreads;
 
 
     public RemoteQueryJob(ActivationHolder ah, int rootResultSetNumber, UUID uuid, String host, int port,
                           String session, String userId, String sql,
                           int streamingBatches, int streamingBatchSize, int parallelPartitions,
-                          Integer shufflePartitionsProperty, UUID runningOperationUUID,
-                          int partitionExecutorThreads) {
+                          Integer shufflePartitionsProperty, int streamingThrottleMaxWait, UUID runningOperationUUID) {
         this.ah = ah;
         this.rootResultSetNumber = rootResultSetNumber;
         this.uuid = uuid;
@@ -63,8 +62,8 @@ public class RemoteQueryJob extends DistributedJob implements Serializable {
         this.streamingBatchSize = streamingBatchSize;
         this.parallelPartitions = parallelPartitions;
         this.shufflePartitions = shufflePartitionsProperty;
+        this.streamingThrottleMaxWait = streamingThrottleMaxWait;
 
-        this.partitionExecutorThreads = partitionExecutorThreads;
         RunningOperation runningOperation = null;
         if( runningOperationUUID != null )
             runningOperation = EngineDriver.driver().getOperationManager().getRunningOperation(runningOperationUUID);
