@@ -30,8 +30,6 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -177,14 +175,14 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         */
         dd.startWriting(lcc);
 
-        SchemaDescriptor triggerSd = getSchemaDescriptorForCreate(dd, activation, triggerSchemaName);
+        SchemaDescriptor triggerSd = getSchemaDescriptorForCreate(dd, activation, null, triggerSchemaName);
 
         if (spsCompSchemaId == null) {
             SchemaDescriptor def = lcc.getDefaultSchema();
             if (def.getUUID() == null) {
                 // Descriptor for default schema is stale,
                 // look it up in the dictionary
-                def = dd.getSchemaDescriptor(def.getDescriptorName(), tc,
+                def = dd.getSchemaDescriptor(null, def.getDescriptorName(), tc,
                         false);
             }
 
@@ -261,9 +259,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         */
         dm.invalidateFor(triggerTable, DependencyManager.CREATE_TRIGGER, lcc);
 
-        DDLMessage.DDLChange ddlChange = ProtoUtil.createTrigger(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) this.tableId);
-        // Run Remotely
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+        notifyMetadataChange(tc, ProtoUtil.createTrigger(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) this.tableId));
 
         /*
         ** Lets get our trigger id up front, we'll use it when

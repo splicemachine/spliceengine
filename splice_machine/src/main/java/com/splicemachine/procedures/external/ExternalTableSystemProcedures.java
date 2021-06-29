@@ -57,7 +57,7 @@ public class ExternalTableSystemProcedures {
         try {
             DataDictionary data_dictionary=lcc.getDataDictionary();
             SchemaDescriptor sd=
-                    data_dictionary.getSchemaDescriptor(schema,tc,true);
+                    data_dictionary.getSchemaDescriptor(null, schema,tc,true);
             TableDescriptor td=
                     data_dictionary.getTableDescriptor(table,sd,tc);
 

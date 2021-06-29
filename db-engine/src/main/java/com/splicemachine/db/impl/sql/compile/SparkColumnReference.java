@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -48,6 +49,9 @@ public class SparkColumnReference extends AbstractSparkExpressionNode
     // The name of the column in the data frame.
     private String columnName;
 
+    // The zero-based column number of the column in the data frame.
+    private int columnNumber;
+
     // Does this column refer to the left data frame, or the right?
     private boolean leftDataFrame;
 
@@ -55,10 +59,27 @@ public class SparkColumnReference extends AbstractSparkExpressionNode
     {
     }
 
-    public SparkColumnReference(String columnName, boolean leftDataFrame)
+    public SparkColumnReference(int columnNumber, boolean leftDataFrame)
     {
-        this.columnName = columnName;
+        this.columnNumber  = columnNumber;
+        this.columnName    = ValueRow.getNamedColumn(columnNumber);
         this.leftDataFrame = leftDataFrame;
+    }
+
+    public boolean isLeftDataFrame() {
+        return leftDataFrame;
+    }
+
+    public int getColumnNumber() {
+        return columnNumber;
+    }
+
+    public String getColumnName() {
+        return columnName;
+    }
+
+    public void setColumnName(String columnName) {
+        this.columnName = columnName;
     }
 
     @Override
@@ -85,6 +106,7 @@ public class SparkColumnReference extends AbstractSparkExpressionNode
         out.writeInt(serializationVersion);
         out.writeUTF(columnName);
         out.writeBoolean(leftDataFrame);
+        out.writeInt(columnNumber);
         super.writeExternal(out);
     }
 
@@ -93,6 +115,16 @@ public class SparkColumnReference extends AbstractSparkExpressionNode
         serializationVersion = in.readInt();
         columnName = in.readUTF();
         leftDataFrame = in.readBoolean();
+        if (serializationVersion > 1)
+            columnNumber = in.readInt();
+        else {
+            try {
+                columnNumber = Integer.parseInt(columnName.substring(1));
+            }
+            catch (NumberFormatException nfe) {
+                throw new IOException(nfe);
+            }
+        }
         super.readExternal(in);
     }
 }

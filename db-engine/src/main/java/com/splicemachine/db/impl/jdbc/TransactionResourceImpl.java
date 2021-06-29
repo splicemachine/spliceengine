@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
@@ -286,7 +287,7 @@ public final class TransactionResourceImpl
     {
         // setting up local connection
         lcc = database.setupConnection(cm, username, groupuserlist, drdaID, dbname, rdbIntTkn, useSpark, useNativeSpark,
-                skipStats, defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
+                    skipStats, defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
     }
 
     /**
@@ -524,12 +525,12 @@ public final class TransactionResourceImpl
 
             try {
                 StandardException se = (StandardException) thrownException;
-                LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+                LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC(false);
                 if (lcc != null) {
                     String s = lcc.getTransactionCompile().getActiveStateTxIdString();
                     if (s != null) {
                         String spliceDB2ErrorCompatible =
-                                PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_DB2_ERROR_COMPATIBLE);
+                                PropertyUtil.getCached(lcc, GlobalDBProperties.SPLICE_DB2_ERROR_COMPATIBLE);
                         if (spliceDB2ErrorCompatible != null && spliceDB2ErrorCompatible.equalsIgnoreCase("TRUE")) {
                             setDB2ErrorCode(se);
                         }

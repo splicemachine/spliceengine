@@ -32,12 +32,13 @@
 package com.splicemachine.db.iapi.util;
 
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.BitSet;
 
 /**
- * JBitSet is a wrapper class for BitSet.  It is a fixed length implementation
- * which can be extended via the grow() method.  It provides additional
+ * JBitSet is a wrapper class for BitSet.  It is a variable length implementation
+ * which can be explicitly extended via the grow() method.  It provides additional
  * methods to manipulate BitSets.
  * NOTE: JBitSet was driven by the (current and perceived) needs of the
  * optimizer, but placed in the util package since it is not specific to
@@ -47,7 +48,7 @@ import java.util.BitSet;
  * We want to make it look like JBitSet extends BitSet, so we need to
  * provide wrapper methods for all of BitSet's methods.
  */
-public final class JBitSet{
+public final class JBitSet implements Cloneable {
     /* The BitSet that we'd like to extend */
     private final BitSet bitSet;
     /* Cache size() of bitSet, since accessed a lot */
@@ -82,10 +83,6 @@ public final class JBitSet{
      * @param sourceBitSet The JBitSet to copy.
      */
     public void setTo(JBitSet sourceBitSet){
-        if(SanityManager.DEBUG){
-            SanityManager.ASSERT(size==sourceBitSet.size(),
-                    "JBitSets are expected to be the same size");
-        }
         /* High reuse solution */
         and(sourceBitSet);
         or(sourceBitSet);
@@ -100,11 +97,9 @@ public final class JBitSet{
      * @return boolean    Whether or not jBitSet is a subset.
      */
     public boolean contains(JBitSet jBitSet){
-        if(SanityManager.DEBUG){
-            SanityManager.ASSERT(size==jBitSet.size(),
-                    "JBitSets are expected to be the same size");
-        }
-        for(int bitIndex=0;bitIndex<size;bitIndex++){
+        if (jBitSet.lastSetBit() > lastSetBit())
+            return false;
+        for(int bitIndex=0;bitIndex<size();bitIndex++){
             if(jBitSet.bitSet.get(bitIndex) && !(bitSet.get(bitIndex))){
                 return false;
             }
@@ -122,19 +117,7 @@ public final class JBitSet{
      * @return boolean    Whether or not JBitSet has a single bit set.
      */
     public boolean hasSingleBitSet(){
-        boolean found=false;
-
-        for(int bitIndex=0;bitIndex<size;bitIndex++){
-            if(bitSet.get(bitIndex)){
-                if(found){
-                    return false;
-                }else{
-                    found=true;
-                }
-            }
-        }
-
-        return found;
+        return bitSet.cardinality() == 1;
     }
 
     /**
@@ -143,13 +126,7 @@ public final class JBitSet{
      * @return int    Index of first set bit, -1 if none set.
      */
     public int getFirstSetBit(){
-        for(int bitIndex=0;bitIndex<size;bitIndex++){
-            if(bitSet.get(bitIndex)){
-                return bitIndex;
-            }
-        }
-
-        return -1;
+        return bitSet.nextSetBit(0);
     }
 
     /**
@@ -171,11 +148,7 @@ public final class JBitSet{
      * Clear all of the bits in this JBitSet
      */
     public void clearAll(){
-        for(int bitIndex=0;bitIndex<size;bitIndex++){
-            if(bitSet.get(bitIndex)){
-                bitSet.clear(bitIndex);
-            }
-        }
+        bitSet.clear();
     }
 
     /* Wrapper methods for BitSet's methods */
@@ -185,6 +158,7 @@ public final class JBitSet{
     }
 
     @Override
+    @SuppressFBWarnings(value = "EQ_CHECK_FOR_OPERAND_NOT_COMPATIBLE_WITH_THIS", justification = "intentional")
     public boolean equals(Object obj){
         if(obj instanceof BitSet){
             return bitSet.equals(obj);
@@ -200,7 +174,7 @@ public final class JBitSet{
     @SuppressWarnings("CloneDoesntCallSuperClone")
     @Override
     public Object clone(){
-        return new JBitSet((BitSet)bitSet.clone(),size);
+        return new JBitSet((BitSet)bitSet.clone(),size());
     }
 
     public boolean get(int bitIndex){
@@ -208,6 +182,8 @@ public final class JBitSet{
     }
 
     public void set(int bitIndex){
+        if (bitIndex > size)
+            grow(bitIndex);
         bitSet.set(bitIndex);
     }
 
@@ -237,11 +213,13 @@ public final class JBitSet{
      * @return int    Size of bitSet
      */
     public int size(){
-        return size;
+        return bitSet.length() > size ? bitSet.length() : size;
     }
 
     public int cardinality() {
         return bitSet.cardinality();
     }
+
+    public int lastSetBit() { return bitSet.length()-1;}
 }
 

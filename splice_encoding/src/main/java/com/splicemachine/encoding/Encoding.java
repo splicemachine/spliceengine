@@ -37,6 +37,13 @@ public final class Encoding {
 
     public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
+    public enum SpliceEncodingKind {
+        SCALAR,
+        FLOAT,
+        DOUBLE,
+        OTHER
+    }
+
     private Encoding(){} //can't construct me!
 
     /**

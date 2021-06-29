@@ -181,9 +181,9 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
                 "                 h1 timestamp, primary key(a1, b1, c1, d1, e1, f1, g1, h1))")
                 .withInsert("insert into t11 values (?,?,?,?,?,?,?,?)")
                 .withRows(rows(
-                        row(1,1,1,1,1,1,1, "2018-12-31 15:59:59.3211111"),
-                        row(1,1,1,1,1,1,1, "1969-12-31 15:59:59.3211111"),
-                        row(1,1,1,1,1,1,1, "1969-12-31 15:59:59.9999999"),
+                        row(1,1,1,1,1,1,1, "2018-12-31 15:59:59.321111"),
+                        row(1,1,1,1,1,1,1, "1969-12-31 15:59:59.321111"),
+                        row(1,1,1,1,1,1,1, "1969-12-31 15:59:59.999999"),
                         row(1,1,1,1,1,1,1, "1969-12-31 15:59:59.000001"),
                         row(2,1,1,1,1,1,1, "1969-12-31 15:59:59.001"),
                         row(2,1,1,1,1,1,1, "1969-12-31 15:59:59.00"),
@@ -470,9 +470,9 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         rs = methodWatcher.executeQuery("explain " + sqlText);
 
         resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        Assert.assertFalse("MultiProbeTableScan is not expected", resultString.contains("MultiProbeTableScan"));
+        Assert.assertTrue("MultiProbeTableScan is expected", resultString.contains("MultiProbeTableScan"));
 
-        Assert.assertTrue("Multicolumn IN list should be built", resultString.contains("[((A1[0:1],B1[0:2]) IN ((A         ,1),(D         ,4)))]"));
+        Assert.assertTrue("Multicolumn IN list should be built", resultString.contains("[((A1[0:1],B1[0:2]) IN "));
 
         rs = methodWatcher.executeQuery(sqlText);
 
@@ -726,10 +726,8 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         level = 1;
         while (rs.next()) {
             String resultString = rs.getString(1);
-            if (level == 6) {
-                Assert.assertTrue("MultiProbeIndexScan is not expected", !resultString.contains("MultiProbeIndexScan"));
-                Assert.assertTrue("MultiProbeTableScan is not expected", !resultString.contains("MultiProbeTableScan"));
-                Assert.assertTrue("Should have converted the OR'ed conditions to IN.", resultString.contains("(F[0:1],R[0:2]) IN "));
+            if (level == 7) {
+                Assert.assertTrue("MultiProbeIndexScan is expected", resultString.contains("MultiProbeIndexScan"));
             }
             level++;
         }
@@ -1443,7 +1441,7 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
                 if (!multiProbeFound)
                     multiProbeFound = resultString.contains("MultiProbeTableScan");
                 if (!multiColINFound)
-                    multiColINFound = resultString.contains("preds=[((B1[0:2],A1[0:1]) IN ");
+                    multiColINFound = resultString.contains("keys=[((B1[0:2],A1[0:1]) IN ");
             }
             if (level > 4) {
                 Assert.assertTrue("MultiProbeTableScan is expected", multiProbeFound);

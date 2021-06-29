@@ -35,6 +35,7 @@ import com.splicemachine.db.catalog.types.DefaultInfoImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
@@ -95,6 +96,12 @@ public class ColumnReference extends ValueNode {
      */
     private ResultColumn source;
 
+    // ROWID refers to the row id of the row in the conglomerate we're reading.
+    public static final String ROWID = "ROWID";
+
+    // BASEROWID refers to the row id of the base table row.
+    public static final String BASEROWID = "BASEROWID";
+
     /* For unRemapping */
     ResultColumn    origSource;
     private String    origName;
@@ -148,6 +155,23 @@ public class ColumnReference extends ValueNode {
        and has been remapped multiple times.
      */
     private java.util.ArrayList remaps;
+
+    public ColumnReference() {}
+
+    public ColumnReference(String columnName, TableName tableName, ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.COLUMN_REFERENCE);
+        init(columnName, tableName);
+    }
+
+    public ColumnReference(String columnName, TableName tableName, Integer tokBeginOffset, Integer tokEndOffset,
+                           ContextManager contextManager)
+    {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.COLUMN_REFERENCE);
+        init(columnName, tableName, tokBeginOffset, tokEndOffset);
+    }
+
 
     /**
      * Initializer.
@@ -441,12 +465,7 @@ public class ColumnReference extends ValueNode {
     public ValueNode getClone()
             throws StandardException
     {
-        ColumnReference newCR = (ColumnReference) getNodeFactory().getNode(
-                C_NodeTypes.COLUMN_REFERENCE,
-                columnName,
-                tableName,
-                getContextManager());
-
+        ColumnReference newCR = new ColumnReference(columnName, tableName, getContextManager());
         newCR.copyFields(this);
         return newCR;
     }
@@ -696,16 +715,10 @@ public class ColumnReference extends ValueNode {
     public ValueNode putAndsOnTop()
             throws StandardException
     {
-        BinaryComparisonOperatorNode        equalsNode;
-        BooleanConstantNode    trueNode;
         NodeFactory        nodeFactory = getNodeFactory();
-        ValueNode        andNode;
 
-        trueNode = (BooleanConstantNode) nodeFactory.getNode(
-                C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                Boolean.TRUE,
-                getContextManager());
-        equalsNode = (BinaryComparisonOperatorNode)
+        BooleanConstantNode trueNode = new BooleanConstantNode(Boolean.TRUE, getContextManager());
+        BinaryComparisonOperatorNode equalsNode = (BinaryComparisonOperatorNode)
                 nodeFactory.getNode(
                         C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
                         this,
@@ -713,12 +726,8 @@ public class ColumnReference extends ValueNode {
                         getContextManager());
         /* Set type info for the operator node */
         equalsNode.bindComparisonOperator();
-        andNode = (ValueNode) nodeFactory.getNode(
-                C_NodeTypes.AND_NODE,
-                equalsNode,
-                trueNode,
-                getContextManager());
-        ((AndNode) andNode).postBindFixup();
+        AndNode andNode = new AndNode(equalsNode, trueNode, getContextManager());
+        andNode.postBindFixup();
         return andNode;
     }
 
@@ -1321,8 +1330,16 @@ public class ColumnReference extends ValueNode {
         // sourceResultSet.  The column within that sourceResultSet that
         // is referenced by this ColumnReference is also returned, via
         // the colNum parameter, and was set above.
-        if ((rcExpr != null) && (rcExpr instanceof VirtualColumnNode))
-            return ((VirtualColumnNode)rcExpr).getSourceResultSet();
+        if (rcExpr != null) {
+            if (rcExpr instanceof VirtualColumnNode)
+                return ((VirtualColumnNode)rcExpr).getSourceResultSet();
+            else if (rcExpr instanceof CurrentRowLocationNode) {
+                CurrentRowLocationNode rowLoc = (CurrentRowLocationNode)rcExpr;
+                ResultSetNode resultSet = rowLoc.getSourceResultSet();
+                if (resultSet != null)
+                    return resultSet;
+            }
+        }
 
         // If we get here then the ColumnReference doesn't reference
         // a result set, so return null.
@@ -1535,7 +1552,7 @@ public class ColumnReference extends ValueNode {
         StoreCostController storeCostController = null;
         boolean skipStats = getCompilerContext().skipStats(getTableNumber());
         if (replacesIndexExpression) {
-            SchemaDescriptor sd = getSchemaDescriptor(getSource().getSourceSchemaName());
+            SchemaDescriptor sd = getSchemaDescriptor(null, getSource().getSourceSchemaName());
             TableDescriptor td = getTableDescriptor(getSource().getSourceTableName(), sd);
             ConglomerateDescriptor cd = td.getConglomerateDescriptor(getSource().getSourceConglomerateNumber());
             storeCostController = getCompilerContext().getStoreCostController(td, cd, skipStats, 0, 0);
@@ -1584,7 +1601,7 @@ public class ColumnReference extends ValueNode {
     }
 
     public boolean isRowIdColumn() {
-        return columnName.compareToIgnoreCase("ROWID")==0;
+        return isBaseRowIdOrRowId(columnName);
     }
 
     public ResultColumn getCoordinateSourceColumn() {
@@ -1606,10 +1623,40 @@ public class ColumnReference extends ValueNode {
     }
 
     public ResultColumn generateResultColumn() throws StandardException {
-        return (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                this.getColumnName(),
-                this.getClone(),
-                getContextManager());
+        return new ResultColumn(getColumnName(), getClone(), getContextManager());
+    }
+
+    public static boolean isBaseRowIdOrRowId(String columnName) {
+        if (columnName == null)
+            return false;
+
+        return isRowId(columnName) || isBaseRowId(columnName);
+    }
+
+    public static boolean isRowId(String columnName) {
+        if (columnName == null)
+            return false;
+
+        // These special column names for UPDATE and DELETE
+        // also refer to the RowID.
+        if (columnName.equals(UpdateNode.COLUMNNAME) ||
+            columnName.equals(DeleteNode.COLUMNNAME))
+            return true;
+
+        return ROWID.equals(columnName);
+    }
+
+    public static boolean isBaseRowId(String columnName) {
+        if (columnName == null)
+            return false;
+
+        return BASEROWID.equals(columnName);
+    }
+
+    public static void checkForDerivedColNameInDDL(String colName)
+            throws StandardException
+    {
+        if (isBaseRowIdOrRowId(colName))
+            throw StandardException.newException(SQLState.LANG_DERIVED_COLUMN_NAME_USE, colName);
     }
 }

@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 
@@ -49,6 +50,12 @@ import java.util.Set;
 public class GroupByList extends OrderedColumnList{
     int numGroupingColsAdded=0;
     boolean rollup=false;
+
+    public GroupByList() {}
+    public GroupByList(ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.GROUP_BY_LIST);
+    }
 
     /**
      * Add a column to the list
@@ -95,10 +102,7 @@ public class GroupByList extends OrderedColumnList{
     public void bindGroupByColumns(SelectNode select,List<AggregateNode> aggregateVector) throws StandardException{
         FromList fromList=select.getFromList();
 
-        SubqueryList dummySubqueryList=
-                (SubqueryList)getNodeFactory().getNode(
-                        C_NodeTypes.SUBQUERY_LIST,
-                        getContextManager());
+        SubqueryList dummySubqueryList = new SubqueryList(getContextManager());
         int size=size();
 
 		/* Only 32677 columns allowed in GROUP BY clause */
@@ -238,10 +242,7 @@ public class GroupByList extends OrderedColumnList{
             ResultColumn newRC;
 
             /* Get a new ResultColumn */
-            newRC=(ResultColumn)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    groupingCol.getColumnName(),
-                    groupingCol.getColumnExpression().getClone(),
+            newRC = new ResultColumn(groupingCol.getColumnName(), groupingCol.getColumnExpression().getClone(),
                     getContextManager());
             newRC.setVirtualColumnId(targetRCL.size()+1);
             newRC.markGenerated();

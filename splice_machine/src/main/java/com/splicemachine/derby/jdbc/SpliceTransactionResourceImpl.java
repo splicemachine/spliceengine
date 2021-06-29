@@ -16,6 +16,7 @@ package com.splicemachine.derby.jdbc;
 
 import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.database.Database;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
@@ -26,6 +27,7 @@ import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.DatabaseDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -50,7 +52,6 @@ import java.util.Properties;
  */
 public final class SpliceTransactionResourceImpl implements AutoCloseable{
     private static final Logger LOG=Logger.getLogger(SpliceTransactionResourceImpl.class);
-    public static final String CONNECTION_STRING = "jdbc:splice:"+ SQLConfiguration.SPLICE_DB+";create=true";
     protected ContextManager cm;
     protected ContextService csf;
     protected String username;
@@ -63,26 +64,30 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     private boolean prepared = false;
 
     public SpliceTransactionResourceImpl() throws SQLException{
-        this(CONNECTION_STRING, new Properties());
+        this(DatabaseDescriptor.STD_DB_NAME);
     }
 
-    public SpliceTransactionResourceImpl(String url,Properties info) throws SQLException{
-        SpliceLogUtils.debug(LOG,"instance with url %s and properties %s",url,info);
+    public SpliceTransactionResourceImpl(String dbName) throws SQLException{
+        this(dbName, new Properties());
+    }
+
+    public SpliceTransactionResourceImpl(String dbName, Properties info) throws SQLException{
+        SpliceLogUtils.debug(LOG,"instance with dbName %s and properties %s", dbName, info);
         csf=ContextService.getFactory(); // Singleton - Not Needed
-        dbname=InternalDriver.getDatabaseName(url,info); // Singleton - Not Needed
+        this.dbname=dbName;
         username=IdUtil.getUserNameFromURLProps(info); // Static
         drdaID=info.getProperty(Attribute.DRDAID_ATTR,null); // Static
         rdbIntTkn = info.getProperty(Attribute.RDBINTTKN_ATTR, null);
         ipAddress = info.getProperty(Property.IP_ADDRESS,null);
 
-        database=(SpliceDatabase)Monitor.findService(Property.DATABASE_MODULE,dbname);
+        database=(SpliceDatabase)Monitor.findService(Property.DATABASE_MODULE,DatabaseDescriptor.STD_DB_NAME);
         if(database==null){
             SpliceLogUtils.debug(LOG,"database has not yet been created, creating now");
             try{
-                if(!Monitor.startPersistentService(dbname,info)){
+                if(!Monitor.startPersistentService(DatabaseDescriptor.STD_DB_NAME,info)){
                     throw new IllegalArgumentException("Unable to start database!");
                 }
-                database=(SpliceDatabase)Monitor.findService(Property.DATABASE_MODULE,dbname);
+                database=(SpliceDatabase)Monitor.findService(Property.DATABASE_MODULE, DatabaseDescriptor.STD_DB_NAME);
             }catch(StandardException e){
                 SpliceLogUtils.error(LOG,e);
                 throw PublicAPI.wrapStandardException(e);

@@ -70,6 +70,24 @@ import static java.lang.String.format;
 * It is used for deferred DML processing.
 * This class is a modified version of TemporaryRowHolderImpl.
 *
+* When running on control, the temporary trigger rows can simply be cached
+* in memory (see rowArray in TriggerRowHolderImpl) because the entire execution
+* runs in a single process on the same node (even if using multiple threads).
+* But on Spark, the triggering statement (insert, update, delete) runs in
+* different spark executors on different nodes.
+* Using a spark Dataset makes sense, but requires that the trigger actions
+* be invoked from the OlapServer. For trigger actions initiated in spark,
+* but marked to run as OLTP, they may cause trigger statements to be invoked from
+* the executors, which do not have access to the Dataset collected from the OlapServer.
+* For such cases we create a temporary conglomerate to store the rows.
+* Currently only spark uses the temporary conglomerate,
+* though code-wise OLTP execution could also use it,
+* though for performance reasons and to avoid potential bugs due to extra complexity,
+* we only uses the in-memory cache on OLTP.
+* If we go above the OLTP execution threshold (10 million rows),
+* the trigger execution is rolled back by throwing a ResubmitDistributedException
+* and we re-run it in spark. The temporary trigger conglomerate is removed
+* at the end of execution via TriggerRowHolderImpl.close -> dropConglomerate.
 */
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
@@ -109,6 +127,13 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
     private TxnView txn;
     private byte[] token;
     private TriggerExecutionContext tec;
+
+    // Does Spark execution need to use a temporary trigger conglomerate?
+    private boolean needsTemporaryConglomerate;
+
+    // Have we already determined whether a temporary conglomerate is needed?
+    // If so we can use the old result.
+    private boolean needsTemporaryConglomerateSet;
 
     public TriggerRowHolderImpl() {
 
@@ -182,7 +207,7 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
         }
         else if (overflowToConglomThreshold == 0) {
             try {
-                if (tec.needsTemporaryConglomerate())
+                if (needsTemporaryConglomerate())
                     createConglomerate(execRowDefinition);
                 tec.setExecRowDefinition(execRowDefinition);
                 tec.setTableVersion(tableVersion);
@@ -239,6 +264,8 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
         out.writeLong(CID);
         out.writeBoolean(conglomCreated);
         out.writeObject(resultDescription);
+        out.writeBoolean(needsTemporaryConglomerate);
+        out.writeBoolean(needsTemporaryConglomerateSet);
     }
 
     @Override
@@ -265,6 +292,8 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
         CID = in.readLong();
         conglomCreated = in.readBoolean();
         resultDescription = (ResultDescription) in.readObject();
+        needsTemporaryConglomerate = in.readBoolean();
+        needsTemporaryConglomerateSet = in.readBoolean();
     }
 
     public void setTxn(TxnView txn) {
@@ -409,7 +438,7 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
         }
 
         numRowsIn++;
-        if (!tec.needsTemporaryConglomerate())
+        if (!needsTemporaryConglomerate())
             return;
         if (!conglomCreated) {
             createConglomerate(inputRow);
@@ -515,15 +544,33 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
 
         if (conglomCreated)
             dropConglomerate();
-        else
-        {
-             if (SanityManager.DEBUG) {
-                 SanityManager.ASSERT(CID == 0, "CID(" + CID + ")==0");
+        else {
+            if (SanityManager.DEBUG) {
+                SanityManager.ASSERT(CID == 0, "CID(" + CID + ")==0");
+            }
         }
-     }
-     state = STATE_UNINIT;
-     lastArraySlot = -1;
-     numRowsIn = 0;
+        state = STATE_UNINIT;
+        lastArraySlot = -1;
+        numRowsIn = 0;
+        writeCoordinator = null;
+        triggerTempPartition = null;
+        triggerTempTableWriteBuffer = null;
+        triggerTempTableflushCallback = null;
+        pipelineBufferCreated = false;
+        conglomCreated = false;
+    }
+
+    public boolean canBeReused(boolean isSpark, long conglomID) {
+        if (CID != conglomID)
+            return false;
+        if (this.isSpark != isSpark)
+            return false;
+        if (conglomCreated || pipelineBufferCreated)
+            return false;
+        if (numRowsIn != 0 || lastArraySlot != -1 || state != STATE_UNINIT)
+            return false;
+
+        return true;
     }
 
     public int getLastArraySlot() { return lastArraySlot; }
@@ -537,6 +584,14 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
 
     public TriggerExecutionContext getTriggerExecutionContext() {
         return tec;
+    }
+
+    public boolean needsTemporaryConglomerate() {
+        if (needsTemporaryConglomerateSet)
+            return needsTemporaryConglomerate;
+        needsTemporaryConglomerate = tec.needsTemporaryConglomerate(activation.isNestedTrigger());
+        needsTemporaryConglomerateSet = true;
+        return needsTemporaryConglomerate;
     }
 }
 

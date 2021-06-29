@@ -235,8 +235,7 @@ public abstract class SetOperatorNode extends TableOperatorNode
             // _unscoped_ form, which means they are intended for _this_
             // node instead of this node's children.  That's exactly what
             // we want.
-            ResultSetNode prnRSN = (ResultSetNode) getNodeFactory().getNode(
-                C_NodeTypes.PROJECT_RESTRICT_NODE,
+            ResultSetNode prnRSN = new ProjectRestrictNode(
                 topNode,                    // Child ResultSet
                 topNode.getResultColumns(),    // Projection
                 null,                        // Restriction
@@ -580,6 +579,8 @@ public abstract class SetOperatorNode extends TableOperatorNode
     public void bindResultColumns(FromList fromListParam)
                     throws StandardException
     {
+        if (skipBindAndOptimize)
+            return;
         super.bindResultColumns(fromListParam);
 
         if (TriggerReferencingStruct.fromTableTriggerDescriptor.get() != null)
@@ -592,6 +593,8 @@ public abstract class SetOperatorNode extends TableOperatorNode
     public void bindResultColumns(FromList fromListParam, boolean bindRightOnly)
             throws StandardException
     {
+        if (skipBindAndOptimize)
+            return;
         super.bindResultColumns(fromListParam, bindRightOnly);
 
         /* Now we build our RCL */
@@ -991,10 +994,7 @@ public abstract class SetOperatorNode extends TableOperatorNode
     {
         // First create a FromList to hold this node (and only this node).
 
-        FromList fromList =
-            (FromList) getNodeFactory().getNode(
-                C_NodeTypes.FROM_LIST,
-                getContextManager());
+        FromList fromList = new FromList(getContextManager());
 
         fromList.addFromTable(this);
 
@@ -1016,16 +1016,9 @@ public abstract class SetOperatorNode extends TableOperatorNode
 
         // Now create a ResultColumnList that simply holds the "*".
 
-        ResultColumnList rcl =
-            (ResultColumnList) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        ResultColumnList rcl = new ResultColumnList(getContextManager());
 
-        ResultColumn allResultColumn =
-            (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.ALL_RESULT_COLUMN,
-                null,
-                getContextManager());
+        ResultColumn allResultColumn = new AllResultColumn(null, getContextManager());
 
         rcl.addResultColumn(allResultColumn);
 
@@ -1106,10 +1099,7 @@ public abstract class SetOperatorNode extends TableOperatorNode
         throws StandardException
     {
         if (leftOptPredicates == null) {
-            leftOptPredicates =
-                (PredicateList) getNodeFactory().getNode(
-                    C_NodeTypes.PREDICATE_LIST,
-                    getContextManager());
+            leftOptPredicates = new PredicateList(getContextManager());
         }
 
         return leftOptPredicates;
@@ -1124,10 +1114,7 @@ public abstract class SetOperatorNode extends TableOperatorNode
         throws StandardException
     {
         if (rightOptPredicates == null) {
-            rightOptPredicates =
-                (PredicateList) getNodeFactory().getNode(
-                    C_NodeTypes.PREDICATE_LIST,
-                    getContextManager());
+            rightOptPredicates = new PredicateList(getContextManager());
         }
 
         return rightOptPredicates;
@@ -1155,8 +1142,8 @@ public abstract class SetOperatorNode extends TableOperatorNode
         for (int i=0; i<resultColumns.size(); i++) {
             ResultColumn rc = resultColumns.elementAt(i);
             if (rc.isReferenced()) {
-                leftResultSet.resultColumns.elementAt(i).setReferenced();
-                rightResultSet.resultColumns.elementAt(i).setReferenced();
+                leftResultSet.getResultColumns().elementAt(i).setReferenced();
+                rightResultSet.getResultColumns().elementAt(i).setReferenced();
             }
         }
 

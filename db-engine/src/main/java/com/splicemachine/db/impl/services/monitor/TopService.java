@@ -322,6 +322,11 @@ final class TopService {
 
         moduleInstances.add(module);
 
+        if (properties == null)
+            properties = new Properties();
+        if (key.getIdentifier() != null)
+            properties.put(PersistentService.SERVICE_NAME, key.getIdentifier());
+
         try {
             BaseMonitor.boot(instance, create, properties);
         } catch (StandardException se) {

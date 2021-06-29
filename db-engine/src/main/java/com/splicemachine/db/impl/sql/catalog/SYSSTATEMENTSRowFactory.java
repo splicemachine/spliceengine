@@ -31,10 +31,8 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import com.splicemachine.db.iapi.reference.Property;
-
 import com.splicemachine.db.iapi.sql.dictionary.*;
-import com.splicemachine.db.iapi.store.raw.RawStoreFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
@@ -50,7 +48,6 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.util.Properties;
 
 /**
  * Factory for creating a SYSSTATEMENTS row.
@@ -229,18 +226,19 @@ public class SYSSTATEMENTSRowFactory extends CatalogRowFactory
 	/**
 	 * Make an  Tuple Descriptor out of a SYSSTATEMENTS row
 	 *
-	 * @param row 					a SYSSTATEMENTS row
-	 * @param parentTupleDescriptor	unused
-	 * @param dd 					dataDictionary
+	 * @param row                    a SYSSTATEMENTS row
+	 * @param parentTupleDescriptor    unused
+	 * @param dd                    dataDictionary
 	 *
-	 * @return	a  descriptor equivalent to a SYSSTATEMENTS row
+	 * @param tc
+     * @return	a  descriptor equivalent to a SYSSTATEMENTS row
 	 *
 	 * @exception   StandardException thrown on failure
 	 */
 	public TupleDescriptor buildDescriptor(
-		ExecRow					row,
-		TupleDescriptor			parentTupleDescriptor,
-		DataDictionary 			dd )
+            ExecRow row,
+            TupleDescriptor parentTupleDescriptor,
+            DataDictionary dd, TransactionController tc)
 					throws StandardException {
         DataValueDescriptor col;
         SPSDescriptor descriptor;

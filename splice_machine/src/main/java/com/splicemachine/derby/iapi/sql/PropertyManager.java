@@ -35,4 +35,6 @@ public interface PropertyManager{
     void addProperty(String propertyName, String propertyValue) throws StandardException;
 
     void clearProperties() throws StandardException;
+
+    void removeProperty(String propertyName);
 }

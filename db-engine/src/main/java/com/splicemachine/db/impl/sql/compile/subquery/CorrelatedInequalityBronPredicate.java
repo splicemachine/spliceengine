@@ -29,60 +29,46 @@
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package com.splicemachine.db.impl.sql.execute;
+package com.splicemachine.db.impl.sql.compile.subquery;
 
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.ast.CorrelatedColRefCollectingVisitor;
+import com.splicemachine.db.impl.sql.compile.BinaryRelationalOperatorNode;
+import com.splicemachine.db.impl.sql.compile.ColumnReference;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import splice.com.google.common.base.Predicate;
 
 /**
- *    This class is the superclass for the classes that describe actions
- *  that are ALWAYS performed for a CREATE/DROP INDEX Statement at Execution time.
+ * A predicate that evaluates to true if a given BinaryRelationalOperatorNode has a single occurrence
+ * of a correlated column at sourceLevel.
  *
+ * This can be used to find correlated inequality predicates in a subquery that are referencing one level up.
  */
+public class CorrelatedInequalityBronPredicate implements Predicate<BinaryRelationalOperatorNode> {
 
-public abstract class IndexConstantAction extends DDLSingleTableConstantAction {
+    private CorrelatedColRefCollectingVisitor correlatedColRefCollectingVisitor;
 
-    public String                indexName;
+    public CorrelatedInequalityBronPredicate(int sourceLevel) {
+        correlatedColRefCollectingVisitor =
+            new CorrelatedColRefCollectingVisitor<>(1, sourceLevel);
+    }
 
-    // CONSTRUCTORS
-
-    /**
-     *    Make the ConstantAction for a CREATE/DROP INDEX statement.
-     *     @param    indexName            Index name.
-     *    @param    tableName            The table name
-     * @param    schemaName                    Schema that index lives in.
-     *
-     */
-    protected    IndexConstantAction(
-            String indexName,
-            String tableName,
-            String schemaName)
-    {
-        super();
-        this.indexName = indexName;
-
-        if (SanityManager.DEBUG)
-        {
-            SanityManager.ASSERT(schemaName != null, "Schema name is null");
+    @Override
+    public boolean apply(BinaryRelationalOperatorNode bron) {
+        try {
+            correlatedColRefCollectingVisitor.initialize();
+            bron.accept(correlatedColRefCollectingVisitor);
         }
+        catch (StandardException e) {
+            return false;
+        }
+
+        return !correlatedColRefCollectingVisitor.getCollected().isEmpty();
     }
 
-    // CLASS METHODS
-
-    /**
-      *    Get the index name.
-      *
-      *    @return    the name of the index
-      */
-    public    String    getIndexName() { return indexName; }
-
-    /**
-     * Set the index name at execution time.
-     * Useful for unnamed constraints which have a backing index.
-     *
-     * @param indexName        The (generated) index name.
-     */
-    public void setIndexName(String indexName)
-    {
-        this.indexName = indexName;
+    public ColumnReference popCorrelatedColumn() {
+        return (ColumnReference)correlatedColRefCollectingVisitor.popColumn();
     }
+
+
 }

@@ -1,7 +1,9 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 
 import java.util.ArrayList;
@@ -10,6 +12,11 @@ import java.util.List;
 
 public class StatementListNode extends StatementNode implements Iterable<StatementNode> {
     private ArrayList<StatementNode> list = new ArrayList<>();
+
+    public StatementListNode(ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.STATEMENT_LIST_NODE);
+    }
     @Override
     public String statementToString() {
         StringBuilder sb = new StringBuilder();

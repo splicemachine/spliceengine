@@ -72,7 +72,7 @@ public class CheckTableJob implements Callable<Void> {
 
         try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
             transactionResource.marshallTransaction(request.txn);
-            SchemaDescriptor sd = dd.getSchemaDescriptor(request.schemaName, tc, true);
+            SchemaDescriptor sd = dd.getSchemaDescriptor(null, request.schemaName, tc, true);
             td = dd.getTableDescriptor(request.tableName, sd, tc);
         }
     }
