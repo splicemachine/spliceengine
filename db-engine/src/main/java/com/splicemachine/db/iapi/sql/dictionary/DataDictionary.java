@@ -642,7 +642,7 @@ public interface DataDictionary{
      * @param sd
      * @return
      */
-    ArrayList<TupleDescriptor> getTablesInSchema(SchemaDescriptor sd) throws StandardException;
+    ArrayList<TableDescriptor> getTablesInSchema(String schemaId) throws StandardException;
 
     ArrayList<AliasDescriptor> getAliasesInSchema(String schemaId) throws StandardException;
 

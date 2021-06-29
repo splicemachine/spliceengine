@@ -376,7 +376,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         DataDescriptorGenerator ddg = getDataDescriptorGenerator();
 
         // Create SYS.SYSDATABASES
-        if(getTableDescriptor(SYSDATABASESRowFactory.TABLENAME_STRING, systemSchemaDesc,tc) == null) { // XXX This will not work because the index is not reset yet
+        if (getTableDescriptor(getTableInfo(SYSDATABASES_CATALOG_NUM).getTableUUID()) == null) {
             ExecutionContext ec = (ExecutionContext) ContextService.getContext(ExecutionContext.CONTEXT_ID);
             new CoreCreation(SYSDATABASES_CATALOG_NUM, tc, ec).run();
             if (coreInfo[SYSDATABASES_CATALOG_NUM].getNumberOfIndexes() > 0) {
@@ -1674,12 +1674,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
     }
 
-    public TabInfoImpl getTableInfo(int catalogNum) throws StandardException{
-        TabInfoImpl ti = (catalogNum < NUM_CORE) ? coreInfo[catalogNum] : getNonCoreTI(catalogNum);
-        return ti;
-    }
-
-
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Intentional")
     public void upgradeAddColumnToSystemTable(TransactionController tc, int catalogNumber, int[] colIds, ExecRow templateRow) throws StandardException {
         int lastCol = colIds[colIds.length - 1];
@@ -1769,7 +1763,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     public void upgradeRecreateIndexesOfSystemTable(TransactionController tc, int catalogNumber, int[] indexIds) throws StandardException {
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
         TabInfoImpl tabInfo = getTabInfoByNumber(catalogNumber);
-        TableDescriptor td = getTableDescriptor(tabInfo.getTableName(), systemSchemaDesc, tc);
+        TableDescriptor td = getTableDescriptor(tabInfo.getTableUUID());
         CatalogRowFactory crf = tabInfo.getCatalogRowFactory();
 
         // Init the heap conglomerate here

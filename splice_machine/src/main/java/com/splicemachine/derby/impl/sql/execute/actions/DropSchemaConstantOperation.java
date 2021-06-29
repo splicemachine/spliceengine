@@ -129,7 +129,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
         // views could be defined on other views/tables/aliases, and aliases could be on tables/views
         // get all the table/view/alias and their dependents in the dependencyBucketing
         dropObjectsAndDependencies(
-                Iterables.concat(dd.getTriggersInSchema(schemaId), dd.getTablesInSchema(sd)),
+                Iterables.concat(dd.getTriggersInSchema(schemaId), dd.getTablesInSchema(schemaId)),
                 sd, lcc, tc, activation);
 
         // Drop the remaining aliases

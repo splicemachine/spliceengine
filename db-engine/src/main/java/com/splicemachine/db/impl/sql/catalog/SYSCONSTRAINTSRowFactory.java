@@ -63,7 +63,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
     public static final int SYSCONSTRAINTS_REFERENCECOUNT=7;
 
     protected static final int SYSCONSTRAINTS_INDEX1_ID=0;
-    protected static final int SYSCONSTRAINTS_INDEX2_ID=1;
+    public static final int SYSCONSTRAINTS_INDEX2_ID=1;
     protected static final int SYSCONSTRAINTS_INDEX3_ID=2;
 
     private static final boolean[] uniqueness={
@@ -75,7 +75,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
     private static final int[][] indexColumnPositions=
             {
                     {SYSCONSTRAINTS_CONSTRAINTID},
-                    {SYSCONSTRAINTS_CONSTRAINTNAME,SYSCONSTRAINTS_SCHEMAID},
+                    {SYSCONSTRAINTS_SCHEMAID, SYSCONSTRAINTS_CONSTRAINTNAME},
                     {SYSCONSTRAINTS_TABLEID}
             };
 

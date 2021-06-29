@@ -82,9 +82,9 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
     public static final int SYSTABLES_MIN_RETENTION_PERIOD   = 16;
     /* End External Tables Columns */
 
-    protected static final int SYSTABLES_INDEX1_ID        = 0;
-    protected static final int SYSTABLES_INDEX1_TABLENAME = 1;
-    protected static final int SYSTABLES_INDEX1_SCHEMAID  = 2;
+    public static final int SYSTABLES_INDEX1_ID        = 0;
+    protected static final int SYSTABLES_INDEX1_SCHEMAID  = 1;
+    protected static final int SYSTABLES_INDEX1_TABLENAME = 2;
 
     protected static final int SYSTABLES_INDEX2_ID        = 1;
     protected static final int SYSTABLES_INDEX2_TABLEID   = 1;
@@ -126,7 +126,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
 
     private static final int[][] indexColumnPositions =
         {
-            {SYSTABLES_TABLENAME, SYSTABLES_SCHEMAID},
+            {SYSTABLES_SCHEMAID, SYSTABLES_TABLENAME},
             {SYSTABLES_TABLEID}
         };
 
@@ -351,12 +351,10 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
 
         switch (indexNumber) {
             case SYSTABLES_INDEX1_ID:
-                /* 1st column is TABLENAME (varchar(128)) */
-                row.setColumn(1, new SQLVarchar());
-
-                /* 2nd column is SCHEMAID (UUID - char(36)) */
-                row.setColumn(2, new SQLChar());
-
+                /* 1st column is SCHEMAID (UUID - char(36)) */
+                row.setColumn(1, new SQLChar());
+                /* 2nd column is TABLENAME (varchar(128)) */
+                row.setColumn(2, new SQLVarchar());
                 break;
 
             case SYSTABLES_INDEX2_ID:
