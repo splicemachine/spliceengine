@@ -86,6 +86,13 @@ public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, Exe
             insertOperation.open();
             insertOperation.close();
         } catch (StandardException e) {
+            if (insertOperation != null) {
+                try {
+                    insertOperation.close();
+                } catch (StandardException ex) {
+                    LOG.error(e);
+                }
+            }
             throw new IOException(e);
         }
     }
