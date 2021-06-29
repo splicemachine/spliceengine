@@ -183,12 +183,13 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       try {
         connectionManager.shutdown
       } catch {
-        case e: Throwable => ;
+        case e: Throwable => println(s"Problem closing JDBC connection.\n$e")
       }
       try {
         kafkaTopics.shutdown
       } catch {
-        case e: Throwable => ;  // no-op, undeleted topics should be handled by separate cleanup process
+        case e: Throwable => println(s"Problem cleaning up topics in Kafka.\n$e")
+        // undeleted topics should be handled by separate cleanup process
       }
     }
   })
