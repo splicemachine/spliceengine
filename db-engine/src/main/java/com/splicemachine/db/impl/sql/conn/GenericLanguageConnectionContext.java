@@ -887,7 +887,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public String mangleTableName(String tableName) {
         // 20 underscores + session ID
-        return String.format("%s" + LOCAL_TEMP_TABLE_SUFFIX_FIX_PART + "%d", tableName, getInstanceNumber());
+        return String.format("%s" + LOCAL_TEMP_TABLE_SUFFIX_FIX_PART + "%s", tableName, getSessionID());
     }
 
     @Override
@@ -906,10 +906,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                 throw StandardException.newException(SQLState.LANG_INVALID_INTERNAL_TEMP_TABLE_NAME, tableName);
         }
         try {
-            if (Integer.parseInt(tableName.substring(lastIdx + 1)) == getInstanceNumber())
-                return true;
-            return false;
-        } catch (NumberFormatException e) {
+            return java.util.UUID.fromString(tableName.substring(lastIdx + 1)).equals(getSessionID());
+        } catch (IllegalArgumentException e) {
             throw StandardException.newException(SQLState.LANG_INVALID_INTERNAL_TEMP_TABLE_NAME, tableName);
         }
     }
