@@ -37,7 +37,6 @@ import org.apache.log4j.Logger;
 import splice.com.google.common.util.concurrent.ListenableFuture;
 import splice.com.google.common.util.concurrent.MoreExecutors;
 import java.io.IOException;
-import java.net.ConnectException;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -99,8 +98,15 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
                     hasLOBs ? config.getSparkSlowResultStreamingBatches() : config.getSparkResultStreamingBatches());
             int streamingBatchSize = getPropertyOrDefault(activation, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCH_SIZE,
                     hasLOBs ? config.getSparkSlowResultStreamingBatchSize() : config.getSparkResultStreamingBatchSize());
-            int throttleMaxWait = config.getSparkResultStreamingThrottleMaxWait();
-            streamListener = new StreamListener(limit, offset, streamingBatches, streamingBatchSize);
+
+            LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+
+            Integer parallelPartitionsProperty = (Integer) lcc.getSessionProperties()
+                    .getProperty(SessionProperties.PROPERTYNAME.OLAPPARALLELPARTITIONS);
+            int parallelPartitions = parallelPartitionsProperty == null ? StreamableRDD.DEFAULT_PARALLEL_PARTITIONS : parallelPartitionsProperty;
+
+            streamListener = new StreamListener(limit, offset, streamingBatches, streamingBatchSize, parallelPartitions,
+                    config.getSparkResultStreamingThrottleEnabled());
             StreamListenerServer server = getServer();
             server.register(streamListener);
             HostAndPort hostAndPort = server.getHostAndPort();
@@ -110,20 +116,18 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
 
             String sql = activation.getPreparedStatement().getSource();
             sql = sql == null ? root.toString() : sql;
-            LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
             String userId = lcc.getCurrentUserId(activation);
             int localPort = config.getNetworkBindPort();
-            int sessionId = lcc.getInstanceNumber();
-            Integer parallelPartitionsProperty = (Integer) lcc.getSessionProperties()
-                    .getProperty(SessionProperties.PROPERTYNAME.OLAPPARALLELPARTITIONS);
-            int parallelPartitions = parallelPartitionsProperty == null ? StreamableRDD.DEFAULT_PARALLEL_PARTITIONS : parallelPartitionsProperty;
+            int sessionId = lcc.getInstanceNumber();            
+            
             Integer shufflePartitionsProperty = (Integer) lcc.getSessionProperties()
                     .getProperty(SessionProperties.PROPERTYNAME.OLAPSHUFFLEPARTITIONS);
             String opUuid = root.getUuid() != null ? "," + root.getUuid().toString() : "";
             String session = hostname + ":" + localPort + "," + sessionId + opUuid;
 
             RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), uuid, host, port, session, userId, sql,
-                    streamingBatches, streamingBatchSize, parallelPartitions, shufflePartitionsProperty, throttleMaxWait);
+                    streamingBatches, streamingBatchSize, parallelPartitions, shufflePartitionsProperty,
+                    config.getSparkResultStreamingThreads());
 
             String requestedQueue = (String) lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE);
             String queue = chooseQueue(activation, requestedQueue, config.getOlapServerIsolatedRoles());
