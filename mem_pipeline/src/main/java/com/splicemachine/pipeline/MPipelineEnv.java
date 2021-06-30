@@ -33,6 +33,7 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
 import com.splicemachine.si.api.rollforward.RollForward;
 import com.splicemachine.si.api.server.ClusterHealth;
+import com.splicemachine.si.api.session.SessionsWatcher;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
@@ -54,7 +55,6 @@ public class MPipelineEnv  implements PipelineEnvironment{
     private SIEnvironment siEnv;
     private BulkWriterFactory writerFactory;
     private ContextFactoryDriver ctxFactoryDriver;
-    private OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory;
     private final WritePipelineFactory pipelineFactory= new MappedPipelineFactory();
 
     public MPipelineEnv(SIEnvironment siEnv) throws IOException{
@@ -64,12 +64,6 @@ public class MPipelineEnv  implements PipelineEnvironment{
                 new AtomicSpliceWriteControl(Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE),
                 pipelineExceptionFactory(),pipelineMeter());
         this.ctxFactoryDriver = ContextFactoryDriverService.loadDriver();
-        this.oldestActiveTransactionTaskFactory = new OldestActiveTransactionTaskFactory() {
-            @Override
-            public GetOldestActiveTransactionTask get(String hostName, int port, long startupTimestamp) throws IOException {
-                throw new UnsupportedOperationException("Operation not supported in Mem profile");
-            }
-        };
     }
 
     @Override
@@ -89,7 +83,17 @@ public class MPipelineEnv  implements PipelineEnvironment{
 
     @Override
     public OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory(){
-        return oldestActiveTransactionTaskFactory;
+        return siEnv.oldestActiveTransactionTaskFactory();
+    }
+
+    @Override
+    public ActiveSessionsTaskFactory allActiveSessionsTaskFactory(){
+        return siEnv.allActiveSessionsTaskFactory();
+    }
+
+    @Override
+    public SessionsWatcher sessionsWatcher() {
+        return siEnv.sessionsWatcher();
     }
 
     @Override
