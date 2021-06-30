@@ -596,13 +596,13 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       val sqlText = insertSql(topicInfo)
       debug(s"SMC.inss sql $sqlText")
       
-      trace( s"SMC.inss topicCount preex ${KafkaUtils.messageCount(kafkaServers, topicName)}")
+      //trace( s"SMC.inss topicCount preex ${KafkaUtils.messageCount(kafkaServers, topicName)}")
 
       debug("SMC.inss executeUpdate")
       executeUpdate(sqlText)
       debug("SMC.inss done")
 
-      debug( s"SMC.inss topicCount postex ${KafkaUtils.messageCount(kafkaServers, topicName)}")
+      //debug( s"SMC.inss topicCount postex ${KafkaUtils.messageCount(kafkaServers, topicName)}")
     } catch {
       case e: java.sql.SQLNonTransientConnectionException => 
         if( retries < 2 ) {
@@ -766,7 +766,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
           insAccum.add(msgCount)
 
-          debug(s"$id SMC.sendData t $topicName p $partition records $msgCount")
+          info(s"$id SMC.sendData t $topicName p $partition records $msgCount")
 
           producer.flush
           producer.close
