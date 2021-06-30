@@ -29,12 +29,14 @@ import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -47,6 +49,9 @@ import com.splicemachine.db.impl.sql.GenericActivationHolder;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.db.impl.sql.catalog.*;
+import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
+import com.splicemachine.db.impl.sql.execute.GenericConstantActionFactory;
+import com.splicemachine.db.impl.sql.execute.GenericExecutionFactory;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
@@ -98,6 +103,7 @@ import java.util.stream.Collectors;
 
 import static com.splicemachine.db.iapi.sql.StatementType.*;
 import static com.splicemachine.db.shared.common.reference.SQLState.*;
+import static com.splicemachine.derby.utils.EngineUtils.getSchemaDescriptor;
 
 /**
  * @author Jeff Cunningham
@@ -1930,7 +1936,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         return rows;
     }
 
-    public static void SYSCS_GET_ACTIVE_SESSIONS(ResultSet[] resultSet) throws SQLException {
+    public static void SYSCS_GET_ACTIVE_SESSIONS(final ResultSet[] resultSet) throws SQLException {
         ResultHelper res = new ResultHelper();
         ResultHelper.VarcharColumn col = res.addVarchar("sessionId", 48);
         List<String> result = SIDriver.driver().getSessionsWatcher().getAllActiveSessions();
@@ -1939,6 +1945,72 @@ public class SpliceAdmin extends BaseAdminProcedures{
             col.set(sessionId);
         }
         resultSet[0] = res.getResultSet();
+    }
+
+    public static void SYSCS_DROP_OBSOLETE_TEMPORARY_TABLES(String schemaName, final ResultSet[] resultSet) throws SQLException {
+        ResultHelper res = new ResultHelper();
+        ResultHelper.VarcharColumn tblNameCol = res.addVarchar("tableName", 128);
+        try (EmbedConnection conn = (EmbedConnection) getDefaultConn()) {
+            try {
+                if (schemaName == null) {
+                    throw StandardException.newException(LANG_INVALID_FUNCTION_ARGUMENT, "null", "SYSCS_DROP_OBSOLETE_TEMPORARY_TABLES");
+                }
+
+                schemaName = EngineUtils.validateSchema(schemaName);
+
+                LanguageConnectionContext lcc = conn.getLanguageConnection();
+                DataDictionary dd = lcc.getDataDictionary();
+                dd.startWriting(lcc);
+
+                // Get table descriptor list first, never change order!
+                SchemaDescriptor sd = getSchemaDescriptor(schemaName, lcc, dd);
+                List<TableDescriptor> tds = StatisticsProcedures.getAllTableDescriptors(sd, conn);
+                if (tds.isEmpty()) {
+                    return;
+                }
+
+                // Then get active session list.
+                List<String> activeSessionIDs = SIDriver.driver().getSessionsWatcher().getAllActiveSessions();
+                Set<UUID> sessionIDSet = activeSessionIDs.stream().map(UUID::fromString).collect(Collectors.toSet());
+
+                for (TableDescriptor td : tds) {
+                    if (td.getTableType() == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE) {
+                        String tableName = td.getName();
+                        try {
+                            java.util.UUID creatingSessionID = lcc.getLocalTempTableSessionID(td);
+                            if (!sessionIDSet.contains(creatingSessionID)) {
+                                dropTempTable(lcc, td);
+                                res.newRow();
+                                tblNameCol.set(tableName);
+                            }
+                        } catch (StandardException se) {
+                            if (se.getSQLState().equals(SQLState.LANG_INVALID_INTERNAL_TEMP_TABLE_NAME)) {
+                                // for temporary tables created using instance numbers
+                                dropTempTable(lcc, td);
+                                res.newRow();
+                                tblNameCol.set(tableName);
+                            }
+                        }
+                    }
+                }
+                resultSet[0] = res.getResultSet();
+            } catch (StandardException se) {
+                throw PublicAPI.wrapStandardException(se);
+            }
+        }
+    }
+
+    private static void dropTempTable(LanguageConnectionContext lcc, TableDescriptor td) throws StandardException {
+        // Drop the temp table via normal drop table action
+        GenericExecutionFactory execFactory = (GenericExecutionFactory) lcc.getLanguageConnectionFactory().getExecutionFactory();
+        GenericConstantActionFactory constantActionFactory = execFactory.getConstantActionFactory();
+        ConstantAction action = constantActionFactory.getDropTableConstantAction(td.getQualifiedName(),
+                                                                                 td.getName(),
+                                                                                 td.getSchemaDescriptor(),
+                                                                                 td.getHeapConglomerateId(),
+                                                                                 td.getUUID(), StatementType.DROP_CASCADE);
+
+        action.executeConstantAction(new GenericLanguageConnectionContext.DropTableActivation(lcc, td));
     }
 
     public static String getCurrentUserId() throws SQLException {
