@@ -80,7 +80,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.SerializationUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import splice.com.google.common.collect.Lists;
@@ -1964,7 +1963,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
                 // Get table descriptor list first, never change order!
                 SchemaDescriptor sd = getSchemaDescriptor(schemaName, lcc, dd);
-                List<TableDescriptor> tds = StatisticsProcedures.getAllTableDescriptors(sd, conn);
+                List<TableDescriptor> tds = StatisticsAdmin.getAllTableDescriptors(sd, conn);
                 if (tds.isEmpty()) {
                     return;
                 }
