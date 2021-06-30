@@ -1931,6 +1931,17 @@ public class SpliceAdmin extends BaseAdminProcedures{
         return rows;
     }
 
+    public static void SYSCS_GET_ACTIVE_SESSIONS(ResultSet[] resultSet) throws SQLException {
+        ResultHelper res = new ResultHelper();
+        ResultHelper.BigintColumn col = res.addBigint("sessionId", 6);
+        List<Long> result = SIDriver.driver().getSessionsWatcher().getAllActiveSessions();
+        for (long sessionId : result) {
+            res.newRow();
+            col.set(sessionId);
+        }
+        resultSet[0] = res.getResultSet();
+    }
+
     public static String getCurrentUserId() throws SQLException {
         EmbedConnection conn = (EmbedConnection)getDefaultConn();
         Activation lastActivation = conn.getLanguageConnection().getLastActivation();

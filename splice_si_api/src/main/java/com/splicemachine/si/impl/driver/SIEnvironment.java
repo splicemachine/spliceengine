@@ -20,6 +20,7 @@ import com.splicemachine.si.api.data.*;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
 import com.splicemachine.si.api.rollforward.RollForward;
 import com.splicemachine.si.api.server.ClusterHealth;
+import com.splicemachine.si.api.session.SessionsWatcher;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
@@ -88,4 +89,8 @@ public interface SIEnvironment{
     FilesystemAdmin filesystemAdmin();
 
     OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory();
+
+    ActiveSessionsTaskFactory allActiveSessionsTaskFactory();
+
+    SessionsWatcher sessionsWatcher();
 }
