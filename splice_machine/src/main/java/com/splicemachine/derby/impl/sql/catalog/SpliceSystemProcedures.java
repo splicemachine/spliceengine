@@ -757,7 +757,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numOutputParams(0)
                 .varchar("schema", 32672)
                 .numResultSets(1)
-                .ownerClass(spliceAdminClass)
+                .ownerClass(SpliceAdmin.class.getCanonicalName())
                 .build();
         procedures.add(dropObsoleteTempTables);
 
