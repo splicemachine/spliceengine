@@ -334,6 +334,17 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         procedures.add(getActiveSessions);
 
         /*
+         * Procedure to drop obsolete local temporary tables
+         */
+        Procedure dropObsoleteTempTables = Procedure.newBuilder().name("SYSCS_DROP_OBSOLETE_TEMPORARY_TABLES")
+                .numOutputParams(0)
+                .varchar("schema", 32672)
+                .numResultSets(1)
+                .ownerClass(spliceAdminClass)
+                .build();
+        procedures.add(dropObsoleteTempTables);
+
+        /*
          * Procedure to list a directory
          */
         Procedure ANALYZE_EXTERNAL_TABLE = Procedure.newBuilder().name("ANALYZE_EXTERNAL_TABLE")

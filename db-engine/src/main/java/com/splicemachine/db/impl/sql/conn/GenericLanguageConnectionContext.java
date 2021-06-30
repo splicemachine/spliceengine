@@ -1185,7 +1185,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * Note: I'm assuming, because this class extends BaseActivation, it will properly serialize and
      * work across region servers.
      */
-    private static class DropTableActivation extends BaseActivation {
+    public static class DropTableActivation extends BaseActivation {
 
         public DropTableActivation(LanguageConnectionContext lcc, TableDescriptor td) throws StandardException {
             // Just pass the only pertinent info to BaseActivation
