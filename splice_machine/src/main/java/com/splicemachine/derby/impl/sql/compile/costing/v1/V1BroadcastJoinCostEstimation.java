@@ -73,8 +73,9 @@ public class V1BroadcastJoinCostEstimation implements StrategyJoinCostEstimation
                 estimatedMemoryMB<regionThreshold &&
                         estimatedRowCount<rowCountThreshold &&
                         (!currentAccessPath.isMissingHashKeyOK() ||
-                                // allow full outer join without equality join condition
-                                outerCost.getJoinType() == JoinNode.FULLOUTERJOIN||
+                                // allow outer join without equality join condition
+                                outerCost.getJoinType() == JoinNode.FULLOUTERJOIN ||
+                                outerCost.getJoinType() == JoinNode.LEFTOUTERJOIN ||  // DB-11063
                                 // allow left or inner join with non-equality broadcast join only if using spark
                                 (innerTable instanceof FromBaseTable && optimizer.isForSpark()));
 
