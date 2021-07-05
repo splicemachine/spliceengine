@@ -644,7 +644,7 @@ public class FromBaseTable extends FromTable {
             return areAllReferencingExprsCoveredByIndex(irg);
         }
 
-        int[] baseCols=irg.baseColumnPositions();
+        int[] baseCols=irg.baseColumnStoragePositions();
         int rclSize=resultColumns.size();
         boolean coveringIndex=true;
         int colPos;
@@ -666,7 +666,7 @@ public class FromBaseTable extends FromTable {
 
             coveringIndex=false;
 
-            colPos=rc.getColumnPosition();
+            colPos=rc.getStoragePosition();
 
             /* Is this column in the index? */
             for(int baseCol : baseCols){
@@ -1019,9 +1019,7 @@ public class FromBaseTable extends FromTable {
         // to be the outer table of the join.  Not doing this may leave it
         // to chance that we pick a performant join.
         unionOfIndexes.setOuterTableOnly(true);
-        SubqueryNode    derivedTable = (SubqueryNode) nodeFactory.getNode(
-                                        C_NodeTypes.SUBQUERY_NODE,
-                                        unionOfIndexes,  // UnionNode
+        SubqueryNode    derivedTable = new SubqueryNode(unionOfIndexes,  // UnionNode
                                         ReuseFactory.getInteger(SubqueryNode.FROM_SUBQUERY),
                                         null,
                                         null,
@@ -1031,8 +1029,7 @@ public class FromBaseTable extends FromTable {
                                         getContextManager());
 
         String unionAllCorrelationName = "dnfPathDT_###_" + baseTable.getExposedTableName();
-        FromTable fromSubquery = (FromTable) nodeFactory.getNode(
-                                            C_NodeTypes.FROM_SUBQUERY,
+        FromTable fromSubquery = new FromSubquery(
                                             derivedTable.getResultSet(),
                                             derivedTable.getOrderByList(),
                                             derivedTable.getOffset(),
@@ -1069,9 +1066,7 @@ public class FromBaseTable extends FromTable {
                         getContextManager());
 
         // Include all referenced columns.
-        ResultColumnList    finalResultColumns = (ResultColumnList) nodeFactory.getNode(
-                                    C_NodeTypes.RESULT_COLUMN_LIST,
-                                    getContextManager());
+        ResultColumnList finalResultColumns = new ResultColumnList(getContextManager());
 
         for (ResultColumn rc : resultColumns) {
             if (!rc.isReferenced())
@@ -1108,8 +1103,7 @@ public class FromBaseTable extends FromTable {
             finalResultColumns.addResultColumn(baseRowId2RC);
         }
 
-        SelectNode selectNode = (SelectNode) nodeFactory.getNode(
-                            C_NodeTypes.SELECT_NODE,
+        SelectNode selectNode = new SelectNode(
                             finalResultColumns,
                             null,         /* AGGREGATE list */
                             fromList,
@@ -1526,10 +1520,7 @@ public class FromBaseTable extends FromTable {
                 columnName,
                 columnReference,
                 getContextManager());
-        ResultColumnList
-            newList=(ResultColumnList)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN_LIST,
-                    getContextManager());
+        ResultColumnList newList = new ResultColumnList(getContextManager());
 
         newList.addResultColumn(rowIdResultColumn);
         return newList;
@@ -1652,8 +1643,7 @@ public class FromBaseTable extends FromTable {
                return null;
        }
 
-       SelectNode selectNode = (SelectNode) getNodeFactory().getNode(
-                            C_NodeTypes.SELECT_NODE,
+       SelectNode selectNode = new SelectNode(
                             resultColumnList,
                             null,
                             fromList,
@@ -2103,8 +2093,8 @@ public class FromBaseTable extends FromTable {
                     //noinspection ConstantConditions
                     SanityManager.ASSERT(vd!=null,"vd not expected to be null for "+tableName);
                 }        // make sure there's a restriction list
-                restrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
-                baseTableRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+                restrictionList = new PredicateList(getContextManager());
+                baseTableRestrictionList = new PredicateList(getContextManager());
 
 
                 cvn=(CreateViewNode)parseStatement(vd.getViewText(),false);
@@ -2143,8 +2133,7 @@ public class FromBaseTable extends FromTable {
                     }
                 }
 
-                fsq=(FromSubquery)getNodeFactory().getNode(
-                        C_NodeTypes.FROM_SUBQUERY,
+                fsq = new FromSubquery(
                         rsn,
                         cvn.getOrderByList(),
                         cvn.getOffset(),
@@ -2522,7 +2511,7 @@ public class FromBaseTable extends FromTable {
             if(resultColumn!=null){
                 columnReference.setTableNumber(tableNumber);
                 columnReference.setColumnNumber(
-                        resultColumn.getColumnPosition());
+                        resultColumn.getStoragePosition());
 
                 if(tableDescriptor!=null){
                     FormatableBitSet referencedColumnMap=tableDescriptor.getReferencedColumnMap();
@@ -2614,8 +2603,7 @@ public class FromBaseTable extends FromTable {
 
         /* Finally, we create the new ProjectRestrictNode */
         ResultSetNode projectRestrict =
-            (ResultSetNode)getNodeFactory().getNode(
-                C_NodeTypes.PROJECT_RESTRICT_NODE,
+            new ProjectRestrictNode(
                 this,
                 prRCList,
                 null,    /* Restriction */
@@ -3080,9 +3068,9 @@ public class FromBaseTable extends FromTable {
                 newCols.addResultColumn(rc);
             }
         } else {
-            int[] baseCols = irg.baseColumnPositions();
+            int[] baseCols = irg.baseColumnStoragePositions();
             for (int basePosition : baseCols) {
-                ResultColumn oldCol = oldColumns.getResultColumn(basePosition);
+                ResultColumn oldCol = oldColumns.getResultColumnByStoragePosition(basePosition);
                 ResultColumn newCol;
 
                 if (SanityManager.DEBUG) {
@@ -3100,10 +3088,7 @@ public class FromBaseTable extends FromTable {
                 if (cloneRCs) {
                     //noinspection ConstantConditions
                     newCol = oldCol.cloneMe();
-                    oldCol.setExpression(
-                            (ValueNode) getNodeFactory().getNode(
-                                    C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                                    this,
+                    oldCol.setExpression( new VirtualColumnNode(this,
                                     newCol,
                                     ReuseFactory.getInteger(oldCol.getVirtualColumnId()),
                                     getContextManager()));
@@ -3478,10 +3463,10 @@ public class FromBaseTable extends FromTable {
         int indexColItem=-1;
         ConglomerateDescriptor cd=getTrulyTheBestAccessPath().getConglomerateDescriptor();
         if(cd.isIndex()){
-            int [] baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
+            int [] baseColumnPositions = cd.getIndexDescriptor().baseColumnStoragePositions();
             FormatableIntHolder[] fihArrayIndex = new FormatableIntHolder[baseColumnPositions.length];
             for (int index = 0; index < baseColumnPositions.length; index++) {
-                fihArrayIndex[index] = new FormatableIntHolder(tableDescriptor.getColumnDescriptor(baseColumnPositions[index]).getStoragePosition());
+                fihArrayIndex[index] = new FormatableIntHolder(tableDescriptor.getColumnDescriptorByStoragePosition(baseColumnPositions[index]).getStoragePosition());
             }
             FormatableArrayHolder hashKeyHolder=new FormatableArrayHolder(fihArrayIndex);
             indexColItem=acb.addItem(hashKeyHolder);
@@ -4874,8 +4859,8 @@ public class FromBaseTable extends FromTable {
                                         pastTxIdExpression,
                                         getContextManager());
         // make sure there's a restriction list
-        fromBaseTable.restrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
-        fromBaseTable.baseTableRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+        fromBaseTable.restrictionList = new PredicateList(getContextManager());
+        fromBaseTable.baseTableRestrictionList = new PredicateList(getContextManager());
 
         fromBaseTable.shallowCopy(this);
         return fromBaseTable;

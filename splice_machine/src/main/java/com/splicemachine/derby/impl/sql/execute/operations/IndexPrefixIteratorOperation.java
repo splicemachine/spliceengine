@@ -233,7 +233,7 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
                     firstRow = tableScannerIterator.next();
                 closeFirstTableScanner(tableScannerIterator);
                 if (firstRow == null)
-                    return controlDSP.getEmpty();
+                    return dsp.getEmpty();
 
                 int firstMappedIndexColumnNumber = baseColumnMap[firstIndexColumnNumber-1]+1;
                 ExecRow keyRow = new ValueRow(1);
@@ -272,7 +272,7 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
 
         DataSet<ExecRow> finalDS;
         if (keys.size() == 0)
-            finalDS = controlDSP.getEmpty();
+            finalDS = dsp.getEmpty();
         else if (isMemPlatform) {
             ((BaseActivation) sourceResultSet.getActivation()).setSameStartStopScanKeyPrefix(true);
             // Instead of using MultiRowRangeFilter, on mem we create a separate scanner for each
@@ -324,7 +324,9 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
             controlDSP =
             EngineDriver.driver().processorFactory().
                                                     localProcessor(getOperation().getActivation(), this);
+        scanInformation.skipQualifiers(true);
         DataScan dataScan = getNonSIScan();
+        scanInformation.skipQualifiers(false);
 
         // No need for a large cache since we're
         // going after a single row on each read.

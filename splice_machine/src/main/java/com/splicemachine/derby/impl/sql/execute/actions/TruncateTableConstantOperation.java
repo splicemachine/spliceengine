@@ -148,6 +148,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
             }
         }
         emptyHeapRow = td.getEmptyExecRow();
+        int[] keyFormatIds = null;
         long oldHeapConglom = td.getHeapConglomerateId();
         ColumnOrdering[] columnOrdering = null;
         try (ConglomerateController compressHeapCC = tc.openConglomerate(
@@ -160,6 +161,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
             // Get column ordering for new conglomerate
             SpliceConglomerate conglomerate = (SpliceConglomerate) ((SpliceTransactionManager) tc).findConglomerate(oldHeapConglom);
             int[] columnOrder = conglomerate.getColumnOrdering();
+            keyFormatIds = conglomerate.getKeyFormatIds();
             if (columnOrder != null) {
                 columnOrdering = new ColumnOrdering[columnOrder.length];
                 for (int i = 0; i < columnOrder.length; i++) {
@@ -195,6 +197,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
                         "heap",
                         emptyHeapRow.getRowArray(),
                         columnOrdering, //column sort order - not required for heap
+                        keyFormatIds,
                         td.getColumnCollationIds(),
                         properties,
                         TransactionController.IS_DEFAULT, Conglomerate.Priority.NORMAL);
@@ -278,13 +281,16 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
                                  boolean statisticsExist,
                                  DataValueDescriptor[] rowArray,
                                  ColumnOrdering[] columnOrder,
+                                 int[] keyFormatIds,
                                  int[] collationIds) throws StandardException {
+
         newIndexCongloms[index] =
                 tc.createConglomerate(
                         td.isExternal(),
                         "BTREE",
                         rowArray,
                         columnOrder,
+                        keyFormatIds,
                         collationIds,
                         properties,
                         TransactionController.IS_DEFAULT, Conglomerate.Priority.NORMAL);

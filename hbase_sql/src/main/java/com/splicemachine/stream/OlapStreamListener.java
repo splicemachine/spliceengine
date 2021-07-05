@@ -16,6 +16,7 @@ package com.splicemachine.stream;
 
 import com.splicemachine.stream.handlers.OpenHandler;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelOption;
@@ -24,6 +25,8 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import org.apache.log4j.Logger;
 import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -36,7 +39,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * OlapStreamListener handles a communication from StreamListener to manage throttling if a client overloaded with
  * messages or paused consuming.
  */
-public class OlapStreamListener extends ChannelInboundHandlerAdapter {
+public class OlapStreamListener extends ChannelInboundHandlerAdapter implements Closeable {
     private static final Logger LOG = Logger.getLogger(OlapStreamListener.class);
 
     private final CountDownLatch active;
@@ -46,6 +49,8 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter {
     volatile private boolean clientConsuming;
     private final Lock lock;
     private final Condition consumingCondition;
+    private ChannelFuture channelFuture;
+    private NioEventLoopGroup workerGroup;
 
     public OlapStreamListener(String host, int port, UUID uuid) {
         this.active = new CountDownLatch(1);
@@ -86,7 +91,7 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter {
         InetSocketAddress socketAddr = new InetSocketAddress(host, port);
         Bootstrap bootstrap;
         ThreadFactory tf = new ThreadFactoryBuilder().setDaemon(true).setNameFormat("OlapStreamListener-" + host + ":" + port + "[" + uuid + "]").build();
-        NioEventLoopGroup workerGroup = new NioEventLoopGroup(2, tf);
+        workerGroup = new NioEventLoopGroup(2, tf);
 
         try {
             bootstrap = new Bootstrap();
@@ -95,7 +100,7 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter {
             bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
             bootstrap.handler(new OpenHandler(this));
 
-            bootstrap.connect(socketAddr).sync();
+            channelFuture = bootstrap.connect(socketAddr).sync();
 
             active.await();
         } catch (Exception e) {
@@ -141,5 +146,17 @@ public class OlapStreamListener extends ChannelInboundHandlerAdapter {
                 ", uuid=" + uuid.toString() +
                 ", clientConsuming=" + clientConsuming +
                 '}';
+    }
+
+    @Override
+    public void close() throws IOException {
+        try {
+            if (channelFuture != null)
+                channelFuture.channel().closeFuture();
+            if (workerGroup != null)
+                workerGroup.shutdownGracefully();
+        } catch (Exception e) {
+            LOG.warn("Could not close channel resources", e);
+        }
     }
 }

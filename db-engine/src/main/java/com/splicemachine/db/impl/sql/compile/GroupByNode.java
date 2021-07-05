@@ -682,8 +682,7 @@ public class GroupByNode extends SingleChildResultSetNode{
         // have to be projected out upstream.
         rclNew.copyOrderBySelect(resultColumns);
 
-        parent=(FromTable)getNodeFactory().getNode(
-                C_NodeTypes.PROJECT_RESTRICT_NODE,
+        parent = new ProjectRestrictNode(
                 this,    // child
                 rclNew,
                 null, //havingClause,
@@ -749,13 +748,8 @@ public class GroupByNode extends SingleChildResultSetNode{
              ** Reset the original node to point to the
              ** Group By result set.
              */
-            //noinspection UnnecessaryBoxing
-            VirtualColumnNode vc=(VirtualColumnNode)getNodeFactory().getNode(
-                    C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                    this, // source result set.
-                    gbRC,
-                    Integer.valueOf(groupByRCL.size()), //sometimes the boxing is needed to make it compile
-                    getContextManager());
+            VirtualColumnNode vc = new VirtualColumnNode(this, // source result set.
+                                            gbRC, groupByRCL.size(), getContextManager());
 
             // we replace each group by expression
             // in the projection list with a virtual column node
@@ -877,12 +871,7 @@ public class GroupByNode extends SingleChildResultSetNode{
 
             gbn.setColumnPosition(bottomRCL.size());
 
-            VirtualColumnNode vc=(VirtualColumnNode)getNodeFactory().getNode(
-                C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                this,
-                gbRC,
-                groupByRCL.size(),
-                getContextManager());
+            VirtualColumnNode vc = new VirtualColumnNode(this, gbRC, groupByRCL.size(), getContextManager());
 
             groupingIdColumns.put(numElements - i - 1, vc);
         }
@@ -921,12 +910,8 @@ public class GroupByNode extends SingleChildResultSetNode{
 
         groupingIdColumn.setColumnPosition(bottomRCL.size());
 
-        VirtualColumnNode vc=(VirtualColumnNode)getNodeFactory().getNode(
-                C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                this, // source result set.
-                gbRC,
-                groupByRCL.size(), //sometimes the boxing is needed to make it compile
-                getContextManager());
+        VirtualColumnNode vc = new VirtualColumnNode(this, // source result set.
+                gbRC, groupByRCL.size(), getContextManager());
 
         addGroupingIdColumnsForNativeSpark();
         updateGroupingFunctions(vc);
@@ -1409,7 +1394,7 @@ public class GroupByNode extends SingleChildResultSetNode{
         List<ColumnReference> columnRefNodes = cnv.getList();
         for (ColumnReference cr : columnRefNodes) {
             if (!cr.useRealColumnStatistics())
-                noStatsColumns.add(cr.getSource().getSchemaName() + "." + cr.getSource().getFullName());
+                noStatsColumns.add(cr.getSchemaQualifiedColumnName());
         }
         return noStatsColumns;
     }

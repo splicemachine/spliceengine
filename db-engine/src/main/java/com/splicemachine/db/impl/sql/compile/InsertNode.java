@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.StatementType;
@@ -86,6 +87,31 @@ import java.util.Properties;
  * After optimizing, ...
  */
 public final class InsertNode extends DMLModStatementNode {
+
+    InsertNode() {}
+    InsertNode(
+            QueryTreeNode    targetName,
+            ResultColumnList insertColumns,
+            ResultSetNode    queryExpression,
+            Properties       targetProperties,
+            OrderByList      orderByList,
+            ValueNode        offset,
+            ValueNode        fetchFirst,
+            boolean          hasJDBClimitClause,
+            ContextManager cm)
+    {
+        setNodeType(C_NodeTypes.INSERT_NODE);
+        setContextManager(cm);
+        init(targetName,
+                insertColumns,
+                queryExpression,
+                targetProperties,
+                orderByList,
+                offset,
+                fetchFirst,
+                hasJDBClimitClause);
+    }
+
     public enum InsertMode {INSERT, UPSERT, LOAD_REPLACE}
 
     public InsertMode insertMode = InsertMode.INSERT;
@@ -611,6 +637,12 @@ public final class InsertNode extends DMLModStatementNode {
             expandedRCL.addResultColumn(newSourceRCLEntry);
         }
 
+
+
+        if (resultSet instanceof UnionNode) {
+            UnionNode node = (UnionNode) resultSet;
+            node.expandResultSetWithDeletedColumns(targetTableDescriptor, resultColumnList, node);
+        }
         // In the new result columns, virtualColumnId = storage position id of the column
         resultSet.setResultColumns(expandedRS);
         this.resultColumnList = expandedRCL;
@@ -901,7 +933,7 @@ public final class InsertNode extends DMLModStatementNode {
     public boolean[] getIndexedCols() throws StandardException
     {
         /* Create a boolean[] to track the (0-based) columns which are indexed */
-        boolean[] indexedCols = new boolean[targetTableDescriptor.getNumberOfColumns()];
+        boolean[] indexedCols = new boolean[targetTableDescriptor.getNumberOfStorageColumns()];
         for (IndexRowGenerator anIndicesToMaintain : indicesToMaintain) {
             int[] colIds = anIndicesToMaintain.getIndexDescriptor().baseColumnPositions();
 

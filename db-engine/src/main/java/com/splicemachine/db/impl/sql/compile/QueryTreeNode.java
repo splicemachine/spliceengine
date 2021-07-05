@@ -621,7 +621,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
         return false;
     }
 
-    public int getConstantNodeType(DataTypeDescriptor type) throws StandardException {
+    public static int getConstantNodeType(DataTypeDescriptor type) throws StandardException {
         int constantNodeType;
         switch(type.getTypeId().getJDBCTypeId()){
             case Types.VARCHAR:

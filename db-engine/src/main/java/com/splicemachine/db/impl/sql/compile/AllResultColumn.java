@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -43,62 +44,85 @@ import com.splicemachine.db.iapi.error.StandardException;
  * at bind time.
  *
  */
-
 public class AllResultColumn extends ResultColumn
 {
-	private TableName		tableName;
+    private TableName tableName;
 
-	/**
-	 * This initializer is for use in the parser for a "*".
-	 * 
-	 * @param tableName	Dot expression qualifying "*"
-	 */
-	public void init(Object tableName)
-	{
-		this.tableName = (TableName) tableName;
-	}
+    public AllResultColumn() {}
 
-	/** 
-	 * Return the full table name qualification for this node
-	 *
-	 * @return Full table name qualification as a String
-	 */
-	public String getFullTableName()
-	{
-		if (tableName == null)
-		{
-			return null;
-		}
-		else
-		{
-			return tableName.getFullTableName();
-		}
-	}
+    public AllResultColumn(TableName t, ContextManager contextManager) {
+        super(contextManager);
+        setNodeType(C_NodeTypes.ALL_RESULT_COLUMN);
+        init(t);
+    }
 
-	/**
-	 * Make a copy of this ResultColumn in a new ResultColumn
-	 *
-	 * @return	A new ResultColumn with the same contents as this one
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	// Splice fork: changed from package protected to public
-	public ResultColumn cloneMe() throws StandardException
-	{
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(columnDescriptor == null,
-					"columnDescriptor is expected to be non-null");
-		}
+    /**
+     * This initializer is for use in the parser for a "*".
+     *
+     * @param tableName	Dot expression qualifying "*"
+     */
+    public void init(Object tableName)
+    {
+        this.tableName = (TableName) tableName;
+    }
 
-		return (ResultColumn) getNodeFactory().getNode(
-									C_NodeTypes.ALL_RESULT_COLUMN,
-									tableName,
-									getContextManager());
-	}
+    /**
+     * Return the full table name qualification for this node
+     *
+     * @return Full table name qualification as a String
+     */
+    public String getFullTableName()
+    {
+        if (tableName == null)
+        {
+            return null;
+        }
+        else
+        {
+            return tableName.getFullTableName();
+        }
+    }
 
+    /**
+     * Make a copy of this ResultColumn in a new ResultColumn
+     *
+     * @return	A new ResultColumn with the same contents as this one
+     *
+     * @exception StandardException		Thrown on error
+     */
+    // Splice fork: changed from package protected to public
+    public ResultColumn cloneMe() throws StandardException
+    {
+        if (SanityManager.DEBUG) {
+            SanityManager.ASSERT(columnDescriptor == null, "columnDescriptor is expected to be null");
+        }
+
+        return new AllResultColumn(tableName, getContextManager());
+    }
 
     public TableName getTableNameObject() {
         return tableName;
+    }
+
+    /**
+     * because super = ResultColumn, and ResultColumn.equals(Object o) { return this == o; }
+     * AllResultColumn.equals is the same.
+     * so for this to be fully functional, ResultColumn.equals has to be a full equal implementation
+     */
+    public boolean equals(Object o){
+        if(o == this) return true;
+        if(o instanceof AllResultColumn) {
+            AllResultColumn arc = (AllResultColumn) o;
+            return arc.tableName.equals(tableName) &&
+                    super.equals(o);
+        }
+        else {
+            return false;
+        }
+    }
+
+    public int hashCode() {
+        int result = super.hashCode();
+        return 31 * result + (tableName == null ? 0 : tableName.hashCode());
     }
 }

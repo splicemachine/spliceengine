@@ -165,6 +165,7 @@ public class StreamableRDD<T> {
             }
         } finally {
             streamingExecutor.shutdown();
+            olapStreamListener.close();
         }
 
         if (error != null) {

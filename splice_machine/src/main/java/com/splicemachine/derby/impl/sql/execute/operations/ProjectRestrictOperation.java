@@ -75,6 +75,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
     private        String[]                          expressions                   = null;
     private        boolean                           hasGroupingFunction;
     private        String                            subqueryText;
+    private        boolean                           constantRestrictionEvaluated;
 
     protected static final String NAME = ProjectRestrictOperation.class.getSimpleName().replaceAll("Operation", "");
 
@@ -145,6 +146,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         this.expressions = expressions;
         this.hasGroupingFunction = hasGroupingFunction;
         this.subqueryText = subqueryText;
+        this.constantRestrictionEvaluated = false;
         init();
     }
 
@@ -167,7 +169,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
             mappedResultRow = activation.getExecutionFactory().getValueRow(projectMapping.length);
         }
         cloneMap = ((boolean[]) statement.getSavedObject(cloneMapItem));
-        evaluateConstantRestriction();
 
         if (restrictionMethodName != null)
             restriction = new SpliceMethod<>(restrictionMethodName, activation);
@@ -325,6 +326,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
         if (parameterInConstantRestriction) {
             evaluateConstantRestriction();
+        } else if (!constantRestrictionEvaluated) {
+            evaluateConstantRestriction();
+            constantRestrictionEvaluated = true;
         }
         if (alwaysFalse) {
             return dsp.getEmpty();

@@ -329,7 +329,7 @@ public abstract class ConstraintDescriptor
         if (colDL == null) {
             colDL = new ColumnDescriptorList();
             for (int refCol : getReferencedColumns()) {
-                colDL.add(table.getColumnDescriptor(refCol));
+                colDL.add(table.getColumnDescriptorByStoragePosition(refCol));
             }
         }
         return colDL;

@@ -1755,7 +1755,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     }
 
     private PredicateList getNewPredList() throws StandardException {
-        return (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
+        return new PredicateList(getContextManager());
     }
 
     private AndNode getNewAndWithBooleanExpression(ValueNode booleanExpression) throws StandardException {

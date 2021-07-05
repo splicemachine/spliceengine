@@ -26,19 +26,18 @@ import splice.com.google.common.collect.Lists;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.SQLSyntaxErrorException;
-import java.sql.Types;
 import java.util.Collection;
-import java.util.List;
 
 import static org.junit.Assert.*;
 import static org.hamcrest.Matchers.containsString;
 
 /**
- * Test predicate with tuples
+ * Test value tuples
  */
 @RunWith(Parameterized.class)
-public class PredicateTupleIT extends SpliceUnitTest {
+public class ValueTupleIT extends SpliceUnitTest {
 
     private Boolean useSpark;
 
@@ -49,7 +48,7 @@ public class PredicateTupleIT extends SpliceUnitTest {
         params.add(new Object[]{false});
         return params;
     }
-    private static final String SCHEMA = PredicateTupleIT.class.getSimpleName();
+    private static final String SCHEMA = ValueTupleIT.class.getSimpleName();
 
     @ClassRule
     public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA);
@@ -75,7 +74,7 @@ public class PredicateTupleIT extends SpliceUnitTest {
         }
     }
 
-    public PredicateTupleIT(Boolean useSpark) {
+    public ValueTupleIT(Boolean useSpark) {
         this.useSpark = useSpark;
     }
 
@@ -158,5 +157,17 @@ public class PredicateTupleIT extends SpliceUnitTest {
                 " 1 |10 |100 |\n" +
                 " 2 |20 |200 |";
         testQuery(query, expected);
+    }
+
+    @Test
+    public void testTupleAsAColumnInvalid() throws Exception {
+        String query = "select (a1, a2), a3 from A";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.fail("should fail because tuple as a column is not supported");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X01", e.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("Tuple values as a column in select list is not supported"));
+        }
     }
 }
