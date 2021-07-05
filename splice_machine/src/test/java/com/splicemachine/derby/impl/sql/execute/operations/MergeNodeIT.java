@@ -316,6 +316,25 @@ public class MergeNodeIT
                 " 2 |20 | 3 |");
     }
 
+    // test
+    // - refinement can access dest column (AND T_dest.i = 1)
+    // - different join condition ( T_dest.i = T_src.i+1 )
+    @Test
+    public void testUpdateOtherJoinCond() throws Exception {
+        test(   "(0, 11, 111), (1, 22, 3), (4, 44, 444)", // src
+                "(1, 10, 3), (2, 20, 3)", // dest
+
+                "merge into T_dest using T_src on (T_dest.i = T_src.i+1) " +
+                "when matched AND T_dest.i = 1 then UPDATE SET T_dest.j = T_src.j",
+
+                1, // 1 updated row
+
+                "I | J | K |\n" +
+                "------------\n" +
+                " 1 |11 | 3 |\n" +
+                " 2 |20 | 3 |");
+    }
+
     @Test
     public void testMultiClauseInsertDeleteUpdate() throws Exception {
         String mergeStatement =
