@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
@@ -48,6 +49,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Properties;
 
 
 /**
@@ -74,6 +76,14 @@ public class FromSubquery extends FromTable
      * current compilation schema at view definition time.
      */
     private SchemaDescriptor origCompilationSchema = null;
+
+    public FromSubquery(){}
+    public FromSubquery(ResultSetNode subquery, OrderByList orderByList, ValueNode offset, ValueNode fetchFirst, Boolean hasJDBClimitClause,
+                        String correlationName, Object derivedRCL, Properties tableProperties, ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.FROM_SUBQUERY);
+        init(subquery, orderByList, offset, fetchFirst, hasJDBClimitClause, correlationName, derivedRCL, tableProperties);
+    }
 
     /**
      * Initializer for a table in a FROM list.
@@ -522,8 +532,7 @@ public class FromSubquery extends FromTable
         JBitSet          newJBS;
         ResultSetNode newPRN;
 
-        newPRN = (ResultSetNode) getNodeFactory().getNode(
-                                C_NodeTypes.PROJECT_RESTRICT_NODE,
+        newPRN = new ProjectRestrictNode(
                                 subquery,        /* Child ResultSet */
                                 resultColumns,    /* Projection */
                                 null,            /* Restriction */
@@ -531,7 +540,7 @@ public class FromSubquery extends FromTable
                                 null,            /* Subquerys in Projection */
                                 null,            /* Subquerys in Restriction */
                                 tableProperties,
-                                getContextManager()     );
+                                getContextManager() );
 
         /* Set up the PRN's referencedTableMap */
         newJBS = new JBitSet(numTables);

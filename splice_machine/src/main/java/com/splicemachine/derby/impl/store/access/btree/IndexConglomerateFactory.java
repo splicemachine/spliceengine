@@ -60,6 +60,7 @@ public class IndexConglomerateFactory extends SpliceConglomerateFactory {
              long                    input_containerid,
              DataValueDescriptor[]   template,
              ColumnOrdering[]        columnOrder,
+             int[]                   keyFormatIds,
              int[]                   collationIds,
              Properties              properties,
              int                     temporaryFlag,
@@ -68,7 +69,7 @@ public class IndexConglomerateFactory extends SpliceConglomerateFactory {
         IndexConglomerate index = new IndexConglomerate();
         index.create(isExternal,
                 xact_mgr.getRawStoreXact(), input_containerid,
-                template, columnOrder, collationIds, properties,
+                template, columnOrder, keyFormatIds, collationIds, properties,
                 index.getTypeFormatId(),
                 temporaryFlag,operationFactory,partitionFactory,
                 splitKeys, priority);

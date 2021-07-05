@@ -1305,8 +1305,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         prRCList.doProjection(true);
 
         /* Finally, we create the new ProjectRestrictNode */
-        return (ResultSetNode) getNodeFactory().getNode(
-                C_NodeTypes.PROJECT_RESTRICT_NODE,
+        return new ProjectRestrictNode(
                 this,
                 prRCList,
                 null,    /* Restriction */
@@ -1314,7 +1313,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                 null,    /* Project subquery list */
                 null,    /* Restrict subquery list */
                 tableProperties,
-                getContextManager()     );
+                getContextManager() );
     }
 
     /**

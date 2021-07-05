@@ -69,8 +69,9 @@ public interface IndexDescriptor
      * base table, so, if entry 2 is the number 4, the second
      * column in the index is the fourth column in the table.
      */
-    int[]    baseColumnPositions();
+    int[] baseColumnPositions();
 
+    int[] baseColumnStoragePositions();
     /**
      * Returns the postion of a column.
      * <p>

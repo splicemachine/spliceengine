@@ -194,28 +194,28 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
          * If there is a PrimaryKey Constraint, build an IndexRowGenerator that returns the Primary Keys,
          * otherwise, do whatever Derby does by default
          */
-        if(constraintActions ==null)
-            return super.getTableConglomerateDescriptor(td,conglomId,sd,ddg);
+		if(constraintActions ==null)
+			return super.getTableConglomerateDescriptor(td,conglomId,sd,ddg);
 
-        for(ConstraintConstantOperation constantAction:constraintActions){
-            if(constantAction.getConstraintType()== DataDictionary.PRIMARYKEY_CONSTRAINT){
-                int [] pkColumns = ((CreateConstraintConstantOperation)constantAction).genColumnPositions(td, true);
-                boolean[] ascending = new boolean[pkColumns.length];
-                for(int i=0;i<ascending.length;i++){
-                    ascending[i] = true;
-                }
+		for(ConstraintConstantOperation constantAction:constraintActions){
+			if(constantAction.getConstraintType()== DataDictionary.PRIMARYKEY_CONSTRAINT){
+				int [] pkColumns = ((CreateConstraintConstantOperation)constantAction).genColumnStoragePositions(td, true);
+				boolean[] ascending = new boolean[pkColumns.length];
+				for(int i=0;i<ascending.length;i++){
+					ascending[i] = true;
+				}
 
-                IndexDescriptor descriptor = new IndexDescriptorImpl("PRIMARYKEY",true,false,pkColumns,ascending,pkColumns.length,false,false);
-                IndexRowGenerator irg = new IndexRowGenerator(descriptor);
-                return ddg.newConglomerateDescriptor(conglomId,null,false,irg,false,null,td.getUUID(),sd.getUUID());
-            }
-        }
-        return super.getTableConglomerateDescriptor(td,conglomId,sd,ddg);
-    }
+				IndexDescriptor descriptor = new IndexDescriptorImpl("PRIMARYKEY",true,false,pkColumns,pkColumns,ascending,pkColumns.length,false,false);
+				IndexRowGenerator irg = new IndexRowGenerator(descriptor);
+				return ddg.newConglomerateDescriptor(conglomId,null,false,irg,false,null,td.getUUID(),sd.getUUID());
+			}
+		}
+		return super.getTableConglomerateDescriptor(td,conglomId,sd,ddg);
+	}
 
-    public String getScopeName() {
-        return String.format("Create Table %s", tableName);
-    }
+	public String getScopeName() {
+		return String.format("Create Table %s", tableName);
+	}
 
 	private boolean isTempTable() {
 		return tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE;
