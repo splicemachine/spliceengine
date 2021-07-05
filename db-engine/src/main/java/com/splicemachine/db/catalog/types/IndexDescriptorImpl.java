@@ -288,7 +288,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
         return baseColumnStoragePositions;
     }
     /** @see IndexDescriptor#getKeyColumnPosition */
-    public int getKeyColumnPosition(int heapColumnPosition) throws StandardException
+    public int getKeyColumnPosition(int columnStoragePosition) throws StandardException
     {
         if (isOnExpression()) {
             return -1;
@@ -299,7 +299,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
         for (int index = 0; index < baseColumnStoragePositions.length; index++)
         {
             /* Return 1-based key column position if column is in the key */
-            if (baseColumnStoragePositions[index] == heapColumnPosition)
+            if (baseColumnStoragePositions[index] == columnStoragePosition)
             {
                 keyPosition = index + 1;
                 break;
