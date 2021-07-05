@@ -68,7 +68,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -1944,42 +1943,14 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             if(SanityManager.DEBUG) {
                 SanityManager.ASSERT(descriptor != null);
             }
-            return Long.parseLong(descriptor.getTransactionId());
+            String txId = descriptor.getTransactionId();
+            if(null == txId) {
+                return 0; // some old indexes and tables do not have transaction id.
+            }
+            return Long.parseLong(txId);
         } catch(IOException | IllegalArgumentException ex) {
             throw StandardException.plainWrapException(ex);
         }
-    }
-
-    @Override
-    public long getTxnAt(long ts) throws StandardException {
-        try {
-            return SIDriver.driver().getTxnStore().getTxnAt(ts);
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-    }
-
-    @Override
-    public boolean txnWithin(long period, long pastTx) throws StandardException {
-        if(pastTx < SIConstants.OLDEST_TIME_TRAVEL_TX) {
-            return false;
-        }
-        long mrpTx = 0;
-        try {
-            mrpTx = SIDriver.driver().getTxnStore().getTxnAt(System.currentTimeMillis() - period * 1000);
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-        return mrpTx <= pastTx;
-    }
-
-    @Override
-    public boolean txnWithin(long period, Timestamp pastTx) throws StandardException {
-        Timestamp currentTs = new Timestamp(System.currentTimeMillis());
-        if(pastTx.after(currentTs)) { // future time travel is no-op anyway
-            return true;
-        }
-        return ((System.currentTimeMillis() - pastTx.getTime()) / 1000) <= period;
     }
 
     public void upgradeRecreateIndexesOfSystemTable(TransactionController tc, int catalogNumber, int[] indexIds) throws StandardException {

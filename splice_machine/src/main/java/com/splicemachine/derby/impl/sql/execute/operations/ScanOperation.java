@@ -132,9 +132,9 @@ public abstract class ScanOperation extends SpliceBaseOperation {
                 defaultRowFunc!=null?defaultRowFunc.getMethodName():null,
                 defaultValueMapItem
         );
-        if(pastTxn != -2) {
+        if(pastTxn != TransactionController.TIME_TRAVEL_UNSET) {
             this.pastTx = pastTxn;
-            if(this.pastTx == -1) {
+            if(this.pastTx == TransactionController.TIME_TRAVEL_OLDEST) {
                 this.pastTx = SIConstants.OLDEST_TIME_TRAVEL_TX; // force going back to the oldest transaction instead of ignoring it.
             }
         } else {
