@@ -95,7 +95,6 @@ import com.splicemachine.db.impl.tools.ij.ijImpl;
  *  actual commands are in ijCommands
  */
 class ij extends ijImpl {
-    utilMain utilInstance = null;
 
     /**
      * A constructor that understands the local state that needs to be

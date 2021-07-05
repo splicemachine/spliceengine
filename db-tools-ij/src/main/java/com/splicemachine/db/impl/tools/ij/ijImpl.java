@@ -4,8 +4,12 @@ import com.splicemachine.db.iapi.tools.i18n.LocalizedOutput;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 import com.splicemachine.db.shared.common.sql.Utils;
 import com.splicemachine.db.tools.JDBCDisplayUtil;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.sql.*;
@@ -41,6 +45,41 @@ public class ijImpl extends ijCommands {
     // this is not a high concurrency situation, still we make most accesses synchronized.
     Statement currentStatement = null;
     Object currentStatementLock = new Object();
+
+    utilMain utilInstance = null;
+
+    String getProperty(String name, String defaultS) {
+        Properties prop = new Properties();
+        String fileName = "/Users/martinrupp/spliceengine/sqlshell.rc";
+        try (FileInputStream fis = new FileInputStream(fileName)) {
+            prop.load(fis);
+            return prop.getProperty(name, defaultS)
+        } catch (Exception e) {
+            return defaultS;
+        }
+    }
+
+
+    private boolean getBooleanProperty(String name, boolean bdefault) {
+        return Boolean.getBoolean(getProperty(name, Boolean.toString(bdefault)));
+    }
+
+    private int getIntegerProperty(String name, int bdefault) {
+        try {
+            Integer.parseInt(getProperty(name, Integer.toString(bdefault)));
+        }
+        catch(Exception e) { return bdefault };
+    }
+
+    void initConfig() {
+        elapsedTime     = getBooleanProperty("elapsedTime", true));
+        showProgressBar = getBooleanProperty("showProgressBar", true));
+        utilInstance.setTerminator(getProperty("terminator", ";"));
+        utilInstance.setPromptClock(getBooleanProperty("promptClock", false));
+        utilInstance.setOmitHeader(getBooleanProperty("omitHeader", false));
+        // setAutoCommit?
+        JDBCDisplayUtil.setMaxDisplayWidth(getIntegerProperty("maximumdisplaywidth", JDBCDisplayUtil.MAXWIDTH_DEFAULT ));
+    }
 
     public boolean
     cancelCurrentStatement(LocalizedOutput out) {
@@ -110,6 +149,8 @@ public class ijImpl extends ijCommands {
                 installProtocol(name.toUpperCase(Locale.ENGLISH), p.getProperty(key));
             }
         }
+
+        initConfig();
     }
     /**
      * Return whether or not JDBC 2.0 (and greater) extension classes can be loaded
