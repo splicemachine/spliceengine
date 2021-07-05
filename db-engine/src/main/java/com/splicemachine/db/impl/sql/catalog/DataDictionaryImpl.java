@@ -11593,19 +11593,4 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public long getConglomerateCreationTxId(long tableConglom) throws StandardException {
         return -1;
     }
-
-    @Override
-    public long getTxnAt(long ts) throws StandardException {
-        return -1;
-    }
-
-    @Override
-    public boolean txnWithin(long period, long pastTx) throws StandardException {
-        return false;
-    }
-
-    @Override
-    public boolean txnWithin(long period, Timestamp pastTx) throws StandardException {
-        return false;
-    }
 }

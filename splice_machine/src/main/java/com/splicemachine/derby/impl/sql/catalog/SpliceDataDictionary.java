@@ -38,8 +38,6 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
-import com.splicemachine.db.iapi.stats.ItemStatistics;
-import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
@@ -71,7 +69,6 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.*;
 import java.util.function.Function;
@@ -1429,42 +1426,14 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             if(SanityManager.DEBUG) {
                 SanityManager.ASSERT(descriptor != null);
             }
-            return Long.parseLong(descriptor.getTransactionId());
+            String txId = descriptor.getTransactionId();
+            if(null == txId) {
+                return 0; // some old indexes and tables do not have transaction id.
+            }
+            return Long.parseLong(txId);
         } catch(IOException | IllegalArgumentException ex) {
             throw StandardException.plainWrapException(ex);
         }
-    }
-
-    @Override
-    public long getTxnAt(long ts) throws StandardException {
-        try {
-            return SIDriver.driver().getTxnStore().getTxnAt(ts);
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-    }
-
-    @Override
-    public boolean txnWithin(long period, long pastTx) throws StandardException {
-        if(pastTx < SIConstants.OLDEST_TIME_TRAVEL_TX) {
-            return false;
-        }
-        long mrpTx = 0;
-        try {
-            mrpTx = SIDriver.driver().getTxnStore().getTxnAt(System.currentTimeMillis() - period * 1000);
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-        return mrpTx <= pastTx;
-    }
-
-    @Override
-    public boolean txnWithin(long period, Timestamp pastTx) throws StandardException {
-        Timestamp currentTs = new Timestamp(System.currentTimeMillis());
-        if(pastTx.after(currentTs)) { // future time travel is no-op anyway
-            return true;
-        }
-        return ((System.currentTimeMillis() - pastTx.getTime()) / 1000) <= period;
     }
 
     public void rewriteDescriptors(int catalogNum, long cloned_conglomerate) throws StandardException {
