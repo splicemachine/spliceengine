@@ -2276,10 +2276,4 @@ public interface DataDictionary{
      * @throws StandardException In case of e.g. connection error to HBase admin.
      */
     long getConglomerateCreationTxId(long conglom) throws StandardException;
-
-    long getTxnAt(long ts) throws StandardException;
-
-    boolean txnWithin(long period, long pastTx) throws StandardException;
-
-    boolean txnWithin(long period, Timestamp pastTx) throws StandardException;
 }

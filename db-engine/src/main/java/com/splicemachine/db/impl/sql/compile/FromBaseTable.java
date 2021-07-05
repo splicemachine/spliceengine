@@ -66,7 +66,6 @@ import splice.com.google.common.base.Joiner;
 import splice.com.google.common.base.Predicates;
 import splice.com.google.common.collect.Lists;
 
-import java.io.IOException;
 import java.lang.reflect.Modifier;
 import java.sql.Timestamp;
 import java.util.*;
@@ -228,7 +227,7 @@ public class FromBaseTable extends FromTable {
 
     private ValueNode pastTxIdExpression = null;
 
-    private long pastTxnId = -1;
+    private long pastTxnId = TransactionController.TIME_TRAVEL_UNSET;
 
     private long minRetentionPeriod = -1;
 
@@ -305,7 +304,7 @@ public class FromBaseTable extends FromTable {
                     && (predList == null || !predList.canSupportIndexExcludedDefaults(tableNumber,currentConglomerateDescriptor, tableDescriptor))) {
                 return false;
             }
-            else if (pastTxnId != -2) {
+            else if (pastTxnId != TransactionController.TIME_TRAVEL_UNSET) {
                 long indexCreationTx = getDataDictionary().getConglomerateCreationTxId(currentConglomerateDescriptor.getConglomerateNumber());
                 return pastTxnId >= indexCreationTx;
             }
@@ -366,7 +365,7 @@ public class FromBaseTable extends FromTable {
                         if(conglomerateName!=null){
                             /* Have we found the desired index? */
                             if(conglomerateName.equals(userSpecifiedIndexName)) {
-                                if (pastTxnId != -2 && conglomDesc.isIndex()) {
+                                if (pastTxnId != TransactionController.TIME_TRAVEL_UNSET && conglomDesc.isIndex()) {
                                     long indexCreationTx = getDataDictionary().getConglomerateCreationTxId(conglomDesc.getConglomerateNumber());
                                     if(pastTxnId < indexCreationTx) {
                                         throw StandardException.newException(SQLState.LANG_USER_INDEX_CREATED_AFTER_PAST_TRANSACTION,
@@ -1265,7 +1264,7 @@ public class FromBaseTable extends FromTable {
             }
             pastTxnId = mapToTxId(dvd, minRetentionPeriod);
         } else {
-            pastTxnId = -2;
+            pastTxnId = TransactionController.TIME_TRAVEL_UNSET;
         }
 
         if(tableDescriptor.getTableType()==TableDescriptor.VTI_TYPE){
@@ -4103,16 +4102,17 @@ public class FromBaseTable extends FromTable {
         if(SanityManager.DEBUG) {
             SanityManager.ASSERT(dataValue != null);
         }
+        TransactionController tc = getLanguageConnectionContext().getTransactionCompile();
         if (dataValue instanceof SQLTimestamp) {
             Timestamp ts = ((SQLTimestamp) dataValue).getTimestamp(null);
             if (minRetentionPeriod != -1) {
-                if (getDataDictionary().txnWithin(minRetentionPeriod, ts)) {
-                    return getDataDictionary().getTxnAt(ts.getTime());
+                if (tc.txnWithin(minRetentionPeriod, ts)) {
+                    return tc.getTxnAt(ts.getTime());
                 } else {
                     throw StandardException.newException(SQLState.LANG_TIME_TRAVEL_OUTSIDE_MIN_RETENTION_PERIOD, minRetentionPeriod);
                 }
             } else {
-                return getDataDictionary().getTxnAt(ts.getTime());
+                return tc.getTxnAt(ts.getTime());
             }
         } else if (dataValue instanceof SQLTinyint || dataValue instanceof SQLSmallint || dataValue instanceof SQLInteger || dataValue instanceof SQLLongint) {
             if (dataValue.isNull()) {
@@ -4120,7 +4120,7 @@ public class FromBaseTable extends FromTable {
             }
             long pastTx = dataValue.getLong();
             if (minRetentionPeriod != -1) {
-                if (getDataDictionary().txnWithin(minRetentionPeriod, pastTx)) {
+                if (tc.txnWithin(minRetentionPeriod, pastTx)) {
                     return pastTx;
                 } else {
                     throw StandardException.newException(SQLState.LANG_TIME_TRAVEL_INVALID_PAST_TRANSACTION_ID, minRetentionPeriod);
