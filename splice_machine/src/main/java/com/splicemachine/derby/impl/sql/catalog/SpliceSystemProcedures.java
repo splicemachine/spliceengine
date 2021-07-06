@@ -1668,6 +1668,14 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .bigint("backupId")
                 .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
                 .build());
+
+        Procedure getTriggerExec = Procedure.newBuilder().name("SYSCS_GET_TRIGGER_EXEC")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .sqlControl(RoutineAliasInfo.NO_SQL)
+                .build();
+        procedures.add(getTriggerExec);
     }
 
     static public void getSYSFUN_PROCEDURES(List<Procedure> procedures)

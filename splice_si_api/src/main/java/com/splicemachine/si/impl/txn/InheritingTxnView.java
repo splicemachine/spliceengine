@@ -14,6 +14,8 @@
 
 package com.splicemachine.si.impl.txn;
 
+import com.splicemachine.db.iapi.sql.dictionary.DisplayedTriggerInfo;
+import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
@@ -23,8 +25,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.UUID;
 
 /**
  * Transaction which is partially constructed, but which looks up values in order

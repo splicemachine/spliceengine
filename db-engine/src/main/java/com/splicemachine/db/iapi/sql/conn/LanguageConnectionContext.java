@@ -43,10 +43,7 @@ import com.splicemachine.db.iapi.sql.ParameterValueSet;
 import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.depend.Provider;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.CursorActivation;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
@@ -62,6 +59,7 @@ import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.utils.SparkSQLUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -116,6 +114,11 @@ public interface LanguageConnectionContext extends Context {
     String LOCAL_TEMP_TABLE_SUFFIX_FIX_PART = "____________________";
     char LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_CHAR = '_';
     int LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_NUM_CHAR = 20;
+
+    void initTriggerInfo(TriggerDescriptor[] tds, java.util.UUID currentQueryId, long txnId);
+    ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo();
+    void recordAdditionalDisplayedTriggerInfo(long elapsedTime, long modifiedRows, java.util.UUID queryId);
+    void recordTriggerInfoWhileFiring(UUID triggerId);
 
     /**
      * Initialize. For use after pushing the contexts that initialization needs.
