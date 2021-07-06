@@ -2734,7 +2734,7 @@ public class IndexIT extends SpliceUnitTest{
         methodWatcher.executeUpdate(format("CREATE INDEX %1$s_IDX1 ON %1$s (b1 + c1)", tableName2)); // index on expr
         methodWatcher.executeUpdate(format("CREATE INDEX %1$s_IDX2 ON %1$s (b1)", tableName2));      // classic index
 
-        String queryTemplate = "select * from %s T1 --splice-properties index=%s_IDX%d\n" +
+        String queryTemplate = "select * from --splice-properties joinOrder=fixed\n %s T1 --splice-properties index=%s_IDX%d\n" +
                 " join %s T2 --splice-properties %s index=%s_IDX%d\n" +
                 " on T1.b1 + T1.c1 = T2.b1 + T2.c1";
 

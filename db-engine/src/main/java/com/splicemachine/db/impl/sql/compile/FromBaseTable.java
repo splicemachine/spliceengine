@@ -3585,6 +3585,7 @@ public class FromBaseTable extends FromTable {
         if (acb.hasDML())
             return false;
 
+        // Anything non-deterministic can't be cached.
         CollectNodesVisitor cnv = new CollectNodesVisitor(MethodCallNode.class);
         if (getResultColumns() != null) {
             getResultColumns().accept(cnv);
