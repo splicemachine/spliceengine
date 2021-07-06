@@ -1521,7 +1521,7 @@ NoPutResultSet getDistinctScanResultSet(
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor,
+            long pastTxn,
             long minRetentionPeriod ) throws StandardException;
 
 NoPutResultSet getMultiProbeTableScanResultSet(
@@ -1546,7 +1546,7 @@ NoPutResultSet getMultiProbeTableScanResultSet(
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor,
+            long pastTxn,
             long minRetentionPeriod ) throws StandardException;
 
 NoPutResultSet getMergeSortLeftOuterJoinResultSet(

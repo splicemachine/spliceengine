@@ -52,9 +52,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
@@ -69,6 +67,7 @@ import splice.com.google.common.base.Predicates;
 import splice.com.google.common.collect.Lists;
 
 import java.lang.reflect.Modifier;
+import java.sql.Timestamp;
 import java.util.*;
 
 import static com.splicemachine.db.impl.ast.RSUtils.isRSN;
