@@ -85,16 +85,16 @@ public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, Exe
             SpliceIteratorVTI iteratorVTI = (SpliceIteratorVTI)vtiOperation.getDataSetProvider();
             iteratorVTI.setDataSet(dataSet);
             insertOperation.open();
-            insertOperation.close();
         } catch (StandardException e) {
+            throw new IOException(e);
+        } finally {
             if (insertOperation != null) {
                 try {
                     insertOperation.close();
                 } catch (StandardException ex) {
-                    LOG.error(e);
+                    LOG.error(ex);
                 }
             }
-            throw new IOException(e);
         }
     }
 
