@@ -171,6 +171,18 @@ public class utilMain implements java.security.PrivilegedAction {
         addSignalHandler( "INT", this::ctrlC);
     }
 
+    /**
+     * Set Properties of the sqlshell
+     * --------------------------------------
+     * Supported options:
+     * - elapsedTime, promptClock, omitHeader, showProgressBar (= boolean true/false)
+     * - terminator = (one char terminator, e.g. #)
+     * i18n:
+     * - enableLocalization: if true, uses Locale to print time/date/timestamp.
+     * - Custom time/date/timestamp formats with `formatDate`, `formatTime`, `formatTimestamp`, e.g.
+     *   `formatDate=dd.MM.YYYY`. Format is defined by java.text.SimpleDateFormat .
+     *
+     */
     public void setProperties(Properties p) {
         ijParser.initFromProperties(p);
         initFromProperties(p);
@@ -218,13 +230,19 @@ public class utilMain implements java.security.PrivilegedAction {
         }
     }
 
+    /**
+     * load properties file `sqlshell.rc`.
+     * when running from spliceengine, this will be the file in splice_machine/sqlshell.rc (because CWD is there)
+     * otherwise, just the file next to sqlshell.sh.
+     * @return properties from sqlshell.rc. on error: null
+     */
     public static Properties getProperties() {
         Properties prop = new Properties();
         String fileName = "sqlshell.rc";
         try (FileInputStream fis = new FileInputStream(fileName)) {
             prop.load(fis);
             return prop;
-        } catch (Exception e) {
+        } catch (IOException e) {
             return null;
         }
     }
@@ -929,6 +947,7 @@ public class utilMain implements java.security.PrivilegedAction {
         commandGrabber[currCE].setTerminator(this.terminator);
     }
 
+    @SuppressFBWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD") // need to make doPrompt non-static for this
     public void initFromProperties(Properties p) {
         if(p == null) return;
         setTerminator(p.getProperty("terminator", String.valueOf(terminator) ));

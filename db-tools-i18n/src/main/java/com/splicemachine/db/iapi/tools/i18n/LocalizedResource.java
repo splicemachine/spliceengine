@@ -54,6 +54,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 
 
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings({"NM_METHOD_NAMING_CONVENTION", "NM_METHOD_NAMING_CONVENTION"})
 public final class LocalizedResource  implements java.security.PrivilegedAction {
 
 	private static final boolean SUPPORTS_BIG_DECIMAL_CALLS;
@@ -67,7 +68,7 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 			// J2ME/CDC/Foundation 1.0 profile.
 			Class.forName("java.math.BigDecimal");
 			// And no methods using BigDecimal are available with JSR169 spec.
-			Method getbd = ResultSet.class.getMethod("getBigDecimal", new Class[] {int.class});
+			ResultSet.class.getMethod("getBigDecimal", new Class[] {int.class});
 			supportsBigDecimalCalls = true;
 		} catch (Throwable t) {
 			supportsBigDecimalCalls = false;
@@ -86,7 +87,6 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 	private LocalizedOutput out;
 	private LocalizedInput in;
 	private boolean enableLocalized;
-	private boolean unicodeEscape;
 	private static LocalizedResource local;
 	private int dateSize;
 	private int timeSize;
@@ -100,6 +100,7 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 	boolean customFormatDate = false;
 	boolean customFormatTime = false;
 	boolean customFormatTimestamp = false;
+	private static final Object lock = new Object();
 
 	public LocalizedResource(){
 		init();
@@ -108,10 +109,12 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 		init(encStr,locStr,msgF);
 	}
 	public static LocalizedResource getInstance(){
-		if (local == null){
-			local = new  LocalizedResource();
+		synchronized (lock) {
+			if (local == null) {
+				local = new LocalizedResource();
+			}
+			return local;
 		}
-		return local;
 	}
     // Resets the 'local' field to null. This is not needed for normal
     // operations, however, when executing sql files in our junit tests, we use
