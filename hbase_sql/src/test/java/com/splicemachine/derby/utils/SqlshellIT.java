@@ -568,4 +568,37 @@ public class SqlshellIT {
                 "1 row selected\n");
     }
 
+
+    @Test
+    public void testDisplayTriggerInfo() {
+        try {
+            // Display trigger info should be by default off
+            execute("SELECT * FROM ABC;\n",
+                    "DEF        \n" +
+                            "-----------\n" +
+                            "\n" +
+                            "0 rows selected\n");
+            // set display trigger info on and display it.
+            execute("displaytriggerinfo on;\n", "");
+            execute("SELECT * FROM ABC;\n",
+                    "DEF        \n" +
+                            "-----------\n" +
+                            "\n" +
+                            "0 rows selected\n" +
+                            "triggerName                                                                                                                     |triggerId                           |txnId               |queryId                             |parentQueryId                       |timeSpent           |numRowsModified     \n" +
+                            "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                            "\n" +
+                            "0 rows selected\n");
+            // set display trigger info off.
+            execute("displaytriggerinfo off;\n", "");
+            execute("SELECT * FROM ABC;\n",
+                    "DEF        \n" +
+                            "-----------\n" +
+                            "\n" +
+                            "0 rows selected\n");
+        } finally {
+            execute("displaytriggerinfo off;\n", "");
+        }
+
+    }
 }

@@ -26,6 +26,7 @@ public class ijImpl extends ijCommands {
 
     boolean elapsedTime = true;
     boolean showProgressBar = false;
+    boolean displayTriggerinfo = false;
 
     String urlCheck = null;
 
@@ -178,6 +179,14 @@ public class ijImpl extends ijCommands {
     boolean getElapsedTimeState()
     {
         return elapsedTime;
+    }
+
+    /**
+     * Get the "displayTriggerinfo state".
+     */
+    boolean getDisplayTriggerInfoState()
+    {
+        return displayTriggerinfo;
     }
 
     /**
