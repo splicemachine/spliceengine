@@ -934,6 +934,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .build();
         procedures.add(updateSystemProcedure);
 
+        procedures.add(ShowCreateViewProcedure.getProcedure());
+
         UpgradeSystemProcedures.addProcedures(procedures);
     }
 
