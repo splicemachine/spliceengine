@@ -2747,10 +2747,9 @@ public abstract class EmbedConnection implements EngineConnection
             connString =
               this.getClass().getName() + "@" + this.hashCode() + " " +
                       LanguageConnectionContext.xidStr +
-                    lcc.getTransactionExecute().getTransactionIdString() +
-                    "), " +
+                      lcc.getTransactionExecute().getTransactionIdString() + "), " +
                       LanguageConnectionContext.lccStr +
-                    Integer.toString(lcc.getInstanceNumber()) + "), " +
+                      lcc.getSessionID().toString() + "), " +
                       LanguageConnectionContext.dbnameStr + lcc.getCurrentDatabase().getDatabaseName() + "), " +
                       LanguageConnectionContext.drdaStr + lcc.getDrdaID() + ") ";
         }
