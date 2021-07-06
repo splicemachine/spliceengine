@@ -71,7 +71,6 @@ import com.splicemachine.db.impl.sql.execute.SPSPropertyRegistry;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.spark.sql.execution.command.DDLUtils$;
 import splice.com.google.common.base.Predicates;
 import splice.com.google.common.base.Strings;
 import com.splicemachine.db.catalog.UUID;
