@@ -13,6 +13,8 @@ import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.sql.*;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Locale;
@@ -48,37 +50,46 @@ public class ijImpl extends ijCommands {
 
     utilMain utilInstance = null;
 
-    String getProperty(String name, String defaultS) {
-        Properties prop = new Properties();
-        String fileName = "/Users/martinrupp/spliceengine/sqlshell.rc";
-        try (FileInputStream fis = new FileInputStream(fileName)) {
-            prop.load(fis);
-            return prop.getProperty(name, defaultS)
-        } catch (Exception e) {
-            return defaultS;
-        }
+
+    public static boolean getBooleanProperty(Properties p, String name, boolean bdefault) {
+        if(p == null) return bdefault;
+        return Boolean.parseBoolean(p.getProperty(name, Boolean.toString(bdefault)));
     }
 
-
-    private boolean getBooleanProperty(String name, boolean bdefault) {
-        return Boolean.getBoolean(getProperty(name, Boolean.toString(bdefault)));
-    }
-
-    private int getIntegerProperty(String name, int bdefault) {
+    public static int getIntegerProperty(Properties p, String name, int idefault) {
+        if(p == null) return idefault;
         try {
-            Integer.parseInt(getProperty(name, Integer.toString(bdefault)));
+            return Integer.parseInt(p.getProperty(name, Integer.toString(idefault)));
         }
-        catch(Exception e) { return bdefault };
+        catch(Exception e) {
+            return idefault;
+        }
     }
 
-    void initConfig() {
-        elapsedTime     = getBooleanProperty("elapsedTime", true));
-        showProgressBar = getBooleanProperty("showProgressBar", true));
-        utilInstance.setTerminator(getProperty("terminator", ";"));
-        utilInstance.setPromptClock(getBooleanProperty("promptClock", false));
-        utilInstance.setOmitHeader(getBooleanProperty("omitHeader", false));
+    public static DateFormat getDateFormat(Properties p, String name) {
+        try {
+            String s = p.getProperty(name, null);
+            if(s == null) return null;
+            return new SimpleDateFormat(s);
+        } catch(Exception e) {
+            return null;
+        }
+    }
+
+    public void initFromProperties(Properties p) {
+        if(p == null) return;
+        elapsedTime     = getBooleanProperty(p, "elapsedTime", elapsedTime);
+        showProgressBar = getBooleanProperty(p, "showProgressBar", showProgressBar);
+
         // setAutoCommit?
-        JDBCDisplayUtil.setMaxDisplayWidth(getIntegerProperty("maximumdisplaywidth", JDBCDisplayUtil.MAXWIDTH_DEFAULT ));
+        JDBCDisplayUtil.setMaxDisplayWidth(getIntegerProperty(p, "maximumdisplaywidth", JDBCDisplayUtil.MAXWIDTH_DEFAULT ));
+        LocalizedResource.enableLocalization(getBooleanProperty(p, "enableLocalization", false));
+        DateFormat f = getDateFormat(p, "formatDate");
+        if (f != null) LocalizedResource.getInstance().setFormatDate(f);
+        f = getDateFormat(p, "formatTime");
+        if (f != null) LocalizedResource.getInstance().setFormatTime(f);
+        f = getDateFormat(p, "formatTimestamp");
+        if (f != null) LocalizedResource.getInstance().setFormatTimestamp(f);
     }
 
     public boolean
@@ -149,8 +160,6 @@ public class ijImpl extends ijCommands {
                 installProtocol(name.toUpperCase(Locale.ENGLISH), p.getProperty(key));
             }
         }
-
-        initConfig();
     }
     /**
      * Return whether or not JDBC 2.0 (and greater) extension classes can be loaded

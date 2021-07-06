@@ -96,6 +96,11 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 	private DateFormat formatTimestamp;
 	private NumberFormat formatNumber;
     private DecimalFormat formatDecimal;
+
+	boolean customFormatDate = false;
+	boolean customFormatTime = false;
+	boolean customFormatTimestamp = false;
+
 	public LocalizedResource(){
 		init();
 	}
@@ -164,6 +169,9 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 			formatTime = DateFormat.getTimeInstance(DateFormat.LONG,locale);
 			formatTimestamp = DateFormat.getDateTimeInstance(DateFormat.LONG,
 													DateFormat.LONG, locale);
+			customFormatDate = true;
+			customFormatTime = true;
+			customFormatTimestamp = true;
 		}
 		else {
 			formatDecimal = (DecimalFormat)DecimalFormat.getInstance();
@@ -230,8 +238,11 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 
 			Date td = new Date(ms);
 
-			String fd = formatTime.format(td);
+			DateFormat format = formatTime == null ?
+					DateFormat.getTimeInstance(DateFormat.LONG)
+					: formatTime;
 
+			String fd = format.format(td);
 			if (fd.length() > len)
 				len = fd.length();
 		}
@@ -331,7 +342,7 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 	public String getLocalizedString(ResultSet rs,
 										ResultSetMetaData rsm,
 										int columnNumber) throws SQLException{
-			if (!enableLocalized){
+			if (!enableLocalized && !customFormatTimestamp && !customFormatTime && !customFormatDate){
 				return rs.getString(columnNumber);
 			}
 			int type = rsm.getColumnType(columnNumber);
@@ -362,13 +373,13 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 		}
 
 	public String getDateAsString(Date d){
-		if (!enableLocalized){
+		if (!customFormatDate){
 			return d.toString();
 		}
 		return formatDate.format(d);
 	}
 	public String getTimeAsString(Date t){
-		if (!enableLocalized){
+		if (!customFormatTime){
 			return t.toString();
 		}
 		return formatTime.format(t,	new StringBuffer(),
@@ -406,7 +417,7 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 		return formatDecimal.format(o);
 	}
 	public String getTimestampAsString(Timestamp t){
-		if (!enableLocalized){
+		if (!customFormatTimestamp){
 			return t.toString();
 		}
 		return formatTimestamp.format
@@ -427,37 +438,7 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 					return timestampSize;
 		  return rsm.getColumnDisplaySize(columnNumber);
 	}
-	public String getStringFromDate(String dateStr)
-		throws ParseException{
-			if (!enableLocalized){
-				return dateStr;
-			}
-			Date d = formatDate.parse(dateStr);
-			return new java.sql.Date(d.getTime()).toString();
-	}
-	public String getStringFromTime(String timeStr)
-		throws ParseException{
-			if (!enableLocalized){
-				return timeStr;
-			}
-			Date t = formatTime.parse(timeStr);
-			return new java.sql.Time(t.getTime()).toString();
-	}
-	public String getStringFromValue(String val)
-		throws ParseException{
-			if (!enableLocalized){
-				return val;
-			}
-			return formatNumber.parse(val).toString();
-	}
-	public String getStringFromTimestamp(String timestampStr)
-		throws ParseException{
-			if (!enableLocalized){
-				return timestampStr;
-			}
-			Date ts = formatTimestamp.parse(timestampStr);
-			return new java.sql.Timestamp(ts.getTime()).toString();
-	}
+
 	public Locale getLocale(){
 			return locale;
 	}
@@ -525,4 +506,20 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 			"timeSize=" + timeSize + "\n" +
 			"timestampSize="+timestampSize+ "\n}";
 	}
+
+	public void setFormatDate(DateFormat f) {
+		formatDate = f;
+		customFormatDate = true;
+	}
+
+	public void setFormatTime(DateFormat f) {
+		formatTime = f;
+		customFormatTime = true;
+	}
+	public void setFormatTimestamp(DateFormat f) {
+		formatTimestamp = f;
+		customFormatTimestamp = true;
+	}
+//	private NumberFormat formatNumber;
+//	private DecimalFormat formatDecimal;
 }

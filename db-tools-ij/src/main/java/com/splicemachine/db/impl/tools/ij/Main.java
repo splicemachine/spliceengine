@@ -47,6 +47,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Properties;
 
 /**
  * This is the controller for ij. It uses two parsers:
@@ -278,6 +279,10 @@ public class Main {
 
 		// adjust the application in accordance with db.ui.locale and db.ui.codeset
 	LocalizedResource.getInstance();
+  }
+
+  public void setProperties(Properties p) {
+		utilInstance.setProperties(p);
   }
 
 }

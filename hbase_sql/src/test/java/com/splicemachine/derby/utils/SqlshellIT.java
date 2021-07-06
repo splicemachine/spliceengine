@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Properties;
 
 public class SqlshellIT {
     static final LocalizedResource langUtil = LocalizedResource.getInstance();
@@ -483,5 +484,55 @@ public class SqlshellIT {
                 "4:\tL_LINENUMBER INTEGER NOT NULL,\n" +
                 "5:\tL_QUANTITY DECIMAL(15,2),\n" +
                 ".\n");
+    }
+
+
+    @Test
+    public void testDateOption() {
+        try {
+            executeR("values current_date;\n",
+                    "1         \n" +
+                    "----------\n" +
+                    "\\d\\d\\d\\d-\\d\\d-\\d\\d\n" + // e.g. 2021-07-06
+                    "\n" +
+                    "1 row selected\n");
+
+            Properties p = new Properties();
+            p.setProperty("maximumdisplaywidth", "5");
+            p.setProperty("omitHeader", "true");
+            me.setProperties(p);
+
+            execute("values '123456789';\n",
+                    "1234&\n" +
+                    "\n" +
+                    "1 row selected\n");
+
+            p.setProperty("maximumdisplaywidth", "256"); // default
+            p.setProperty("terminator", "#");
+            p.setProperty("promptClock", "true");
+            p.setProperty("formatDate", "dd.MM.YYYY");
+            p.setProperty("elapsedTime", "true");
+            me.setProperties(p);
+
+            String command = "values current_date#\n";
+            // e.g. 2021-07-06 12:43:06+0200
+            String timestamp = "\\d\\d\\d\\d-\\d\\d-\\d\\d \\d\\d:\\d\\d:.*";
+            SpliceUnitTest.matchMultipleLines(execute(command),
+                    "splice " + timestamp + "\\> " + command +
+                    "\\d\\d.\\d\\d.\\d\\d\\d\\d\n" + // e.g. 06.07.2021
+                    "\n" +
+                    "1 row selected\n" +
+                    "ELAPSED TIME = \\d* milliseconds\n" +
+                    "splice " + timestamp + "\\> \n");
+        }
+        finally {
+            Properties p = new Properties();
+            p.setProperty("terminator", ";");
+            p.setProperty("promptClock", "false");
+            p.setProperty("omitHeader", "false");
+            p.setProperty("formatDate", "YYYY-MM-dd");
+            p.setProperty("elapsedTime", "false");
+            me.setProperties(p);
+        }
     }
 }

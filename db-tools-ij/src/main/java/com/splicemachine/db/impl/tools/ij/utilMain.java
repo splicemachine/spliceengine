@@ -48,6 +48,7 @@ import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Properties;
 import java.util.Stack;
 
 /**
@@ -170,6 +171,11 @@ public class utilMain implements java.security.PrivilegedAction {
         addSignalHandler( "INT", this::ctrlC);
     }
 
+    public void setProperties(Properties p) {
+        ijParser.initFromProperties(p);
+        initFromProperties(p);
+    }
+
     @SuppressFBWarnings("DM_EXIT")
     public void ctrlC() {
         if( !ijParser.cancelCurrentStatement(out) )
@@ -212,13 +218,27 @@ public class utilMain implements java.security.PrivilegedAction {
         }
     }
 
+    public static Properties getProperties() {
+        Properties prop = new Properties();
+        String fileName = "sqlshell.rc";
+        try (FileInputStream fis = new FileInputStream(fileName)) {
+            prop.load(fis);
+            return prop;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     void initOptions() {
         /* Start with connection/user 0 */
         currCE = 0;
         fileInput = false;
         initialFileInput = false;
         firstRun = true;
-        omitHeader = util.getSystemPropertyBoolean("ij.omitHeader");
+
+        setProperties(getProperties());
+
+        omitHeader = omitHeader || util.getSystemPropertyBoolean("ij.omitHeader");
     }
 
     /**
@@ -908,4 +928,12 @@ public class utilMain implements java.security.PrivilegedAction {
         this.terminator = terminator.charAt(0);
         commandGrabber[currCE].setTerminator(this.terminator);
     }
+
+    public void initFromProperties(Properties p) {
+        if(p == null) return;
+        setTerminator(p.getProperty("terminator", String.valueOf(terminator) ));
+        showPromptClock = ijImpl.getBooleanProperty(p, "promptClock", showPromptClock);
+        omitHeader = ijImpl.getBooleanProperty(p, "omitHeader", omitHeader);
+    }
+
 }
