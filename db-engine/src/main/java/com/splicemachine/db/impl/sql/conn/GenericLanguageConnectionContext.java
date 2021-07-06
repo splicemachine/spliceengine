@@ -3350,14 +3350,14 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         if(tc==null)
             return null;
 
-        StringBuffer sb=new StringBuffer(200);
+        StringBuffer sb = new StringBuffer(256);
 
         sb.append(LanguageConnectionContext.xidStr);
         sb.append(tc.getTransactionIdString());
         sb.append("), ");
 
         sb.append(LanguageConnectionContext.lccStr);
-        sb.append(Integer.toString(getInstanceNumber()));
+        sb.append(getSessionID());
         sb.append("), ");
 
         sb.append(LanguageConnectionContext.dbnameStr);
@@ -3955,7 +3955,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         return String.format(
                 "XID=%s, SessionID=%s, Database=%s, DRDAID=%s, UserID=%s",
                 getTransactionExecute().getTransactionIdString(),
-                getInstanceNumber(),
+                getSessionID().toString(),
                 getDbname(),
                 getDrdaID(),
                 getSessionUserId());
