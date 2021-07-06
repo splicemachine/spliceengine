@@ -294,14 +294,14 @@ public class SqlshellIT {
     @Test
     public void testRunScript() throws IOException {
         String path = tempDir + "/script.sql";
-        FileWriter f = new FileWriter(path);
-        f.write("-- this is a comment\n" +
-                "values 3;\n" +
-                "-- another comment!\n" +
-                "values 5;\n"
-        );
-        f.flush();
-        f.close();
+        try(OutputStreamWriter f = new OutputStreamWriter(new FileOutputStream(path, true), StandardCharsets.UTF_8)) {
+            f.write("-- this is a comment\n" +
+                    "values 3;\n" +
+                    "-- another comment!\n" +
+                    "values 5;\n"
+            );
+            f.flush();
+        }
 
         execute("run '" + path + "';\n",
                 "splice> -- this is a comment\n" +
@@ -484,6 +484,90 @@ public class SqlshellIT {
                 "5:\tL_QUANTITY DECIMAL(15,2),\n" +
                 ".\n");
     }
+
+    private final static String uuidReg = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[ ]*";
+    /*
+      This testcase essentially test whether the function executes without error.
+      It can also perform correctness test to some extent, e.g., number of trigger records returned should match expectation
+      and trigger name returned should be reasonable.
+      One should manually check the correctness in the returned trigger info according to the specific comments in the testcase below.
+     */
+    @Test
+    public void testCallGetTriggerExec() {
+        execute("CREATE TABLE TABLEA (COL1 INT);\n");
+        execute("CREATE TRIGGER TR1 BEFORE INSERT ON TABLEA REFERENCING NEW AS NEW FOR EACH ROW SET NEW.COL1=NEW.COL1*100;\n");
+        execute("CREATE TRIGGER TR2 BEFORE INSERT ON TABLEA REFERENCING NEW AS NEW FOR EACH ROW SET NEW.COL1=NEW.COL1*20;\n");
+        execute("INSERT INTO TABLEA VALUES(1), (2);");
+
+        String header =
+                "triggerName [ ]*\\|triggerId [ ]*\\|txnId [ ]*\\|queryId [ ]*\\|parentQueryId  [ ]*\\|timeSpent [ ]*\\|numRowsModified [ ]*\n" +
+                 "--------------------------------------------------------------------------------------------------[-]*\n";
+        // variable columns:              triggerId   |   txnId  |   queryId       |  parentQueryId  | timeSpent
+        String variableColumns = "\\|" + uuidReg + "\\|\\d+\\s*\\|" + uuidReg + "\\|" + uuidReg + "\\|\\d+\\s*\\|";
+
+        // One single event triggering two triggers; they should have same parentQueryId and txnId but different queryId and elapsedTime
+         // There will be a row for each query executed during trigger execution, meaning, trigger1 and trigger 2 should each have two queries/rows displayed
+        String row12 = "TR[12] [ ]*" + variableColumns + "0[ ]*\n";
+        executeR("CALL SYSCS_UTIL.SYSCS_GET_TRIGGER_EXEC();\n",
+                 header + row12 + row12 + row12 + row12 +
+                "\n" +
+                "4 rows selected\n");
+
+
+        // Any statement that does not trigger a trigger should reset the trigger info
+        executeR("CALL SYSCS_UTIL.SYSCS_GET_TRIGGER_EXEC();\n",
+                header +
+                "\n" +
+                "0 rows selected\n");
+
+        execute("CREATE TABLE TABLEB (COL2 INT);\n");
+        execute("CREATE TRIGGER TR3 AFTER INSERT ON TABLEA FOR EACH STATEMENT INSERT INTO TABLEB VALUES(2);\n");
+        execute("CREATE TRIGGER TR4 BEFORE INSERT ON TABLEB REFERENCING NEW AS NEW FOR EACH ROW SET NEW.COL2=NEW.COL2*20;\n");
+        execute("INSERT INTO TABLEA VALUES(3);\n");
+
+        // Single level nested trigger: Tr1-3 should be triggered by the original insert statement; tr4 should be triggered by tr3
+        String row14 = "TR[1-4] [ ]*" + variableColumns + "[10] [ ]*\n";;
+        executeR("CALL SYSCS_UTIL.SYSCS_GET_TRIGGER_EXEC();\n",
+                header +
+                row14 + row14 + row14 + row14 +
+                "\n" +
+                "4 rows selected\n");
+
+
+        execute("CREATE TABLE TABLEC (COL3 INT);\n");
+        execute("CREATE TABLE TABLED (COL4 INT);\n");
+        execute("CREATE TRIGGER TR5 AFTER INSERT ON TABLEC REFERENCING NEW AS NEW FOR EACH ROW WHEN (NEW.COL3=5) INSERT INTO TABLED VALUES(4);\n");
+        execute("CREATE TRIGGER TR6 AFTER INSERT ON TABLED REFERENCING NEW AS NEW FOR EACH ROW INSERT INTO TABLEB VALUES (NEW.COL4*40);\n");
+        execute("INSERT INTO TABLEC VALUES(5);\n");
+
+        // Double level nested trigger: Tr6 should be triggered by tr5; tr4 should be triggered by tr6. Two queries of tr5 are expected
+        String row46 = "TR[4-6] [ ]*" + variableColumns + "[10] [ ]*\n";
+        executeR("CALL SYSCS_UTIL.SYSCS_GET_TRIGGER_EXEC();\n",
+                header + row46 + row46 + row46 + row46 +
+                "\n" +
+                "4 rows selected\n");
+
+        execute("INSERT INTO TABLEC VALUES(7);\n");
+
+        // Only tr5 is triggered; since the when clause is not satisfied, tr5 won't do the insertion or trigger tr6
+        String row5 = "TR5 [ ]*" + variableColumns + "0 [ ]*\n";
+        executeR("CALL SYSCS_UTIL.SYSCS_GET_TRIGGER_EXEC();\n",
+                header + row5 +
+                "\n" +
+                "1 row selected\n");
+
+        execute("CREATE TABLE TABLEE (COL5 INT);\n");
+        execute("CREATE TRIGGER TR7 BEFORE INSERT ON TABLEE FOR EACH STATEMENT CALL SYSCS_UTIL.SYSCS_GET_VERSION_INFO();\n");
+        execute("INSERT INTO TABLEE VALUES(9);\n");
+
+        // Only tr7 is triggered; test before statement trigger
+        String row7 = "TR7 [ ]*" + variableColumns + "0 [ ]*\n";
+        executeR("CALL SYSCS_UTIL.SYSCS_GET_TRIGGER_EXEC();\n",
+                header + row7 +
+                "\n" +
+                "1 row selected\n");
+    }
+
 
     @Test
     public void testDisplayTriggerInfo() {

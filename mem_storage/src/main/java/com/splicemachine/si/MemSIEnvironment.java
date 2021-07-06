@@ -30,6 +30,7 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
 import com.splicemachine.si.api.rollforward.RollForward;
 import com.splicemachine.si.api.server.ClusterHealth;
+import com.splicemachine.si.api.session.SessionsWatcher;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
@@ -56,6 +57,8 @@ public class MemSIEnvironment implements SIEnvironment{
     private final TxnStore txnStore;
     private final PartitionFactory tableFactory;
     private final OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory;
+    private final ActiveSessionsTaskFactory activeSessionsTaskFactory;
+    private final SessionsWatcher sessionsWatcher = MSessionsWatcherImpl.INSTANCE;
     private final DataFilterFactory filterFactory = MFilterFactory.INSTANCE;
     private final SnowflakeFactory snowflakeFactory = MSnowflakeFactory.INSTANCE;
     private final OperationStatusFactory operationStatusFactory =MOpStatusFactory.INSTANCE;
@@ -80,6 +83,12 @@ public class MemSIEnvironment implements SIEnvironment{
         this.oldestActiveTransactionTaskFactory = new OldestActiveTransactionTaskFactory() {
             @Override
             public GetOldestActiveTransactionTask get(String hostName, int port, long startupTimestamp) throws IOException {
+                throw new UnsupportedOperationException("Operation not supported in Mem profile");
+            }
+        };
+        this.activeSessionsTaskFactory = new ActiveSessionsTaskFactory() {
+            @Override
+            public GetActiveSessionsTask get(String hostName, int port, long startupTimestamp) throws IOException {
                 throw new UnsupportedOperationException("Operation not supported in Mem profile");
             }
         };
@@ -138,6 +147,16 @@ public class MemSIEnvironment implements SIEnvironment{
     @Override
     public OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory(){
         return oldestActiveTransactionTaskFactory;
+    }
+
+    @Override
+    public ActiveSessionsTaskFactory allActiveSessionsTaskFactory(){
+        return activeSessionsTaskFactory;
+    }
+
+    @Override
+    public SessionsWatcher sessionsWatcher() {
+        return sessionsWatcher;
     }
 
     @Override

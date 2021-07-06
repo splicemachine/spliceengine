@@ -1096,6 +1096,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     /*Reset the connection before it is returned (indirectly) by a PooledConnection object. See EmbeddedConnection. */
     @Override
     public void resetFromPool() throws StandardException {
+        getSpliceInstance().unregisterSession(instanceNumber);
+
         interruptedException = null;
 
         // Reset IDENTITY_VAL_LOCAL
