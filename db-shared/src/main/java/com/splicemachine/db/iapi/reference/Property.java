@@ -1548,6 +1548,8 @@ public interface Property {
 
     String SPLICE_DB2_VARCHAR_COMPATIBLE = "splice.db2.varchar.compatible";
 
+    String SPLICE_ALTER_TABLE_AUTO_VIEW_REFRESHING = "splice.execution.alterTable.autoViewRefreshing";
+
     String SPLICE_NEW_MERGE_JOIN =
             "splice.execution.newMergeJoin";
 

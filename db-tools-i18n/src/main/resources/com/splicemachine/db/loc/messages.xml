@@ -1831,6 +1831,12 @@ Guide.
             </msg>
 
             <msg>
+                <name>42X21</name>
+                <text>'{0}' is a special derived column which may not be defined in DDL statements.  Please rename the column.</text>
+                <arg>colName</arg>
+            </msg>
+
+            <msg>
                 <name>42X23</name>
                 <text>Cursor {0} is not updatable.</text>
                 <arg>cursorName</arg>

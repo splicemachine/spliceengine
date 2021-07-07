@@ -308,6 +308,14 @@ public class CompilerContextImpl extends ContextImpl
 
     public boolean getDisablePrefixIteratorMode() { return disablePrefixIteratorMode; }
 
+    public void setAlterTableAutoViewRefreshing(boolean newValue) {
+        alterTableAutoViewRefreshing = newValue;
+    }
+
+    public boolean getAlterTableAutoViewRefreshing() {
+        return alterTableAutoViewRefreshing;
+    }
+
     public void setVarcharDB2CompatibilityMode(boolean newValue) {
         varcharDB2CompatibilityMode = newValue;
     }
@@ -1044,7 +1052,7 @@ public class CompilerContextImpl extends ContextImpl
          if (requiredUsagePrivileges.get( objectID ) == null)
         { requiredUsagePrivileges.put( objectID, objectType ); }
     }
-    
+
     /**
      * Add a required schema privilege to the list privileges.
      *
@@ -1221,6 +1229,7 @@ public class CompilerContextImpl extends ContextImpl
     private       NewMergeJoinExecutionType           newMergeJoin                                 = DEFAULT_SPLICE_NEW_MERGE_JOIN;
     private       boolean                             disablePerParallelTaskJoinCosting            = DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING;
     private       boolean                             disablePrefixIteratorMode                    = DEFAULT_DISABLE_INDEX_PREFIX_ITERATION;
+    private       boolean                             alterTableAutoViewRefreshing                 = DEFAULT_SPLICE_ALTER_TABLE_AUTO_VIEW_REFRESHING;
     private       boolean                             varcharDB2CompatibilityMode                  = DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE;
     /**
      * Saved execution time default schema, if we need to change it
