@@ -81,7 +81,7 @@ public interface IndexDescriptor
      *  we cannot retrieve the ordinal position of a base table column in an index defined on expressions as
      *  it may appear in multiple expressions.
      */
-    int getKeyColumnPosition(int heapColumnPosition) throws StandardException;
+    int getKeyColumnPosition(int columnStoragePosition) throws StandardException;
 
     /**
      * Returns the number of ordered columns.

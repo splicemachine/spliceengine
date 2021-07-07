@@ -650,7 +650,7 @@ public class SelectTimeTravelIT {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof SQLException);
             SQLException sqlException = (SQLException) e;
-            Assert.assertEquals("42Z03", sqlException.getSQLState());
+            Assert.assertEquals("42Z04", sqlException.getSQLState());
             Assert.assertTrue(e.getMessage().contains(String.format("Specified index '%s' is created at tx", someIndex)));
             Assert.assertTrue(e.getMessage().contains("which is after time-travel mapped past transaction id"));
         }

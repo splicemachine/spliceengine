@@ -13,8 +13,10 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.utils.Pair;
 import org.junit.*;
@@ -28,7 +30,7 @@ import static com.splicemachine.derby.impl.sql.execute.operations.DropAddColumnI
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.format;
 
 @Category(value = {SerialTest.class})
-public class DropAddColumnIT {
+public class DropAddColumnIT extends SpliceUnitTest {
 
     enum ColType{
         INT("INT"),
@@ -45,7 +47,8 @@ public class DropAddColumnIT {
 
     enum ConstraintType {
         PRIMARY_KEY("PRIMARY KEY"),
-        UNIQUE("UNIQUE");
+        UNIQUE("UNIQUE"),
+        CHECK("CHECK");
 
         ConstraintType(String sql) {
             this.sql = sql;
@@ -188,7 +191,7 @@ public class DropAddColumnIT {
 
             Table addConstraint(ConstraintType constraintType, String name, String... cols) throws SQLException {
                 try(Statement statement = connection.createStatement()) {
-                    statement.execute(format("ALTER TABLE %s ADD CONSTRAINT %s%s", name, constraintType.sql, tupleWithParenthesis(cols)));
+                    statement.execute(format("ALTER TABLE %s ADD CONSTRAINT %s %s%s", this.name, name, constraintType.sql, tupleWithParenthesis(cols)));
                 }
                 return this;
             }
@@ -252,6 +255,9 @@ public class DropAddColumnIT {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
+    @Rule
+    public SpliceWatcher methodWatcher=new SpliceWatcher(SCHEMA);
+
     @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
@@ -271,5 +277,54 @@ public class DropAddColumnIT {
                 .dropColumn("c4")
                 .shouldContain(new int[][]{{10, 30}, {100, 300}})
                 .done();
+    }
+
+    @Test
+    public void testGetKeyColumnPositionUsingStoragePosition() throws Exception {
+        Harness harness = new Harness(connection);
+
+        harness.createTable("t2", "val1", "val2", "val3", "val4")
+                .begin()
+                .addColumn("val6", INT)  // colPos = 5, storagePos=5
+                .dropColumn("val6")
+                .addColumn("val6", INT)  // colPos = 5, storagePos=6
+                .addConstraint(ConstraintType.UNIQUE, "UNI6", "val6")  // an index is created for unique constraint
+                .addConstraint(ConstraintType.CHECK, "CHK6", "val6>0") // DB-12304: should not throw, no assertion failure
+                .addIndex("T2IDX", "val6")
+                .addColumn("val7", INT)
+                .addConstraint(ConstraintType.PRIMARY_KEY, "T2PK", "val7")
+                .done();
+
+        // there must be an entry for T2IDX in syscat.indexcoluse
+        try (ResultSet rs = methodWatcher.executeQuery("select * from syscat.indexcoluse where indname='T2IDX'")) {
+            String expected = "INDSCHEMA    | INDNAME | COLNAME |COLSEQ |COLORDER | COLLATIONSCHEMA | COLLATIONNAME | VIRTUAL |TEXT |\n" +
+                    "---------------------------------------------------------------------------------------------------------\n" +
+                    "DROPADDCOLUMNIT |  T2IDX  |  VAL6   |   1   |    A    |      NULL       |     NULL      |    N    |NULL |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        // there must be an entry for T2PK in sysibm.syskeycoluse
+        try (ResultSet rs = methodWatcher.executeQuery("select * from sysibm.syskeycoluse where constname='T2PK'")) {
+            String expected = "CONSTNAME |   TBCREATOR    |TBNAME | COLNAME |COLSEQ | COLNO | IBMREQD |PERIOD |\n" +
+                    "---------------------------------------------------------------------------------\n" +
+                    "   T2PK    |DROPADDCOLUMNIT |  T2   |  VAL7   |   1   |   6   |    N    |       |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        // entry always exists in sysibm.systables, but KEYCOLUMNS must be 1 and KEYUNIQUE must be 1 for T2
+        try (ResultSet rs = methodWatcher.executeQuery("select * from sysibm.systables where name='T2'")) {
+            String expected = "NAME |    CREATOR     |TYPE |COLCOUNT |KEYCOLUMNS | KEYUNIQUE |CODEPAGE | BASE_NAME | BASE_SCHEMA |\n" +
+                    "---------------------------------------------------------------------------------------------------\n" +
+                    " T2  |DROPADDCOLUMNIT |  T  |    6    |     1     |     1     |  1208   |   NULL    |    NULL     |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        // entry always exists in sysibm.syscolumns, but KEYSEQ must be 1 for column VAL7
+        try (ResultSet rs = methodWatcher.executeQuery("select * from sysibm.syscolumns where name='VAL7'")) {
+            String expected = "NAME |TBNAME |   TBCREATOR    | COLTYPE | NULLS |CODEPAGE |LENGTH | SCALE | COLNO |TYPENAME |LONGLENGTH |KEYSEQ | DEFAULT |\n" +
+                    "---------------------------------------------------------------------------------------------------------------------------\n" +
+                    "VAL7 |  T2   |DROPADDCOLUMNIT | INTEGER |   N   |    0    |   4   |   0   |   5   | INTEGER |     4     |   1   |  NULL   |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
     }
 }

@@ -452,9 +452,9 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
             "           S.SCHEMANAME AS INDSCHEMA, \n" +
             "           CONGLOMS.CONGLOMERATENAME AS INDNAME, \n" +
             "           COLS.COLUMNNAME AS COLNAME, \n" +
-            "           CAST (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) AS SMALLINT) AS COLSEQ, \n" +
+            "           CAST (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.STORAGENUMBER) AS SMALLINT) AS COLSEQ, \n" +
             "           CASE WHEN CONGLOMS.DESCRIPTOR.isAscending( \n" +
-            "                CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER)) THEN 'A' ELSE 'D' END AS COLORDER, \n" +
+            "                CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.STORAGENUMBER)) THEN 'A' ELSE 'D' END AS COLORDER, \n" +
             "           CAST(NULL AS VARCHAR(128)) AS COLLATIONSCHEMA, \n" +
             "           CAST(NULL AS VARCHAR(128)) AS COLLATIONNAME, \n" +
             "           'N' AS VIRTUAL, \n" +
@@ -465,7 +465,7 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
             "         , SYS.SYSCOLUMNS COLS --splice-properties index=SYSCOLUMNS_INDEX1, joinStrategy=nestedloop \n" +
             "    WHERE \n" +
             "          CONGLOMS.SCHEMAID = S.SCHEMAID \n" +
-            "      AND CASE WHEN CONGLOMS.DESCRIPTOR IS NULL THEN FALSE ELSE (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) > 0) END \n" +
+            "      AND CASE WHEN CONGLOMS.DESCRIPTOR IS NULL THEN FALSE ELSE (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.STORAGENUMBER) > 0) END \n" +
             "      AND CONGLOMS.TABLEID = COLS.REFERENCEID \n" +
             "  UNION ALL \n" +
             "    SELECT \n" +
