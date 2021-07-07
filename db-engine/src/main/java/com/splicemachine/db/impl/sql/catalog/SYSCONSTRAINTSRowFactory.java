@@ -647,7 +647,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
             "  S.SCHEMANAME AS TBCREATOR,\n" +
             "  T.TABLENAME AS TBNAME,\n" +
             "  COLS.COLUMNNAME AS COLNAME,\n" +
-            "  CAST(CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) AS SMALLINT) AS COLSEQ,\n" +
+            "  CAST(CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.STORAGENUMBER) AS SMALLINT) AS COLSEQ,\n" +
             "  CAST(COLS.COLUMNNUMBER AS SMALLINT) AS COLNO,\n" +
             "  'N' AS IBMREQD, -- IBM release depencency indicators, default 'N'\n" +
             "  '' AS PERIOD    -- indicates whether the column is the start or end column for the BUSINESS_TIME period, default blank\n" +
@@ -669,6 +669,6 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
             "  C.TABLEID = COLS.REFERENCEID AND\n" +
             "  C.CONGLOMERATEID = CONGLOMS.CONGLOMERATEID AND\n" +
             "  (CASE WHEN CONGLOMS.DESCRIPTOR IS NOT NULL THEN\n" +
-            "    CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) ELSE\n" +
+            "    CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.STORAGENUMBER) ELSE\n" +
             "    0 END) <> 0\n";
 }

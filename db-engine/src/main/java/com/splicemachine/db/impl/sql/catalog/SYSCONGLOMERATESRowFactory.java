@@ -500,9 +500,9 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 			"           S.SCHEMANAME AS INDSCHEMA, \n" +
 			"           CONGLOMS.CONGLOMERATENAME AS INDNAME, \n" +
 			"           COLS.COLUMNNAME AS COLNAME, \n" +
-			"           CAST (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) AS SMALLINT) AS COLSEQ, \n" +
+			"           CAST (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.STORAGENUMBER) AS SMALLINT) AS COLSEQ, \n" +
 			"           CASE WHEN CONGLOMS.DESCRIPTOR.isAscending( \n" +
-			"                CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER)) THEN 'A' ELSE 'D' END AS COLORDER, \n" +
+			"                CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.STORAGENUMBER)) THEN 'A' ELSE 'D' END AS COLORDER, \n" +
 			"           CAST(NULL AS VARCHAR(128)) AS COLLATIONSCHEMA, \n" +
 			"           CAST(NULL AS VARCHAR(128)) AS COLLATIONNAME, \n" +
 			"           'N' AS VIRTUAL, \n" +
@@ -516,7 +516,7 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 			"      AND CONGLOMS.DESCRIPTOR IS NOT NULL \n" +
 			"      AND NOT CONGLOMS.DESCRIPTOR.isOnExpression() \n" +
 			"      AND CONGLOMS.TABLEID = COLS.REFERENCEID \n" +
-			"      AND CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) <> 0 \n" +
+			"      AND CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.STORAGENUMBER) <> 0 \n" +
 			"  UNION ALL \n" +
 			"    SELECT \n" +
 			"           S.SCHEMANAME AS INDSCHEMA, \n" +
