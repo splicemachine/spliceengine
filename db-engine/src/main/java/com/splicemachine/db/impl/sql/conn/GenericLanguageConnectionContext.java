@@ -597,17 +597,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void recordTriggerInfoWhileFiring(UUID triggerId) {
         Pair<java.util.UUID, Long> pair = queryTxnIdStack.peek();
         DisplayedTriggerInfo info = triggerIdToTriggerInfoMap.get(triggerId);
-        queryIdToTriggerInfoMap.put(pair.getFirst(), info);
-
-        if (queryIdToTriggerInfoMap.containsKey(pair.getFirst())) {
-            java.util.UUID parentQueryId = info == null ? null : info.getParentQueryId();
-            queryIdToTriggerInfoMap.put(pair.getFirst(), new DisplayedTriggerInfo(triggerId, info.getName(), pair.getSecond(), pair.getFirst(), parentQueryId));
-        } else {
-            info.setQueryId(pair.getFirst());
-            info.setTxnId(pair.getSecond());
-            queryIdToTriggerInfoMap.put(pair.getFirst(), info);
-        }
-
+        queryIdToTriggerInfoMap.put(pair.getFirst(),
+                new DisplayedTriggerInfo(triggerId, info != null ? info.getName() : null,
+                        pair.getSecond(), pair.getFirst(), info != null ? info.getParentQueryId() : null));
     }
 
     @Override

@@ -32,6 +32,7 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.sql.catalog.ManagedCache;
+import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.Pair;
@@ -67,7 +68,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     public SpliceTransactionResourceImpl(String url,Properties info) throws SQLException{
         SpliceLogUtils.debug(LOG,"instance with url %s and properties %s",url,info);
         csf=ContextService.getFactory(); // Singleton - Not Needed
-        dbname=InternalDriver.getDatabaseName(url,info); // Singleton - Not Needed
+        dbname= InternalDriver.getDatabaseName(url,info); // Singleton - Not Needed
         username=IdUtil.getUserNameFromURLProps(info); // Static
         drdaID=info.getProperty(Attribute.DRDAID_ATTR,null); // Static
         rdbIntTkn = info.getProperty(Attribute.RDBINTTKN_ATTR, null);
