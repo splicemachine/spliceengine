@@ -1041,6 +1041,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     /*Reset the connection before it is returned (indirectly) by a PooledConnection object. See EmbeddedConnection. */
     @Override
     public void resetFromPool() throws StandardException {
+        getSpliceInstance().unregisterSession(instanceNumber);
+
         interruptedException = null;
 
         // Reset IDENTITY_VAL_LOCAL
@@ -1769,14 +1771,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         //create new conglomerate with same properties as the old conglomerate 
         //and same row template as the old conglomerate
         long conglomId =
-            tc.createConglomerate(td.getTableType() == TableDescriptor.EXTERNAL_TYPE,
-                "heap", // we're requesting a heap conglomerate
-                td.getEmptyExecRow().getRowArray(), // row template
-                null, //column sort order - not required for heap
-                td.getColumnCollationIds(),  // same ids as old conglomerate
-                null, // properties
-                (TransactionController.IS_TEMPORARY |
-                    TransactionController.IS_KEPT), Conglomerate.Priority.NORMAL);
+                tc.createConglomerate(td.getTableType() == TableDescriptor.EXTERNAL_TYPE,
+                        "heap", // we're requesting a heap conglomerate
+                        td.getEmptyExecRow().getRowArray(), // row template
+                        null, //column sort order - not required for heap
+                        null,
+                        td.getColumnCollationIds(),  // same ids as old conglomerate
+                        null, // properties
+                        (TransactionController.IS_TEMPORARY |
+                                TransactionController.IS_KEPT), Conglomerate.Priority.NORMAL);
 
         long cid = td.getHeapConglomerateId();
 

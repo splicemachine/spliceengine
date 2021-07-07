@@ -356,7 +356,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
                 }
                 referencedConstraintId=((SubKeyConstraintDescriptor)
                         parentTupleDescriptor).getKeyConstraintId();
-                keyColumns=conglomDesc.getIndexDescriptor().baseColumnPositions();
+                keyColumns=conglomDesc.getIndexDescriptor().baseColumnStoragePositions();
                 break;
 
             case 'C':
@@ -649,7 +649,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
             "  S.SCHEMANAME AS TBCREATOR,\n" +
             "  T.TABLENAME AS TBNAME,\n" +
             "  COLS.COLUMNNAME AS COLNAME,\n" +
-            "  CAST(CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) AS SMALLINT) AS COLSEQ,\n" +
+            "  CAST(CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.STORAGENUMBER) AS SMALLINT) AS COLSEQ,\n" +
             "  CAST(COLS.COLUMNNUMBER AS SMALLINT) AS COLNO,\n" +
             "  'N' AS IBMREQD, -- IBM release depencency indicators, default 'N'\n" +
             "  '' AS PERIOD    -- indicates whether the column is the start or end column for the BUSINESS_TIME period, default blank\n" +
@@ -670,5 +670,5 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
             "  C.TABLEID = T.TABLEID AND\n" +
             "  C.TABLEID = COLS.REFERENCEID AND\n" +
             "  C.CONGLOMERATEID = CONGLOMS.CONGLOMERATEID AND\n" +
-            "  CASE WHEN CONGLOMS.DESCRIPTOR IS NULL THEN FALSE ELSE (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) > 0) END \n";
+            "  CASE WHEN CONGLOMS.DESCRIPTOR IS NULL THEN FALSE ELSE (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.STORAGENUMBER) > 0) END \n";
 }

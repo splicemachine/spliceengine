@@ -629,7 +629,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             "     when COL.COLUMNTYPE='DECFLOAT' then 16  -- we have only decfloat(34)\n" +
             "     else COL.COLUMNDATATYPE.getMaximumWidth() end as LONGLENGTH,\n" +
             "case when CON.keydesc is null then NULL ELSE \n" +
-            "   CASE WHEN CON.keydesc.getKeyColumnPosition(COL.columnnumber) > 0 then CON.keydesc.getKeyColumnPosition(COL.columnnumber) END \n" +
+            "   CASE WHEN CON.keydesc.getKeyColumnPosition(COL.STORAGENUMBER) > 0 then CON.keydesc.getKeyColumnPosition(COL.STORAGENUMBER) END \n" +
             "     end as KEYSEQ,\n" +
             "     COL.COLUMNDEFAULT as \"DEFAULT\"\n" +
             "from \n" +
@@ -637,6 +637,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             "        t.tablename,\n" +
             "        s.schemaname,\n" +
             "        c.columnnumber,\n" +
+            "        c.storagenumber,\n" +
             "        c.columndatatype,\n" +
             "        cast (c.columndatatype.getTypeName() as varchar(128)) as columntype,\n" +
             "        cast(cast (c.columndefault as long varchar) as clob(65536)) as columndefault,\n" +

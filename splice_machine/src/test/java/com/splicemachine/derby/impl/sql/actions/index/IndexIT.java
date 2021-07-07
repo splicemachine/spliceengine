@@ -978,7 +978,7 @@ public class IndexIT extends SpliceUnitTest{
 
         String query = format(
                 "SELECT \n" +
-                "      CAST (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) AS SMALLINT) as ORD \n" +
+                "      CAST (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.STORAGENUMBER) AS SMALLINT) as ORD \n" +
                 "    , cols.COLUMNNUMBER \n" +
                 "    , cols.COLUMNNAME \n" +
                 "  FROM --splice-properties joinOrder=fixed \n" +
@@ -991,7 +991,7 @@ public class IndexIT extends SpliceUnitTest{
                 "  AND T.TABLEID = CONGLOMS.TABLEID \n" +
                 "  AND T.TABLEID = COLS.REFERENCEID \n" +
                 "  AND (CASE WHEN CONGLOMS.DESCRIPTOR IS NOT NULL THEN \n" +
-                "         CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) ELSE \n" +
+                "         CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.STORAGENUMBER) ELSE \n" +
                 "         0 END) <> 0 \n" +
                 "  AND T.TABLENAME='%s' \n" +
                 "  AND CONGLOMS.CONGLOMERATENAME='%s'", tableName, tableName + "_IDX");

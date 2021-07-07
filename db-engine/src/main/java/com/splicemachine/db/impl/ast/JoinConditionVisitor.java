@@ -79,6 +79,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
 
     private static Logger LOG = Logger.getLogger(JoinConditionVisitor.class);
     private LongLongHashMap joinChainMap;
+    private Set<Integer> accessibleResultSets = new HashSet<>(64);
 
     private void initializeMap(QueryTreeNode v)  throws StandardException {
         if (joinChainMap == null)
@@ -146,7 +147,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                 RSUtils.nodesUntilBinaryNode(j.getRightResultSet()),
                 RSUtils.rsnHasPreds);
 
-        splice.com.google.common.base.Predicate<Predicate> joinScoped = evalableAtNode(j);
+        splice.com.google.common.base.Predicate<Predicate> joinScoped = evalableAtNode(j, accessibleResultSets);
         splice.com.google.common.base.Predicate<Predicate> isFullJoinPredicate = pred -> pred.isFullJoinPredicate();
 
         ResultSetNode parent = null;
@@ -155,7 +156,9 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
             // Encode whether to pull up predicate to join:
             //  when can't evaluate on node but can evaluate at join
             splice.com.google.common.base.Predicate<Predicate> shouldPull =
-                    Predicates.and(Predicates.or(Predicates.not(evalableAtNode(rsn)), isFullJoinPredicate), joinScoped);
+                    Predicates.and(Predicates.or(Predicates.not(evalableAtNode(rsn, accessibleResultSets)),
+                                                 isFullJoinPredicate),
+                                   joinScoped);
             if(rsn instanceof ProjectRestrictNode)
                 c = pullPredsFromPR((ProjectRestrictNode)rsn,shouldPull);
             else if(rsn instanceof FromBaseTable){
@@ -353,7 +356,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                 RSUtils.nodesUntilIntersectOrExcept(j.getRightResultSet()),
                 RSUtils.rsnHasPreds);
 
-        splice.com.google.common.base.Predicate<Predicate> joinScoped = evalableAtNode(j);
+        splice.com.google.common.base.Predicate<Predicate> joinScoped = evalableAtNode(j, accessibleResultSets);
 
     	if (LOG.isDebugEnabled())
     		LOG.debug(String.format("joinScoped joinScoped=%s",joinScoped));
@@ -364,7 +367,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
         	// Encode whether to pull up predicate to join:
             //  when can't evaluate on node but can evaluate at join
             splice.com.google.common.base.Predicate<Predicate> predOfInterest =
-                    Predicates.and(Predicates.not(evalableAtNode(rsn)), joinScoped);
+                    Predicates.and(Predicates.not(evalableAtNode(rsn, accessibleResultSets)), joinScoped);
             joinPreds.addAll(Collections2
                      .filter(RSUtils.collectExpressionNodes(rsn, Predicate.class),
                              predOfInterest));
@@ -399,9 +402,10 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     /**
      * Returns a fn that returns true if a Predicate can be evaluated at the node rsn
      */
-    public static splice.com.google.common.base.Predicate<Predicate> evalableAtNode(final ResultSetNode rsn)
+    public static splice.com.google.common.base.Predicate<Predicate> evalableAtNode(final ResultSetNode rsn, final Set<Integer> accessibleRSNs)
             throws StandardException {
-        final Set<Integer> rsns = Sets.newHashSet(Lists.transform(RSUtils.getSelfAndDescendants(rsn), RSUtils.rsNum));
+        Set<Integer> rsns = Sets.newHashSet(Lists.transform(RSUtils.getSelfAndDescendants(rsn), RSUtils.rsNum));
+        rsns.addAll(accessibleRSNs);
         return new splice.com.google.common.base.Predicate<Predicate>() {
             @Override
             public boolean apply(Predicate p) {
@@ -634,5 +638,13 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     public boolean isPostOrder() {
         // Default to PostOrder traversal, i.e. bottom-up
         return false;
+    }
+
+    public void addResultSetNumbers(int rsn) {
+        accessibleResultSets.add(rsn);
+    }
+
+    public void removeResultSetNumbers(int rsn) {
+        accessibleResultSets.remove(rsn);
     }
 }

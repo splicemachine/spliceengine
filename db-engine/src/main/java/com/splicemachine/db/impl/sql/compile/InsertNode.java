@@ -637,6 +637,12 @@ public final class InsertNode extends DMLModStatementNode {
             expandedRCL.addResultColumn(newSourceRCLEntry);
         }
 
+
+
+        if (resultSet instanceof UnionNode) {
+            UnionNode node = (UnionNode) resultSet;
+            node.expandResultSetWithDeletedColumns(targetTableDescriptor, resultColumnList, node);
+        }
         // In the new result columns, virtualColumnId = storage position id of the column
         resultSet.setResultColumns(expandedRS);
         this.resultColumnList = expandedRCL;
@@ -927,7 +933,7 @@ public final class InsertNode extends DMLModStatementNode {
     public boolean[] getIndexedCols() throws StandardException
     {
         /* Create a boolean[] to track the (0-based) columns which are indexed */
-        boolean[] indexedCols = new boolean[targetTableDescriptor.getNumberOfColumns()];
+        boolean[] indexedCols = new boolean[targetTableDescriptor.getNumberOfStorageColumns()];
         for (IndexRowGenerator anIndicesToMaintain : indicesToMaintain) {
             int[] colIds = anIndicesToMaintain.getIndexDescriptor().baseColumnPositions();
 

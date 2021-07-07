@@ -7669,6 +7669,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 "BTREE", // we're requesting an index conglomerate
                 indexableRow.getRowArray(),
                 null, //default sort order
+                null,
                 null, //default collation id's for collumns in all system congloms
                 indexProperties, // default properties
                 TransactionController.IS_DEFAULT,  // not temporary
@@ -7704,7 +7705,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         boolean isUnique=ti.isIndexUnique(indexNumber);
         //Splice is always higher than 10.4
-        IndexRowGenerator irg=new IndexRowGenerator("DENSE",isUnique,false,baseColumnPositions,isAscending,baseColumnLength,false,false);
+        IndexRowGenerator irg=new IndexRowGenerator("DENSE",isUnique,false,baseColumnPositions,baseColumnPositions,
+                isAscending,baseColumnLength,false,false);
 
         // For now, assume that all index columns are ordered columns
         ti.setIndexRowGenerator(indexNumber,irg);
@@ -7836,6 +7838,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 "heap", // we're requesting a heap conglomerate
                 rowTemplate.getRowArray(), // row template
                 columnOrdering,
+                null,
                 null, // default collation ids
                 properties, // default properties
                 TransactionController.IS_DEFAULT, priority); // not temporary
