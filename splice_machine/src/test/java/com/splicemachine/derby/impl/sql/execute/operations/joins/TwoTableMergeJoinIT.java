@@ -88,7 +88,7 @@ public class TwoTableMergeJoinIT{
          * predicates: a.c2 = b.c2
          * expected result: INFEASIBLE
          */
-        String sql="select * from "+a+" a,"+b+" b --SPLICE-PROPERTIES joinStrategy=MERGE\n"
+        String sql="select * from --SPLICE-PROPERTIES joinOrder=fixed\n "+a+" a,"+b+" b --SPLICE-PROPERTIES joinStrategy=MERGE\n"
                 +"where a.c2 = b.c2";
         assertInfeasible(sql);
     }
@@ -100,7 +100,7 @@ public class TwoTableMergeJoinIT{
          * predicates: a.c3 = b.c2
          * expected result: INFEASIBLE
          */
-        String sql="select * from "+a+" a ,"+b+" b --SPLICE-PROPERTIES joinStrategy=MERGE\n"
+        String sql="select * from --SPLICE-PROPERTIES joinOrder=fixed\n "+a+" a ,"+b+" b --SPLICE-PROPERTIES joinStrategy=MERGE\n"
                 +"where a.c3 = b.c2";
         assertInfeasible(sql);
     }
@@ -111,7 +111,7 @@ public class TwoTableMergeJoinIT{
          * predicates: a.c1 = b.c2 and a.c2 = b.c3
          * expected result: INFEASIBLE
          */
-        String sql="select * from "+a+" a ,"+b+" b --SPLICE-PROPERTIES joinStrategy=MERGE\n"
+        String sql="select * from --SPLICE-PROPERTIES joinOrder=fixed\n "+a+" a ,"+b+" b --SPLICE-PROPERTIES joinStrategy=MERGE\n"
                 +"where a.c1 = b.c2 and a.c2 = b.c3";
         assertInfeasible(sql);
     }
@@ -122,7 +122,7 @@ public class TwoTableMergeJoinIT{
          * predicates: a.c1 > b.c2
          * expected result: INFEASIBLE
          */
-        String sql="select * from "+a+" a,"+b+" b --SPLICE-PROPERTIES joinStrategy=MERGE\n"
+        String sql="select * from --SPLICE-PROPERTIES joinOrder=fixed\n "+a+" a,"+b+" b --SPLICE-PROPERTIES joinStrategy=MERGE\n"
                 +"where a.c1 > b.c3";
         assertInfeasible(sql);
     }
@@ -133,7 +133,7 @@ public class TwoTableMergeJoinIT{
          * predicates: NONE
          * expected result: INFEASIBLE
          */
-        String sql="select * from "+a+" a,"+b+" b --SPLICE-PROPERTIES joinStrategy=MERGE\n";
+        String sql="select * from --SPLICE-PROPERTIES joinOrder=fixed\n "+a+" a,"+b+" b --SPLICE-PROPERTIES joinStrategy=MERGE\n";
         assertInfeasible(sql);
     }
 
@@ -143,7 +143,7 @@ public class TwoTableMergeJoinIT{
          * predicates: b.c3 = 1
          * expected result: INFEASIBLE
          */
-        String sql="select * from "+a+" a,"+b+" b --SPLICE-PROPERTIES joinStrategy=MERGE\n"
+        String sql="select * from --SPLICE-PROPERTIES joinOrder=fixed\n "+a+" a,"+b+" b --SPLICE-PROPERTIES joinStrategy=MERGE\n"
                 +"where b.c3 = 1";
         assertInfeasible(sql);
     }
@@ -154,7 +154,7 @@ public class TwoTableMergeJoinIT{
          * predicates: a.c1 = 1 and a.c2 = 1
          * expected result: INFEASIBLE
          */
-        String sql="select * from "+a+" a,"+b+" b --SPLICE-PROPERTIES joinStrategy=MERGE\n"
+        String sql="select * from --SPLICE-PROPERTIES joinOrder=fixed\n "+a+" a,"+b+" b --SPLICE-PROPERTIES joinStrategy=MERGE\n"
                 +"where a.c1 = 1 and a.c2 = 1";
         assertInfeasible(sql);
     }
@@ -165,7 +165,7 @@ public class TwoTableMergeJoinIT{
          * predicates: a.c1 = 1 and a.c2 = 1 and b.c3 = 1
          * expected result: INFEASIBLE
          */
-        String sql="select * from "+a+" a,"+b+" b--SPLICE-PROPERTIES joinStrategy=MERGE\n"
+        String sql="select * from --SPLICE-PROPERTIES joinOrder=fixed\n "+a+" a,"+b+" b--SPLICE-PROPERTIES joinStrategy=MERGE\n"
                 +"where a.c1 = 1 and a.c2 = 1 and b.c3 = 1 and b.c2 = 1";
         assertInfeasible(sql);
     }

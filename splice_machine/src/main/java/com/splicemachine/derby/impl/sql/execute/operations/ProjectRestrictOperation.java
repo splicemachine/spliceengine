@@ -328,6 +328,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         if (restriction != null && restriction.getActivation() != source.getActivation())
             restriction = new SpliceMethod<>(restrictionMethodName, source.getActivation());
 
+        if (projection != null && projection.getActivation() != activation)
+            projection = new SpliceMethod<>(projectionMethodName, activation);
+
         if (parameterInConstantRestriction) {
             evaluateConstantRestriction();
         } else if (!constantRestrictionEvaluated) {

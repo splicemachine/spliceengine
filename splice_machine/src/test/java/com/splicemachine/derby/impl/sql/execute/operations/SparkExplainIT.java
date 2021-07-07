@@ -800,9 +800,9 @@ public class SparkExplainIT extends SpliceUnitTest {
     public void testCrossJoinBroadcastRight() throws Exception {
         if (useSpark.equalsIgnoreCase("false")) return; // cross join only has Spark implementation
         String sqlText = "sparkexplain select count(*) from --splice-properties joinOrder=fixed\n" +
-                "        t1 --splice-properties useSpark=true, joinStrategy=cross\n" +
-                "        inner join big on 1=1";
-        testQueryContains(sqlText, "BroadcastNestedLoopJoin BuildRight, Cross", methodWatcher, true);
+                "        big --splice-properties useSpark=true, joinStrategy=cross\n" +
+                "        inner join t1 on 1=1";
+        testQueryContains(sqlText, "BroadcastNestedLoopJoin BuildRight", methodWatcher, true);
     }
 
     @Test
@@ -815,8 +815,8 @@ public class SparkExplainIT extends SpliceUnitTest {
          */
         if (useSpark.equalsIgnoreCase("false")) return; // cross join only has Spark implementation
         String sqlText = "sparkexplain select count(*) from --splice-properties joinOrder=fixed\n" +
-                "        big --splice-properties useSpark=true, joinStrategy=cross\n" +
-                "        inner join t1 on 1=1";
+                "        t1 --splice-properties useSpark=true, joinStrategy=cross\n" +
+                "        inner join big on 1=1";
         testQueryContains(sqlText, "CartesianProduct", methodWatcher, true);
     }
 
@@ -844,8 +844,7 @@ public class SparkExplainIT extends SpliceUnitTest {
         // use the same query as testCrossJoinCartesianProduct, not broadcasting right side based on cost,
         // but we force it by giving broadcastCrossRight=true hint
         String sqlText = "sparkexplain select count(*) from --splice-properties joinOrder=fixed\n" +
-                "        big --splice-properties useSpark=true, joinStrategy=cross, broadcastCrossRight=true\n" +
-                "        inner join big on 1=1";
+                "        big inner join big --splice-properties useSpark=true, joinStrategy=cross, broadcastCrossRight=true\n on 1=1";
         testQueryContains(sqlText, "BroadcastNestedLoopJoin BuildRight, Cross", methodWatcher, true);
     }
 

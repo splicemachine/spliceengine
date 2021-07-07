@@ -1048,33 +1048,28 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
         // cross join cannot be used as the join strategy for the only table in a select block or
         // the left-most table in a join sequence
 
-        // Q1: hint cross join for the left of the union
+        // Q1: hint cross join for the left of the union.  Cross join hint on single table scan is ignored.
         String sqlText = format("select * from --splice-properties joinOrder=fixed\n" +
-                "t7, (select a9, c9 from t9 --splice-properties joinStrategy=cross\n" +
+                "t7, (select a9, c9 from --splice-properties joinOrder=fixed\n t9 --splice-properties joinStrategy=cross\n" +
                 "union all select a10, c10 from t10  --splice-properties useSpark=%s\n" +
                 ")dt(a,c) --splice-properties joinStrategy=nestedloop\n" +
                 "where a=a7", useSpark);
 
-        try {
-            methodWatcher.executeQuery(sqlText);
-            Assert.fail("Query should fail with no valid exeuction plan!");
-        }catch (SQLException e) {
-            Assert.assertTrue("Invalid exception thrown: " + e, e.getMessage().startsWith("No valid execution plan"));
-        }
+        String expected = "A7   | B7   |C7 |  A   | C |\n" +
+                          "-----------------------------\n" +
+                          "AAAAA |AAAAA | 1 |AAAAA | 1 |\n" +
+                          " BBB  | BBB  | 2 | BBB  |22 |";
 
-        // Q2: hint cross join for the right of the union
+        testQuery(sqlText, expected, methodWatcher);
+
+        // Q2: hint cross join for the right of the union.  Cross join hint on single table scan is ignored.
         sqlText = format("select * from --splice-properties joinOrder=fixed\n" +
                 "t7, (select a9, c9 from t9 \n" +
                 "union all select a10, c10 from t10 --splice-properties useSpark=%s, joinStrategy=cross\n" +
                 ")dt(a,c) --splice-properties joinStrategy=nestedloop\n" +
                 "where a=a7", useSpark);
 
-        try {
-            methodWatcher.executeQuery(sqlText);
-            Assert.fail("Query should fail with no valid exeuction plan!");
-        }catch (SQLException e) {
-            Assert.assertTrue("Invalid exception thrown: " + e, e.getMessage().startsWith("No valid execution plan"));
-        }
+        testQuery(sqlText, expected, methodWatcher);
 
         // Q3: do not force cross join
         sqlText = format("select * from --splice-properties joinOrder=fixed\n" +
@@ -1082,7 +1077,7 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
                 "union all select a10, c10 from t10 --splice-properties useSpark=%s\n" +
                 ")dt(a,c) --splice-properties joinStrategy=nestedloop\n" +
                 "where a=a7", useSpark);
-        String expected = "A7   | B7   |C7 |  A   | C |\n" +
+        expected = "A7   | B7   |C7 |  A   | C |\n" +
                 "-----------------------------\n" +
                 "AAAAA |AAAAA | 1 |AAAAA | 1 |\n" +
                 " BBB  | BBB  | 2 | BBB  |22 |";

@@ -53,10 +53,8 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.lang.reflect.Field;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Vector;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Class used to serialize (and reference) the operation tree and the activation for Spark. It references
@@ -70,7 +68,8 @@ public class ActivationHolder implements Externalizable {
     private static final Logger LOG = LogManager.getLogger(ActivationHolder.class);
 
     private Map<Integer, SpliceOperation> operationsMap = Maps.newHashMap();
-    private List<SpliceOperation> operationsList = new ArrayList<>();
+    private Collection<SpliceOperation> operationsList = new HashSet<>();
+
     private Activation activation;
     private SpliceObserverInstructions soi;
     private TxnView txn;
@@ -134,8 +133,8 @@ public class ActivationHolder implements Externalizable {
                 }
                 if (!operationsMap.containsKey(so.resultSetNumber())) {
                     addSubOperations(operationsMap, so);
-                    operationsList.add(so);
                 }
+                operationsList.add(so);
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
@@ -316,7 +315,7 @@ public class ActivationHolder implements Externalizable {
         soi = (SpliceObserverInstructions) in.readObject();
         serializeOperationList = in.readBoolean();
         if (serializeOperationList) {
-            operationsList = (List<SpliceOperation>) in.readObject();
+            operationsList = (Collection<SpliceOperation>) in.readObject();
             for (SpliceOperation so : operationsList) {
                 addSubOperations(operationsMap, so);
             }

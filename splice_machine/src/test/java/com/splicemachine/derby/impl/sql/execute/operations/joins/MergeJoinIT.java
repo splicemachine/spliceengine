@@ -1534,7 +1534,7 @@ public class MergeJoinIT extends SpliceUnitTest {
      @Test
      public void testMergeFeasiblityWithNonEqualityJoinConditionsOnKeys() throws Exception {
         // Negative case 1 inner join + inequality condition on PK
-         String sql = "explain select * from t3, t4 --splice-properties joinStrategy=MERGE\n where a3<>a4 and b3=b4";
+         String sql = "explain select * from --splice-properties joinOrder=fixed\n t3, t4 --splice-properties joinStrategy=MERGE\n where a3<>a4 and b3=b4";
          try {
              methodWatcher.executeQuery(sql);
              Assert.fail("The query should error out for merge join");
@@ -1543,7 +1543,7 @@ public class MergeJoinIT extends SpliceUnitTest {
          }
 
          // Negative case 2 outer join + inequality condition on PK
-         sql = "explain select * from t3 left join t4 --splice-properties joinStrategy=MERGE\n on a3<>a4 and b3=b4";
+         sql = "explain select * from --splice-properties joinOrder=fixed\n t3 left join t4 --splice-properties joinStrategy=MERGE\n on a3<>a4 and b3=b4";
          try {
              methodWatcher.executeQuery(sql);
              Assert.fail("The query should error out for merge join");
@@ -1552,7 +1552,7 @@ public class MergeJoinIT extends SpliceUnitTest {
          }
 
          // Negative case 3 inner join + inequality condition on leading index column
-         sql = "explain select b3,c3,d3,b4,c4,d4 from t3, t4 --splice-properties joinStrategy=MERGE\n where b3<>b4 and c3=c4";
+         sql = "explain select b3,c3,d3,b4,c4,d4 from --splice-properties joinOrder=fixed\n t3, t4 --splice-properties joinStrategy=MERGE\n where b3<>b4 and c3=c4";
          try {
              methodWatcher.executeQuery(sql);
              Assert.fail("The query should error out for merge join");
@@ -1561,7 +1561,7 @@ public class MergeJoinIT extends SpliceUnitTest {
          }
 
          // Negative case 4 inner join + constant condition + inequality condition on leading index column
-         sql = "explain select b3,c3,d3,b4,c4,d4 from t3, t4 --splice-properties joinStrategy=MERGE\n where b3=1 and b4=1 and c3<>c4 and d3=d4";
+         sql = "explain select b3,c3,d3,b4,c4,d4 from --splice-properties joinOrder=fixed\n t3, t4 --splice-properties joinStrategy=MERGE\n where b3=1 and b4=1 and c3<>c4 and d3=d4";
          try {
              methodWatcher.executeQuery(sql);
              Assert.fail("The query should error out for merge join");
@@ -1570,7 +1570,7 @@ public class MergeJoinIT extends SpliceUnitTest {
          }
 
          // Positive case 4 inner join + constant condition + inequality condition on least significant index column
-         sql = "select b3,c3,d3,b4,c4,d4 from t3, t4 --splice-properties joinStrategy=MERGE\n where b3=1 and b4=1 and c3=c4 and d3<>d4";
+         sql = "select b3,c3,d3,b4,c4,d4 from --splice-properties joinOrder=fixed\n t3, t4 --splice-properties joinStrategy=MERGE\n where b3=1 and b4=1 and c3=c4 and d3<>d4";
          String expected = "";
          ResultSet rs = methodWatcher.executeQuery(sql);
          assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));

@@ -430,7 +430,7 @@ public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
     @Test
     public void testPushPredicateDownToRigtOfBroadcastJoin() throws Exception {
         String sqlText = format("select a1 from --splice-properties joinOrder=fixed\n" +
-                "t1, (select * from t4, t2 --splice-properties joinStrategy=broadcast\n" +
+                "t1, (select * from --splice-properties joinOrder=fixed\n t4, t2 --splice-properties joinStrategy=broadcast\n" +
                 "     where a2=a4) dt --splice-properties joinStrategy=nestedloop, useSpark=%s\n" +
                 "where a1=a2 and b1 in (1,2,3)", useSpark);
 

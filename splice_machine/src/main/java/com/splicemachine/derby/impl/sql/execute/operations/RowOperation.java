@@ -137,7 +137,7 @@ public class RowOperation extends SpliceBaseOperation{
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException{
         super.init(context);
-        if(rowMethod==null && rowMethodName!=null){
+        if((rowMethod==null || rowMethod.getActivation() != activation)  && rowMethodName!=null){
             this.rowMethod=new SpliceMethod<>(rowMethodName,activation);
         }
 
