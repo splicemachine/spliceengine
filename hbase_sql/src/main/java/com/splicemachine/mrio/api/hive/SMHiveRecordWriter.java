@@ -47,7 +47,7 @@ import org.apache.log4j.Logger;
 
 public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, ExecRowWritable> {
 
-    protected static Logger LOG = Logger.getLogger(RecordWriter.class);
+    protected final static Logger LOG = Logger.getLogger(RecordWriter.class);
 	protected Configuration conf;
     protected TxnView parentTxn;
     protected SMSQLUtil util;
@@ -84,9 +84,16 @@ public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, Exe
             SpliceIteratorVTI iteratorVTI = (SpliceIteratorVTI)vtiOperation.getDataSetProvider();
             iteratorVTI.setDataSet(dataSet);
             insertOperation.open();
-            insertOperation.close();
         } catch (StandardException e) {
             throw new IOException(e);
+        } finally {
+            if (insertOperation != null) {
+                try {
+                    insertOperation.close();
+                } catch (StandardException ex) {
+                    LOG.error(ex);
+                }
+            }
         }
     }
 
@@ -132,11 +139,6 @@ public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, Exe
         String tableName = conf.get(MRConstants.SPLICE_OUTPUT_TABLE_NAME);
         if(tableName == null) {
             tableName = conf.get(MRConstants.SPLICE_TABLE_NAME).trim().toUpperCase();
-        }
-
-        if (tableName == null) {
-            LOG.error("Table Name Supplied is null");
-            throw new RuntimeException("Table Name Supplied is Null");
         }
 
         String jdbcString = conf.get(MRConstants.SPLICE_JDBC_STR);
