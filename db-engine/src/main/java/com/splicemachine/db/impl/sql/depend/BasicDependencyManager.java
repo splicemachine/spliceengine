@@ -1034,15 +1034,9 @@ public class BasicDependencyManager implements DependencyManager {
     }
 
     /**
-     * Returns an enumeration of all dependencies that this
-     * provider is supporting for any dependent at all (even
-     * invalid ones). Includes all dependency types.
-     *
-     * @param p the provider
-     * @return A list of dependents (possibly empty).
-     * @throws StandardException if something goes wrong
+     * @see DependencyManager#getDependents
      */
-    private List<Dependency> getDependents (Provider p) throws StandardException {
+    public List<Dependency> getDependents (Provider p) throws StandardException {
         List<Dependency> deps = new ArrayList<>();
         synchronized (this) {
             List<Dependency> memDeps = providers.get(p.getObjectID());

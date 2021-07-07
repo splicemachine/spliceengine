@@ -454,7 +454,7 @@ public final class ViewDescriptor extends TupleDescriptor
      * @param action action
      * @throws StandardException standard error policy
      */
-    private void drop(
+    public void drop(
             LanguageConnectionContext lcc,
             SchemaDescriptor sd,
             TableDescriptor td,
