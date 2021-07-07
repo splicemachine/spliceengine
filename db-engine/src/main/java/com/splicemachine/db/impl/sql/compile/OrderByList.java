@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.SortCostController;
@@ -60,7 +61,17 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
     private boolean sortNeeded=true;
     private int resultSetNumber=-1;
 
-        /**
+    public OrderByList() {}
+    public OrderByList(ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.ORDER_BY_LIST);
+    }
+    public OrderByList(ResultSetNode rs, ContextManager cm) {
+        this(cm);
+        init(rs);
+    }
+
+                       /**
           * {@code true} if this instance orders a
           * {@literal <table value constructor>}.
           * See {@link #isTableValueCtorOrdering}.

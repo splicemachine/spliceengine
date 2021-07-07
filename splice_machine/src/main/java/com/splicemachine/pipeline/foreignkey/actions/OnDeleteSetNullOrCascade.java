@@ -54,18 +54,15 @@ public class OnDeleteSetNullOrCascade extends OnDeleteAbstractAction {
         assert childTable != null;
         int colCount = childTable.getFormatIdsCount();
         int[] keyColumns = constraintInfo.getColumnIndicesList().stream().mapToInt(i -> i).toArray();
-        int[] oneBased = new int[colCount * 2 + 1];
+        int[] oneBased = new int[colCount + 1];
         for (int i = 0; i < colCount; ++i) {
             oneBased[i + 1] = i;
-            oneBased[i + colCount + 1] = i; // TODO faking it for now, we need the old values here and any extra indexed
-                                            // columns, see DB-11855
         }
         FormatableBitSet heapSet = new FormatableBitSet(oneBased.length);
         ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(childTable.getFormatIdsList().stream().mapToInt(i -> i).toArray());
         for (int keyColumn : keyColumns) {
             execRow.setColumn(keyColumn, execRow.getColumn(keyColumn).getNewNull());
             heapSet.set(keyColumn);
-            heapSet.set(keyColumn + colCount);
         }
         DescriptorSerializer[] serializers = VersionedSerializers.forVersion(childTable.getTableVersion(), true).getSerializers(execRow);
         EntryDataHash entryEncoder = new RowHash(oneBased, null, serializers, heapSet);
@@ -98,7 +95,7 @@ public class OnDeleteSetNullOrCascade extends OnDeleteAbstractAction {
         int deleteRule = constraintInfo.getDeleteRule();
         assert deleteRule == StatementType.RA_SETNULL || deleteRule == StatementType.RA_CASCADE;
         if(deleteRule == StatementType.RA_SETNULL) {
-            return KVPair.Type.UPDATE;
+            return KVPair.Type.BLIND_UPDATE; // force index row rebuilding via base table lookup.
         } else { // CASCADE
             return KVPair.Type.DELETE;
         }

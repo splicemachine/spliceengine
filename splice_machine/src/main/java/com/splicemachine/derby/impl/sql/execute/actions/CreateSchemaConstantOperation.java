@@ -88,7 +88,7 @@ public class CreateSchemaConstantOperation extends DDLConstantOperation {
         DataDictionary dd = lcc.getDataDictionary();
         DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, lcc.getTransactionExecute(), false);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, lcc.getTransactionExecute(), false);
 
         /*
          * if the schema descriptor is an in-memory schema, we do not throw schema already exists exception for it.
@@ -110,20 +110,20 @@ public class CreateSchemaConstantOperation extends DDLConstantOperation {
             thisAid = lcc.getCurrentUserId(activation);
         }
 
-                /*
-                 * Inform the data dictionary that we are about to write to it.
-                 * There are several calls to data dictionary "get" methods here
-                 * that might be done in "read" mode in the data dictionary, but
-                 * it seemed safer to do this whole operation in "write" mode.
-                 *
-                 * We tell the data dictionary we're done writing at the end of
-                 * the transaction.
-                 */
+        /*
+         * Inform the data dictionary that we are about to write to it.
+         * There are several calls to data dictionary "get" methods here
+         * that might be done in "read" mode in the data dictionary, but
+         * it seemed safer to do this whole operation in "write" mode.
+         *
+         * We tell the data dictionary we're done writing at the end of
+         * the transaction.
+         */
         dd.startWriting(lcc);
 
         notifyMetadataChange(tc, ProtoUtil.createSchema(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId()));
 
-        sd = ddg.newSchemaDescriptor(schemaName,thisAid,tmpSchemaId);
+        sd = ddg.newSchemaDescriptor(schemaName, thisAid, tmpSchemaId, lcc.getDatabaseId());
 
         /*
          * Note on transactional behavior:

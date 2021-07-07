@@ -86,10 +86,10 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
 
             UUID sysUUID = dictionary.getSystemUtilSchemaDescriptor().getUUID();
 
-        	/*
-        	 * Our import process is different than Vanilla Derby's, so find that Procedure in
-        	 * the map and replace it with our own Procedure
-        	 */
+            /*
+             * Our import process is different than Vanilla Derby's, so find that Procedure in
+             * the map and replace it with our own Procedure
+             */
             for(Object entry : sysProcedures.entrySet()){
                 Object key = ((Map.Entry)entry).getKey();
                 @SuppressWarnings("unchecked") List<Procedure> procedures = (List<Procedure>)((Map.Entry)entry).getValue();
@@ -142,6 +142,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .varchar("table", 32672)
                 .build();
         procedures.add(refreshExternalTable);
+        String spliceAdminClass = com.splicemachine.derby.procedures.SpliceAdmin.class.getCanonicalName();
+        String transactionAdminClass = com.splicemachine.derby.procedures.TransactionAdmin.class.getCanonicalName();
+        String spliceTableAdmin = com.splicemachine.derby.procedures.SpliceTableAdmin.class.getCanonicalName();
 
         /*
          * Add a system procedure to enable splitting tables once data is loaded.
@@ -157,7 +160,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numOutputParams(0)
                 .numResultSets(1)
                 .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(getActiveServers);
 
@@ -167,7 +170,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         Procedure getRequests = Procedure.newBuilder().name("SYSCS_GET_REQUESTS")
                 .numOutputParams(0)
                 .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(getRequests);
 
@@ -177,7 +180,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         Procedure getRegionServerStatsInfo = Procedure.newBuilder().name("SYSCS_GET_REGION_SERVER_STATS_INFO")
                 .numOutputParams(0)
                 .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .sqlControl(RoutineAliasInfo.NO_SQL)
                 .build();
         procedures.add(getRegionServerStatsInfo);
@@ -191,7 +194,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numOutputParams(0)
                 .numResultSets(1)
                 .sqlControl(RoutineAliasInfo.NO_SQL)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(getRegionServerConfig);
 
@@ -202,7 +205,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numOutputParams(0)
                 .numResultSets(1)
                 .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(getVersionInfo);
 
@@ -210,14 +213,14 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numOutputParams(0)
                 .numResultSets(1)
                 .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(getVersionInfoLocal);
 
         /*
          * Procedure get write pipeline intake info
          */
-        PipelineAdmin.addProcedures( procedures );
+        com.splicemachine.derby.procedures.PipelineAdmin.addProcedures( procedures );
 
         /*
          * Procedure get exec service info
@@ -225,7 +228,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         Procedure getExecServiceInfo = Procedure.newBuilder().name("SYSCS_GET_EXEC_SERVICE_INFO")
                 .numOutputParams(0)
                 .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(getExecServiceInfo);
 
@@ -235,7 +238,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         Procedure getCacheInfo = Procedure.newBuilder().name("SYSCS_GET_CACHE_INFO")
                 .numOutputParams(0)
                 .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(getCacheInfo);
 
@@ -245,7 +248,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         Procedure getTotalCacheInfo = Procedure.newBuilder().name("SYSCS_GET_TOTAL_CACHE_INFO")
                 .numOutputParams(0)
                 .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(getTotalCacheInfo);
 
@@ -256,7 +259,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numOutputParams(0)
                 .numResultSets(0)
                 .bigint("transactionId")
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(killTransaction);
 
@@ -264,28 +267,28 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numOutputParams(0)
                 .numResultSets(0)
                 .bigint("maximumTransactionId")
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(killStaleTransactions);
 
 //                    Procedure dumpTransactions = Procedure.newBuilder().name("SYSCS_DUMP_TRANSACTIONS")
 //                            .numOutputParams(0)
 //                            .numResultSets(1)
-//                            .ownerClass(TransactionAdmin.class.getCanonicalName())
+//                            .ownerClass(transactionAdminClass)
 //                            .build();
 //                    procedures.add(dumpTransactions);
 
         Procedure currTxn = Procedure.newBuilder().name("SYSCS_GET_CURRENT_TRANSACTION")
                 .numOutputParams(0)
                 .numResultSets(1)
-                .ownerClass(TransactionAdmin.class.getCanonicalName())
+                .ownerClass(transactionAdminClass)
                 .build();
         procedures.add(currTxn);
 
         Procedure activeTxn = Procedure.newBuilder().name("SYSCS_GET_ACTIVE_TRANSACTION_IDS")
                 .numOutputParams(0)
                 .numResultSets(1)
-                .ownerClass(TransactionAdmin.class.getCanonicalName())
+                .ownerClass(transactionAdminClass)
                 .build();
         procedures.add(activeTxn);
 
@@ -304,7 +307,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         Procedure sessionInfo = Procedure.newBuilder().name("SYSCS_GET_SESSION_INFO")
                 .numOutputParams(0)
                 .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(sessionInfo);
 
@@ -316,9 +319,19 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         Procedure getActiveTxn = Procedure.newBuilder().name("SYSCS_GET_OLDEST_ACTIVE_TRANSACTION")
                 .numOutputParams(0)
                 .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(getActiveTxn);
+
+        /*
+         * Procedure to get all active session id
+         */
+        Procedure getActiveSessions = Procedure.newBuilder().name("SYSCS_GET_ACTIVE_SESSIONS")
+                .numOutputParams(0)
+                .numResultSets(1)
+                .ownerClass(spliceAdminClass)
+                .build();
+        procedures.add(getActiveSessions);
 
         /*
          * Procedure to list a directory
@@ -327,7 +340,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numOutputParams(0)
                 .varchar("path",1024)
                 .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(ANALYZE_EXTERNAL_TABLE);
 
@@ -338,7 +351,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numOutputParams(0)
                 .varchar("path",1024)
                 .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(ls);
 
@@ -350,7 +363,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .varchar("path",128)
                 .varchar("op", 64)
                 .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(hdfsOperation);
 
@@ -363,7 +376,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .varchar("op", 64)
                 .blob("request")
                 .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(hbaseOperation);
 
@@ -374,7 +387,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numOutputParams(0)
                 .varchar("username",256)
                 .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(getToken);
 
@@ -385,7 +398,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numOutputParams(0)
                 .blob("request")
                 .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(cancelToken);
 
@@ -396,7 +409,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numOutputParams(0)
                 .numResultSets(0)
                 .varchar("tableName", 128) // input
-                .ownerClass(TransactionAdmin.class.getCanonicalName())
+                .ownerClass(transactionAdminClass)
                 .build();
         procedures.add(elevProc);
 
@@ -408,7 +421,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numResultSets(1)
                 .bigint("parentTransactionId") // input
                 .varchar("tableName", 128) // input
-                .ownerClass(TransactionAdmin.class.getCanonicalName())
+                .ownerClass(transactionAdminClass)
                 .build();
         procedures.add(childTxnProc);
 
@@ -419,7 +432,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .numOutputParams(0)
                 .numResultSets(0)
                 .bigint("childTransactionId") // input
-                .ownerClass(TransactionAdmin.class.getCanonicalName())
+                .ownerClass(transactionAdminClass)
                 .build();
         procedures.add(commitTxnProc);
 
@@ -432,7 +445,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         Procedure getSchemaInfo = Procedure.newBuilder().name("SYSCS_GET_SCHEMA_INFO")
                 .numOutputParams(0)
                 .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(getSchemaInfo);
 
@@ -443,7 +456,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .varchar("schemaName", 128)
                 .numOutputParams(0)
                 .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(majorComactionOnSchema);
 
@@ -455,7 +468,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .varchar("tableName", 128)
                 .numOutputParams(0)
                 .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(majorComactionOnTable);
 
@@ -467,7 +480,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .varchar("tableName", 128)
                 .numOutputParams(0)
                 .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(flushTable);
 
@@ -479,7 +492,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .varchar("rowId", 1024)
                 .numOutputParams(0)
                 .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(dictionaryDelete);
 
@@ -489,7 +502,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         Procedure getStoredStatementPlanInfo = Procedure.newBuilder().name("SYSCS_GET_STORED_STATEMENT_PLAN_INFO")
                 .numOutputParams(0)
                 .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(getStoredStatementPlanInfo);
 
@@ -499,14 +512,14 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         Procedure getAllSystemProperties = Procedure.newBuilder().name("SYSCS_GET_ALL_PROPERTIES")
                 .numOutputParams(0)
                 .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(getAllSystemProperties);
 
         Procedure vacuum = Procedure.newBuilder().name("VACUUM")
                 .numOutputParams(0)
                 .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(vacuum);
 
@@ -522,7 +535,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         procedures.add(Procedure.newBuilder().name("SYSCS_GET_GLOBAL_DATABASE_PROPERTY")
                 .numOutputParams(0)
                 .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
                 .returnType(null).isDeterministic(false)
                 .catalog("KEY")
@@ -534,7 +547,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         procedures.add(Procedure.newBuilder().name("SYSCS_SET_GLOBAL_DATABASE_PROPERTY")
                 .numOutputParams(0)
                 .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
                 .returnType(null).isDeterministic(false)
                 .catalog("KEY")
@@ -547,7 +560,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         procedures.add(Procedure.newBuilder().name("SYSCS_GET_GLOBAL_DATABASE_PROPERTIES")
                 .numOutputParams(0)
                 .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
                 .returnType(null).isDeterministic(false)
                 .varchar("FILTER", Limits.DB2_VARCHAR_MAXWIDTH)
@@ -560,9 +573,23 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         procedures.add(Procedure.newBuilder().name("SYSCS_ENABLE_ENTERPRISE")
                 .numOutputParams(0)
                 .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
                 .varchar("VALUE", Limits.DB2_VARCHAR_MAXWIDTH)
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_ENABLE_MULTIDATABASE")
+                .numOutputParams(0)
+                .numResultSets(0)
+                .ownerClass(spliceAdminClass)
+                .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
+                .build());
+
+        procedures.add(Procedure.newBuilder().name("SYSCS_DISABLE_MULTIDATABASE")
+                .numOutputParams(0)
+                .numResultSets(0)
+                .ownerClass(spliceAdminClass)
+                .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
                 .build());
 
         /*
@@ -576,28 +603,28 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         procedures.add(Procedure.newBuilder().name("SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE")
                 .numOutputParams(0)
                 .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .sqlControl(RoutineAliasInfo.NO_SQL).returnType(null).isDeterministic(false)
                 .build());
 
         procedures.add(Procedure.newBuilder().name("SYSCS_EMPTY_GLOBAL_STORED_STATEMENT_CACHE")
                 .numOutputParams(0)
                 .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .sqlControl(RoutineAliasInfo.NO_SQL).returnType(null).isDeterministic(false)
                 .build());
 
         procedures.add(Procedure.newBuilder().name("SYSCS_INVALIDATE_STORED_STATEMENTS")
                 .numOutputParams(0)
                 .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .sqlControl(RoutineAliasInfo.NO_SQL).returnType(null).isDeterministic(false)
                 .build());
 
         procedures.add(Procedure.newBuilder().name("GET_ACTIVATION")
                 .numOutputParams(0)
                 .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .returnType(null).isDeterministic(false)
                 .varchar("statement", Limits.DB2_VARCHAR_MAXWIDTH)
                 .build());
@@ -605,7 +632,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         procedures.add(Procedure.newBuilder().name("SYSCS_GET_CACHED_STATEMENTS")
                 .numOutputParams(0)
                 .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
                 .returnType(null)
                 .isDeterministic(false)
@@ -615,7 +642,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         procedures.add(Procedure.newBuilder().name("SYSCS_GET_CACHED_STATEMENTS_LOCAL")
                .numOutputParams(0)
                .numResultSets(1)
-               .ownerClass(SpliceAdmin.class.getCanonicalName())
+               .ownerClass(spliceAdminClass)
                .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
                .returnType(null)
                .isDeterministic(false)
@@ -626,7 +653,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         procedures.add(Procedure.newBuilder().name("SYSCS_UPDATE_SCHEMA_OWNER")
             .numOutputParams(0)
             .numResultSets(0)
-            .ownerClass(SpliceAdmin.class.getCanonicalName())
+            .ownerClass(spliceAdminClass)
             .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA)
             .returnType(null)
             .isDeterministic(false)
@@ -637,21 +664,21 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         procedures.add(Procedure.newBuilder().name("SYSCS_GET_TABLE_COUNT")
                 .numOutputParams(0)
                 .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .returnType(null).isDeterministic(false)
                 .build());
 
         procedures.add(Procedure.newBuilder().name("SYSCS_IS_MEM_PLATFORM")
                 .numOutputParams(0)
                 .numResultSets(1)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .returnType(null).isDeterministic(false)
                 .build());
 
         procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_DATABASE_OWNER")
                 .numOutputParams(0)
                 .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .sqlControl(RoutineAliasInfo.NO_SQL)
                 .returnType(null).isDeterministic(false)
                 .build());
@@ -659,7 +686,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         procedures.add(Procedure.newBuilder().name("SYSCS_SAVE_SOURCECODE")
                 .numResultSets(0).numOutputParams(0).modifiesSql()
                 .returnType(null).isDeterministic(false)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .catalog("schemaName")
                 .catalog("objectName")
                 .varchar("objectType", 32)
@@ -674,7 +701,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .varchar("enable", 5)
                 .numOutputParams(0)
                 .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(purgeDeletedRows);
 
@@ -684,7 +711,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .bigint("minRetentionPeriod")
                 .numOutputParams(0)
                 .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(minRetentionPeriod);
 
@@ -693,7 +720,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .varchar("snapshotName", 128)
                 .numOutputParams(0)
                 .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(snapshotSchema);
 
@@ -703,7 +730,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .varchar("snapshotName", 128)
                 .numOutputParams(0)
                 .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(snapshotTable);
 
@@ -711,7 +738,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .varchar("snapshotName", 128)
                 .numOutputParams(0)
                 .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(deleteSnapshot);
 
@@ -719,7 +746,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .varchar("snapshotName", 128)
                 .numOutputParams(0)
                 .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(restoreSnapshot);
 
@@ -852,14 +879,14 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         Procedure invalidateLocalCache = Procedure.newBuilder().name("INVALIDATE_DICTIONARY_CACHE")
                 .numOutputParams(0)
                 .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(invalidateLocalCache);
 
         Procedure invalidateGlobalCache = Procedure.newBuilder().name("INVALIDATE_GLOBAL_DICTIONARY_CACHE")
                 .numOutputParams(0)
                 .numResultSets(0)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(invalidateGlobalCache);
 
@@ -871,7 +898,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .varchar("outputFile", 32672)
                 .numOutputParams(0)
                 .numResultSets(1)
-                .ownerClass(SpliceTableAdmin.class.getCanonicalName())
+                .ownerClass(spliceTableAdmin)
                 .build();
         procedures.add(checkTable);
 
@@ -882,7 +909,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .varchar("outputFile", 32672)
                 .numOutputParams(0)
                 .numResultSets(1)
-                .ownerClass(SpliceTableAdmin.class.getCanonicalName())
+                .ownerClass(spliceTableAdmin)
                 .build();
         procedures.add(fixTable);
 
@@ -894,18 +921,20 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 .name("SYSCS_UPDATE_ALL_SYSTEM_PROCEDURES")
                 .numOutputParams(0).numResultSets(0).modifiesSql()
                 .returnType(null).isDeterministic(false)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .build();
         procedures.add(updateAllSystemProcedures);
 
         Procedure updateSystemProcedure = Procedure.newBuilder().name("SYSCS_UPDATE_SYSTEM_PROCEDURE")
                 .numOutputParams(0).numResultSets(0).modifiesSql()
                 .returnType(null).isDeterministic(false)
-                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .ownerClass(spliceAdminClass)
                 .catalog("schemaName")
                 .catalog("procName")
                 .build();
         procedures.add(updateSystemProcedure);
+
+        procedures.add(ShowCreateViewProcedure.getProcedure());
 
         UpgradeSystemProcedures.addProcedures(procedures);
     }
@@ -934,10 +963,10 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
     static{
         try {
             SYSFUN_PROCEDURES = new ArrayList<>();
-            SYSFUN_PROCEDURES.addAll(SpliceStringFunctions.getProcedures());
-            SYSFUN_PROCEDURES.addAll(SpliceDateFunctions.getProcedures());
-            SYSFUN_PROCEDURES.addAll(StatisticsFunctions.getProcedures());
-            SYSFUN_PROCEDURES.addAll(GenericSpliceFunctions.getProcedures());
+            SYSFUN_PROCEDURES.addAll(com.splicemachine.derby.procedures.SpliceStringFunctions.getProcedures());
+            SYSFUN_PROCEDURES.addAll(com.splicemachine.derby.procedures.SpliceDateFunctions.getProcedures());
+            SYSFUN_PROCEDURES.addAll(com.splicemachine.derby.procedures.StatisticsFunctions.getProcedures());
+            SYSFUN_PROCEDURES.addAll(com.splicemachine.derby.procedures.GenericSpliceFunctions.getProcedures());
 
         }catch(StandardException se){
             throw new RuntimeException(se);

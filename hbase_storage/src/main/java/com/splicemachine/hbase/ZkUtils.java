@@ -15,6 +15,7 @@
 package com.splicemachine.hbase;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 import com.splicemachine.access.configuration.HBaseConfiguration;

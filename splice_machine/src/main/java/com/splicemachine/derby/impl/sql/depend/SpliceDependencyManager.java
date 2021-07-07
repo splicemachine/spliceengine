@@ -59,11 +59,4 @@ public class SpliceDependencyManager extends BasicDependencyManager {
         return super.getActionString(action);
     }
 
-    @Override
-    public int countDependencies() throws StandardException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "countDependencies");
-        return super.countDependencies();
-    }
-
 }

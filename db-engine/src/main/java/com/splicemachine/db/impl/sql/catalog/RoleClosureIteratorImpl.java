@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.RoleClosureIterator;
 import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.catalog.UUID;
 
 import java.util.*;
 
@@ -108,6 +109,11 @@ public class RoleClosureIteratorImpl implements RoleClosureIterator
     private boolean initial;
 
     /**
+     * database UUID
+     */
+    private final UUID databaseId;
+
+    /**
      * Constructor (package private).
      * Use {@code createRoleClosureIterator} to obtain an instance.
      * @see com.splicemachine.db.iapi.sql.dictionary.DataDictionary#createRoleClosureIterator
@@ -121,12 +127,14 @@ public class RoleClosureIteratorImpl implements RoleClosureIterator
      */
     RoleClosureIteratorImpl(String root, boolean inverse,
                             DataDictionaryImpl dd,
-                            TransactionController tc) {
+                            TransactionController tc,
+                            UUID databaseId) {
         this.inverse = inverse;
         this.graph = null;
         this.root = root;
         this.dd = dd;
         this.tc = tc;
+        this.databaseId = databaseId;
         seenSoFar = new HashMap();
         lifo      = new ArrayList(); // remaining work stack
 
@@ -138,7 +146,8 @@ public class RoleClosureIteratorImpl implements RoleClosureIterator
              null,
              false,
              false,
-             false);
+             false,
+              null);
         List dummyList = new ArrayList();
         dummyList.add(dummy);
         currNodeIter = dummyList.iterator();
@@ -157,8 +166,8 @@ public class RoleClosureIteratorImpl implements RoleClosureIterator
 
         } else if (graph == null) {
             // We get here the second time next is called.
-            graph = dd.getRoleGrantGraph(tc, inverse, true);
-            List outArcs = (List)graph.get(root);
+            graph = dd.getRoleGrantGraph(tc, inverse, true, databaseId);
+            List outArcs = graph.get(root);
             if (outArcs != null) {
                 currNodeIter = outArcs.iterator();
             }

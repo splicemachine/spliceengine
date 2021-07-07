@@ -415,10 +415,7 @@ public class OrderByColumn extends OrderedColumn {
                     cr.getColumnName(), cr.getTableNameNode());
 
             if(resultCol == null){
-                resultCol = (ResultColumn) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,
-                                            cr.getColumnName(),
-                                            cr,
-                                            getContextManager());
+                resultCol = new ResultColumn(cr.getColumnName(), cr, getContextManager());
                 resultCol.markAsPulledupOrderingColumn();
                 targetCols.addResultColumn(resultCol);
                 addedColumnOffset = targetCols.getOrderBySelect();
@@ -426,10 +423,7 @@ public class OrderByColumn extends OrderedColumn {
             }
 
         }else if(!isReferedColByNum(expression)){
-            resultCol = (ResultColumn) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,
-                                        null,
-                                        expression,
-                                        getContextManager());
+            resultCol = new ResultColumn((String) null, expression, getContextManager());
             targetCols.addResultColumn(resultCol);
             addedColumnOffset = targetCols.getOrderBySelect();
             targetCols.incOrderBySelect();

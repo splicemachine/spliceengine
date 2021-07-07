@@ -126,7 +126,7 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
 
         //initialize the DDLDriver
         DDLDriver.loadDriver(DDLEnvironmentLoader.loadEnvironment(configuration,EngineDriver.driver().getExceptionFactory()));
-        db = (SpliceDatabase)((EmbedConnection)internalConnection).getLanguageConnection().getDatabase();
+        db = (SpliceDatabase)((EmbedConnection)internalConnection).getLanguageConnection().getSpliceInstance();
         db.registerDDL();
 
         logging = new LogManager();

@@ -791,7 +791,7 @@ public class BinaryRelationalOperatorNode
         */
         if(bestCD!=null && bestCD.isIndex()){
             columnPosition=bestCD.getIndexDescriptor().
-                    getKeyColumnPosition(columnPosition);
+                    getKeyColumnPosition(cr.getSource().getStoragePosition());
 
             if(SanityManager.DEBUG){
                 SanityManager.ASSERT(columnPosition>0,
@@ -823,17 +823,15 @@ public class BinaryRelationalOperatorNode
         ** If it's an index, find the base column position in the index
         ** and translate it to an index column position.
         */
-        if(bestCD!=null && bestCD.isIndex()){
-            columnPosition=cr.getSource().getColumnPosition();
-            columnPosition=bestCD.getIndexDescriptor().
+        columnPosition = cr.getSource().getStoragePosition();
+        if (bestCD != null && bestCD.isIndex()) {
+            columnPosition = bestCD.getIndexDescriptor().
                     getKeyColumnPosition(columnPosition);
 
-            if(SanityManager.DEBUG){
-                SanityManager.ASSERT(columnPosition>0,
-                        "Base column not found in index");
+            if (SanityManager.DEBUG) {
+                SanityManager.ASSERT(columnPosition > 0,
+                                     "Base column not found in index");
             }
-        } else {
-            columnPosition = cr.getSource().getStoragePosition();
         }
 
         // return the 0-based column position
@@ -1665,11 +1663,7 @@ public class BinaryRelationalOperatorNode
         ColumnReference baseColumnRef = baseColumnRefs.get(0);
 
         // build a fake ResultColumn
-        ResultColumn rc = (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                irg.getIndexColumnTypes()[indexColumnPosition],
-                operand,
-                getContextManager());
+        ResultColumn rc = new ResultColumn(irg.getIndexColumnTypes()[indexColumnPosition], operand, getContextManager());
         rc.setIndexExpression(operand);
         rc.setReferenced();
         // virtual column IDs are 1-based, set to conglomerate index column position
@@ -1907,7 +1901,7 @@ public class BinaryRelationalOperatorNode
 
          List<ColumnReference> crList = expr.getHashableJoinColumnReference();
          assert crList != null && !crList.isEmpty();
-         return !selfComparison(crList.get(0),false) && !implicitVarcharComparison();
+         return !selfComparison(crList.get(0),true) && !implicitVarcharComparison();
 
      }
 

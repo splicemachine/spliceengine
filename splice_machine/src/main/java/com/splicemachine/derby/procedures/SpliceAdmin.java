@@ -1178,6 +1178,23 @@ public class SpliceAdmin extends BaseAdminProcedures {
         }
     }
 
+    private static void SYSCS_ENABLE_MULTIDABASE(boolean value) throws SQLException {
+        try {
+            LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+            lcc.getDataDictionary().enableMultiDatabase(value);
+        } catch (Exception e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+    }
+
+    public static void SYSCS_ENABLE_MULTIDATABASE() throws SQLException {
+        SYSCS_ENABLE_MULTIDABASE(true);
+    }
+
+    public static void SYSCS_DISABLE_MULTIDATABASE() throws SQLException {
+        SYSCS_ENABLE_MULTIDABASE(false);
+    }
+
     public static void SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE() throws SQLException{
         executeOnAllServers("call SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()");
     }
@@ -1292,12 +1309,17 @@ public class SpliceAdmin extends BaseAdminProcedures {
             SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
             DataDictionary dd = lcc.getDataDictionary();
             dd.startWriting(lcc);
-            SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, /* raiseError= */true);
-            if (dd.getUser(ownerName) == null) {
+            SchemaDescriptor sd = dd.getSchemaDescriptor(lcc.getDatabaseId(), schemaName, tc, /* raiseError= */true);
+            if (dd.getUser(lcc.getDatabaseId(), ownerName) == null) {
                 throw StandardException.newException(String.format("User '%s' does not exist.", ownerName));
             }
-            ((DataDictionaryImpl)dd).updateSchemaAuth(schemaName, ownerName, tc);
-            DDLMessage.DDLChange ddlChange = ProtoUtil.createUpdateSchemaOwner(tc.getActiveStateTxn().getTxnId(), schemaName, ownerName, (BasicUUID)sd.getUUID());
+            ((DataDictionaryImpl)dd).updateSchemaAuth(sd.getDatabaseId().toString(), schemaName, ownerName, tc);
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createUpdateSchemaOwner(
+                    tc.getActiveStateTxn().getTxnId(),
+                    schemaName,
+                    ownerName,
+                    (BasicUUID)sd.getUUID(),
+                    (BasicUUID)sd.getDatabaseId());
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
@@ -1319,7 +1341,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
         LanguageConnectionContext lcc = defaultConn.getLanguageConnection();
         DataDictionary dd = lcc.getDataDictionary();
         if (dd.usesSqlAuthorization()) {
-            String databaseOwner = dd.getAuthorizationDatabaseOwner();
+            String databaseOwner = lcc.getCurrentDatabase().getAuthorizationId();
             String currentUser = lcc.getStatementContext().getSQLSessionContext().getCurrentUser();
             List<String> groupUserlist = lcc.getStatementContext().getSQLSessionContext().getCurrentGroupUser();
             if (!(databaseOwner.equals(currentUser) || (groupUserlist != null && groupUserlist.contains(databaseOwner)))) {
@@ -1360,8 +1382,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         TransactionController tc  = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
-
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, tc, true);
         if (sd == null)
         {
             throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
@@ -1405,7 +1426,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         TransactionController tc = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(lcc.getDatabaseId(), schemaName, tc, true);
         if (sd == null) {
             throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
         }
@@ -1476,8 +1497,6 @@ public class SpliceAdmin extends BaseAdminProcedures {
 
         schemaName = EngineUtils.validateSchema(schemaName);
         tableName = EngineUtils.validateTable(tableName);
-        EngineUtils.checkSchemaVisibility(schemaName);
-
         EngineUtils.checkSchemaVisibility(schemaName);
 
         TableDescriptor td = DataDictionaryUtils.getTableDescriptor(lcc, schemaName, tableName);
@@ -1687,6 +1706,17 @@ public class SpliceAdmin extends BaseAdminProcedures {
         ResultHelper.BigintColumn col = res.addBigint("transactoinId", 10);
         res.newRow();
         col.set(getOldestActiveTransaction());
+        resultSet[0] = res.getResultSet();
+    }
+
+    public static void SYSCS_GET_ACTIVE_SESSIONS(ResultSet[] resultSet) throws SQLException {
+        ResultHelper res = new ResultHelper();
+        ResultHelper.BigintColumn col = res.addBigint("sessionId", 6);
+        List<Long> result = SIDriver.driver().getSessionsWatcher().getAllActiveSessions();
+        for (long sessionId : result) {
+            res.newRow();
+            col.set(sessionId);
+        }
         resultSet[0] = res.getResultSet();
     }
 
@@ -2000,7 +2030,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
             DDLMessage.DDLChange ddlChange = ProtoUtil.createUpdateSystemProcedure(activeTransaction.getTxnId());
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 
-            dd.createOrUpdateAllSystemProcedures(tc);
+            dd.createOrUpdateAllSystemProcedures(lcc.getCurrentDatabase(), tc);
 
         }catch(StandardException se){
             throw PublicAPI.wrapStandardException(se);
@@ -2038,7 +2068,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 
             schemaName = EngineUtils.validateSchema(schemaName);
-            dd.createOrUpdateSystemProcedure(schemaName,procName,tc);
+            dd.createOrUpdateSystemProcedure(null, schemaName, procName, tc);
         }catch(StandardException se){
             throw PublicAPI.wrapStandardException(se);
         }

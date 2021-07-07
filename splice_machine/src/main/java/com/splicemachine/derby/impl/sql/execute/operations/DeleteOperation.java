@@ -31,6 +31,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import org.apache.log4j.Logger;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 public class DeleteOperation extends DMLWriteOperation {
 	private static final Logger LOG = Logger.getLogger(DeleteOperation.class);

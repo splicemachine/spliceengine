@@ -102,6 +102,6 @@ public class DropRoleNode extends DDLStatementNode
     public ConstantAction   makeConstantAction() throws StandardException
     {
         return  getGenericConstantActionFactory().
-            getDropRoleConstantAction(roleName);
+            getDropRoleConstantAction(roleName, getLanguageConnectionContext().getCurrentDatabase().getUUID());
     }
 }

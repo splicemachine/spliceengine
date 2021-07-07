@@ -90,8 +90,8 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 
     // column-based index: stores column mapping baseColumnPositions[indexColumnPosition] = baseColumnPosition
     // expression-based index: stores the distinct base column positions of used columns in arbitrary order
-    private int[]                baseColumnPositions;
-
+    private int[] baseColumnStoragePositions;
+    private int[] baseColumnPositions;
     // column-based index: empty because types are the same as base column types
     // expression-based index: stores the result types of index expressions in original order
     private DataTypeDescriptor[] indexColumnTypes;
@@ -138,7 +138,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
      *                              isUniqueWithDuplicateNulls is set to true the
      *                              index will allow duplicate nulls but for
      *                              non null keys will act like a unique index.
-     * @param baseColumnPositions    An array of column positions in the base
+     * @param baseColumnStoragePositions    An array of column positions in the base
      *                                 table.  Each index column corresponds to a
      *                                 column position in the base table.
      * @param isAscending    An array of booleans telling asc/desc on each
@@ -151,6 +151,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
     public IndexDescriptorImpl(String indexType,
                                 boolean isUnique,
                                 boolean isUniqueWithDuplicateNulls,
+                                int[] baseColumnStoragePositions,
                                 int[] baseColumnPositions,
                                 DataTypeDescriptor[] indexColumnTypes,
                                 boolean[] isAscending,
@@ -164,6 +165,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
         this.indexType = indexType;
         this.isUnique = isUnique;
         this.isUniqueWithDuplicateNulls = isUniqueWithDuplicateNulls;
+        this.baseColumnStoragePositions = baseColumnStoragePositions;
         this.baseColumnPositions = baseColumnPositions;
         this.indexColumnTypes = indexColumnTypes;
         this.isAscending = isAscending;
@@ -181,6 +183,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
     public IndexDescriptorImpl(String indexType,
                                boolean isUnique,
                                boolean isUniqueWithDuplicateNulls,
+                               int[] baseColumnStoragePositions,
                                int[] baseColumnPositions,
                                boolean[] isAscending,
                                int numberOfOrderedColumns,
@@ -188,8 +191,8 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
                                boolean excludeDefaults
     )
     {
-        this(indexType, isUnique, isUniqueWithDuplicateNulls, baseColumnPositions, new DataTypeDescriptor[]{},
-             isAscending, numberOfOrderedColumns, excludeNulls, excludeDefaults,
+        this(indexType, isUnique, isUniqueWithDuplicateNulls, baseColumnStoragePositions, baseColumnPositions,
+                new DataTypeDescriptor[]{}, isAscending, numberOfOrderedColumns, excludeNulls, excludeDefaults,
              new String[]{}, new ByteArray[]{}, new String[]{});
     }
 
@@ -211,9 +214,13 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
             isAscending[i] = indexDescriptorImpl.getIsAscending(i);
         }
         count = indexDescriptorImpl.getBaseColumnPositionsCount();
+        baseColumnStoragePositions = new int[count];
+        for (int i = 0; i < baseColumnStoragePositions.length; ++i) {
+            baseColumnStoragePositions[i] = indexDescriptorImpl.getBaseColumnPositions(i);
+        }
         baseColumnPositions = new int[count];
         for (int i = 0; i < baseColumnPositions.length; ++i) {
-            baseColumnPositions[i] = indexDescriptorImpl.getBaseColumnPositions(i);
+            baseColumnPositions[i] = indexDescriptorImpl.getBaseColumnLogicalPositions(i);
         }
         numberOfOrderedColumns = indexDescriptorImpl.getNumberOfOrderedColumns();
         indexType = indexDescriptorImpl.getIndexType();
@@ -272,8 +279,16 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
         return baseColumnPositions;
     }
 
+    /**
+     *
+     * @return storage positions of index columns
+     */
+    @Override
+    public int[] baseColumnStoragePositions() {
+        return baseColumnStoragePositions;
+    }
     /** @see IndexDescriptor#getKeyColumnPosition */
-    public int getKeyColumnPosition(int heapColumnPosition) throws StandardException
+    public int getKeyColumnPosition(int columnStoragePosition) throws StandardException
     {
         if (isOnExpression()) {
             return -1;
@@ -281,10 +296,10 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
         /* Return 0 if column is not in the key */
         int keyPosition = 0;
 
-        for (int index = 0; index < baseColumnPositions.length; index++)
+        for (int index = 0; index < baseColumnStoragePositions.length; index++)
         {
             /* Return 1-based key column position if column is in the key */
-            if (baseColumnPositions[index] == heapColumnPosition)
+            if (baseColumnStoragePositions[index] == columnStoragePosition)
             {
                 keyPosition = index + 1;
                 break;
@@ -334,7 +349,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
     /** @see IndexDescriptor#setBaseColumnPositions */
     public void        setBaseColumnPositions(int[] baseColumnPositions)
     {
-        this.baseColumnPositions = baseColumnPositions;
+        this.baseColumnStoragePositions = baseColumnPositions;
     }
 
     /** @see IndexDescriptor#setIsAscending */
@@ -374,10 +389,10 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
         sb.append(" (");
 
         if (exprTexts.length == 0) {
-            for (int i = 0; i < baseColumnPositions.length; i++) {
+            for (int i = 0; i < baseColumnStoragePositions.length; i++) {
                 if (i > 0)
                     sb.append(", ");
-                sb.append(baseColumnPositions[i]);
+                sb.append(baseColumnStoragePositions[i]);
                 if (!isAscending[i])
                     sb.append(" DESC");
             }
@@ -436,9 +451,9 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
             isAscending[i] = fh.getBoolean(IS_ASC_KEY + i);
         }
         int numBaseColumns = fh.containsKey(NUM_BASE_COLS_KEY) ? fh.getInt(NUM_BASE_COLS_KEY) : keyLength;
-        baseColumnPositions = new int[numBaseColumns];
+        baseColumnStoragePositions = new int[numBaseColumns];
         for (int i = 0; i < numBaseColumns; i++) {
-            baseColumnPositions[i] = fh.getInt(BASE_COL_POS_KEY + i);
+            baseColumnStoragePositions[i] = fh.getInt(BASE_COL_POS_KEY + i);
         }
         numberOfOrderedColumns = fh.getInt(ORDERED_COL_KEY);
         indexType = (String) fh.get(INDEX_TYPE_KEY);
@@ -501,8 +516,12 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
             builder.addIsAscending(asc);
         }
 
-        for (int pos : baseColumnPositions) {
+        for (int pos : baseColumnStoragePositions) {
             builder.addBaseColumnPositions(pos);
+        }
+
+        for (int pos : baseColumnPositions) {
+            builder.addBaseColumnLogicalPositions(pos);
         }
 
         assert generatedClassNames.length == exprBytecode.length;
@@ -535,9 +554,9 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
         for (int i = 0; i < isAscending.length; i++) {
             fh.putBoolean(IS_ASC_KEY + i, isAscending[i]);
         }
-        fh.putInt(NUM_BASE_COLS_KEY, baseColumnPositions.length);
-        for (int i = 0; i < baseColumnPositions.length; i++) {
-            fh.putInt(BASE_COL_POS_KEY + i, baseColumnPositions[i]);
+        fh.putInt(NUM_BASE_COLS_KEY, baseColumnStoragePositions.length);
+        for (int i = 0; i < baseColumnStoragePositions.length; i++) {
+            fh.putInt(BASE_COL_POS_KEY + i, baseColumnStoragePositions[i]);
         }
         fh.putInt(ORDERED_COL_KEY, numberOfOrderedColumns);
         fh.put(INDEX_TYPE_KEY, indexType);
@@ -599,8 +618,8 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
             if ((id.isUnique == this.isUnique)       &&
                 (id.isUniqueWithDuplicateNulls == 
                     this.isUniqueWithDuplicateNulls) &&
-                (id.baseColumnPositions.length ==
-                    this.baseColumnPositions.length) &&
+                (id.baseColumnStoragePositions.length ==
+                    this.baseColumnStoragePositions.length) &&
                 (id.numberOfOrderedColumns     == 
                     this.numberOfOrderedColumns)     &&
                 (id.indexType.equals(this.indexType)) &&
@@ -612,11 +631,11 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
                 */
                 retval = true;
 
-                for (int i = 0; i < this.baseColumnPositions.length; i++)
+                for (int i = 0; i < this.baseColumnStoragePositions.length; i++)
                 {
                     /* If any array element is not equal, return false */
-                    if ((id.baseColumnPositions[i] !=
-                         this.baseColumnPositions[i]) || 
+                    if ((id.baseColumnStoragePositions[i] !=
+                         this.baseColumnStoragePositions[i]) ||
                         (id.isAscending[i] != this.isAscending[i]))
                     {
                         retval = false;
@@ -638,7 +657,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 
         retval = isUnique ? 1 : 2;
         retval *= numberOfOrderedColumns;
-        for (int baseColumnPosition : baseColumnPositions) {
+        for (int baseColumnPosition : baseColumnStoragePositions) {
             retval *= baseColumnPosition;
         }
         retval *= indexType.hashCode();

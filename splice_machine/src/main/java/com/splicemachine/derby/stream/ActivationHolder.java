@@ -20,6 +20,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.DatabaseDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
@@ -76,6 +77,7 @@ public class ActivationHolder implements Externalizable {
     private static ThreadLocal<SpliceTransactionResourceImpl> impl = new ThreadLocal<>();
     private String currentUser;
     private SchemaDescriptor schemaDescriptor;
+    private DatabaseDescriptor databaseDescriptor;
     private List<String> groupUsers = null;
     private ManagedCache<String, Optional<String>> propertyCache = null;
     private ManagedCache<UUID, SPSDescriptor> storedPreparedStatementCache = null;
@@ -101,6 +103,7 @@ public class ActivationHolder implements Externalizable {
         this.currentUser = activation.getLanguageConnectionContext().getCurrentUserId(activation);
         this.groupUsers = activation.getLanguageConnectionContext().getCurrentGroupUser(activation);
         this.schemaDescriptor = activation.getLanguageConnectionContext().getDefaultSchema(activation);
+        this.databaseDescriptor = activation.getLanguageConnectionContext().getCurrentDatabase(activation);
     }
 
     private void initOperation(Activation activation, SpliceOperation operation) {
@@ -142,11 +145,11 @@ public class ActivationHolder implements Externalizable {
         try {
             SpliceTransactionResourceImpl txnResource = impl.get();
             boolean needToSet = txnResource == null;
+            LanguageConnectionContext lcc = getActivation().getLanguageConnectionContext();
             if (needToSet)
-                txnResource = new SpliceTransactionResourceImpl();
+                txnResource = new SpliceTransactionResourceImpl(lcc.getCurrentDatabaseName(getActivation()));
             else
                 txnResource.close();
-            LanguageConnectionContext lcc = getActivation().getLanguageConnectionContext();
             txnResource.marshallTransaction(txn,
                                             lcc.getDataDictionary().getDataDictionaryCache().getPropertyCache(),
                                             lcc.getLocalSpsCache(),
@@ -224,6 +227,12 @@ public class ActivationHolder implements Externalizable {
         } else {
             out.writeBoolean(false);
         }
+        if (databaseDescriptor != null) {
+            out.writeBoolean(true);
+            out.writeObject(databaseDescriptor);
+        } else {
+            out.writeBoolean(false);
+        }
         LanguageConnectionContext lcc = getActivation().getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         out.writeObject(dd.getDataDictionaryCache().getPropertyCache());
@@ -262,7 +271,7 @@ public class ActivationHolder implements Externalizable {
                 txnResource.close();
             }
 
-            txnResource = new SpliceTransactionResourceImpl();
+            txnResource = new SpliceTransactionResourceImpl(databaseDescriptor.getDatabaseName());
             txnResource.marshallTransaction(txn, propertyCache, storedPreparedStatementCache, defaultRoles,
                                             initialDefaultSchemaDescriptor, activeStateTxId);
             impl.set(txnResource);
@@ -272,6 +281,7 @@ public class ActivationHolder implements Externalizable {
             activation.getLanguageConnectionContext().setCurrentUser(activation, currentUser);
             activation.getLanguageConnectionContext().setCurrentGroupUser(activation, groupUsers);
             activation.getLanguageConnectionContext().setDefaultSchema(activation, schemaDescriptor);
+            activation.getLanguageConnectionContext().setCurrentDatabase(activation, databaseDescriptor);
             SpliceOperation operation =
                     reinit ? (SpliceOperation)activation.execute() : (SpliceOperation)activation.getResultSet();
 
@@ -323,6 +333,11 @@ public class ActivationHolder implements Externalizable {
             schemaDescriptor = (SchemaDescriptor) in.readObject();
         } else {
             schemaDescriptor = null;
+        }
+        if (in.readBoolean()) {
+            databaseDescriptor = (DatabaseDescriptor) in.readObject();
+        } else {
+            databaseDescriptor = null;
         }
         propertyCache = (ManagedCache<String, Optional<String>>) in.readObject();
         storedPreparedStatementCache = (ManagedCache<UUID, SPSDescriptor>) in.readObject();

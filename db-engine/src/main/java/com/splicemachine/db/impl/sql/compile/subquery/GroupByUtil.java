@@ -222,7 +222,7 @@ public class GroupByUtil {
         //
         // PART 1: Add column ref to subquery result columns
         //
-        ResultColumn rc = newResultColumn(subquerySelectNode.getNodeFactory(), subquerySelectNode.getContextManager(), groupByCol);
+        ResultColumn rc = newResultColumn(subquerySelectNode.getContextManager(), groupByCol);
 
         if (groupByCol instanceof ColumnReference) {
             ColumnReference colRef = (ColumnReference) groupByCol;
@@ -246,7 +246,7 @@ public class GroupByUtil {
 
         // Create GroupByList if there isn't already one in the subquery.
         if (subquerySelectNode.getGroupByList() == null) {
-            GroupByList groupByList = newGroupByList(subquerySelectNode.getNodeFactory(), subquerySelectNode.getContextManager());
+            GroupByList groupByList = new GroupByList(subquerySelectNode.getContextManager());
             subquerySelectNode.setGroupByList(groupByList);
         }
 
@@ -261,18 +261,10 @@ public class GroupByUtil {
     // nodes
     // - - - -
 
-    private static ResultColumn newResultColumn(NodeFactory nodeFactory, ContextManager contextManager, ValueNode groupByCol) throws StandardException {
-        ResultColumn rc = (ResultColumn) nodeFactory.getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                groupByCol.getColumnName(),
-                groupByCol,
-                contextManager);
+    private static ResultColumn newResultColumn(ContextManager contextManager, ValueNode groupByCol) throws StandardException {
+        ResultColumn rc = new ResultColumn(groupByCol.getColumnName(), groupByCol, contextManager);
         rc.setColumnDescriptor(null);
         return rc;
-    }
-
-    private static GroupByList newGroupByList(NodeFactory nodeFactory, ContextManager contextManager) throws StandardException {
-        return (GroupByList) nodeFactory.getNode(C_NodeTypes.GROUP_BY_LIST, contextManager);
     }
 
     private static GroupByColumn newGroupByColumn(NodeFactory nodeFactory, ValueNode groupByCol, ResultColumn rc) throws StandardException {

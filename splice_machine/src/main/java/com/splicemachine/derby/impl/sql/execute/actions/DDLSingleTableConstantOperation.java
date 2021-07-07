@@ -133,7 +133,23 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
             String indexName = indexConglom.getObjectName();
             TableDescriptor td = consDesc.getTableDescriptor();
             String schemaName = td.getSchemaName();
-            dropIndex(td, indexConglom, (SpliceTransactionManager)lcc.getTransactionExecute(),lcc, schemaName, indexName);
+            UUID dbId = td.getSchemaDescriptor().getDatabaseId();
+            dropIndex(td, indexConglom, (SpliceTransactionManager)lcc.getTransactionExecute(),lcc, schemaName, indexName, dbId);
+        }
+
+        if (skipCreate != null && consDesc.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT) {
+            ConglomerateDescriptorList cdl = skipCreate.getConglomerateDescriptorList();
+            DataDictionary dd = lcc.getDataDictionary();
+            TransactionController tc = lcc.getTransactionExecute();
+            for (ConglomerateDescriptor cd : cdl) {
+                if (cd.isPrimaryKey()) {
+                    cd.setIndexRowGenerator(null);
+                    dd.dropConglomerateDescriptor(cd, tc);
+                    dd.addDescriptor(cd, skipCreate.getSchemaDescriptor(), DataDictionary.SYSCONGLOMERATES_CATALOG_NUM,
+                            false, tc, false);
+                }
+            }
+
         }
         /* If we don't need a new conglomerate then there's nothing
          * else to do.
@@ -253,10 +269,10 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
         if (cols == null) {
             //column list wasn't stored in conglomerateDescriptor
             //fetch is from table descriptor
-            int [] pos = cd.getIndexDescriptor().baseColumnPositions();
+            int [] pos = cd.getIndexDescriptor().baseColumnStoragePositions();
             cols       = new String [pos.length];
             for (int i = 0; i < cols.length; i++) {
-                cols[i] = td.getColumnDescriptor(pos[i]).getColumnName();
+                cols[i] = td.getColumnDescriptorByStoragePosition(pos[i]).getColumnName();
             }
         }
         
@@ -266,8 +282,9 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
                         false,          // not part of create table 
                         false,          // not unique
                         true,           // create as unique when not null index
-                        cd.getIndexDescriptor().indexType(), 
-                        td.getSchemaName(), 
+                        cd.getIndexDescriptor().indexType(),
+                        td.getSchemaDescriptor().getDatabaseId(),
+                        td.getSchemaName(),
                         cd.getConglomerateName(), td.getName(), td.getUUID(),
                         cols,
                         cd.getIndexDescriptor().getIndexColumnTypes(),
@@ -383,13 +400,13 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
 
     protected void dropIndex(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor,
                              SpliceTransactionManager userTxnManager, LanguageConnectionContext lcc,
-                             String schemaName, String indexName) throws StandardException {
+                             String schemaName, String indexName, UUID dbId) throws StandardException {
         final long tableConglomId = td.getHeapConglomerateId();
         final long indexConglomId = conglomerateDescriptor.getConglomerateNumber();
         TxnView uTxn = userTxnManager.getRawTransaction().getActiveStateTxn();
         TransactionController tc = lcc.getTransactionExecute();
         final TxnView userTxn = uTxn;
-        notifyMetadataChange(tc, ProtoUtil.createDropIndex(indexConglomId, tableConglomId, userTxn.getTxnId(), (BasicUUID) tableId,schemaName,indexName));
+        notifyMetadataChange(tc, ProtoUtil.createDropIndex(indexConglomId, tableConglomId, userTxn.getTxnId(), (BasicUUID) tableId,schemaName,indexName, (BasicUUID) dbId));
     }
 }
 
