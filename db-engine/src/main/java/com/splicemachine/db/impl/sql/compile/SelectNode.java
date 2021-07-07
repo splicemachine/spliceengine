@@ -2950,7 +2950,8 @@ public class SelectNode extends ResultSetNode {
             FromTable fromTable = (FromTable) fromList.elementAt(i);
 
             ResultColumnList rcl = fromTable.getResultColumns();
-            rcl.setColumnReferences(false, true);
+            if(rcl != null)
+                rcl.setColumnReferences(false, true);
         }
 
         List<QueryTreeNode> refedcolmnList = collectReferencedColumns();

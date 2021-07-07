@@ -32,6 +32,7 @@
 package com.splicemachine.db.iapi.services.property;
 
 import com.splicemachine.db.iapi.reference.*;
+import com.splicemachine.db.iapi.sql.Activation;
 import splice.com.google.common.base.Optional;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
@@ -356,6 +357,31 @@ public class PropertyUtil {
                                    GlobalDBProperties.PropertyType key) throws StandardException {
         return getCachedDatabaseProperty(lcc, key.getName());
     }
+
+
+    static class PropertyGetter implements GlobalDBProperties.PropertyGetter {
+        LanguageConnectionContext lcc;
+        public PropertyGetter(LanguageConnectionContext lcc) {
+            this.lcc = lcc;
+        }
+        @Override
+        public String get(GlobalDBProperties.PropertyType key) {
+            try {
+                return getCachedDatabaseProperty(lcc, key.getName());
+            } catch (StandardException e) {
+                return null;
+            }
+        }
+    }
+
+    public static GlobalDBProperties.PropertyGetter getter(Activation a) {
+        return new PropertyGetter(a.getLanguageConnectionContext());
+    }
+
+    public static GlobalDBProperties.PropertyGetter getter(LanguageConnectionContext lcc) {
+        return new PropertyGetter(lcc);
+    }
+
 
     /**
         Find a service wide property with a default. Search order is

@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.test.framework;
 
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.derby.utils.test.DecoderIT;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.utils.Pair;
@@ -1409,5 +1410,10 @@ public class SpliceUnitTest {
 
         filter = filter.replace("§", ".*");
         return filter;
+    }
+
+    public static void setOption(SpliceWatcher m, GlobalDBProperties.PropertyType type, String value) throws Exception {
+        m.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( '" + type.getName() + "'," +
+                        (value == null ? "null" : ("'" + value + "'") ) + " )");
     }
 }

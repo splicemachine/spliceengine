@@ -38,12 +38,16 @@ import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.SQLRef;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.MatchingClauseConstantAction;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.impl.sql.execute.actions.MergeConstantAction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import org.apache.commons.lang.NotImplementedException;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * INSERT/UPDATE/DELETE a target table based on how it outer joins
@@ -236,5 +240,10 @@ public class MergeOperation extends NoRowsOperation
     @Override
     public long[] modifiedRowCount() {
         return new long[] { _rowCount };
+    }
+
+    @Override
+    public List<SpliceOperation> getSubOperations() {
+        return Collections.singletonList(_drivingLeftJoin);
     }
 }

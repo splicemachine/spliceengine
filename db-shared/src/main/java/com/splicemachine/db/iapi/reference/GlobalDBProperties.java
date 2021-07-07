@@ -55,6 +55,10 @@ public class GlobalDBProperties {
                 } ).filter( f -> f != null );
     }
 
+    public interface PropertyGetter {
+        String get(GlobalDBProperties.PropertyType key);
+    }
+
     public static class PropertyType {
         String name, information;
         Validator.Interface validator;
@@ -84,6 +88,18 @@ public class GlobalDBProperties {
 
         @Override
         public String toString() { return name; }
+
+        public Integer getInteger(PropertyGetter g, Integer defaultI) {
+            String s = g.get(this);
+            if(s == null) return defaultI;
+            if(!validate(s).isEmpty())
+                return defaultI;
+            try {
+                return Integer.parseInt(s);
+            } catch(NumberFormatException e) {
+                return defaultI;
+            }
+        }
     }
 
     public static PropertyType SPLICE_TIMESTAMP_FORMAT =
@@ -136,4 +152,13 @@ public class GlobalDBProperties {
             new PropertyType("splice.execution.newMergeJoin",
                     "use new merge join. possible values: on, off, forced",
                     new Validator.MultipleOptions(new String[]{"on", "off", "forced"}));
+
+    public static PropertyType MERGE_INTO_BATCH =
+            new PropertyType("splice.execution.merge.batch",
+                    "number of rows to batch for MERGE INTO", Integer::parseInt);
+
+    public static PropertyType MERGE_INTO_SIZE =
+            new PropertyType("splice.execution.merge.size",
+                    "size of batch for MERGE INTO", Integer::parseInt);
+
 }

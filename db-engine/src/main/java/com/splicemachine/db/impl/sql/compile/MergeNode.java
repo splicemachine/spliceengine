@@ -590,7 +590,7 @@ public class MergeNode extends DMLStatementNode
     public void optimizeStatement() throws StandardException
     {
         /* First optimize the left join */
-        _leftJoinCursor.optimizeStatement();
+        //_leftJoinCursor.optimizeStatement();
 
         /* In language we always set it to row lock, it's up to store to
          * upgrade it to table lock.  This makes sense for the default read
@@ -598,6 +598,11 @@ public class MergeNode extends DMLStatementNode
          * Beetle 4133.
          */
         //lockMode = TransactionController.MODE_RECORD;
+
+        // todo: this is a temporary solution until we make this run in OLAP
+        setUseSparkOverride(false);
+        // this will optimize resultSet, which is the SelectNode of the join
+        super.optimizeStatement();
 
         // now optimize the INSERT/UPDATE/DELETE actions
         for ( MatchingClauseNode mcn : _matchingClauses )
@@ -623,18 +628,14 @@ public class MergeNode extends DMLStatementNode
         acb.pushGetResultSetFactoryExpression( mb );
 
         // getMergeResultSet arg 1: the driving left join
-        _leftJoinCursor.generate( acb, mb );
-
-        // dig up the actual result set which was generated and which will drive the MergeResultSet
-        ScrollInsensitiveResultSetNode  sirs = (ScrollInsensitiveResultSetNode) _leftJoinCursor.resultSet;
-        ResultSetNode   generatedScan = sirs.getChildResult();
+        resultSet.generate( acb, mb );
 
         ConstantAction[]    clauseActions = new ConstantAction[ clauseCount ];
         for ( int i = 0; i < clauseCount; i++ )
         {
             MatchingClauseNode  mcn = _matchingClauses.get( i );
 
-            mcn.generate( acb, _selectList, generatedScan, _hojn, i );
+            mcn.generate( acb, _selectList, resultSet, _hojn, i );
             clauseActions[ i ] = mcn.makeConstantAction( acb );
         }
         _constantAction = getGenericConstantActionFactory().getMergeConstantAction( clauseActions );

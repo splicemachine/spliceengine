@@ -32,12 +32,13 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultDescription;
-import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -75,7 +76,13 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
 
     // for versioning during (de)serialization
     private static final int FIRST_VERSION = 0;
-    public static final int _overflowToConglomThreshold = 10000;
+    private int _rowsSize = 0;
+
+    // global db properties
+    boolean _configured = false;
+    int _overflowToConglomThreshold;
+    int _overflowRowsSize;
+
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -210,6 +217,7 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
             co.close();
         }
         _thenRows.truncate();
+        _rowsSize = 0;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////
@@ -273,10 +281,12 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
         }
 
         _thenRows.insert( thenRow );
+        _rowsSize += thenRow.getRowSize();
         // prevent TemporaryRowHolderImpl from creating a conglomerate,
         // which is currently not supported as it runs in read-only transaction
         // maybe it's faster anyway to do it like this and not write to hbase
-        if(_thenRows.numRows() >= _overflowToConglomThreshold ) {
+        if(_thenRows.numRows() >= _overflowToConglomThreshold
+            || _rowsSize > _overflowRowsSize ) {
             executeConstantAction(activation);
         }
     }
@@ -336,7 +346,15 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
             _thenRows.close();
             _thenRows = null;
         }
+    }
 
+    void getGlobalConfig(Activation activation) {
+        if(_configured) return;
+        GlobalDBProperties.PropertyGetter g = PropertyUtil.getter(activation);
+
+        _overflowToConglomThreshold = GlobalDBProperties.MERGE_INTO_BATCH.getInteger(g, 100000);
+        _overflowRowsSize = GlobalDBProperties.MERGE_INTO_SIZE.getInteger(g, 5*1024*1024);
+        _configured = true;
     }
 
 
@@ -346,8 +364,9 @@ public class MatchingClauseConstantAction implements ConstantAction, Formatable
      * for bulk-processing after the driving left join completes.
      * </p>
      */
-    private TemporaryRowHolderImpl createThenRows( Activation activation )
-    {
+    private TemporaryRowHolderImpl createThenRows( Activation activation ) throws StandardException {
+        getGlobalConfig(activation);
+        _rowsSize = 0;
         return new TemporaryRowHolderImpl( activation, new Properties(), _thenColumnSignature, _overflowToConglomThreshold );
     }
 

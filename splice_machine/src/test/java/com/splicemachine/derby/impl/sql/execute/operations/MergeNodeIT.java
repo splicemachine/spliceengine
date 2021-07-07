@@ -14,11 +14,14 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.derby.impl.sql.execute.actions.MatchingClauseConstantAction;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportBuilder;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import org.apache.commons.math3.geometry.spherical.oned.ArcsSet;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -557,26 +560,35 @@ public class MergeNodeIT
     // testing large MERGE INTO where we have to break up the insert/update/delete into multiple chunks
     @Test
     public void mergeLarge() throws Exception {
+        int N = 10000;
         methodWatcher.execute("CREATE TABLE cust (I INTEGER, NAME VARCHAR(255))");
         ExportBuilder b = new ExportBuilder().path(getResourceDirectory() + "customer_iso_10k.csv");
         methodWatcher.execute(b.importSql("IMPORT_DATA", CLASS_NAME, "cust"));
 
-        methodWatcher.execute("INSERT INTO cust SELECT * FROM cust"); // 20k
-        methodWatcher.execute("INSERT INTO cust SELECT * FROM cust"); // 40k
-        methodWatcher.execute("INSERT INTO cust SELECT * FROM cust"); // 80k
+        for(int i=0; i<5; i++) {
+            methodWatcher.execute("INSERT INTO cust SELECT * FROM cust");
+            N *= 2;
+        }
+        Assert.assertTrue(N > 100000);
+
         long before = System.currentTimeMillis();
-        methodWatcher.execute("INSERT INTO cust SELECT * FROM cust"); // 160k
-        System.out.println("MergeNodeIT.create took " + 2*(System.currentTimeMillis()-before) + " ms");
-
-
-        before = System.currentTimeMillis();
         methodWatcher.execute("CREATE TABLE MI_dest (I INTEGER, NAME VARCHAR(255), J INTEGER)");
-        Assert.assertEquals(160000, methodWatcher.executeUpdate(
+        Assert.assertEquals(N, methodWatcher.executeUpdate(
                 "merge into MI_dest using cust on (MI_dest.i = cust.i) " +
                         "when not matched then INSERT (i, name, j) VALUES (cust.i, cust.name, cust.i)\n"+
                         "when matched THEN UPDATE SET MI_dest.j=22") );
-        System.out.println("MergeNodeIT.mergeLarge took " + (System.currentTimeMillis()-before) + " ms");
+        long timeMerge = System.currentTimeMillis()-before;
 
+        methodWatcher.execute("CREATE TABLE MI_dest2 (I INTEGER, NAME VARCHAR(255), J INTEGER)");
+        before = System.currentTimeMillis();
+        methodWatcher.execute("INSERT INTO MI_dest2 SELECT i, name, i FROM cust"); // 160k
+        long timeInsert = System.currentTimeMillis()-before;
+        System.out.println("MergeNodeIT.mergeLarge: " + N + " merge took " + (timeMerge) + " ms");
+        System.out.println("MergeNodeIT.mergeLarge: " + N + " direct insert took " + (timeInsert) + " ms");
+
+        // merge should take ~2x as long as insert, not much more.
+
+        methodWatcher.execute("DROP TABLE MI_dest2");
         methodWatcher.execute("DROP TABLE MI_dest");
         methodWatcher.execute("DROP TABLE cust");
     }
@@ -585,64 +597,66 @@ public class MergeNodeIT
     // testing large MERGE INTO where we have to break up the insert/update/delete into multiple chunks
     @Test
     public void mergeMultiChunks() throws Exception {
-        int N = 8000; // can be up to 10000
-        methodWatcher.execute("CREATE TABLE customer_iso_10k (I INTEGER, NAME VARCHAR(255))");
-        ExportBuilder b= new ExportBuilder().path(getResourceDirectory() + "customer_iso_10k.csv");
-        methodWatcher.execute( b.importSql("IMPORT_DATA", CLASS_NAME, "customer_iso_10k") );
+        try {
+            methodWatcher.execute("CREATE TABLE cust (I INTEGER, NAME VARCHAR(255))");
+            methodWatcher.execute("CREATE TABLE MI_dest (I INTEGER, NAME VARCHAR(255), J INTEGER)");
+            SpliceUnitTest.setOption(methodWatcher, GlobalDBProperties.MERGE_INTO_BATCH, "1000");
 
-        methodWatcher.execute("CREATE TABLE cust (I INTEGER, NAME VARCHAR(255))");
-        methodWatcher.execute("INSERT INTO cust SELECT * FROM customer_iso_10k ORDER BY i {limit " + N + "}");
+            int N = 10000;
+            int K = 1;
+            ExportBuilder b = new ExportBuilder().path(getResourceDirectory() + "customer_iso_10k.csv");
+            methodWatcher.execute(b.importSql("IMPORT_DATA", CLASS_NAME, "cust"));
+
+            String insert = "INSERT INTO MI_dest VALUES (2, 'Abarca', 22), (3, 'Abelson', 33), (4, 'Abern', 44)";
+
+            // INSERT more than_overflowToConglomThreshold rows + UPDATE three of them
+            methodWatcher.execute(insert);
+            Assert.assertEquals(K * N, methodWatcher.executeUpdate(
+                    "merge into MI_dest using cust on (MI_dest.i = cust.i) " +
+                            "when not matched then INSERT (i, name, j) VALUES (cust.i, cust.name, cust.i)\n" +
+                            "when matched THEN UPDATE SET MI_dest.j=22"));
+
+            methodWatcher.assertStrResult(
+                    "I |  NAME   | J |\n" +
+                    "------------------\n" +
+                    " 1 |Aaronson | 1 |\n" +
+                    " 2 | Abarca  |22 |\n" +
+                    " 3 | Abelson |22 |\n" +
+                    " 4 |  Abern  |22 |\n" +
+                    " 5 |  Abram  | 5 |",
+                    "select * from MI_dest ORDER BY I {limit 5}", true);
+
+            // INSERT only more than 1000 rows
+            methodWatcher.execute("DELETE FROM MI_dest");
+            methodWatcher.execute(insert);
+            Assert.assertEquals(K * (N - 3), methodWatcher.executeUpdate(
+                    "merge into MI_dest using cust on (MI_dest.i = cust.i) " +
+                            "when not matched then INSERT (i, name, j) VALUES (cust.i, cust.name, cust.i)")
+            );
+
+            // UPDATE more than 1000 rows
+            Assert.assertEquals(K * N, methodWatcher.executeUpdate(
+                    "merge into MI_dest using cust on (MI_dest.i = cust.i) " +
+                            "when matched then UPDATE SET j = 1")
+            );
 
 
-        methodWatcher.execute("CREATE TABLE MI_dest (I INTEGER, NAME VARCHAR(255), J INTEGER)");
-        String insert = "INSERT INTO MI_dest VALUES (2, 'Abarca', 22), (3, 'Abelson', 33), (4, 'Abern', 44)";
+            int sum_1_N = N * (N + 1) / 2; // = 1 + 2 + ... + 3000
+            Assert.assertEquals(sum_1_N, methodWatcher.executeGetInt("select sum(i) from cust", 1));
+            Assert.assertEquals(sum_1_N, methodWatcher.executeGetInt("select sum(i) from MI_dest", 1));
+            Assert.assertEquals(K * N, methodWatcher.executeGetInt("select sum(j) from MI_dest", 1));
 
-        // INSERT more than 1000 rows + UPDATE three of them
-        methodWatcher.execute(insert);
-        Assert.assertEquals(N, methodWatcher.executeUpdate(
-                        "merge into MI_dest using cust on (MI_dest.i = cust.i) " +
-                        "when not matched then INSERT (i, name, j) VALUES (cust.i, cust.name, cust.i)\n"+
-                        "when matched THEN UPDATE SET MI_dest.j=22") );
-
-        methodWatcher.assertStrResult(
-                "I |  NAME   | J |\n" +
-                "------------------\n" +
-                " 1 |Aaronson | 1 |\n" +
-                " 2 | Abarca  |22 |\n" +
-                " 3 | Abelson |22 |\n" +
-                " 4 |  Abern  |22 |\n" +
-                " 5 |  Abram  | 5 |",
-                "select * from MI_dest ORDER BY I {limit 5}", true);
-
-        // INSERT only more than 1000 rows
-        methodWatcher.execute("DELETE FROM MI_dest");
-        methodWatcher.execute(insert);
-        Assert.assertEquals(N-3, methodWatcher.executeUpdate(
-                        "merge into MI_dest using cust on (MI_dest.i = cust.i) " +
-                        "when not matched then INSERT (i, name, j) VALUES (cust.i, cust.name, cust.i)")
-        );
-
-        // UPDATE more than 1000 rows
-        Assert.assertEquals(N, methodWatcher.executeUpdate(
-                "merge into MI_dest using cust on (MI_dest.i = cust.i) " +
-                "when matched then UPDATE SET j = 1")
-        );
-
-
-        int sum_1_N = N*(N+1)/2; // = 1 + 2 + ... + 3000
-        Assert.assertEquals(sum_1_N, methodWatcher.executeGetInt("select sum(i) from cust", 1));
-        Assert.assertEquals(sum_1_N, methodWatcher.executeGetInt("select sum(i) from MI_dest", 1));
-        Assert.assertEquals(N, methodWatcher.executeGetInt("select sum(j) from MI_dest", 1));
-
-        // DELETE all rows with i > 100 (-> N-100 deleted)
-        Assert.assertEquals(N-100, methodWatcher.executeUpdate(
-                        "merge into MI_dest using cust on (MI_dest.i = cust.i) " +
-                        "when matched AND cust.i > 100 then DELETE")
-        );
-
-        methodWatcher.execute("DROP TABLE MI_dest");
-        methodWatcher.execute("DROP TABLE cust");
-        methodWatcher.execute("DROP TABLE customer_iso_10k");
+            // DELETE all rows with i > 100 (-> N-100 deleted)
+            Assert.assertEquals(K * (N - 100), methodWatcher.executeUpdate(
+                    "merge into MI_dest using cust on (MI_dest.i = cust.i) " +
+                            "when matched AND cust.i > 100 then DELETE")
+            );
+        }
+        finally {
+            methodWatcher.execute("DROP TABLE MI_dest");
+            methodWatcher.execute("DROP TABLE cust");
+            SpliceUnitTest.setOption(methodWatcher, GlobalDBProperties.MERGE_INTO_BATCH, null);
+        }
     }
 
     @Test

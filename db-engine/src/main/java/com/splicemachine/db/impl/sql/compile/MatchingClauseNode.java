@@ -596,25 +596,22 @@ public class MatchingClauseNode extends QueryTreeNode {
     ////////////////////// DELETE ///////////////////////////////
 
     /** Bind a WHEN MATCHED ... THEN DELETE clause */
-    private void    bindDelete(FromBaseTable targetTable)
+    private void bindDelete(FromBaseTable targetTable)
             throws StandardException
     {
-        CurrentOfNode   currentOfNode = CurrentOfNode.makeForMerge
-                ( CURRENT_OF_NODE_NAME, targetTable, getContextManager() );
+        CurrentOfNode currentOfNode = CurrentOfNode.makeForMerge(CURRENT_OF_NODE_NAME, targetTable, getContextManager());
         FromList fromList = new FromList( getContextManager() );
         fromList.addFromTable( currentOfNode );
 
-        SelectNode selectNode = new SelectNode(
-                                        null, // selectList
-                                        fromList, // fromList
-                                        null, getContextManager()
-                                );
-        Properties tableProperties = null; // todo
+        SelectNode selectNode = new SelectNode( null, // selectList
+                                                fromList, // fromList
+                                                null, getContextManager() );
+        Properties tableProperties = null; // todo: do we have to set this?
         _dml = new DeleteNode( targetTable.getTableName(), selectNode, false,
                 tableProperties, this, getContextManager() );
 
-        _dml.bindStatement();
 
+        _dml.bindStatement();
         buildThenColumnsForDelete();
     }
 
