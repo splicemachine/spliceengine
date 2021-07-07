@@ -5052,6 +5052,12 @@ nonJoinQueryTerm(ResultSetNode leftSide, int operatorType, ValueNode[] topNOut) 
                 getContextManager());
 
         case EXCEPT_OP:
+            if (leftSide instanceof SelectNode) {
+                ((SelectNode)leftSide).makeDistinct();
+            }
+            if (term instanceof SelectNode) {
+                ((SelectNode)term).makeDistinct();
+            }
             return (ResultSetNode) nodeFactory.getNode(
                 C_NodeTypes.INTERSECT_OR_EXCEPT_NODE,
                 ReuseFactory.getInteger( IntersectOrExceptNode.EXCEPT_OP),
