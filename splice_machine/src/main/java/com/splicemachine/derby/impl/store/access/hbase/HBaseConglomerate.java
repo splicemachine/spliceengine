@@ -348,19 +348,20 @@ public class HBaseConglomerate extends SpliceConglomerate{
 
     @Override
     public TypeMessage.DataValueDescriptor toProtobuf() throws IOException {
-        TypeMessage.HBaseConglomerate hbaseConglomerate = TypeMessage.HBaseConglomerate.newBuilder()
+        TypeMessage.HBaseConglomerate.Builder hbaseConglomerate = TypeMessage.HBaseConglomerate.newBuilder()
                 .setConglomerateFormatId(conglom_format_id)
                 .setTmpFlag(tmpFlag)
                 .setContainerId(containerId)
                 .addAllFormatIds(Arrays.stream(format_ids).boxed().collect(Collectors.toList()))
                 .addAllCollationIds(Arrays.stream(collation_ids).boxed().collect(Collectors.toList()))
-                .addAllColumnOrdering(Arrays.stream(columnOrdering).boxed().collect(Collectors.toList()))
-                .addAllKeyFormatIds(Arrays.stream(keyFormatIds).boxed().collect(Collectors.toList()))
-                .build();
+                .addAllColumnOrdering(Arrays.stream(columnOrdering).boxed().collect(Collectors.toList()));
+        if (keyFormatIds != null) {
+            hbaseConglomerate.addAllKeyFormatIds(Arrays.stream(keyFormatIds).boxed().collect(Collectors.toList()));
+        }
 
         TypeMessage.SpliceConglomerate spliceConglomerate = TypeMessage.SpliceConglomerate.newBuilder()
                 .setType(TypeMessage.SpliceConglomerate.Type.HBaseConglomerate)
-                .setExtension(TypeMessage.HBaseConglomerate.hbaseConglomerate, hbaseConglomerate)
+                .setExtension(TypeMessage.HBaseConglomerate.hbaseConglomerate, hbaseConglomerate.build())
                 .build();
 
         TypeMessage.DataValueDescriptor dvd = TypeMessage.DataValueDescriptor.newBuilder()
