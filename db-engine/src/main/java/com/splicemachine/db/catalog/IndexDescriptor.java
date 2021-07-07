@@ -72,6 +72,12 @@ public interface IndexDescriptor
     int[] baseColumnPositions();
 
     int[] baseColumnStoragePositions();
+
+    /**
+     * @return true if this index descriptor is invalid as a result of an upgrade from a pre 2023 version
+     */
+    boolean isInvalidIndexDescriptor();
+
     /**
      * Returns the postion of a column.
      * <p>
@@ -131,8 +137,15 @@ public interface IndexDescriptor
      * set the baseColumnPositions field of the index descriptor.  This
      * is for updating the field in operations such as "alter table drop
      * column" where baseColumnPositions is changed.
+     * @param baseColumnStoragePositions
      */
-    void     setBaseColumnPositions(int[] baseColumnPositions);
+    void setBaseColumnStoragePositions(int[] baseColumnStoragePositions);
+
+    void setBaseColumnPositions(int[] baseColumnsPositions);
+
+    int[] getBaseColumnStoragePositions();
+
+    int[] getBaseColumnPositions();
 
     /**
      * set the isAscending field of the index descriptor.  This
