@@ -256,10 +256,13 @@ public class TriggerEventActivator {
     private void preCompileTrigger(TriggerDescriptor td,
                                    Activation activation) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        if (td.isRowTrigger())
+            lcc.setCompilingRowTrigger(true);
         td.getWhenClauseSPS(lcc, activation);
         int numActions = td.getActionIdList().size();
         for (int i=0; i < numActions; i++)
             td.getActionSPS(lcc, activation, i);
+        lcc.setCompilingRowTrigger(false);
     }
 
     /**

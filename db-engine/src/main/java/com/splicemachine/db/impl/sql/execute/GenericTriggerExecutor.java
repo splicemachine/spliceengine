@@ -127,15 +127,21 @@ public abstract class GenericTriggerExecutor implements AutoCloseable {
     private SPSDescriptor getWhenClause() throws StandardException {
         if (!whenClauseRetrieved) {
             whenClauseRetrieved = true;
+            if (triggerd.isRowTrigger())
+                lcc.setCompilingRowTrigger(true);
             whenClause = triggerd.getWhenClauseSPS(lcc, activation);
+            lcc.setCompilingRowTrigger(false);
         }
         return whenClause;
     }
 
     private SPSDescriptor getAction(int index) throws StandardException {
         if (!actionRetrievedList.get(index)) {
+            if (triggerd.isRowTrigger())
+                lcc.setCompilingRowTrigger(true);
             actionRetrievedList.set(index, true);
             actionList.set(index, triggerd.getActionSPS(lcc, activation, index));
+            lcc.setCompilingRowTrigger(false);
         }
         return actionList.get(index);
     }

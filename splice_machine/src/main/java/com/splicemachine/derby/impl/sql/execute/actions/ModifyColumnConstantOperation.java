@@ -1149,6 +1149,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
          * that, we need to regenerate the internal representation of that
          * sql and bind it again.
          */
+        boolean isRowTrigger = trd.isRowTrigger();
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         TransactionController tc = lcc.getTransactionExecute();
@@ -1193,8 +1194,11 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             //    FOR EACH ROW
             //    SELECT oldt.c11 from DERBY4998_SOFT_UPGRADE_RESTRICT
 
+            if (isRowTrigger)
+                lcc.setCompilingRowTrigger(true);
             SPSDescriptor sps = isWhenClause ? trd.getWhenClauseSPS(lcc, activation)
                                              : trd.getActionSPS(lcc, activation, index);
+            lcc.setCompilingRowTrigger(false);
             int[] referencedColsInTriggerAction = new int[td.getNumberOfColumns()];
             java.util.Arrays.fill(referencedColsInTriggerAction, -1);
             String newText = dd.getTriggerActionString(node,

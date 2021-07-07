@@ -441,6 +441,9 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      * @param accessPath the access path
      */
     public DataSetProcessorType getDataSetProcessorTypeForAccessPath(AccessPath accessPath) {
+        if (getLanguageConnectionContext().compilingRowTrigger())
+            return DataSetProcessorType.DEFAULT_OLTP;
+
         if (! dataSetProcessorType.isDefaultOltp()) {
             // No need to assess cost
             return dataSetProcessorType;

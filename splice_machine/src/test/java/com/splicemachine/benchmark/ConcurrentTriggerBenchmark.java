@@ -69,7 +69,7 @@ public class ConcurrentTriggerBenchmark extends Benchmark {
         testStatement.execute("CREATE TABLE " + UPDATE_AUDIT_TABLE + " (time TIMESTAMP, audit INTEGER NOT NULL)");
 
         size = DEFAULT_SIZE;
-        runBenchmark(DEFAULT_CONNECTIONS, TriggerBenchmark::populateTables);
+        runBenchmark(DEFAULT_CONNECTIONS, ConcurrentTriggerBenchmark::populateTables);
         curSize.set(size);
 
         LOG.info("Analyze, create triggers");

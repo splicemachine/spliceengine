@@ -312,6 +312,8 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
                 DataDictionary.SYSTRIGGERS_CATALOG_NUM, false,
                 tc, false);
 
+        if (triggerd.isRowTrigger())
+            lcc.setCompilingRowTrigger(true);
 
         /*    
         ** If we have a WHEN action we create it now.
@@ -337,6 +339,8 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
              */
             dm.addDependency(triggerd, actionspsd, lcc.getContextManager());
         }
+
+        lcc.setCompilingRowTrigger(false);
 
         dm.addDependency(triggerd, triggerTable, lcc.getContextManager());
         //store trigger's dependency on various privileges in the dependency system

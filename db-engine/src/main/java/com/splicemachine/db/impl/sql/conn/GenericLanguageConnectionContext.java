@@ -380,6 +380,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private boolean hasJoinStrategyHint;
     private boolean compilingStoredPreparedStatement;
     private boolean compilingTrigger;
+    private boolean compilingRowTrigger;
     private MessageDigest messageDigest;
 
     /* constructor */
@@ -4410,6 +4411,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public void setCompilingTrigger(boolean newValue) {
         compilingTrigger = newValue;
+    }
+
+    @Override
+    public boolean compilingRowTrigger() {
+        return compilingRowTrigger;
+    }
+
+    @Override
+    public void setCompilingRowTrigger(boolean newValue) {
+        compilingRowTrigger = newValue;
     }
 
     @Override
