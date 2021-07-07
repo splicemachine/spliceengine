@@ -478,6 +478,7 @@ public class GenericStatement implements Statement{
                 }
 
                 setSSQFlatteningForUpdateDisabled(lcc, cc);
+                setAlterTableAutoViewRefreshing(lcc, cc);
                 setVarcharDB2CompatibilityMode(lcc, cc);
             }
             fourPhasePrepare(lcc,paramDefaults,timestamps,foundInCache,cc,boundAndOptimizedStatement);
@@ -530,6 +531,15 @@ public class GenericStatement implements Statement{
             // just use the default setting.
         }
         cc.setVarcharDB2CompatibilityMode(varcharDB2CompatibilityMode);
+    }
+
+    private void setAlterTableAutoViewRefreshing(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String valueStr = PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_ALTER_TABLE_AUTO_VIEW_REFRESHING);
+        boolean value = CompilerContext.DEFAULT_SPLICE_ALTER_TABLE_AUTO_VIEW_REFRESHING;
+        if (valueStr != null) {
+            value = Boolean.parseBoolean(valueStr);
+        }
+        cc.setAlterTableAutoViewRefreshing(value);
     }
 
     private void setSSQFlatteningForUpdateDisabled(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
