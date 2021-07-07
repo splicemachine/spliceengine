@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.impl.db;
 
-import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.AuthenticationConfiguration;
 import com.splicemachine.db.catalog.UUID;
@@ -23,9 +22,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.AuthenticationService;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.daemon.Serviceable;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyFactory;
@@ -35,10 +32,7 @@ import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.FileInfoDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -62,6 +56,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
@@ -196,14 +191,19 @@ public class SpliceDatabase extends BasicDatabase{
                                                                        List<String> defaultRoles,
                                                                        SchemaDescriptor initialDefaultSchemaDescriptor,
                                                                        long driverTxnId,
-                                                                       TransactionController reuseTC) throws StandardException{
+                                                                       TransactionController reuseTC,
+                                                                       ArrayList<DisplayedTriggerInfo> triggerInfos,
+                                                                       HashMap<UUID, DisplayedTriggerInfo> triggerIdToTriggerInfoMap,
+                                                                       HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap,
+                                                                       Stack<Pair<java.util.UUID, Long>> queryTxnIdStack) throws StandardException{
         TransactionController tc = reuseTC == null ? ((SpliceAccessManager)af).marshallTransaction(cm,txn) : reuseTC;
         cm.setLocaleFinder(this);
         pushDbContext(cm);
         LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,
                 groupuserlist,drdaID,dbname,rdbIntTkn,type, sparkExecutionType, skipStats, defaultSelectivityFactor,
                 ipAddress, null,
-                spsCache, defaultRoles, initialDefaultSchemaDescriptor, driverTxnId, null);
+                spsCache, defaultRoles, initialDefaultSchemaDescriptor, driverTxnId, null,
+                triggerInfos, triggerIdToTriggerInfoMap, queryIdToTriggerInfoMap, queryTxnIdStack);
 
         pushClassFactoryContext(cm,lcf.getClassFactory());
         ExecutionFactory ef=lcf.getExecutionFactory();

@@ -392,7 +392,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         List<String> defaultRoles,
         SchemaDescriptor initialDefaultSchemaDescriptor,
         long driverTxnId,
-        Properties connectionProperties
+        Properties connectionProperties,
+        ArrayList<DisplayedTriggerInfo> triggerInfos,
+        HashMap<UUID, DisplayedTriggerInfo> triggerIdToTriggerInfoMap,
+        HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap,
+        Stack<Pair<java.util.UUID, Long>> queryTxnIdStack
     ) throws StandardException {
         super(cm, ContextId.LANG_CONNECTION);
         acts = new ArrayList<>();
@@ -418,6 +422,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         this.activeStateTxId = driverTxnId;
         this.defaultRoles = defaultRoles;
         this.cachedInitialDefaultSchemaDescr = initialDefaultSchemaDescriptor;
+        this.triggerInfos = triggerInfos == null ? new ArrayList<>() : triggerInfos;
+        this.triggerIdToTriggerInfoMap = triggerIdToTriggerInfoMap == null ? new HashMap<>() : triggerIdToTriggerInfoMap;
+        this.queryIdToTriggerInfoMap = queryIdToTriggerInfoMap == null ? new HashMap<>() : queryIdToTriggerInfoMap;
+        this.queryTxnIdStack = queryTxnIdStack == null ? new Stack<>() : queryTxnIdStack;
         if (initialDefaultSchemaDescriptor != null)
             initialDefaultSchemaDescriptor.setDataDictionary(getDataDictionary());
 
@@ -550,6 +558,21 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private Stack<Pair<java.util.UUID, Long>> queryTxnIdStack = new Stack<>();
 
     @Override
+    public HashMap<UUID, DisplayedTriggerInfo> getTriggerIdToTriggerInfoMap() {
+        return triggerIdToTriggerInfoMap;
+    }
+
+    @Override
+    public HashMap<java.util.UUID, DisplayedTriggerInfo> getQueryIdToTriggerInfoMap() {
+        return queryIdToTriggerInfoMap;
+    }
+
+    @Override
+    public Stack<Pair<java.util.UUID, Long>> getQueryTxnIdStack() {
+        return queryTxnIdStack;
+    }
+
+    @Override
     public void initTriggerInfo(TriggerDescriptor[] tds, java.util.UUID currentQueryId, long txnId) {
         if (queryTxnIdStack.empty()) {
             triggerIdToTriggerInfoMap = new HashMap<>();
@@ -577,7 +600,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         queryIdToTriggerInfoMap.put(pair.getFirst(), info);
 
         if (queryIdToTriggerInfoMap.containsKey(pair.getFirst())) {
-            queryIdToTriggerInfoMap.put(pair.getFirst(), new DisplayedTriggerInfo(triggerId, info.getName(), pair.getSecond(), pair.getFirst(), info.getParentQueryId()));
+            java.util.UUID parentQueryId = info == null ? null : info.getParentQueryId();
+            queryIdToTriggerInfoMap.put(pair.getFirst(), new DisplayedTriggerInfo(triggerId, info.getName(), pair.getSecond(), pair.getFirst(), parentQueryId));
         } else {
             info.setQueryId(pair.getFirst());
             info.setTxnId(pair.getSecond());
@@ -585,7 +609,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         }
 
     }
-
 
     @Override
     public void recordAdditionalDisplayedTriggerInfo(long elapsedTime, long modifiedRows, java.util.UUID queryId) {
