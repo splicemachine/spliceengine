@@ -47,26 +47,23 @@ public class ReflectMethod implements GeneratedMethod {
 		realMethod = m;
 	}
 
-	public Object invoke(Object ref)
+	@Override
+	public Object invoke(Object ref, Object... args)
 		throws StandardException {
 
-		Throwable t;
+			Throwable t;
+			try {
+				return realMethod.invoke(ref, args);
 
-		try {
-			return realMethod.invoke(ref, null);
+			} catch (IllegalAccessException | IllegalArgumentException iae) {
+				t = iae;
+			} catch (InvocationTargetException ite) {
+				t = ite.getTargetException();
+				if (t instanceof StandardException)
+					throw (StandardException) t;
+			}
 
-		} catch (IllegalAccessException | IllegalArgumentException iae) {
-
-			t = iae;
-
-		} catch (InvocationTargetException ite) {
-
-			t = ite.getTargetException();
-			if (t instanceof StandardException)
-				throw (StandardException) t;
-		}
-		
-		throw StandardException.unexpectedUserException(t);
+			throw StandardException.unexpectedUserException(t);
 	}
 
 //	@Override

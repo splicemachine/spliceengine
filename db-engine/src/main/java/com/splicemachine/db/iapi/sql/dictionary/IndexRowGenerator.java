@@ -438,9 +438,9 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 	}
 
 	/** @see IndexDescriptor#getKeyColumnPosition */
-	public int getKeyColumnPosition(int heapColumnPosition) throws StandardException
+	public int getKeyColumnPosition(int columnStoragePosition) throws StandardException
 	{
-		return id.getKeyColumnPosition(heapColumnPosition);
+		return id.getKeyColumnPosition(columnStoragePosition);
 	}
 
 	/** @see IndexDescriptor#numberOfOrderedColumns */

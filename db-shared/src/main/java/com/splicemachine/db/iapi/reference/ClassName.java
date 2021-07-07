@@ -76,6 +76,7 @@ public interface ClassName
 	String BaseExecutableIndexExpression = "com.splicemachine.db.impl.sql.execute.BaseExecutableIndexExpression";
 
 	String CursorActivation = "com.splicemachine.db.impl.sql.execute.CursorActivation";
+	String ConstantActionActivation = "com.splicemachine.db.impl.sql.execute.ConstantActionActivation";
 
 	String Row = "com.splicemachine.db.iapi.sql.Row";
 	String Qualifier = "com.splicemachine.db.iapi.store.access.Qualifier";

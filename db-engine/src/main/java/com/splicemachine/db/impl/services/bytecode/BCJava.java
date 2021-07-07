@@ -251,6 +251,9 @@ public class BCJava implements JavaFactory, CacheableFactory, ModuleControl {
 
 		Type retval;
 
+		if(vmTypeIdCache == null)
+			return new Type(javaType, ClassHolder.convertToInternalDescriptor(javaType));
+
 		try {
 
 			VMTypeIdCacheable vtic = (VMTypeIdCacheable) vmTypeIdCache.find(javaType);
@@ -279,6 +282,10 @@ public class BCJava implements JavaFactory, CacheableFactory, ModuleControl {
 
 	String vmType(BCMethodDescriptor md) {
 		String retval;
+
+		if(vmTypeIdCache == null) {
+			return md.buildMethodDescriptor();
+		}
 
 		try {
 

@@ -349,4 +349,22 @@ public class DropColumnIT extends SpliceUnitTest {
             assertEquals(expected, actual);
         }
     }
+
+    @Test
+    public void testDropRegressionDB12305() throws Exception {
+        methodWatcher.execute("create table t5(emplid int not null, name varchar(25) not null, reportsto int)");
+        methodWatcher.execute("insert into t5 values (10, 'a', 2), (11, 'b', 2), (2, 'c', 1), (1, 'd', 0)");
+        methodWatcher.execute("alter table t5 drop column name");
+        String query = "select reportsto, count(emplid)" +
+                " from t5 a where emplid in (" +
+                "select emplid from t5 b where a.emplid = b.emplid and a.reportsto = b.reportsto) " +
+                "group by a.reportsto " +
+                "order by a.reportsto";
+        String expected = "REPORTSTO | 2 |\n" +
+                "----------------\n" +
+                "     0     | 1 |\n" +
+                "     1     | 1 |\n" +
+                "     2     | 2 |";
+        testQuery(query, expected, methodWatcher);
+    }
 }
