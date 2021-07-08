@@ -170,19 +170,16 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 			formatNumber = NumberFormat.getInstance(locale);
 			formatDate = DateFormat.getDateInstance(DateFormat.LONG,locale);
 			formatTime = DateFormat.getTimeInstance(DateFormat.LONG,locale);
-			formatTimestamp = DateFormat.getDateTimeInstance(DateFormat.LONG,
-													DateFormat.LONG, locale);
-			customFormatDate = true;
-			customFormatTime = true;
-			customFormatTimestamp = true;
+			formatTimestamp = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG, locale);
+			customFormatDate = customFormatTime = customFormatTimestamp = true;
 		}
 		else {
 			formatDecimal = (DecimalFormat)DecimalFormat.getInstance();
 			formatNumber = NumberFormat.getInstance();
 			formatDate = DateFormat.getDateInstance(DateFormat.LONG);
 			formatTime = DateFormat.getTimeInstance(DateFormat.LONG);
-			formatTimestamp = DateFormat.getDateTimeInstance(DateFormat.LONG,
-													DateFormat.LONG);
+			formatTimestamp = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG);
+			customFormatDate = customFormatTime = customFormatTimestamp = false;
 		}
 		//initialize display sizes for columns
 		initMaxSizes2();
@@ -345,6 +342,8 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 	public String getLocalizedString(ResultSet rs,
 										ResultSetMetaData rsm,
 										int columnNumber) throws SQLException{
+			rs.getObject(columnNumber);
+			if(rs.wasNull()) return "NULL";
 			if (!enableLocalized && !customFormatTimestamp && !customFormatTime && !customFormatDate){
 				return rs.getString(columnNumber);
 			}

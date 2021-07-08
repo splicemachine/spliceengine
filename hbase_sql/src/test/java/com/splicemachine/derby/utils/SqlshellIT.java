@@ -524,6 +524,21 @@ public class SqlshellIT {
                     "1 row selected\n" +
                     "ELAPSED TIME = \\d* milliseconds\n" +
                     "splice " + timestamp + "\\> \n");
+
+
+            // this tests handling of NULL when having a custom date format
+            p.setProperty("promptClock", "false");
+            p.setProperty("terminator", ";");
+            p.setProperty("elapsedTime", "false");
+            me.setProperties(p);
+
+            execute("CREATE TABLE T_NULL_DATE_CUSTOM (I INTEGER, D DATE);\n", zeroRowsUpdated);
+            execute("INSERT INTO T_NULL_DATE_CUSTOM (I) VALUES 1;\n");
+            execute("SELECT * FROM T_NULL_DATE_CUSTOM;\n",
+                        "1          |NULL      \n" +
+                        "\n" +
+                        "1 row selected\n");
+
         }
         finally {
             Properties p = new Properties();
@@ -533,6 +548,8 @@ public class SqlshellIT {
             p.setProperty("formatDate", "YYYY-MM-dd");
             p.setProperty("elapsedTime", "false");
             me.setProperties(p);
+
+            execute("DROP TABLE T_NULL_DATE_CUSTOM IF EXISTS");
         }
     }
 }
