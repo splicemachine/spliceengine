@@ -31,7 +31,7 @@ public class ijImpl extends ijCommands {
     static final String DOUBLEQUOTES = "\"\"";
 
     boolean elapsedTime = true;
-    boolean showProgressBar = false;
+    boolean showProgressBar = true;
 
     String urlCheck = null;
 
