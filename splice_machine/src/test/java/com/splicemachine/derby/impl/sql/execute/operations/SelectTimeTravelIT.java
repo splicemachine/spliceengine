@@ -566,23 +566,6 @@ public class SelectTimeTravelIT {
         }
     }
 
-    @Test
-    public void testTimeTravelFailsWithProperErrorMessageIfAsOfExpressionConstantEvaluationIsNotSupportedYet() throws Exception {
-        String someTable = generateTableName();
-        watcher.executeUpdate(String.format("CREATE TABLE %s(a1 INT)", someTable));
-        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 1", someTable));
-        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 2", someTable));
-        try {
-            watcher.executeQuery(String.format("SELECT * FROM %s AS OF TIMESTAMPADD(SQL_TSI_MONTH, 1+1, TIMESTAMP('2020-12-12 01:02:03.45678')) ORDER BY a1 ASC", someTable));
-            Assert.fail();
-        } catch(Exception e) {
-            Assert.assertTrue(e instanceof SQLException);
-            SQLException sqlException = (SQLException)e;
-            Assert.assertEquals("0A000", sqlException.getSQLState());
-            Assert.assertTrue(e.getMessage().contains("Evaluation of constant expression of type BinaryArithmeticOperatorNode is not supported"));
-        }
-    }
-
     @Test // see DB-12236
     public void testTimeTravelFailsWithProperErrorMessageIfAsOfExpressionContainingCurrentTimestampIsNotSupportedYet() throws Exception {
         String someTable = generateTableName();
