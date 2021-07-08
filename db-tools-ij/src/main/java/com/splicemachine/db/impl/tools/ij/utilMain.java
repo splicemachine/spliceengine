@@ -63,6 +63,7 @@ public class utilMain implements java.security.PrivilegedAction {
         In the goodness of time, this could be an ij property
      */
     public static final int BUFFEREDFILESIZE = 2048;
+    static final String sqlshellRcFilename = ".sqlshellrc";
     private static boolean showPromptClock = false;
     private final int numConnections;
     /**
@@ -238,8 +239,7 @@ public class utilMain implements java.security.PrivilegedAction {
      */
     public static Properties getProperties() {
         Properties prop = new Properties();
-        String fileName = "sqlshell.rc";
-        try (FileInputStream fis = new FileInputStream(fileName)) {
+        try (FileInputStream fis = new FileInputStream(sqlshellRcFilename)) {
             prop.load(fis);
             return prop;
         } catch (IOException e) {

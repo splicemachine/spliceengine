@@ -224,4 +224,4 @@ tramp
 /platform_it/src/test/resources/ee.txt
 
 # sqlshell config
-splice_machine/sqlshell.rc
+splice_machine/.sqlshellrc
