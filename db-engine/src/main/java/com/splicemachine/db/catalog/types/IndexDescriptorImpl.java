@@ -274,13 +274,11 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
     /** @see IndexDescriptor#baseColumnPositions */
     public int[] baseColumnPositions()
     {
-        if (isInvalidIndexDescriptor()) {
-            throw new UnsupportedOperationException();
-        }
+        assert !isInvalidIndexDescriptorAfter2022Upgrade();
         return baseColumnPositions;
     }
 
-    public boolean isInvalidIndexDescriptor() {
+    public boolean isInvalidIndexDescriptorAfter2022Upgrade() {
         return baseColumnPositions.length != baseColumnStoragePositions.length;
     }
 

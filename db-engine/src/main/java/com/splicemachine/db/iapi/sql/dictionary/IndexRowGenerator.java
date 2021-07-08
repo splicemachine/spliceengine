@@ -438,8 +438,8 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
     }
 
     @Override
-    public boolean isInvalidIndexDescriptor() {
-        return id.isInvalidIndexDescriptor();
+    public boolean isInvalidIndexDescriptorAfter2022Upgrade() {
+        return id.isInvalidIndexDescriptorAfter2022Upgrade();
     }
 
     /** @see IndexDescriptor#getKeyColumnPosition */

@@ -14,8 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
-import com.splicemachine.access.api.PartitionAdmin;
-import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -23,19 +21,13 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
-import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.utils.SpliceLogUtils;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import java.io.IOException;
 import java.util.Arrays;
 
 public class UpgradeFixIndexDescriptors extends UpgradeScriptBase {
@@ -58,11 +50,11 @@ public class UpgradeFixIndexDescriptors extends UpgradeScriptBase {
 
     private void fixIndexDescriptorColumns(TableDescriptor td, SchemaDescriptor sd, ConglomerateDescriptor cd) throws StandardException {
         IndexDescriptor id = cd.getIndexDescriptor();
-        if (id.isInvalidIndexDescriptor()) {
+        if (id.isInvalidIndexDescriptorAfter2022Upgrade()) {
             sdd.dropConglomerateDescriptor(cd, tc);
             /* At this point, baseStorageColumnDescription mistakenly contains the LOGICAL column ids, and
              * baseColumnDescription contains nothing.
-             * We want to recreate the index descriptor and baseStorageColumnDescription should contain the STORAGE
+             * We want to recreate the index descriptor and baseStorageColumnPositions should contain the STORAGE
              * columns ids, whereas baseColumnDescription should contain the LOGICAL ids
              */
             id.setBaseColumnPositions(id.getBaseColumnStoragePositions());
