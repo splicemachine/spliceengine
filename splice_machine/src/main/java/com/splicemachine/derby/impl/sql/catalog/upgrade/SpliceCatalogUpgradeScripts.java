@@ -115,7 +115,7 @@ public class SpliceCatalogUpgradeScripts{
         addUpgradeScript(baseVersion4, 1993, new UpgradeScriptToAddSysIndexesViewInSYSIBMAndUpdateIndexColUseViewInSYSCAT(sdd, tc));
         addUpgradeScript(baseVersion4, 1996, new UpgradeScriptToAddReferencesViewInSYSCAT(sdd, tc));
         addUpgradeScript(baseVersion4, BaseDataDictionary.SERDE_UPGRADE_SPRINT, new UpgradeStoredObjects(sdd, tc));
-        addUpgradeScript(baseVersion4, 2022, new UpgradeFixIndexDescriptors(sdd, tc));
+        addUpgradeScript(baseVersion4, 2023, new UpgradeFixIndexDescriptors(sdd, tc));
         // remember to add your script to SpliceCatalogUpgradeScriptsTest too, otherwise test fails
     }
 
