@@ -3823,7 +3823,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         List<TableDescriptor> list = new ArrayList<>();
         getDescriptorViaHeap(null, null, ti, null, list);
         for (int i = 0; i < list.size(); i++) {
-            list.set(i, finishTableDescriptor(list.get(i), null));
+            list.set(i, finishTableDescriptor(list.get(i)));
         }
 
         return list;
