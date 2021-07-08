@@ -30,7 +30,7 @@ class KafkaTopics(
     kafkaServers: String, 
     defaultNumPartitions: Int = 1, 
     defaultRepFactor: Short = 1,
-    continuousCleanup: Boolean = true
+    continuousCleanup: Boolean = false
   ) extends Serializable
 {
   private val admin = new KafkaAdmin(kafkaServers)
