@@ -568,11 +568,12 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   var insertSql: String => String = _
   
   /* Sets up insertSql to be used by insert_streaming */
-  def setTable(schemaTableName: String, schema: StructType): Unit = {
+  def setTable(schemaTableName: String, schema: StructType, upsert: Boolean = false): Unit = {
     val colList = columnList(schema) + fmColList
     val schStr = schemaStringWithoutNullable(schema, url)
+    val upsertProp = if(upsert) { "--splice-properties insertMode=UPSERT" } else { "" }
     // Line break at the end of the first line and before select is required, other line breaks aren't required
-    insertSql = (topicName: String) => s"""insert into $schemaTableName ($colList)
+    insertSql = (topicName: String) => s"""insert into $schemaTableName ($colList) $upsertProp
                                        select $colList from 
       new com.splicemachine.derby.vti.KafkaVTI('$topicName') 
       as SpliceDatasetVTI ($schStr$fmSchemaStr)"""
