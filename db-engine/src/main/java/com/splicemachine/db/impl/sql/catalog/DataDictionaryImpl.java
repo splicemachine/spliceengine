@@ -4255,6 +4255,17 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return list;
     }
 
+    public List<TableDescriptor> getAllTableDescriptors() throws StandardException {
+        TabInfoImpl ti=coreInfo[SYSTABLES_CORE_NUM];
+        List<TableDescriptor> list = new ArrayList<>();
+        getDescriptorViaHeap(null, null, ti, null, list);
+        for (int i = 0; i < list.size(); i++) {
+            list.set(i, finishTableDescriptor(list.get(i), null));
+        }
+
+        return list;
+    }
+
     /**
      * Comparator that can be used for sorting lists of column references
      * on the position they have in the SQL query string.
