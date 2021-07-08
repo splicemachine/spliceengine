@@ -911,6 +911,17 @@ public class CompilerContextImpl extends ContextImpl
         initRequiredPriv();
     }
 
+    // only for testing
+    public CompilerContextImpl() {
+        super(null, CompilerContext.CONTEXT_ID);
+        this.lcc = null;
+        this.lcf = null;
+        this.parser = null;
+        this.typeCompilerFactory = null;
+        this.classPrefix = "";
+        initRequiredPriv();
+    }
+
     private void initRequiredPriv()
     {
         currPrivType = Authorizer.NULL_PRIV;
@@ -921,6 +932,7 @@ public class CompilerContextImpl extends ContextImpl
         requiredRoutinePrivileges = null;
         requiredUsagePrivileges = null;
         requiredRolePrivileges = null;
+        if(getContextManager() == null) return; // in tests
         LanguageConnectionContext lcc = (LanguageConnectionContext)
         getContextManager().getContext(LanguageConnectionContext.CONTEXT_ID);
         if(lcc != null && lcc.usesSqlAuthorization())
@@ -1107,7 +1119,7 @@ public class CompilerContextImpl extends ContextImpl
          if (requiredUsagePrivileges.get( objectID ) == null)
         { requiredUsagePrivileges.put( objectID, objectType ); }
     }
-    
+
     /**
      * Add a required schema privilege to the list privileges.
      *

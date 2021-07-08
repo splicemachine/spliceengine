@@ -33,6 +33,7 @@ public class SpliceCatalogUpgradeScripts{
 
     SpliceDataDictionary sdd;
     TransactionController tc;
+    Properties startParams;
 
     List<VersionAndUpgrade> scripts;
 
@@ -73,16 +74,21 @@ public class SpliceCatalogUpgradeScripts{
     static final public Splice_DD_Version baseVersion3 = new Splice_DD_Version(null, 3, 1, 0);
     static final public Splice_DD_Version baseVersion4 = new Splice_DD_Version(null, 3, 2, 0);
 
-    public SpliceCatalogUpgradeScripts(SpliceDataDictionary sdd, TransactionController tc){
+    public SpliceCatalogUpgradeScripts(SpliceDataDictionary sdd, TransactionController tc, Properties startParams){
         this.sdd=sdd;
         this.tc=tc;
+        this.startParams = startParams;
 
         scripts = new ArrayList<>();
+        addUpgradeScript(baseVersion4, 2020, new UpgradeAddConglomerateNumberIndex(sdd, tc));
         // DB-11296: UpgradeConglomerateTable has to be executed first, because it adds a system table
         // CONGLOMERATE_SI_TABLE_NAME that is from then on needed to create tables, e.g.
         // in UpgradeScriptToAddSysNaturalNumbersTable. If UpgradeConglomerateTable is at the end,
         // these upgrades would fail
         addUpgradeScript(baseVersion4, 1996, new UpgradeConglomerateTable(sdd, tc));
+
+        // DB-10193: Multidatabase support has to be executed first, because it adds a new core table SYS.SYSDATABASES
+        addUpgradeScript(baseVersion4, 2020, new UpgradeScriptToAddMultiDatabaseSupport(sdd, tc, startParams));
 
         addUpgradeScript(baseVersion1, 1901, new UpgradeScriptToRemoveUnusedBackupTables(sdd,tc));
         addUpgradeScript(baseVersion1, 1909, new UpgradeScriptForReplication(sdd, tc));
@@ -167,7 +173,7 @@ public class SpliceCatalogUpgradeScripts{
         // Always update system procedures and stored statements
         if( sdd != null ) {
             sdd.clearSPSPlans();
-            sdd.createOrUpdateAllSystemProcedures(tc);
+            sdd.createOrUpdateAllSystemProceduresForAllDatabases(tc);
             sdd.refreshAllSystemViews(tc);
             sdd.updateMetadataSPSes(tc);
         }

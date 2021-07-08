@@ -112,6 +112,20 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
     private HashMap scopedPredCache;
     private PredicateList predicatesPushedToDT;
 
+    public ProjectRestrictNode() {}
+    public ProjectRestrictNode(ResultSetNode childResult,
+                               ResultColumnList projection,
+                               ValueNode restriction,
+                               PredicateList restrictionList,
+                               SubqueryList projectSubquerys,
+                               SubqueryList restrictSubquerys,
+                               Object tableProperties, ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.PROJECT_RESTRICT_NODE);
+        init(childResult, projection, restriction, restrictionList,
+                projectSubquerys, restrictSubquerys, tableProperties);
+    }
+
     /**
      * Initializer for a ProjectRestrictNode.
      *
@@ -673,8 +687,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                 // add another level of PR in-between to project/hold the rowid field
                 ResultColumnList newPrRCList = resultColumns.copyListAndObjects();
 
-                ResultSetNode newPRNode = (ResultSetNode) getNodeFactory().getNode(
-                        C_NodeTypes.PROJECT_RESTRICT_NODE,
+                ResultSetNode newPRNode = new ProjectRestrictNode(
                         childResult,
                         newPrRCList,
                         null,    /* Restriction */

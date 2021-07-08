@@ -180,6 +180,24 @@ public class ConstantFoldingIT extends SpliceUnitTest {
                 "1 = + (1)"
         ));
     }
+
+    @Test
+    public void testBinaryArithmetic() throws Exception {
+        checkFalsePredicates(Arrays.asList(
+                "1 = 2 + 4",
+                "1 = 2 - 4",
+                "1 = 2 * 4",
+                "1 = 2 / 4",
+                "1 = mod(2, 4)"
+        ));
+        checkTruePredicates(Arrays.asList(
+                "6 = 2 + 4",
+                "-2 = 2 - 4",
+                "8 = 2 * 4",
+                "0 = 2 / 4",
+                "2 = mod(2, 4)"
+        ));
+    }
 }
 
 

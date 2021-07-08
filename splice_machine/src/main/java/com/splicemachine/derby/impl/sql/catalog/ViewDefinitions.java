@@ -53,6 +53,7 @@ class SystemViewDefinitions {
         views.put(new Pair<>("SYSVW", "SYSCONGLOMERATEINSCHEMAS"), new ViewInfo(DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, SYSCONGLOMERATESRowFactory.SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL));
         views.put(new Pair<>("SYSVW", "SYSTABLESVIEW"), new ViewInfo(DataDictionary.SYSTABLES_CATALOG_NUM, 0, SYSTABLESRowFactory.SYSTABLE_VIEW_SQL));
         views.put(new Pair<>("SYSVW", "SYSCOLUMNSVIEW"), new ViewInfo(DataDictionary.SYSCOLUMNS_CATALOG_NUM, 0, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_SQL));
+        views.put(new Pair<>("SYSVW", "SYSDATABASESVIEW"), new ViewInfo(DataDictionary.SYSDATABASES_CATALOG_NUM, 0, SYSDATABASESRowFactory.SYSDATABASES_VIEW_SQL));
         views.put(new Pair<>("SYSVW", "SYSTABLESTATISTICS"), new ViewInfo(DataDictionary.SYSTABLESTATS_CATALOG_NUM, 0, SYSTABLESTATISTICSRowFactory.STATS_VIEW_SQL));
         views.put(new Pair<>("SYSVW", "SYSCOLUMNSTATISTICS"), new ViewInfo(DataDictionary.SYSCOLUMNSTATS_CATALOG_NUM, 0, SYSCOLUMNSTATISTICSRowFactory.STATS_VIEW_SQL));
         views.put(new Pair<>("SYSVW", "SYSTABLEPERMSVIEW"), new ViewInfo(DataDictionary.SYSTABLEPERMS_CATALOG_NUM, 0, SYSTABLEPERMSRowFactory.SYSTABLEPERMS_VIEW_SQL));

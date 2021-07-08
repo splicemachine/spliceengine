@@ -77,7 +77,7 @@ public class CurrentDatetimeTest {
         Timestamp timestamp = cut.getCurrentTimestamp();
         assertEquals(3, cut.getCurrentTimestampPrecision());
 
-        for (int i = 0; i <= 9; ++i) {
+        for (int i = 0; i <= 6; ++i) {
             cut.setCurrentTimestampPrecision(i);
             assertEquals(i, cut.getCurrentTimestampPrecision());
             assertEquals(0, cut.getCurrentTimestamp().getNanos() % CurrentDatetime.POWERS_OF_10[9 - i]);

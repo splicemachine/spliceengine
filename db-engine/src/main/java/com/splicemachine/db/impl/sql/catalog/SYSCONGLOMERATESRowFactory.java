@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.utils.Pair;
 
@@ -68,10 +69,12 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
     protected static final int        SYSCONGLOMERATES_INDEX1_ID = 0;
     protected static final int        SYSCONGLOMERATES_INDEX2_ID = 1;
     protected static final int        SYSCONGLOMERATES_INDEX3_ID = 2;
+    public static final int           SYSCONGLOMERATES_INDEX4_ID = 3;
 
     private    static    final    boolean[]    uniqueness = {
                                                        false,
                                                        true,
+                                                       false,
                                                        false
                                                      };
 
@@ -79,7 +82,8 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
     {
         {SYSCONGLOMERATES_CONGLOMERATEID},
         {SYSCONGLOMERATES_CONGLOMERATENAME, SYSCONGLOMERATES_SCHEMAID},
-        {SYSCONGLOMERATES_TABLEID}
+        {SYSCONGLOMERATES_TABLEID},
+        {SYSCONGLOMERATES_CONGLOMERATENUMBER}
     };
 
     private    static    final    String[]    uuids =
@@ -89,6 +93,7 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
         ,"80000012-00d0-fd77-3ed8-000a0a0b1900"    // SYSCONGLOMERATES_INDEX1
         ,"80000014-00d0-fd77-3ed8-000a0a0b1900"    // SYSCONGLOMERATES_INDEX2
         ,"80000016-00d0-fd77-3ed8-000a0a0b1900"    // SYSCONGLOMERATES_INDEX3
+        ,"80000017-00d0-fd77-3ed8-000a0a0b1900"    // SYSCONGLOMERATES_INDEX4
     };
 
     SYSCONGLOMERATESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
@@ -215,21 +220,22 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
     //
     ///////////////////////////////////////////////////////////////////////////
 
-    /**
-     *
-     * @param row a SYSCOLUMNS row
-     * @param parentTupleDescriptor    Null for this kind of descriptor.
-     * @param dd dataDictionary
-     *
-     * @return    a conglomerate descriptor equivalent to a SYSCONGOMERATES row
-     *
-     * @exception   StandardException thrown on failure
-     */
+	/**
+	 *
+	 * @param row a SYSCOLUMNS row
+	 * @param parentTupleDescriptor    Null for this kind of descriptor.
+	 * @param dd dataDictionary
+	 *
+	 * @param tc
+     * @return	a conglomerate descriptor equivalent to a SYSCONGOMERATES row
+	 *
+	 * @exception   StandardException thrown on failure
+	 */
 
-    public TupleDescriptor buildDescriptor(
-        ExecRow                    row,
-        TupleDescriptor            parentTupleDescriptor,
-        DataDictionary             dd )
+	public TupleDescriptor buildDescriptor(
+            ExecRow row,
+            TupleDescriptor parentTupleDescriptor,
+            DataDictionary dd, TransactionController tc)
                     throws StandardException
     {
         if (SanityManager.DEBUG)
@@ -446,9 +452,9 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
             "           S.SCHEMANAME AS INDSCHEMA, \n" +
             "           CONGLOMS.CONGLOMERATENAME AS INDNAME, \n" +
             "           COLS.COLUMNNAME AS COLNAME, \n" +
-            "           CAST (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) AS SMALLINT) AS COLSEQ, \n" +
+            "           CAST (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.STORAGENUMBER) AS SMALLINT) AS COLSEQ, \n" +
             "           CASE WHEN CONGLOMS.DESCRIPTOR.isAscending( \n" +
-            "                CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER)) THEN 'A' ELSE 'D' END AS COLORDER, \n" +
+            "                CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.STORAGENUMBER)) THEN 'A' ELSE 'D' END AS COLORDER, \n" +
             "           CAST(NULL AS VARCHAR(128)) AS COLLATIONSCHEMA, \n" +
             "           CAST(NULL AS VARCHAR(128)) AS COLLATIONNAME, \n" +
             "           'N' AS VIRTUAL, \n" +
@@ -459,7 +465,7 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
             "         , SYS.SYSCOLUMNS COLS --splice-properties index=SYSCOLUMNS_INDEX1, joinStrategy=nestedloop \n" +
             "    WHERE \n" +
             "          CONGLOMS.SCHEMAID = S.SCHEMAID \n" +
-            "      AND CASE WHEN CONGLOMS.DESCRIPTOR IS NULL THEN FALSE ELSE (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) > 0) END \n" +
+            "      AND CASE WHEN CONGLOMS.DESCRIPTOR IS NULL THEN FALSE ELSE (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.STORAGENUMBER) > 0) END \n" +
             "      AND CONGLOMS.TABLEID = COLS.REFERENCEID \n" +
             "  UNION ALL \n" +
             "    SELECT \n" +

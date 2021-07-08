@@ -35,6 +35,9 @@ message CreateSchema {
 message CreateView {
 }
 
+message CreateDatabase {
+}
+
 message DropView {
         required UUID tableId = 1;
 }
@@ -68,28 +71,37 @@ message DropIndex {
         required UUID tableUUID = 3;
         required string schemaName = 4;
         required string indexName = 5;
+        optional UUID dbUUID = 6;
 }
 
 message DropSchema {
-        optional int64 baseConglomerate = 1;
-        optional int64 conglomerate = 2;
+        optional int64 baseConglomerate = 1; // Unused
+        optional int64 conglomerate = 2; // Unused
         required string schemaName = 3;
         required UUID schemaUUID = 4;
+        optional UUID dbUUID = 5;
 }
 
 message DropTable {
-        optional int64 baseConglomerate = 1;
-        optional int64 conglomerate = 2;
+        optional int64 baseConglomerate = 1; // Unused
+        optional int64 conglomerate = 2; // Unused
         optional UUID tableId = 3;
 }
 
 message DropSequence {
         required string schemaName = 1;
         required string sequenceName = 2;
+        optional UUID dbUUID = 3;
 }
 
 message DropRole {
         optional string roleName = 1;
+        optional UUID dbUUID = 2;
+}
+
+message DropDatabase {
+        required string dbName = 1;
+        required UUID dbUUID = 2;
 }
 
 message CreateRole {
@@ -180,6 +192,7 @@ message UpdateSchemaOwner {
         required string schemaName = 1;
         required string ownerName = 2;
         required UUID schemaUUID = 3;
+        optional UUID dbUUID = 4;
 }
 
 message GrantRevokeRole {
@@ -266,7 +279,7 @@ message TentativeDropPKConstraint {
 
 message Index {
         required int64 conglomerate = 1; // Index Conglomerate
-        repeated int32 indexColsToMainColMap = 2; // Map from index cols to maint table columns
+        repeated int32 indexColsToMainColMap = 2; // Map from index cols to main table columns
         optional bool unique = 3; // Is the Index Unique
         optional bool uniqueWithDuplicateNulls = 4; // Does the unique index support duplicate nullls
         repeated bool descColumns = 5; // Whether the columns are descending
@@ -277,6 +290,7 @@ message Index {
         repeated string generatedClassNames = 10; // Names of the generated classes of index expressions
         repeated bytes bytecodeExprs = 11; // bytecode of the generated classes of index expressions
         repeated int32 indexColumnFormatIds = 12;  // result types of index expressions
+        repeated int32 IndexColsToMainLogicalColMap = 13; // Map from index cols to main table columns
 }
 
 message Table {
@@ -286,6 +300,7 @@ message Table {
         repeated bool descColumns = 4; // The source tables columnSort, all ascending right now
         required string tableVersion = 5; // Table Version for SerDe
         optional UUID tableUuid = 6; //the derby UUID
+        repeated int32 storagePositions = 7;
 }
 
 message TentativeIndex {
@@ -322,6 +337,7 @@ message NotifyJarLoader {
     optional bool drop = 2;
     optional string schemaName = 3;
     optional string sqlName = 4;
+    optional UUID dbUUID = 5;
 }
 
 message NotifyModifyClasspath {
@@ -390,6 +406,8 @@ enum DDLChangeType {
     ROLLING_UPGRADE = 43;
     LEAVE_RESTORE_MODE = 44;
     MULTIPLE_CHANGES = 45;
+    DROP_DATABASE = 46;
+    CREATE_DATABASE = 47;
 }
 
 message DDLChange {
@@ -434,4 +452,6 @@ message DDLChange {
     optional UpdateSystemProcedures updateSystemProcedures = 39;
     optional RollingUpgrade rollingUpgrade = 40;
     repeated DDLChange change = 41;
+    optional DropDatabase dropDatabase = 42;
+    optional CreateDatabase createDatabase = 43;
 }

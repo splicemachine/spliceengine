@@ -91,6 +91,7 @@ public interface ConglomerateFactory extends MethodFactory
         long                         input_containerid,
         DataValueDescriptor[]        template,
         ColumnOrdering[]             columnOrder,
+        int[]                        keyFormarIds,
         int[]                        collationIds,
         Properties                   properties,
         int                          temporaryFlag,

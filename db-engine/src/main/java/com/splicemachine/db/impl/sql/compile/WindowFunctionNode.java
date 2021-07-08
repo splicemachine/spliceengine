@@ -213,11 +213,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
           * replaced ourselves.
           */
         if (generatedRef == null) {
-            generatedRC = (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                "##SQLColWinGen_" + getSQLName(),
-                this,
-                getContextManager());
+            generatedRC = new ResultColumn("##SQLColWinGen_" + getSQLName(), this, getContextManager());
             generatedRC.markGenerated();
 
             // The generated column reference. It's returned from this method but is also maintained
@@ -284,7 +280,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
             AliasDescriptor ad = resolveAggregate
                 (
                     dd,
-                    getSchemaDescriptor(userAggregateName.getSchemaName(), true),
+                    getSchemaDescriptor(null, userAggregateName.getSchemaName(), true),
                     userAggregateName.getTableName()
                 );
             if (ad == null) {
@@ -350,7 +346,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
               */
             dts = getOperand().getTypeServices();
 
-              /* Convert count(nonNullableColumn) to count(*)	*/
+              /* Convert count(nonNullableColumn) to count(*)    */
             if (uad instanceof CountAggregateDefinition &&
                 !dts.isNullable()) {
                 setOperator(aggregateName);
@@ -438,9 +434,9 @@ public abstract class WindowFunctionNode extends AggregateNode {
                     return;
             }
 
-		/* If the operand is not a built-in type, then generate a bound conversion
+        /* If the operand is not a built-in type, then generate a bound conversion
          * tree to a built-in type.
-		 */
+         */
             if (!(node instanceof UntypedNullConstantNode) &&
                 node.getTypeId().userType()) {
                 node = node.genSQLJavaSQLTree();

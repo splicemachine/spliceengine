@@ -1235,7 +1235,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
                 continue;
             }
 
-            int numColumns=fbt.getTableDescriptor().getNumberOfColumns();
+            int numColumns=fbt.getTableDescriptor().getNumberOfStorageColumns();
             boolean[] eqOuterCols=new boolean[numColumns+1];
             int tableNumber=fbt.getTableNumber();
             boolean resultColTable=false;

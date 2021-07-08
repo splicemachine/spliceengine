@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
 import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
@@ -65,6 +66,8 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 
+import java.util.Properties;
+
 /**
  * The CurrentOf operator is used by positioned DELETE 
  * and UPDATE to get the current row and location
@@ -90,6 +93,13 @@ public final class CurrentOfNode extends FromTable {
     @Override
     public boolean isParallelizable() {
         return true; //since it's for updates and deletes
+    }
+
+    public CurrentOfNode() {}
+    public CurrentOfNode(String correlationName, String cursorName, Properties tableProperties, ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.CURRENT_OF_NODE);
+        init(correlationName, cursorName, tableProperties);
     }
 
     //
@@ -186,7 +196,7 @@ public final class CurrentOfNode extends FromTable {
         baseTableName = makeTableName(schemaName,
                                       refTab.getBaseName());
         SchemaDescriptor tableSchema = null;
-        tableSchema = getSchemaDescriptor(refTab.getSchemaName());
+        tableSchema = getSchemaDescriptor(null, refTab.getSchemaName());
 
         /*
         ** This will only happen when we are binding against a publication
@@ -236,11 +246,7 @@ public final class CurrentOfNode extends FromTable {
                                               exposedTableName,
                                             colDesc.getType(),
                                             getContextManager());
-            ResultColumn rc = (ResultColumn) getNodeFactory().getNode(
-                                            C_NodeTypes.RESULT_COLUMN,
-                                            colDesc,
-                                            bcn,
-                                            getContextManager());
+            ResultColumn rc = new ResultColumn(colDesc, bcn, getContextManager());
 
             /* Build the ResultColumnList to return */
             getResultColumns().addResultColumn(rc);

@@ -122,6 +122,7 @@ public class DropIndexNode extends DDLStatementNode
 											 getRelativeName(),
 											 getSchemaDescriptor().getSchemaName(),
 											 td.getUUID(),
-											 td.getHeapConglomerateId());
+											 td.getHeapConglomerateId(),
+											 getSchemaDescriptor().getDatabaseId());
 	}
 }

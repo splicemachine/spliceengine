@@ -833,10 +833,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                                  ValueNodeList groupedConstants, ArrayList<Predicate> predList, int level)
                             throws StandardException {
         boolean retval = true;
-        ValueNodeList localConstList =
-         (ValueNodeList) getNodeFactory().getNode(
-            C_NodeTypes.VALUE_NODE_LIST,
-            getContextManager());
+        ValueNodeList localConstList = new ValueNodeList(getContextManager());
         if (level != 0) {
             localConstList.nondestructiveAppend(constList);
         }
@@ -845,10 +842,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             // We've grabbed a ConstantNode (or other type of ValueNode) from each level.
             // Time to materialize this combination into a new
             // ListValueNode.
-            ValueNode lcn = (ListValueNode) getNodeFactory().getNode(
-                C_NodeTypes.LIST_VALUE_NODE,
-                localConstList,
-                getContextManager());
+            ValueNode lcn = new ListValueNode(localConstList, getContextManager());
             groupedConstants.addValueNode(lcn);
             
         } else {
@@ -899,8 +893,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
     }
 
     private void saveOriginalInListPreds(Predicate newPred, List<Predicate> predsForNewInList) throws StandardException {
-        PredicateList origList =
-            (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
+        PredicateList origList = new PredicateList(getContextManager());
         for (Predicate p:predsForNewInList)
             origList.addPredicate(p);
         newPred.setOriginalInListPredList(origList);
@@ -1321,13 +1314,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     break;
             }
 
-            ValueNodeList vnl = (ValueNodeList)getNodeFactory().getNode(
-                                 C_NodeTypes.VALUE_NODE_LIST,
-                                  getContextManager());
-            ValueNodeList groupedConstants =
-                   (ValueNodeList) getNodeFactory().getNode(
-                                   C_NodeTypes.VALUE_NODE_LIST,
-                                   getContextManager());
+            ValueNodeList vnl = new ValueNodeList(getContextManager());
+            ValueNodeList groupedConstants = new ValueNodeList(getContextManager());
             boolean multiColumnInListBuilt = false;
             if (firstPred != lastPred &&
                 addConstantsToList(optTable, null, groupedConstants, predsForNewInList, 0)) {
@@ -1678,11 +1666,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                  */
                 Predicate predToPush;
                 if((isIn && !thisPred.isInListProbePredicate()) || isBetween){
-                    AndNode andCopy=(AndNode)getNodeFactory().getNode(
-                            C_NodeTypes.AND_NODE,
-                            thisPred.getAndNode().getLeftOperand(),
-                            thisPred.getAndNode().getRightOperand(),
-                            getContextManager());
+                    AndNode andCopy= new AndNode(thisPred.getAndNode().getLeftOperand(),
+                            thisPred.getAndNode().getRightOperand(), getContextManager());
                     andCopy.copyFields(thisPred.getAndNode());
                     Predicate predCopy=(Predicate)getNodeFactory().getNode(
                             C_NodeTypes.PREDICATE,
@@ -2261,7 +2246,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
                         // extra processing and optimization for predicate on char type
                         if (canPruneForPredicatePushedToUnion(crNode.getTypeServices(), newCRNode.getTypeServices())) {
-                            ValueNodeList newValueNodeList = (ValueNodeList)getNodeFactory().getNode(C_NodeTypes.VALUE_NODE_LIST, contextManager);
+                            ValueNodeList newValueNodeList = new ValueNodeList(getContextManager());
                             ValueNodeList oldValueNodeList = inNode.getRightOperandList();
                             int columnLen = newCRNode.getTypeServices().getMaximumWidth();
                             for (int i=0; i < oldValueNodeList.size(); i++) {
@@ -2317,11 +2302,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
                 // Convert the predicate into CNF form
                 ValueNode trueNode = new BooleanConstantNode(Boolean.TRUE,contextManager);
-                AndNode newAnd=(AndNode)getNodeFactory().getNode(
-                        C_NodeTypes.AND_NODE,
-                        leftOperand,
-                        trueNode,
-                        contextManager);
+                AndNode newAnd = new AndNode(leftOperand, trueNode, contextManager);
                 newAnd.postBindFixup();
                 JBitSet tableMap=new JBitSet(select.referencedTableMap.size());
 
@@ -2469,7 +2450,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             if(referencedTableMap.contains(curBitSet)){
                 /* Add the matching predicate to the push list */
                 if(pushPList==null){
-                    pushPList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
+                    pushPList = new PredicateList(getContextManager());
                 }
                 pushPList.addPredicate(predicate);
 
@@ -2806,11 +2787,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     newEquals.bindComparisonOperator();
                                /* Create the AND */
                     ValueNode trueNode= new BooleanConstantNode(Boolean.TRUE,getContextManager());
-                    AndNode newAnd=(AndNode)getNodeFactory().getNode(
-                            C_NodeTypes.AND_NODE,
-                            newEquals,
-                            trueNode,
-                            getContextManager());
+                    AndNode newAnd = new AndNode(newEquals, trueNode, getContextManager());
                     newAnd.postBindFixup();
                     // Add a new predicate to both the equijoin clauses and this list
                     JBitSet tableMap=new JBitSet(numTables);
@@ -3043,7 +3020,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
                                /* Create the AND */
                     ValueNode trueNode = new BooleanConstantNode(Boolean.TRUE,getContextManager());
-                    AndNode newAnd=(AndNode)getNodeFactory().getNode(
+                    AndNode newAnd = (AndNode)getNodeFactory().getNode(
                             C_NodeTypes.AND_NODE,
                             roClone,
                             trueNode,
@@ -3820,7 +3797,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
          */
         PredicateList cloneMe = null;
         if(numberOfQualifiers>0){
-            cloneMe = (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+            cloneMe = new PredicateList(getContextManager());
             this.copyPredicatesToOtherList(cloneMe);
             orderQualifiers();
         }
@@ -3975,26 +3952,22 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     /*
                     ** Column positions are one-based, store is zero-based.
                     */
-                    int columnPosition;
-                    int storagePosition;
+                    int columnPosition = cr.getSource().getColumnPosition();
+                    int storagePosition = cr.getSource().getStoragePosition();
 
                     /*
                     ** If it's an index, find the base column position in the index
                     ** and translate it to an index column position.
                     */
-                    if(bestCD!=null && bestCD.isIndex()){
-                        columnPosition=cr.getSource().getColumnPosition();
-                        columnPosition=bestCD.getIndexDescriptor().
-                                getKeyColumnPosition(columnPosition);
+                    if (bestCD != null && bestCD.isIndex()) {
+                        columnPosition = bestCD.getIndexDescriptor().
+                                getKeyColumnPosition(storagePosition);
                         storagePosition = columnPosition;
 
-                        if(SanityManager.DEBUG){
-                            SanityManager.ASSERT(columnPosition>0,
-                                    "Base column not found in index");
+                        if (SanityManager.DEBUG) {
+                            SanityManager.ASSERT(columnPosition > 0,
+                                                 "Base column not found in index");
                         }
-                    } else {
-                        columnPosition=cr.getSource().getColumnPosition();
-                        storagePosition = cr.getSource().getStoragePosition();
                     }
                     // get 0-based posistion
                     columnPosition = columnPosition - 1;
@@ -4959,7 +4932,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         int[] baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
         int columnNumber = baseColumnPositions[0];
 
-        DataValueDescriptor defaultValue = td.getDefaultValue(cd.getIndexDescriptor().baseColumnPositions()[0]);
+        DataValueDescriptor defaultValue = td.getDefaultValue(cd.getIndexDescriptor().baseColumnStoragePositions()[0]);
 
         if (defaultValue.isNull())
             return canSupportIndexExcludedNulls(tableNumber, cd, td);

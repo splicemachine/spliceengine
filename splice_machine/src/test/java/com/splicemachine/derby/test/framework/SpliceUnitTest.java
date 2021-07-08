@@ -607,7 +607,7 @@ public class SpliceUnitTest {
         catch (Exception e) {
             boolean found = expectedErrors.contains(e.getMessage());
             if (!found)
-                fail(format("\n + Unexpected error message: %s + \n", e.getMessage()));
+                fail(format("\n + Query {%s} failed with an unexpected error message: {%s}.\n", sqlText, e.getMessage()));
         }
     }
 

@@ -58,7 +58,7 @@ public class SubqueryNodeFactory {
     public AndNode buildAndNode() throws StandardException {
         ValueNode left = buildBooleanTrue();
         ValueNode right = buildBooleanTrue();
-        return (AndNode) nodeFactory.getNode(C_NodeTypes.AND_NODE, left, right, contextManager);
+        return new AndNode(left, right, contextManager);
     }
 
     /**
@@ -86,7 +86,7 @@ public class SubqueryNodeFactory {
                                               ResultSetNode subqueryResultSet,
                                               ResultColumnList newRcl,
                                               String subqueryAlias) throws StandardException {
-        FromSubquery fromSubquery = (FromSubquery) nodeFactory.getNode(C_NodeTypes.FROM_SUBQUERY,
+        FromSubquery fromSubquery = new FromSubquery(
                 subqueryResultSet,
                 null,                  // order by
                 null,                  // offset

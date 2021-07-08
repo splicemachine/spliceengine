@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.conn;
 
 import com.splicemachine.db.iapi.sql.conn.SQLSessionContext;
+import com.splicemachine.db.iapi.sql.dictionary.DatabaseDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 
 import java.util.ArrayList;
@@ -42,9 +43,11 @@ public class SQLSessionContextImpl implements SQLSessionContext {
     private String currentUser;
     private ArrayList<String> currentRoles = new ArrayList<>();
     private SchemaDescriptor currentDefaultSchema;
+    private DatabaseDescriptor currentDatabase;
     private List<String> groupuserlist;
 
-    public SQLSessionContextImpl (SchemaDescriptor sd, String currentUser, List<String> roles, List<String> groupuserlist) {
+    public SQLSessionContextImpl(DatabaseDescriptor databaseDescriptor, SchemaDescriptor sd, String currentUser, List<String> roles, List<String> groupuserlist) {
+        currentDatabase = databaseDescriptor;
         if (roles != null)
             currentRoles.addAll(roles);
         currentDefaultSchema = sd;
@@ -103,6 +106,14 @@ public class SQLSessionContextImpl implements SQLSessionContext {
 
     public SchemaDescriptor getDefaultSchema() {
         return currentDefaultSchema;
+    }
+
+    public DatabaseDescriptor getCurrentDatabase() {
+        return currentDatabase;
+    }
+
+    public void setCurrentDatabase(DatabaseDescriptor desc) {
+        currentDatabase = desc;
     }
 
     public List<String> getCurrentGroupUser() { return groupuserlist; }

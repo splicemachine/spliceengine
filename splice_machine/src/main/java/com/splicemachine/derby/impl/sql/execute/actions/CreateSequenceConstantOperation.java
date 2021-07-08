@@ -91,7 +91,7 @@ public class CreateSequenceConstantOperation extends DDLConstantOperation {
 
         dd.startWriting(lcc);
 
-        schemaDescriptor = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, _schemaName);
+        schemaDescriptor = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, null, _schemaName);
 
         //
         // Check if this sequence already exists. If it does, throw.

@@ -31,6 +31,10 @@
 
 package com.splicemachine.db.iapi.services.compiler;
 
+import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+
+import java.lang.reflect.Modifier;
+
 /**
 	MethodBuilder is used to generate the code for a method.
 	<P>

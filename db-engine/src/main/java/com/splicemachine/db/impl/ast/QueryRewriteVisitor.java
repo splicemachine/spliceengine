@@ -12,7 +12,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.db.impl.ast;;
+package com.splicemachine.db.impl.ast;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
@@ -128,26 +128,16 @@ public class QueryRewriteVisitor extends AbstractSpliceVisitor {
 
     private void constructExistsCondition(SelectNode selectNode, FromTable fromTable) throws StandardException {
         ContextManager cm = fromTable.getContextManager();
-        NodeFactory nodeFactory = fromTable.getNodeFactory();
 
-        NumericConstantNode numberOne
-           = new NumericConstantNode(cm,
-                    C_NodeTypes.INT_CONSTANT_NODE,
-                    Integer.valueOf(1));
+        NumericConstantNode numberOne = new NumericConstantNode(cm, C_NodeTypes.INT_CONSTANT_NODE, Integer.valueOf(1));
 
-        ResultColumn rc = (ResultColumn) nodeFactory.getNode(
-                        C_NodeTypes.RESULT_COLUMN,
-                        null,
-                        numberOne,
-                        cm);
+        ResultColumn rc = new ResultColumn((String)null, numberOne, cm);
         ResultColumnList resultColumns = new ResultColumnList(cm);
         resultColumns.addResultColumn(rc);
 
         FromList fromList = new FromList(true, fromTable, cm);
 
-        SelectNode newSelectNode = (SelectNode) nodeFactory.getNode(
-                            C_NodeTypes.SELECT_NODE,
-                            resultColumns,
+        SelectNode newSelectNode = new SelectNode(resultColumns,
                             null,         /* AGGREGATE list */
                             fromList,
                             null,
@@ -156,16 +146,9 @@ public class QueryRewriteVisitor extends AbstractSpliceVisitor {
                             null,
                             cm);
 
-        SubqueryNode existsSubquery = (SubqueryNode) fromTable.getNodeFactory().getNode(
-                                        C_NodeTypes.SUBQUERY_NODE,
-                                        newSelectNode,
+        SubqueryNode existsSubquery = new SubqueryNode(newSelectNode,
                                         ReuseFactory.getInteger(SubqueryNode.EXISTS_SUBQUERY),
-                                        null,
-                                        null,
-                                        null,
-                                        null,
-                                        true,
-                                        cm);
+                                        null, null, null, null, true, cm);
         AndNode andNode = newAndNode(existsSubquery, false);
         andNode = (AndNode)selectNode.bindExtraExpressions(andNode);
         appendAndConditionToWhereClause(selectNode, andNode);
@@ -199,12 +182,7 @@ public class QueryRewriteVisitor extends AbstractSpliceVisitor {
 
     public static AndNode newAndNode(ValueNode left, boolean doPostBindFixup) throws StandardException {
         ValueNode trueNode = new BooleanConstantNode(Boolean.TRUE,left.getContextManager());
-        AndNode    andNode;
-        andNode = (AndNode) left.getNodeFactory().getNode(
-                                                    C_NodeTypes.AND_NODE,
-                                                    left,
-                                                    trueNode,
-                                                    left.getContextManager());
+        AndNode   andNode = new AndNode(left, trueNode, left.getContextManager());
         if (doPostBindFixup)
             andNode.postBindFixup();
         return andNode;

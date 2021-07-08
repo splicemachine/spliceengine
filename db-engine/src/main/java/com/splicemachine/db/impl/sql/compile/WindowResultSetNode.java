@@ -342,8 +342,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         // have to be projected out upstream.
         rclNew.copyOrderBySelect(resultColumns);
 
-        parent = (FromTable) getNodeFactory().getNode(
-            C_NodeTypes.PROJECT_RESTRICT_NODE,
+        parent = new ProjectRestrictNode(
             this,       // child
             rclNew,     // new result columns
             null,       // havingClause,
@@ -649,12 +648,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                 // To do this, we'll create a VCN pointing to the right place and use the orphaned RC to
                 // find the reference above us. When found, we'll replace the referencing expression with
                 // this VCN.
-                VirtualColumnNode vcn = (VirtualColumnNode) getNodeFactory().getNode(C_NodeTypes
-                                                                                         .VIRTUAL_COLUMN_NODE,
-                                                                                     this, // source result set.
-                                                                                     winRC,
-                                                                                     winRCL.size(),
-                                                                                     getContextManager());
+                VirtualColumnNode vcn = new VirtualColumnNode(this, // source result set.
+                        winRC, winRCL.size(), getContextManager());
                 // This substitution visitor for column reference links we broke while inserting ourselves
                 referencesToSubstitute.addMapping(grandChildRC, vcn);
             }
@@ -702,11 +697,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             ** FUNCTION RESULT: Set the windowFunctionNode result to null in the
             ** bottom project restrict.
             */
-            ResultColumn newRC = (ResultColumn) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,
-                                                                            "##" + windowFunctionNode.getAggregateName() +
-                                                                                "Result",
-                                                                            windowFunctionNode.getNewNullResultExpression(),
-                                                                            getContextManager());
+            ResultColumn newRC = new ResultColumn("##" + windowFunctionNode.getAggregateName() + "Result",
+                    windowFunctionNode.getNewNullResultExpression(), getContextManager());
             newRC.markGenerated();
             newRC.bindResultColumnToExpression();
             childRCL.addElement(newRC);
@@ -780,8 +772,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                     }
                     exp.accept(columnPuller);
 
-                    tmpRC = (ResultColumn) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,
-                             "##" + windowFunctionNode.getAggregateName() + "_Input_" +
+                    tmpRC = new ResultColumn("##" + windowFunctionNode.getAggregateName() + "_Input_" +
                              exp.getColumnName(), exp, getContextManager());
 
                     tmpRC.markGenerated();
@@ -824,10 +815,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             /*
             ** Create an window function result expression
              */
-            ResultColumn fnResultRC = (ResultColumn) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,
-                                                                                "##" + windowFunctionNode.getAggregateName() + "ResultExp",
-                                                                                windowFunctionNode.getNewNullResultExpression(),
-                                                                                getContextManager());
+            ResultColumn fnResultRC = new ResultColumn("##" + windowFunctionNode.getAggregateName() + "ResultExp",
+                    windowFunctionNode.getNewNullResultExpression(), getContextManager());
 
             /*
             ** Piece together a fake one column rcl that we will use
@@ -1367,11 +1356,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         throws StandardException {
         ValueNode newExpression;
         if (expressionToReplace instanceof VirtualColumnNode) {
-            newExpression = (VirtualColumnNode) getNodeFactory().getNode(C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                                                                         this, // source result set.
-                                                                         sourceRC,
-                                                                         this.getResultColumns().size(),
-                                                                         getContextManager());
+            newExpression = new VirtualColumnNode(this, // source result set.
+                    sourceRC, this.getResultColumns().size(), getContextManager());
         } else {
             // just create a CR to replace the expression. This needs to be a CR because the setters don't exist
             // on ValueNode
@@ -1464,10 +1450,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         }
 
         // create the RC, wrap the CR
-        ResultColumn resultColumn = (ResultColumn) nodeFactory.getNode(C_NodeTypes.RESULT_COLUMN,
-                                                                       name,
-                                                                       columnRef,
-                                                                       contextManager);
+        ResultColumn resultColumn = new ResultColumn(name, columnRef, contextManager);
         resultColumn.markGenerated();
         resultColumn.bindResultColumnToExpression();
         if (sourceRC.getTableColumnDescriptor() != null) {
@@ -1508,11 +1491,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         ResultColumnList origResultColumnList = resultColumnList;
 
         resultColumnList = origResultColumnList;
-        ResultColumn resultColumn = (ResultColumn)
-        nodeFactory.getNode(C_NodeTypes.RESULT_COLUMN,
-                            name,
-                            expression,
-                            contextManager);
+        ResultColumn resultColumn = new ResultColumn(name, expression, contextManager);
         resultColumn.markGenerated();
         resultColumn.bindResultColumnToExpression();
         resultColumnList.addResultColumn(resultColumn);
