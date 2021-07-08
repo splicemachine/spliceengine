@@ -87,7 +87,10 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
     protected int[] pkColumns;
 
 	/** True if this is an action of a MERGE statement */
-	private boolean underMerge;
+	// todo: derby is using this to not close the activation when underMerge, but we currently don't do this.
+	// todo: if we would do this, we need to check writeExternalOld, since changing this would cause
+	//       SerializationTest.testGenericStorablePreparedStatement to fail
+	//private boolean underMerge;
 
     // CONSTRUCTORS
 
@@ -160,7 +163,7 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
 		this.streamStorableHeapColIds = streamStorableHeapColIds;
 		this.singleRowSource = singleRowSource;
 		this.indexNames = indexNames;
-		this.underMerge = underMerge;
+		//this.underMerge = underMerge;
 		if (SanityManager.DEBUG)
 		{
 			if (fkInfo != null)
@@ -348,7 +351,7 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
                 pkColumns[i] = in.readInt();
             }
         }
-		underMerge = in.readBoolean();
+        // underMerge = in.readBoolean();
 	}
 
 	/**
@@ -503,13 +506,13 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
                 out.writeInt(pkColumns[i]);
             }
         }
-		out.writeBoolean( underMerge );
+		//out.writeBoolean( underMerge );
 	}
 
 	// ACCESSORS
 
 	/** Return true if this is an action of a MERGE statement */
-	public  boolean underMerge() { return underMerge; }
+//	public  boolean underMerge() { return underMerge; }
 
 	/**
 	 * Get the conglomerate id for the changed heap.
