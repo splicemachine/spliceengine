@@ -291,7 +291,7 @@ public class utilMain implements java.security.PrivilegedAction {
                 return;
             }
         }
-        out.println("\n[ Executing init commands from " + f + ": ");
+        out.println("\n[ Executing init commands from '" + f + "' :");
         newInput(f);
     }
 
