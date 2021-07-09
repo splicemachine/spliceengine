@@ -1904,7 +1904,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
             // finally, set the minimum retention period for SYS tables to 1 week.
             TabInfoImpl ti=coreInfo[SYSTABLES_CATALOG_NUM];
-            faultInTabInfo(ti);
+            faultInTabInfo(ti, tc);
 
             FormatableBitSet columnToReadSet=new FormatableBitSet(SYSTABLESRowFactory.SYSTABLES_COLUMN_COUNT);
             FormatableBitSet columnToUpdateSet=new FormatableBitSet(SYSTABLESRowFactory.SYSTABLES_COLUMN_COUNT);
@@ -1957,7 +1957,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     public void setJavaClassNameColumnInSysAliases(TransactionController tc) throws StandardException {
         TabInfoImpl ti = getNonCoreTI(SYSALIASES_CATALOG_NUM);
-        faultInTabInfo(ti);
+        faultInTabInfo(ti, tc);
 
         FormatableBitSet columnToReadSet = new FormatableBitSet(SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT);
         FormatableBitSet columnToUpdateSet = new FormatableBitSet(SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT);
@@ -2290,7 +2290,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     public void upgradeRecreateIndexesOfSystemTable(TransactionController tc, int catalogNumber, int[] indexIds) throws StandardException {
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
         TabInfoImpl tabInfo = getTabInfoByNumber(catalogNumber);
-        TableDescriptor td = getTableDescriptor(tabInfo.getTableUUID());
+        TableDescriptor td = getTableDescriptor(tabInfo.getTableUUID(), tc);
         CatalogRowFactory crf = tabInfo.getCatalogRowFactory();
 
         // Init the heap conglomerate here

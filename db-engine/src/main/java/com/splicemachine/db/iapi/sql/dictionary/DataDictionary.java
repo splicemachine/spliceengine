@@ -630,11 +630,12 @@ public interface DataDictionary{
      * is needed).
      *
      * @param tableID The UUID of the table to get the descriptor for
+     * @param tc
      * @return The descriptor for the table, null if the table does
      * not exist.
      * @throws StandardException Thrown on failure
      */
-    TableDescriptor getTableDescriptor(UUID tableID) throws StandardException;
+    TableDescriptor getTableDescriptor(UUID tableID, TransactionController tc) throws StandardException;
 
     /**
      * Get a list of TableDescriptors whose table names are in a given range within the given schema.

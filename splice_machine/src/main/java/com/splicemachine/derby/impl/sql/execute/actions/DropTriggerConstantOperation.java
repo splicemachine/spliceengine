@@ -81,16 +81,16 @@ public class DropTriggerConstantOperation extends DDLSingleTableConstantOperatio
         */
         dd.startWriting(lcc);
 
-        TableDescriptor td = dd.getTableDescriptor(tableId);
+        TransactionController tc = lcc.getTransactionExecute();
+        TableDescriptor td = dd.getTableDescriptor(tableId, tc);
         if (td == null) {
             throw StandardException.newException(
                                 SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION,
                                 tableId.toString());
         }
-        TransactionController tc = lcc.getTransactionExecute();
         // XXX - TODO NO LOCKING lockTableForDDL(tc, td.getHeapConglomerateId(), true);
         // get td again in case table shape is changed before lock is acquired
-        td = dd.getTableDescriptor(tableId);
+        td = dd.getTableDescriptor(tableId, tc);
         if (td == null)
         {
             throw StandardException.newException(

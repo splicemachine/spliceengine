@@ -763,7 +763,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
              */
             UUID triggerTableId;
             if ((isConstructor()) && ((triggerTableId = getSpecialTriggerVTITableName(lcc, methodCall.getJavaClassName())) != null)) {
-                TableDescriptor td = getDataDictionary().getTableDescriptor(triggerTableId);
+                TableDescriptor td = getDataDictionary().getTableDescriptor(triggerTableId, null);
                 resultColumns = genResultColList(td);
 
                 // costing info

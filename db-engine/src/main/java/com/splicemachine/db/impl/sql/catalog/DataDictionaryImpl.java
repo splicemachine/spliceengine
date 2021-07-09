@@ -66,7 +66,6 @@ import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
 import com.splicemachine.db.impl.sql.compile.SetNode;
 import com.splicemachine.db.impl.sql.compile.TableName;
-import com.splicemachine.db.impl.sql.execute.GenericScanQualifier;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -87,7 +86,6 @@ import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -1599,7 +1597,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     public TableDescriptor getUncachedTableDescriptor(UUID tableId) throws StandardException{
-        return getTableDescriptorIndex2Scan(tableId.toString());
+        return getTableDescriptorIndex2Scan(tableId.toString(), null);
     }
 
     /**
@@ -1612,16 +1610,17 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * is needed).
      *
      * @param tableID The UUID of the table to get the descriptor for
+     * @param tc
      * @return The descriptor for the table, null if the table does
      * not exist.
      * @throws StandardException Thrown on failure
      */
     @Override
-    public TableDescriptor getTableDescriptor(UUID tableID) throws StandardException{
+    public TableDescriptor getTableDescriptor(UUID tableID, TransactionController tc) throws StandardException{
         TableDescriptor td = dataDictionaryCache.oidTdCacheFind(tableID);
         if (td != null)
             return td;
-        td = getTableDescriptorIndex2Scan(tableID.toString());
+        td = getTableDescriptorIndex2Scan(tableID.toString(), tc);
         if (td != null)
             dataDictionaryCache.oidTdCacheAdd(tableID,td);
         return td;
@@ -1633,7 +1632,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @return TableDescriptor    The matching descriptor, if any.
      * @throws StandardException Thrown on failure
      */
-    private TableDescriptor getTableDescriptorIndex2Scan(String tableUUID) throws StandardException{
+    private TableDescriptor getTableDescriptorIndex2Scan(String tableUUID, TransactionController tc) throws StandardException{
         DataValueDescriptor tableIDOrderable;
         TableDescriptor td;
         TabInfoImpl ti=coreInfo[SYSTABLES_CORE_NUM];
@@ -3055,7 +3054,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public ViewDescriptor getViewDescriptor(UUID uuid) throws StandardException{
-        return getViewDescriptor(getTableDescriptor(uuid));
+        return getViewDescriptor(getTableDescriptor(uuid, null));
     }
 
     /**
@@ -3624,7 +3623,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     public void clearSPSPlans() throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSSTATEMENTS_CATALOG_NUM);
-        faultInTabInfo(ti);
+        faultInTabInfo(ti, null);
 
         TransactionController tc=getTransactionExecute();
 
@@ -5011,7 +5010,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
 
         // get the table descriptor
-        return getTableDescriptor((UUID)slist.get(0));
+        return getTableDescriptor((UUID)slist.get(0), null);
     }
 
     /**
@@ -5386,7 +5385,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             ti = getNonCoreTI(baseNum);
         } else if(constraint.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT){
             ti=getPkTable();
-            faultInTabInfo(ti);
+            faultInTabInfo(ti, tc);
             indexNum=0;
         } else{
             baseNum=SYSKEYS_CATALOG_NUM;
@@ -7827,9 +7826,13 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on error
      */
     protected TabInfoImpl getNonCoreTI(int catalogNumber) throws StandardException{
+        return getNonCoreTI(catalogNumber, null);
+    }
+
+    protected TabInfoImpl getNonCoreTI(int catalogNumber, TransactionController tc) throws StandardException{
         TabInfoImpl ti=getNonCoreTIByNumber(catalogNumber);
 
-        faultInTabInfo(ti);
+        faultInTabInfo(ti, tc);
 
         return ti;
     }
@@ -8004,9 +8007,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * NOP if TabInfoImpl has already been faulted in.
      *
      * @param ti TabInfoImpl to fault in.
+     * @param tc
      * @throws StandardException Thrown on error
      */
-    public void faultInTabInfo(TabInfoImpl ti) throws StandardException{
+    public void faultInTabInfo(TabInfoImpl ti, TransactionController tc) throws StandardException{
         int numIndexes;
 
         /* Most of the time, the noncoreInfo will be complete.
@@ -8037,7 +8041,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 return;
             }
 
-            TableDescriptor td=getTableDescriptor(ti.getTableUUID());
+            TableDescriptor td=getTableDescriptor(ti.getTableUUID(), tc);
 
             // It's possible that the system table is not there right
             // now. This can happen, for example, if we're in the
@@ -9747,7 +9751,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             if( permissions == null)
             {
                 // The owner has all privileges unless they have been revoked.
-                TableDescriptor td = getTableDescriptor(tablePermsKey.getTableUUID());
+                TableDescriptor td = getTableDescriptor(tablePermsKey.getTableUUID(), null);
                 SchemaDescriptor sd = td.getSchemaDescriptor();
 
                 if( metadataAccessRestrictionEnabled && sd.isSystemViewSchema() ||

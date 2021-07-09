@@ -437,7 +437,7 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
             DataDictionary dd = operationContext.getActivation().getLanguageConnectionContext().getDataDictionary();
             ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomerateId);
             com.splicemachine.db.catalog.UUID tableID = cd.getTableID();
-            TableDescriptor td = dd.getTableDescriptor(tableID);
+            TableDescriptor td = dd.getTableDescriptor(tableID, null);
             String tableName = td.getName();
             String indexOrConstraintName;
             if (isIndex(conglomerateId)) {
