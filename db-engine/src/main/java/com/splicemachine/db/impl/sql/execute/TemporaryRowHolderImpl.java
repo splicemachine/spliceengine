@@ -91,11 +91,11 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 	private DataValueDescriptor[]  uniqueIndexRow = null;
 	private DataValueDescriptor[]  positionIndexRow = null;
 	private SQLLongint             position_sqllong;
-	
+
 
 	/**
 	 * Uses the default overflow to
- 	 * a conglomerate threshold (5).
+	 * a conglomerate threshold (5).
 	 *
 	 * @param activation the activation
 	 * @param properties the properties of the original table.  Used
@@ -105,13 +105,13 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 	 */
 	public TemporaryRowHolderImpl
 	(
-		Activation				activation, 
-		Properties 				properties, 
-		ResultDescription		resultDescription
-	) 
+			Activation				activation,
+			Properties 				properties,
+			ResultDescription		resultDescription
+	)
 	{
 		this(activation, properties, resultDescription,
-			 DEFAULT_OVERFLOWTHRESHOLD);
+				DEFAULT_OVERFLOWTHRESHOLD);
 	}
 
 
@@ -125,14 +125,14 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 	 * 		call on the result set returned by getResultSet.  May be null
 	 * @param overflowToConglomThreshold on an attempt to insert
 	 * 		this number of rows, the rows will be put
- 	 *		into a temporary conglomerate.
+	 *		into a temporary conglomerate.
 	 */
 	public TemporaryRowHolderImpl
 	(
-		Activation			 	activation, 
-		Properties				properties,
-		ResultDescription		resultDescription,
-		int 					overflowToConglomThreshold
+			Activation			 	activation,
+			Properties				properties,
+			ResultDescription		resultDescription,
+			int 					overflowToConglomThreshold
 	)
 	{
 		if (SanityManager.DEBUG)
@@ -140,9 +140,9 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 			if (overflowToConglomThreshold <= 0)
 			{
 				SanityManager.THROWASSERT("It is assumed that "+
-					"the overflow threshold is > 0.  "+
-					"If you you need to change this you have to recode some of "+
-					"this class.");
+						"the overflow threshold is > 0.  "+
+						"If you you need to change this you have to recode some of "+
+						"this class.");
 			}
 		}
 
@@ -160,25 +160,25 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 	public Activation getActivation() { return activation; }
 	public long getConglomerateId() { return CID; }
 
-    /* Avoid materializing a stream just because it goes through a temp table.
-     * It is OK to have a stream in the temp table (in memory or spilled to
-     * disk). The assumption is that one stream does not appear in two rows.
-     * For "update", one stream can be in two rows and the materialization is
-     * done in UpdateResultSet. Note to future users of this class who may
-     * insert a stream into this temp holder:
-     *   (1) As mentioned above, one un-materialized stream can't appear in two
-     *       rows; you need to objectify it first otherwise.
-     *   (2) If you need to retrieve an un-materialized stream more than once
-     *       from the temp holder, you need to either materialize the stream
-     *       the first time, or, if there's a memory constraint, in the first
-     *       time create a RememberBytesInputStream with the byte holder being
-     *       BackingStoreByteHolder, finish it, and reset it after usage.
-     *       A third option is to create a stream clone, but this requires that
-     *       the container handles are kept open until the streams have been
-     *       drained.
-     *
-     * Beetle 4896.
-     */
+	/* Avoid materializing a stream just because it goes through a temp table.
+	 * It is OK to have a stream in the temp table (in memory or spilled to
+	 * disk). The assumption is that one stream does not appear in two rows.
+	 * For "update", one stream can be in two rows and the materialization is
+	 * done in UpdateResultSet. Note to future users of this class who may
+	 * insert a stream into this temp holder:
+	 *   (1) As mentioned above, one un-materialized stream can't appear in two
+	 *       rows; you need to objectify it first otherwise.
+	 *   (2) If you need to retrieve an un-materialized stream more than once
+	 *       from the temp holder, you need to either materialize the stream
+	 *       the first time, or, if there's a memory constraint, in the first
+	 *       time create a RememberBytesInputStream with the byte holder being
+	 *       BackingStoreByteHolder, finish it, and reset it after usage.
+	 *       A third option is to create a stream clone, but this requires that
+	 *       the container handles are kept open until the streams have been
+	 *       drained.
+	 *
+	 * Beetle 4896.
+	 */
 	private ExecRow cloneRow(ExecRow inputRow)
 	{
 		DataValueDescriptor[] cols = inputRow.getRowArray();
@@ -189,7 +189,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 			if (cols[i] != null)
 			{
 				/* Rows are 1-based, cols[] is 0-based */
-                cloned.setColumn(i + 1, cols[i].cloneHolder());
+				cloned.setColumn(i + 1, cols[i].cloneHolder());
 			}
 		}
 		if (inputRow instanceof IndexValueRow)
@@ -204,9 +204,9 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 	 * @param inputRow the row to insert 
 	 *
 	 * @exception StandardException on error
- 	 */
+	 */
 	public void insert(ExecRow inputRow)
-		throws StandardException
+			throws StandardException
 	{
 
 		if (SanityManager.DEBUG)
@@ -226,29 +226,29 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 		if (lastArraySlot + 1 < rowArray.length)
 		{
 			rowArray[++lastArraySlot] = cloneRow(inputRow);
-		        return;
+			return;
 
 		}
-			
+
 		if (!conglomCreated)
 		{
 			TransactionController tc = activation.getTransactionController();
 
-            // TODO-COLLATE, I think collation needs to get set always correctly
-            // but did see what to get collate id when there was no result
-            // description.  The problem comes if row holder is used to stream
-            // row to temp disk, then row is read from disk using an interface
-            // where store creates the DataValueDescriptor template itself, 
-            // and subsquently the returned column is used for some sort of
-            // comparison.  Also could be a problem is reader of tempoary 
-            // table uses qualifiers, that would result in comparisons internal
-            // to store.  I believe the below impl is incomplete - either
-            // it should always be default, or real collate_ids should be 
-            // passed in.
+			// TODO-COLLATE, I think collation needs to get set always correctly
+			// but did see what to get collate id when there was no result
+			// description.  The problem comes if row holder is used to stream
+			// row to temp disk, then row is read from disk using an interface
+			// where store creates the DataValueDescriptor template itself,
+			// and subsquently the returned column is used for some sort of
+			// comparison.  Also could be a problem is reader of tempoary
+			// table uses qualifiers, that would result in comparisons internal
+			// to store.  I believe the below impl is incomplete - either
+			// it should always be default, or real collate_ids should be
+			// passed in.
 
-            // null collate_ids in createConglomerate call indicates to use all
-            // default collate ids.
-            int collation_ids[] = null;
+			// null collate_ids in createConglomerate call indicates to use all
+			// default collate ids.
+			int collation_ids[] = null;
 
             /*
             TODO-COLLATE - if we could count on resultDescription I think the
@@ -270,30 +270,31 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 
 
 			/*
-			** Create the conglomerate with the template row.
-			*/
-			CID = 
-                tc.createConglomerate(false,
-                    "heap",
-                    inputRow.getRowArray(),
-                    null, //column sort order - not required for heap
-                    collation_ids,
-                    properties,
-                    TransactionController.IS_TEMPORARY | 
-                    TransactionController.IS_KEPT, Conglomerate.Priority.NORMAL);
+			 ** Create the conglomerate with the template row.
+			 */
+			CID =
+					tc.createConglomerate(false,
+							"heap",
+							inputRow.getRowArray(),
+							null, //column sort order - not required for heap
+							null,
+							collation_ids,
+							properties,
+							TransactionController.IS_TEMPORARY |
+									TransactionController.IS_KEPT, Conglomerate.Priority.NORMAL);
 
 			conglomCreated = true;
 
-			cc = tc.openConglomerate(CID, 
-                                false,
-                                TransactionController.OPENMODE_FORUPDATE,
-                                TransactionController.MODE_TABLE,
-                                TransactionController.ISOLATION_SERIALIZABLE);
+			cc = tc.openConglomerate(CID,
+					false,
+					TransactionController.OPENMODE_FORUPDATE,
+					TransactionController.MODE_TABLE,
+					TransactionController.ISOLATION_SERIALIZABLE);
 
 		}
 
 		int status = 0;
-                status = cc.insert(inputRow);
+		status = cc.insert(inputRow);
 
 		if (SanityManager.DEBUG)
 		{
@@ -312,7 +313,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 	 * into the temporary heap.
 	 * @param inputRow  the row we are inserting to temporary row holder 
 	 * @exception StandardException on error
- 	 */
+	 */
 
 
 	private boolean isRowAlreadyExist(ExecRow inputRow) throws  StandardException
@@ -323,34 +324,35 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 
 		if(CID!=0 && rlColumn instanceof SQLRef)
 		{
-			baseRowLocation = 
-				(RowLocation) (rlColumn).getObject();
-		
+			baseRowLocation =
+					(RowLocation) (rlColumn).getObject();
+
 			if(!uniqueIndexCreated)
 			{
 				TransactionController tc =
-					activation.getTransactionController();
+						activation.getTransactionController();
 				int numKeys = 2;
 				uniqueIndexRow = new DataValueDescriptor[numKeys];
 				uniqueIndexRow[0] = baseRowLocation;
 				uniqueIndexRow[1] = baseRowLocation;
 				Properties props = makeIndexProperties(uniqueIndexRow, CID);
 				uniqueIndexConglomId =
-					tc.createConglomerate(false,
-	                    "BTREE",
-                        uniqueIndexRow, 
-                        null,  
-                        null, // no collation needed for index on row locations.
-                        props, 
-                        (TransactionController.IS_TEMPORARY | 
-                         TransactionController.IS_KEPT), Conglomerate.Priority.NORMAL);
+						tc.createConglomerate(false,
+								"BTREE",
+								uniqueIndexRow,
+								null,
+								null,
+								null, // no collation needed for index on row locations.
+								props,
+								(TransactionController.IS_TEMPORARY |
+										TransactionController.IS_KEPT), Conglomerate.Priority.NORMAL);
 
 				uniqueIndex_cc = tc.openConglomerate(
-								uniqueIndexConglomId, 
-								false,
-								TransactionController.OPENMODE_FORUPDATE,
-								TransactionController.MODE_TABLE,
-								TransactionController.ISOLATION_SERIALIZABLE);
+						uniqueIndexConglomId,
+						false,
+						TransactionController.OPENMODE_FORUPDATE,
+						TransactionController.MODE_TABLE,
+						TransactionController.ISOLATION_SERIALIZABLE);
 				uniqueIndexCreated = true;
 			}
 			ValueRow row = new ValueRow();
@@ -372,7 +374,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 						if (status != 0)
 						{
 							SanityManager.THROWASSERT("got funky status ("+status+") back from "+
-													  "Unique Index insert()");
+									"Unique Index insert()");
 						}
 					}
 				}
@@ -389,7 +391,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 	 * @param position - the number of the row we are inserting into heap
 	 * @param rl the row to Location in the temporary heap 
 	 * @exception StandardException on error
- 	 */
+	 */
 
 	private void insertToPositionIndex(int position, RowLocation rl ) throws  StandardException
 	{
@@ -400,30 +402,31 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 			position_sqllong = new SQLLongint();
 			positionIndexRow = new DataValueDescriptor[numKeys];
 			positionIndexRow[0] = position_sqllong;
-			positionIndexRow[1] = rl;				
+			positionIndexRow[1] = rl;
 			Properties props = makeIndexProperties(positionIndexRow, CID);
 			positionIndexConglomId =
-                tc.createConglomerate(
-						false,
-                    "BTREE",
-                    positionIndexRow, 
-                    null,  
-                    null, // no collation needed for index on row locations.
-                    props, 
-                    (TransactionController.IS_TEMPORARY | 
-                     TransactionController.IS_KEPT), Conglomerate.Priority.NORMAL);
+					tc.createConglomerate(
+							false,
+							"BTREE",
+							positionIndexRow,
+							null,
+							null,
+							null, // no collation needed for index on row locations.
+							props,
+							(TransactionController.IS_TEMPORARY |
+									TransactionController.IS_KEPT), Conglomerate.Priority.NORMAL);
 
-			positionIndex_cc = 
-                tc.openConglomerate(
-                    positionIndexConglomId, 
-                    false,
-                    TransactionController.OPENMODE_FORUPDATE,
-                    TransactionController.MODE_TABLE,
-                    TransactionController.ISOLATION_SERIALIZABLE);
+			positionIndex_cc =
+					tc.openConglomerate(
+							positionIndexConglomId,
+							false,
+							TransactionController.OPENMODE_FORUPDATE,
+							TransactionController.MODE_TABLE,
+							TransactionController.ISOLATION_SERIALIZABLE);
 
 			positionIndexCreated = true;
 		}
-		
+
 		position_sqllong.setValue(position);
 		positionIndexRow[0] = position_sqllong;
 		positionIndexRow[1] = rl;
@@ -435,7 +438,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 
 	/**
 	 * Get a result set for scanning what has been inserted
- 	 * so far.
+	 * so far.
 	 *
 	 * @return a result set to use
 	 */
@@ -457,12 +460,12 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 	public void truncate() throws StandardException
 	{
 		close();
-        if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(lastArraySlot == -1);
-            SanityManager.ASSERT(state == STATE_UNINIT);
-            SanityManager.ASSERT(!conglomCreated);
-            SanityManager.ASSERT(CID == 0);
-        }
+		if (SanityManager.DEBUG) {
+			SanityManager.ASSERT(lastArraySlot == -1);
+			SanityManager.ASSERT(state == STATE_UNINIT);
+			SanityManager.ASSERT(!conglomCreated);
+			SanityManager.ASSERT(CID == 0);
+		}
 		for (int i = 0; i < rowArray.length; i++)
 		{
 			rowArray[i] = null;
@@ -471,18 +474,18 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 		numRowsIn = 0;
 	}
 
-    /**
-     * Accessor to get the id of the temporary conglomerate. Temporary 
-     * conglomerates have negative ids. An id equal to zero means that no 
-     * temporary conglomerate has been created.
-     * @return Conglomerate ID of temporary conglomerate
-     */
+	/**
+	 * Accessor to get the id of the temporary conglomerate. Temporary
+	 * conglomerates have negative ids. An id equal to zero means that no
+	 * temporary conglomerate has been created.
+	 * @return Conglomerate ID of temporary conglomerate
+	 */
 	public long getTemporaryConglomId()
 	{
-        if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(CID == 0 && !conglomCreated || 
-                    CID < 0 && conglomCreated);
-        }
+		if (SanityManager.DEBUG) {
+			SanityManager.ASSERT(CID == 0 && !conglomCreated ||
+					CID < 0 && conglomCreated);
+		}
 		return CID;
 	}
 
@@ -494,7 +497,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 
 
 	private Properties makeIndexProperties(DataValueDescriptor[]
-											   indexRowArray, long conglomId ) throws StandardException {
+												   indexRowArray, long conglomId ) throws StandardException {
 		int nCols = indexRowArray.length;
 		Properties props = new Properties();
 		props.put("allowDuplicates", "false");
@@ -549,14 +552,14 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 		{
 			tc.dropConglomerate(CID);
 			conglomCreated = false;
-            CID = 0;
-		} 
-        else 
-        {
-            if (SanityManager.DEBUG) {
-                SanityManager.ASSERT(CID == 0, "CID(" + CID + ")==0");
-            }
-        }
+			CID = 0;
+		}
+		else
+		{
+			if (SanityManager.DEBUG) {
+				SanityManager.ASSERT(CID == 0, "CID(" + CID + ")==0");
+			}
+		}
 		state = STATE_UNINIT;
 		lastArraySlot = -1;
 	}

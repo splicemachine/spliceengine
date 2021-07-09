@@ -117,7 +117,7 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
      *
      * @exception StandardException thrown on failure
      */
-    ActivationClassBuilder (String superClass, CompilerContext cc) throws StandardException
+    public ActivationClassBuilder (String superClass, CompilerContext cc) throws StandardException
     {
         super( superClass, (String) null, cc );
         executeMethod = beginExecuteMethod();
@@ -307,6 +307,43 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
         return mb;
     }
 
+    /// this creates
+    // return super.resultSet == null ? (super.resultSet = this.fillResultSet()) : super.resultSet;
+    public void finishExecuteCode(boolean genMarkAsTopNode) {
+
+        MethodBuilder executeMethod = getExecuteMethod();
+        executeMethod.pushThis();
+        executeMethod.getField(ClassName.BaseActivation,"resultSet", ClassName.ResultSet);
+
+        executeMethod.conditionalIfNull();
+
+        // Generate the result set tree and store the
+        // resulting top-level result set into the resultSet
+        // field, as well as returning it from the execute method.
+
+        executeMethod.pushThis();
+        executeMethod.callMethod(VMOpcode.INVOKEVIRTUAL,null,"fillResultSet",ClassName.ResultSet,0);
+        executeMethod.pushThis();
+        executeMethod.swap();
+        executeMethod.putField(ClassName.BaseActivation,"resultSet",ClassName.ResultSet);
+
+        executeMethod.startElseCode(); // this is here as the compiler only supports ? :
+        executeMethod.pushThis();
+        executeMethod.getField(ClassName.BaseActivation,"resultSet",ClassName.ResultSet);
+        executeMethod.completeConditional();
+
+        // wrap up the activation class definition
+        // generate on the tree gave us back the newExpr
+        // for getting a result set on the tree.
+        // we put it in a return statement and stuff
+        // it in the execute method of the activation.
+        // The generated statement is the expression:
+        // the activation class builder takes care of constructing it
+        // for us, given the resultSetExpr to use.
+        //   return (this.resultSet = #resultSetExpr);
+        finishExecuteMethod(genMarkAsTopNode);
+    }
+
     MethodBuilder startResetMethod() {
         MethodBuilder mb = cb.newMethodBuilder(Modifier.PUBLIC,
             "void", "reset");
@@ -326,14 +363,13 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
 
        Upon entry the only word on the stack is the result set expression
      */
-    void finishExecuteMethod(boolean genMarkAsTopNode) {
+    public void finishExecuteMethod(boolean genMarkAsTopNode) {
 
         /* We only call markAsTopResultSet() for selects.
          * Non-select DML marks the top NoPutResultSet in the constructor.
          * Needed for closing down resultSet on an error.
          */
-        if (genMarkAsTopNode)
-        {
+        if (genMarkAsTopNode) {
             // dup the result set to leave one for the return and one for this call
             executeMethod.dup();
             executeMethod.cast(ClassName.NoPutResultSet);
@@ -343,6 +379,9 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
         /* return resultSet */
         executeMethod.methodReturn();
         executeMethod.complete();
+    }
+
+    public void addFields() {
 
         getClassBuilder().newFieldWithAccessors("getExecutionCount", "setExecutionCount",
                 Modifier.PROTECTED, true, "int");
@@ -352,6 +391,9 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
 
         getClassBuilder().newFieldWithAccessors("getStalePlanCheckInterval", "setStalePlanCheckInterval",
                 Modifier.PROTECTED, true, "int");
+    }
+
+    public void finishActivationMethod() {
 
         if (closeActivationMethod != null) {
             closeActivationMethod.methodReturn();
@@ -367,12 +409,12 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
         subqueryResultSetMethod.callMethod(VMOpcode.INVOKEVIRTUAL, "java.util.Vector", "addElement", "void", 1);
     }
 
-    void finishMaterializationMethod() {
+    public void finishMaterializationMethod() {
         materializationMethod.methodReturn();
         materializationMethod.complete();
     }
 
-    void finishSubqueryResultSetMethod() {
+    public void finishSubqueryResultSetMethod() {
         subqueryResultSetMethod.methodReturn();
         subqueryResultSetMethod.complete();
     }
@@ -496,11 +538,11 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
         level support for it. The first half of the logic is in our parent
         class.
      */
-    protected LocalField getCurrentSetup()
+    protected LocalField getCurrentDateTime()
     {
         if (cdtField != null) return cdtField;
 
-        LocalField lf = super.getCurrentSetup();
+        LocalField lf = super.getCurrentDateTime();
 
         // 3) Set current timestamp precision
         //    cdt.setCurrentTimestampPrecision(precision)

@@ -654,7 +654,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     stopSearchOperator,
                     sameStartStopPosition,
                     rowIdKey,
-                    null, // qualifiersField
+                    qualifiersField,
                     tableName,
                     userSuppliedOptimizerOverrides,
                     indexName,

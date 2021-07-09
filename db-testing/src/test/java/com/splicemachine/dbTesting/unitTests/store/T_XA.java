@@ -265,6 +265,7 @@ public class T_XA extends T_Generic
                 "heap", // create a heap conglomerate
                 template_row.getRowArray(), // 1 column template.
                 null, // column sort order - not required for heap
+                null,
                 null, // default collation
                 null, // default properties
                 TransactionController.IS_DEFAULT, // not temporary

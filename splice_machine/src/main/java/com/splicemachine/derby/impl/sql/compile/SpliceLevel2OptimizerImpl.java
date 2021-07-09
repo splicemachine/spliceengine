@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.compile;
 import java.util.List;
 
 import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
+import com.splicemachine.si.impl.driver.SIDriver;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;

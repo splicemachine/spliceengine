@@ -40,7 +40,6 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultDescription;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.util.ByteArray;
 
@@ -198,19 +197,18 @@ public abstract class StatementNode extends QueryTreeNode{
 
         int nodeChoice=activationKind();
 
-		/* RESOLVE: Activation hierarchy was way too complicated
-		 * and added no value.  Simple thing to do was to simply
-		 * leave calling code alone and to handle here and to
-		 * eliminate unnecessary classes.
-		 */
+        /* RESOLVE: Activation hierarchy was way too complicated
+         * and added no value.  Simple thing to do was to simply
+         * leave calling code alone and to handle here and to
+         * eliminate unnecessary classes.
+         */
         String superClass;
         switch(nodeChoice){
             case NEED_CURSOR_ACTIVATION:
                 superClass=ClassName.CursorActivation;
                 break;
             case NEED_DDL_ACTIVATION:
-                return getClassFactory().loadGeneratedClass(
-                        "com.splicemachine.db.impl.sql.execute.ConstantActionActivation",null);
+                return getClassFactory().loadGeneratedClass(ClassName.ConstantActionActivation, null);
 
             case NEED_NOTHING_ACTIVATION:
             case NEED_ROW_ACTIVATION:
@@ -262,7 +260,6 @@ public abstract class StatementNode extends QueryTreeNode{
          * </code>
          */
 
-        MethodBuilder executeMethod=generatingClass.getExecuteMethod();
 
         MethodBuilder mbWorker=generatingClass.getClassBuilder().newMethodBuilder(
                 Modifier.PRIVATE,
@@ -277,36 +274,15 @@ public abstract class StatementNode extends QueryTreeNode{
         mbWorker.methodReturn();
         mbWorker.complete();
 
-        executeMethod.pushThis();
-        executeMethod.getField(ClassName.BaseActivation,"resultSet", ClassName.ResultSet);
+        // add last lines of execute() :
+        //      if (resultSet == null)
+        //          resultSet = fillResultSet();
+        //      return resultSet;
+        generatingClass.finishExecuteCode(this instanceof CursorNode);
 
-        executeMethod.conditionalIfNull();
+        generatingClass.addFields();
 
-        // Generate the result set tree and store the
-        // resulting top-level result set into the resultSet
-        // field, as well as returning it from the execute method.
-
-        executeMethod.pushThis();
-        executeMethod.callMethod(VMOpcode.INVOKEVIRTUAL,null,"fillResultSet",ClassName.ResultSet,0);
-        executeMethod.pushThis();
-        executeMethod.swap();
-        executeMethod.putField(ClassName.BaseActivation,"resultSet",ClassName.ResultSet);
-
-        executeMethod.startElseCode(); // this is here as the compiler only supports ? :
-        executeMethod.pushThis();
-        executeMethod.getField(ClassName.BaseActivation,"resultSet",ClassName.ResultSet);
-        executeMethod.completeConditional();
-
-        // wrap up the activation class definition
-        // generate on the tree gave us back the newExpr
-        // for getting a result set on the tree.
-        // we put it in a return statement and stuff
-        // it in the execute method of the activation.
-        // The generated statement is the expression:
-        // the activation class builder takes care of constructing it
-        // for us, given the resultSetExpr to use.
-        //   return (this.resultSet = #resultSetExpr);
-        generatingClass.finishExecuteMethod(this instanceof CursorNode);
+        generatingClass.finishActivationMethod();
 
         // wrap up the constructor by putting a return at the end of it
         generatingClass.finishConstructor();

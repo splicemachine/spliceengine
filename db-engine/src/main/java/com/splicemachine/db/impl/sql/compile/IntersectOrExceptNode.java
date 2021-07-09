@@ -206,7 +206,7 @@ public class IntersectOrExceptNode extends SetOperatorNode
     {
         ContextManager cm = getContextManager();
         NodeFactory nf = getNodeFactory();
-        OrderByList orderByList = (OrderByList) nf.getNode( C_NodeTypes.ORDER_BY_LIST, cm);
+        OrderByList orderByList = new OrderByList(cm);
         for( int i = 0; i < intermediateOrderByColumns.length; i++)
         {
             OrderByColumn orderByColumn = (OrderByColumn)

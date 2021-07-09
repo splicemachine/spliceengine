@@ -128,6 +128,7 @@ public class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperatio
                     if( !prevMessage.last() ) {
                         String msg = "KRF.call Didn't get full batch after " + retries + " retries, got " + totalCount + " records";
                         LOG.error(id+" "+msg);
+                        consumer.close();
                         throw new RuntimeException(msg+" from topic-partition "+topicName+"-"+partition);
                     }
                     return false;

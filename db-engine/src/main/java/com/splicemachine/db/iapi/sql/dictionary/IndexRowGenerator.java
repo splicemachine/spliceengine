@@ -69,24 +69,25 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 
     /**
      * Constructor for an IndexRowGeneratorImpl
-     * 
-     * @param indexType		The type of index
-     * @param isUnique		True means the index is unique
+     *
+     * @param indexType        The type of index
+     * @param isUnique        True means the index is unique
      * @param isUniqueWithDuplicateNulls means the index is almost unique
      *                              i.e. unique only for non null keys
-     * @param baseColumnPositions	An array of column positions in the base
-     * 								table.  Each index column corresponds to a
-     * 								column position in the base table.
-     * @param isAscending	An array of booleans telling asc/desc on each
-     * 						column.
-     * @param numberOfOrderedColumns	In the future, it will be possible
-     * 									to store non-ordered columns in an
-     * 									index.  These will be useful for
-     * 									covered queries.
+     * @param baseColumnPositions    An array of column positions in the base
+     *                                 table.  Each index column corresponds to a
+     *                                 column position in the base table.
+     * @param isAscending    An array of booleans telling asc/desc on each
+     *                         column.
+     * @param numberOfOrderedColumns    In the future, it will be possible
+     *                                     to store non-ordered columns in an
+     *                                     index.  These will be useful for
+     *                                     covered queries.
      */
     public IndexRowGenerator(String indexType,
                              boolean isUnique,
                              boolean isUniqueWithDuplicateNulls,
+                             int[] baseColumnStoragePositions,
                              int[] baseColumnPositions,
                              boolean[] isAscending,
                              int numberOfOrderedColumns,
@@ -94,18 +95,19 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
                              boolean excludeDefaults)
     {
         id = new IndexDescriptorImpl(indexType,
-                                    isUnique,
-                                    isUniqueWithDuplicateNulls,
-                                    baseColumnPositions,
-                                    isAscending,
-                                    numberOfOrderedColumns,
-                                    excludeNulls,
-                                    excludeDefaults);
+                isUnique,
+                isUniqueWithDuplicateNulls,
+                baseColumnStoragePositions,
+                baseColumnPositions,
+                isAscending,
+                numberOfOrderedColumns,
+                excludeNulls,
+                excludeDefaults);
 
         if (SanityManager.DEBUG)
         {
             SanityManager.ASSERT(baseColumnPositions != null,
-                "baseColumnPositions are null");
+                    "baseColumnPositions are null");
         }
     }
 
@@ -113,6 +115,7 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
                              boolean isUnique,
                              boolean isUniqueWithDuplicateNulls,
                              int[] baseColumnPositions,
+                             int[] baseColumnLogicalPositions,
                              DataTypeDescriptor[] indexColumnTypes,
                              boolean[] isAscending,
                              int numberOfOrderedColumns,
@@ -123,17 +126,18 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
                              String[] generatedClassNames)
     {
         id = new IndexDescriptorImpl(indexType,
-                                    isUnique,
-                                    isUniqueWithDuplicateNulls,
-                                    baseColumnPositions,
-                                    indexColumnTypes,
-                                    isAscending,
-                                    numberOfOrderedColumns,
-                                    excludeNulls,
-                                    excludeDefaults,
-                                    exprTexts,
-                                    exprBytecode,
-                                    generatedClassNames);
+                isUnique,
+                isUniqueWithDuplicateNulls,
+                baseColumnPositions,
+                baseColumnLogicalPositions,
+                indexColumnTypes,
+                isAscending,
+                numberOfOrderedColumns,
+                excludeNulls,
+                excludeDefaults,
+                exprTexts,
+                exprBytecode,
+                generatedClassNames);
 
         if (SanityManager.DEBUG)
         {
@@ -142,47 +146,47 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
         }
     }
 
-	/**
-	 * Constructor for an IndexRowGeneratorImpl
-	 *
-	 * @param indexDescriptor		An IndexDescriptor to delegate calls to
-	 */
-	public IndexRowGenerator(IndexDescriptor indexDescriptor)
-	{
-		id = indexDescriptor;
-	}
+    /**
+     * Constructor for an IndexRowGeneratorImpl
+     *
+     * @param indexDescriptor        An IndexDescriptor to delegate calls to
+     */
+    public IndexRowGenerator(IndexDescriptor indexDescriptor)
+    {
+        id = indexDescriptor;
+    }
 
-	public IndexRowGenerator(CatalogMessage.IndexRowGenerator indexRowGenerator) throws IOException {
-		init(indexRowGenerator);
-	}
+    public IndexRowGenerator(CatalogMessage.IndexRowGenerator indexRowGenerator) throws IOException {
+        init(indexRowGenerator);
+    }
 
-	private void init(CatalogMessage.IndexRowGenerator indexRowGenerator) throws IOException{
-		id = ProtobufUtils.fromProtobuf(indexRowGenerator.getId());
-	}
-	/**
-	 * Get a template for the index row, to be used with getIndexRow.
-	 *
-	 * @return  A row template for the index row.
-	 */
-	public ExecIndexRow getIndexRowTemplate()
-	{
-		return getExecutionFactory().getIndexableRow(
-				id.isAscending().length + 1);
-	}
+    private void init(CatalogMessage.IndexRowGenerator indexRowGenerator) throws IOException{
+        id = ProtobufUtils.fromProtobuf(indexRowGenerator.getId());
+    }
+    /**
+     * Get a template for the index row, to be used with getIndexRow.
+     *
+     * @return  A row template for the index row.
+     */
+    public ExecIndexRow getIndexRowTemplate()
+    {
+        return getExecutionFactory().getIndexableRow(
+                id.isAscending().length + 1);
+    }
 
-	/**
-	 * Get a template for the index row key, to be used with getIndexRowKey.
-	 *
-	 * @return  A row template for the index row.
-	 */
-	public ExecIndexRow getIndexRowKeyTemplate(boolean alwaysIncludeLocation)
-	{
-		if (!alwaysIncludeLocation && id.isUnique()) {
-			return getExecutionFactory().getIndexableRow(id.isAscending().length);
-		} else {
-			return getIndexRowTemplate();
-		}
-	}
+    /**
+     * Get a template for the index row key, to be used with getIndexRowKey.
+     *
+     * @return  A row template for the index row.
+     */
+    public ExecIndexRow getIndexRowKeyTemplate(boolean alwaysIncludeLocation)
+    {
+        if (!alwaysIncludeLocation && id.isUnique()) {
+            return getExecutionFactory().getIndexableRow(id.isAscending().length);
+        } else {
+            return getIndexRowTemplate();
+        }
+    }
 
     /**
      * Get a NULL Index Row for this index. This is useful to create objects
@@ -194,29 +198,29 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
      * @exception StandardException thrown on error.
      */
     public ExecIndexRow getNullIndexRow(ColumnDescriptorList columnList,
-    		RowLocation rowLocation)
-    throws StandardException
+                                        RowLocation rowLocation)
+            throws StandardException
     {
-		ExecIndexRow indexRow = getIndexRowTemplate();
-		DataTypeDescriptor[] columnTypes = getIndexColumnTypes();
+        ExecIndexRow indexRow = getIndexRowTemplate();
+        DataTypeDescriptor[] columnTypes = getIndexColumnTypes();
 
-		if (columnTypes.length == 0) {
-			// Index is not built on expressions, use base column types.
-			int[] baseColumnPositions = id.baseColumnPositions();
-			for (int i = 0; i < baseColumnPositions.length; i++) {
-				DataTypeDescriptor dtd =
-						columnList.elementAt(baseColumnPositions[i] - 1).getType();
-				indexRow.setColumn(i + 1, dtd.getNull());
-			}
-			indexRow.setColumn(baseColumnPositions.length + 1, rowLocation);
-		} else {
-			// Index is built on expressions, use their result types.
-			for (int i = 0; i < columnTypes.length; i++) {
-				indexRow.setColumn(i + 1, columnTypes[i].getNull());
-			}
-			indexRow.setColumn(columnTypes.length + 1, rowLocation);
-		}
-		return indexRow;
+        if (columnTypes.length == 0) {
+            // Index is not built on expressions, use base column types.
+            int[] baseColumnPositions = id.baseColumnPositions();
+            for (int i = 0; i < baseColumnPositions.length; i++) {
+                DataTypeDescriptor dtd =
+                        columnList.elementAt(baseColumnPositions[i] - 1).getType();
+                indexRow.setColumn(i + 1, dtd.getNull());
+            }
+            indexRow.setColumn(baseColumnPositions.length + 1, rowLocation);
+        } else {
+            // Index is built on expressions, use their result types.
+            for (int i = 0; i < columnTypes.length; i++) {
+                indexRow.setColumn(i + 1, columnTypes[i].getNull());
+            }
+            indexRow.setColumn(columnTypes.length + 1, rowLocation);
+        }
+        return indexRow;
     }
 
     /**
@@ -315,7 +319,7 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
              ** Set the columns in the index row that are based on columns in
              ** the base row.
              */
-            int[] baseColumnPositions = id.baseColumnPositions();
+            int[] baseColumnPositions = id.baseColumnStoragePositions();
             colCount = baseColumnPositions.length;
 
             if (bitSet == null) {
@@ -365,24 +369,23 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
      * the index.
      *
      * This is only expected to get called during ddl, so object allocation
-     * is ok. 
+     * is ok.
      *
      * @param columnList ColumnDescriptors describing the base table.
      *
      * @exception  StandardException  Standard exception policy.
      **/
     public int[] getColumnCollationIds(ColumnDescriptorList columnList)
-        throws StandardException
+            throws StandardException
     {
         int[] collation_ids = new int[isAscending().length + 1];
         DataTypeDescriptor[] indexColumnTypes = getIndexColumnTypes();
 
         if (indexColumnTypes.length <= 0) {
-            int[] base_cols = id.baseColumnPositions();
+            int[] base_cols = id.baseColumnStoragePositions();
             for (int i = 0; i < base_cols.length; i++) {
                 collation_ids[i] =
-                        columnList.elementAt(
-                                base_cols[i] - 1).getType().getCollationType();
+                        columnList.getColumnDescriptorByStoragePosition(base_cols[i]).getType().getCollationType();
             }
         } else {
             for (int i = 0; i < indexColumnTypes.length; i++) {
@@ -398,207 +401,234 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
     }
 
 
-	/**
-	 * Get the IndexDescriptor that this IndexRowGenerator is based on.
-	 */
-	public IndexDescriptor getIndexDescriptor()
-	{
-		return id;
-	}
+    /**
+     * Get the IndexDescriptor that this IndexRowGenerator is based on.
+     */
+    public IndexDescriptor getIndexDescriptor()
+    {
+        return id;
+    }
 
-	/** Zero-argument constructor for Formatable interface */
-	public IndexRowGenerator()
-	{
-	}
+    /** Zero-argument constructor for Formatable interface */
+    public IndexRowGenerator()
+    {
+    }
 
-	/**
+    /**
      * @see IndexDescriptor#isUniqueWithDuplicateNulls
      */
-	public boolean isUniqueWithDuplicateNulls()
-	{
-		return id.isUniqueWithDuplicateNulls();
-	}
-	/** @see IndexDescriptor#isUnique */
-	public boolean isUnique()
-	{
-		return id.isUnique();
-	}
+    public boolean isUniqueWithDuplicateNulls()
+    {
+        return id.isUniqueWithDuplicateNulls();
+    }
+    /** @see IndexDescriptor#isUnique */
+    public boolean isUnique()
+    {
+        return id.isUnique();
+    }
 
-	/** @see IndexDescriptor#baseColumnPositions */
-	public int[] baseColumnPositions() {
-		return id == null ? null : id.baseColumnPositions();
-	}
+    /** @see IndexDescriptor#baseColumnPositions */
+    public int[] baseColumnPositions() {
+        return id.baseColumnPositions();
+    }
 
-	/** @see IndexDescriptor#getKeyColumnPosition */
-	public int getKeyColumnPosition(int heapColumnPosition) throws StandardException
-	{
-		return id.getKeyColumnPosition(heapColumnPosition);
-	}
+    @Override
+    public int[] baseColumnStoragePositions() {
+        return id.baseColumnStoragePositions();
+    }
 
-	/** @see IndexDescriptor#numberOfOrderedColumns */
-	public int numberOfOrderedColumns()
-	{
-		return id.numberOfOrderedColumns();
-	}
+    @Override
+    public boolean isInvalidIndexDescriptorAfter2022Upgrade() {
+        return id.isInvalidIndexDescriptorAfter2022Upgrade();
+    }
 
-	/** @see IndexDescriptor#indexType */
-	public String indexType()
-	{
+    /** @see IndexDescriptor#getKeyColumnPosition */
+    public int getKeyColumnPosition(int columnStoragePosition) throws StandardException
+    {
+        return id.getKeyColumnPosition(columnStoragePosition);
+    }
+
+    /** @see IndexDescriptor#numberOfOrderedColumns */
+    public int numberOfOrderedColumns()
+    {
+        return id.numberOfOrderedColumns();
+    }
+
+    /** @see IndexDescriptor#indexType */
+    public String indexType()
+    {
         return id==null?null:id.indexType();
-	}
+    }
 
-	public String toString()
-	{
-		return id.toString();
-	}
+    public String toString()
+    {
+        return id.toString();
+    }
 
-	/** @see IndexDescriptor#getIndexColumnTypes */
-	public DataTypeDescriptor[] getIndexColumnTypes() { return id.getIndexColumnTypes(); }
+    /** @see IndexDescriptor#getIndexColumnTypes */
+    public DataTypeDescriptor[] getIndexColumnTypes() { return id.getIndexColumnTypes(); }
 
-	/** @see IndexDescriptor#isAscending */
-	public boolean			isAscending(Integer keyColumnPosition)
-	{
-		return id.isAscending(keyColumnPosition);
-	}
+    /** @see IndexDescriptor#isAscending */
+    public boolean            isAscending(Integer keyColumnPosition)
+    {
+        return id.isAscending(keyColumnPosition);
+    }
 
-	/** @see IndexDescriptor#isDescending */
-	public boolean			isDescending(Integer keyColumnPosition)
-	{
-		return id.isDescending(keyColumnPosition);
-	}
+    /** @see IndexDescriptor#isDescending */
+    public boolean            isDescending(Integer keyColumnPosition)
+    {
+        return id.isDescending(keyColumnPosition);
+    }
 
-	@Override public boolean excludeNulls() {return id.excludeNulls();}
+    @Override public boolean excludeNulls() {return id.excludeNulls();}
 
-	@Override public boolean excludeDefaults() {return id.excludeDefaults();}
+    @Override public boolean excludeDefaults() {return id.excludeDefaults();}
 
-	/** @see IndexDescriptor#isAscending */
-	public boolean[]		isAscending()
-	{
-		return id.isAscending();
-	}
+    /** @see IndexDescriptor#isAscending */
+    public boolean[]        isAscending()
+    {
+        return id.isAscending();
+    }
 
-	/** @see IndexDescriptor#setBaseColumnPositions */
-	public void		setBaseColumnPositions(int[] baseColumnPositions)
-	{
-		id.setBaseColumnPositions(baseColumnPositions);
-	}
+    /** @see IndexDescriptor#setBaseColumnStoragePositions
+     * @param baseColumnStoragePositions */
+    @Override
+    public void setBaseColumnStoragePositions(int[] baseColumnStoragePositions)
+    {
+        id.setBaseColumnStoragePositions(baseColumnStoragePositions);
+    }
+    @Override
+    public void setBaseColumnPositions(int[] baseColumnPositions)
+    {
+        id.setBaseColumnPositions(baseColumnPositions);
+    }
 
-	/** @see IndexDescriptor#setIsAscending */
-	public void		setIsAscending(boolean[] isAscending)
-	{
-		id.setIsAscending(isAscending);
-	}
+    @Override
+    public int[] getBaseColumnStoragePositions() {
+        return id.getBaseColumnStoragePositions();
+    }
 
-	/** @see IndexDescriptor#setNumberOfOrderedColumns */
-	public void		setNumberOfOrderedColumns(int numberOfOrderedColumns)
-	{
-		id.setNumberOfOrderedColumns(numberOfOrderedColumns);
-	}
+    @Override
+    public int[] getBaseColumnPositions() {
+        return id.getBaseColumnPositions();
+    }
 
-	/**
-	 * Test for value equality
-	 *
-	 * @param other		The other indexrowgenerator to compare this one with
-	 *
-	 * @return	true if this indexrowgenerator has the same value as other
-	 */
-	@Override
-	public boolean equals(Object other) {
-		if (this == other) return true;
-		if (other == null || getClass() != other.getClass()) return false;
+    /** @see IndexDescriptor#setIsAscending */
+    public void        setIsAscending(boolean[] isAscending)
+    {
+        id.setIsAscending(isAscending);
+    }
 
-		IndexRowGenerator that = (IndexRowGenerator) other;
+    /** @see IndexDescriptor#setNumberOfOrderedColumns */
+    public void        setNumberOfOrderedColumns(int numberOfOrderedColumns)
+    {
+        id.setNumberOfOrderedColumns(numberOfOrderedColumns);
+    }
 
-		return id != null ? id.equals(that.id) : that.id == null;
+    /**
+     * Test for value equality
+     *
+     * @param other        The other indexrowgenerator to compare this one with
+     *
+     * @return    true if this indexrowgenerator has the same value as other
+     */
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) return true;
+        if (other == null || getClass() != other.getClass()) return false;
 
-	}
+        IndexRowGenerator that = (IndexRowGenerator) other;
 
-	@Override
-	public int hashCode() {
-		return id != null ? id.hashCode() : 0;
-	}
+        return id != null ? id.equals(that.id) : that.id == null;
 
-	private ExecutionFactory getExecutionFactory()
-	{
-		if (ef == null)
-		{
-			ExecutionContext	ec;
+    }
 
-			ec = (ExecutionContext)
-					ContextService.getContext(ExecutionContext.CONTEXT_ID);
-			ef = ec.getExecutionFactory();
-		}
-		return ef;
-	}
+    @Override
+    public int hashCode() {
+        return id != null ? id.hashCode() : 0;
+    }
 
-	////////////////////////////////////////////////////////////////////////////
-	//
-	// EXTERNALIZABLE
-	//
-	////////////////////////////////////////////////////////////////////////////
+    private ExecutionFactory getExecutionFactory()
+    {
+        if (ef == null)
+        {
+            ExecutionContext    ec;
 
-	/**
-	 * @see java.io.Externalizable#readExternal
-	 *
-	 * @exception IOException	Thrown on read error
-	 * @exception ClassNotFoundException	Thrown on read error
-	 */
-	@Override
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		if (DataInputUtil.shouldReadOldFormat()) {
-			readExternalOld(in);
-		}
-		else {
-			readExternalNew(in);
-		}
-	}
+            ec = (ExecutionContext)
+                    ContextService.getContext(ExecutionContext.CONTEXT_ID);
+            ef = ec.getExecutionFactory();
+        }
+        return ef;
+    }
 
-	protected void readExternalNew(ObjectInput in) throws IOException {
-		byte[] bs = ArrayUtil.readByteArray(in);
-		CatalogMessage.IndexRowGenerator irg = CatalogMessage.IndexRowGenerator.parseFrom(bs);
-		init(irg);
-	}
+    ////////////////////////////////////////////////////////////////////////////
+    //
+    // EXTERNALIZABLE
+    //
+    ////////////////////////////////////////////////////////////////////////////
 
-	protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
-		id = (IndexDescriptor)in.readObject();
-	}
+    /**
+     * @see java.io.Externalizable#readExternal
+     *
+     * @exception IOException    Thrown on read error
+     * @exception ClassNotFoundException    Thrown on read error
+     */
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (DataInputUtil.shouldReadOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
 
-	/**
-	 *
-	 * @exception IOException	Thrown on write error
-	 */
-	@Override
-	public void writeExternal( ObjectOutput out ) throws IOException {
-		if (DataInputUtil.shouldWriteOldFormat()) {
-			writeExternalOld(out);
-		}
-		else {
-			writeExternalNew(out);
-		}
-	}
+    protected void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        CatalogMessage.IndexRowGenerator irg = CatalogMessage.IndexRowGenerator.parseFrom(bs);
+        init(irg);
+    }
 
-	protected void writeExternalOld(ObjectOutput out) throws IOException {
-		out.writeObject(id);
-	}
+    protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
+        id = (IndexDescriptor)in.readObject();
+    }
 
-	protected void writeExternalNew(ObjectOutput out) throws IOException {
-		CatalogMessage.IndexRowGenerator indexRowGenerator = toProtobuf();
-		ArrayUtil.writeByteArray(out, indexRowGenerator.toByteArray());
-	}
+    /**
+     *
+     * @exception IOException    Thrown on write error
+     */
+    @Override
+    public void writeExternal( ObjectOutput out ) throws IOException {
+        if (DataInputUtil.shouldWriteOldFormat()) {
+            writeExternalOld(out);
+        }
+        else {
+            writeExternalNew(out);
+        }
+    }
 
-	public CatalogMessage.IndexRowGenerator toProtobuf() {
-		CatalogMessage.IndexDescriptorImpl indexDescriptor = ((IndexDescriptorImpl)id).toProtobuf();
-		CatalogMessage.IndexRowGenerator indexRowGenerator = CatalogMessage.IndexRowGenerator.newBuilder()
-				.setId(indexDescriptor)
-				.build();
-		return indexRowGenerator;
-	}
+    protected void writeExternalOld(ObjectOutput out) throws IOException {
+        out.writeObject(id);
+    }
 
-	/* TypedFormat interface */
-	public int getTypeFormatId()
-	{
-		return StoredFormatIds.INDEX_ROW_GENERATOR_V01_ID;
-	}
+    protected void writeExternalNew(ObjectOutput out) throws IOException {
+        CatalogMessage.IndexRowGenerator indexRowGenerator = toProtobuf();
+        ArrayUtil.writeByteArray(out, indexRowGenerator.toByteArray());
+    }
+
+    public CatalogMessage.IndexRowGenerator toProtobuf() {
+        CatalogMessage.IndexDescriptorImpl indexDescriptor = ((IndexDescriptorImpl)id).toProtobuf();
+        CatalogMessage.IndexRowGenerator indexRowGenerator = CatalogMessage.IndexRowGenerator.newBuilder()
+                .setId(indexDescriptor)
+                .build();
+        return indexRowGenerator;
+    }
+
+    /* TypedFormat interface */
+    public int getTypeFormatId()
+    {
+        return StoredFormatIds.INDEX_ROW_GENERATOR_V01_ID;
+    }
 
     /**
      * Is the IndexRowGenerator a Primary Key?
@@ -614,9 +644,9 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
     @Override
     public String[] getExprTexts() { return id.getExprTexts(); }
 
-	/** @see IndexDescriptor#getExprTexts */
-	@Override
-	public String getExprText(Integer keyColumnPosition) { return id.getExprText(keyColumnPosition); }
+    /** @see IndexDescriptor#getExprTexts */
+    @Override
+    public String getExprText(Integer keyColumnPosition) { return id.getExprText(keyColumnPosition); }
 
     /** @see IndexDescriptor#getExprBytecode */
     @Override
@@ -641,14 +671,14 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
     /** @see IndexDescriptor#getParsedIndexExpressions */
     @Override
     public ValueNode[] getParsedIndexExpressions(LanguageConnectionContext context, Optimizable optTable)
-			throws StandardException
-	{
+            throws StandardException
+    {
         return id.getParsedIndexExpressions(context, optTable);
     }
 
     private int getMaxBaseColumnPosition() {
         int maxPosition = 1;  // base column positions are 1-based
-        for (int bcp : id.baseColumnPositions()) {
+        for (int bcp : id.baseColumnStoragePositions()) {
             if (bcp > maxPosition)
                 maxPosition = bcp;
         }

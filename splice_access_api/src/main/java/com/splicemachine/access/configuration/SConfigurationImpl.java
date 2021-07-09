@@ -133,9 +133,10 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  String sparkIoCompressionCodec;
     private final int sparkResultStreamingBatches;
     private final int sparkResultStreamingBatchSize;
-    private final int sparkResultStreamingThrottleMaxWait;
+    private final boolean sparkResultStreamingThrottleEnabled;
     private final int sparkSlowResultStreamingBatches;
     private final int sparkSlowResultStreamingBatchSize;
+    private final int sparkResultStreamingThreads;
     private final int olapCompactionMaximumWait;
     private final int olapCompactionMaximumConcurrent;
     private final double olapCompactionResolutionShare;
@@ -582,8 +583,8 @@ public final class SConfigurationImpl implements SConfiguration {
     }
 
     @Override
-    public int getSparkResultStreamingThrottleMaxWait() {
-        return sparkResultStreamingThrottleMaxWait;
+    public boolean getSparkResultStreamingThrottleEnabled() {
+        return sparkResultStreamingThrottleEnabled;
     }
 
     @Override
@@ -594,6 +595,11 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getSparkSlowResultStreamingBatchSize() {
         return sparkSlowResultStreamingBatchSize;
+    }
+
+    @Override
+    public int getSparkResultStreamingThreads() {
+        return sparkResultStreamingThreads;
     }
 
     // SIConfigurations
@@ -1130,9 +1136,10 @@ public final class SConfigurationImpl implements SConfiguration {
         sparkAccumulatorsEnabled = builder.sparkAccumulatorsEnabled;
         sparkResultStreamingBatches = builder.sparkResultStreamingBatches;
         sparkResultStreamingBatchSize = builder.sparkResultStreamingBatchSize;
-        sparkResultStreamingThrottleMaxWait = builder.sparkResultStreamingThrottleMaxWait;
+        sparkResultStreamingThrottleEnabled = builder.sparkResultStreamingThrottleEnabled;
         sparkSlowResultStreamingBatches = builder.sparkSlowResultStreamingBatches;
         sparkSlowResultStreamingBatchSize = builder.sparkSlowResultStreamingBatchSize;
+        sparkResultStreamingThreads = builder.sparkResultStreamingThreads;
         olapCompactionMaximumWait = builder.olapCompactionMaximumWait;
         olapCompactionMaximumConcurrent = builder.olapCompactionMaximumConcurrent;
         olapCompactionResolutionShare = builder.olapCompactionResolutionShare;

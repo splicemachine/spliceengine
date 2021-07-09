@@ -309,10 +309,18 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
          * that lets us specify the conglomerate number then
          * we will need to handle it here.
          */
+        int[] keyFormatIds = null;
+        if (columnOrdering != null) {
+            keyFormatIds = new int[columnOrdering.length];
+            for (int i = 0; i < keyFormatIds.length; ++i) {
+                keyFormatIds[i] = columnInfo[columnOrdering[i].getColumnId()].dataType.getNull().getTypeFormatId();
+            }
+        }
         Conglomerate conglomerate = tc.createConglomerateAsync(storedAs!=null,
                 "heap", // we're requesting a heap conglomerate
                 template.getRowArray(), // row template
                 columnOrdering, //column sort order - not required for heap
+                keyFormatIds,
                 collation_ids,
                 properties, // properties
                 tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE ?

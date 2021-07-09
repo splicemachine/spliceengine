@@ -221,7 +221,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
                                 td, constraintName,
                                 false, //deferable,
                                 false, //initiallyDeferred,
-                                genColumnPositions(td, false), //int[],
+                                genColumnStoragePositions(td, false), //int[],
                                 constraintId,
                                 indexId,
                                 sd,
@@ -237,7 +237,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
                                 td, constraintName,
                                 false, //deferable,
                                 false, //initiallyDeferred,
-                                genColumnPositions(td, false), //int[],
+                                genColumnStoragePositions(td, false), //int[],
                                 constraintId,
                                 indexId,
                                 sd,
@@ -250,20 +250,20 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
                 if (td.getTableType() == TableDescriptor.EXTERNAL_TYPE)
                     throw StandardException.newException(SQLState.EXTERNAL_TABLES_NO_CHECK_CONSTRAINTS,td.getName());
 
-                conDesc = ddg.newCheckConstraintDescriptor(
-                                td, constraintName,
-                                false, //deferable,
-                                false, //initiallyDeferred,
-                                constraintId,
-                                constraintText,
-                                new ReferencedColumnsDescriptorImpl(genColumnPositions(td, false)), //int[],
-                                sd,
-                                enabled
-                                );
-                dd.addConstraintDescriptor(conDesc, tc);
-                storeConstraintDependenciesOnPrivileges
-                    (activation, conDesc, null, providerInfo);
-                break;
+				conDesc = ddg.newCheckConstraintDescriptor(
+								td, constraintName,
+								false, //deferable,
+								false, //initiallyDeferred,
+								constraintId,
+								constraintText,
+								new ReferencedColumnsDescriptorImpl(genColumnStoragePositions(td, false)), //int[],
+								sd,
+								enabled
+								);
+				dd.addConstraintDescriptor(conDesc, tc);
+				storeConstraintDependenciesOnPrivileges
+					(activation, conDesc, null, providerInfo);
+				break;
 
             case DataDictionary.FOREIGNKEY_CONSTRAINT:
                 if (td.getTableType() == TableDescriptor.EXTERNAL_TYPE)
@@ -438,6 +438,32 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
      *
      * @return int[]    The column positions.
      */
+    public int[] genColumnStoragePositions(TableDescriptor td, boolean columnsMustBeOrderable) throws StandardException {
+        int[] baseColumnStoragePositions;
+        // Translate the base column names to column positions
+        baseColumnStoragePositions = new int[columnNames.length];
+        for (int i = 0; i < columnNames.length; i++) {
+            ColumnDescriptor columnDescriptor;
+
+            // Look up the column in the data dictionary
+            columnDescriptor = td.getColumnDescriptor(columnNames[i]);
+            if (columnDescriptor == null) {
+                throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND_IN_TABLE,
+                        columnNames[i],tableName);
+            }
+
+            // Don't allow a column to be created on a non-orderable type
+            // (for primaryKey and unique constraints)
+            if ( columnsMustBeOrderable && ( ! columnDescriptor.getType().getTypeId().orderable(cf)))
+                throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION,
+                    columnDescriptor.getType().getTypeId().getSQLTypeName());
+
+            // Remember the position in the base table of each column
+            baseColumnStoragePositions[i] = columnDescriptor.getStoragePosition();
+        }
+        return baseColumnStoragePositions;
+    }
+
     public int[] genColumnPositions(TableDescriptor td, boolean columnsMustBeOrderable) throws StandardException {
         int[] baseColumnPositions;
         // Translate the base column names to column positions
@@ -456,7 +482,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
             // (for primaryKey and unique constraints)
             if ( columnsMustBeOrderable && ( ! columnDescriptor.getType().getTypeId().orderable(cf)))
                 throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION,
-                    columnDescriptor.getType().getTypeId().getSQLTypeName());
+                        columnDescriptor.getType().getTypeId().getSQLTypeName());
 
             // Remember the position in the base table of each column
             baseColumnPositions[i] = columnDescriptor.getPosition();

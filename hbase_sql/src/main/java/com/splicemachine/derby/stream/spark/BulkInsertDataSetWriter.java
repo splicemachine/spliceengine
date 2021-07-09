@@ -166,7 +166,7 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
                     DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txn.getTxnId(),
                             activation.getLanguageConnectionContext(),
                             td.getHeapConglomerateId(), searchCD.getConglomerateNumber(),
-                            td, searchCD.getIndexDescriptor(),td.getDefaultValue(searchCD.getIndexDescriptor().baseColumnPositions()[0]));
+                            td, searchCD.getIndexDescriptor(),td.getDefaultValue(searchCD.getIndexDescriptor().baseColumnStoragePositions()[0]));
                     tentativeIndexList.add(ddlChange.getTentativeIndex());
                     allCongloms.add(searchCD.getConglomerateNumber());
                 }

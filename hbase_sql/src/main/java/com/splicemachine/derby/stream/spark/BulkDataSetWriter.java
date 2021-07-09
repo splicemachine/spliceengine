@@ -157,7 +157,7 @@ public class BulkDataSetWriter  {
 
         Dataset<String> hFileSet = partitionAndSorted.mapPartitions(hfileGenerationFunction, Encoders.STRING());
 
-        Object files = hFileSet.collect();
+        hFileSet.collect();
     }
 
     private StructType createSchema() {
@@ -205,7 +205,7 @@ public class BulkDataSetWriter  {
                 DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txn.getTxnId(),
                         activation.getLanguageConnectionContext(),
                         td.getHeapConglomerateId(), searchCD.getConglomerateNumber(),
-                        td, searchCD.getIndexDescriptor(),td.getDefaultValue(searchCD.getIndexDescriptor().baseColumnPositions()[0]));
+                        td, searchCD.getIndexDescriptor(),td.getDefaultValue(searchCD.getIndexDescriptor().baseColumnStoragePositions()[0]));
                 tentativeIndexList.add(ddlChange.getTentativeIndex());
                 allCongloms.add(searchCD.getConglomerateNumber());
             }

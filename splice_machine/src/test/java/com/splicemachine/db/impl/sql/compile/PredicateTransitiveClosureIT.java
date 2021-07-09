@@ -86,7 +86,7 @@ public class PredicateTransitiveClosureIT extends SpliceUnitTest {
 
         ResultSet rs = methodWatcher.executeQuery("explain " + sqlText);
         String explainString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        Assert.assertTrue(sqlText + " expected to derive a2=1+2", explainString.contains("preds=[(A2[2:1] = (1 + 2))])"));
+        Assert.assertTrue(sqlText + " expected to derive a2=1+2", explainString.contains("preds=[(A2[2:1] = 3)])"));
         rs.close();
         rs = methodWatcher.executeQuery(sqlText);
         Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));

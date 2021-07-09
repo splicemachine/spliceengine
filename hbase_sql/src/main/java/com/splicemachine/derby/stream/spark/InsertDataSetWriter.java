@@ -19,8 +19,6 @@ import java.util.Collections;
 import java.util.List;
 
 import com.clearspring.analytics.util.Lists;
-import com.splicemachine.access.HConfiguration;
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptorList;
@@ -33,7 +31,6 @@ import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.db.iapi.types.SQLLongint;
-import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.utils.BulkLoadUtils;
@@ -201,7 +198,7 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                 DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(getTxn().getTxnId(),
                         activation.getLanguageConnectionContext(),
                         td.getHeapConglomerateId(), searchCD.getConglomerateNumber(),
-                        td, searchCD.getIndexDescriptor(),td.getDefaultValue(searchCD.getIndexDescriptor().baseColumnPositions()[0]));
+                        td, searchCD.getIndexDescriptor(),td.getDefaultValue(searchCD.getIndexDescriptor().baseColumnStoragePositions()[0]));
                 tentativeIndexList.add(ddlChange.getTentativeIndex());
                 allCongloms.add(searchCD.getConglomerateNumber());
             }

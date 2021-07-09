@@ -1004,7 +1004,7 @@ public class HdfsImport {
                 ColumnDescriptorList columnDescriptorList=td.getColumnDescriptorList();
                 pkNames = new String[pkList.length];
                 for (int i=0; i< pkList.length; i++) {
-                    pkNames[i] = columnDescriptorList.getColumnDescriptor(td.getUUID(),pkList[i]).getColumnName();
+                    pkNames[i] = columnDescriptorList.getColumnDescriptorByStoragePosition(td.getUUID(),pkList[i]).getColumnName();
                 }
             }
         } catch (StandardException e) {

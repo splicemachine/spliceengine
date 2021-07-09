@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
+import com.splicemachine.db.iapi.ast.ISpliceVisitor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
@@ -47,8 +48,10 @@ import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.ast.JoinConditionVisitor;
 import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
+import com.splicemachine.db.impl.ast.SpliceDerbyVisitorAdapter;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -108,6 +111,20 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
     private HashMap scopedPredCache;
     private PredicateList predicatesPushedToDT;
+
+    public ProjectRestrictNode() {}
+    public ProjectRestrictNode(ResultSetNode childResult,
+                               ResultColumnList projection,
+                               ValueNode restriction,
+                               PredicateList restrictionList,
+                               SubqueryList projectSubquerys,
+                               SubqueryList restrictSubquerys,
+                               Object tableProperties, ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.PROJECT_RESTRICT_NODE);
+        init(childResult, projection, restriction, restrictionList,
+                projectSubquerys, restrictSubquerys, tableProperties);
+    }
 
     /**
      * Initializer for a ProjectRestrictNode.
@@ -670,8 +687,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                 // add another level of PR in-between to project/hold the rowid field
                 ResultColumnList newPrRCList = resultColumns.copyListAndObjects();
 
-                ResultSetNode newPRNode = (ResultSetNode) getNodeFactory().getNode(
-                        C_NodeTypes.PROJECT_RESTRICT_NODE,
+                ResultSetNode newPRNode = new ProjectRestrictNode(
                         childResult,
                         newPrRCList,
                         null,    /* Restriction */
@@ -1979,11 +1995,29 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
     @Override
     public void acceptChildren(Visitor v) throws StandardException{
         super.acceptChildren(v);
+
+        JoinConditionVisitor jcv = null;
+        if (v instanceof JoinConditionVisitor) {
+            jcv = (JoinConditionVisitor) v;
+        } else if (v instanceof SpliceDerbyVisitorAdapter && v.getBaseVisitor() instanceof JoinConditionVisitor) {
+            jcv = (JoinConditionVisitor) v.getBaseVisitor();
+        }
+
+        if (jcv != null && hasSubqueries()) {
+            // if this PRN has subqueries, correlated predicates in those subqueries can
+            // access childResult
+            jcv.addResultSetNumbers(childResult.getResultSetNumber());
+        }
+
         if(restriction!=null){
             restriction=(ValueNode)restriction.accept(v, this);
         }
         if(restrictionList!=null){
             restrictionList=(PredicateList)restrictionList.accept(v, this);
+        }
+
+        if (jcv != null && hasSubqueries()) {
+            jcv.removeResultSetNumbers(childResult.getResultSetNumber());
         }
     }
 

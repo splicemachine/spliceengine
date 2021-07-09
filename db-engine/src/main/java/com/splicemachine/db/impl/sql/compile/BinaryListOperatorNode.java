@@ -94,9 +94,7 @@ public abstract class BinaryListOperatorNode extends ValueNode{
                 }
             }
             else if (leftOperand instanceof ValueNode) {
-                ValueNodeList vnl = (ValueNodeList) getNodeFactory().getNode(
-                                     C_NodeTypes.VALUE_NODE_LIST,
-                                     getContextManager());
+                ValueNodeList vnl = new ValueNodeList(getContextManager());
                 vnl.addValueNode((ValueNode)leftOperand);
                 this.leftOperandList = vnl;
                 singleLeftOperand = true;

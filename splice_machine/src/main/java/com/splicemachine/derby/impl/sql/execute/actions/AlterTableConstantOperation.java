@@ -46,6 +46,7 @@ import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.altertable.DistributedAlterTableTransformJob;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
@@ -402,14 +403,15 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
         int tableType = tableDescriptor.getTableType();
         long newCongNum = tc.createConglomerate(tableDescriptor.isExternal(),
-            "heap", // we're requesting a heap conglomerate
-            template.getRowArray(), // row template
-            columnSortOrder, //column sort order
-            collation_ids,
-            properties, // properties
-            tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE ?
-                (TransactionController.IS_TEMPORARY | TransactionController.IS_KEPT) :
-                TransactionController.IS_DEFAULT, Conglomerate.Priority.NORMAL);
+                "heap", // we're requesting a heap conglomerate
+                template.getRowArray(), // row template
+                columnSortOrder, //column sort order
+                null,
+                collation_ids,
+                properties, // properties
+                tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE ?
+                        (TransactionController.IS_TEMPORARY | TransactionController.IS_KEPT) :
+                        TransactionController.IS_DEFAULT, Conglomerate.Priority.NORMAL);
 
         // follow thru with remaining constraint actions, create, store, etc.
         constraint.executeConstantAction(activation);
@@ -579,9 +581,11 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         // We're adding a uniqueness constraint. Column sort order will change.
         int[] collation_ids = new int[nColumns];
         ColumnOrdering[] columnSortOrder = new IndexColumnOrder[constraintColumnNames.size()];
+        int[] keyFormatIds = new int[columnSortOrder.length];
         for (int j=0; j< constraintColumnNames.size(); j++) {
             ColumnDescriptor cd = tableDescriptor.getColumnDescriptor(constraintColumnNames.get(j));
-            columnSortOrder[j] = new IndexColumnOrder(cd.getPosition()-1);
+            columnSortOrder[j] = new IndexColumnOrder(cd.getStoragePosition()-1);
+            keyFormatIds[j] = cd.getType().getNull().getTypeFormatId();
         }
 
         for (int ix = 0; ix < nColumns; ix++) {
@@ -614,14 +618,15 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
         int tableType = tableDescriptor.getTableType();
         long newCongNum = tc.createConglomerate(tableDescriptor.isExternal(),
-            "heap", // we're requesting a heap conglomerate
-            template.getRowArray(), // row template
-            columnSortOrder, //column sort order - not required for heap
-            collation_ids,
-            properties, // properties
-            tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE ?
-                (TransactionController.IS_TEMPORARY | TransactionController.IS_KEPT) :
-                TransactionController.IS_DEFAULT, Conglomerate.Priority.NORMAL);
+                "heap", // we're requesting a heap conglomerate
+                template.getRowArray(), // row template
+                columnSortOrder, //column sort order - not required for heap
+                keyFormatIds,
+                collation_ids,
+                properties, // properties
+                tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE ?
+                        (TransactionController.IS_TEMPORARY | TransactionController.IS_KEPT) :
+                        TransactionController.IS_DEFAULT, Conglomerate.Priority.NORMAL);
 
         /*
          * modify the conglomerate descriptor with the new conglomId
@@ -734,7 +739,10 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         int[] collationIds = collation[index];
 
         DataDictionary dd = activation.getLanguageConnectionContext().getDataDictionary();
-        doIndexUpdate(dd,td,tc, index, newIndexCongloms, cd, properties, false,rowArray,columnOrder,collationIds);
+        SpliceConglomerate conglomerate = (SpliceConglomerate)
+                ((SpliceTransactionManager) tc).findConglomerate(indexConglomerateNumbers[index]);
+        int[] keyFormatIds = conglomerate.getKeyFormatIds();
+        doIndexUpdate(dd,td,tc, index, newIndexCongloms, cd, properties, false,rowArray,columnOrder,keyFormatIds,collationIds);
 
         /* Update the DataDictionary
          *
@@ -768,6 +776,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                                  boolean statisticsExist,
                                  DataValueDescriptor[] rowArray,
                                  ColumnOrdering[] columnOrder,
+                                 int[] keyFormatIds,
                                  int[] collationIds) throws StandardException {
 
         newIndexCongloms[index] =
@@ -776,6 +785,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                         "BTREE",
                         rowArray,
                         columnOrder,
+                        keyFormatIds,
                         collationIds,
                         properties,
                         TransactionController.IS_DEFAULT,
@@ -933,14 +943,16 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
             // get the column positions for the new PK to
             // create the PK IndexDescriptor and new conglomerate
-            int [] pkColumns =
-                ((CreateConstraintConstantOperation)constraintAction).genColumnPositions(tableDescriptor, true);
-            boolean[] ascending = new boolean[pkColumns.length];
+            int [] pkStoragePositions =
+                ((CreateConstraintConstantOperation)constraintAction).genColumnStoragePositions(tableDescriptor, true);
+            int [] pkPositions =
+                    ((CreateConstraintConstantOperation)constraintAction).genColumnPositions(tableDescriptor, true);
+            boolean[] ascending = new boolean[pkPositions.length];
             for(int i=0;i<ascending.length;i++){
                 ascending[i] = true;
             }
-            IndexDescriptor indexDescriptor =
-                new IndexDescriptorImpl("PRIMARYKEY",true,false,pkColumns,ascending,pkColumns.length,false,false);
+            IndexDescriptor indexDescriptor = new IndexDescriptorImpl("PRIMARYKEY",true,false,
+                        pkStoragePositions, pkPositions,ascending,pkPositions.length,false,false);
             IndexRowGenerator irg = new IndexRowGenerator(indexDescriptor);
 
             // Replace old table conglomerate with new one with the new PK conglomerate

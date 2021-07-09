@@ -64,6 +64,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     private String scanQualifiersFieldName;
     private Field  qualifiersField;
     protected boolean sameStartStopPosition;
+    protected boolean skipScanQualifiers = false;
     private long conglomId;
     protected int startSearchOperator;
     protected int stopSearchOperator;
@@ -459,7 +460,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     protected Qualifier[][] populateQualifiers() throws StandardException {
 
         Qualifier[][] scanQualifiers = null;
-        if (scanQualifiersFieldName != null) {
+        if (scanQualifiersFieldName != null && !skipScanQualifiers) {
             try {
                 qualifiersField = activation.getClass().getField(scanQualifiersFieldName);
                 scanQualifiers = (Qualifier[][]) qualifiersField.get(activation);
@@ -525,5 +526,9 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     // No-Op.  ProbeValue is used only by MultiProbeScan.
     public void setProbeValue(DataValueDescriptor dvd) {
 
+    }
+
+    public void skipQualifiers(boolean skip) {
+        skipScanQualifiers = skip;
     }
 }

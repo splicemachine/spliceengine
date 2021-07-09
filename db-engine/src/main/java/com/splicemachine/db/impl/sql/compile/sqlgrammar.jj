@@ -3266,12 +3266,7 @@ currentOfClause( String correlationName ) throws StandardException :
 {
     <CURRENT> <OF> cursorName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
     {
-        return (FromTable) nodeFactory.getNode(
-                                C_NodeTypes.CURRENT_OF_NODE,
-                                correlationName,
-                                cursorName,
-                                null,
-                                getContextManager());
+        return new CurrentOfNode(correlationName, cursorName, null, getContextManager());
     }
 }
 
@@ -5264,10 +5259,7 @@ selectList() throws StandardException :
 {
     <ASTERISK>
     {
-        allResultColumn = (ResultColumn) nodeFactory.getNode(
-                                        C_NodeTypes.ALL_RESULT_COLUMN,
-                                        null,
-                                        getContextManager());
+        allResultColumn = new AllResultColumn(null, getContextManager());
         /* Add the new AllResultColumn to the end of the list */
         resultColumns.addResultColumn(allResultColumn);
         return resultColumns;
@@ -5315,10 +5307,7 @@ selectSublist(ResultColumnList resultColumns) throws StandardException :
     )
     tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) <PERIOD> <ASTERISK>
     {
-        allResultColumn = (ResultColumn) nodeFactory.getNode(
-                                        C_NodeTypes.ALL_RESULT_COLUMN,
-                                        tableName,
-                                        getContextManager());
+        allResultColumn = new AllResultColumn(tableName, getContextManager());
         /* Add the new AllResultColumn to the end of the list */
         resultColumns.addResultColumn(allResultColumn);
     }
@@ -5638,9 +5627,7 @@ remainingNegatablePredicate(ValueNode leftOperand) throws StandardException :
     <BETWEEN> betweenLeft = additiveExpression(null, 0) <AND>
             betweenRight = additiveExpression(null, 0)
     {
-        ValueNodeList betweenList = (ValueNodeList) nodeFactory.getNode(
-                                                    C_NodeTypes.VALUE_NODE_LIST,
-                                                    getContextManager());
+        ValueNodeList betweenList = new ValueNodeList(getContextManager());
         betweenList.addElement(betweenLeft);
         betweenList.addElement(betweenRight);
         tree = (ValueNode) nodeFactory.getNode(
@@ -6686,9 +6673,7 @@ decimalFunction(String functionName) throws StandardException :
 ValueNode
 coalesceFunction(String coalesceOrValue) throws StandardException :
 {
-    ValueNodeList expressionList = (ValueNodeList) nodeFactory.getNode(
-    C_NodeTypes.VALUE_NODE_LIST,
-    getContextManager());
+    ValueNodeList expressionList = new ValueNodeList(getContextManager());
 }
 {
     <LEFT_PAREN>
@@ -6710,9 +6695,7 @@ coalesceFunction(String coalesceOrValue) throws StandardException :
 ValueNode
 scalarMinMaxFunction(String minOrMax) throws StandardException :
 {
-    ValueNodeList args = (ValueNodeList) nodeFactory.getNode(
-        C_NodeTypes.VALUE_NODE_LIST,
-        getContextManager());
+    ValueNodeList args = new ValueNodeList(getContextManager());
 }
 {
     <LEFT_PAREN>
@@ -8995,10 +8978,7 @@ atIsolationLevel() throws StandardException :
 OrderByList
 sortSpecificationList(ResultSetNode rs) throws StandardException :
 {
-    OrderByList orderCols = (OrderByList) nodeFactory.getNode(
-                                            C_NodeTypes.ORDER_BY_LIST,
-                                            rs,
-                                            getContextManager());
+    OrderByList orderCols = new OrderByList(rs, getContextManager());
 }
 {
     sortSpecification(orderCols) ( <COMMA> sortSpecification(orderCols) ) *
@@ -9450,9 +9430,7 @@ insertColumnsAndSource(QueryTreeNode targetTable)
             offsetClauses[ FETCH_FIRST_CLAUSE ] = topNOut[0];
         }
 
-        StatementNode insertNode =  (StatementNode) nodeFactory.getNode(
-                            C_NodeTypes.INSERT_NODE,
-                            targetTable,
+        InsertNode insertNode =  new InsertNode(targetTable,
                             columnList,
                             queryExpression,
                             targetProperties,
@@ -9739,9 +9717,7 @@ inPredicateValue(ValueNode leftOperand) throws StandardException :
 ValueNode
 inValueList(ValueNode leftOperand) throws StandardException:
 {
-    ValueNodeList    inList = (ValueNodeList) nodeFactory.getNode(
-                                            C_NodeTypes.VALUE_NODE_LIST,
-                                            getContextManager());
+    ValueNodeList inList = new ValueNodeList(getContextManager());
 }
 {
     inElement(inList) ( <COMMA> inElement(inList) ) *
@@ -9936,8 +9912,7 @@ tableExpression(ResultColumnList selectList) throws StandardException :
             n.replaceAggregatesWithColumnReferences(selectList, 0);
         }
 
-        selectNode = (SelectNode) nodeFactory.getNode(
-                            C_NodeTypes.SELECT_NODE,
+        selectNode = new SelectNode(
                             selectList,
                             null,         /* AGGREGATE list */
                             fromList,
@@ -10332,9 +10307,7 @@ FromTable tableFactor() throws StandardException :
         [ <LEFT_PAREN> derivedRCL = derivedColumnList() <RIGHT_PAREN> ]
         [ optionalTableClauses = optionalTableProperties() ]
     {
-        fromTable = (FromTable) nodeFactory.getNode(
-                                            C_NodeTypes.FROM_SUBQUERY,
-                                            derivedTable.getResultSet(),
+        fromTable = new FromSubquery(derivedTable.getResultSet(),
                                             derivedTable.getOrderByList(),
                                             derivedTable.getOffset(),
                                             derivedTable.getFetchFirst(),
@@ -14537,12 +14510,8 @@ setStatement(Token[] tokenHolder) throws StandardException :
 {
         ResultColumnList columnList = null;
         tokenHolder[0] = getToken(1);
-        ValueNodeList    assignedColumnsList = (ValueNodeList) nodeFactory.getNode(
-                                                    C_NodeTypes.VALUE_NODE_LIST,
-                                                    getContextManager());
-        ValueNodeList    newValuesList = (ValueNodeList) nodeFactory.getNode(
-                                                    C_NodeTypes.VALUE_NODE_LIST,
-                                                    getContextManager());
+        ValueNodeList assignedColumnsList = new ValueNodeList(getContextManager());
+        ValueNodeList newValuesList = new ValueNodeList(getContextManager());
 }
 {
   LOOKAHEAD( { javaClassFollows(1) } )
@@ -14564,12 +14533,8 @@ setStatementInCreateTrigger(Token[] tokenHolder, HashSet<String> hs) throws Stan
 {
         ResultColumnList columnList = null;
         tokenHolder[0] = getToken(1);
-        ValueNodeList    assignedColumnsList = (ValueNodeList) nodeFactory.getNode(
-                                                    C_NodeTypes.VALUE_NODE_LIST,
-                                                    getContextManager());
-        ValueNodeList    newValuesList = (ValueNodeList) nodeFactory.getNode(
-                                                    C_NodeTypes.VALUE_NODE_LIST,
-                                                    getContextManager());
+        ValueNodeList assignedColumnsList = new ValueNodeList(getContextManager());
+        ValueNodeList newValuesList = new ValueNodeList(getContextManager());
         if (hs == null)
             hs = new HashSet<String>();
 }
@@ -14673,7 +14638,7 @@ valueSpecification() throws StandardException :
         // "NULLIF(L, R)" is the same as "L=R ? untyped NULL : L"
         // An impl assumption here is that Derby can promote CHAR to any comparable datatypes such as numeric
         ContextManager cm = getContextManager();
-        ValueNodeList thenElseList = (ValueNodeList) nodeFactory.getNode(C_NodeTypes.VALUE_NODE_LIST, cm);
+        ValueNodeList thenElseList = new ValueNodeList(cm);
 
         //Use untyped null for then clause at this point. At the bind time, we will cast it to the datatype of L
         thenElseList.addElement(new UntypedNullConstantNode(cm));
@@ -14738,9 +14703,7 @@ caseExpression() throws StandardException :
 ValueNode
 arrayExpression() throws StandardException :
 {
-    ValueNodeList list = (ValueNodeList) nodeFactory.getNode(
-        C_NodeTypes.VALUE_NODE_LIST,
-        getContextManager());
+    ValueNodeList list = new ValueNodeList(getContextManager());
 }
 {
     arrayElement( list) ( <COMMA> arrayElement( list) ) *
@@ -14812,7 +14775,7 @@ whenThenExpression(ValueNode compareTo) throws StandardException :
     elseExpr = caseInnerExpression(compareTo)
     {
         ContextManager cm = getContextManager();
-        ValueNodeList thenElseList = (ValueNodeList) nodeFactory.getNode(C_NodeTypes.VALUE_NODE_LIST, cm);
+        ValueNodeList thenElseList = new ValueNodeList(cm);
         thenElseList.addElement(thenExpr); // then
         thenElseList.addElement(elseExpr); // else
 
@@ -16376,10 +16339,7 @@ void columnNameListOrAsterisk(ResultColumnList cl) throws StandardException :
 |
      <ASTERISK>
      {
-         allResultColumn = (ResultColumn) nodeFactory.getNode(
-                                            C_NodeTypes.ALL_RESULT_COLUMN,
-                                            null,
-                                            getContextManager());
+         allResultColumn = new AllResultColumn(null, getContextManager());
          cl.addResultColumn(allResultColumn);
      }
 }
