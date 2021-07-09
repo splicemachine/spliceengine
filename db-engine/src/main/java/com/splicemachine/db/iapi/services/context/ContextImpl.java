@@ -60,7 +60,8 @@ public abstract class ContextImpl
 	protected ContextImpl(ContextManager cm, String id) {
 		myIdName = id;
 		myContextManager = cm;
-		cm.pushContext(this);
+		if(cm != null)
+			cm.pushContext(this);
 	}
 
 	/*

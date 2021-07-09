@@ -39,8 +39,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 
 import com.splicemachine.db.iapi.services.context.Context;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class ReflectGeneratedClass extends LoadedGeneratedClass {
@@ -92,6 +94,15 @@ public final class ReflectGeneratedClass extends LoadedGeneratedClass {
 
 	}
 
+	@Override
+	public Object invokeMethod(Object obj, String simpleName, Object... parameters )
+			throws NoSuchMethodException, StandardException {
+		Class<?>[] parameterTypes = Arrays.stream(parameters).map( Object::getClass ).toArray(Class<?>[]::new);
+		Method m = getJVMClass().getMethod(simpleName, parameterTypes);
+		return new ReflectMethod(m).invoke(obj, parameters);
+	}
+
+	@Override
 	public GeneratedMethod getMethod(String simpleName)
 		throws StandardException {
 
@@ -134,8 +145,11 @@ class DirectCall implements GeneratedMethod {
 		this.which = which;
 	}
 
-	public Object invoke(Object ref)
+	@Override
+	public Object invoke(Object ref, Object... args)
 		throws StandardException {
+		if(args != null && args.length > 0)
+			throw new NotImplementedException();
 
 		try {
 

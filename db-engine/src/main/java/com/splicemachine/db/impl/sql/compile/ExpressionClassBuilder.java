@@ -189,7 +189,7 @@ public abstract class ExpressionClassBuilder implements ExpressionClassBuilderIn
         return constructor;
     }
 
-    ClassBuilder getClassBuilder() {
+    public ClassBuilder getClassBuilder() {
         return cb;
     }
 
@@ -201,7 +201,7 @@ public abstract class ExpressionClassBuilder implements ExpressionClassBuilderIn
      * will be executed before the ResultSet is created
      * using fillResultSet. 
      */
-    MethodBuilder getExecuteMethod() {
+    public MethodBuilder getExecuteMethod() {
         return executeMethod;
     }
 
@@ -237,8 +237,7 @@ public abstract class ExpressionClassBuilder implements ExpressionClassBuilderIn
      *
      * @exception StandardException thrown on failure
      */
-
-    void finishConstructor()
+    public void finishConstructor()
          throws StandardException
     {
         int    numResultSets;
@@ -472,9 +471,9 @@ public abstract class ExpressionClassBuilder implements ExpressionClassBuilderIn
         generate support information for CURRENT_DATE,
         that would otherwise be painful to create manually.
      */
-    void getCurrentDateExpression(MethodBuilder mb) {
+    public void getCurrentDateExpression(MethodBuilder mb) {
         // do any needed setup
-        LocalField lf = getCurrentSetup();
+        LocalField lf = getCurrentDateTime();
 
         // generated Java:
         //   this.cdt.getCurrentDate();
@@ -490,7 +489,7 @@ public abstract class ExpressionClassBuilder implements ExpressionClassBuilderIn
      */
     void getCurrentTimeExpression(MethodBuilder mb) {
         // do any needed setup
-        LocalField lf = getCurrentSetup();
+        LocalField lf = getCurrentDateTime();
 
         // generated Java:
         // this.cdt.getCurrentTime();
@@ -500,7 +499,7 @@ public abstract class ExpressionClassBuilder implements ExpressionClassBuilderIn
     
     void getCurrentTimezoneExpression(MethodBuilder mb) {
         // do any needed setup
-        LocalField lf = getCurrentSetup();
+        LocalField lf = getCurrentDateTime();
 
         // generated Java:
         // this.cdg.getCurrentTimezone();
@@ -516,7 +515,7 @@ public abstract class ExpressionClassBuilder implements ExpressionClassBuilderIn
      */
     void getCurrentTimestampExpression(MethodBuilder mb) {
         // do any needed setup
-        LocalField lf = getCurrentSetup();
+        LocalField lf = getCurrentDateTime();
 
         // generated Java:
         //   this.cdt.getCurrentTimestamp();
@@ -771,21 +770,17 @@ public abstract class ExpressionClassBuilder implements ExpressionClassBuilderIn
         The first time a current datetime is needed, create the class
         level support for it.
      */
-    protected LocalField getCurrentSetup() {
+    protected LocalField getCurrentDateTime() {
         if (cdtField != null)
             return cdtField;
 
         // generated Java:
         // 1) the field "cdt" is created:
         //    private CurrentDatetime cdt;
-        cdtField = newFieldDeclaration(
-            Modifier.PRIVATE,
-            ClassName.CurrentDatetime,
-            currentDatetimeFieldName);
+        cdtField = newFieldDeclaration(Modifier.PRIVATE, ClassName.CurrentDatetime, currentDatetimeFieldName);
 
         // 2) the constructor gets a statement to init CurrentDatetime:
         //   cdt = new CurrentDatetime();
-
         constructor.pushNewStart(ClassName.CurrentDatetime);
         constructor.pushNewComplete(0);
         constructor.setField(cdtField);

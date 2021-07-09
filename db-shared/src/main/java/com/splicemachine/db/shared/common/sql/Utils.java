@@ -13,8 +13,6 @@
 
 package com.splicemachine.db.shared.common.sql;
 
-import java.util.List;
-import java.util.stream.Collectors;
 import java.nio.charset.Charset;
 
 public class Utils {
@@ -77,5 +75,20 @@ public class Utils {
             throw new IllegalArgumentException("not supported format \"" + format + "\": '" + l + "' can't be repeated " + r + " times");
         }
         return length;
+    }
+
+    public static String constructHbaseName(String tableName) {
+        if(tableName == null) {
+            return null;
+        }
+        try {
+            long conglomId = Long.parseLong(tableName);
+            return "splice:" + conglomId;
+        } catch(NumberFormatException nfe) {
+            if(!tableName.contains(":")) {
+                throw new IllegalArgumentException(String.format("improper HBase table name %s", tableName));
+            }
+        }
+        return tableName;
     }
 }
