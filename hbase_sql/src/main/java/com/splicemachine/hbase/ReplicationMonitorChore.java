@@ -303,11 +303,15 @@ public class ReplicationMonitorChore extends ScheduledChore {
 
     private void runHealthcheckScript() throws IOException, InterruptedException, KeeperException {
 
-        String command = healthcheckScript;
+        String command;
+        StringBuilder commandStringBuilder = new StringBuilder();
+        commandStringBuilder.append(healthcheckScript);
         for (String rs : regionServers) {
             String[] s = rs.split(":");
-             command += " " + s[0];
+             commandStringBuilder.append(" ");
+             commandStringBuilder.append(s[0]);
         }
+        command = commandStringBuilder.toString();
         String result = executeScript(command);
         byte[] status = result.equals("SUCCESS") ? ReplicationUtils.MASTER_CLUSTER_STATUS_UP :
                 ReplicationUtils.MASTER_CLUSTER_STATUS_DOWN;
@@ -564,7 +568,7 @@ public class ReplicationMonitorChore extends ScheduledChore {
             SpliceLogUtils.error(LOG, "Encountered an error when executing script %s : %s", healthcheckScript, error);
         }
         line = "";
-        String result = "";
+        String result;
         StringBuilder resultStringBuilder = new StringBuilder();
         while ((line = reader.readLine()) != null) {
             resultStringBuilder.append(line);

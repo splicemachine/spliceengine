@@ -608,8 +608,8 @@ class DDMWriter
 
 		if (SanityManager.DEBUG)
 		{
-			if (buf == null)
-				if (length > 0) {
+			if (buf == null) {
+				if (length > 0)
 				    SanityManager.THROWASSERT("Buf is null");
 			}
 			else if (length + start - 1 > buf.length)
@@ -717,8 +717,8 @@ class DDMWriter
 	{
 		if (SanityManager.DEBUG)
 		{
-			if (buf == null)
-				if (length > 0) {
+			if (buf == null) {
+				if (length > 0)
 				    SanityManager.THROWASSERT("Buf is null");
 			}
 			else if (length > buf.length)
@@ -1074,8 +1074,8 @@ class DDMWriter
 	{
 		if (SanityManager.DEBUG)
 		{
-			if (buf == null)
-				if (length > 0) {
+			if (buf == null) {
+				if (length > 0)
 				    SanityManager.THROWASSERT("Buf is null");
 			}
 			else if (length - start > buf.length)
