@@ -14,6 +14,7 @@
 
 package com.splicemachine.olap;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.logging.log4j.Logger;
@@ -34,6 +35,7 @@ public class OlapStatusHandler extends AbstractOlapHandler{
     }
 
     @Override
+    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT", justification = "intentional")
     protected void channelRead0(ChannelHandlerContext ctx, OlapMessage.Command cmd) throws Exception {
         if (LOG.isTraceEnabled()) {
             LOG.trace("Received " + cmd);

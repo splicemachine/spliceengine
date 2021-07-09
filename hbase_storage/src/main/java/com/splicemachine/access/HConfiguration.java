@@ -14,6 +14,7 @@
 
 package com.splicemachine.access;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HConstants;
@@ -111,6 +112,7 @@ public class HConfiguration extends HBaseConfiguration {
         builder.compressionAlgorithm = configurationSource.getString(COMPRESSION_ALGORITHM, DEFAULT_COMPRESSION);
     }
 
+    @SuppressFBWarnings(value = "DC_DOUBLECHECK", justification = "intentional")
     private SConfiguration init() {
         SConfiguration config = INSTANCE;
         if (config == null) {

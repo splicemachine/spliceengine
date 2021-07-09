@@ -23,6 +23,7 @@ import org.apache.spark.rdd.RDD
 
 import scala.reflect.ClassTag
 import scala.util.control.NonFatal
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 
 /**
  * Partition for ShuffledPartitionsRDD.
@@ -32,6 +33,10 @@ import scala.util.control.NonFatal
  * @param parentPartitionIndex index of the partition within the parent RDD
  *                                this partition refers to
  */
+@SuppressFBWarnings(value = Array("SE_NO_SERIALVERSIONID"), justification = "intentional")
+@SuppressFBWarnings(value = Array("SE_TRANSIENT_FIELD_NOT_RESTORED"), justification = "intentional")
+@SuppressFBWarnings(value = Array("NP_ALWAYS_NULL"), justification = "intentional")
+@SuppressFBWarnings(value = Array("SE_BAD_FIELD"), justification = "intentional")
 private[spark] class ShuffledPartition[T: ClassTag](
     idx: Int,
     @transient private val rdd: RDD[T],

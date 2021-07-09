@@ -38,7 +38,7 @@ public class SpliceOutputCommitter extends OutputCommitter {
     private static Logger LOG = LogManager.getLogger(SpliceOutputCommitter.class);
     protected TxnView parentTxn;
     protected byte[] destinationTable;
-    public static ThreadLocal<TxnView> currentTxn = new ThreadLocal<>();
+    public static final ThreadLocal<TxnView> currentTxn = new ThreadLocal<>();
 
     private SpliceOutputCommitter() {
         super();

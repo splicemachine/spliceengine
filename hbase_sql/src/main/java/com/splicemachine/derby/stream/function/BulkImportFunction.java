@@ -73,9 +73,10 @@ public class BulkImportFunction implements VoidFunction<Iterator<BulkImportParti
         FileSystem fs = FileSystem.get(URI.create(bulkImportDirectory), conf);
         PartitionFactory tableFactory= SIDriver.driver().getTableFactory();
 
-        for (Long conglomId : partitionMap.keySet()) {
+        for (Map.Entry<Long, List<BulkImportPartition>> entry:partitionMap.entrySet()) {
+            Long conglomId = entry.getKey();
             Partition partition=tableFactory.getTable(Long.toString(conglomId));
-            List<BulkImportPartition> partitionList = partitionMap.get(conglomId);
+            List<BulkImportPartition> partitionList = entry.getValue();
             // For each batch of BulkImportPartition, use the first partition as staging area
             Path path = new Path(partitionList.get(0).getFilePath());
             if (!fs.exists(path)) {

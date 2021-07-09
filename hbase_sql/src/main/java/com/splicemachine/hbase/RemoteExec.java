@@ -15,6 +15,7 @@
 package com.splicemachine.hbase;
 
 import com.jcraft.jsch.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -39,6 +40,7 @@ public class RemoteExec {
         this.command = command;
     }
 
+    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "intentional")
     public String execute() throws JSchException, IOException{
         java.util.Properties config = new java.util.Properties();
         config.put("StrictHostKeyChecking", "no");

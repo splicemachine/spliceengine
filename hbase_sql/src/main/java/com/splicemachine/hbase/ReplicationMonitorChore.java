@@ -20,6 +20,7 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.replication.ReplicationSystemProcedure;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.ScheduledChore;
 import org.apache.hadoop.hbase.Stoppable;
@@ -49,6 +50,11 @@ import java.util.Map;
 /**
  * Created by jyuan on 9/30/19.
  */
+@SuppressFBWarnings(value={ "ODR_OPEN_DATABASE_RESOURCE",
+                            "OS_OPEN_STREAM",
+                            "DM_DEFAULT_ENCODING",
+                            "REC_CATCH_EXCEPTION"},
+                    justification = "intentional")
 public class ReplicationMonitorChore extends ScheduledChore {
     private static final Logger LOG = LogManager.getLogger(ReplicationMonitorChore.class);
 
@@ -418,7 +424,7 @@ public class ReplicationMonitorChore extends ScheduledChore {
         try (ZKWatcher masterZkw = new ZKWatcher(conf, "replication monitor", null, false)) {
             String[] s = masterClusterKey.split(":");
             RecoverableZooKeeper rzk = masterZkw.getRecoverableZooKeeper();
-            List<String> children = rzk.getChildren(s[2], false);
+            rzk.getChildren(s[2], false);
             return true;
         }
         catch (Exception e) {
@@ -547,19 +553,23 @@ public class ReplicationMonitorChore extends ScheduledChore {
 
 
         String line = "";
-        String error = "";
+        String error;
+        StringBuilder errorStringBuilder = new StringBuilder();
         while ((line = errorReader.readLine()) != null) {
-            error += line;
+            errorStringBuilder.append(line);
         }
+        error = errorStringBuilder.toString();
 
         if (error.length() > 0) {
             SpliceLogUtils.error(LOG, "Encountered an error when executing script %s : %s", healthcheckScript, error);
         }
         line = "";
         String result = "";
+        StringBuilder resultStringBuilder = new StringBuilder();
         while ((line = reader.readLine()) != null) {
-            result += line;
+            resultStringBuilder.append(line);
         }
+        result = resultStringBuilder.toString();
 
         return  result;
     }

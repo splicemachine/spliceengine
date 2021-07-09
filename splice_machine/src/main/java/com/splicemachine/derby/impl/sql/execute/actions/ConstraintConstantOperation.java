@@ -41,6 +41,7 @@ import java.util.List;
  *
  * @version 0.1
  */
+@SuppressFBWarnings(value = "UUF_UNUSED_FIELD", justification = "intentional")
 public abstract class ConstraintConstantOperation extends DDLSingleTableConstantOperation {
     private static final Logger LOG = LogManager.getLogger(ConstraintConstantOperation.class);
     protected String constraintName;

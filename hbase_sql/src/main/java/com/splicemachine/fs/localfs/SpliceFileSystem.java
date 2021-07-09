@@ -206,7 +206,7 @@ public class SpliceFileSystem extends ChecksumFileSystem {
     public FsStatus getStatus(Path p) throws IOException {
         if (LOG.isTraceEnabled())
             LOG.trace(String.format("getStatus path=%s",p));
-        File partition = pathToFile(p == null ? new Path("/") : p);
+        pathToFile(p == null ? new Path("/") : p);
         //File provides getUsableSpace() and getFreeSpace()
         //File provides no API to obtain used space, assume used = total - free
         return new FsStatus(Long.MAX_VALUE,

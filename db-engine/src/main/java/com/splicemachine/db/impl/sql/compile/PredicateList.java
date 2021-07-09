@@ -971,7 +971,6 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             (costingPhase && optTable.indexPrefixIteratorAllowed(accessPath)) ||
                 (!costingPhase && accessPath.getNumUnusedLeadingIndexFields() > 0);
         accessPath.setNumUnusedLeadingIndexFields(0);
-        final boolean compilingTrigger = compilingTrigger();
 
         if(cd!=null && !cd.isIndex() && !cd.isConstraint()){
             List<ConglomerateDescriptor> cdl=optTable.getTableDescriptor().getConglomerateDescriptorList();

@@ -19,6 +19,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import java.io.IOException;
@@ -33,6 +34,7 @@ class ExportPermissionCheck {
     private ExportParams exportParams;
     private ExportFile testFile;
 
+    @SuppressFBWarnings(value = "DMI_RANDOM_USED_ONLY_ONCE", justification = "intentional")
     ExportPermissionCheck(ExportParams exportParams,DistributedFileSystem dfs) {
         this.exportParams = exportParams;
         byte[] testFileTaskId = new byte[16];

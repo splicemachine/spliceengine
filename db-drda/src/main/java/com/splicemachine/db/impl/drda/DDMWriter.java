@@ -608,9 +608,11 @@ class DDMWriter
 
 		if (SanityManager.DEBUG)
 		{
-			if (buf == null && length > 0)
-		    	SanityManager.THROWASSERT("Buf is null");
-			if (length + start - 1 > buf.length)
+			if (buf == null)
+				if (length > 0) {
+				    SanityManager.THROWASSERT("Buf is null");
+			}
+			else if (length + start - 1 > buf.length)
 		    	SanityManager.THROWASSERT("Not enough bytes in buffer");
 
 		}
@@ -715,9 +717,11 @@ class DDMWriter
 	{
 		if (SanityManager.DEBUG)
 		{
-			if (buf == null && length > 0)
-		    	SanityManager.THROWASSERT("Buf is null");
-			if (length > buf.length)
+			if (buf == null)
+				if (length > 0) {
+				    SanityManager.THROWASSERT("Buf is null");
+			}
+			else if (length > buf.length)
 		    	SanityManager.THROWASSERT("Not enough bytes in buffer");
 		}
 		ensureLength (length + 4);
@@ -1070,9 +1074,11 @@ class DDMWriter
 	{
 		if (SanityManager.DEBUG)
 		{
-			if (buf == null && length > start)
-		    	SanityManager.THROWASSERT("Buf is null");
-			if (length - start > buf.length)
+			if (buf == null)
+				if (length > 0) {
+				    SanityManager.THROWASSERT("Buf is null");
+			}
+			else if (length - start > buf.length)
 				SanityManager.THROWASSERT("Not enough bytes in buffer");
 		}
 		int numBytes = length - start;
@@ -1190,14 +1196,13 @@ class DDMWriter
         int length = 0;
 
         try {
-            DynamicByteArrayOutputStream dbaos = new DynamicByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream( dbaos );
+            try (DynamicByteArrayOutputStream dbaos = new DynamicByteArrayOutputStream();
+				 ObjectOutputStream oos = new ObjectOutputStream(dbaos))  {
+				oos.writeObject(val);
 
-            oos.writeObject( val );
-
-            buffer = dbaos.getByteArray();
-            length = dbaos.getUsed();
-            
+				buffer = dbaos.getByteArray();
+				length = dbaos.getUsed();
+			}
         } catch(IOException e)
         {
             agent.markCommunicationsFailure
@@ -1699,12 +1704,8 @@ class DDMWriter
 			return 4;
 		else if (ddmSize <= 0xffffffffffffL)
 			return 6;
-		else if (ddmSize <= 0x7fffffffffffffffL)
-			return 8;
 		else
-			// shouldn't happen
-			// XXX - add sanity debug stuff here
-			return 0;
+			return 8;
 	}
 
 	/**

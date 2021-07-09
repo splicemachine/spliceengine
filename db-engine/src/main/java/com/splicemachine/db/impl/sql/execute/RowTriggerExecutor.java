@@ -42,9 +42,6 @@ import com.splicemachine.db.iapi.sql.Activation;
  * There is one per row trigger.
  */
 public class RowTriggerExecutor extends GenericTriggerExecutor {
-
-    private boolean                     firstTime = true;
-
     /**
      * Constructor
      *
@@ -68,8 +65,6 @@ public class RowTriggerExecutor extends GenericTriggerExecutor {
     void fireTrigger(TriggerEvent event, CursorResultSet rs, int[] colsReadFromTable, boolean deferCleanup) throws StandardException {
         tec.setTrigger(triggerd);
         tec.setCurrentTriggerEvent(event);
-
-        firstTime = false;
 
         try {
             tec.setTriggeringResultSet(rs);

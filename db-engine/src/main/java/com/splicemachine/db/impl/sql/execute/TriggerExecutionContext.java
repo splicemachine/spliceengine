@@ -110,7 +110,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
     private SPSDescriptor fromTableDmlSpsDescriptor;
     private boolean hasGeneratedColumn;  // Does the trigger table have a generated column?
 
-    public static String className = TriggerExecutionContext.class.getCanonicalName();
+    public static final String className = TriggerExecutionContext.class.getCanonicalName();
 
     /*
     ** Used to track all the result sets we have given out to

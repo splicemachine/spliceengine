@@ -76,6 +76,7 @@ import com.splicemachine.db.iapi.services.info.JVMInfo;
 import com.splicemachine.db.iapi.services.i18n.BundleFinder;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.utils.Pair;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import splice.com.google.common.cache.CacheBuilder;
 
 import java.io.IOException;
@@ -110,6 +111,7 @@ import java.net.URL;
 
 */
 
+@SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "intentional")
 abstract class BaseMonitor
 	implements ModuleFactory, BundleFinder {
 
@@ -701,6 +703,7 @@ abstract class BaseMonitor
 			t, identifier, "XX" /*ci.getClassName()*/);
 	}
 
+    @SuppressFBWarnings(value = "UUF_UNUSED_FIELD", justification = "intentional")
 	private Boolean exceptionTrace;
 
 	/**
@@ -777,6 +780,7 @@ abstract class BaseMonitor
 
 	/**
 	*/
+    @SuppressFBWarnings(value = "UPM_UNCALLED_PRIVATE_METHOD", justification = "intentional")
 	private Object newInstance(String className) {
 
 		try {
