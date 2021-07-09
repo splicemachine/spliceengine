@@ -29,7 +29,7 @@ public class SpliceCatalogUpgradeScriptsTest {
 
     // Those scripts must run before other upgrade scripts
     String s3 = "VERSION4.2020: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeAddConglomerateNumberIndex\n" +
-            "VERSION4.2023: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToPrioritizeSchemaIdInSystemIndices\n" +
+            "VERSION4.2024: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToPrioritizeSchemaIdInSystemIndices\n" +
             "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeConglomerateTable\n" +
             "VERSION4.2020: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddMultiDatabaseSupport\n";
     // add more scripts here
