@@ -28,19 +28,26 @@ import java.util.concurrent.atomic.*;
 
 import static org.junit.Assert.assertEquals;
 
+/**
+ * This benchmark should take about a minute to run.
+ * It tests the performance of multiple row triggers
+ * on the same target table.  For processing a given
+ * insert row, all defined row triggers are
+ * executed concurrently.
+ */
+
 @Category(Benchmark.class)
 public class ConcurrentTriggerBenchmark extends Benchmark {
 
     private static final Logger LOG = LogManager.getLogger(ConcurrentTriggerBenchmark.class);
 
     private static final String SCHEMA = ConcurrentTriggerBenchmark.class.getSimpleName();
-    private static final String TRIGGER_TABLE = "TRIGGERS";
-    private static final String NOTRIGGER_TABLE = "NOTRIGGERS";
-    private static final String INSERT_AUDIT_TABLE = "INSERT_AUDIT";
-    private static final String UPDATE_AUDIT_TABLE = "UPDATE_AUDIT";
-    private static final int DEFAULT_SIZE = 100000;
-    private static final int DEFAULT_CONNECTIONS = 10;
-    private static final int DEFAULT_OPS = 10000;
+    private static final String TRIGGER_TABLE = "T1_with_trigger";
+    private static final String TEST_TABLE = "T2";
+    private static final String NOTRIGGER_TABLE = "T1";
+    private static final int DEFAULT_SIZE = 10000;
+    private static final int DEFAULT_CONNECTIONS = 1;
+    private static final int DEFAULT_OPS = 1;
 
     @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
@@ -63,10 +70,9 @@ public class ConcurrentTriggerBenchmark extends Benchmark {
         LOG.info("Create tables");
         testConnection = makeConnection();
         testStatement = testConnection.createStatement();
-        testStatement.execute("CREATE TABLE " + TRIGGER_TABLE + " (col1 INTEGER NOT NULL PRIMARY KEY, col2 INTEGER)");
-        testStatement.execute("CREATE TABLE " + NOTRIGGER_TABLE + " (col1 INTEGER NOT NULL PRIMARY KEY, col2 INTEGER)");
-        testStatement.execute("CREATE TABLE " + INSERT_AUDIT_TABLE + " (time TIMESTAMP, audit INTEGER NOT NULL)");
-        testStatement.execute("CREATE TABLE " + UPDATE_AUDIT_TABLE + " (time TIMESTAMP, audit INTEGER NOT NULL)");
+        testStatement.execute("CREATE TABLE " + TRIGGER_TABLE + " (a int, b int)");
+        testStatement.execute("CREATE TABLE " + NOTRIGGER_TABLE + " (a int, b int)");
+        testStatement.execute("CREATE TABLE " + TEST_TABLE + " (a int, b int)");
 
         size = DEFAULT_SIZE;
         runBenchmark(DEFAULT_CONNECTIONS, ConcurrentTriggerBenchmark::populateTables);
@@ -74,12 +80,17 @@ public class ConcurrentTriggerBenchmark extends Benchmark {
 
         LOG.info("Analyze, create triggers");
         testStatement.execute("ANALYZE SCHEMA " + SCHEMA);
-        testStatement.execute("CREATE TRIGGER tinsert AFTER INSERT ON " + TRIGGER_TABLE +
-                        " REFERENCING NEW AS n FOR EACH ROW INSERT INTO " + INSERT_AUDIT_TABLE +
-                        " VALUES (CURRENT_TIMESTAMP, n.col1 + 1000000000)");
-        testStatement.execute("CREATE TRIGGER tupdate AFTER UPDATE ON " + TRIGGER_TABLE + "" +
-                        " REFERENCING NEW AS n FOR EACH ROW INSERT INTO " + UPDATE_AUDIT_TABLE +
-                        " VALUES (CURRENT_TIMESTAMP, n.col1 + 1000000000)");
+        String triggerNamePrefix = "TR";
+        for (int i=1; i <= 10; i++) {
+            String triggerName = triggerNamePrefix + i;
+            String createTriggerStmt =
+              String.format("CREATE TRIGGER %s AFTER INSERT ON " + TRIGGER_TABLE +
+              " REFERENCING NEW AS N FOR EACH ROW WHEN" +
+              " (NOT EXISTS (SELECT %s.A FROM %s WHERE %s.A = N.A)) SIGNAL SQLSTATE '85101'",
+              triggerName, TEST_TABLE, TEST_TABLE, TEST_TABLE);
+
+            testStatement.execute(createTriggerStmt);
+        }
     }
 
     @AfterClass
@@ -91,9 +102,6 @@ public class ConcurrentTriggerBenchmark extends Benchmark {
     static final String STAT_ERROR = "ERROR";
     static final String STAT_CREATE = "CREATE";
     static final String STAT_INSERT_T = "INSERT_T";
-    static final String STAT_INSERT_NOT = "INSERT_NOT";
-    static final String STAT_UPDATE_T = "UPDATE_T";
-    static final String STAT_UPDATE_NOT = "UPDATE_NOT";
 
     static int size;
     static AtomicInteger curSize = new AtomicInteger(0);
@@ -101,8 +109,9 @@ public class ConcurrentTriggerBenchmark extends Benchmark {
 
     private static void populateTables() {
         try (Connection conn = makeConnection()) {
-            PreparedStatement insert1 = conn.prepareStatement("INSERT INTO " + TRIGGER_TABLE + " VALUES (?, 0)");
-            PreparedStatement insert2 = conn.prepareStatement("INSERT INTO " + NOTRIGGER_TABLE + " VALUES (?, 0)");
+
+            PreparedStatement insert2 = conn.prepareStatement("INSERT INTO " + NOTRIGGER_TABLE + " VALUES (?, ?)");
+            PreparedStatement insert1 = conn.prepareStatement("INSERT INTO " + TEST_TABLE + " VALUES (?, ?)");
 
             for (;;) {
                 int mini = curSize.getAndAdd(batchSize);
@@ -110,9 +119,11 @@ public class ConcurrentTriggerBenchmark extends Benchmark {
                 if (mini >= maxi) break;
                 for (int i = mini; i < maxi; ++i) {
                     insert1.setInt(1, i);
+                    insert1.setInt(2, i);
                     insert1.addBatch();
 
                     insert2.setInt(1, i);
+                    insert2.setInt(2, i);
                     insert2.addBatch();
                 }
                 long start = System.currentTimeMillis();
@@ -150,16 +161,12 @@ public class ConcurrentTriggerBenchmark extends Benchmark {
 
     private static void doInserts(int operations) {
         try (Connection conn = makeConnection()) {
-            PreparedStatement insert1 = conn.prepareStatement("INSERT INTO " + TRIGGER_TABLE + " VALUES (?, 0)");
-            PreparedStatement insert2 = conn.prepareStatement("INSERT INTO " + NOTRIGGER_TABLE + " VALUES (?, 0)");
+            PreparedStatement insert1 = conn.prepareStatement("INSERT INTO " + TRIGGER_TABLE + " SELECT * from "+ NOTRIGGER_TABLE);
 
             for (int i = 0; i < operations; ++i) {
-                int key = curSize.getAndIncrement();
-
-                long start = System.currentTimeMillis();
                 try {
-                    insert1.setInt(1, key);
-                    if (insert1.executeUpdate() != 1) {
+                    long start = System.currentTimeMillis();
+                    if (insert1.executeUpdate() != size) {
                         updateStats(STAT_ERROR);
                     }
                     else {
@@ -167,77 +174,12 @@ public class ConcurrentTriggerBenchmark extends Benchmark {
                     }
                 }
                 catch (SQLException ex) {
-                    LOG.error("ERROR inserting " + key + " into " + TRIGGER_TABLE);
-                    updateStats(STAT_ERROR);
-                }
-
-                start = System.currentTimeMillis();
-                try {
-                    insert2.setInt(1, key);
-                    if (insert2.executeUpdate() != 1) {
-                        updateStats(STAT_ERROR);
-                    }
-                    else {
-                        updateStats(STAT_INSERT_NOT, System.currentTimeMillis() - start);
-                    }
-                }
-                catch (SQLException ex) {
-                    LOG.error("ERROR inserting " + key + " into " + NOTRIGGER_TABLE);
+                    LOG.error("ERROR inserting into " + TRIGGER_TABLE);
                     updateStats(STAT_ERROR);
                 }
             }
 
             insert1.close();
-            insert2.close();
-        }
-        catch (Throwable t) {
-            LOG.error("Connection broken", t);
-        }
-    }
-
-    static AtomicInteger curUpdate = new AtomicInteger(0);
-
-    private static void doUpdates(int operations) {
-        try (Connection conn = makeConnection()) {
-            PreparedStatement update1 = conn.prepareStatement("UPDATE " + TRIGGER_TABLE + " SET col2 = col2 + 1 WHERE col1 = ?");
-            PreparedStatement update2 = conn.prepareStatement("UPDATE " + NOTRIGGER_TABLE + "  SET col2 = col2 + 1 WHERE col1 = ?");
-
-            for (int i = 0; i < operations; ++i) {
-                int key = curUpdate.getAndIncrement() % size;
-
-                long start = System.currentTimeMillis();
-                try {
-                    update1.setInt(1, key);
-                    if (update1.executeUpdate() != 1) {
-                        updateStats(STAT_ERROR);
-                    }
-                    else {
-                        updateStats(STAT_UPDATE_T, System.currentTimeMillis() - start);
-                    }
-                }
-                catch (SQLException ex) {
-                    LOG.error("ERROR updating " + key + " in " + TRIGGER_TABLE);
-                    updateStats(STAT_ERROR);
-                }
-
-                start = System.currentTimeMillis();
-                try {
-                    update2.setInt(1, key);
-                    if (update2.executeUpdate() != 1) {
-                        updateStats(STAT_ERROR);
-                    }
-                    else {
-                        updateStats(STAT_UPDATE_NOT, System.currentTimeMillis() - start);
-                    }
-                }
-                catch (SQLException ex) {
-                    LOG.error("ERROR updating " + key + " in " + NOTRIGGER_TABLE);
-                    updateStats(STAT_ERROR);
-                }
-            }
-
-            update1.close();
-            update2.close();
         }
         catch (Throwable t) {
             LOG.error("Connection broken", t);
@@ -248,29 +190,11 @@ public class ConcurrentTriggerBenchmark extends Benchmark {
     public void insertBenchmarkSingle() throws Exception {
         LOG.info("insertBenchmarkSingle");
         runBenchmark(1, () -> doInserts(DEFAULT_OPS));
-        assertEquals(curSize.get() - size, StatementUtils.onlyLong(testStatement, "select count(*) from " + INSERT_AUDIT_TABLE));
     }
 
-    @Ignore("DB-11530")
     @Test
     public void insertBenchmarkMulti() throws Exception {
         LOG.info("insertBenchmarkMulti");
         runBenchmark(DEFAULT_CONNECTIONS, () -> doInserts(2 * DEFAULT_OPS));
-        assertEquals(curSize.get() - size, StatementUtils.onlyLong(testStatement, "select count(*) from " + INSERT_AUDIT_TABLE));
-    }
-
-    @Test
-    public void updateBenchmarkSingle() throws Exception {
-        LOG.info("updateBenchmarkSingle");
-        runBenchmark(1, () -> doUpdates(DEFAULT_OPS));
-        assertEquals(curUpdate.get(), StatementUtils.onlyLong(testStatement, "select count(*) from " + UPDATE_AUDIT_TABLE));
-    }
-
-    @Ignore("DB-11530")
-    @Test
-    public void updateBenchmarkMulti() throws Exception  {
-        LOG.info("updateBenchmarkMulti");
-        runBenchmark(DEFAULT_CONNECTIONS, () -> doUpdates(2 * DEFAULT_OPS));
-        assertEquals(curUpdate.get(), StatementUtils.onlyLong(testStatement, "select count(*) from " + UPDATE_AUDIT_TABLE));
     }
 }
