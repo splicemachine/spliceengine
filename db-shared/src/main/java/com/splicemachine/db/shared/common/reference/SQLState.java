@@ -1072,6 +1072,7 @@ public interface SQLState {
     String LANG_UNTYPED                                                    = "42Z01.U";
     // TEMPORARY COMPILATION RESTRICTIONS
     String LANG_USER_AGGREGATE_MULTIPLE_DISTINCTS                          = "42Z02";
+    String LANG_USER_INDEX_CREATED_AFTER_PAST_TRANSACTION                  = "42Z03";
     String LANG_NO_AGGREGATES_IN_ON_CLAUSE                                 = "42Z07";
     String LANG_NO_BULK_INSERT_REPLACE_WITH_TRIGGER                        = "42Z08";
 

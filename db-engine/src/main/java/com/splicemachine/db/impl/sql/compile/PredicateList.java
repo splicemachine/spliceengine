@@ -3930,26 +3930,22 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     /*
                     ** Column positions are one-based, store is zero-based.
                     */
-                    int columnPosition;
-                    int storagePosition;
+                    int columnPosition = cr.getSource().getColumnPosition();
+                    int storagePosition = cr.getSource().getStoragePosition();
 
                     /*
                     ** If it's an index, find the base column position in the index
                     ** and translate it to an index column position.
                     */
-                    if(bestCD!=null && bestCD.isIndex()){
-                        columnPosition=cr.getSource().getColumnPosition();
-                        columnPosition=bestCD.getIndexDescriptor().
-                                getKeyColumnPosition(columnPosition);
+                    if (bestCD != null && bestCD.isIndex()) {
+                        columnPosition = bestCD.getIndexDescriptor().
+                                getKeyColumnPosition(storagePosition);
                         storagePosition = columnPosition;
 
-                        if(SanityManager.DEBUG){
-                            SanityManager.ASSERT(columnPosition>0,
-                                    "Base column not found in index");
+                        if (SanityManager.DEBUG) {
+                            SanityManager.ASSERT(columnPosition > 0,
+                                                 "Base column not found in index");
                         }
-                    } else {
-                        columnPosition=cr.getSource().getColumnPosition();
-                        storagePosition = cr.getSource().getStoragePosition();
                     }
                     // get 0-based posistion
                     columnPosition = columnPosition - 1;

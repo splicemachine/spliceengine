@@ -40,7 +40,7 @@ import com.splicemachine.db.impl.sql.compile.ValueNode;
 import com.splicemachine.db.impl.sql.execute.BaseExecutableIndexExpression;
 
 /**
- *	
+ *
  * This interface describes an index.
  * 
  * It is used in the column SYS.SYSCONGLOMERATES.DESCRIPTOR
@@ -56,7 +56,7 @@ public interface IndexDescriptor
 	 */
 	boolean			isUnique();
 	/**
-	 * Returns true if the index is duplicate keys only for null key parts. 
+	 * Returns true if the index is duplicate keys only for null key parts.
      * This is effective only if isUnique is false.
      */
     boolean            isUniqueWithDuplicateNulls();
@@ -72,6 +72,13 @@ public interface IndexDescriptor
     int[] baseColumnPositions();
 
     int[] baseColumnStoragePositions();
+
+    /**
+     * Returns true if this index descriptor is invalid as a result of an upgrade from a pre 2023 version
+     * See DB-12323 for more information
+     */
+    boolean isInvalidIndexDescriptorAfter2022Upgrade();
+
     /**
      * Returns the postion of a column.
      * <p>
@@ -79,10 +86,10 @@ public interface IndexDescriptor
 	 * 0 means that the column is not in the key.  Same as the above
 	 * method, but it uses int instead of Integer.
 	 */
-	int getKeyColumnPosition(int heapColumnPosition) throws StandardException;
+	int getKeyColumnPosition(int columnStoragePosition) throws StandardException;
 
 	/**
-	 * Returns the number of ordered columns.  
+	 * Returns the number of ordered columns.
      * <p>
 	 * In the future, it will be
 	 * possible to store non-ordered columns in an index.  These will be
@@ -130,7 +137,13 @@ public interface IndexDescriptor
 	 * is for updating the field in operations such as "alter table drop
 	 * column" where baseColumnPositions is changed.
 	 */
-	void     setBaseColumnPositions(int[] baseColumnPositions);
+    void setBaseColumnStoragePositions(int[] baseColumnStoragePositions);
+
+    void setBaseColumnPositions(int[] baseColumnsPositions);
+
+    int[] getBaseColumnStoragePositions();
+
+    int[] getBaseColumnPositions();
 
 	/**
 	 * set the isAscending field of the index descriptor.  This

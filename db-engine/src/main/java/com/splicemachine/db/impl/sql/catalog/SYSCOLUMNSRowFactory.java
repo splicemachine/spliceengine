@@ -604,7 +604,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             "     when COL.COLUMNTYPE='TIME' then 3\n" +
             "     when COL.COLUMNTYPE='DECIMAL' then COL.COLUMNDATATYPE.getPrecision()\n" +
             "     else COL.COLUMNDATATYPE.getMaximumWidth() end as LONGLENGTH,\n" +
-            "case when CON.keydesc is not null and CON.keydesc.getKeyColumnPosition(COL.columnnumber) > 0 then CON.keydesc.getKeyColumnPosition(COL.columnnumber)\n" +
+            "case when CON.keydesc is not null and CON.keydesc.getKeyColumnPosition(COL.STORAGENUMBER) > 0 then CON.keydesc.getKeyColumnPosition(COL.STORAGENUMBER)\n" +
             "     end as KEYSEQ,\n" +
             "     COL.COLUMNDEFAULT as \"DEFAULT\"\n" +
             "from \n" +
@@ -612,6 +612,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             "        t.tablename,\n" +
             "        s.schemaname,\n" +
             "        c.columnnumber,\n" +
+            "        c.storagenumber,\n" +
             "        c.columndatatype,\n" +
             "        cast (c.columndatatype.getTypeName() as varchar(128)) as columntype,\n" +
             "        cast(cast (c.columndefault as long varchar) as clob(65536)) as columndefault,\n" +
