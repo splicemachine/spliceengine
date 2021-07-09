@@ -2,18 +2,12 @@ package com.splicemachine.db.impl.tools.ij;
 
 import com.splicemachine.db.iapi.tools.i18n.LocalizedOutput;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
-import com.splicemachine.db.shared.common.sql.Utils;
 import com.splicemachine.db.tools.JDBCDisplayUtil;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.sql.*;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Enumeration;
 import java.util.Hashtable;
@@ -50,46 +44,25 @@ public class ijImpl extends ijCommands {
 
     utilMain utilInstance = null;
 
-
-    public static boolean getBooleanProperty(Properties p, String name, boolean bdefault) {
-        if(p == null) return bdefault;
-        return Boolean.parseBoolean(p.getProperty(name, Boolean.toString(bdefault)));
-    }
-
-    public static int getIntegerProperty(Properties p, String name, int idefault) {
-        if(p == null) return idefault;
+    public void setDateFormat(String f) {
         try {
-            return Integer.parseInt(p.getProperty(name, Integer.toString(idefault)));
-        }
-        catch(Exception e) {
-            return idefault;
-        }
-    }
-
-    public static DateFormat getDateFormat(Properties p, String name) {
-        try {
-            String s = p.getProperty(name, null);
-            if(s == null) return null;
-            return new SimpleDateFormat(s);
+            LocalizedResource.getInstance().setFormatDate(new SimpleDateFormat(f));
         } catch(Exception e) {
-            return null;
         }
     }
 
-    public void initFromProperties(Properties p) {
-        if(p == null) return;
-        elapsedTime     = getBooleanProperty(p, "elapsedTime", elapsedTime);
-        showProgressBar = getBooleanProperty(p, "showProgressBar", showProgressBar);
+    public void setTimeFormat(String f) {
+        try {
+            LocalizedResource.getInstance().setFormatTime(new SimpleDateFormat(f));
+        } catch(Exception e) {
+        }
+    }
 
-        // setAutoCommit?
-        JDBCDisplayUtil.setMaxDisplayWidth(getIntegerProperty(p, "maximumdisplaywidth", JDBCDisplayUtil.MAXWIDTH_DEFAULT ));
-        LocalizedResource.enableLocalization(getBooleanProperty(p, "enableLocalization", false));
-        DateFormat f = getDateFormat(p, "formatDate");
-        if (f != null) LocalizedResource.getInstance().setFormatDate(f);
-        f = getDateFormat(p, "formatTime");
-        if (f != null) LocalizedResource.getInstance().setFormatTime(f);
-        f = getDateFormat(p, "formatTimestamp");
-        if (f != null) LocalizedResource.getInstance().setFormatTimestamp(f);
+    public void setTimestampFormat(String f) {
+        try {
+            LocalizedResource.getInstance().setFormatTimestamp(new SimpleDateFormat(f));
+        } catch(Exception e) {
+        }
     }
 
     public boolean

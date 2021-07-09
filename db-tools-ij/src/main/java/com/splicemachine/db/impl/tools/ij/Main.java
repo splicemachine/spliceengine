@@ -47,7 +47,6 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
-import java.util.Properties;
 
 /**
  * This is the controller for ij. It uses two parsers:
@@ -161,7 +160,7 @@ public class Main {
     }
 
     private static LocalizedOutput getLocalizedOutput(LocalizedResource langUtil, LocalizedOutput out) {
-        String outFile = util.getSystemProperty("ij.outfile")
+        String outFile = util.getSystemProperty("ij.outfile");
         if (outFile != null && !outFile.isEmpty()) {
             LocalizedOutput oldOut = out;
             FileOutputStream fos = (FileOutputStream) AccessController.doPrivileged(new PrivilegedAction() {
@@ -288,9 +287,4 @@ public class Main {
         // adjust the application in accordance with db.ui.locale and db.ui.codeset
         LocalizedResource.getInstance();
     }
-
-    public void setProperties(Properties p) {
-        utilInstance.setProperties(p);
-    }
-
 }

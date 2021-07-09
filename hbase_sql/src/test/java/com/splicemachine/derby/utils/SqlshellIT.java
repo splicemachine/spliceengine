@@ -8,7 +8,6 @@ import com.splicemachine.db.impl.tools.ij.ijCommands;
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.io.IOUtils;
 import org.junit.*;
 
@@ -17,7 +16,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.Properties;
 
 public class SqlshellIT {
     static final LocalizedResource langUtil = LocalizedResource.getInstance();
@@ -497,24 +495,12 @@ public class SqlshellIT {
                     "\n" +
                     "1 row selected\n");
 
-            Properties p = new Properties();
-            p.setProperty("maximumdisplaywidth", "5");
-            p.setProperty("omitHeader", "true");
-            me.setProperties(p);
+            execute("prompt clock on");
+            execute("set dateformat 'dd.MM.YYYY'");
+            execute("elapsedtime on");
+            execute("without header");
 
-            execute("values '123456789';\n",
-                    "1234&\n" +
-                    "\n" +
-                    "1 row selected\n");
-
-            p.setProperty("maximumdisplaywidth", "256"); // default
-            p.setProperty("terminator", "#");
-            p.setProperty("promptClock", "true");
-            p.setProperty("formatDate", "dd.MM.YYYY");
-            p.setProperty("elapsedTime", "true");
-            me.setProperties(p);
-
-            String command = "values current_date#\n";
+            String command = "values current_date;\n";
             // e.g. 2021-07-06 12:43:06+0200
             String timestamp = "\\d\\d\\d\\d-\\d\\d-\\d\\d \\d\\d:\\d\\d:.*";
             SpliceUnitTest.matchMultipleLines(execute(command),
@@ -526,11 +512,8 @@ public class SqlshellIT {
                     "splice " + timestamp + "\\> \n");
 
 
-            // this tests handling of NULL when having a custom date format
-            p.setProperty("promptClock", "false");
-            p.setProperty("terminator", ";");
-            p.setProperty("elapsedTime", "false");
-            me.setProperties(p);
+            execute("prompt clock off");
+            execute("elapsedtime off");
 
             execute("CREATE TABLE T_NULL_DATE_CUSTOM (I INTEGER, D DATE);\n", zeroRowsUpdated);
             execute("INSERT INTO T_NULL_DATE_CUSTOM (I) VALUES 1;\n");
@@ -541,14 +524,10 @@ public class SqlshellIT {
 
         }
         finally {
-            Properties p = new Properties();
-            p.setProperty("terminator", ";");
-            p.setProperty("promptClock", "false");
-            p.setProperty("omitHeader", "false");
-            p.setProperty("formatDate", "YYYY-MM-dd");
-            p.setProperty("elapsedTime", "false");
-            me.setProperties(p);
-
+            execute("prompt clock off");
+            execute("elapsedtime off");
+            execute("set dateformat 'YYYY-MM-dd'");
+            execute("with header");
             execute("DROP TABLE T_NULL_DATE_CUSTOM IF EXISTS");
         }
     }

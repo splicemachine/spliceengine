@@ -44,11 +44,11 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.nio.file.Paths;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Properties;
 import java.util.Stack;
 
 /**
@@ -172,23 +172,6 @@ public class utilMain implements java.security.PrivilegedAction {
         addSignalHandler( "INT", this::ctrlC);
     }
 
-    /**
-     * Set Properties of the sqlshell
-     * --------------------------------------
-     * Supported options:
-     * - elapsedTime, promptClock, omitHeader, showProgressBar (= boolean true/false)
-     * - terminator = (one char terminator, e.g. #)
-     * i18n:
-     * - enableLocalization: if true, uses Locale to print time/date/timestamp.
-     * - Custom time/date/timestamp formats with `formatDate`, `formatTime`, `formatTimestamp`, e.g.
-     *   `formatDate=dd.MM.YYYY`. Format is defined by java.text.SimpleDateFormat .
-     *
-     */
-    public void setProperties(Properties p) {
-        ijParser.initFromProperties(p);
-        initFromProperties(p);
-    }
-
     @SuppressFBWarnings("DM_EXIT")
     public void ctrlC() {
         if( !ijParser.cancelCurrentStatement(out) )
@@ -231,22 +214,6 @@ public class utilMain implements java.security.PrivilegedAction {
         }
     }
 
-    /**
-     * load properties file `sqlshell.rc`.
-     * when running from spliceengine, this will be the file in splice_machine/sqlshell.rc (because CWD is there)
-     * otherwise, just the file next to sqlshell.sh.
-     * @return properties from sqlshell.rc. on error: null
-     */
-    public static Properties getProperties() {
-        Properties prop = new Properties();
-        try (FileInputStream fis = new FileInputStream(sqlshellRcFilename)) {
-            prop.load(fis);
-            return prop;
-        } catch (IOException e) {
-            return null;
-        }
-    }
-
     void initOptions() {
         /* Start with connection/user 0 */
         currCE = 0;
@@ -254,9 +221,7 @@ public class utilMain implements java.security.PrivilegedAction {
         initialFileInput = false;
         firstRun = true;
 
-        setProperties(getProperties());
-
-        omitHeader = omitHeader || util.getSystemPropertyBoolean("ij.omitHeader");
+        omitHeader = util.getSystemPropertyBoolean("ij.omitHeader");
     }
 
     /**
@@ -308,7 +273,26 @@ public class utilMain implements java.security.PrivilegedAction {
         for (int ictr = 0; ictr < commandGrabber.length; ictr++) {
             commandGrabber[ictr].reInit(in[ictr]);
         }
+
+        runSqlShellRc();
         runScriptGuts();
+    }
+
+    private void runSqlShellRc() {
+        // first, check .sqlshellrc in local directory
+        String f = Paths.get(sqlshellRcFilename).toAbsolutePath().toString();
+        if(! new File(f).exists()) {
+            // check $HOME/.sqlshellrc
+            try {
+                f = System.getProperty("user.home") + "/" + sqlshellRcFilename;
+                if(!new File(f).exists())
+                    return;
+            } catch(Exception e) {
+                return;
+            }
+        }
+        out.println("\n[ Executing init commands from " + f + ": ");
+        newInput(f);
     }
 
     public void init(LocalizedOutput out)
@@ -946,13 +930,4 @@ public class utilMain implements java.security.PrivilegedAction {
         this.terminator = terminator.charAt(0);
         commandGrabber[currCE].setTerminator(this.terminator);
     }
-
-    @SuppressFBWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD") // need to make doPrompt non-static for this
-    public void initFromProperties(Properties p) {
-        if(p == null) return;
-        setTerminator(p.getProperty("terminator", String.valueOf(terminator) ));
-        showPromptClock = ijImpl.getBooleanProperty(p, "promptClock", showPromptClock);
-        omitHeader = ijImpl.getBooleanProperty(p, "omitHeader", omitHeader);
-    }
-
 }

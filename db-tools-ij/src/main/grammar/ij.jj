@@ -295,6 +295,9 @@ TOKEN [IGNORE_CASE] :
 | <WITHOUT: "WITHOUT">
 | <HEADER: "HEADER">
 | <TERMINATOR: "TERMINATOR">
+| <DATEFORMAT: "DATEFORMAT">
+| <TIMEFORMAT: "TIMEFORMAT">
+| <TIMESTAMPFORMAT: "TIMESTAMPFORMAT">
 }
 
 TOKEN :
@@ -982,6 +985,21 @@ ijResult HandleSetStatement() throws SQLException
    {
        utilInstance.setTerminator(stringValue(t.image));
        return new ijShellConfigResult();
+   }
+|   <DATEFORMAT> t=<STRING>
+   {
+       setDateFormat(stringValue(t.image));
+       return new ijShellConfigResult();;
+   }
+|   <TIMEFORMAT> t=<STRING>
+   {
+       setTimeFormat(stringValue(t.image));
+       return new ijShellConfigResult();;
+   }
+|   <TIMESTAMPFORMAT> t=<STRING>
+   {
+       setTimestampFormat(stringValue(t.image));
+       return new ijShellConfigResult();;
    }
 }
 
@@ -3170,6 +3188,9 @@ keyword() :
 |   tok = <STOP>
 |   tok = <CLEAR>
 | tok = <TERMINATOR>
+| tok = <TIMEFORMAT>
+| tok = <DATEFORMAT>
+| tok = <TIMESTAMPFORMAT>
 )
     {
 
