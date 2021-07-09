@@ -49,6 +49,7 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
+import com.splicemachine.db.shared.common.sql.Utils;
 import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.impl.sql.catalog.upgrade.SpliceCatalogUpgradeScripts;
@@ -62,10 +63,12 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.Partition;
 import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
+import java.io.IOException;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -1916,6 +1919,39 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     @Override
     public boolean useTxnAwareCache() {
         return !SpliceClient.isRegionServer;
+    }
+
+    @Override
+    public long getConglomerateCreationTxId(long tableConglom) throws StandardException {
+        try {
+            SIDriver driver = SIDriver.driver();
+            if(SanityManager.DEBUG) {
+                SanityManager.ASSERT(driver != null);
+            }
+            PartitionFactory tableFactory = driver.getTableFactory();
+            if(SanityManager.DEBUG) {
+                SanityManager.ASSERT(tableFactory != null);
+            }
+            Partition partition = tableFactory.getTable(Long.toString(tableConglom));
+            if(SanityManager.DEBUG) {
+                SanityManager.ASSERT(partition != null);
+            }
+            PartitionAdmin admin = tableFactory.getAdmin();
+            if(SanityManager.DEBUG) {
+                SanityManager.ASSERT(admin != null);
+            }
+            com.splicemachine.access.api.TableDescriptor descriptor = admin.getTableDescriptor(Utils.constructHbaseName(partition.getTableName()));
+            if(SanityManager.DEBUG) {
+                SanityManager.ASSERT(descriptor != null);
+            }
+            String txId = descriptor.getTransactionId();
+            if(null == txId) {
+                return 0; // some old indexes and tables do not have transaction id.
+            }
+            return Long.parseLong(txId);
+        } catch(IOException | IllegalArgumentException ex) {
+            throw StandardException.plainWrapException(ex);
+        }
     }
 
     public void upgradeRecreateIndexesOfSystemTable(TransactionController tc, int catalogNumber, int[] indexIds) throws StandardException {

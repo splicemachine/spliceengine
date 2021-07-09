@@ -1067,7 +1067,7 @@ public interface ResultSetFactory {
      * @param optimizerEstimatedRowCount    Estimated total # of rows by
                                     optimizer
      * @param optimizerEstimatedCost        Estimated total cost by optimizer
-     * @param pastTxFunctor                a functor that returns the id of a committed transaction for time-travel queries
+     * @param pastTxn                the id of a committed transaction for time-travel queries, -1 if not set.
      * @param minRetentionPeriod the minimum retention period for guaranteed correct time travel results.
 	 */
 	NoPutResultSet getTableScanResultSet(
@@ -1107,7 +1107,7 @@ public interface ResultSetFactory {
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor,
+            long pastTxn,
             long minRetentionPeriod
     )
 			throws StandardException;
@@ -1521,7 +1521,7 @@ NoPutResultSet getDistinctScanResultSet(
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor,
+            long pastTxn,
             long minRetentionPeriod ) throws StandardException;
 
 NoPutResultSet getMultiProbeTableScanResultSet(
@@ -1546,7 +1546,7 @@ NoPutResultSet getMultiProbeTableScanResultSet(
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor,
+            long pastTxn,
             long minRetentionPeriod ) throws StandardException;
 
 NoPutResultSet getMergeSortLeftOuterJoinResultSet(
@@ -1836,7 +1836,7 @@ NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation, i
      * @param optimizerEstimatedRowCount     Estimated total # of rows by
      *                                       optimizer
      * @param optimizerEstimatedCost         Estimated total cost by optimizer
-     * @param pastTxFunctor                a functor that returns the id of a committed transaction for time-travel queries
+     * @param pastTxFunctor                  The id of a committed transaction for time-travel queries, -1 if not set.
      * @param minRetentionPeriod the minimum retention period for guaranteed correct time travel results.
      *
      * @return the scan operation as a result set.
@@ -1860,7 +1860,7 @@ NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation, i
             double optimizerEstimatedCost,
             String tableVersion,
             String explainPlan,
-            GeneratedMethod pastTxFunctor,
+            long pastTxn,
             long minRetentionPeriod
     ) throws StandardException;
 
