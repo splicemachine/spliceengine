@@ -282,7 +282,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
             td=scd.getTableDescriptor();
         }
         if(td==null){
-            td=dd.getTableDescriptor(tableUUID);
+            td=dd.getTableDescriptor(tableUUID, tc);
         }
 
 		/* 3rd column is NAME (varchar(128)) */
@@ -341,7 +341,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
                     // the ddl thread went through), we are not done yet, the
                     // dd ref count is not 0, hence it couldn't have turned
                     // into COMPILE_ONLY mode
-                    td=dd.getTableDescriptor(tableUUID);
+                    td=dd.getTableDescriptor(tableUUID, tc);
                     if(scd!=null)
                         scd.setTableDescriptor(td);
                     // try again now

@@ -229,7 +229,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
                     return null;
             }
         } else if (tupleDescriptor instanceof ViewDescriptor) {
-            TableDescriptor viewTableDescriptor = dd.getTableDescriptor(((ViewDescriptor) tupleDescriptor).getObjectID());
+            TableDescriptor viewTableDescriptor = dd.getTableDescriptor(((ViewDescriptor) tupleDescriptor).getObjectID(), tc);
             return constantActionFactory.getDropViewConstantAction(viewTableDescriptor.getQualifiedName(),
                     viewTableDescriptor.getName(),
                     viewTableDescriptor.getSchemaDescriptor());
@@ -390,7 +390,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
             }
         } else if (dependentDescriptor instanceof ViewDescriptor) {
             ViewDescriptor viewDescriptor = (ViewDescriptor)dependentDescriptor;
-            TableDescriptor viewTdDescriptor = dd.getTableDescriptor(viewDescriptor.getObjectID());
+            TableDescriptor viewTdDescriptor = dd.getTableDescriptor(viewDescriptor.getObjectID(), null);
             if (!viewTdDescriptor.getSchemaDescriptor().getUUID().equals(sd.getUUID())) {
                 throw StandardException.newException(SQLState.LANG_PROVIDER_HAS_EXTERNAL_DEPENDENCY,
                         sd.getSchemaName(), objectType, providerDescriptor.getDescriptorName());

@@ -375,7 +375,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         DataDescriptorGenerator ddg = getDataDescriptorGenerator();
 
         // Create SYS.SYSDATABASES
-        if (getTableDescriptor(getTableInfo(SYSDATABASES_CATALOG_NUM).getTableUUID()) == null) {
+        if (getTableDescriptor(getTableInfo(SYSDATABASES_CATALOG_NUM).getTableUUID(), tc) == null) {
             ExecutionContext ec = (ExecutionContext) ContextService.getContext(ExecutionContext.CONTEXT_ID);
             new CoreCreation(SYSDATABASES_CATALOG_NUM, tc, ec).run();
             if (coreInfo[SYSDATABASES_CATALOG_NUM].getNumberOfIndexes() > 0) {
@@ -1794,7 +1794,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     public void upgradeRecreateIndexesOfSystemTable(TransactionController tc, int catalogNumber, int[] indexIds) throws StandardException {
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
         TabInfoImpl tabInfo = getTabInfoByNumber(catalogNumber);
-        TableDescriptor td = getTableDescriptor(tabInfo.getTableUUID());
+        TableDescriptor td = getTableDescriptor(tabInfo.getTableUUID(), tc);
         CatalogRowFactory crf = tabInfo.getCatalogRowFactory();
 
         // Init the heap conglomerate here

@@ -30,7 +30,6 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 
@@ -84,16 +83,16 @@ public class DropTriggerConstantOperation extends DDLSingleTableConstantOperatio
         */
         dd.startWriting(lcc);
 
-        TableDescriptor td = dd.getTableDescriptor(tableId);
+        TransactionController tc = lcc.getTransactionExecute();
+        TableDescriptor td = dd.getTableDescriptor(tableId, tc);
         if (td == null) {
             throw StandardException.newException(
                                 SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION,
                                 tableId.toString());
         }
-        TransactionController tc = lcc.getTransactionExecute();
         // XXX - TODO NO LOCKING lockTableForDDL(tc, td.getHeapConglomerateId(), true);
         // get td again in case table shape is changed before lock is acquired
-        td = dd.getTableDescriptor(tableId);
+        td = dd.getTableDescriptor(tableId, tc);
         if (td == null)
         {
             throw StandardException.newException(

@@ -140,7 +140,7 @@ public class DDColumnDependableFinder extends DDdependableFinder
 	Dependable findDependable(DataDictionary dd, UUID dependableObjectID)
 		throws StandardException
 	{
-		TableDescriptor td = dd.getTableDescriptor(dependableObjectID);
+		TableDescriptor td = dd.getTableDescriptor(dependableObjectID, null);
 		if (td != null)  // see beetle 4444
 			td.setReferencedColumnMap(new FormatableBitSet(columnBitMap));
 		return td;

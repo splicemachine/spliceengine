@@ -455,7 +455,7 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
                 isBefore,
                 isRow,
                 isEnabled,
-                dd.getTableDescriptor(tuuid),
+                dd.getTableDescriptor(tuuid, tc),
                 whenSPSID,
                 actionSPSIDList,
                 createTime,
