@@ -142,6 +142,7 @@ public class SpliceDatabase extends BasicDatabase{
     @Override
     public LanguageConnectionContext setupConnection(ContextManager cm, String user, List<String> groupuserlist, String drdaID, String dbname,
                                                      String rdbIntTkn,
+                                                     long uselessMachineID,
                                                      DataSetProcessorType dspt,
                                                      SparkExecutionType sparkExecutionType,
                                                      boolean skipStats,
@@ -151,8 +152,10 @@ public class SpliceDatabase extends BasicDatabase{
                                                      Properties sessionProperties)
             throws StandardException{
 
+        long machineID = SIDriver.driver().getMachineId();
         final LanguageConnectionContext lctx = super.setupConnection(cm, user, groupuserlist,
-                drdaID, dbname, rdbIntTkn, dspt, sparkExecutionType, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
+                drdaID, dbname, rdbIntTkn, machineID, dspt, sparkExecutionType, skipStats,
+                defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
 
         setupASTVisitors(lctx);
 
@@ -175,8 +178,9 @@ public class SpliceDatabase extends BasicDatabase{
         TransactionController tc = reuseTC == null ? ((SpliceAccessManager)af).marshallTransaction(cm,txn) : reuseTC;
         cm.setLocaleFinder(this);
         pushDbContext(cm);
+        long machineID = SIDriver.driver().getMachineId();
         LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,
-                groupuserlist,drdaID,dbname,rdbIntTkn,type, sparkExecutionType, skipStats, defaultSelectivityFactor,
+                groupuserlist,drdaID,dbname,rdbIntTkn,machineID,type, sparkExecutionType, skipStats, defaultSelectivityFactor,
                 ipAddress, null, null);
 
         pushClassFactoryContext(cm,lcf.getClassFactory());
@@ -644,7 +648,7 @@ public class SpliceDatabase extends BasicDatabase{
     }
 
     @Override
-    public void unregisterSession(java.util.UUID sessionId) {
+    public void unregisterSession(String sessionId) {
         SIDriver.driver().getSessionsWatcher().unregisterSession(sessionId);
     }
 }
