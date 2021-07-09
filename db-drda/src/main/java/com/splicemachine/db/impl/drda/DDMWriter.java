@@ -53,6 +53,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.io.DynamicByteArrayOutputStream;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.compression.SpliceSnappy;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -62,6 +63,7 @@ import org.apache.logging.log4j.LogManager;
 	For more details, see DRDA Volume 3 (Distributed Data Management(DDM)
 		Architecture (DDS definition)
 */
+@SuppressFBWarnings(value = "NP_NULL_PARAM_DEREF", justification = "intentional")
 class DDMWriter
 {
 	private static final Logger LOG = LogManager.getLogger(DDMWriter.class);

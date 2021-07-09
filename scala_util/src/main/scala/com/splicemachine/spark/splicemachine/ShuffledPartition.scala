@@ -71,7 +71,7 @@ private[spark] class ShuffledPartition[T: ClassTag](
   }
 }
 
-
+@SuppressFBWarnings(value = Array("SE_NO_SERIALVERSIONID"), justification = "intentional")
 object LogHolder extends Serializable {
   @transient lazy val log = org.apache.logging.log4j.LogManager.getLogger(getClass.getName)
 }
