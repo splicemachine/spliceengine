@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 public class SessionsWatcherImpl implements com.splicemachine.si.api.session.SessionsWatcher {
     private static final Logger LOG = Logger.getLogger(SessionsWatcherImpl.class);
-    private final Set<UUID> activeSessions = new ConcurrentHashSet<>();
+    private final Set<String> activeSessions = new ConcurrentHashSet<>();
 
     public static final SessionsWatcherImpl INSTANCE = new SessionsWatcherImpl();
 
@@ -38,12 +38,12 @@ public class SessionsWatcherImpl implements com.splicemachine.si.api.session.Ses
 
     @Override
     public Set<String> getLocalActiveSessions() {
-        return activeSessions.stream().map(UUID::toString).collect(Collectors.toSet());
+        return activeSessions;
     }
 
     @Override
     public List<String> getAllActiveSessions() {
-        Set<String> idSet = getLocalActiveSessions();
+        Set<String> idSet = new HashSet<>(getLocalActiveSessions());
         try {
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG, "fetch all active sessions");
@@ -73,12 +73,12 @@ public class SessionsWatcherImpl implements com.splicemachine.si.api.session.Ses
     }
 
     @Override
-    public void registerSession(UUID sessionId) {
+    public void registerSession(String sessionId) {
         activeSessions.add(sessionId);
     }
 
     @Override
-    public void unregisterSession(UUID sessionId) {
+    public void unregisterSession(String sessionId) {
         activeSessions.remove(sessionId);
     }
 
