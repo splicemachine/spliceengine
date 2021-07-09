@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 
 public class MSessionsWatcherImpl implements SessionsWatcher {
     private static final Logger LOG = Logger.getLogger(MSessionsWatcherImpl.class);
-    private final Set<UUID> activeSessions = ConcurrentHashMap.newKeySet();
+    private final Set<String> activeSessions = ConcurrentHashMap.newKeySet();
 
     public static final MSessionsWatcherImpl INSTANCE = new MSessionsWatcherImpl();
 
@@ -31,21 +31,21 @@ public class MSessionsWatcherImpl implements SessionsWatcher {
 
     @Override
     public Set<String> getLocalActiveSessions() {
-        return activeSessions.stream().map(UUID::toString).collect(Collectors.toSet());
+        return activeSessions;
     }
 
     @Override
     public List<String> getAllActiveSessions() {
-        return activeSessions.stream().map(UUID::toString).sorted().collect(Collectors.toList());
+        return activeSessions.stream().sorted().collect(Collectors.toList());
     }
 
     @Override
-    public void registerSession(UUID sessionId) {
+    public void registerSession(String sessionId) {
         activeSessions.add(sessionId);
     }
 
     @Override
-    public void unregisterSession(UUID sessionId) {
+    public void unregisterSession(String sessionId) {
         activeSessions.remove(sessionId);
     }
 
