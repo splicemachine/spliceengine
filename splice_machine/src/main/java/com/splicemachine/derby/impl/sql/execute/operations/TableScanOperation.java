@@ -326,6 +326,7 @@ public class TableScanOperation extends ScanOperation{
 
         assert currentTemplate!=null:"Current Template Cannot Be Null";
 
+        operationContext = dsp.createOperationContext(this);
         if (cachedResultSet != null) {
             return dataSetFromCachedResultSet(dsp);
         }
@@ -376,7 +377,6 @@ public class TableScanOperation extends ScanOperation{
      */
     public DataSet<ExecRow> getTableScannerBuilder(DataSetProcessor dsp) throws StandardException{
         TxnView txn = getCurrentTransaction();
-        operationContext = dsp.createOperationContext(this);
 
         // we currently don't support external tables in Control, so this shouldn't happen
         assert storedAs == null || !( dsp.getType() == DataSetProcessor.Type.CONTROL && !storedAs.isEmpty() )

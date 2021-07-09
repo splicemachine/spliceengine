@@ -23,6 +23,7 @@ import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.function.CloneFunction;
+import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.pipeline.Exceptions;
@@ -544,8 +545,8 @@ public abstract class ScanOperation extends SpliceBaseOperation {
         return newDataSet;
     }
 
-    protected DataSet<ExecRow> dataSetFromCachedResultSet(DataSetProcessor dsp) {
-        return dsp.createDataSet(cachedResultSet.iterator());
+    protected DataSet<ExecRow> dataSetFromCachedResultSet(DataSetProcessor dsp) throws StandardException {
+        return dsp.createDataSet(cachedResultSet.iterator()).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
     }
 
 }

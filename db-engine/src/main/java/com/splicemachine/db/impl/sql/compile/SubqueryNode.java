@@ -49,6 +49,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.sql.execute.OnceResultSet;
+import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.lang.reflect.Modifier;
@@ -185,6 +186,8 @@ public class SubqueryNode extends ValueNode{
     */
     private boolean foundVariant;
     private boolean doneInvariantCheck;
+    private boolean doneTriggerRowCheck;
+    private boolean foundTriggerRow;
     private OrderByList orderByList;
     private ValueNode offset;
     private ValueNode fetchFirst;
@@ -1111,6 +1114,33 @@ public class SubqueryNode extends ValueNode{
         return !foundVariant;
     }
 
+    /**
+     * Check to see if we have a trigger new row or old row.
+     * If so, return true.
+     *
+     * @return
+     * @throws StandardException Thrown on error
+     */
+    public boolean hasTriggerRow() throws StandardException{
+        if(doneTriggerRowCheck){
+            return foundTriggerRow;
+        }
+
+        doneTriggerRowCheck=true;
+        CollectNodesVisitor cnv = new CollectNodesVisitor(MethodCallNode.class);
+        resultSet.accept(cnv);
+        List<MethodCallNode> methodList = cnv.getList();
+        for (MethodCallNode methodCallNode : methodList) {
+            // We only ever call getNewRow or getOldRow, so no need to look up the method name
+            // (which could potentially change in the future).  Just check that it is a
+            // non-static method in TriggerExecutionContext.
+            if (TriggerExecutionContext.className.equals(methodCallNode.getJavaClassName()) &&
+                methodCallNode instanceof NonStaticMethodCallNode)
+                foundTriggerRow = true;
+        }
+        return foundTriggerRow;
+    }
+
     public static boolean hasNestedCR(PredicateList predList, int level){
         boolean check = false;
         for(Predicate pred : predList){
@@ -1963,12 +1993,14 @@ public class SubqueryNode extends ValueNode{
     /*
     ** Subquery is materializable if
     ** it is an expression subquery that
-    ** has no correlations and is invariant.
+    ** has no correlations and is invariant and does not reference
+    ** the NEW row or OLD row of a row trigger with a referencing clause.
     */
     boolean isMaterializable() throws StandardException{
         boolean retval=(subqueryType==EXPRESSION_SUBQUERY) &&
                 !hasCorrelatedCRs() &&
-                isInvariant();
+                isInvariant() &&
+                !hasTriggerRow();
         /* If we can materialize the subquery, then we set
          * the level of all of the tables to 0 so that we can
          * consider bulk fetch for them.
