@@ -425,6 +425,7 @@ public class TriggerHandler {
 
     private List<Future<Void>> fireAfterRowConcurrentTriggers(ExecRow row) throws StandardException {
         if (row != null && hasAfterRow) {
+            // cannot record trigger info in lcc as lcc is currently not shared among threads
             SingleRowCursorResultSet triggeringResultSet = new SingleRowCursorResultSet(resultDescription, row);
             return triggerActivator.notifyRowEventConcurrent(afterEvent, triggeringResultSet, null);
         }

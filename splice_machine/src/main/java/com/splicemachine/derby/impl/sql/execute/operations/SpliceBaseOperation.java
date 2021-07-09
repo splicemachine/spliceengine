@@ -482,9 +482,16 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             if (!(this instanceof ExplainOperation || activation.isMaterialized()))
                 activation.materialize();
             long txnId=getCurrentTransaction().getTxnId();
+
+            // initialize displayed trigger info
+            if (getTriggerHandler() != null) {
+                activation.getLanguageConnectionContext().initTriggerInfo(getTriggerHandler().triggerInfo.getTriggerDescriptors(), uuid, txnId);
+            } else {
+                activation.getLanguageConnectionContext().initTriggerInfo(null, uuid, txnId);
+            }
+
             sql=sql==null?this.toString():sql;
             String userId=activation.getLanguageConnectionContext().getCurrentUserId(activation);
-
             activation.getLanguageConnectionContext().setControlExecutionLimiter(EngineDriver.driver().processorFactory().getControlExecutionLimiter(activation));
             returnedRows = false;
             if (dsp.getType() == DataSetProcessor.Type.SPARK) { // Only do this for spark jobs
@@ -593,8 +600,13 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     private void logExecutionEnd() {
+        long timeSpent = System.nanoTime() - startTime;
+        try {
+            activation.getLanguageConnectionContext().recordAdditionalDisplayedTriggerInfo(timeSpent, modifiedRowCount[0], uuid);
+        } catch (Exception ignored) {}
+
         activation.getLanguageConnectionContext().logEndExecuting(uuid.toString(),
-                modifiedRowCount[0], badRecords, System.nanoTime() - startTime);
+                modifiedRowCount[0], badRecords, timeSpent);
     }
 
     protected void computeModifiedRows() throws StandardException {

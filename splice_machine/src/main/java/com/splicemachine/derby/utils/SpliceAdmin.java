@@ -201,6 +201,32 @@ public class SpliceAdmin extends BaseAdminProcedures{
         resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
     }
 
+    public static void SYSCS_GET_TRIGGER_EXEC(final ResultSet[] resultSet) throws SQLException {
+        LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
+        ResultHelper res = new ResultHelper();
+        ResultHelper.VarcharColumn  colTriggerName      = res.addVarchar("triggerName", 128);
+        ResultHelper.VarcharColumn  colTriggerId        = res.addVarchar("triggerId", 36);
+        ResultHelper.BigintColumn   colTxnId            = res.addBigint("txnId", 9);
+        ResultHelper.VarcharColumn  colQueryId          = res.addVarchar("queryId", 36);
+        ResultHelper.VarcharColumn  colParentQueryId    = res.addVarchar("parentQueryId", 36);
+        ResultHelper.BigintColumn   colTimeSpent        = res.addBigint("timeSpent", 9);
+        ResultHelper.BigintColumn   colnRows            = res.addBigint("numRowsModified", 9);
+
+        for(DisplayedTriggerInfo info : lcc.getDisplayedTriggerInfo()){
+            res.newRow();
+            colTriggerId.set( info.getId().toString() );
+            colTriggerName.set( info.getName() );
+            colTxnId.set( info.getTxnId() );
+            if(info.getQueryId() != null)
+                colQueryId.set( info.getQueryId().toString() );
+            if(info.getParentQueryId() != null)
+                colParentQueryId.set( info.getParentQueryId().toString() );
+            colTimeSpent.set( info.getElapsedTime() );
+            colnRows.set( info.getModifiedRowCount() );
+        }
+
+        resultSet[0] = res.getResultSet();
+    }
 
     public static void SYSCS_GET_LOGGERS_LOCAL(final ResultSet[] resultSet) throws SQLException {
         Logging logging;

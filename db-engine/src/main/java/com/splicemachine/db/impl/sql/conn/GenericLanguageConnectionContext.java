@@ -72,6 +72,7 @@ import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SparkSQLUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
@@ -391,7 +392,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         List<String> defaultRoles,
         SchemaDescriptor initialDefaultSchemaDescriptor,
         long driverTxnId,
-        Properties connectionProperties
+        Properties connectionProperties,
+        ArrayList<DisplayedTriggerInfo> triggerInfos,
+        HashMap<UUID, DisplayedTriggerInfo> triggerIdToTriggerInfoMap,
+        HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap,
+        Stack<Pair<java.util.UUID, Long>> queryTxnIdStack
     ) throws StandardException {
         super(cm, ContextId.LANG_CONNECTION);
         acts = new ArrayList<>();
@@ -417,6 +422,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         this.activeStateTxId = driverTxnId;
         this.defaultRoles = defaultRoles;
         this.cachedInitialDefaultSchemaDescr = initialDefaultSchemaDescriptor;
+        this.triggerInfos = triggerInfos == null ? new ArrayList<>() : triggerInfos;
+        this.triggerIdToTriggerInfoMap = triggerIdToTriggerInfoMap == null ? new HashMap<>() : triggerIdToTriggerInfoMap;
+        this.queryIdToTriggerInfoMap = queryIdToTriggerInfoMap == null ? new HashMap<>() : queryIdToTriggerInfoMap;
+        this.queryTxnIdStack = queryTxnIdStack == null ? new Stack<>() : queryTxnIdStack;
         if (initialDefaultSchemaDescriptor != null)
             initialDefaultSchemaDescriptor.setDataDictionary(getDataDictionary());
 
@@ -528,7 +537,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
         String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(this, MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
         ignoreCommentOptEnabled = Boolean.valueOf(ignoreCommentOptEnabledStr);
-
     }
 
     private void setSessionFromConnectionProperty(Properties connectionProperties, String connectionPropName, SessionProperties.PROPERTYNAME sessionPropName) {
@@ -544,7 +552,69 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * session.
      */
     private String sessionUser = null;
+    private ArrayList<DisplayedTriggerInfo> triggerInfos = new ArrayList<>();
+    private HashMap<com.splicemachine.db.catalog.UUID, DisplayedTriggerInfo> triggerIdToTriggerInfoMap = new HashMap<>();
+    private HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap = new HashMap<>();
+    private Stack<Pair<java.util.UUID, Long>> queryTxnIdStack = new Stack<>();
 
+    @Override
+    public HashMap<UUID, DisplayedTriggerInfo> getTriggerIdToTriggerInfoMap() {
+        return triggerIdToTriggerInfoMap;
+    }
+
+    @Override
+    public HashMap<java.util.UUID, DisplayedTriggerInfo> getQueryIdToTriggerInfoMap() {
+        return queryIdToTriggerInfoMap;
+    }
+
+    @Override
+    public Stack<Pair<java.util.UUID, Long>> getQueryTxnIdStack() {
+        return queryTxnIdStack;
+    }
+
+    @Override
+    public void initTriggerInfo(TriggerDescriptor[] tds, java.util.UUID currentQueryId, long txnId) {
+        if (queryTxnIdStack.empty()) {
+            triggerIdToTriggerInfoMap = new HashMap<>();
+            queryIdToTriggerInfoMap = new HashMap<>();
+        }
+
+        queryTxnIdStack.push(new Pair<>(currentQueryId, txnId));
+
+        if (tds != null) {
+            for (TriggerDescriptor td : tds) {
+                triggerIdToTriggerInfoMap.put(td.getUUID(), new DisplayedTriggerInfo(td.getUUID(), td.getName(), -1, null, currentQueryId));
+            }
+        }
+    }
+
+    @Override
+    public ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo() {
+        return triggerInfos;
+    }
+
+    @Override
+    public void recordTriggerInfoWhileFiring(UUID triggerId) {
+        Pair<java.util.UUID, Long> pair = queryTxnIdStack.peek();
+        DisplayedTriggerInfo info = triggerIdToTriggerInfoMap.get(triggerId);
+        queryIdToTriggerInfoMap.put(pair.getFirst(),
+                new DisplayedTriggerInfo(triggerId, info != null ? info.getName() : null,
+                        pair.getSecond(), pair.getFirst(), info != null ? info.getParentQueryId() : null));
+    }
+
+    @Override
+    public void recordAdditionalDisplayedTriggerInfo(long elapsedTime, long modifiedRows, java.util.UUID queryId) {
+        assert queryTxnIdStack.peek().getFirst() == queryId;
+        queryTxnIdStack.pop();
+        if (queryIdToTriggerInfoMap.containsKey(queryId)) {
+            queryIdToTriggerInfoMap.get(queryId).setElapsedTime(elapsedTime);
+            queryIdToTriggerInfoMap.get(queryId).setModifiedRowCount(modifiedRows);
+        }
+
+        if (queryTxnIdStack.empty()) {
+            triggerInfos = new ArrayList<>(queryIdToTriggerInfoMap.values());
+        }
+    }
     @Override
     public void initialize() throws StandardException {
         interruptedException = null;
