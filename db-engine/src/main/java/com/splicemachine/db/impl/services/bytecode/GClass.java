@@ -73,10 +73,9 @@ public abstract class GClass implements ClassBuilder {
 		return cf.loadGeneratedClass(qualifiedName, getClassBytecode());
 	}
 
-	protected void writeClassFile(String dir, boolean logMessage, Throwable t)
+	@Override
+	public void writeClassFile(String dir, boolean logMessage, Throwable t)
 		throws StandardException {
-
-		if (SanityManager.DEBUG) {
 
 		if (bytecode ==  null) getClassBytecode(); // not recursing...
 
@@ -113,7 +112,6 @@ public abstract class GClass implements ClassBuilder {
 		} catch (IOException e) {
 			if (SanityManager.DEBUG)
 				SanityManager.THROWASSERT("Unable to write .class file", e);
-		}
 		}
 	}
 
