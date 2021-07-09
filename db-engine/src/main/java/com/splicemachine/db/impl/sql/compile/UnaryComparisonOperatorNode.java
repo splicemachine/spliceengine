@@ -53,7 +53,7 @@ import java.util.List;
 public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode implements RelationalOperator {
 	/**
 	 * Bind this comparison operator.  All that has to be done for binding
-	 * a comparison operator is to bind the operand and set the result type 
+	 * a comparison operator is to bind the operand and set the result type
 	 * to SQLBoolean.
 	 *
 	 * @param fromList			The query's FROM list
@@ -77,8 +77,8 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 	}
 
 	/**
-	 * Set the type info for this node.  This method is useful both during 
-	 * binding and when we generate nodes within the language module outside 
+	 * Set the type info for this node.  This method is useful both during
+	 * binding and when we generate nodes within the language module outside
 	 * of the parser.
 	 *
 	 * @exception StandardException		Thrown on error
@@ -93,16 +93,16 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 	}
 
 	/**
-	 * Eliminate NotNodes in the current query block.  We traverse the tree, 
-	 * inverting ANDs and ORs and eliminating NOTs as we go.  We stop at 
-	 * ComparisonOperators and boolean expressions.  We invert 
-	 * ComparisonOperators and replace boolean expressions with 
+	 * Eliminate NotNodes in the current query block.  We traverse the tree,
+	 * inverting ANDs and ORs and eliminating NOTs as we go.  We stop at
+	 * ComparisonOperators and boolean expressions.  We invert
+	 * ComparisonOperators and replace boolean expressions with
 	 * boolean expression = false.
 	 * NOTE: Since we do not recurse under ComparisonOperators, there
 	 * still could be NotNodes left in the tree.
 	 *
 	 * @param	underNotNode		Whether or not we are under a NotNode.
-	 *							
+	 *
 	 *
 	 * @return		The modified expression
 	 *
@@ -323,7 +323,7 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
     }
 
 	/**
-	 * Get the absolute 0-based column position of the ColumnReference from 
+	 * Get the absolute 0-based column position of the ColumnReference from
 	 * the conglomerate for this Optimizable.
 	 *
 	 * @param optTable	The Optimizable
@@ -345,7 +345,7 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 		** and translate it to an index column position.
 		*/
 		if (bestCD != null && bestCD.isIndex()) {
-			columnPosition = bestCD.getIndexDescriptor().getKeyColumnPosition(columnPosition);
+			columnPosition = bestCD.getIndexDescriptor().getKeyColumnPosition(cr.getSource().getStoragePosition());
             assert columnPosition>0: "Base column not found in index";
 		}
 
@@ -354,8 +354,8 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 	}
 
     private int getAbsoluteStoragePosition(Optimizable optTable) throws StandardException {
-        ColumnReference	cr = (ColumnReference) operand;
-        int columnPosition;
+        ColumnReference cr = (ColumnReference) getOperand();
+        int columnPosition = cr.getSource().getStoragePosition();
         ConglomerateDescriptor bestCD;
 
         bestCD = optTable.getTrulyTheBestAccessPath().getConglomerateDescriptor();
@@ -365,11 +365,8 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 		** and translate it to an index column position.
 		*/
         if (bestCD != null && bestCD.isIndex()) {
-            columnPosition = cr.getSource().getColumnPosition();
             columnPosition = bestCD.getIndexDescriptor().getKeyColumnPosition(columnPosition);
-            assert columnPosition>0: "Base column not found in index";
-        } else {
-            columnPosition = cr.getSource().getStoragePosition();
+            assert columnPosition > 0 : "Base column not found in index";
         }
 
         // return the 0-based column position

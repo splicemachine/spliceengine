@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.List;
 
@@ -141,19 +142,7 @@ public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
         }
 
         if(operand instanceof ConstantNode){
-            DataValueFactory dvf=getLanguageConnectionContext().getDataValueFactory();
-            DataValueDescriptor sourceValue=((ConstantNode)operand).getValue();
-            DataValueDescriptor destValue=null;
-            if(sourceValue.isNull()){
-                destValue=(TIMESTAMP_METHOD_NAME.equals(methodName))
-                        ?dvf.getNullTimestamp((DateTimeDataValue)null)
-                        :dvf.getNullDate((DateTimeDataValue)null);
-            }else{
-                destValue=(TIMESTAMP_METHOD_NAME.equals(methodName))
-                        ?dvf.getTimestamp(sourceValue):dvf.getDate(sourceValue);
-            }
-            return (ValueNode)getNodeFactory().getNode(C_NodeTypes.USERTYPE_CONSTANT_NODE,
-                    destValue,getContextManager());
+            return evaluateConstantExpressions();
         }
 
         if(isIdentity)
@@ -194,5 +183,25 @@ public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
         double localCost = SIMPLE_OP_COST * (operand == null ? 1.0 : 2.0);
         double callCost = SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
         return lowerCost + localCost + callCost;
+    }
+
+    @Override
+    ValueNode evaluateConstantExpressions() throws StandardException {
+        if (getOperand() instanceof ConstantNode) {
+            DataValueFactory dvf = getLanguageConnectionContext().getDataValueFactory();
+            DataValueDescriptor sourceValue = ((ConstantNode) getOperand()).getValue();
+            DataValueDescriptor destValue = null;
+            if (sourceValue.isNull()) {
+                destValue = (TIMESTAMP_METHOD_NAME.equals(methodName))
+                        ? dvf.getNullTimestamp((DateTimeDataValue) null)
+                        : dvf.getNullDate((DateTimeDataValue) null);
+            } else {
+                destValue = (TIMESTAMP_METHOD_NAME.equals(methodName))
+                        ? dvf.getTimestamp(sourceValue) : dvf.getDate(sourceValue);
+            }
+            return (ValueNode) getNodeFactory().getNode(C_NodeTypes.USERTYPE_CONSTANT_NODE,
+                                                        destValue, getContextManager());
+        }
+        return this;
     }
 }
