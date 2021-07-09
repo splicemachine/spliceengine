@@ -473,15 +473,16 @@ public class IndexConglomerate extends SpliceConglomerate{
     @Override
     public TypeMessage.DataValueDescriptor toProtobuf() throws IOException {
 
-        TypeMessage.HBaseConglomerate hbaseConglomerate = TypeMessage.HBaseConglomerate.newBuilder()
+        TypeMessage.HBaseConglomerate.Builder hbaseConglomerate = TypeMessage.HBaseConglomerate.newBuilder()
                 .setConglomerateFormatId(conglom_format_id)
                 .setTmpFlag(tmpFlag)
                 .setContainerId(containerId)
                 .addAllFormatIds(Arrays.stream(format_ids).boxed().collect(Collectors.toList()))
                 .addAllCollationIds(Arrays.stream(collation_ids).boxed().collect(Collectors.toList()))
-                .addAllColumnOrdering(Arrays.stream(columnOrdering).boxed().collect(Collectors.toList()))
-                .addAllKeyFormatIds(Arrays.stream(keyFormatIds).boxed().collect(Collectors.toList()))
-                .build();
+                .addAllColumnOrdering(Arrays.stream(columnOrdering).boxed().collect(Collectors.toList()));
+        if (keyFormatIds != null) {
+            hbaseConglomerate.addAllKeyFormatIds(Arrays.stream(keyFormatIds).boxed().collect(Collectors.toList()));
+        }
 
         List<Boolean> ascDescInfoList = Lists.newArrayList();
         for (boolean info : ascDescInfo) {
@@ -489,7 +490,7 @@ public class IndexConglomerate extends SpliceConglomerate{
         }
 
         TypeMessage.IndexConglomerate indexConglomerate = TypeMessage.IndexConglomerate.newBuilder()
-                .setBase(hbaseConglomerate)
+                .setBase(hbaseConglomerate.build())
                 .setUniqueWithDuplicateNulls(uniqueWithDuplicateNulls)
                 .setNKeyFields(nKeyFields)
                 .setNUniqueColumns(nUniqueColumns)

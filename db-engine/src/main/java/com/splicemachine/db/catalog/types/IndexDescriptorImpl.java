@@ -42,16 +42,13 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.ProtobufUtils;
 import com.splicemachine.db.iapi.util.ByteArray;
-import com.splicemachine.db.impl.ast.CollectingVisitor;
 import com.splicemachine.db.impl.sql.CatalogMessage;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.execute.BaseExecutableIndexExpression;
-import splice.com.google.common.base.Predicates;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -218,6 +215,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
         for (int i = 0; i < baseColumnStoragePositions.length; ++i) {
             baseColumnStoragePositions[i] = indexDescriptorImpl.getBaseColumnPositions(i);
         }
+        count = indexDescriptorImpl.getBaseColumnLogicalPositionsCount();
         baseColumnPositions = new int[count];
         for (int i = 0; i < baseColumnPositions.length; ++i) {
             baseColumnPositions[i] = indexDescriptorImpl.getBaseColumnLogicalPositions(i);
@@ -276,7 +274,12 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
     /** @see IndexDescriptor#baseColumnPositions */
     public int[] baseColumnPositions()
     {
+        assert !isInvalidIndexDescriptorAfter2022Upgrade();
         return baseColumnPositions;
+    }
+
+    public boolean isInvalidIndexDescriptorAfter2022Upgrade() {
+        return baseColumnPositions.length != baseColumnStoragePositions.length;
     }
 
     /**
@@ -288,7 +291,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
         return baseColumnStoragePositions;
     }
     /** @see IndexDescriptor#getKeyColumnPosition */
-    public int getKeyColumnPosition(int heapColumnPosition) throws StandardException
+    public int getKeyColumnPosition(int columnStoragePosition) throws StandardException
     {
         if (isOnExpression()) {
             return -1;
@@ -299,7 +302,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
         for (int index = 0; index < baseColumnStoragePositions.length; index++)
         {
             /* Return 1-based key column position if column is in the key */
-            if (baseColumnStoragePositions[index] == heapColumnPosition)
+            if (baseColumnStoragePositions[index] == columnStoragePosition)
             {
                 keyPosition = index + 1;
                 break;
@@ -346,10 +349,28 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
         return isAscending;
     }
 
-    /** @see IndexDescriptor#setBaseColumnPositions */
-    public void        setBaseColumnPositions(int[] baseColumnPositions)
+    /** @see IndexDescriptor#setBaseColumnStoragePositions
+     * @param baseColumnStoragePositions */
+    @Override
+    public void setBaseColumnStoragePositions(int[] baseColumnStoragePositions)
     {
-        this.baseColumnStoragePositions = baseColumnPositions;
+        this.baseColumnStoragePositions = baseColumnStoragePositions;
+    }
+
+    @Override
+    public void setBaseColumnPositions(int[] baseColumnPositions)
+    {
+        this.baseColumnPositions = baseColumnPositions;
+    }
+
+    @Override
+    public int[] getBaseColumnStoragePositions() {
+        return baseColumnStoragePositions;
+    }
+
+    @Override
+    public int[] getBaseColumnPositions() {
+        return baseColumnPositions;
     }
 
     /** @see IndexDescriptor#setIsAscending */
@@ -516,12 +537,16 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
             builder.addIsAscending(asc);
         }
 
-        for (int pos : baseColumnStoragePositions) {
-            builder.addBaseColumnPositions(pos);
+        if (baseColumnStoragePositions != null) {
+            for (int pos : baseColumnStoragePositions) {
+                builder.addBaseColumnPositions(pos);
+            }
         }
 
-        for (int pos : baseColumnPositions) {
-            builder.addBaseColumnLogicalPositions(pos);
+        if (baseColumnPositions != null) {
+            for (int pos : baseColumnPositions) {
+                builder.addBaseColumnLogicalPositions(pos);
+            }
         }
 
         assert generatedClassNames.length == exprBytecode.length;

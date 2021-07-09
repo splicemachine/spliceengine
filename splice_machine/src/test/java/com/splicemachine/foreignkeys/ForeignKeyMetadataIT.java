@@ -137,7 +137,7 @@ public class ForeignKeyMetadataIT {
                 "  , SYS.SYSCONGLOMERATES CONGLOMS2\n"+
                 "  , SYS.SYSCOLUMNS COLS2\n"+
                 "WHERE\n"+
-                "  PKINFO.KEY_SEQ = CONGLOMS2.DESCRIPTOR.getKeyColumnPosition(COLS2.COLUMNNUMBER)";
+                "  PKINFO.KEY_SEQ = CONGLOMS2.DESCRIPTOR.getKeyColumnPosition(COLS2.STORAGENUMBER)";
 
         try(Statement s = conn.createStatement()){
            try(ResultSet rs = s.executeQuery(sql)){

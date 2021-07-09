@@ -35,6 +35,8 @@ import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.util.ByteArray;
 
+import java.util.Arrays;
+
 /**
  * ClassBuilder is used to construct a java class's byte array
  * representation.
@@ -201,4 +203,13 @@ public interface ClassBuilder {
 		boolean staticField, String type);
 
 	boolean existsField(String javaType, String name);
+
+	/**
+	 * write class file to a directory
+	 * @param dir directory to write it to
+	 * @param logMessage if true, log to Monitor.getStream()
+	 * @param t
+	 * @throws StandardException
+	 */
+	void writeClassFile(String dir, boolean logMessage, Throwable t) throws StandardException;
 }
