@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowFunction;
+import com.splicemachine.utils.SpliceLogUtils;
 import splice.com.google.common.base.Strings;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.compile.Optimizer;
@@ -168,7 +169,7 @@ public class CachedOperation extends SpliceBaseOperation {
         source.openCore();
         rows = new LinkedList<>();
         ExecRow aRow;
-        int cacheSize = 0;
+        long cacheSize = 0;
         FormatableBitSet toClone = null;
 
         try {

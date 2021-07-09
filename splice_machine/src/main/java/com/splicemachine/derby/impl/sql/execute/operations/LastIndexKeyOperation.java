@@ -100,13 +100,12 @@ public class LastIndexKeyOperation extends ScanOperation {
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
-
+        operationContext = dsp.createOperationContext(this);
         if (cachedResultSet != null) {
             return dataSetFromCachedResultSet(dsp);
         }
 
         dsp.prependSpliceExplainString(this.explainPlan);
-        operationContext = dsp.createOperationContext(this);
         DataSet<ExecRow> scan = dsp.<LastIndexKeyOperation,ExecRow>newScanSet(this,tableName)
                 .tableDisplayName(tableDisplayName)
                 .transaction(getCurrentTransaction())

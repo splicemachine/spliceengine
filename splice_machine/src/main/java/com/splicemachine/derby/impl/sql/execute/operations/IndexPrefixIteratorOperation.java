@@ -218,7 +218,9 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
 
         oneRowScan = true;
         operationContext = dsp.createOperationContext(this);
-
+        if (cachedResultSet != null) {
+            return dataSetFromCachedResultSet(dsp);
+        }
         if (keys == null) {
             DataSet<ExecRow> ds = getDriverDataSet(createTableScannerBuilder());
             TableScannerIterator tableScannerIterator = (TableScannerIterator) ds.toLocalIterator();
@@ -271,6 +273,8 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
             ((BaseActivation) sourceResultSet.getActivation()).setFirstIndexColumnKeys(null);
             ((BaseActivation) sourceResultSet.getActivation()).setSkipBuildOfFirstKeyColumn(false);
             tableScan.setFirstRowOfIndexPrefixIteration(null);
+            if (canCacheResultSet && dsp.getType().equals(DataSetProcessor.Type.CONTROL))
+                dataSet = makeCachedResultSetFromDataSet(dsp, dataSet);
             return dataSet;
         }
 
@@ -303,6 +307,8 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
             finalDS = sourceResultSet.getDataSet(dsp);
             ((BaseActivation)sourceResultSet.getActivation()).setFirstIndexColumnKeys(null);
         }
+        if (canCacheResultSet && dsp.getType().equals(DataSetProcessor.Type.CONTROL))
+            finalDS = makeCachedResultSetFromDataSet(dsp, finalDS);
         return finalDS;
     }
 

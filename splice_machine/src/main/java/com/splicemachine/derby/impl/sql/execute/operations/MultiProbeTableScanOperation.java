@@ -215,6 +215,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             throw new IllegalStateException("Operation is not open");
 
         try {
+            operationContext = dsp.<MultiProbeTableScanOperation>createOperationContext(this);
             if (cachedResultSet != null) {
                 return dataSetFromCachedResultSet(dsp);
             }
@@ -225,7 +226,6 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                                          activation, getKeyDecodingMap(),
                                          firstRowOfIndexPrefixIteration != null);
             DataSet<ExecRow> dataSet = dsp.getEmpty();
-            OperationContext<MultiProbeTableScanOperation> operationContext = dsp.<MultiProbeTableScanOperation>createOperationContext(this);
             dsp.prependSpliceExplainString(this.explainPlan);
             int i = 0;
             List<ScanSetBuilder<ExecRow>> datasets = new ArrayList<>(scans.size());

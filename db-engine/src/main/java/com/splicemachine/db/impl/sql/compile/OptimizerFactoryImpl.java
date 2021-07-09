@@ -56,7 +56,14 @@ public class OptimizerFactoryImpl
 	protected boolean ruleBasedOptimization = false;
 	protected boolean noTimeout = false;
 	protected boolean useStatistics = true;
-	protected int maxMemoryPerTable = Integer.MAX_VALUE;//may need to be long, but this also can be defined in configuration
+	// Set an absolute upper limit less than Integer.MAX_VALUE bytes (the old limit)
+	// on the size of cached result sets.
+	// Allocating 2GB of heap memory is never a good thing.
+	// 20 MB should be sufficient.  For CachedOperation, this limit should
+	// rarely matter since in practice it will hit the 512 rows limit (MAX_DYNAMIC_MATERIALIZED_ROWS)
+	// way before 20 MB is allocated, but for caching ScanOperations for row triggers,
+	// the memory limit is important because this form of caching does not have a number of rows limit.
+	protected int maxMemoryPerTable = 20 * 1024 * 1024;
 	protected long determineSparkRowThreshold; //The default value is defined in SQLConfiguration
 
 

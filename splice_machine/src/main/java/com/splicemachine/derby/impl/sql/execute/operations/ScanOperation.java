@@ -17,6 +17,8 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
@@ -51,8 +53,7 @@ import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.sql.Timestamp;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static com.splicemachine.si.constants.SIConstants.OLDEST_TIME_TRAVEL_TX;
 
@@ -88,6 +89,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
     protected ExecRow defaultRow;
     protected boolean canCacheResultSet;
     protected List<ExecRow> cachedResultSet;
+    protected boolean cachePopulated = false;
     public static final int SCAN_CACHE_SIZE = 1000;
 
     public ScanOperation(){
@@ -520,12 +522,21 @@ public abstract class ScanOperation extends SpliceBaseOperation {
     }
 
     // If this operation is marked as cacheable,
-    // materialize ds into cachedResultSet (a list of rows) and return a DataSet
+    // materialize ds into cachedResultSet (a list of rows),
+    // if it fits into allowed memory, and return a DataSet
     // referring to this row list.
+    // This differs from CachedOperation in that it cleans up
+    // cached rows when the triggering statement is closed.
+    // Also, it is only applied on a ScanOperation, so that a
+    // common source table can have a variable restriction in
+    // a ProjectRestrictOperation applied on the cached rows,
+    // allowing for more cases where caching can be applied.
+    // CachedOperation is typically applied on the entire
+    // subquery result.
     protected DataSet<ExecRow> makeCachedResultSetFromDataSet(DataSetProcessor dsp, DataSet<ExecRow> ds) throws StandardException {
         DataSet<ExecRow> newDataSet = ds;
         if (canCacheResultSet) {
-            cachedResultSet = ds.map(new CloneFunction<>(null)).collect();
+            newDataSet = populateCachedResultSet(ds, dsp);
             Activation parentActivation = activation.getParentActivation();
             // When the triggering statement which fired the trigger closes, then
             // release the cached result set.
@@ -537,12 +548,64 @@ public abstract class ScanOperation extends SpliceBaseOperation {
                         if (cachedResultSet != null)
                             cachedResultSet.clear();
                         cachedResultSet = null;
+                        cachePopulated = false;
                     }
                 });
             }
-          newDataSet = dataSetFromCachedResultSet(dsp);
         }
         return newDataSet;
+    }
+
+    private ExecRow getNextRow(Iterator<ExecRow> rowIterator) {
+        if (rowIterator.hasNext())
+            return rowIterator.next();
+        return null;
+    }
+
+    private DataSet<ExecRow> populateCachedResultSet(DataSet<ExecRow> ds, DataSetProcessor dsp) throws StandardException {
+        if (cachePopulated)
+            return ds;
+
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        int maxMemoryPerTable = lcc.getOptimizerFactory().getMaxMemoryPerTable();
+        if (maxMemoryPerTable <= 0)
+            return ds;
+
+        cachePopulated = true;
+
+        Iterator<ExecRow> rowIterator = ds.toLocalIterator();
+
+        cachedResultSet = new LinkedList<>();
+        ExecRow aRow;
+        long cacheSize = 0;
+        FormatableBitSet toClone = null;
+
+        try {
+            aRow = getNextRow(rowIterator);
+            if (aRow != null) {
+                toClone = new FormatableBitSet(aRow.nColumns() + 1);
+                for (int i = 1; i <= aRow.nColumns(); i++) {
+                    toClone.set(i);
+                }
+            }
+            while (aRow != null) {
+                for (int i = 1; i <= aRow.nColumns(); i++) {
+                    cacheSize += aRow.getColumn(i).getLength();
+                }
+                if (cacheSize > maxMemoryPerTable) {
+                    cachedResultSet.clear();
+                    cachedResultSet = null;
+                    break;
+                }
+                cachedResultSet.add(aRow.getClone(toClone));
+                aRow = getNextRow(rowIterator);
+            }
+        }
+        catch (NoSuchElementException e){
+            cachedResultSet.clear();
+            cachedResultSet = null;
+        }
+        return dataSetFromCachedResultSet(dsp);
     }
 
     protected DataSet<ExecRow> dataSetFromCachedResultSet(DataSetProcessor dsp) throws StandardException {

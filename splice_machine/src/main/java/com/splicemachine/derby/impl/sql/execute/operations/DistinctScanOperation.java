@@ -222,6 +222,8 @@ public class DistinctScanOperation extends ScanOperation {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
+        operationContext = dsp.createOperationContext(this);
+
         if (cachedResultSet != null) {
             return dataSetFromCachedResultSet(dsp);
         }
@@ -239,7 +241,7 @@ public class DistinctScanOperation extends ScanOperation {
         } else {
             colMap = keyColumns;
         }
-        operationContext = dsp.createOperationContext(this);
+
         DataSet<ExecRow> dataset = dsp.<DistinctScanOperation,ExecRow>newScanSet(this,tableName)
                 .tableDisplayName(this.tableDisplayName)
                 .activation(activation)
