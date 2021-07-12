@@ -426,7 +426,7 @@ public final class UpdateNode extends DMLModStatementNode
          ** from list.
         */
         // Splice fork - don't enforce this if special subquery syntax
-        if (!isUpdateWithSubquery && !inMatchedClause) {
+        if (!isUpdateWithSubquery && !inMatchingClause()) {
             resultFromList = resultSet.getFromList();
             if (SanityManager.DEBUG) {
                 SanityManager.ASSERT(resultFromList.size() == 1,
