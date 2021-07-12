@@ -972,7 +972,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     /*Reset the connection before it is returned (indirectly) by a PooledConnection object. See EmbeddedConnection. */
     @Override
     public void resetFromPool() throws StandardException {
-        db.unregisterSession(getSessionID());
+        db.unregisterSession(getMachineID(), getSessionID());
 
         interruptedException=null;
 

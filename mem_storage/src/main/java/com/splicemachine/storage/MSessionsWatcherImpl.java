@@ -40,12 +40,12 @@ public class MSessionsWatcherImpl implements SessionsWatcher {
     }
 
     @Override
-    public void registerSession(String sessionId) {
+    public void registerSession(long machineID, String sessionId) {
         activeSessions.add(sessionId);
     }
 
     @Override
-    public void unregisterSession(String sessionId) {
+    public void unregisterSession(long machineID, String sessionId) {
         activeSessions.remove(sessionId);
     }
 

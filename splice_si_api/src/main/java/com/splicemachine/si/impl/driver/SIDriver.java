@@ -273,14 +273,6 @@ public class SIDriver {
         return env.filesystemAdmin();
     }
 
-    public long getMachineId() throws StandardException {
-        try {
-            return getSnowflakeFactory().getSnowFlake().getMachineId();
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
-    }
-
     public ClusterHealth clusterHealth() {
         return clusterHealth;
     }

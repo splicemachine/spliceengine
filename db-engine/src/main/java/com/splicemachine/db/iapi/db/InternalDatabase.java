@@ -154,5 +154,5 @@ public interface InternalDatabase extends com.splicemachine.db.database.Database
 
 	long replaceJar(final InputStream is, JarUtil util) throws StandardException;
 
-	default void unregisterSession(String sessionId) {}
+	default void unregisterSession(long machineID, String sessionId) {};
 }
