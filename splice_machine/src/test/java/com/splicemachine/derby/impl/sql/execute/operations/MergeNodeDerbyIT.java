@@ -49,7 +49,7 @@ import static org.junit.Assert.*;
 public class MergeNodeDerbyIT {
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    public static final String CLASS_NAME = MergeNodeIT.class.getSimpleName().toUpperCase();
+    public static final String CLASS_NAME = MergeNodeDerbyIT.class.getSimpleName().toUpperCase();
 
     protected static String TABLE_1 = "A";
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
