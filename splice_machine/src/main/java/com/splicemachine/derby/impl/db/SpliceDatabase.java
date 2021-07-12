@@ -172,14 +172,13 @@ public class SpliceDatabase extends BasicDatabase{
                                                      Properties sessionProperties)
             throws StandardException{
 
-        long machineID = SIDriver.driver().getMachineId();
         final LanguageConnectionContext lctx=super.setupConnection(cm, user, groupuserlist,
-                drdaID, dbname, rdbIntTkn, machineID, dspt, sparkExecutionType, skipStats,
+                drdaID, dbname, rdbIntTkn, getMachineId(), dspt, sparkExecutionType, skipStats,
                 defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
 
         setupASTVisitors(lctx);
 
-        SIDriver.driver().getSessionsWatcher().registerSession(lctx.getSessionID());
+        SIDriver.driver().getSessionsWatcher().registerSession(lctx.getMachineID(), lctx.getSessionID());
         return lctx;
     }
 
@@ -202,9 +201,8 @@ public class SpliceDatabase extends BasicDatabase{
         TransactionController tc = reuseTC == null ? ((SpliceAccessManager)af).marshallTransaction(cm,txn) : reuseTC;
         cm.setLocaleFinder(this);
         pushDbContext(cm);
-        long machineID = SIDriver.driver().getMachineId();
         LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,
-                groupuserlist,drdaID,dbname,rdbIntTkn,machineID,type, sparkExecutionType, skipStats, defaultSelectivityFactor,
+                groupuserlist,drdaID,dbname,rdbIntTkn,getMachineId(),type, sparkExecutionType, skipStats, defaultSelectivityFactor,
                 ipAddress, null,
                 spsCache, defaultRoles, initialDefaultSchemaDescriptor, driverTxnId, null);
 
@@ -214,6 +212,14 @@ public class SpliceDatabase extends BasicDatabase{
         lctx.initialize();
         setupASTVisitors(lctx);
         return lctx;
+    }
+
+    private long getMachineId() {
+        // In EngineLifeCycleService, internal connections can be created before
+        // engine driver is loaded. For these internal connections, machine IDs
+        // are not ready yet. Assign 0 for them.
+        EngineDriver driver = EngineDriver.driver();
+        return driver == null ? 0 : driver.getMachineID();
     }
 
     @Override
@@ -683,7 +689,7 @@ public class SpliceDatabase extends BasicDatabase{
     }
 
     @Override
-    public void unregisterSession(String sessionId) {
-        SIDriver.driver().getSessionsWatcher().unregisterSession(sessionId);
+    public void unregisterSession(long machineID, String sessionId) {
+        SIDriver.driver().getSessionsWatcher().unregisterSession(machineID, sessionId);
     }
 }

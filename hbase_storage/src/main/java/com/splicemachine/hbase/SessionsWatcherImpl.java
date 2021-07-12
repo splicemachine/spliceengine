@@ -26,7 +26,6 @@ import splice.com.google.common.collect.Lists;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.stream.Collectors;
 
 public class SessionsWatcherImpl implements com.splicemachine.si.api.session.SessionsWatcher {
     private static final Logger LOG = Logger.getLogger(SessionsWatcherImpl.class);
@@ -73,13 +72,17 @@ public class SessionsWatcherImpl implements com.splicemachine.si.api.session.Ses
     }
 
     @Override
-    public void registerSession(String sessionId) {
-        activeSessions.add(sessionId);
+    public void registerSession(long machineID, String sessionId) {
+        if (machineID > 0) {
+            activeSessions.add(sessionId);
+        }
     }
 
     @Override
-    public void unregisterSession(String sessionId) {
-        activeSessions.remove(sessionId);
+    public void unregisterSession(long machineID, String sessionId) {
+        if (machineID > 0) {
+            activeSessions.remove(sessionId);
+        }
     }
 
 }
