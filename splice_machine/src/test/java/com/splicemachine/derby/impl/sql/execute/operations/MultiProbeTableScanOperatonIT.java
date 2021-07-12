@@ -242,7 +242,7 @@ public class MultiProbeTableScanOperatonIT extends SpliceUnitTest {
     @Test
     public void testMultiProbeWithComputations() throws Exception {
         this.thirdRowContainsQuery("explain select * from a --splice-properties index=i\n" +
-                " where d in (10.0+10, 11.0+10)","keys=[(D[0:1] IN ((10.0 + 10),(11.0 + 10)))]",methodWatcher);
+                " where d in (10.0+10, 11.0+10)","keys=[(A.D[0:1] IN ((10.0 + 10),(11.0 + 10)))]",methodWatcher);
     }
 
     // DB-1323

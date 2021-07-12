@@ -273,6 +273,6 @@ public class JoinOrderIT extends SpliceUnitTest {
                 new String[] {"NestedLoopJoin"},
                 new String[] {"TableScan[T33", "scannedRows=1,outputRows=1"},
                 new String[] {"IndexLookup", "outputRows=1"},
-                new String[] {"IndexScan[IDX_T44", "scannedRows=1,outputRows=1", "keys=[(C4[1:3] = 10)]"});
+                new String[] {"IndexScan[IDX_T44", "scannedRows=1,outputRows=1", "keys=[(T44.C4[1:3] = 10)]"});
     }
 }
