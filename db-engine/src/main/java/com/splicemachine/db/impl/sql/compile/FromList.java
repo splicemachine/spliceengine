@@ -590,7 +590,9 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
             }
             /* Simpler to always set previousLevel then to test and set */
             previousLevel=currentLevel;
-            if(index == 0 && size > 1 && isBaseRowIdOrRowId(columnReference.columnName)) continue;
+            if(index == 0 && size > 1 && columnReference != null && columnReference.columnName != null
+                    && ColumnReference.isRowId(columnReference.columnName))
+                continue;
 
             ResultColumn resultColumn=fromTable.getMatchingColumn(columnReference);
             if(resultColumn!=null){
