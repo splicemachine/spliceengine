@@ -27,11 +27,7 @@ import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.log4j.Logger;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -145,6 +141,29 @@ public class KillOperationIT {
         }
     }
 
+    class SqlRunnable implements Runnable {
+        AtomicReference<Exception> result;
+        String sql;
+
+        public SqlRunnable(String sql, AtomicReference<Exception> result) {
+            this.sql = sql;
+            this.result = result;
+        }
+        @Override
+        public void run() {
+            try (TestConnection connection = methodWatcher.createConnection();
+                 PreparedStatement ps = connection.prepareStatement(sql);
+                 ResultSet rs = ps.executeQuery())
+            {
+                while(rs.next()) { }
+            } catch (Exception e) {
+                LOG.error(e);
+                result.set(e);
+            }
+        }
+
+    }
+
     @Test
     public void testNestedLoopJoinIsKilled() throws Exception {
         String sql= "select * from T a --splice-properties joinStrategy=nestedloop, useSpark="+useSpark + "\n" +
@@ -153,44 +172,15 @@ public class KillOperationIT {
                 " natural join T d --splice-properties joinStrategy=nestedloop \n" +
                 " natural join T e --splice-properties joinStrategy=nestedloop \n" +
                 "where a.a + b.a + c.a + d.a + e.a < 0";
-        String union =  sql + " union all " + sql;
+        String union = sql + " union all " + sql;
         AtomicReference<Exception> result = new AtomicReference<>();
 
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                PreparedStatement ps = null;
-                try (TestConnection connection = methodWatcher.createConnection()) {
-                    ps = connection.prepareStatement(union);
-                    ResultSet rs = ps.executeQuery();
-                    while(rs.next()) {
-                    }
-                } catch (Exception e) {
-                    LOG.error(e);
-                    result.set(e);
-                }
-            }
-        });
+        Thread thread = new Thread(new SqlRunnable(union, result));
         thread.setDaemon(true);
         thread.start();
 
-        // wait for the query to be submitted
-        Thread.sleep(1000);
-
-        String opsCall= "call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS()";
-
         try (TestConnection connection = methodWatcher.createConnection()) {
-            ResultSet opsRs = connection.query(opsCall);
-
-            int count = 0;
-            String uuid = null;
-            while (opsRs.next()) {
-                count++;
-                if (opsRs.getString(5).equals(union)) {
-                    uuid = opsRs.getString(1);
-                }
-            }
-            assertEquals(2, count); // 2 running operations, cursor + the procedure call itself
+            String uuid = executeRunningOperations(union, connection);
 
 
             // kill the cursor
@@ -208,6 +198,38 @@ public class KillOperationIT {
         checkReadCounts();
     }
 
+    ///
+
+    /**
+     * this waits at max 0.2*100 = 20s for the operation to show up in SYSCS_GET_RUNNING_OPERATIONS,
+     * then return the UUID of that operation
+     */
+    private String executeRunningOperations(String sql, TestConnection connection) throws SQLException, InterruptedException {
+
+        int count = 0;
+        String uuid = null;
+        // 2 running operations, cursor + the procedure call itself
+        for(int i=0; i<100 && count != 2; i++) {
+            // wait for the query to be submitted
+            Thread.sleep(200);
+
+            String opsCall = "call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS()";
+            ResultSet opsRs = connection.query(opsCall);
+
+            final int SQL_COL = 5;
+            final int UUID_COL = 1;
+            count = 0;
+            while (opsRs.next()) {
+                count++;
+                if (opsRs.getString(SQL_COL).equals(sql)) {
+                    uuid = opsRs.getString(UUID_COL);
+                }
+            }
+        }
+        Assert.assertEquals(count, 2);
+        return uuid;
+    }
+
 
     @Test
     public void testMultiProbeIsKilled() throws Exception {
@@ -219,44 +241,15 @@ public class KillOperationIT {
                 " and b.a in (1, 2, 3, 4)  " +
                 " and c.a in (1, 2, 3, 4)  " +
                 " and d.a in (1, 2, 3, 4) and a.a + b.a + c.a + d.a < 0";
-                String union =  sql + " union all " + sql  + " union all " + sql+ " union all " + sql+ " union all " + sql+ " union all " + sql+ " union all " + sql;
+        String union = sql + " union all " + sql  + " union all " + sql + " union all " + sql +
+                " union all " + sql + " union all " + sql + " union all " + sql;
         AtomicReference<Exception> result = new AtomicReference<>();
 
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                PreparedStatement ps = null;
-                try (TestConnection connection = methodWatcher.createConnection()) {
-                    ps = connection.prepareStatement(union);
-                    ResultSet rs = ps.executeQuery();
-                    while(rs.next()) {
-                    }
-                } catch (Exception e) {
-                    LOG.error(e);
-                    result.set(e);
-                }
-            }
-        });
+        Thread thread = new Thread(new SqlRunnable(union, result));
         thread.start();
 
-        // wait for the query to be submitted
-        Thread.sleep(1000);
-
-        String opsCall= "call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS()";
-
         try (TestConnection connection = methodWatcher.createConnection()) {
-            ResultSet opsRs = connection.query(opsCall);
-
-            int count = 0;
-            String uuid = null;
-            while (opsRs.next()) {
-                count++;
-                if (opsRs.getString(5).equals(union)) {
-                    uuid = opsRs.getString(1);
-                }
-            }
-            assertEquals(2, count); // 2 running operations, cursor + the procedure call itself
-
+            String uuid = executeRunningOperations(union, connection);
 
             // kill the cursor
             String killCall = "call SYSCS_UTIL.SYSCS_KILL_OPERATION('" + uuid + "')";
