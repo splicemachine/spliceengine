@@ -1753,16 +1753,18 @@ public class SpliceAdmin extends BaseAdminProcedures {
                 for (TableDescriptor td : tds) {
                     if (td.getTableType() == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE) {
                         String tableName = td.getName();
+                        boolean drop = false;
                         try {
+                            // drop if temp table is not created by any active session
                             String creatingSessionID = lcc.getLocalTempTableSessionID(td);
-                            if (!sessionIDSet.contains(creatingSessionID)) {
-                                dropTempTable(lcc, td);
-                                res.newRow();
-                                tblNameCol.set(tableName);
-                            }
+                            drop = !sessionIDSet.contains(creatingSessionID);
                         } catch (StandardException se) {
+                            // drop if temp table is created in earlier versions
                             if (se.getSQLState().equals(SQLState.LANG_INVALID_INTERNAL_TEMP_TABLE_NAME)) {
-                                // for temporary tables created using instance numbers
+                                drop = true;
+                            }
+                        } finally {
+                            if (drop) {
                                 dropTempTable(lcc, td);
                                 res.newRow();
                                 tblNameCol.set(tableName);
