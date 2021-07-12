@@ -328,6 +328,8 @@ public class StatementTablePermission extends StatementSchemaPermission
 		case Authorizer.TRIGGER_PRIV:
 			priv = perms.getTriggerPriv();
 			break;
+		default:
+			break;
 		}
 
 		return "Y".equals(priv) || (!forGrant) && "y".equals( priv) ? AUTHORIZED : UNAUTHORIZED;
@@ -362,6 +364,8 @@ public class StatementTablePermission extends StatementSchemaPermission
 				break;
 			case Authorizer.TRIGGER_PRIV:
 				priv = perms.getTriggerPriv();
+				break;
+			default:
 				break;
 		}
 
