@@ -1970,13 +1970,13 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
                 // Then get active session list.
                 List<String> activeSessionIDs = SIDriver.driver().getSessionsWatcher().getAllActiveSessions();
-                Set<UUID> sessionIDSet = activeSessionIDs.stream().map(UUID::fromString).collect(Collectors.toSet());
+                Set<String> sessionIDSet = new HashSet<>(activeSessionIDs);
 
                 for (TableDescriptor td : tds) {
                     if (td.getTableType() == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE) {
                         String tableName = td.getName();
                         try {
-                            java.util.UUID creatingSessionID = lcc.getLocalTempTableSessionID(td);
+                            String creatingSessionID = lcc.getLocalTempTableSessionID(td);
                             if (!sessionIDSet.contains(creatingSessionID)) {
                                 dropTempTable(lcc, td);
                                 res.newRow();
