@@ -621,7 +621,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public void recordAdditionalDisplayedTriggerInfo(long elapsedTime, long modifiedRows, java.util.UUID queryId) {
-        assert queryTxnIdStack.peek().getFirst() == queryId;
+        if (queryTxnIdStack == null || queryTxnIdStack.empty() || queryTxnIdStack.peek().getFirst() != queryId)
+            return;
         queryTxnIdStack.pop();
         if (queryIdToTriggerInfoMap.containsKey(queryId)) {
             queryIdToTriggerInfoMap.get(queryId).setElapsedTime(elapsedTime);
