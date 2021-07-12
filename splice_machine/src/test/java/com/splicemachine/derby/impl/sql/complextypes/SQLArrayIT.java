@@ -247,13 +247,13 @@ public class SQLArrayIT extends SpliceUnitTest {
     @Test
     public void testArrayOperatorNodeExplain() throws Exception {
         String query = "explain select * from array_one where col1[1] = 1";
-        this.rowContainsQuery(3,query,"preds=[(COL1[0:1][1] = 1)]",methodWatcher);
+        this.rowContainsQuery(3,query,"preds=[(ARRAY_ONE.COL1[0:1][1] = 1)]",methodWatcher);
     }
 
     @Test
     public void testArrayConstantNodeExplain() throws Exception {
         String query = "explain select * from array_one where col1 = [1,1,1]";
-        this.rowContainsQuery(3,query,"preds=[(COL1[0:1] = [1,1,1])]",methodWatcher);
+        this.rowContainsQuery(3,query,"preds=[(ARRAY_ONE.COL1[0:1] = [1,1,1])]",methodWatcher);
     }
 
     @Test
