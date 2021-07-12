@@ -8,7 +8,7 @@ public interface SessionsWatcher {
 
     List<String> getAllActiveSessions();
 
-    void registerSession(String sessionId);
+    void registerSession(long machineID, String sessionId);
 
-    void unregisterSession(String sessionId);
+    void unregisterSession(long machineID, String sessionId);
 }

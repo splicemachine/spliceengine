@@ -157,5 +157,5 @@ public interface InternalDatabase extends com.splicemachine.db.database.Database
 
 	AccessFactory getAccessFactory();
 
-	default void unregisterSession(String sessionId) {};
+	default void unregisterSession(long machineID, String sessionId) {};
 }
