@@ -19,11 +19,13 @@ import com.clearspring.analytics.util.Lists;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.shared.common.sql.Utils;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.SkeletonHBaseClientPartition;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -57,6 +59,7 @@ public class BulkImportFunction implements VoidFunction<Iterator<BulkImportParti
     // serialization
     public BulkImportFunction() {}
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "this is intentional")
     public BulkImportFunction(String bulkImportDirectory, byte[] token) {
         this.bulkImportDirectory = bulkImportDirectory;
         this.token = token;
@@ -100,7 +103,7 @@ public class BulkImportFunction implements VoidFunction<Iterator<BulkImportParti
                 }
             }
             writeToken(fs, path);
-            HBasePlatformUtils.bulkLoad(conf, loader, path.getParent(), "splice:" + partition.getTableName());
+            HBasePlatformUtils.bulkLoad(conf, loader, path.getParent(), Utils.constructHbaseName(partition.getTableName()));
             fs.delete(path.getParent(), true);
         }
     }

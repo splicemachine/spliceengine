@@ -34,9 +34,11 @@ import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.stats.StoreCostControllerImpl;
 import com.splicemachine.derby.utils.ConglomerateUtils;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -47,6 +49,7 @@ import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -2041,5 +2044,37 @@ public class SpliceTransactionManager implements XATransactionController,
     @Override
     public void recoverPropertyConglomerateIfNecessary() throws StandardException {
         accessmanager.getTransactionalProperties().recoverPropertyConglomerateIfNecessary(this);
+    }
+
+    @Override
+    public long getTxnAt(long ts) throws StandardException {
+        try {
+            return SIDriver.driver().getTxnStore().getTxnAt(ts);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+    }
+
+    @Override
+    public boolean txnWithin(long period, long pastTx) throws StandardException {
+        if(pastTx < SIConstants.OLDEST_TIME_TRAVEL_TX) {
+            return false;
+        }
+        long mrpTx = 0;
+        try {
+            mrpTx = SIDriver.driver().getTxnStore().getTxnAt(System.currentTimeMillis() - period * 1000);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+        return mrpTx <= pastTx;
+    }
+
+    @Override
+    public boolean txnWithin(long period, Timestamp pastTx) throws StandardException {
+        Timestamp currentTs = new Timestamp(System.currentTimeMillis());
+        if (pastTx.after(currentTs)) { // future time travel is no-op anyway
+            return true;
+        }
+        return ((System.currentTimeMillis() - pastTx.getTime()) / 1000) <= period;
     }
 }

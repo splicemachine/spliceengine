@@ -117,7 +117,7 @@ public class DistinctScanOperation extends ScanOperation {
                                  int partitionByRefItem,
                                  GeneratedMethod defaultRowFunc,
                                  int defaultValueMapItem,
-                                 GeneratedMethod pastTxFunctor,
+                                 long pastTxn,
                                  Long minRetentionPeriod,
                                  int numUnusedLeadingIndexFields,
                                  boolean canCacheResultSet) throws StandardException {
@@ -142,7 +142,7 @@ public class DistinctScanOperation extends ScanOperation {
                 optimizerEstimatedCost,
                 tableVersion,
                 splits,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem,
-                pastTxFunctor,
+                pastTxn,
                 minRetentionPeriod,
                 numUnusedLeadingIndexFields,
                 canCacheResultSet);

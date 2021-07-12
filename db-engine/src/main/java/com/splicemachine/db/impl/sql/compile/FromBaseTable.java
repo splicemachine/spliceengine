@@ -54,9 +54,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
@@ -72,6 +70,7 @@ import splice.com.google.common.base.Predicates;
 import splice.com.google.common.collect.Lists;
 
 import java.lang.reflect.Modifier;
+import java.sql.Timestamp;
 import java.util.*;
 
 import static com.splicemachine.db.impl.ast.RSUtils.isNLJ;
@@ -240,6 +239,8 @@ public class FromBaseTable extends FromTable {
 
     private ValueNode pastTxIdExpression = null;
 
+    private long pastTxnId = TransactionController.TIME_TRAVEL_UNSET;
+
     private long minRetentionPeriod = -1;
 
     // expressions in whole query referencing columns in this base table
@@ -344,6 +345,10 @@ public class FromBaseTable extends FromTable {
                     && (predList == null || !predList.canSupportIndexExcludedDefaults(tableNumber,currentConglomerateDescriptor, tableDescriptor))) {
                 return false;
             }
+            else if (pastTxnId != TransactionController.TIME_TRAVEL_UNSET) {
+                long indexCreationTx = getDataDictionary().getConglomerateCreationTxId(currentConglomerateDescriptor.getConglomerateNumber());
+                return pastTxnId >= indexCreationTx;
+            }
         }
         return true;
     }
@@ -400,7 +405,14 @@ public class FromBaseTable extends FromTable {
                         String conglomerateName=currentConglomerateDescriptor.getConglomerateName();
                         if(conglomerateName!=null){
                             /* Have we found the desired index? */
-                            if(conglomerateName.equals(userSpecifiedIndexName)){
+                            if(conglomerateName.equals(userSpecifiedIndexName)) {
+                                if (pastTxnId != TransactionController.TIME_TRAVEL_UNSET && conglomDesc.isIndex()) {
+                                    long indexCreationTx = getDataDictionary().getConglomerateCreationTxId(conglomDesc.getConglomerateNumber());
+                                    if(pastTxnId < indexCreationTx) {
+                                        throw StandardException.newException(SQLState.LANG_USER_INDEX_CREATED_AFTER_PAST_TRANSACTION,
+                                                                             conglomDesc.getConglomerateName(), indexCreationTx, pastTxnId);
+                                    }
+                                }
                                 break;
                             }
                         }
@@ -2011,6 +2023,18 @@ public class FromBaseTable extends FromTable {
                 Long minRetentionPeriod = tableDescriptor.getMinRetentionPeriod();
                 this.minRetentionPeriod = minRetentionPeriod == null ? -1 : minRetentionPeriod;
             }
+            if(!pastTxIdExpression.isConstantExpression()) {
+                throw StandardException.newException(SQLState.LANG_ILLEGAL_TIME_TRAVEL, "not-constant expression");
+            }
+            ValueNode valueNode = pastTxIdExpression.evaluateConstantExpressions();
+            DataValueDescriptor dvd = valueNode.getKnownConstantValue();
+            if(dvd == null) {
+                throw StandardException.newException(SQLState.NOT_IMPLEMENTED, String.format("Evaluation of constant expression of type %s is not supported",
+                                                                                             valueNode.getClass().getSimpleName()));
+            }
+            pastTxnId = mapToTxId(dvd, minRetentionPeriod);
+        } else {
+            pastTxnId = TransactionController.TIME_TRAVEL_UNSET;
         }
 
         if(tableDescriptor.getTableType()==TableDescriptor.VTI_TYPE){
@@ -3334,7 +3358,7 @@ public class FromBaseTable extends FromTable {
         mb.push(costEstimate.getEstimatedCost());
         mb.push(tableDescriptor.getVersion());
         mb.push(printExplainInformationForActivation());
-        generatePastTxFunc(acb, mb);
+        mb.push(pastTxnId);
         mb.push(minRetentionPeriod);
         mb.push(numUnusedLeadingIndexFields);
         boolean canCacheResultSet = isCacheable(acb);
@@ -3418,27 +3442,13 @@ public class FromBaseTable extends FromTable {
         BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getLocation());
         mb.push(partitionReferenceItem);
         generateDefaultRow((ActivationClassBuilder)acb, mb);
-        generatePastTxFunc(acb, mb);
+        mb.push(pastTxnId);
         mb.push(minRetentionPeriod);
         mb.push(numUnusedLeadingIndexFields);
         boolean canCacheResultSet = isCacheable(acb);
         mb.push(canCacheResultSet);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getDistinctScanResultSet",
                 ClassName.NoPutResultSet,31);
-    }
-
-    private void generatePastTxFunc(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
-        if(pastTxIdExpression != null) {
-            MethodBuilder pastTxExpr = acb.newUserExprFun();
-            pastTxIdExpression.generateExpression(acb, pastTxExpr);
-            pastTxExpr.methodReturn();
-            pastTxExpr.complete();
-            acb.pushMethodReference(mb, pastTxExpr);
-        }
-        else
-        {
-            mb.pushNull(ClassName.GeneratedMethod);
-        }
     }
 
     private int getScanArguments(ExpressionClassBuilder acb,
@@ -3534,7 +3544,7 @@ public class FromBaseTable extends FromTable {
         numArgs += generateDefaultRow((ActivationClassBuilder)acb, mb);
 
         // also add the past transaction id functor
-        generatePastTxFunc(acb, mb);
+        mb.push(pastTxnId);
         numArgs++;
 
         mb.push(minRetentionPeriod);
@@ -4964,5 +4974,39 @@ public class FromBaseTable extends FromTable {
 
     public double getSingleScanRowCount() {
         return singleScanRowCount;
+    }
+
+    private long mapToTxId(DataValueDescriptor dataValue, long minRetentionPeriod) throws StandardException {
+        if(SanityManager.DEBUG) {
+            SanityManager.ASSERT(dataValue != null);
+        }
+        TransactionController tc = getLanguageConnectionContext().getTransactionCompile();
+        if (dataValue instanceof SQLTimestamp) {
+            Timestamp ts = ((SQLTimestamp) dataValue).getTimestamp(null);
+            if (minRetentionPeriod != -1) {
+                if (tc.txnWithin(minRetentionPeriod, ts)) {
+                    return tc.getTxnAt(ts.getTime());
+                } else {
+                    throw StandardException.newException(SQLState.LANG_TIME_TRAVEL_OUTSIDE_MIN_RETENTION_PERIOD, minRetentionPeriod);
+                }
+            } else {
+                return tc.getTxnAt(ts.getTime());
+            }
+        } else if (dataValue instanceof SQLTinyint || dataValue instanceof SQLSmallint || dataValue instanceof SQLInteger || dataValue instanceof SQLLongint) {
+            if (dataValue.isNull()) {
+                throw StandardException.newException(SQLState.LANG_TIME_TRAVEL_INVALID_PAST_TRANSACTION_ID, "null");
+            }
+            long pastTx = dataValue.getLong();
+            if (minRetentionPeriod != -1) {
+                if (tc.txnWithin(minRetentionPeriod, pastTx)) {
+                    return pastTx;
+                } else {
+                    throw StandardException.newException(SQLState.LANG_TIME_TRAVEL_INVALID_PAST_TRANSACTION_ID, minRetentionPeriod);
+                }
+            }
+            return dataValue.getLong();
+        } else {
+            throw StandardException.newException(SQLState.NOT_IMPLEMENTED, dataValue.getClass().getSimpleName() + " can not be used with time travel query"); // fix me, we should read SqlTime as well.
+        }
     }
 }

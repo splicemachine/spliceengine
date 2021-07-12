@@ -1037,7 +1037,7 @@ public interface ResultSetFactory {
      * @param optimizerEstimatedRowCount    Estimated total # of rows by
                                     optimizer
      * @param optimizerEstimatedCost        Estimated total cost by optimizer
-     * @param pastTxFunctor                a functor that returns the id of a committed transaction for time-travel queries
+     * @param pastTxn                the id of a committed transaction for time-travel queries, -1 if not set.
      * @param minRetentionPeriod the minimum retention period for guaranteed correct time travel results.
 	 */
 	NoPutResultSet getTableScanResultSet(
@@ -1077,7 +1077,7 @@ public interface ResultSetFactory {
                         int partitionByRefItem,
                         GeneratedMethod defaultRowFunc,
                         int defaultValueMapItem,
-                        GeneratedMethod pastTxFunctor,
+                        long pastTxn,
                         long minRetentionPeriod,
                         int numUnusedLeadingIndexFields,
                         boolean canCacheResultSet
@@ -1123,7 +1123,7 @@ public interface ResultSetFactory {
                         int partitionByRefItem,
                         GeneratedMethod defaultRowFunc,
                         int defaultValueMapItem,
-                        GeneratedMethod pastTxFunctor,
+                        long pastTxn,
                         long minRetentionPeriod,
                         int numUnusedLeadingIndexFields,
                         boolean canCacheResultSet
@@ -1167,7 +1167,7 @@ public interface ResultSetFactory {
                         int partitionByRefItem,
                         GeneratedMethod defaultRowFunc,
                         int defaultValueMapItem,
-                        GeneratedMethod pastTxFunctor,
+                        long pastTxn,
                         long minRetentionPeriod
                         )
         throws StandardException;
@@ -1203,7 +1203,7 @@ public interface ResultSetFactory {
      * @param optimizerEstimatedRowCount     Estimated total # of rows by
      *                                       optimizer
      * @param optimizerEstimatedCost         Estimated total cost by optimizer
-     * @param pastTxFunctor                  a functor that returns the id of a committed transaction for time-travel queries
+     * @param pastTxn                        The id of a committed transaction for time-travel queries, -1 if not set.
      * @param minRetentionPeriod             the minimum retention period for guaranteed correct time travel results
      * @return the table scan operation as a result set.
      * @throws StandardException thrown when unable to create the
@@ -1237,7 +1237,7 @@ public interface ResultSetFactory {
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor,
+            long pastTxn,
             long minRetentionPeriod,
             int numUnusedLeadingIndexFields,
             boolean canCacheResultSet)
@@ -1271,7 +1271,7 @@ public interface ResultSetFactory {
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor,
+            long pastTxn,
             long minRetentionPeriod)
             throws StandardException;
     /**
@@ -1328,7 +1328,7 @@ public interface ResultSetFactory {
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor,
+            long pastTxn,
             long minRetentionPeriod,
             int numUnusedLeadingIndexFields,
             boolean canCacheResultSet
@@ -1376,7 +1376,7 @@ public interface ResultSetFactory {
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor,
+            long pastTxn,
             long minRetentionPeriod
     )
             throws StandardException;
@@ -2296,7 +2296,7 @@ public interface ResultSetFactory {
      * @param optimizerEstimatedRowCount     Estimated total # of rows by
      *                                       optimizer
      * @param optimizerEstimatedCost         Estimated total cost by optimizer
-     * @param pastTxFunctor                  a functor that returns the id of a committed transaction for time-travel queries
+     * @param pastTxn                        The id of a committed transaction for time-travel queries, -1 if not set.
      * @param minRetentionPeriod             the minimum retention period for guaranteed correct time travel results.
      * @return the scan operation as a result set.
      * @throws StandardException thrown when unable to create the
@@ -2319,7 +2319,7 @@ public interface ResultSetFactory {
             double optimizerEstimatedCost,
             String tableVersion,
             String explainPlan,
-            GeneratedMethod pastTxFunctor,
+            long pastTxn,
             long minRetentionPeriod,
             int numUnusedLeadingIndexFields,
             boolean canCacheResultSet
@@ -2342,7 +2342,7 @@ public interface ResultSetFactory {
             double optimizerEstimatedCost,
             String tableVersion,
             String explainPlan,
-            GeneratedMethod pastTxFunctor,
+            long pastTxFunctor,
             long minRetentionPeriod
     ) throws StandardException;
 

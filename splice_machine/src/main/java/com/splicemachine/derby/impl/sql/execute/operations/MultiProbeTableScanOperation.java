@@ -124,7 +124,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                                         int partitionByRefItem,
                                         GeneratedMethod defaultRowFunc,
                                         int defaultValueMapItem,
-                                        GeneratedMethod pastTxFunctor,
+                                        long pastTxn,
                                         Long minRetentionPeriod,
                                         int numUnusedLeadingIndexFields,
                                         boolean canCacheResultSet)
@@ -168,7 +168,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             partitionByRefItem,
             defaultRowFunc,
             defaultValueMapItem,
-            pastTxFunctor,
+            pastTxn,
             minRetentionPeriod,
             numUnusedLeadingIndexFields,
             canCacheResultSet);

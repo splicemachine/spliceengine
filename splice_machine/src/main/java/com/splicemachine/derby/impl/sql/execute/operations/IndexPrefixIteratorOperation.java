@@ -120,7 +120,7 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
                               int partitionByRefItem,
                               GeneratedMethod defaultRowFunc,
                               int defaultValueMapItem,
-                              GeneratedMethod pastTxFunctor,
+                              long pastTxn,
                               long minRetentionPeriod,
                               int numUnusedLeadingIndexFields,
                               boolean canCacheResultSet) throws StandardException{
@@ -131,7 +131,7 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
                       isolationLevel, rowsPerRead, oneRowScan, optimizerEstimatedRowCount,
                       optimizerEstimatedCost, tableVersion, splits, delimited, escaped,
                       lines, storedAs, location, partitionByRefItem, defaultRowFunc,
-                      defaultValueMapItem, pastTxFunctor, minRetentionPeriod, numUnusedLeadingIndexFields,
+                      defaultValueMapItem, pastTxn, minRetentionPeriod, numUnusedLeadingIndexFields,
                       canCacheResultSet);
         SpliceLogUtils.trace(LOG,"instantiated for tablename %s or indexName %s with conglomerateID %d",
                 tableName,indexName,conglomId);

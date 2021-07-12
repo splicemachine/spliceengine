@@ -450,7 +450,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 int partitionByRefItem,
                                                 GeneratedMethod defaultRowFunc,
                                                 int defaultValueMapItem,
-                                                GeneratedMethod pastTxFunctor,
+                                                long pastTxn,
                                                 long minRetentionPeriod)
             throws StandardException {
 
@@ -490,7 +490,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 partitionByRefItem,
                                                 defaultRowFunc,
                                                 defaultValueMapItem,
-                                                pastTxFunctor,
+                                                pastTxn,
                                                 minRetentionPeriod,
                                                 0,
                                                 false);
@@ -533,7 +533,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 int partitionByRefItem,
                                                 GeneratedMethod defaultRowFunc,
                                                 int defaultValueMapItem,
-                                                GeneratedMethod pastTxFunctor,
+                                                long pastTxn,
                                                 long minRetentionPeriod,
                                                 int numUnusedLeadingIndexFields,
                                                 boolean canCacheResultSet)
@@ -579,7 +579,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     partitionByRefItem,
                     defaultRowFunc,
                     defaultValueMapItem,
-                    pastTxFunctor,
+                    pastTxn,
                     minRetentionPeriod,
                     numUnusedLeadingIndexFields,
                     canCacheResultSet);
@@ -630,7 +630,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 int partitionByRefItem,
                                                 GeneratedMethod defaultRowFunc,
                                                 int defaultValueMapItem,
-                                                GeneratedMethod pastTxFunctor,
+                                                long pastTxn,
                                                 long minRetentionPeriod,
                                                 int numUnusedLeadingIndexFields,
                                                 boolean canCacheResultSet)
@@ -679,7 +679,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     partitionByRefItem,
                     defaultRowFunc,
                     defaultValueMapItem,
-                    pastTxFunctor,
+                    pastTxn,
                     minRetentionPeriod,
                     numUnusedLeadingIndexFields,
                     canCacheResultSet);
@@ -956,7 +956,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             partitionByRefItem,
             defaultRowFunc,
             defaultValueMapItem,
-            null,
+            -1,
             -1);
     }
 
@@ -989,7 +989,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor,
+            long pastTxn,
             long minRetentionPeriod ) throws StandardException {
         return getDistinctScanResultSet(
             activation,
@@ -1019,7 +1019,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             partitionByRefItem,
             defaultRowFunc,
             defaultValueMapItem,
-            pastTxFunctor,
+            pastTxn,
             minRetentionPeriod,
             0,
             false);
@@ -1054,7 +1054,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor,
+            long pastTxn,
             long minRetentionPeriod,
             int numUnusedLeadingIndexFields,
             boolean canCacheResultSet) throws StandardException {
@@ -1087,7 +1087,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     partitionByRefItem,
                     defaultRowFunc,
                     defaultValueMapItem,
-                    pastTxFunctor,
+                    pastTxn,
                     minRetentionPeriod,
                     numUnusedLeadingIndexFields,
                     canCacheResultSet);
@@ -1362,7 +1362,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor,
+            long pastTxn,
             long minRetentionPeriod )
         throws StandardException {
 
@@ -1388,7 +1388,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             partitionByRefItem,
             defaultRowFunc,
             defaultValueMapItem,
-            pastTxFunctor, minRetentionPeriod, 0, false );
+            pastTxn, minRetentionPeriod, 0, false );
 
     }
 
@@ -1416,7 +1416,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor,
+            long pastTxn,
             long minRetentionPeriod,
             int numUnusedLeadingIndexFields,
             boolean canCacheResultSet)
@@ -1465,7 +1465,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     partitionByRefItem,
                     defaultRowFunc,
                     defaultValueMapItem,
-                    pastTxFunctor,
+                    pastTxn,
                     minRetentionPeriod,
                     numUnusedLeadingIndexFields,
                     canCacheResultSet
@@ -2508,7 +2508,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     double optimizerEstimatedCost,
                     String tableVersion,
                     String explainPlan,
-                    GeneratedMethod pastTxFunctor,
+                    long pastTxFunctor,
                     long minRetentionPeriod
             ) throws StandardException {
         return getLastIndexKeyResultSet
@@ -2549,7 +2549,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     double optimizerEstimatedCost,
                     String tableVersion,
                     String explainPlan,
-                    GeneratedMethod pastTxFunctor,
+                    long pastTxFunctor,
                     long minRetentionPeriod,
                     int numUnusedLeadingIndexFields,
                     boolean canCacheResultSet
