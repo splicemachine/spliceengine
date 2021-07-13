@@ -15,8 +15,6 @@
 
 package com.splicemachine.derby.stream.control;
 
-import com.splicemachine.EngineDriver;
-import com.splicemachine.SqlEnvironment;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
@@ -36,7 +34,6 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import scala.Tuple2;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -257,7 +254,7 @@ public class ControlDataSetLimiterTest {
         ControlExecutionLimiter limiter = new ControlExecutionLimiterImpl(149);
         OperationContext context = Mockito.mock(OperationContext.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(context.getActivation().getLanguageConnectionContext().getControlExecutionLimiter()).thenReturn(limiter);
-        Iterator<ExecRow> it = set1.values(null).subtract(set2.values(null), context).toLocalIterator();
+        Iterator<ExecRow> it = set1.values(null).subtract(set2.values(null), context, false).toLocalIterator();
         it.next();
     }
 
@@ -268,7 +265,7 @@ public class ControlDataSetLimiterTest {
         ControlExecutionLimiter limiter = new ControlExecutionLimiterImpl(151);
         OperationContext context = Mockito.mock(OperationContext.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(context.getActivation().getLanguageConnectionContext().getControlExecutionLimiter()).thenReturn(limiter);
-        Iterator<ExecRow> it = set1.values(null).subtract(set2.values(null), context).toLocalIterator();
+        Iterator<ExecRow> it = set1.values(null).subtract(set2.values(null), context, false).toLocalIterator();
         it.next();
     }
 }

@@ -359,13 +359,18 @@ public class ControlDataSet<V> implements DataSet<V> {
 
 
     @Override
-    public DataSet<V> subtract(DataSet<V> dataSet, String name, OperationContext context, boolean pushScope, String scopeDetail){
-        return subtract(dataSet, context);
+    public DataSet<V> subtract(DataSet<V> dataSet, String name, OperationContext context, boolean isDistinct, boolean pushScope, String scopeDetail){
+        return subtract(dataSet, context, isDistinct);
     }
 
 
+    /**
+     * @apiNote the parameter <code>isDistinct</code> is currently ignored, i.e. we assume it is always true
+     * since we already perform distinct scan on both sides of the subtract operation, we have to
+     * implement this parameter at some point in the future, e.g. once we implement <code>EXCEPT ALL</code>.
+     */
     @Override
-    public DataSet< V> subtract(DataSet<V> dataSet, OperationContext context) {
+    public DataSet< V> subtract(DataSet<V> dataSet, OperationContext context, boolean isDistinct) {
         Set<V> left=newHashSet(ControlUtils.checkCancellation(iterator, context), context);
         Set<V> right=newHashSet(ControlUtils.checkCancellation(((ControlDataSet<V>)dataSet).iterator, context), context);
         return new ControlDataSet<>(Sets.difference(left,right).iterator());
