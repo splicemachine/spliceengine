@@ -531,4 +531,111 @@ public class SelectTimeTravelIT {
             Assert.assertFalse(rs.next());
         }
     }
+
+    @Test
+    public void testTimeTravelWithTimestampAddFunction() throws Exception {
+        String someTable = generateTableName();
+        watcher.executeUpdate(String.format("CREATE TABLE %s(a1 INT)", someTable));
+        String initialTime = serverTimestamp();
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 1", someTable));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 2", someTable));
+        try(ResultSet rs = watcher.executeQuery(String.format("SELECT * FROM %s AS " +
+                                                              "OF TIMESTAMPADD(SQL_TSI_MONTH, 1, TIMESTAMP('%s')) ORDER BY a1 ASC", someTable, initialTime))) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(2, rs.getInt(1));
+            Assert.assertFalse(rs.next());
+        }
+    }
+
+    @Test
+    public void testTimeTravelFailsWithProperErrorMessageIfAsOfExpressionIsNotConstant() throws Exception {
+        String someTable = generateTableName();
+        watcher.executeUpdate(String.format("CREATE TABLE %s(a1 INT)", someTable));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 1", someTable));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 2", someTable));
+        try {
+            watcher.executeQuery(String.format("SELECT * FROM %s AS OF CURRENT_TIMESTAMP ORDER BY a1 ASC", someTable));
+            Assert.fail();
+        } catch(Exception e) {
+            Assert.assertTrue(e instanceof SQLException);
+            SQLException sqlException = (SQLException)e;
+            Assert.assertEquals("42ZD2", sqlException.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("Using time travel clause with not-constant expression is not allowed"));
+        }
+    }
+
+    @Test // see DB-12236
+    public void testTimeTravelFailsWithProperErrorMessageIfAsOfExpressionContainingCurrentTimestampIsNotSupportedYet() throws Exception {
+        String someTable = generateTableName();
+        watcher.executeUpdate(String.format("CREATE TABLE %s(a1 INT)", someTable));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 1", someTable));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 2", someTable));
+        try {
+            watcher.executeQuery(String.format("SELECT * FROM %s AS OF TIMESTAMPADD(SQL_TSI_MONTH, 1, CURRENT_TIMESTAMP) ORDER BY a1 ASC", someTable));
+            Assert.fail();
+        } catch(Exception e) {
+            Assert.assertTrue(e instanceof SQLException);
+            SQLException sqlException = (SQLException)e;
+            Assert.assertEquals("42ZD2", sqlException.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("Using time travel clause with not-constant expression is not allowed"));
+        }
+    }
+
+    @Test
+    public void testTimeTravelWithIndexWorksProperly() throws Exception {
+        String someTable = generateTableName();
+        watcher.executeUpdate(String.format("CREATE TABLE %s(a1 INT)", someTable));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 1", someTable));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 2", someTable));
+        int mrp = 20; // seconds
+        watcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s', '%s', %d)", SCHEMA, someTable, mrp));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 1", someTable));
+        String initialTime = serverTimestamp();
+        watcher.executeUpdate(String.format("DELETE FROM %s", someTable));
+        String someIndex = generateTableName();
+        Thread.sleep(1000);
+        watcher.executeUpdate(String.format("CREATE INDEX %s ON %s(a1)", someIndex, someTable));
+        try(ResultSet rs = watcher.executeQuery(String.format("SELECT * FROM %s AS " +
+                                                              "OF TIMESTAMP('%s') WHERE a1 > 1 ORDER BY a1 ASC", someTable, initialTime))) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(2, rs.getInt(1));
+            Assert.assertFalse(rs.next());
+        }
+        // the optimizer must not select IndexLookup here
+        try(ResultSet rs = watcher.executeQuery(String.format("EXPLAIN SELECT * FROM %s AS " +
+                                                                      "OF TIMESTAMP('%s') WHERE a1 > 1 ORDER BY a1 ASC", someTable, initialTime))) {
+            while(rs.next()) {
+                Assert.assertFalse(rs.getString(1).contains("IndexLookup"));
+            }
+        }
+    }
+
+    @Test
+    public void testTimeTravelFailsWithProperErrorMessageIfAttemptedToForceUseIndexWithTemporalInconsistency() throws Exception {
+        String someTable = generateTableName();
+        watcher.executeUpdate(String.format("CREATE TABLE %s(a1 INT)", someTable));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 1", someTable));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 2", someTable));
+        int mrp = 20; // seconds
+        watcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s', '%s', %d)", SCHEMA, someTable, mrp));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 1", someTable));
+        String initialTime = serverTimestamp();
+        watcher.executeUpdate(String.format("DELETE FROM %s", someTable));
+        String someIndex = generateTableName();
+        Thread.sleep(1000);
+        watcher.executeUpdate(String.format("CREATE INDEX %s ON %s(a1)", someIndex, someTable));
+        try {
+            watcher.executeQuery(String.format("EXPLAIN SELECT * FROM %s AS " +
+                                                       "OF TIMESTAMP('%s') --splice-properties index=%s\n", someTable, initialTime, someIndex));
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof SQLException);
+            SQLException sqlException = (SQLException) e;
+            Assert.assertEquals("42Z03", sqlException.getSQLState());
+            Assert.assertTrue(e.getMessage().contains(String.format("Specified index '%s' is created at tx", someIndex)));
+            Assert.assertTrue(e.getMessage().contains("which is after time-travel mapped past transaction id"));
+        }
+    }
 }

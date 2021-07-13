@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
+import java.sql.Timestamp;
 import java.util.Properties;
 
 /**
@@ -263,6 +264,8 @@ public interface TransactionController
 	byte IS_TEMPORARY	=	(byte) 0x01; // conglom is temporary
 	byte IS_KEPT		=	(byte) 0x02; // no auto remove
 
+	int TIME_TRAVEL_OLDEST = -1;
+	int TIME_TRAVEL_UNSET  = -2;
 
     /**************************************************************************
      * Interfaces previously defined in TcAccessIface:
@@ -1671,4 +1674,10 @@ conglomerates are removed.
 	 *
 	 **/
 	void closeMe(ScanController scan);
+
+	long getTxnAt(long ts) throws StandardException;
+
+	boolean txnWithin(long period, long pastTx) throws StandardException;
+
+	boolean txnWithin(long period, Timestamp pastTx) throws StandardException;
 }
