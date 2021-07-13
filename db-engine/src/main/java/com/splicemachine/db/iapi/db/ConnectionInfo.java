@@ -86,6 +86,9 @@ public abstract class ConnectionInfo
 	/**
 	 * <B>INTERNAL USE ONLY</B>
 	 * (<B>THIS METHOD MAY BE REMOVED IN A FUTURE RELEASE</B>.)
+	 * This function is used bz
+	 * src/main/java/com/splicemachine/derby/impl/sql/execute/actions/ModifyColumnConstantOperation.java
+	 * updateNewAutoincrementColumn
 	 * @throws SQLException on error
 	 **/
 	public static long nextAutoincrementValue(String schemaName,

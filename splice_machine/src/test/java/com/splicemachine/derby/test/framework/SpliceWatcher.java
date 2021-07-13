@@ -82,6 +82,10 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
         closeAll();
     }
 
+    public Statement createStatement() throws SQLException {
+        return getOrCreateConnection().createStatement();
+    }
+
     public class ConnectionBuilder {
         SpliceNetConnection.ConnectionBuilder delegate = SpliceNetConnection.newBuilder();
         boolean schemaSet = false;
