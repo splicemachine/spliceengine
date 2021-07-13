@@ -168,6 +168,12 @@ public class CompilerContextImpl extends ContextImpl
     {    return lcf.getNodeFactory(); }
 
 
+    @Override
+    public QueryHinter getQueryHinter() {
+        return queryHinter;
+    }
+
+
     public int getNextColumnNumber()
     {
         return nextColumnNumber++;
@@ -893,6 +899,7 @@ public class CompilerContextImpl extends ContextImpl
         this.lcc = lcc;
         lcf = lcc.getLanguageConnectionFactory();
         this.parser = lcf.newParser(this);
+        this.queryHinter = QueryHintingService.loadQueryHinter();
         this.typeCompilerFactory = typeCompilerFactory;
 
         // the prefix for classes in this connection
@@ -1244,6 +1251,7 @@ public class CompilerContextImpl extends ContextImpl
     */
 
     private final Parser                              parser;
+    private final QueryHinter                         queryHinter;
     private final LanguageConnectionContext           lcc;
     private final LanguageConnectionFactory           lcf;
     private       TypeCompilerFactory                 typeCompilerFactory;
