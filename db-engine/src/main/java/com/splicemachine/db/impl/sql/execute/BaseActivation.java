@@ -62,8 +62,10 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import splice.com.google.common.cache.CacheBuilder;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -218,9 +220,6 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 
     private long numRowsSeen = 0L;
 
-    private String lastLogStmt;
-    private String lastLogStmtFormat;
-
     //
     // constructors
     //
@@ -228,6 +227,9 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
     private boolean isSubStatement = false;
 
     private boolean isRowTrigger = false;
+
+    // A map from a log statement to a formatted log statement.
+    private ManagedCache<String,String> formattedLogStatementCache;
 
     public boolean ignoreSequence() {
         return ignoreSequence;
@@ -1839,19 +1841,22 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	}
 
 
-    public String getLastLogStmt() {
-        return lastLogStmt;
+	private void allocateFormattedLogStatementCache() {
+        final int maxEntries = 16;
+        formattedLogStatementCache =
+            new ManagedCache<>(CacheBuilder.newBuilder().maximumSize(maxEntries).build(), maxEntries);
     }
 
-    public void setLastLogStmt(String lastLogStmt) {
-        this.lastLogStmt = lastLogStmt;
+	public String getFormattedLogStmt(String logStmt) {
+        if (formattedLogStatementCache == null)
+            allocateFormattedLogStatementCache();
+        return formattedLogStatementCache.getIfPresent(logStmt);
     }
 
-    public String getLastLogStmtFormat() {
-        return lastLogStmtFormat;
+	public void putFormattedLogStmt(String logStmt, String formattedLogStatement) {
+        if (formattedLogStatementCache == null)
+            allocateFormattedLogStatementCache();
+        formattedLogStatementCache.put(logStmt, formattedLogStatement);
     }
 
-    public void setLastLogStmtFormat(String lastLogStmtFormat) {
-        this.lastLogStmtFormat = lastLogStmtFormat;
-    }
 }

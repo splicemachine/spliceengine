@@ -54,7 +54,6 @@ import java.util.Properties;
  */
 public final class SpliceTransactionResourceImpl implements AutoCloseable{
     private static final Logger LOG= LogManager.getLogger(SpliceTransactionResourceImpl.class);
-    public static final String CONNECTION_STRING = "jdbc:splice:"+ SQLConfiguration.SPLICE_DB+";create=true";
     protected ContextManager cm;
     protected ContextService csf;
     protected String username;

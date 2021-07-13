@@ -171,6 +171,10 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         }
         cloneMap = ((boolean[]) statement.getSavedObject(cloneMapItem));
 
+        // setCurrentRow, called by the source operation, is always done in the activation
+        // used by the source.  In case this activation differs from the activation
+        // of this ProjectRestrict, use the source's activation as the activation
+        // for looking up the row in the restriction method.
         if (restrictionMethodName != null)
             restriction = new SpliceMethod<>(restrictionMethodName, source.getActivation());
         if (projectionMethodName != null)

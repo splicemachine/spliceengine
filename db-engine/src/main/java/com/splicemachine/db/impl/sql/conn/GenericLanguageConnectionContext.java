@@ -360,8 +360,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      */
     private ControlExecutionLimiter limiter;
 
-    private String lastLogStmt;
-    private String lastLogStmtFormat;
     private SessionPropertiesImpl sessionProperties;
     private final CommentStripper commentStripper;
     private boolean ignoreCommentOptEnabled = false;
@@ -381,7 +379,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private boolean compilingStoredPreparedStatement;
     private boolean compilingTrigger;
     private boolean compilingRowTrigger;
-    private MessageDigest messageDigest;
+
+    // A map from a log statement to a formatted log statement.
+    private ManagedCache<String,String> formattedLogStatementCache;
 
     /* constructor */
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Intentional")
@@ -4159,49 +4159,49 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             return "sqlHash=null, statement=null";
         }
         boolean hasBaseActivation = (activation instanceof BaseActivation);
-        Object synchronizationObject = hasBaseActivation ? activation : this;
-        synchronized (synchronizationObject) {
-            // cache formatted statement log
-            BaseActivation baseActivation = null;
-            if (hasBaseActivation) {
-                baseActivation = (BaseActivation) activation;
-                if (statement.equals(baseActivation.getLastLogStmt())) {
-                    return baseActivation.getLastLogStmtFormat();
-                }
-            }
-            else if (statement.equals(lastLogStmt)) {
-                return lastLogStmtFormat;
-            }
-            String hash = "";
-            try {
-                if (messageDigest == null)
-                    messageDigest = MessageDigest.getInstance("MD5");
-                messageDigest.reset();
-                messageDigest.update(statement.getBytes("UTF-8"));
-                hash = new BigInteger(1, messageDigest.digest()).toString(16);
-            } catch (UnsupportedEncodingException | NoSuchAlgorithmException e) {
-                stmtLogger.error("Cannot encode statement " + statement, e);
-            }
-            String subStatement = statement;
-            if (maxStatementLogLen >= 0 && maxStatementLogLen < statement.length()) {
-                subStatement = statement.substring(0, maxStatementLogLen) + " ... ";
-            }
-            StringBuilder resultStringBuilder = new StringBuilder();
-            resultStringBuilder.append(SQLHASH_STRING);
-            resultStringBuilder.append(hash);
-            resultStringBuilder.append(STATEMENT_STRING);
-            resultStringBuilder.append(subStatement);
-            resultStringBuilder.append(RIGHT_SQUARE_BRACKET);
 
-            String result = resultStringBuilder.toString();
-            if (baseActivation != null) {
-                baseActivation.setLastLogStmt(statement);
-                baseActivation.setLastLogStmtFormat(lastLogStmtFormat);
-            }
-            lastLogStmt = statement;
-            lastLogStmtFormat = result;
-            return result;
+        // cache formatted statement log
+        BaseActivation baseActivation = null;
+        String lastFormattedLogStatment;
+        if (hasBaseActivation) {
+            baseActivation = (BaseActivation) activation;
+            lastFormattedLogStatment = baseActivation.getFormattedLogStmt(statement);
         }
+        else
+            lastFormattedLogStatment = this.getFormattedLogStmt(statement);
+
+        if (lastFormattedLogStatment != null)
+            return lastFormattedLogStatment;
+
+        String hash = "";
+        try {
+            MessageDigest messageDigest;
+            messageDigest = MessageDigest.getInstance("MD5");
+            messageDigest.reset();
+            messageDigest.update(statement.getBytes("UTF-8"));
+            hash = new BigInteger(1, messageDigest.digest()).toString(16);
+        } catch (UnsupportedEncodingException | NoSuchAlgorithmException e) {
+            stmtLogger.error("Cannot encode statement " + statement, e);
+        }
+        String subStatement = statement;
+        if (maxStatementLogLen >= 0 && maxStatementLogLen < statement.length()) {
+            subStatement = statement.substring(0, maxStatementLogLen) + " ... ";
+        }
+        StringBuilder resultStringBuilder = new StringBuilder();
+        resultStringBuilder.append(SQLHASH_STRING);
+        resultStringBuilder.append(hash);
+        resultStringBuilder.append(STATEMENT_STRING);
+        resultStringBuilder.append(subStatement);
+        resultStringBuilder.append(RIGHT_SQUARE_BRACKET);
+
+        String result = resultStringBuilder.toString();
+        if (baseActivation != null)
+            baseActivation.putFormattedLogStmt(statement, result);
+        else
+            this.putFormattedLogStmt(statement, result);
+
+        return result;
+
     }
 
     public void setOrigStmtTxt(String stmt) {
@@ -4461,5 +4461,23 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public String getHintedJoinStrategy() {
         return (String) sessionProperties.getProperty(
             SessionProperties.PROPERTYNAME.JOINSTRATEGY);
+    }
+
+	private void allocateFormattedLogStatementCache() {
+        final int maxEntries = 16;
+        formattedLogStatementCache =
+            new ManagedCache<>(CacheBuilder.newBuilder().maximumSize(maxEntries).build(), maxEntries);
+    }
+
+	private String getFormattedLogStmt(String logStmt) {
+        if (formattedLogStatementCache == null)
+            allocateFormattedLogStatementCache();
+        return formattedLogStatementCache.getIfPresent(logStmt);
+    }
+
+	private void putFormattedLogStmt(String logStmt, String formattedLogStatement) {
+        if (formattedLogStatementCache == null)
+            allocateFormattedLogStatementCache();
+        formattedLogStatementCache.put(logStmt, formattedLogStatement);
     }
 }
