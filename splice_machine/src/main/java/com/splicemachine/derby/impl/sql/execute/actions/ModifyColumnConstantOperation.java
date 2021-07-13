@@ -47,7 +47,6 @@ import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.pipeline.ErrorState;
 import org.apache.log4j.Logger;
 
-import javax.swing.text.View;
 import java.util.ArrayList;
 import java.util.List;
 
