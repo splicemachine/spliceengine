@@ -465,19 +465,19 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public DataSet<V> subtract(DataSet<V> dataSet, OperationContext context) throws StandardException {
-        return subtract(dataSet,"Substract/Except Operator",context,false,null);
+    public DataSet<V> subtract(DataSet<V> dataSet, OperationContext context, boolean isDistinct) throws StandardException {
+        return subtract(dataSet, "Substract/Except Operator", context, isDistinct, false, null);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public DataSet< V> subtract(DataSet< V> dataSet, String name, OperationContext context, boolean pushScope, String scopeDetail) throws StandardException {
+    public DataSet< V> subtract(DataSet<V> dataSet, String name, OperationContext context, boolean isDistinct, boolean pushScope, String scopeDetail) throws StandardException {
         pushScopeIfNeeded(context, pushScope, scopeDetail);
         try {
             //Convert this rdd backed iterator to a Spark untyped dataset
             Dataset<Row> left = toSparkRow(this,context);
 
-            return new NativeSparkDataSet(left, context).subtract(dataSet, name, context, pushScope, scopeDetail);
+            return new NativeSparkDataSet(left, context).subtract(dataSet, name, context, isDistinct, pushScope, scopeDetail);
         }finally {
             if (pushScope) context.popScope();
         }

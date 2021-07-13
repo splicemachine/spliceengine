@@ -241,9 +241,9 @@ public interface DataSet<V> extends //Iterable<V>,
 
     DataSet<V> intersect(DataSet<V> dataSet, String name, OperationContext context, boolean pushScope, String scopeDetail) throws StandardException;
 
-    DataSet<V> subtract(DataSet<V> dataSet, OperationContext context) throws StandardException;
+    DataSet<V> subtract(DataSet<V> dataSet, OperationContext context, boolean isDistinct) throws StandardException;
 
-    DataSet<V> subtract(DataSet<V> dataSet, String name, OperationContext context, boolean pushScope, String scopeDetail) throws StandardException;
+    DataSet<V> subtract(DataSet<V> dataSet, String name, OperationContext context, boolean isDistinct, boolean pushScope, String scopeDetail) throws StandardException;
 
     boolean isEmpty();
 
