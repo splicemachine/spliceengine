@@ -516,10 +516,10 @@ public class SqlshellIT {
      */
     @Test
     public void testCallGetTriggerExec() {
-        execute("CREATE TABLE TABLEA (COL1 INT);\n");
-        execute("CREATE TRIGGER TR1 BEFORE INSERT ON TABLEA REFERENCING NEW AS NEW FOR EACH ROW SET NEW.COL1=NEW.COL1*100;\n");
-        execute("CREATE TRIGGER TR2 BEFORE INSERT ON TABLEA REFERENCING NEW AS NEW FOR EACH ROW SET NEW.COL1=NEW.COL1*20;\n");
-        execute("INSERT INTO TABLEA VALUES(1), (2);");
+        execute("CREATE TABLE TABLE1 (COL1 INT);\n");
+        execute("CREATE TRIGGER TR1 BEFORE INSERT ON TABLE1 REFERENCING NEW AS NEW FOR EACH ROW SET NEW.COL1=NEW.COL1*100;\n");
+        execute("CREATE TRIGGER TR2 BEFORE INSERT ON TABLE1 REFERENCING NEW AS NEW FOR EACH ROW SET NEW.COL1=NEW.COL1*20;\n");
+        execute("INSERT INTO TABLE1 VALUES(1), (2);");
 
         String header =
                 "triggerName [ ]*\\|triggerId [ ]*\\|txnId [ ]*\\|queryId [ ]*\\|parentQueryId  [ ]*\\|timeSpent [ ]*\\|numRowsModified [ ]*\n" +
@@ -542,10 +542,10 @@ public class SqlshellIT {
                 "\n" +
                 "0 rows selected\n");
 
-        execute("CREATE TABLE TABLEB (COL2 INT);\n");
-        execute("CREATE TRIGGER TR3 AFTER INSERT ON TABLEA FOR EACH STATEMENT INSERT INTO TABLEB VALUES(2);\n");
-        execute("CREATE TRIGGER TR4 BEFORE INSERT ON TABLEB REFERENCING NEW AS NEW FOR EACH ROW SET NEW.COL2=NEW.COL2*20;\n");
-        execute("INSERT INTO TABLEA VALUES(3);\n");
+        execute("CREATE TABLE TABLE2 (COL2 INT);\n");
+        execute("CREATE TRIGGER TR3 AFTER INSERT ON TABLE1 FOR EACH STATEMENT INSERT INTO TABLE2 VALUES(2);\n");
+        execute("CREATE TRIGGER TR4 BEFORE INSERT ON TABLE2 REFERENCING NEW AS NEW FOR EACH ROW SET NEW.COL2=NEW.COL2*20;\n");
+        execute("INSERT INTO TABLE1 VALUES(3);\n");
 
         // Single level nested trigger: Tr1-3 should be triggered by the original insert statement; tr4 should be triggered by tr3
         String row14 = "TR[1-4] [ ]*" + variableColumns + "[10] [ ]*\n";;
@@ -556,11 +556,11 @@ public class SqlshellIT {
                 "4 rows selected\n");
 
 
-        execute("CREATE TABLE TABLEC (COL3 INT);\n");
-        execute("CREATE TABLE TABLED (COL4 INT);\n");
-        execute("CREATE TRIGGER TR5 AFTER INSERT ON TABLEC REFERENCING NEW AS NEW FOR EACH ROW WHEN (NEW.COL3=5) INSERT INTO TABLED VALUES(4);\n");
-        execute("CREATE TRIGGER TR6 AFTER INSERT ON TABLED REFERENCING NEW AS NEW FOR EACH ROW INSERT INTO TABLEB VALUES (NEW.COL4*40);\n");
-        execute("INSERT INTO TABLEC VALUES(5);\n");
+        execute("CREATE TABLE TABLE3 (COL3 INT);\n");
+        execute("CREATE TABLE TABLE4 (COL4 INT);\n");
+        execute("CREATE TRIGGER TR5 AFTER INSERT ON TABLE3 REFERENCING NEW AS NEW FOR EACH ROW WHEN (NEW.COL3=5) INSERT INTO TABLE4 VALUES(4);\n");
+        execute("CREATE TRIGGER TR6 AFTER INSERT ON TABLE4 REFERENCING NEW AS NEW FOR EACH ROW INSERT INTO TABLE2 VALUES (NEW.COL4*40);\n");
+        execute("INSERT INTO TABLE3 VALUES(5);\n");
 
         // Double level nested trigger: Tr6 should be triggered by tr5; tr4 should be triggered by tr6. Two queries of tr5 are expected
         String row46 = "TR[4-6] [ ]*" + variableColumns + "[10] [ ]*\n";
@@ -569,7 +569,7 @@ public class SqlshellIT {
                 "\n" +
                 "4 rows selected\n");
 
-        execute("INSERT INTO TABLEC VALUES(7);\n");
+        execute("INSERT INTO TABLE3 VALUES(7);\n");
 
         // Only tr5 is triggered; since the when clause is not satisfied, tr5 won't do the insertion or trigger tr6
         String row5 = "TR5 [ ]*" + variableColumns + "0 [ ]*\n";
@@ -578,9 +578,9 @@ public class SqlshellIT {
                 "\n" +
                 "1 row selected\n");
 
-        execute("CREATE TABLE TABLEE (COL5 INT);\n");
-        execute("CREATE TRIGGER TR7 BEFORE INSERT ON TABLEE FOR EACH STATEMENT CALL SYSCS_UTIL.SYSCS_GET_VERSION_INFO();\n");
-        execute("INSERT INTO TABLEE VALUES(9);\n");
+        execute("CREATE TABLE TABLE5 (COL5 INT);\n");
+        execute("CREATE TRIGGER TR7 BEFORE INSERT ON TABLE5 FOR EACH STATEMENT CALL SYSCS_UTIL.SYSCS_GET_VERSION_INFO();\n");
+        execute("INSERT INTO TABLE5 VALUES(9);\n");
 
         // Only tr7 is triggered; test before statement trigger
         String row7 = "TR7 [ ]*" + variableColumns + "0 [ ]*\n";
@@ -588,6 +588,14 @@ public class SqlshellIT {
                 header + row7 +
                 "\n" +
                 "1 row selected\n");
+
+        // Drop all tables and triggers created
+        for (int i = 0; i < 7; i++) {
+            execute("DROP TRIGGER TR" + i + ";\n");
+        }
+        for (int i = 0; i < 5; i++) {
+            execute("DROP TABLE TABLE" + i + ";\n");
+        }
     }
 
 }
