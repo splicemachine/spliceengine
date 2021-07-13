@@ -345,7 +345,7 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
         ** and translate it to an index column position.
         */
         if (bestCD != null && bestCD.isIndex()) {
-            columnPosition = bestCD.getIndexDescriptor().getKeyColumnPosition(columnPosition);
+            columnPosition = bestCD.getIndexDescriptor().getKeyColumnPosition(cr.getSource().getStoragePosition());
             assert columnPosition>0: "Base column not found in index";
         }
 
@@ -354,8 +354,8 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
     }
 
     private int getAbsoluteStoragePosition(Optimizable optTable) throws StandardException {
-        ColumnReference    cr = (ColumnReference) getOperand();
-        int columnPosition;
+        ColumnReference cr = (ColumnReference) getOperand();
+        int columnPosition = cr.getSource().getStoragePosition();
         ConglomerateDescriptor bestCD;
 
         bestCD = optTable.getTrulyTheBestAccessPath().getConglomerateDescriptor();
@@ -365,11 +365,8 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
         ** and translate it to an index column position.
         */
         if (bestCD != null && bestCD.isIndex()) {
-            columnPosition = cr.getSource().getColumnPosition();
             columnPosition = bestCD.getIndexDescriptor().getKeyColumnPosition(columnPosition);
-            assert columnPosition>0: "Base column not found in index";
-        } else {
-            columnPosition = cr.getSource().getStoragePosition();
+            assert columnPosition > 0 : "Base column not found in index";
         }
 
         // return the 0-based column position

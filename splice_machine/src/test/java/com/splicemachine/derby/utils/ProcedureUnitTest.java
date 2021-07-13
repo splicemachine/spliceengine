@@ -1,3 +1,17 @@
+/*
+ * Copyright (c) 2012 - 2021 Splice Machine, Inc.
+ *
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
@@ -208,8 +222,8 @@ public class ProcedureUnitTest {
         // note: this value changes if you add new system procedures
         // this is here to help in refactoring methods, move them around
         // and be sure that there's still the same procedures afterwards
-        Assert.assertEquals(162, proc.stream().count());
-        Assert.assertEquals(-1550098486, proc.stream().map( procedure -> procedure.getName() ).sorted()
+        Assert.assertEquals(163, proc.stream().count());
+        Assert.assertEquals(221057424, proc.stream().map( procedure -> procedure.getName() ).sorted()
                 .map( s -> s.hashCode()).reduce(0, (subtotal, element) -> subtotal + element).longValue() );
     }
 

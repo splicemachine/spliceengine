@@ -2944,6 +2944,22 @@ Guide.
             </msg>
 
             <msg>
+                <name>42Z03</name>
+                <text>'{0}' is not allowed on '{1}' because it is not a view.</text>
+                <arg>statement</arg>
+                <arg>viewName</arg>
+            </msg>
+
+            <msg>
+                <name>42Z04</name>
+                <text>Specified index '{0}' is created at tx '{1}' which is after time-travel mapped past transaction id '{2}'.</text>
+                <arg>indexName</arg>
+                <arg>indexCreationTx</arg>
+                <arg>timeTravelTx</arg>
+            </msg>
+
+
+            <msg>
                 <name>42Z07</name>
                 <text>Aggregates are not permitted in the ON clause.</text>
             </msg>

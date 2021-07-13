@@ -42,6 +42,8 @@ import com.splicemachine.db.iapi.reference.SQLState;
 
 import com.splicemachine.db.iapi.services.loader.ClassInfo;
 
+import java.lang.reflect.InvocationTargetException;
+
 
 public abstract class LoadedGeneratedClass
 	implements GeneratedClass
@@ -71,12 +73,17 @@ public abstract class LoadedGeneratedClass
 		return ci.getClassName();
 	}
 
+	@Override
+	public Object newInstance() throws IllegalAccessException, InvocationTargetException, InstantiationException {
+		return ci.getNewInstance();
+	}
+
 	public Object newInstance(Context context) throws StandardException	{
 
 		Throwable t;
 		try {
 			GeneratedByteCode ni =  (GeneratedByteCode) ci.getNewInstance();
-			ni.initFromContext(context);
+			if(context != null) ni.initFromContext(context);
 			ni.setGC(this);
 			ni.postConstructor();
 			return ni;

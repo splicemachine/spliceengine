@@ -72,6 +72,13 @@ public interface IndexDescriptor
     int[] baseColumnPositions();
 
     int[] baseColumnStoragePositions();
+
+    /**
+     * Returns true if this index descriptor is invalid as a result of an upgrade from a pre 2023 version
+     * See DB-12323 for more information
+     */
+    boolean isInvalidIndexDescriptorAfter2022Upgrade();
+
     /**
      * Returns the postion of a column.
      * <p>
@@ -81,7 +88,7 @@ public interface IndexDescriptor
      *  we cannot retrieve the ordinal position of a base table column in an index defined on expressions as
      *  it may appear in multiple expressions.
      */
-    int getKeyColumnPosition(int heapColumnPosition) throws StandardException;
+    int getKeyColumnPosition(int columnStoragePosition) throws StandardException;
 
     /**
      * Returns the number of ordered columns.
@@ -132,7 +139,13 @@ public interface IndexDescriptor
      * is for updating the field in operations such as "alter table drop
      * column" where baseColumnPositions is changed.
      */
-    void     setBaseColumnPositions(int[] baseColumnPositions);
+    void setBaseColumnStoragePositions(int[] baseColumnStoragePositions);
+
+    void setBaseColumnPositions(int[] baseColumnsPositions);
+
+    int[] getBaseColumnStoragePositions();
+
+    int[] getBaseColumnPositions();
 
     /**
      * set the isAscending field of the index descriptor.  This
