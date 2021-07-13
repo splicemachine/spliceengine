@@ -62,7 +62,8 @@ import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.compile.CursorNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
@@ -82,7 +83,7 @@ import java.util.List;
  */
 @SuppressFBWarnings(value = "IS2_INCONSISTENT_SYNC", justification = "DB-10223")
 public class GenericPreparedStatement implements ExecPreparedStatement {
-    private static final Logger LOG = Logger.getLogger(GenericPreparedStatement.class);
+    private static final Logger LOG = LogManager.getLogger(GenericPreparedStatement.class);
 
     ///////////////////////////////////////////////
     //

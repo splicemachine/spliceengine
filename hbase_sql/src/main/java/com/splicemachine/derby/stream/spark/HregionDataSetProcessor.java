@@ -34,11 +34,13 @@ import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.SplitRegionScanner;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.io.IOException;
 
 /**
@@ -46,7 +48,7 @@ import java.io.IOException;
  *
  */
 public class HregionDataSetProcessor extends ControlDataSetProcessor {
-    private static final Logger LOG = Logger.getLogger(HregionDataSetProcessor.class);
+    private static final Logger LOG = LogManager.getLogger(HregionDataSetProcessor.class);
 
 
     public HregionDataSetProcessor(TxnSupplier txnSupplier,
@@ -55,6 +57,7 @@ public class HregionDataSetProcessor extends ControlDataSetProcessor {
         super(txnSupplier, transactory, txnOperationFactory);
     }
 
+    @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION", justification = "intentional")
     @Override
     public <Op extends SpliceOperation,V> ScanSetBuilder<V> newScanSet(final Op spliceOperation, final String tableName) throws StandardException{
         return new TableScannerBuilder<V>(){

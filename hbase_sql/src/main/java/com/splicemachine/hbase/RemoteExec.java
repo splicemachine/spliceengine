@@ -15,7 +15,9 @@
 package com.splicemachine.hbase;
 
 import com.jcraft.jsch.*;
-import org.apache.log4j.Logger;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -25,7 +27,7 @@ import java.io.InputStream;
  * Created by jyuan on 10/3/19.
  */
 public class RemoteExec {
-    private static final Logger LOG = Logger.getLogger(RemoteExec.class);
+    private static final Logger LOG = LogManager.getLogger(RemoteExec.class);
     private final String host;
     private final String user;
     private final String password;
@@ -38,6 +40,7 @@ public class RemoteExec {
         this.command = command;
     }
 
+    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "intentional")
     public String execute() throws JSchException, IOException{
         java.util.Properties config = new java.util.Properties();
         config.put("StrictHostKeyChecking", "no");

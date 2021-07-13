@@ -22,7 +22,8 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import java.io.Closeable;
@@ -40,7 +41,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * messages or paused consuming.
  */
 public class OlapStreamListener extends ChannelInboundHandlerAdapter implements Closeable {
-    private static final Logger LOG = Logger.getLogger(OlapStreamListener.class);
+    private static final Logger LOG = LogManager.getLogger(OlapStreamListener.class);
 
     private final CountDownLatch active;
     private final UUID uuid;

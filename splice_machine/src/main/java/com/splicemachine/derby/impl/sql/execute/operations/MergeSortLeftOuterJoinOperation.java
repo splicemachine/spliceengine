@@ -23,12 +23,13 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 
 public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation {
-    private static Logger LOG = Logger.getLogger(MergeSortLeftOuterJoinOperation.class);
+    private static Logger LOG = LogManager.getLogger(MergeSortLeftOuterJoinOperation.class);
 
 		@SuppressWarnings("UnusedDeclaration")
 		public MergeSortLeftOuterJoinOperation() {

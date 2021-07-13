@@ -29,7 +29,8 @@ import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import com.splicemachine.utils.SpliceLogUtils;
 
 
@@ -54,7 +55,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  * 
  */
 public class MemStoreFlushAwareScanner extends StoreScanner implements RegionScanner {
-    protected static final Logger LOG = Logger.getLogger(MemStoreFlushAwareScanner.class);
+    protected static final Logger LOG = LogManager.getLogger(MemStoreFlushAwareScanner.class);
     protected AtomicReference<MemstoreAware> memstoreAware;
     protected MemstoreAware initialValue;
     protected HRegion region;

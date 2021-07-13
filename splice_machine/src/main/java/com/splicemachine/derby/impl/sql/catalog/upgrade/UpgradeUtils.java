@@ -34,7 +34,8 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.collect.Lists;
 
 import java.io.IOException;
@@ -44,7 +45,7 @@ import java.util.Set;
 
 public class UpgradeUtils {
 
-    protected static final Logger LOG = Logger.getLogger(UpgradeUtils.class);
+    protected static final Logger LOG = LogManager.getLogger(UpgradeUtils.class);
 
     public static void initializeConglomerateSITable(TransactionController tc) throws IOException {
         SIDriver driver = SIDriver.driver();

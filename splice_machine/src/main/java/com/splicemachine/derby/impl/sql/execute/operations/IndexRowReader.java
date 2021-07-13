@@ -34,7 +34,8 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.util.MapAttributes;
 import com.splicemachine.utils.Pair;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import scala.collection.JavaConverters;
 
 import java.io.IOException;
@@ -54,7 +55,7 @@ import java.util.concurrent.Future;
  *         Created on: 9/4/13
  */
 public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
-    protected static Logger LOG=Logger.getLogger(IndexRowReader.class);
+    protected static Logger LOG=LogManager.getLogger(IndexRowReader.class);
     private final int batchSize;
     private final int numBlocks;
     private final ExecRow outputTemplate;

@@ -31,7 +31,8 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
@@ -40,7 +41,7 @@ import java.util.List;
 
 public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 		private static final long serialVersionUID = 1l;
-		private static Logger LOG = Logger.getLogger(GenericAggregateOperation.class);
+		private static Logger LOG = LogManager.getLogger(GenericAggregateOperation.class);
 		protected SpliceOperation source;
 		protected AggregateContext aggregateContext;
 		public SpliceGenericAggregator[] aggregates;

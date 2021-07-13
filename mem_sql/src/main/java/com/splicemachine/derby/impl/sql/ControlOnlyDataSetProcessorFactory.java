@@ -31,7 +31,8 @@ import com.splicemachine.procedures.external.GetSchemaExternalResult;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.system.CsvOptions;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
@@ -51,7 +52,7 @@ import static com.splicemachine.db.impl.sql.compile.ExplainNode.SparkExplainKind
 public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFactory{
     private final SIDriver driver;
 
-    private static final Logger LOG = Logger.getLogger(ControlOnlyDataSetProcessorFactory.class);
+    private static final Logger LOG = LogManager.getLogger(ControlOnlyDataSetProcessorFactory.class);
 
     public ControlOnlyDataSetProcessorFactory(){
         driver=SIDriver.driver();

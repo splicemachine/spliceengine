@@ -19,7 +19,8 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 
@@ -36,7 +37,7 @@ import java.io.IOException;
  * Date: 8/14/14
  */
 public class TransactionViewImpl extends BaseTransaction {
-    private static Logger LOG = Logger.getLogger(TransactionViewImpl.class);
+    private static Logger LOG = LogManager.getLogger(TransactionViewImpl.class);
 
     private TxnView txn;
 

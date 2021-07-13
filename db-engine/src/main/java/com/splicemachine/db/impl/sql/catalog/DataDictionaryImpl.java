@@ -73,7 +73,8 @@ import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.base.Function;
 import splice.com.google.common.base.Optional;
 import splice.com.google.common.collect.FluentIterable;
@@ -104,7 +105,7 @@ import java.util.regex.Pattern;
  * See SpliceDataDictionary in spliceengine repo.
  */
 public abstract class DataDictionaryImpl extends BaseDataDictionary{
-    private static final Logger LOG = Logger.getLogger(DataDictionaryImpl.class);
+    private static final Logger LOG = LogManager.getLogger(DataDictionaryImpl.class);
 
     /**
      * Runtime definition of the functions from SYSFUN_FUNCTIONS.

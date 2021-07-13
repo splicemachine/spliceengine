@@ -24,7 +24,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.io.IOException;
 
 /**
@@ -32,7 +33,7 @@ import java.io.IOException;
  *         Date: 10/04/2014
  */
 public class MergeLeftOuterJoinOperation extends MergeJoinOperation {
-    private static Logger LOG = Logger.getLogger(MergeLeftOuterJoinOperation.class);
+    private static Logger LOG = LogManager.getLogger(MergeLeftOuterJoinOperation.class);
 
     protected SpliceMethod<ExecRow> emptyRowFun;
     protected ExecRow emptyRow;

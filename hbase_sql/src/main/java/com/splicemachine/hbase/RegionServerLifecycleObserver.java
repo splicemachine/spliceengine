@@ -41,7 +41,8 @@ import org.apache.hadoop.hbase.coprocessor.RegionServerCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionServerCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.RegionServerObserver;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 
@@ -51,7 +52,7 @@ import java.io.IOException;
  * two classes.
  */
 public class RegionServerLifecycleObserver implements RegionServerCoprocessor, RegionServerObserver, Coprocessor {
-    private static final Logger LOG = Logger.getLogger(RegionServerLifecycleObserver.class);
+    private static final Logger LOG = LogManager.getLogger(RegionServerLifecycleObserver.class);
     public static volatile String regionServerZNode;
     public static volatile String rsZnode;
 

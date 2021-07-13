@@ -26,12 +26,13 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class CreateSchemaConstantOperation extends DDLConstantOperation {
-    private static final Logger LOG = Logger.getLogger(CreateSchemaConstantOperation.class);
+    private static final Logger LOG = LogManager.getLogger(CreateSchemaConstantOperation.class);
     private final String                    aid;    // authorization id
     private final String                    schemaName;
     /**

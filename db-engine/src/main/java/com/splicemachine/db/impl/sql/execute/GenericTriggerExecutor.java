@@ -32,7 +32,11 @@
 package com.splicemachine.db.impl.sql.execute;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.loader.GeneratedClass;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
@@ -46,8 +50,19 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLBoolean;
+import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.impl.sql.GenericPreparedStatement;
+import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.db.impl.sql.compile.ExecSPSNode;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -55,7 +70,7 @@ import java.util.List;
 /**
  * A trigger executor is an object that executes a trigger.  It is subclassed by row and statement executors.
  */
-public abstract class GenericTriggerExecutor {
+public abstract class GenericTriggerExecutor implements AutoCloseable {
 
     protected TriggerExecutionContext tec;
     protected TriggerDescriptor triggerd;
@@ -112,15 +127,21 @@ public abstract class GenericTriggerExecutor {
     private SPSDescriptor getWhenClause() throws StandardException {
         if (!whenClauseRetrieved) {
             whenClauseRetrieved = true;
+            if (triggerd.isRowTrigger())
+                lcc.setCompilingRowTrigger(true);
             whenClause = triggerd.getWhenClauseSPS(lcc, activation);
+            lcc.setCompilingRowTrigger(false);
         }
         return whenClause;
     }
 
     private SPSDescriptor getAction(int index) throws StandardException {
         if (!actionRetrievedList.get(index)) {
+            if (triggerd.isRowTrigger())
+                lcc.setCompilingRowTrigger(true);
             actionRetrievedList.set(index, true);
             actionList.set(index, triggerd.getActionSPS(lcc, activation, index));
+            lcc.setCompilingRowTrigger(false);
         }
         return actionList.get(index);
     }
@@ -157,7 +178,7 @@ public abstract class GenericTriggerExecutor {
             ** way a row trigger doesn't do any unnecessary
             ** setup work.
             */
-            if (ps == null || spsActivation == null || recompile) {
+            if (ps == null || spsActivation == null || spsActivation.isClosed() || recompile) {
 
                 compile(sps, ps, index);
                 spsActivation = isWhen ? spsWhenActivation : spsActionActivationList.get(index);
@@ -177,12 +198,13 @@ public abstract class GenericTriggerExecutor {
             ** to work correctly.  This is normally a no-no, but
             ** we are an unusual case.
             */
+            ResultSet rs = null;
             try {
                 // This is a substatement; for now, we do not set any timeout
                 // for it. We might change this behaviour later, by linking
                 // timeout to its parent statement's timeout settings.
                 ((GenericPreparedStatement)ps).setNeedsSavepoint(false);
-                ResultSet rs = ps.executeSubStatement(activation, spsActivation, false, 0L);
+                rs = ps.executeSubStatement(activation, spsActivation, false, 0L);
                 if (isWhen)
                 {
                     // This is a WHEN clause. Expect a single BOOLEAN value
@@ -216,6 +238,7 @@ public abstract class GenericTriggerExecutor {
                     }
                 }
                 rs.close();
+                rs = null;
             } catch (StandardException e) {
                 /* 
                 ** When a trigger SPS action is executed and results in 
@@ -261,6 +284,10 @@ public abstract class GenericTriggerExecutor {
 
                 spsActivation.close();
                 throw e;
+            }
+            finally {
+                if (rs != null && !rs.isClosed())
+                    rs.close();
             }
 
             /* Done with execution without any recompiles */
@@ -338,25 +365,47 @@ public abstract class GenericTriggerExecutor {
             actionPSList.set(index, ps);
             spsActionActivationList.set(index, spsActivation);
         }
+         if (ps instanceof GenericStorablePreparedStatement) {
+             GenericStorablePreparedStatement gsps = (GenericStorablePreparedStatement)ps;
+             dumpClassFile(gsps);
+         }
+
+    }
+
+    private void dumpClassFile(GenericStorablePreparedStatement ps) throws StandardException {
+        if(SanityManager.DEBUG && SanityManager.DEBUG_ON("DumpClassFile")){
+            String systemHome = (String) AccessController.doPrivileged(new PrivilegedAction() {
+                public Object run() {
+                    return System.getProperty(Property.SYSTEM_HOME_PROPERTY, ".");
+                }
+            });
+        GeneratedClass gc = ps.getActivationClass();
+        new ExecSPSNode.DumpGClass(ps,gc.getName()).writeClassFile(systemHome, false, null);
+        }
     }
 
     /**
      * Cleanup after executing an sps.
      */
-    protected void clearSPS() throws StandardException {
+    @Override
+    public void close() throws StandardException {
+        closeActivations();
+        actionPSList.clear();
+        spsActionActivationList.clear();
+        actionPSList = null;
+        spsActionActivationList = null;
+        spsWhenActivation = null;
+    }
+
+    protected void closeActivations() throws StandardException {
         for (int i = 0; i < spsActionActivationList.size(); ++i) {
             if (spsActionActivationList.get(i) != null) {
                 spsActionActivationList.get(i).close();
             }
-            actionPSList.set(i, null);
-            spsActionActivationList.set(i, null);
         }
-
         if (spsWhenActivation != null) {
             spsWhenActivation.close();
         }
-        whenPS = null;
-        spsWhenActivation = null;
     }
 
     /**
@@ -380,5 +429,13 @@ public abstract class GenericTriggerExecutor {
                 executeSPS(getAction(i), i);
             }
         }
+    }
+
+    public void setLanguageConnectionContext(LanguageConnectionContext lcc) {
+        this.lcc = lcc;
+    }
+
+    public void setTriggerExecutionContext(TriggerExecutionContext tec) {
+        this.tec = tec;
     }
 } 

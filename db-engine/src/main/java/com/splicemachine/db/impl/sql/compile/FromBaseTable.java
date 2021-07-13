@@ -3361,7 +3361,9 @@ public class FromBaseTable extends FromTable {
         mb.push(pastTxnId);
         mb.push(minRetentionPeriod);
         mb.push(numUnusedLeadingIndexFields);
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,18);
+        boolean canCacheResultSet = isCacheable(acb);
+        mb.push(canCacheResultSet);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,19);
 
     }
 
@@ -3443,8 +3445,10 @@ public class FromBaseTable extends FromTable {
         mb.push(pastTxnId);
         mb.push(minRetentionPeriod);
         mb.push(numUnusedLeadingIndexFields);
+        boolean canCacheResultSet = isCacheable(acb);
+        mb.push(canCacheResultSet);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getDistinctScanResultSet",
-                ClassName.NoPutResultSet,30);
+                ClassName.NoPutResultSet,31);
     }
 
     private int getScanArguments(ExpressionClassBuilder acb,
@@ -3549,7 +3553,46 @@ public class FromBaseTable extends FromTable {
         mb.push(numUnusedLeadingIndexFields);
         numArgs++;
 
+        boolean canCacheResultSet = isCacheable(acb);
+        mb.push(canCacheResultSet);
+        numArgs++;
+
         return numArgs;
+    }
+
+    // Test whether this table, accessed as part of trigger
+    // stored statements, may be cached and reused.
+    private boolean isCacheable(ExpressionClassBuilder acb) throws StandardException {
+        // Cannot reduce rows if there is a nondeterministic function
+        // such as random(), as each row may get a different value that
+        // the distinct sort would not eliminate.
+        if (!compilingTrigger())
+            return false;
+
+        // If the table may grow or shrink after each trigger invocation,
+        // we can't cache it.
+        if (acb.tableIsTargetOfDML(tableDescriptor.getObjectID()))
+            return false;
+
+        // This rather restrictive rule prevents caching of any result sets
+        // when DML is present in the trigger.
+        // TODO: Replace with something less restrictive.
+        if (acb.hasDML())
+            return false;
+
+        // Anything non-deterministic can't be cached.
+        CollectNodesVisitor cnv = new CollectNodesVisitor(MethodCallNode.class);
+        if (getResultColumns() != null) {
+            getResultColumns().accept(cnv);
+            storeRestrictionList.accept(cnv);
+            nonStoreRestrictionList.accept(cnv);
+            List<MethodCallNode> methodList = cnv.getList();
+            for (MethodCallNode methodCallNode : methodList) {
+                if (!methodCallNode.isDeterministic())
+                    return false;
+            }
+        }
+        return true;
     }
 
     /**

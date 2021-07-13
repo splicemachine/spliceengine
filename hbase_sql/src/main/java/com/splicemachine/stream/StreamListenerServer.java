@@ -26,7 +26,8 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -42,7 +43,7 @@ import java.util.concurrent.ThreadFactory;
  */
 @ChannelHandler.Sharable
 public class StreamListenerServer<T> extends ChannelInboundHandlerAdapter {
-    private static final Logger LOG = Logger.getLogger(StreamListenerServer.class);
+    private static final Logger LOG = LogManager.getLogger(StreamListenerServer.class);
     private final int port;
 
     private Channel serverChannel;

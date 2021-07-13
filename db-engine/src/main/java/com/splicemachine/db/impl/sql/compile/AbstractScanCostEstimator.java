@@ -42,7 +42,9 @@ import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import scala.reflect.internal.Trees;
 
 import java.util.*;
 
@@ -67,7 +69,7 @@ import java.util.*;
  *         Date: 5/15/15
  */
 public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
-    public static final Logger LOG = Logger.getLogger(AbstractScanCostEstimator.class);
+    public static final Logger LOG = LogManager.getLogger(AbstractScanCostEstimator.class);
 
     protected static final int SCAN = 0;  // qualifier phase: BASE, FILTER_BASE
     protected static final int TOP  = 1;  // qualifier phase: FILTER_PROJECTION

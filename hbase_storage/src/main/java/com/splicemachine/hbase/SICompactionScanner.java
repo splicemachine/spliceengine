@@ -21,7 +21,8 @@ import com.splicemachine.si.impl.server.SICompactionState;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.ScannerContext;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.util.List;
@@ -31,7 +32,7 @@ import java.util.List;
  * SICompactionState.
  */
 public class SICompactionScanner extends AbstractSICompactionScanner {
-    private static final Logger LOG = Logger.getLogger(SICompactionScanner.class);
+    private static final Logger LOG = LogManager.getLogger(SICompactionScanner.class);
 
     public SICompactionScanner(SICompactionState compactionState,
                                InternalScanner scanner,

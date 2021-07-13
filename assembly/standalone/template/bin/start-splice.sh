@@ -112,7 +112,7 @@ echo "Starting ZooKeeper. Log file is ${ZOO_LOG}"
 
 # TODO eventually move - need cp script to consolidate as part of prepare package
 CP="${BASE_DIR}/lib":"${BASE_DIR}/lib/*:${BASE_DIR}/conf"
-LOG4J_FILE="file://${BASE_DIR}/conf/info-log4j.properties"
+LOG4J_FILE="file://${BASE_DIR}/conf/info-log4j2.properties"
 
 ZOO_DIR="${BASE_DIR}"/db/zookeeper
 

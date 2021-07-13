@@ -24,8 +24,12 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 @SuppressFBWarnings("SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION")
 public class RolledBackTxn extends InheritingTxnView {
+	    private static final String simpleName = RolledBackTxn.class.getSimpleName();
 
 		public RolledBackTxn(long txnId){
 			super(Txn.ROOT_TRANSACTION,txnId,txnId,null,false,false,false,false,-1l,-1l, Txn.State.ROLLEDBACK);
 		}
+
+		@Override
+		public String getSimpleName() { return simpleName; }
 }

@@ -19,7 +19,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.*;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.security.AccessControlException;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -34,7 +35,7 @@ import java.util.Random;
 @InterfaceAudience.Public
 @InterfaceStability.Stable
 public class SpliceFileSystem extends ChecksumFileSystem {
-    private static Logger LOG=Logger.getLogger(SpliceFileSystem.class);
+    private static Logger LOG=LogManager.getLogger(SpliceFileSystem.class);
 
     public static final URI NAME = URI.create("splice:///");
     public static final String SCHEME = "splice";
@@ -205,7 +206,7 @@ public class SpliceFileSystem extends ChecksumFileSystem {
     public FsStatus getStatus(Path p) throws IOException {
         if (LOG.isTraceEnabled())
             LOG.trace(String.format("getStatus path=%s",p));
-        File partition = pathToFile(p == null ? new Path("/") : p);
+        pathToFile(p == null ? new Path("/") : p);
         //File provides getUsableSpace() and getFreeSpace()
         //File provides no API to obtain used space, assume used = total - free
         return new FsStatus(Long.MAX_VALUE,

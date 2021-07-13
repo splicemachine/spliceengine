@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2020 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2021 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -14,30 +14,33 @@
 
 package com.splicemachine.utils.logging;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.List;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import java.util.*;
+
+import com.splicemachine.db.iapi.services.classfile.ClassHolder;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configurator;
 
 /**
  * @author Jeff Cunningham
  *         Date: 1/31/14
  */
-public class LogManager implements Logging {
+public class SpliceLogManager implements Logging {
 
-    private static final Logger LOGGER = Logger.getRootLogger();
+    private static final Logger LOGGER = org.apache.logging.log4j.LogManager.getRootLogger();
     private static final List<String> LOG4JLEVELS =
             Arrays.asList("ALL", "DEBUG", "INFO", "WARN", "ERROR", "FATAL", "OFF", "TRACE");
 
     @Override
     public List<String> getLoggerNames() {
         List<String> loggerNames = new ArrayList<String>();
-        Enumeration loggers = LOGGER.getLoggerRepository().getCurrentLoggers();
-        while (loggers.hasMoreElements()) {
-            String loggerName = ((Logger) loggers.nextElement()).getName();
+        LoggerContext ctx = (LoggerContext) org.apache.logging.log4j.LogManager.getContext(false);
+        Collection<org.apache.logging.log4j.core.Logger> loggers = ctx.getLoggers();
+
+        for (Iterator<org.apache.logging.log4j.core.Logger> iterator = loggers.iterator(); iterator.hasNext();) {
+            String loggerName = iterator.next().getName();
             if (loggerName.startsWith("com.splicemachine")) {
                 loggerNames.add(loggerName);
             }
@@ -54,12 +57,12 @@ public class LogManager implements Logging {
     @Override
     public String getLoggerLevel(String loggerName) {
 
-        Logger logger = Logger.getLogger(loggerName);
+        Logger logger = LogManager.getLogger(loggerName);
         if (logger == null) {
             throw new IllegalArgumentException("Logger \"" + loggerName +
                     "\" does not exist");
         }
-        Level level = logger.getEffectiveLevel();
+        Level level = logger.getLevel();
         if (level == null) {
             return "";
         }
@@ -78,12 +81,12 @@ public class LogManager implements Logging {
             throw new IllegalArgumentException("Log level \"" + levelName +
                     "\" is not valid.");
         }
-        Logger logger = Logger.getLogger(loggerName);
+        Logger logger = LogManager.getLogger(loggerName);
         if (logger == null) {
             throw new IllegalArgumentException("Logger \"" + loggerName +
                     "\" does not exist");
         }
         Level newLevel = Level.toLevel(levelName);
-        logger.setLevel(newLevel);
+        Configurator.setLevel(loggerName, newLevel);
     }
 }

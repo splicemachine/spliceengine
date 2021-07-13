@@ -26,7 +26,7 @@ import com.splicemachine.spark2.splicemachine.SplicemachineContext.RowForKafka
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
 import org.apache.kafka.common.serialization.{ByteArraySerializer, IntegerSerializer}
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.Logger
 import org.apache.spark.TaskContext
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.rdd.RDD
@@ -40,7 +40,7 @@ import scala.collection.JavaConverters._
 
 @SerialVersionUID(20200517241L)
 private object Holder extends Serializable {
-  @transient lazy val log = Logger.getLogger(getClass.getName)
+  @transient lazy val log = org.apache.logging.log4j.LogManager.getLogger(getClass.getName)
 }
 
 object KafkaOptions {

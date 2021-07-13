@@ -38,7 +38,9 @@ import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.base.Optional;
 
 import java.sql.SQLException;
@@ -51,7 +53,7 @@ import java.util.Properties;
  * This class it NOT thread safe
  */
 public final class SpliceTransactionResourceImpl implements AutoCloseable{
-    private static final Logger LOG=Logger.getLogger(SpliceTransactionResourceImpl.class);
+    private static final Logger LOG= LogManager.getLogger(SpliceTransactionResourceImpl.class);
     protected ContextManager cm;
     protected ContextService csf;
     protected String username;

@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.store.access.ScanController;
@@ -819,6 +820,34 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
             else
                 andNode=(AndNode)andNode.accept(v, this);
         }
+    }
+
+    /**
+     * True if this predicate includes a nondeterministic function.
+     */
+    public boolean hasNondeterministicFunction() throws StandardException {
+        CollectNodesVisitor cnv = new CollectNodesVisitor(MethodCallNode.class);
+        if (andNode != null) {
+            andNode.accept(cnv);
+            List<MethodCallNode> methodList = cnv.getList();
+            for (MethodCallNode methodCallNode : methodList) {
+                if (!methodCallNode.isDeterministic())
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * True if we want to skip pushing of this predicate during CREATE TRIGGER
+     * so that the result set can be cached.
+     */
+    public boolean cannotPushForCreateTrigger(boolean compilingTrigger) throws StandardException {
+        if (!compilingTrigger)
+            return false;
+        if (hasNondeterministicFunction())
+            return true;
+        return false;
     }
 
     /**

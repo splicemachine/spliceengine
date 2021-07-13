@@ -21,11 +21,12 @@ import com.splicemachine.utils.kryo.KryoPool;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.util.List;
 
 public class KryoDecoder extends ByteToMessageDecoder {
-    private static final Logger LOG = Logger.getLogger(KryoDecoder.class);
+    private static final Logger LOG = LogManager.getLogger(KryoDecoder.class);
     static private KryoPool kp = SpliceSparkKryoRegistrator.getInstance();
 
     @Override

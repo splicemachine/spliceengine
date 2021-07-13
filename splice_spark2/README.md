@@ -17,7 +17,7 @@ The [Kafka Maintenance process](src/main/java/com/splicemachine/nsds/kafka/Kafka
 command line like
 
     java -cp $jars/splice_spark2-3.1.0.1959-SNAPSHOT-cdh6.3.0.jar:$jars/kafka-clients-2.2.1-cdh6.3.0.jar:$jars/log4j-1.2.17.jar:$jars/slf4j-log4j12-1.7.25.jar:$jars/slf4j-api-1.7.15.jar \
-        -Dlog4j.configuration=file:$props/info-log4j.properties com.splicemachine.nsds.kafka.KafkaMaintenance localhost:9092 /tmp/km.dat
+        -Dlog4j.configurationFile=$props/info-log4j2.properties com.splicemachine.nsds.kafka.KafkaMaintenance localhost:9092 /tmp/km.dat
 
 where $jars is the path to the directory containing the jars from the spliceengine build,
 $props is the path to the directory containing the splice log4j properties file, 
@@ -43,7 +43,7 @@ To use the third, pass "" (a pair of double-quotes) for the second.
 
 In a bare metal installation, set up an hourly cron job like
 
-    0 * * * * export jars=<full path to the dir containing the spliceengine jars>; java -cp $jars/splice_spark2-3.1.0.1959-SNAPSHOT-cdh6.3.0.jar:$jars/kafka-clients-2.2.1-cdh6.3.0.jar:$jars/log4j-1.2.17.jar:$jars/slf4j-log4j12-1.7.25.jar:$jars/slf4j-api-1.7.15.jar -Dlog4j.configuration=file:<full path to the directory containing the splice log4j properties file>/info-log4j.properties com.splicemachine.nsds.kafka.KafkaMaintenance <host:port of the Kafka server> <full path to the KafkaMaintenance data file> > <full path to the KafkaMaintenance log file> &
+    0 * * * * export jars=<full path to the dir containing the spliceengine jars>; java -cp $jars/splice_spark2-3.1.0.1959-SNAPSHOT-cdh6.3.0.jar:$jars/kafka-clients-2.2.1-cdh6.3.0.jar:$jars/log4j-1.2.17.jar:$jars/slf4j-log4j12-1.7.25.jar:$jars/slf4j-api-1.7.15.jar -Dlog4j.configurationFile=<full path to the directory containing the splice log4j properties file>/info-log4j2.properties com.splicemachine.nsds.kafka.KafkaMaintenance <host:port of the Kafka server> <full path to the KafkaMaintenance data file> > <full path to the KafkaMaintenance log file> &
 
 The data file and log file won't exist before the first run.
 The version numbers in the jars may vary from one release to another.

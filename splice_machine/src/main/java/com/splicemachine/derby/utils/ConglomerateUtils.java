@@ -30,7 +30,8 @@ import java.util.concurrent.Future;
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.access.configuration.SIConfigurations;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.base.Preconditions;
 
 import com.splicemachine.SpliceKryoRegistry;
@@ -64,7 +65,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  */
 public class ConglomerateUtils{
     //    public static final String CONGLOMERATE_ATTRIBUTE = "DERBY_CONGLOMERATE";
-    private static Logger LOG=Logger.getLogger(ConglomerateUtils.class);
+    private static Logger LOG=LogManager.getLogger(ConglomerateUtils.class);
 
     /**
      * Reads stored Conglomerate information and returns it as an instance of {@code instanceClass}.

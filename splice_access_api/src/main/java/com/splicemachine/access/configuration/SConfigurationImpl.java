@@ -17,7 +17,8 @@ package com.splicemachine.access.configuration;
 import com.splicemachine.access.api.Durability;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.lang.reflect.Field;
 import java.util.Map;
@@ -1175,7 +1176,7 @@ public final class SConfigurationImpl implements SConfiguration {
         foreignKeyChecker = builder.foreignKeyChecker;
     }
 
-    private static final Logger LOG = Logger.getLogger("splice.config");
+    private static final Logger LOG = LogManager.getLogger("splice.config");
     @Override
     public void traceConfig() {
         for (Map.Entry<String, Object> entry : getConfigMap().entrySet()) {

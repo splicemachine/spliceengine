@@ -16,6 +16,7 @@ package com.splicemachine.si.api.txn;
 
 import com.carrotsearch.hppc.LongHashSet;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.impl.txn.PastTxn;
 import com.splicemachine.utils.ByteSlice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -31,11 +32,12 @@ import java.util.Iterator;
  */
 @SuppressFBWarnings("SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION")
 public interface Txn extends TxnView{
+    String ROOT_TXN_NAME = "ROOT";
 
     Txn ROOT_TRANSACTION=new Txn(){
         @Override
         public String toString(){
-            return "ROOT";
+            return ROOT_TXN_NAME;
         }
 
         @Override
@@ -212,6 +214,9 @@ public interface Txn extends TxnView{
         public TaskId getTaskId() {
             return null;
         }
+
+        @Override
+        public String getSimpleName() { return ROOT_TXN_NAME; }
     };
 
     long newSubId();

@@ -22,10 +22,11 @@ import com.splicemachine.db.iapi.sql.dictionary.UserDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class CreateDatabaseConstantOperation extends DDLConstantOperation {
-    private static final Logger LOG = Logger.getLogger(CreateDatabaseConstantOperation.class);
+    private static final Logger LOG = LogManager.getLogger(CreateDatabaseConstantOperation.class);
     private final String dbName;
     /**
      * Make the ConstantAction for a CREATE DATABASE statement.

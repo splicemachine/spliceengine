@@ -33,7 +33,8 @@ import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.CompactionState;
 import org.apache.hadoop.hbase.client.Connection;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -50,7 +51,7 @@ import java.util.concurrent.locks.Lock;
  */
 public class RangedClientPartition implements Partition, Comparable<RangedClientPartition>{
 
-    protected static final Logger LOG = Logger.getLogger(RangedClientPartition.class);
+    protected static final Logger LOG = LogManager.getLogger(RangedClientPartition.class);
 
     private final HRegionInfo regionInfo;
     private final PartitionServer owningServer;

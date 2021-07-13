@@ -30,7 +30,8 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.util.List;
 
@@ -40,8 +41,9 @@ import java.util.List;
  *
  * @version 0.1
  */
+@SuppressFBWarnings(value = "UUF_UNUSED_FIELD", justification = "intentional")
 public abstract class ConstraintConstantOperation extends DDLSingleTableConstantOperation {
-    private static final Logger LOG = Logger.getLogger(ConstraintConstantOperation.class);
+    private static final Logger LOG = LogManager.getLogger(ConstraintConstantOperation.class);
     protected String constraintName;
     protected int constraintType;
     protected String tableName;

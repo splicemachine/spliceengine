@@ -225,5 +225,6 @@ public interface TxnView extends Externalizable {
     boolean hasActiveWriteableOrRolledBackTransactionInLineage(TxnView ancestor, boolean checkForRollbackOnly);
 
     TaskId getTaskId();
-    
+
+    String getSimpleName();
 }

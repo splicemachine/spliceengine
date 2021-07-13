@@ -32,11 +32,12 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import com.splicemachine.mrio.api.mapreduce.SpliceTableOutputCommitter;
 
 public class SMOutputFormat extends OutputFormat<RowLocation,ExecRow> implements Configurable {
-    protected static final Logger LOG = Logger.getLogger(SMOutputFormat.class);
+    protected static final Logger LOG = LogManager.getLogger(SMOutputFormat.class);
 	protected Configuration conf;
 	protected SMSQLUtil util;
 
@@ -74,23 +75,21 @@ public class SMOutputFormat extends OutputFormat<RowLocation,ExecRow> implements
 			}		    	
 	    }
 
-        if (tableName != null) {
-            tableName = tableName.trim().toUpperCase();
-            List<String> colNames = new ArrayList<String>();
-            try {
-                if (!util.checkTableExists(tableName))
-                    throw new SerDeException(String.format("table %s does not exist...", tableName));
+		tableName = tableName.trim().toUpperCase();
+		List<String> colNames = new ArrayList<String>();
+		try {
+			if (!util.checkTableExists(tableName))
+				throw new SerDeException(String.format("table %s does not exist...", tableName));
 
-                List<NameType> nameTypes = util.getTableStructure(tableName);
-                for (NameType nameType : nameTypes) {
-                    colNames.add(nameType.getName());
-                }
-                ScanSetBuilder tableScannerBuilder = util.getTableScannerBuilder(tableName, colNames);
+			List<NameType> nameTypes = util.getTableStructure(tableName);
+			for (NameType nameType : nameTypes) {
+				colNames.add(nameType.getName());
+			}
+			util.getTableScannerBuilder(tableName, colNames);
 
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override

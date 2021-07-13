@@ -1521,7 +1521,7 @@ public interface LanguageConnectionContext extends Context {
     void logEndFetching(String uuid, String statement, long fetchedRows);
     void logNextBatch(ParameterValueSet pvs);
     void logStartExecuting(String uuid, String engine, String stmt, ExecPreparedStatement ps,
-                           ParameterValueSet pvs);
+                           ParameterValueSet pvs, Activation activation);
     void logEndExecuting(String uuid, long modifiedRows, long badRecords, long nanoTimeSpent);
 
     void setSessionProperties(Properties newProperties);
@@ -1581,6 +1581,10 @@ public interface LanguageConnectionContext extends Context {
 
     void setCompilingStoredPreparedStatement(boolean newValue);
 
+    boolean compilingTrigger();
+
+    void setCompilingTrigger(boolean newValue);
+
     boolean isPredicateUsageForIndexOrPkAccessDisabled();
 
     boolean alwaysAllowIndexPrefixIteration();
@@ -1630,4 +1634,8 @@ public interface LanguageConnectionContext extends Context {
      * @return value of joinStrategy
      */
     String getHintedJoinStrategy();
+
+    boolean compilingRowTrigger();
+
+    void setCompilingRowTrigger(boolean newValue);
 }

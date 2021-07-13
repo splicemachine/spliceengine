@@ -57,7 +57,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.net.URI;
@@ -73,7 +74,7 @@ import java.util.concurrent.TimeoutException;
  */
 public class SpliceTableAdmin {
 
-    private static final Logger LOG = Logger.getLogger(SpliceTableAdmin.class);
+    private static final Logger LOG = LogManager.getLogger(SpliceTableAdmin.class);
     private static int MB = 1024*1024;
 
     public enum Level{

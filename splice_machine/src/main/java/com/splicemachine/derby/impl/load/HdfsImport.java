@@ -45,7 +45,8 @@ import com.splicemachine.derby.procedures.SpliceAdmin;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.collect.Lists;
 
 import java.io.IOException;
@@ -86,7 +87,7 @@ import java.util.List;
  * @author Scott Fines
  */
 public class HdfsImport {
-    private static final Logger LOG = Logger.getLogger(HdfsImport.class);
+    private static final Logger LOG = LogManager.getLogger(HdfsImport.class);
 
     private static final ResultColumnDescriptor[] IMPORT_RESULT_COLUMNS = new GenericColumnDescriptor[]{
         new GenericColumnDescriptor("rowsImported", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),

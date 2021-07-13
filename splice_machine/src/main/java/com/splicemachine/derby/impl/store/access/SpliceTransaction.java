@@ -24,11 +24,12 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.TransactionImpl;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.io.IOException;
 
 public class SpliceTransaction extends BaseSpliceTransaction<TransactionImpl> {
-    private static Logger LOG=Logger.getLogger(SpliceTransaction.class);
+    private static Logger LOG=LogManager.getLogger(SpliceTransaction.class);
 
     public SpliceTransaction(CompatibilitySpace compatibilitySpace,
                              SpliceTransactionFactory spliceTransactionFactory,
@@ -128,9 +129,20 @@ public class SpliceTransaction extends BaseSpliceTransaction<TransactionImpl> {
         return getTxn();
     }
 
+    private static final String SPLICE_TRANSACTION = "SpliceTransaction[";
+    private static final String COMMA = ",";
+    private static final String RIGHT_SQUARE_BRACKET = "]";
+
     @Override
     public String toString(){
-        return "SpliceTransaction["+transaction.getTransactionStatusAsString()+","+getTxn()+"]";
+        StringBuilder spliceTransactionStringBuilder = new StringBuilder();
+        spliceTransactionStringBuilder.append(SPLICE_TRANSACTION);
+        spliceTransactionStringBuilder.append(transaction.getTransactionStatusAsString());
+        spliceTransactionStringBuilder.append(COMMA);
+        spliceTransactionStringBuilder.append(getTxn());
+        spliceTransactionStringBuilder.append(RIGHT_SQUARE_BRACKET);
+
+        return spliceTransactionStringBuilder.toString();
     }
 
     public boolean allowsWrites(){

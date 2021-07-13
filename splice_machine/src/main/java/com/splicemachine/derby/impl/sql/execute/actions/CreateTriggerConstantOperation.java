@@ -33,7 +33,8 @@ import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -48,7 +49,7 @@ import java.util.List;
  */
 public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperation {
 
-    private static final Logger LOG = Logger.getLogger(CreateTriggerConstantOperation.class);
+    private static final Logger LOG = LogManager.getLogger(CreateTriggerConstantOperation.class);
 
     private final String triggerName;
     private final String triggerSchemaName;
@@ -311,6 +312,8 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
                 DataDictionary.SYSTRIGGERS_CATALOG_NUM, false,
                 tc, false);
 
+        if (triggerd.isRowTrigger())
+            lcc.setCompilingRowTrigger(true);
 
         /*    
         ** If we have a WHEN action we create it now.
@@ -336,6 +339,8 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
              */
             dm.addDependency(triggerd, actionspsd, lcc.getContextManager());
         }
+
+        lcc.setCompilingRowTrigger(false);
 
         dm.addDependency(triggerd, triggerTable, lcc.getContextManager());
         //store trigger's dependency on various privileges in the dependency system

@@ -30,7 +30,8 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -39,7 +40,7 @@ import java.util.Set;
 
 public class SamplingFilterIT extends SpliceUnitTest{
 
-    private static final Logger LOG = Logger.getLogger(SamplingFilterIT.class);
+    private static final Logger LOG = LogManager.getLogger(SamplingFilterIT.class);
 
 
     @Test

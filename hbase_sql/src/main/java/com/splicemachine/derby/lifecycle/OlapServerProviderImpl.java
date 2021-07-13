@@ -12,7 +12,8 @@ import com.splicemachine.olap.OlapServerProvider;
 import com.splicemachine.olap.OlapServerZNode;
 import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.primitives.Bytes;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -20,7 +21,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class OlapServerProviderImpl implements OlapServerProvider {
-    private static final Logger LOG = Logger.getLogger(OlapServerProviderImpl.class);
+    private static final Logger LOG = LogManager.getLogger(OlapServerProviderImpl.class);
 
     private final SConfiguration config;
     private final Clock clock;

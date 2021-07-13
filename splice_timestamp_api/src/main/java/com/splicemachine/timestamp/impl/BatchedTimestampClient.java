@@ -16,7 +16,8 @@ package com.splicemachine.timestamp.impl;
 
 import com.splicemachine.timestamp.api.TimestampHostProvider;
 import com.splicemachine.timestamp.api.TimestampIOException;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.Random;
 
@@ -32,7 +33,7 @@ import java.util.Random;
  */
 public class BatchedTimestampClient extends TimestampClient {
 
-    private static final Logger LOG = Logger.getLogger(BatchedTimestampClient.class);
+    private static final Logger LOG = LogManager.getLogger(BatchedTimestampClient.class);
 
     private final TimestampQueue queues[];
     private final Thread queueThreads[];

@@ -18,7 +18,8 @@ import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test.SerialTest;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -50,7 +51,7 @@ import static org.junit.Assert.assertEquals;
  */
 @Category(value = {SerialTest.class, LongerThanTwoMinutes.class})
 public class IndexIT extends SpliceUnitTest{
-    private static final Logger LOG=Logger.getLogger(IndexIT.class);
+    private static final Logger LOG=LogManager.getLogger(IndexIT.class);
 
     private static final String SCHEMA_NAME=IndexIT.class.getSimpleName().toUpperCase();
     private static final String CUSTOMER_ORDER_JOIN="select %1$s.c.c_last, %1$s.c.c_first, %1$s.o.o_id, %1$s.o.o_entry_d from %1$s.%2$s c, %1$s.%3$s o where c.c_id = o.o_c_id";
@@ -2733,7 +2734,7 @@ public class IndexIT extends SpliceUnitTest{
         methodWatcher.executeUpdate(format("CREATE INDEX %1$s_IDX1 ON %1$s (b1 + c1)", tableName2)); // index on expr
         methodWatcher.executeUpdate(format("CREATE INDEX %1$s_IDX2 ON %1$s (b1)", tableName2));      // classic index
 
-        String queryTemplate = "select * from %s T1 --splice-properties index=%s_IDX%d\n" +
+        String queryTemplate = "select * from --splice-properties joinOrder=fixed\n %s T1 --splice-properties index=%s_IDX%d\n" +
                 " join %s T2 --splice-properties %s index=%s_IDX%d\n" +
                 " on T1.b1 + T1.c1 = T2.b1 + T2.c1";
 

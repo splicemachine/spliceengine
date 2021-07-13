@@ -25,6 +25,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.stream.function.CloneFunction;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowFunction;
 import com.splicemachine.derby.stream.function.driver.IndexPrefixIteratorFunction;
@@ -36,7 +37,8 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.collections.iterators.IteratorChain;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -57,7 +59,7 @@ import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNA
  */
 public class IndexPrefixIteratorOperation extends TableScanOperation{
     private static final long serialVersionUID=3l;
-    private static Logger LOG=Logger.getLogger(IndexPrefixIteratorOperation.class);
+    private static Logger LOG=LogManager.getLogger(IndexPrefixIteratorOperation.class);
     private SpliceOperation sourceResultSet = null;
     protected static final String opName=IndexPrefixIteratorOperation.class.getSimpleName().replaceAll("Operation","");
     private int firstIndexColumnNumber;
@@ -120,7 +122,8 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
                               int defaultValueMapItem,
                               long pastTxn,
                               long minRetentionPeriod,
-                              int numUnusedLeadingIndexFields) throws StandardException{
+                              int numUnusedLeadingIndexFields,
+                              boolean canCacheResultSet) throws StandardException{
                 super(conglomId, scoci, activation, resultRowAllocator, resultSetNumber, startKeyGetter,
                       startSearchOperator, stopKeyGetter, stopSearchOperator, sameStartStopPosition,
                       rowIdKey, qualifiersField, tableName, userSuppliedOptimizerOverrides, indexName,
@@ -128,7 +131,8 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
                       isolationLevel, rowsPerRead, oneRowScan, optimizerEstimatedRowCount,
                       optimizerEstimatedCost, tableVersion, splits, delimited, escaped,
                       lines, storedAs, location, partitionByRefItem, defaultRowFunc,
-                      defaultValueMapItem, pastTxn, minRetentionPeriod, numUnusedLeadingIndexFields);
+                      defaultValueMapItem, pastTxn, minRetentionPeriod, numUnusedLeadingIndexFields,
+                      canCacheResultSet);
         SpliceLogUtils.trace(LOG,"instantiated for tablename %s or indexName %s with conglomerateID %d",
                 tableName,indexName,conglomId);
         this.sourceResultSet = sourceResultSet;
@@ -214,7 +218,9 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
 
         oneRowScan = true;
         operationContext = dsp.createOperationContext(this);
-
+        if (cachedResultSet != null) {
+            return dataSetFromCachedResultSet(dsp);
+        }
         if (keys == null) {
             DataSet<ExecRow> ds = getDriverDataSet(createTableScannerBuilder());
             TableScannerIterator tableScannerIterator = (TableScannerIterator) ds.toLocalIterator();
@@ -267,6 +273,8 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
             ((BaseActivation) sourceResultSet.getActivation()).setFirstIndexColumnKeys(null);
             ((BaseActivation) sourceResultSet.getActivation()).setSkipBuildOfFirstKeyColumn(false);
             tableScan.setFirstRowOfIndexPrefixIteration(null);
+            if (canCacheResultSet && dsp.getType().equals(DataSetProcessor.Type.CONTROL))
+                dataSet = makeCachedResultSetFromDataSet(dsp, dataSet);
             return dataSet;
         }
 
@@ -299,6 +307,8 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
             finalDS = sourceResultSet.getDataSet(dsp);
             ((BaseActivation)sourceResultSet.getActivation()).setFirstIndexColumnKeys(null);
         }
+        if (canCacheResultSet && dsp.getType().equals(DataSetProcessor.Type.CONTROL))
+            finalDS = makeCachedResultSetFromDataSet(dsp, finalDS);
         return finalDS;
     }
 

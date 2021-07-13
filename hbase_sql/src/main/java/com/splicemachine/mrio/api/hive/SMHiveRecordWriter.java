@@ -44,11 +44,12 @@ import org.apache.hadoop.mapred.Reporter;
 import com.splicemachine.mrio.api.serde.ExecRowWritable;
 import com.splicemachine.mrio.api.serde.RowLocationWritable;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, ExecRowWritable> {
 
-    protected static final Logger LOG = Logger.getLogger(RecordWriter.class);
+    protected static final Logger LOG = LogManager.getLogger(RecordWriter.class);
 	protected Configuration conf;
     protected TxnView parentTxn;
     protected SMSQLUtil util;

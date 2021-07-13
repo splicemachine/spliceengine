@@ -14,10 +14,12 @@
 
 package com.splicemachine.access;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.ConfigurationBuilder;
@@ -44,7 +46,7 @@ import com.splicemachine.constants.SpliceConfiguration;
  * by everything below us.
  */
 public class HConfiguration extends HBaseConfiguration {
-    private static final Logger LOG = Logger.getLogger("splice.config");
+    private static final Logger LOG = LogManager.getLogger("splice.config");
 
     private static final String DEFAULT_COMPRESSION = "none";
     private static final String TRANSACTION_LOCK_STRIPES = "splice.transaction.lock.stripes";
@@ -110,6 +112,7 @@ public class HConfiguration extends HBaseConfiguration {
         builder.compressionAlgorithm = configurationSource.getString(COMPRESSION_ALGORITHM, DEFAULT_COMPRESSION);
     }
 
+    @SuppressFBWarnings(value = "DC_DOUBLECHECK", justification = "intentional")
     private SConfiguration init() {
         SConfiguration config = INSTANCE;
         if (config == null) {

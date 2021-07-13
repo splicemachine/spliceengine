@@ -30,7 +30,8 @@ import com.splicemachine.derby.stream.function.RowOperationFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -46,7 +47,7 @@ import java.util.List;
     */
 public class RowOperation extends SpliceBaseOperation{
     private static final long serialVersionUID=2l;
-    private static Logger LOG=Logger.getLogger(RowOperation.class);
+    private static Logger LOG=LogManager.getLogger(RowOperation.class);
     protected boolean canCacheRow;
     protected boolean next=false;
     protected SpliceMethod<ExecRow> rowMethod;
@@ -136,7 +137,7 @@ public class RowOperation extends SpliceBaseOperation{
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException{
         super.init(context);
-        if(rowMethod==null && rowMethodName!=null){
+        if((rowMethod==null || rowMethod.getActivation() != activation)  && rowMethodName!=null){
             this.rowMethod=new SpliceMethod<>(rowMethodName,activation);
         }
 

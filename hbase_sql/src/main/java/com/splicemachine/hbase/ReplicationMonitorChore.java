@@ -20,6 +20,7 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.replication.ReplicationSystemProcedure;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.ScheduledChore;
 import org.apache.hadoop.hbase.Stoppable;
@@ -30,7 +31,8 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 import org.apache.hbase.thirdparty.com.google.protobuf.CodedOutputStream;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.zookeeper.*;
 
 import java.io.BufferedReader;
@@ -48,8 +50,13 @@ import java.util.Map;
 /**
  * Created by jyuan on 9/30/19.
  */
+@SuppressFBWarnings(value={ "ODR_OPEN_DATABASE_RESOURCE",
+                            "OS_OPEN_STREAM",
+                            "DM_DEFAULT_ENCODING",
+                            "REC_CATCH_EXCEPTION"},
+                    justification = "intentional")
 public class ReplicationMonitorChore extends ScheduledChore {
-    private static final Logger LOG = Logger.getLogger(ReplicationMonitorChore.class);
+    private static final Logger LOG = LogManager.getLogger(ReplicationMonitorChore.class);
 
     // cluster key for active cluster. A cluster key contains zookeeper quorum and hbase znode path
     private String masterCluster;
@@ -296,11 +303,15 @@ public class ReplicationMonitorChore extends ScheduledChore {
 
     private void runHealthcheckScript() throws IOException, InterruptedException, KeeperException {
 
-        String command = healthcheckScript;
+        String command;
+        StringBuilder commandStringBuilder = new StringBuilder();
+        commandStringBuilder.append(healthcheckScript);
         for (String rs : regionServers) {
             String[] s = rs.split(":");
-             command += " " + s[0];
+             commandStringBuilder.append(" ");
+             commandStringBuilder.append(s[0]);
         }
+        command = commandStringBuilder.toString();
         String result = executeScript(command);
         byte[] status = result.equals("SUCCESS") ? ReplicationUtils.MASTER_CLUSTER_STATUS_UP :
                 ReplicationUtils.MASTER_CLUSTER_STATUS_DOWN;
@@ -417,7 +428,7 @@ public class ReplicationMonitorChore extends ScheduledChore {
         try (ZKWatcher masterZkw = new ZKWatcher(conf, "replication monitor", null, false)) {
             String[] s = masterClusterKey.split(":");
             RecoverableZooKeeper rzk = masterZkw.getRecoverableZooKeeper();
-            List<String> children = rzk.getChildren(s[2], false);
+            rzk.getChildren(s[2], false);
             return true;
         }
         catch (Exception e) {
@@ -546,19 +557,23 @@ public class ReplicationMonitorChore extends ScheduledChore {
 
 
         String line = "";
-        String error = "";
+        String error;
+        StringBuilder errorStringBuilder = new StringBuilder();
         while ((line = errorReader.readLine()) != null) {
-            error += line;
+            errorStringBuilder.append(line);
         }
+        error = errorStringBuilder.toString();
 
         if (error.length() > 0) {
             SpliceLogUtils.error(LOG, "Encountered an error when executing script %s : %s", healthcheckScript, error);
         }
         line = "";
-        String result = "";
+        String result;
+        StringBuilder resultStringBuilder = new StringBuilder();
         while ((line = reader.readLine()) != null) {
-            result += line;
+            resultStringBuilder.append(line);
         }
+        result = resultStringBuilder.toString();
 
         return  result;
     }

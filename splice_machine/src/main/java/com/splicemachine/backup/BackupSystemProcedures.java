@@ -50,7 +50,8 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.collect.Lists;
 
 import java.io.IOException;
@@ -64,7 +65,7 @@ import java.util.TimeZone;
  * Created by jyuan on 2/12/15.
  */
 public class BackupSystemProcedures {
-    private static Logger LOG = Logger.getLogger(BackupSystemProcedures.class);
+    private static Logger LOG = LogManager.getLogger(BackupSystemProcedures.class);
 
     public static void addProcedures(List<Procedure> procedures) {
         /*

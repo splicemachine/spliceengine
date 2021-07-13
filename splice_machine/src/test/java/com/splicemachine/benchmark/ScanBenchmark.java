@@ -17,7 +17,8 @@ package com.splicemachine.benchmark;
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.test.Benchmark;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -48,7 +49,7 @@ import static org.junit.Assert.assertTrue;
 @RunWith(Parameterized.class)
 public class ScanBenchmark extends Benchmark {
 
-    private static final Logger LOG = Logger.getLogger(ScanBenchmark.class);
+    private static final Logger LOG = LogManager.getLogger(ScanBenchmark.class);
 
     private static final String SCHEMA = ScanBenchmark.class.getSimpleName();
     private static final String BASE_TABLE = "BASE_TABLE";

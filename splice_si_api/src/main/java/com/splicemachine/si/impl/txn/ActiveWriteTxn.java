@@ -30,6 +30,7 @@ public class ActiveWriteTxn extends AbstractTxnView{
     private TxnView parentTxn;
     private boolean additive;
     private TaskId taskId;
+    private static final String simpleName = ActiveWriteTxn.class.getSimpleName();
 
     public ActiveWriteTxn(){
         super();
@@ -122,4 +123,6 @@ public class ActiveWriteTxn extends AbstractTxnView{
         return new ActiveWriteTxn(txnId,getBeginTimestamp(),parentTxn,additive, Txn.IsolationLevel.READ_COMMITTED);
     }
 
+    @Override
+    public String getSimpleName() { return simpleName; }
 }

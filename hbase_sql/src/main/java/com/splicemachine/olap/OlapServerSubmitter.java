@@ -58,8 +58,9 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.zookeeper.*;
 
 import java.io.File;
@@ -97,7 +98,7 @@ public class OlapServerSubmitter implements Runnable {
     // Staging directory is private! -> rwx--------
     private static final FsPermission STAGING_DIR_PERMISSION = FsPermission.createImmutable(Short.parseShort("700", 8));
 
-    private static final Logger LOG = Logger.getLogger(OlapServerSubmitter.class);
+    private static final Logger LOG = LogManager.getLogger(OlapServerSubmitter.class);
     private final String queueName;
     private volatile boolean stop = false;
     private CountDownLatch stopLatch = new CountDownLatch(1);
@@ -352,7 +353,7 @@ public class OlapServerSubmitter implements Runnable {
 
         SConfiguration config = SIDriver.driver().getConfiguration();
         String log4jConfig = config.getOlapLog4jConfig();
-        String log4jDefault = LogManager.DEFAULT_CONFIGURATION_FILE;
+        String log4jDefault = "log4j.properties";
         URI log4jURI = null;
         if (log4jConfig != null) {
             File log4jFile = new File(new URI(log4jConfig).getPath());

@@ -46,7 +46,8 @@ import com.splicemachine.si.impl.BaseTransaction;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.spark.sql.types.StructField;
 import splice.com.google.common.collect.Lists;
 
@@ -63,7 +64,7 @@ import java.util.stream.Collectors;
  **/
 
 public class IndexConglomerate extends SpliceConglomerate{
-    private static final Logger LOG=Logger.getLogger(IndexConglomerate.class);
+    private static final Logger LOG=LogManager.getLogger(IndexConglomerate.class);
     public static final int FORMAT_NUMBER=StoredFormatIds.ACCESS_B2I_V6_ID;
     public static final String PROPERTY_UNIQUE_WITH_DUPLICATE_NULLS="uniqueWithDuplicateNulls";
     private static final long serialVersionUID=4l;

@@ -33,7 +33,8 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -56,7 +57,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 
 public class SpliceSpark {
-    private static Logger LOG = Logger.getLogger(SpliceSpark.class);
+    private static Logger LOG = LogManager.getLogger(SpliceSpark.class);
 
     private SpliceSpark() {} // private constructor forbids creating instances
 

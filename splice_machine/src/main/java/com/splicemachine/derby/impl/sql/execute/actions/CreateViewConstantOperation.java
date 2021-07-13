@@ -36,7 +36,8 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import java.util.Collections;
@@ -62,7 +63,7 @@ import java.util.Collections;
  */
 
 public class CreateViewConstantOperation extends DDLConstantOperation {
-    private static final Logger LOG = Logger.getLogger(CreateViewConstantOperation.class);
+    private static final Logger LOG = LogManager.getLogger(CreateViewConstantOperation.class);
     private final String tableName;
     private final String schemaName;
     private final String viewText;

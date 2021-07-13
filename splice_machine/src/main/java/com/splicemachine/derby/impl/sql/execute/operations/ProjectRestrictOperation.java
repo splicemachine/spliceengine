@@ -40,7 +40,8 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.si.api.txn.TxnView;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
@@ -51,7 +52,7 @@ import static com.splicemachine.db.impl.sql.compile.ExplainNode.SparkExplainKind
 
 
 public class ProjectRestrictOperation extends SpliceBaseOperation {
-    private static Logger                            LOG                           = Logger.getLogger(ProjectRestrictOperation.class);
+    private static Logger                            LOG                           = LogManager.getLogger(ProjectRestrictOperation.class);
     private static int                               PROJECT_RESTRICT_OPERATION_V2 = 2;
     protected      String                            restrictionMethodName;
     protected      String                            projectionMethodName;
@@ -170,8 +171,12 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         }
         cloneMap = ((boolean[]) statement.getSavedObject(cloneMapItem));
 
+        // setCurrentRow, called by the source operation, is always done in the activation
+        // used by the source.  In case this activation differs from the activation
+        // of this ProjectRestrict, use the source's activation as the activation
+        // for looking up the row in the restriction method.
         if (restrictionMethodName != null)
-            restriction = new SpliceMethod<>(restrictionMethodName, activation);
+            restriction = new SpliceMethod<>(restrictionMethodName, source.getActivation());
         if (projectionMethodName != null)
             projection = new SpliceMethod<>(projectionMethodName, activation);
     }
@@ -323,6 +328,12 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
+
+        if (restriction != null && restriction.getActivation() != source.getActivation())
+            restriction = new SpliceMethod<>(restrictionMethodName, source.getActivation());
+
+        if (projection != null && projection.getActivation() != activation)
+            projection = new SpliceMethod<>(projectionMethodName, activation);
 
         if (parameterInConstantRestriction) {
             evaluateConstantRestriction();

@@ -34,7 +34,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles;
 import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.spark.api.java.function.VoidFunction;
 
 import java.io.Externalizable;
@@ -51,7 +52,7 @@ import java.util.Map;
  * Created by dgomezferro on 5/17/17.
  */
 public class BulkImportFunction implements VoidFunction<Iterator<BulkImportPartition>>, Externalizable {
-    private static final Logger LOG = Logger.getLogger(BulkImportFunction.class);
+    private static final Logger LOG = LogManager.getLogger(BulkImportFunction.class);
     private Map<Long, List<BulkImportPartition>> partitionMap;
     private byte[] token;
 
@@ -75,9 +76,10 @@ public class BulkImportFunction implements VoidFunction<Iterator<BulkImportParti
         FileSystem fs = FileSystem.get(URI.create(bulkImportDirectory), conf);
         PartitionFactory tableFactory= SIDriver.driver().getTableFactory();
 
-        for (Map.Entry<Long, List<BulkImportPartition>> mapEntry : partitionMap.entrySet()) {
-            Partition partition=tableFactory.getTable(Long.toString(mapEntry.getKey()));
-            List<BulkImportPartition> partitionList = mapEntry.getValue();
+        for (Map.Entry<Long, List<BulkImportPartition>> entry:partitionMap.entrySet()) {
+            Long conglomId = entry.getKey();
+            Partition partition=tableFactory.getTable(Long.toString(conglomId));
+            List<BulkImportPartition> partitionList = entry.getValue();
             // For each batch of BulkImportPartition, use the first partition as staging area
             Path path = new Path(partitionList.get(0).getFilePath());
             if (!fs.exists(path)) {

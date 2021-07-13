@@ -126,7 +126,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                                         int defaultValueMapItem,
                                         long pastTxn,
                                         Long minRetentionPeriod,
-                                        int numUnusedLeadingIndexFields)
+                                        int numUnusedLeadingIndexFields,
+                                        boolean canCacheResultSet)
             throws StandardException
     {
         /* Note: We use '1' as rows per read because we do not currently
@@ -169,7 +170,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             defaultValueMapItem,
             pastTxn,
             minRetentionPeriod,
-            numUnusedLeadingIndexFields);
+            numUnusedLeadingIndexFields,
+            canCacheResultSet);
         this.inlistPosition = inlistPosition;
         this.numUnusedLeadingIndexFields = numUnusedLeadingIndexFields;
 
@@ -213,6 +215,10 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             throw new IllegalStateException("Operation is not open");
 
         try {
+            operationContext = dsp.<MultiProbeTableScanOperation>createOperationContext(this);
+            if (cachedResultSet != null) {
+                return dataSetFromCachedResultSet(dsp);
+            }
             TxnView txn = getCurrentTransaction();
             List<DataScan> scans =
                 scanInformation.getScans(getCurrentTransaction(),
@@ -220,7 +226,6 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                                          activation, getKeyDecodingMap(),
                                          firstRowOfIndexPrefixIteration != null);
             DataSet<ExecRow> dataSet = dsp.getEmpty();
-            OperationContext<MultiProbeTableScanOperation> operationContext = dsp.<MultiProbeTableScanOperation>createOperationContext(this);
             dsp.prependSpliceExplainString(this.explainPlan);
             int i = 0;
             List<ScanSetBuilder<ExecRow>> datasets = new ArrayList<>(scans.size());
@@ -257,8 +262,12 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             // it is possible that all inlist elements are pruned
             if (datasets.isEmpty())
                 return dataSet;
-            else
-                return dataSet.parallelProbe(datasets, operationContext).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
+            else {
+                dataSet = dataSet.parallelProbe(datasets, operationContext).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
+                if (canCacheResultSet && dsp.getType().equals(DataSetProcessor.Type.CONTROL))
+                    dataSet = makeCachedResultSetFromDataSet(dsp, dataSet);
+                return dataSet;
+            }
         }
         catch (Exception e) {
                 throw StandardException.plainWrapException(e);

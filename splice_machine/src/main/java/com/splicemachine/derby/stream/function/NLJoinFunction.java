@@ -30,7 +30,8 @@ import com.splicemachine.derby.stream.iterator.GetNLJoinIterator;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.Pair;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.spark.TaskContext;
 import org.apache.spark.TaskKilledException;
 import org.apache.spark.util.TaskCompletionListener;
@@ -52,7 +53,7 @@ import java.util.function.Supplier;
  */
 public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> extends SpliceJoinFlatMapFunction<Op, From, To>
         implements IterableJoinFunction, AutoCloseable {
-    private static final Logger LOG = Logger.getLogger(NLJoinFunction.class);
+    private static final Logger LOG = LogManager.getLogger(NLJoinFunction.class);
 
     public enum JoinType{
         INNER,

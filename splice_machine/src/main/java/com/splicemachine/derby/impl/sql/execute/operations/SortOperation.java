@@ -29,7 +29,8 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,7 +40,7 @@ import java.util.Properties;
 
 public class SortOperation extends SpliceBaseOperation{
     private static final long serialVersionUID=2l;
-    private static Logger LOG=Logger.getLogger(SortOperation.class);
+    private static Logger LOG=LogManager.getLogger(SortOperation.class);
     protected SpliceOperation source;
     protected boolean distinct;
     protected int orderingItem;

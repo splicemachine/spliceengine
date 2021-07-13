@@ -20,7 +20,8 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HStoreFile;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequestImpl;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -32,7 +33,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * Created by dgomezferro on 3/24/16.
  */
 public class SpliceCompactionRequest extends CompactionRequestImpl {
-    private static final Logger LOG = Logger.getLogger(SpliceCompactionRequest.class);
+    private static final Logger LOG = LogManager.getLogger(SpliceCompactionRequest.class);
     private AtomicReference<MemstoreAware> memstoreAware;
     private HRegion region;
     private boolean compactionCountIncremented = false;

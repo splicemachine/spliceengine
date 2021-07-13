@@ -90,7 +90,6 @@ public class RowTriggerExecutor extends GenericTriggerExecutor {
                 tec.updateAICounters();
             }
         } finally {
-            clearSPS();
             tec.clearTrigger(deferCleanup);
         }
     }

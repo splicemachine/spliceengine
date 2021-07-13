@@ -86,7 +86,7 @@ class NativeTransformationsIT extends FunSuite with TestContext with BeforeAndAf
 
   test("join over join") {
      val df = splicemachineContext.df(
-       """select * from sys.systables s1
+       """select * from sys.systables s1 --splice-properties joinStrategy=sortmerge
          |inner join sys.systables s2 --splice-properties joinStrategy=sortmerge
          |  on s1.tablename = s2.tablename
          |inner join sys.systables s3 --splice-properties joinStrategy=sortmerge
@@ -101,7 +101,7 @@ class NativeTransformationsIT extends FunSuite with TestContext with BeforeAndAf
 
   test("order by over join") {
     val df = splicemachineContext.df(
-      """select * from sys.systables s1
+      """select * from sys.systables s1 --splice-properties joinStrategy=sortmerge
         |inner join sys.systables s2 --splice-properties joinStrategy=sortmerge
         |  on s1.tablename = s2.tablename order by s1.tablename
       """.stripMargin
@@ -115,7 +115,7 @@ class NativeTransformationsIT extends FunSuite with TestContext with BeforeAndAf
 
   test("simple project on join over join") {
     val df = splicemachineContext.df(
-      """select s1.tablename from sys.systables s1
+      """select s1.tablename from sys.systables s1 --splice-properties joinStrategy=sortmerge
         |inner join sys.systables s2 --splice-properties joinStrategy=sortmerge
         |  on s1.tablename = s2.tablename
         |inner join sys.systables s3 --splice-properties joinStrategy=sortmerge
@@ -130,7 +130,7 @@ class NativeTransformationsIT extends FunSuite with TestContext with BeforeAndAf
 
   test("complex project on join over join") {
     val df = splicemachineContext.df(
-      """select s1.colsequence * 10 from sys.systables s1
+      """select s1.colsequence * 10 from sys.systables s1 --splice-properties joinStrategy=sortmerge
         |inner join sys.systables s2 --splice-properties joinStrategy=sortmerge
         |  on s1.tablename = s2.tablename
         |inner join sys.systables s3 --splice-properties joinStrategy=sortmerge
@@ -145,7 +145,7 @@ class NativeTransformationsIT extends FunSuite with TestContext with BeforeAndAf
 
   test("aggregate on join over join") {
     val df = splicemachineContext.df(
-      """select sum(s1.colsequence) from sys.systables s1
+      """select sum(s1.colsequence) from sys.systables s1 --splice-properties joinStrategy=sortmerge
         |inner join sys.systables s2 --splice-properties joinStrategy=sortmerge
         |  on s1.tablename = s2.tablename
         |inner join sys.systables s3 --splice-properties joinStrategy=sortmerge

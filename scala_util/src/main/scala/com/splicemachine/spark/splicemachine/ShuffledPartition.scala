@@ -17,12 +17,13 @@ package com.splicemachine.spark.splicemachine
 
 import java.io.{IOException, ObjectOutputStream}
 
-import org.apache.log4j.Logger
+import org.apache.logging.log4j.Logger
 import org.apache.spark._
 import org.apache.spark.rdd.RDD
 
 import scala.reflect.ClassTag
 import scala.util.control.NonFatal
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 
 /**
  * Partition for ShuffledPartitionsRDD.
@@ -32,6 +33,11 @@ import scala.util.control.NonFatal
  * @param parentPartitionIndex index of the partition within the parent RDD
  *                                this partition refers to
  */
+@SuppressFBWarnings(value = Array("SE_NO_SERIALVERSIONID",
+                                  "SE_TRANSIENT_FIELD_NOT_RESTORED",
+                                  "NP_ALWAYS_NULL",
+                                  "SE_BAD_FIELD",
+                                  "SE_NO_SERIALVERSIONID"), justification = "intentional")
 private[spark] class ShuffledPartition[T: ClassTag](
     idx: Int,
     @transient private val rdd: RDD[T],
@@ -65,7 +71,7 @@ private[spark] class ShuffledPartition[T: ClassTag](
   }
 }
 
-
+@SuppressFBWarnings(value = Array("SE_NO_SERIALVERSIONID"), justification = "intentional")
 object LogHolder extends Serializable {
-  @transient lazy val log = Logger.getLogger(getClass.getName)
+  @transient lazy val log = org.apache.logging.log4j.LogManager.getLogger(getClass.getName)
 }

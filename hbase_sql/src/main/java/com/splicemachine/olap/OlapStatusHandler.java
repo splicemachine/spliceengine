@@ -14,9 +14,11 @@
 
 package com.splicemachine.olap;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.concurrent.TimeUnit;
 
@@ -26,13 +28,14 @@ import java.util.concurrent.TimeUnit;
  */
 @ChannelHandler.Sharable
 public class OlapStatusHandler extends AbstractOlapHandler{
-    private static final Logger LOG = Logger.getLogger(OlapStatusHandler.class);
+    private static final Logger LOG = LogManager.getLogger(OlapStatusHandler.class);
 
     public OlapStatusHandler(OlapJobRegistry registry){
         super(registry);
     }
 
     @Override
+    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT", justification = "intentional")
     protected void channelRead0(ChannelHandlerContext ctx, OlapMessage.Command cmd) throws Exception {
         if (LOG.isTraceEnabled()) {
             LOG.trace("Received " + cmd);

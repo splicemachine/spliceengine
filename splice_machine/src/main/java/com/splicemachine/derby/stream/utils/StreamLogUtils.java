@@ -18,7 +18,8 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  *
@@ -26,7 +27,7 @@ import org.apache.log4j.Logger;
  *
  */
 public class StreamLogUtils {
-    private static Logger LOG = Logger.getLogger(StreamLogUtils.class);
+    private static Logger LOG = LogManager.getLogger(StreamLogUtils.class);
 
     public static void logOperationRecord(ExecRow locatedRow, OperationContext operationContext) {
         if (LOG.isTraceEnabled()) {

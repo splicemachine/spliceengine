@@ -62,8 +62,10 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import splice.com.google.common.cache.CacheBuilder;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -80,7 +82,7 @@ import java.util.*;
 @SuppressFBWarnings(value = {"UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD"},
         justification = "not used fields could be referenced by generated code")
 public abstract class BaseActivation implements CursorActivation, GeneratedByteCode {
-//    private static final Logger LOG = Logger.getLogger(BaseActivation.class);
+//    private static final Logger LOG = LogManager.getLogger(BaseActivation.class);
     private    LanguageConnectionContext    lcc;
     protected ContextManager            cm;
     protected DataValueFactory dvf;
@@ -217,6 +219,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
     private boolean skipBuildOfFirstKeyColumn = false;
 
     private long numRowsSeen = 0L;
+
     //
     // constructors
     //
@@ -224,6 +227,9 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
     private boolean isSubStatement = false;
 
     private boolean isRowTrigger = false;
+
+    // A map from a log statement to a formatted log statement.
+    private ManagedCache<String,String> formattedLogStatementCache;
 
     public boolean ignoreSequence() {
         return ignoreSequence;
@@ -1833,5 +1839,24 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
         public void setIsRowTrigger(boolean newValue) {
 	    isRowTrigger = newValue;
 	}
+
+
+	private void allocateFormattedLogStatementCache() {
+        final int maxEntries = 16;
+        formattedLogStatementCache =
+            new ManagedCache<>(CacheBuilder.newBuilder().maximumSize(maxEntries).build(), maxEntries);
+    }
+
+	public String getFormattedLogStmt(String logStmt) {
+        if (formattedLogStatementCache == null)
+            allocateFormattedLogStatementCache();
+        return formattedLogStatementCache.getIfPresent(logStmt);
+    }
+
+	public void putFormattedLogStmt(String logStmt, String formattedLogStatement) {
+        if (formattedLogStatementCache == null)
+            allocateFormattedLogStatementCache();
+        formattedLogStatementCache.put(logStmt, formattedLogStatement);
+    }
 
 }

@@ -15,7 +15,8 @@
 package com.splicemachine.derby.stream.function.csv;
 
 import com.splicemachine.derby.stream.utils.BooleanList;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.supercsv.comment.CommentMatcher;
 import org.supercsv.exception.SuperCsvException;
 
@@ -35,7 +36,7 @@ import java.util.List;
  */
 public class QuoteTrackingTokenizer extends AbstractTokenizerCR {
 
-    private static final Logger LOG = Logger.getLogger(QuoteTrackingTokenizer.class);
+    private static final Logger LOG = LogManager.getLogger(QuoteTrackingTokenizer.class);
     private static final char NEWLINE = '\n';
     private static final char SPACE = ' ';
     private final List<Integer> valueSizeHints;

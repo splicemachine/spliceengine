@@ -37,6 +37,11 @@
     </properties>
     <dependencies>
         <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>utilities</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>hbase_sql</artifactId>
             <version>${project.version}</version>
@@ -162,6 +167,10 @@
                     <groupId>com.sun.jersey</groupId>
                     <artifactId>jersey-core</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -203,6 +212,10 @@
                     <groupId>org.apache.hive</groupId>
                     <artifactId>hive-orc</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -210,6 +223,16 @@
             <artifactId>hbase-mapreduce</artifactId>
             <version>${hbase.version}</version>
             <scope>runtime</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>   
+            </exclusions>
         </dependency>
         <!-- Kafka dependencies -->
         <dependency>
@@ -230,6 +253,26 @@
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-databind</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-library</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scalap</artifactId>
+                </exclusion>      
+                <exclusion>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-reflect</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>  <!-- needed by Kafka 2.0 but not 2.2 -->
@@ -245,12 +288,24 @@
             <version>${hadoop.version}</version>
             <classifier>tests</classifier>
             <scope>runtime</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-yarn-client</artifactId>
             <version>${hadoop.version}</version>
             <scope>runtime</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <!-- Spark dependencies -->
         <dependency>
@@ -258,6 +313,28 @@
             <artifactId>spark-yarn_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
             <scope>runtime</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-library</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scalap</artifactId>
+                </exclusion>      
+                <exclusion>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-reflect</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -276,6 +353,26 @@
                 <exclusion>
                     <groupId>com.twitter</groupId>
                     <artifactId>parquet-avro</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-library</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scalap</artifactId>
+                </exclusion>      
+                <exclusion>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-reflect</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -309,6 +406,18 @@
                 <exclusion>
                     <groupId>com.twitter</groupId>
                     <artifactId>parquet-avro</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-library</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scalap</artifactId>
+                </exclusion>      
+                <exclusion>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-reflect</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -781,7 +890,7 @@
                                 <classpath/>
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>
-                                    -Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties
+                                    -Dlog4j2.configurationFile=${basedir}/src/main/resources/info-log4j2.properties
                                 </argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
@@ -976,7 +1085,7 @@
                                 <argument>-Xdebug</argument>
                                 <argument>-Dhadoop.metrics.init.mode=STANDBY</argument>
                                 <argument>-Djava.security.krb5.conf=${project.build.directory}/krb5.conf</argument>
-                                <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
+                                <argument>-Dlog4j2.configurationFile=${log4j2.config.uri}</argument>
                                 <argument>-XX:MinHeapFreeRatio=10</argument>
                                 <argument>-XX:MaxHeapFreeRatio=30</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
@@ -1059,7 +1168,7 @@
                                 </argument>
                                 <argument>-Dsplice.spark.executor.extraJavaOptions=
                                     ${hbase.rootdir}
-                                    -Dlog4j.configuration=${log4j.config.uri}
+                                    -Dlog4j2.configurationFile=${log4j2.config.uri}
                                     -Dhdp.version=2.6.3
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
@@ -1074,7 +1183,7 @@
                                 <argument>-Dsplice.olapServer.extraJavaOptions=
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                     ${hbase.rootdir}
-                                    -Dlog4j.configuration=${log4j.config.uri}
+                                    -Dlog4j2.configurationFile=${log4j2.config.uri}
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4025
                                     -Dsplice.olapServerOnStandAlone=true
                                     -enableassertions
@@ -1103,7 +1212,7 @@
                                 <argument>60030</argument>
                                 <argument>1527</argument>
                                 <argument>${failTasksRandomly}</argument>
-                                <argument>${olap.log4j.config.uri}</argument>
+                                <argument>-Dlog4j2.configurationFile=${olap.log4j2.config.uri}</argument>
                                 <argument>${secure}</argument>
                                 <argument>${durability}</argument>
                             </arguments>
@@ -1147,7 +1256,7 @@
                                 <argument>-XX:MaxHeapFreeRatio=30</argument>
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Djava.security.krb5.conf=${project.build.directory}/krb5.conf</argument>
-                                <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
+                                <argument>-Dlog4j2.configurationFile=${log4j2.config.uri}</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
@@ -1370,7 +1479,7 @@
                                 <argument>-classpath</argument>
                                 <classpath/>
                                 <argument>-Xdebug</argument>
-                                <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
+                                <argument>-Dlog4j2.configurationFile=${log4j2.config.uri}</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
@@ -1508,7 +1617,7 @@
                                 <!-- <argument>-XX:+UnlockCommercialFeatures</argument>
                                 <argument>-XX:+FlightRecorder</argument> -->
                                 <argument>${jacocoAgent}</argument>
-                                <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
+                                <argument>-Dlog4j2.configurationFile=${log4j2.config.uri}</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
@@ -1574,7 +1683,7 @@
                                 <argument>-Dsplice.spark.shuffle.compress=false</argument>
                                 <argument>-Dsplice.spark.executor.extraJavaOptions=
                                     ${hbase.rootdir}
-                                    -Dlog4j.configuration=${log4j.config.uri}
+                                    -Dlog4j2.configurationFile=${log4j2.config.uri}
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020
                                     -enableassertions
                                     ${jacocoAgent}
@@ -1617,7 +1726,7 @@
                                 <argument>60030</argument>
                                 <argument>1527</argument>
                                 <argument>${failTasksRandomly}</argument>
-                                <argument>${olap.log4j.config.uri}</argument>
+                                <argument>-Dlog4j2.configurationFile=${olap.log4j2.config.uri}</argument>
                             </arguments>
                         </configuration>
                     </plugin>

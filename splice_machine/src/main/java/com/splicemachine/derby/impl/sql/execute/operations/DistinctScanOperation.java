@@ -119,7 +119,8 @@ public class DistinctScanOperation extends ScanOperation {
                                  int defaultValueMapItem,
                                  long pastTxn,
                                  Long minRetentionPeriod,
-                                 int numUnusedLeadingIndexFields) throws StandardException {
+                                 int numUnusedLeadingIndexFields,
+                                 boolean canCacheResultSet) throws StandardException {
         super(conglomId,
                 activation,
                 resultSetNumber,
@@ -143,7 +144,8 @@ public class DistinctScanOperation extends ScanOperation {
                 splits,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem,
                 pastTxn,
                 minRetentionPeriod,
-                numUnusedLeadingIndexFields);
+                numUnusedLeadingIndexFields,
+                canCacheResultSet);
         this.hashKeyItem = hashKeyItem;
         this.tableName = Long.toString(scanInformation.getConglomerateId());
         this.tableDisplayName = tableName;
@@ -220,6 +222,12 @@ public class DistinctScanOperation extends ScanOperation {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
+        operationContext = dsp.createOperationContext(this);
+
+        if (cachedResultSet != null) {
+            return dataSetFromCachedResultSet(dsp);
+        }
+
         dsp.prependSpliceExplainString(this.explainPlan);
         assert currentTemplate != null: "Current Template Cannot Be Null";
         FormatableBitSet cols = scanInformation.getAccessedColumns();
@@ -233,13 +241,13 @@ public class DistinctScanOperation extends ScanOperation {
         } else {
             colMap = keyColumns;
         }
-        operationContext = dsp.createOperationContext(this);
+
         DataSet<ExecRow> dataset = dsp.<DistinctScanOperation,ExecRow>newScanSet(this,tableName)
                 .tableDisplayName(this.tableDisplayName)
                 .activation(activation)
                 .transaction(getCurrentTransaction())
                 .scan(getNonSIScan())
-                .template(currentRow)
+                .template(currentTemplate)
                 .tableVersion(tableVersion)
                 .indexName(indexName)
                 .reuseRowLocation(true)
@@ -258,7 +266,11 @@ public class DistinctScanOperation extends ScanOperation {
                 .partitionByColumns(getPartitionColumnMap())
                 .defaultRow(defaultRow, scanInformation.getDefaultValueMap())
                 .buildDataSet(this).map(new CloneFunction<>(operationContext)).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
-                return dataset.distinct(OperationContext.Scope.DISTINCT.displayName(), true, operationContext, true, OperationContext.Scope.DISTINCT.displayName());
+            dataset = dataset.distinct(OperationContext.Scope.DISTINCT.displayName(), true, operationContext,
+                                       true, OperationContext.Scope.DISTINCT.displayName());
+            if (canCacheResultSet && dsp.getType().equals(DataSetProcessor.Type.CONTROL))
+                dataset = makeCachedResultSetFromDataSet(dsp, dataset);
+            return dataset;
     }
 
 }

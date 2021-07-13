@@ -56,7 +56,8 @@ import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
@@ -73,8 +74,8 @@ import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNA
 
 public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed, Externalizable{
     private static final long serialVersionUID=4l;
-    private static Logger LOG=Logger.getLogger(SpliceBaseOperation.class);
-    private static Logger LOG_CLOSE=Logger.getLogger(SpliceBaseOperation.class.getName()+".close");
+    private static Logger LOG=LogManager.getLogger(SpliceBaseOperation.class);
+    private static Logger LOG_CLOSE=LogManager.getLogger(SpliceBaseOperation.class.getName()+".close");
     protected Iterator<ExecRow> execRowIterator;
     protected Activation activation;
     protected String explainPlan="";
@@ -604,7 +605,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         activation.getLanguageConnectionContext().logStartExecuting(
                 uuid.toString(), dsp.getType().toString(), stmtForLogging,
                 ps,
-                activation.getParameterValueSet()
+                activation.getParameterValueSet(),
+                activation
         );
     }
 

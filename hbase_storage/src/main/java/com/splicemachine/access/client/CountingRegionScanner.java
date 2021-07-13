@@ -22,7 +22,8 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.ScannerContext;
 import org.apache.hadoop.hbase.regionserver.Store;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.util.List;
@@ -31,7 +32,7 @@ import java.util.List;
  * Created by dgomezferro on 06/10/2017.
  */
 public class CountingRegionScanner implements RegionScanner {
-    private static final Logger LOG = Logger.getLogger(CountingRegionScanner.class);
+    private static final Logger LOG = LogManager.getLogger(CountingRegionScanner.class);
 
     private final RegionScanner delegate;
     private final Scan scan;

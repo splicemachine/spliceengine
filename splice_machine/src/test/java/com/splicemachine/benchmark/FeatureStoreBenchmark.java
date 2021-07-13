@@ -18,7 +18,8 @@ package com.splicemachine.benchmark;
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.test.Benchmark;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -35,7 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @RunWith(Parameterized.class)
 public class FeatureStoreBenchmark extends Benchmark {
 
-    private static final Logger LOG = Logger.getLogger(FeatureStoreBenchmark.class);
+    private static final Logger LOG = LogManager.getLogger(FeatureStoreBenchmark.class);
     private static final int DEFAULT_CONNECTIONS = 10;
     private static final int DEFAULT_OPS = 10000;
     private static final int DEFAULT_NROWS = 50000000;

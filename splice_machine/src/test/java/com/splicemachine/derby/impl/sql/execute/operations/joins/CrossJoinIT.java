@@ -512,12 +512,11 @@ public class CrossJoinIT extends SpliceUnitTest {
         String sqlText = format("select * from \n" +
                 "a --splice-properties joinStrategy=CROSS, useSpark=%s\n" +
                 "where c2=1", useSpark);
-        try {
-            classWatcher.executeQuery(sqlText);
-            Assert.fail("Query should fail with no valid exeuction plan!");
-        }catch (SQLException e) {
-            Assert.assertTrue("Invalid exception thrown: " + e, e.getMessage().startsWith("No valid execution plan"));
-        }
+        String expected = "C1 |C2 |\n" +
+                          "--------\n" +
+                          " 1 | 1 |";
+        // Query should succeed.  Cross join hint on single table scan is ignored.
+        testQuery(sqlText, expected, classWatcher);
     }
 
     @Test

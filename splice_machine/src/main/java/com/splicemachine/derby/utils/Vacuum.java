@@ -32,7 +32,8 @@ import com.splicemachine.storage.DataDelete;
 import com.splicemachine.storage.DataScanner;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.collect.Iterables;
 
 import java.io.IOException;
@@ -52,7 +53,7 @@ import java.util.concurrent.Future;
  *         Date: 3/19/14
  */
 public class Vacuum{
-    private static final Logger LOG = Logger.getLogger(Vacuum.class);
+    private static final Logger LOG = LogManager.getLogger(Vacuum.class);
 
     private final Connection connection;
     private final PartitionAdmin partitionAdmin;

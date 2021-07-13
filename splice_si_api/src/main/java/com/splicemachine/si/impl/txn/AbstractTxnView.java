@@ -28,17 +28,19 @@ import java.util.Collections;
 import java.util.Iterator;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * @author Scott Fines
  *         Date: 8/14/14
  */
 public abstract class AbstractTxnView implements TxnView {
-	private static final Logger LOG = Logger.getLogger(AbstractTxnView.class);
+	private static final Logger LOG = LogManager.getLogger(AbstractTxnView.class);
     protected long txnId;
     private long beginTimestamp;
     protected Txn.IsolationLevel isolationLevel;
+    private static final String simpleName = AbstractTxnView.class.getSimpleName();
 
     public AbstractTxnView() {
     	
@@ -384,12 +386,21 @@ public abstract class AbstractTxnView implements TxnView {
         this.isolationLevel = isolationLevel;
     }
 
+    private static final String LEFT_PARAM = "(";
+    private static final String RIGHT_PARAM = "(";
+    private static final String COMMA = ",";
+
     @Override
     public String toString(){
-    	return String.format("%s(%s,%s)",
-    			getClass().getSimpleName(),
-    			txnId,
-    			getState());
+        StringBuilder txnStringBuilder = new StringBuilder();
+        txnStringBuilder.append(getSimpleName());
+        txnStringBuilder.append(LEFT_PARAM);
+        txnStringBuilder.append(txnId);
+        txnStringBuilder.append(COMMA);
+        txnStringBuilder.append(getState());
+        txnStringBuilder.append(RIGHT_PARAM);
+
+    	return txnStringBuilder.toString();
     }
 
     public int getSubId() {
@@ -405,4 +416,7 @@ public abstract class AbstractTxnView implements TxnView {
     public TaskId getTaskId() {
         return null;
     }
+
+    @Override
+    public String getSimpleName() { return simpleName; }
 }

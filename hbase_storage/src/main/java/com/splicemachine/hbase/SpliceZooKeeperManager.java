@@ -21,7 +21,8 @@ import org.apache.hadoop.hbase.Abortable;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.apache.zookeeper.KeeperException;
 
 import java.io.Closeable;
@@ -32,7 +33,7 @@ import java.io.IOException;
  *         Created: 2/2/13 9:47 AM
  */
 public class SpliceZooKeeperManager implements Abortable, Closeable{
-    private static final Logger LOG=Logger.getLogger(SpliceZooKeeperManager.class);
+    private static final Logger LOG=LogManager.getLogger(SpliceZooKeeperManager.class);
     protected ZKWatcher watcher;
     protected RecoverableZooKeeper rzk;
     private volatile boolean isAborted;

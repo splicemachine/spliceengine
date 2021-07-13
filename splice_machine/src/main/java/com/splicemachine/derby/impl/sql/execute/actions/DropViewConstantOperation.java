@@ -30,7 +30,8 @@ import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -42,7 +43,7 @@ import java.util.List;
  *    DROP VIEW Statement at Execution time.
  */
 public class DropViewConstantOperation extends DDLConstantOperation {
-    private static final Logger LOG = Logger.getLogger(DropViewConstantOperation.class);
+    private static final Logger LOG = LogManager.getLogger(DropViewConstantOperation.class);
     private String fullTableName;
     private String tableName;
     private SchemaDescriptor sd;

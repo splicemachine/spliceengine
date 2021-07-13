@@ -462,8 +462,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         Qualifier[][] scanQualifiers = null;
         if (scanQualifiersFieldName != null && !skipScanQualifiers) {
             try {
-                if (qualifiersField == null)
-                    qualifiersField = activation.getClass().getField(scanQualifiersFieldName);
+                qualifiersField = activation.getClass().getField(scanQualifiersFieldName);
                 scanQualifiers = (Qualifier[][]) qualifiersField.get(activation);
             } catch (Exception e) {
                 throw StandardException.unexpectedUserException(e);
@@ -476,7 +475,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     public ExecIndexRow getStopPosition() throws StandardException {
         if (sameStartStopPosition)
             return null;
-        if (stopKeyGetter == null && stopKeyGetterMethodName != null)
+        if ((stopKeyGetter == null || stopKeyGetter.getActivation() != activation) && stopKeyGetterMethodName != null)
             stopKeyGetter = new SpliceMethod<>(stopKeyGetterMethodName, activation);
 
         return stopKeyGetter == null ? null : stopKeyGetter.invoke();
@@ -484,7 +483,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
 
     @Override
     public ExecIndexRow getStartPosition() throws StandardException {
-        if (startKeyGetter == null && startKeyGetterMethodName != null)
+        if ((startKeyGetter == null || startKeyGetter.getActivation() != activation) && startKeyGetterMethodName != null)
             startKeyGetter = new SpliceMethod<>(startKeyGetterMethodName, activation);
 
         if (startKeyGetter != null)

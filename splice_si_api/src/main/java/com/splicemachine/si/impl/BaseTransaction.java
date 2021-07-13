@@ -18,7 +18,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 
@@ -27,7 +28,7 @@ import java.io.IOException;
  *         Date: 8/19/14
  */
 public abstract class BaseTransaction implements Transaction {
-    private static Logger LOG=Logger.getLogger(BaseTransaction.class);
+    private static Logger LOG=LogManager.getLogger(BaseTransaction.class);
     protected String transName;
 
     protected volatile int state;
@@ -35,6 +36,10 @@ public abstract class BaseTransaction implements Transaction {
     public static final int CLOSED=0;
     public static final int IDLE=1;
     public static final int ACTIVE=2;
+
+    public static final String CLOSED_STRING = "CLOSED";
+    public static final String IDLE_STRING   = "IDLE";
+    public static final String ACTIVE_STRING = "ACTIVE";
 
     public void setTransactionName(String s){
         this.transName=s;

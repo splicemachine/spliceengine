@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowFunction;
+import com.splicemachine.utils.SpliceLogUtils;
 import splice.com.google.common.base.Strings;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.compile.Optimizer;
@@ -29,7 +30,8 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.pipeline.Exceptions;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -43,7 +45,7 @@ import java.util.List;
  */
 public class CachedOperation extends SpliceBaseOperation {
 
-    private static Logger LOG = Logger.getLogger(CachedOperation.class);
+    private static Logger LOG = LogManager.getLogger(CachedOperation.class);
     protected static final String NAME = CachedOperation.class.getSimpleName().replaceAll("Operation", "");
     private SpliceOperation source;
     private DataSet ds;
@@ -167,7 +169,7 @@ public class CachedOperation extends SpliceBaseOperation {
         source.openCore();
         rows = new LinkedList<>();
         ExecRow aRow;
-        int cacheSize = 0;
+        long cacheSize = 0;
         FormatableBitSet toClone = null;
 
         try {

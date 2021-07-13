@@ -349,10 +349,10 @@ public class ExecSPSNode extends StatementNode
         return spsd;
     }
 
-    private static class DumpGClass extends GClass {
+    public static class DumpGClass extends GClass {
         private final GenericStorablePreparedStatement ps;
 
-        private DumpGClass(GenericStorablePreparedStatement ps,String name) {
+        public DumpGClass(GenericStorablePreparedStatement ps,String name) {
             super(null,name);
             this.ps = ps;
             this.bytecode=ps.getByteCodeSaver();

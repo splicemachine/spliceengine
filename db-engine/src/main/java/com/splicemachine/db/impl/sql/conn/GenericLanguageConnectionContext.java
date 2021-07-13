@@ -76,8 +76,10 @@ import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.utils.SparkSQLUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.config.Configurator;
 import splice.com.google.common.cache.CacheBuilder;
 
 import java.io.UnsupportedEncodingException;
@@ -96,8 +98,9 @@ import static com.splicemachine.db.iapi.reference.Property.MATCHING_STATEMENT_CA
  */
 public class GenericLanguageConnectionContext extends ContextImpl implements LanguageConnectionContext {
 
-    private final Logger stmtLogger = Logger.getLogger("splice-derby.statement");
-    private static Logger LOG = Logger.getLogger(GenericLanguageConnectionContext.class);
+    private static final String statementLoggerName = "splice.statement";
+    private static final Logger stmtLogger = LogManager.getLogger(statementLoggerName);
+    private static Logger LOG = LogManager.getLogger(GenericLanguageConnectionContext.class);
     private static final int LOCAL_MANAGED_CACHE_MAX_SIZE = 256;
 
 
@@ -357,8 +360,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      */
     private ControlExecutionLimiter limiter;
 
-    private String lastLogStmt;
-    private String lastLogStmtFormat;
     private SessionPropertiesImpl sessionProperties;
     private final CommentStripper commentStripper;
     private boolean ignoreCommentOptEnabled = false;
@@ -376,6 +377,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private SparkSQLUtils sparkSQLUtils;
     private boolean hasJoinStrategyHint;
     private boolean compilingStoredPreparedStatement;
+    private boolean compilingTrigger;
+    private boolean compilingRowTrigger;
+
+    // A map from a log statement to a formatted log statement.
+    private ManagedCache<String,String> formattedLogStatementCache;
 
     /* constructor */
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "Intentional")
@@ -446,7 +452,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         logStatementText=logStatementProperty == null || Boolean.parseBoolean(logStatementProperty);
         // log statements by default
         if (!logStatementText) {
-            stmtLogger.setLevel(Level.OFF);
+            Configurator.setLevel(statementLoggerName, Level.OFF);
         }
 
         String maxStatementLogLenStr = PropertyUtil.getCachedDatabaseProperty(this, "derby.language.maxStatementLogLen");
@@ -4004,7 +4010,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void logStartCompiling(String statement) {
         if (stmtLogger.isInfoEnabled()) {
             stmtLogger.info(String.format("Begin compiling prepared statement. %s, %s",
-                getLogHeader(), formatLogStmt(statement)));
+                getLogHeader(), formatLogStmt(statement, null)));
         }
     }
 
@@ -4012,15 +4018,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void logEndCompiling(String statement, long nanoTimeSpent) {
         if (stmtLogger.isInfoEnabled()) {
             stmtLogger.info(String.format("End compiling prepared statement. %s, timeSpent=%dms, %s",
-                getLogHeader(), nanoTimeSpent / 1000000, formatLogStmt(statement)));
+                getLogHeader(), nanoTimeSpent / 1000000, formatLogStmt(statement, null)));
         }
     }
 
     @Override
     public void logErrorCompiling(String statement, Throwable t, long nanoTimeSpent) {
-        if (stmtLogger.isEnabledFor(Level.WARN)) {
+        if (stmtLogger.isEnabled(Level.WARN)) {
             stmtLogger.warn(String.format("Error compiling prepared statement. %s, timeSpent=%dms, %s",
-                getLogHeader(), nanoTimeSpent / 1000000, formatLogStmt(statement)), t);
+                getLogHeader(), nanoTimeSpent / 1000000, formatLogStmt(statement, null)), t);
         }
     }
 
@@ -4042,7 +4048,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void logStartFetching(String uuid, String statement) {
         if (stmtLogger.isInfoEnabled()) {
             stmtLogger.info(String.format("Start fetching from the result set. %s, uuid=%s, %s",
-                getLogHeader(), uuid, formatLogStmt(statement)));
+                getLogHeader(), uuid, formatLogStmt(statement, null)));
         }
     }
 
@@ -4050,18 +4056,41 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void logEndFetching(String uuid, String statement, long fetchedRows) {
         if (stmtLogger.isInfoEnabled()) {
             stmtLogger.info(String.format("End fetching from the result set. %s, uuid=%s, fetchedRows=%d, %s",
-                getLogHeader(), uuid, fetchedRows, formatLogStmt(statement)));
+                getLogHeader(), uuid, fetchedRows, formatLogStmt(statement, null)));
         }
     }
 
+    private static final String START_EXECUTING = "Start executing query. ";
+    private static final String UUID_STRING = ", uuid=";
+    private static final String ENGINE_STRING = ", engine=";
+    private static final String COMMA = ", ";
+    private static final String PARAMS_COUNT_STRING = ", paramsCount=";
+    private static final String PARAMS_STRING = ", params=[ ";
+    private static final String SESSION_PROPERTIES_STRING = " ], sessionProperties=[ ";
+    private static final String RIGHT_SQUARE_BRACKET = " ]";
+
     @Override
     public void logStartExecuting(String uuid, String engine, String stmt, ExecPreparedStatement ps,
-                                  ParameterValueSet pvs) {
+                                  ParameterValueSet pvs, Activation activation) {
         if (stmtLogger.isInfoEnabled()) {
-            stmtLogger.info(String.format(
-                "Start executing query. %s, uuid=%s, engine=%s, %s, paramsCount=%d, params=[ %s ], sessionProperties=[ %s ]",
-                getLogHeader(), uuid, engine, formatLogStmt(stmt),
-                pvs.getParameterCount(), pvs.toString(), ps.getSessionPropertyValues()));
+            StringBuilder logStringBuilder = new StringBuilder();
+            logStringBuilder.append(START_EXECUTING);
+            logStringBuilder.append(getLogHeader());
+            logStringBuilder.append(UUID_STRING);
+            logStringBuilder.append(uuid);
+            logStringBuilder.append(ENGINE_STRING);
+            logStringBuilder.append(engine);
+            logStringBuilder.append(COMMA);
+            logStringBuilder.append(formatLogStmt(stmt, activation));
+            logStringBuilder.append(PARAMS_COUNT_STRING);
+            logStringBuilder.append(pvs.getParameterCount());
+            logStringBuilder.append(PARAMS_STRING);
+            logStringBuilder.append(pvs.toString());
+            logStringBuilder.append(SESSION_PROPERTIES_STRING);
+            logStringBuilder.append(ps.getSessionPropertyValues());
+            logStringBuilder.append(RIGHT_SQUARE_BRACKET);
+
+            stmtLogger.info(logStringBuilder.toString());
         }
     }
 
@@ -4075,53 +4104,104 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         }
     }
 
+    private static final String END_EXECUTING = "End executing query. ";
+    private static final String TIME_SPENT_STRING = ", timeSpent=";
+    private static final String MODIFIED_ROWS_STRING = "ms, modifiedRows=";
+    private static final String BAD_RECORDS_STRING = ", badRecords=";
+
     @Override
-    public void logEndExecuting(String uuid, long modifiedRows, long badRecords, long
-        nanoTimeSpent) {
+    public void logEndExecuting(String uuid, long modifiedRows, long badRecords, long nanoTimeSpent) {
         if (stmtLogger.isInfoEnabled()) {
-            stmtLogger.info(String.format("End executing query. %s, uuid=%s, timeSpent=%dms, " +
-                    "modifiedRows=%d, badRecords=%d",
-                getLogHeader(), uuid, nanoTimeSpent / 1000000, modifiedRows, badRecords));
+            StringBuilder logStringBuilder = new StringBuilder();
+            logStringBuilder.append(END_EXECUTING);
+            logStringBuilder.append(getLogHeader());
+            logStringBuilder.append(UUID_STRING);
+            logStringBuilder.append(uuid);
+
+            logStringBuilder.append(TIME_SPENT_STRING);
+            logStringBuilder.append(nanoTimeSpent / 1000000);
+            logStringBuilder.append(MODIFIED_ROWS_STRING);
+            logStringBuilder.append(modifiedRows);
+            logStringBuilder.append(BAD_RECORDS_STRING);
+            logStringBuilder.append(badRecords);
+
+            stmtLogger.info(logStringBuilder.toString());
         }
     }
 
+    private static final String XID = "XID=";
+    private static final String SESSION_ID = ", SessionID=";
+    private static final String DATABASE = ", Database=";
+    private static final String DRDAID = ", DRDAID=";
+    private static final String USERID = ", UserID=";
+
     private String getLogHeader() {
-        return String.format(
-            "XID=%s, SessionID=%s, Database=%s, DRDAID=%s, UserID=%s",
-            getTransactionExecute().getTransactionIdString(),
-            getInstanceNumber(),
-                getCurrentDatabase().getDatabaseName(),
-            getDrdaID(),
-            getSessionUserId());
+        StringBuilder logHeaderStringBuilder = new StringBuilder();
+        logHeaderStringBuilder.append(XID);
+        logHeaderStringBuilder.append(getTransactionExecute().getTransactionIdString());
+        logHeaderStringBuilder.append(SESSION_ID);
+        logHeaderStringBuilder.append(getInstanceNumber());
+        logHeaderStringBuilder.append(DATABASE);
+        logHeaderStringBuilder.append(getCurrentDatabase().getDatabaseName());
+        logHeaderStringBuilder.append(DRDAID);
+        logHeaderStringBuilder.append(getDrdaID());
+        logHeaderStringBuilder.append(USERID);
+        logHeaderStringBuilder.append(getSessionUserId());
+
+        return logHeaderStringBuilder.toString();
     }
 
-    private String formatLogStmt(String statement) {
+    private static final String SQLHASH_STRING = "sqlHash=";
+    private static final String STATEMENT_STRING = ", statement=[ ";
+
+    private String formatLogStmt(String statement, Activation activation) {
         if (statement == null) {
             return "sqlHash=null, statement=null";
         }
-        synchronized (this) {
-            // cache formatted statement log
-            if (statement.equals(lastLogStmt)) {
-                return lastLogStmtFormat;
-            }
-            String hash = "";
-            try {
-                MessageDigest md = MessageDigest.getInstance("MD5");
-                md.reset();
-                md.update(statement.getBytes("UTF-8"));
-                hash = new BigInteger(1, md.digest()).toString(16);
-            } catch (UnsupportedEncodingException | NoSuchAlgorithmException e) {
-                stmtLogger.error("Cannot encode statement " + statement, e);
-            }
-            String subStatement = statement;
-            if (maxStatementLogLen >= 0 && maxStatementLogLen < statement.length()) {
-                subStatement = statement.substring(0, maxStatementLogLen) + " ... ";
-            }
-            String result = String.format("sqlHash=%s, statement=[ %s ]", hash, subStatement);
-            lastLogStmt = statement;
-            lastLogStmtFormat = result;
-            return result;
+        boolean hasBaseActivation = (activation instanceof BaseActivation);
+
+        // cache formatted statement log
+        BaseActivation baseActivation = null;
+        String lastFormattedLogStatment;
+        if (hasBaseActivation) {
+            baseActivation = (BaseActivation) activation;
+            lastFormattedLogStatment = baseActivation.getFormattedLogStmt(statement);
         }
+        else
+            lastFormattedLogStatment = this.getFormattedLogStmt(statement);
+
+        if (lastFormattedLogStatment != null)
+            return lastFormattedLogStatment;
+
+        String hash = "";
+        try {
+            MessageDigest messageDigest;
+            messageDigest = MessageDigest.getInstance("MD5");
+            messageDigest.reset();
+            messageDigest.update(statement.getBytes("UTF-8"));
+            hash = new BigInteger(1, messageDigest.digest()).toString(16);
+        } catch (UnsupportedEncodingException | NoSuchAlgorithmException e) {
+            stmtLogger.error("Cannot encode statement " + statement, e);
+        }
+        String subStatement = statement;
+        if (maxStatementLogLen >= 0 && maxStatementLogLen < statement.length()) {
+            subStatement = statement.substring(0, maxStatementLogLen) + " ... ";
+        }
+        StringBuilder resultStringBuilder = new StringBuilder();
+        resultStringBuilder.append(SQLHASH_STRING);
+        resultStringBuilder.append(hash);
+        resultStringBuilder.append(STATEMENT_STRING);
+        resultStringBuilder.append(subStatement);
+        resultStringBuilder.append(RIGHT_SQUARE_BRACKET);
+
+        String result = resultStringBuilder.toString();
+        if (baseActivation != null)
+            baseActivation.putFormattedLogStmt(statement, result);
+        else
+            this.putFormattedLogStmt(statement, result);
+
+        return result;
+
     }
 
     public void setOrigStmtTxt(String stmt) {
@@ -4327,6 +4407,26 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public boolean compilingTrigger() {
+        return compilingTrigger;
+    }
+
+    @Override
+    public void setCompilingTrigger(boolean newValue) {
+        compilingTrigger = newValue;
+    }
+
+    @Override
+    public boolean compilingRowTrigger() {
+        return compilingRowTrigger;
+    }
+
+    @Override
+    public void setCompilingRowTrigger(boolean newValue) {
+        compilingRowTrigger = newValue;
+    }
+
+    @Override
     public void setupLocalSPSCache(boolean fromSparkExecution,
                                    SPSDescriptor fromTableDmlSpsDescriptor) throws StandardException {
         // Only use the local cache for spark execution, or if we have a temporary
@@ -4361,5 +4461,23 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public String getHintedJoinStrategy() {
         return (String) sessionProperties.getProperty(
             SessionProperties.PROPERTYNAME.JOINSTRATEGY);
+    }
+
+	private void allocateFormattedLogStatementCache() {
+        final int maxEntries = 16;
+        formattedLogStatementCache =
+            new ManagedCache<>(CacheBuilder.newBuilder().maximumSize(maxEntries).build(), maxEntries);
+    }
+
+	private String getFormattedLogStmt(String logStmt) {
+        if (formattedLogStatementCache == null)
+            allocateFormattedLogStatementCache();
+        return formattedLogStatementCache.getIfPresent(logStmt);
+    }
+
+	private void putFormattedLogStmt(String logStmt, String formattedLogStatement) {
+        if (formattedLogStatementCache == null)
+            allocateFormattedLogStatementCache();
+        formattedLogStatementCache.put(logStmt, formattedLogStatement);
     }
 }

@@ -15,12 +15,13 @@
 
 package com.splicemachine.si.impl.server;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.concurrent.atomic.AtomicLong;
 
 public class SimpleCompactionContext implements CompactionContext {
-    private static final Logger LOG = Logger.getLogger(SimpleCompactionContext.class);
+    private static final Logger LOG = LogManager.getLogger(SimpleCompactionContext.class);
     
     AtomicLong readData = new AtomicLong();
     AtomicLong recordResolutionCached = new AtomicLong();

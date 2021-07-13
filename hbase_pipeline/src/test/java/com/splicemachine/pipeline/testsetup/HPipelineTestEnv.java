@@ -27,7 +27,7 @@ import com.splicemachine.pipeline.contextfactory.ContextFactoryLoader;
 import com.splicemachine.pipeline.contextfactory.ReferenceCountingFactoryDriver;
 import com.splicemachine.si.testsetup.HBaseSITestEnv;
 import com.splicemachine.derby.hbase.HBasePipelineEnvironment;
-import org.apache.log4j.Level;
+import org.apache.logging.log4j.Level;
 
 import java.io.IOException;
 

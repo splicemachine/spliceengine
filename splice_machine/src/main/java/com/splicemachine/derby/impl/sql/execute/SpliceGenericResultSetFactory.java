@@ -34,10 +34,11 @@ import com.splicemachine.derby.impl.sql.execute.operations.export.ExportKafkaOpe
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class SpliceGenericResultSetFactory implements ResultSetFactory {
-    private static Logger LOG = Logger.getLogger(SpliceGenericResultSetFactory.class);
+    private static Logger LOG = LogManager.getLogger(SpliceGenericResultSetFactory.class);
 
     public SpliceGenericResultSetFactory() {
         super();
@@ -491,7 +492,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 defaultValueMapItem,
                                                 pastTxn,
                                                 minRetentionPeriod,
-                                                0);
+                                                0,
+                                                false);
     }
 
     @Override
@@ -533,7 +535,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 int defaultValueMapItem,
                                                 long pastTxn,
                                                 long minRetentionPeriod,
-                                                int numUnusedLeadingIndexFields )
+                                                int numUnusedLeadingIndexFields,
+                                                boolean canCacheResultSet)
             throws StandardException {
         SpliceLogUtils.trace(LOG, "getTableScanResultSet");
         try{
@@ -578,7 +581,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     defaultValueMapItem,
                     pastTxn,
                     minRetentionPeriod,
-                    numUnusedLeadingIndexFields);
+                    numUnusedLeadingIndexFields,
+                    canCacheResultSet);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -628,7 +632,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 int defaultValueMapItem,
                                                 long pastTxn,
                                                 long minRetentionPeriod,
-                                                int numUnusedLeadingIndexFields )
+                                                int numUnusedLeadingIndexFields,
+                                                boolean canCacheResultSet)
             throws StandardException {
         SpliceLogUtils.trace(LOG, "getIndexPrefixIteratorResultSet");
         try{
@@ -676,7 +681,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     defaultValueMapItem,
                     pastTxn,
                     minRetentionPeriod,
-                    numUnusedLeadingIndexFields);
+                    numUnusedLeadingIndexFields,
+                    canCacheResultSet);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -1015,7 +1021,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             defaultValueMapItem,
             pastTxn,
             minRetentionPeriod,
-            0);
+            0,
+            false);
     }
 
     @Override
@@ -1049,7 +1056,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int defaultValueMapItem,
             long pastTxn,
             long minRetentionPeriod,
-            int numUnusedLeadingIndexFields) throws StandardException {
+            int numUnusedLeadingIndexFields,
+            boolean canCacheResultSet) throws StandardException {
         try{
             StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().getSavedObject(scociItem));
             ScanOperation op = new DistinctScanOperation(
@@ -1081,7 +1089,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     defaultValueMapItem,
                     pastTxn,
                     minRetentionPeriod,
-                    numUnusedLeadingIndexFields);
+                    numUnusedLeadingIndexFields,
+                    canCacheResultSet);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -1379,7 +1388,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             partitionByRefItem,
             defaultRowFunc,
             defaultValueMapItem,
-            pastTxn, minRetentionPeriod, 0 );
+            pastTxn, minRetentionPeriod, 0, false );
 
     }
 
@@ -1409,7 +1418,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int defaultValueMapItem,
             long pastTxn,
             long minRetentionPeriod,
-            int numUnusedLeadingIndexFields)
+            int numUnusedLeadingIndexFields,
+            boolean canCacheResultSet)
             throws StandardException {
         try{
             StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)
@@ -1457,7 +1467,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     defaultValueMapItem,
                     pastTxn,
                     minRetentionPeriod,
-                    numUnusedLeadingIndexFields
+                    numUnusedLeadingIndexFields,
+                    canCacheResultSet
                     );
             op.setExplainPlan(explainPlan);
             return op;
@@ -2518,7 +2529,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     tableVersion,
                     explainPlan,
                     pastTxFunctor,
-                    minRetentionPeriod, 0);
+                    minRetentionPeriod, 0, false);
     }
 
     public NoPutResultSet getLastIndexKeyResultSet
@@ -2540,7 +2551,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     String explainPlan,
                     long pastTxFunctor,
                     long minRetentionPeriod,
-                    int numUnusedLeadingIndexFields
+                    int numUnusedLeadingIndexFields,
+                    boolean canCacheResultSet
             ) throws StandardException {
         SpliceLogUtils.trace(LOG, "getLastIndexKeyResultSet");
         ScanOperation op = new LastIndexKeyOperation(
@@ -2557,7 +2569,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 isolationLevel,
                 optimizerEstimatedRowCount,
                 optimizerEstimatedCost, tableVersion, pastTxFunctor,
-                minRetentionPeriod, numUnusedLeadingIndexFields);
+                minRetentionPeriod, numUnusedLeadingIndexFields, canCacheResultSet);
         op.setExplainPlan(explainPlan);
         return op;
     }

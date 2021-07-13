@@ -19,7 +19,8 @@ import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.eclipse.jetty.util.ConcurrentHashSet;
 import splice.com.google.common.collect.Lists;
 
@@ -28,7 +29,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class SessionsWatcherImpl implements com.splicemachine.si.api.session.SessionsWatcher {
-    private static final Logger LOG = Logger.getLogger(SessionsWatcherImpl.class);
+    private static final Logger LOG = LogManager.getLogger(SessionsWatcherImpl.class);
     private final Set<Long> activeSessions = new ConcurrentHashSet<>();
 
     public static final SessionsWatcherImpl INSTANCE = new SessionsWatcherImpl();

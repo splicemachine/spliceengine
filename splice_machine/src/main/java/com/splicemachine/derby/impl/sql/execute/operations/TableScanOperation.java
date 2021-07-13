@@ -27,6 +27,7 @@ import com.splicemachine.db.impl.sql.compile.ActivationClassBuilder;
 import com.splicemachine.db.impl.sql.compile.FromTable;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.stream.function.CloneFunction;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -40,12 +41,14 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -55,7 +58,7 @@ import java.util.List;
  */
 public class TableScanOperation extends ScanOperation{
     private static final long serialVersionUID=3l;
-    private static Logger LOG=Logger.getLogger(TableScanOperation.class);
+    private static Logger LOG=LogManager.getLogger(TableScanOperation.class);
     protected int indexColItem;
     public String userSuppliedOptimizerOverrides;
     public int rowsPerRead;
@@ -170,12 +173,13 @@ public class TableScanOperation extends ScanOperation{
                               int defaultValueMapItem,
                               long pastTxn,
                               long minRetentionPeriod,
-                              int numUnusedLeadingIndexFields) throws StandardException{
+                              int numUnusedLeadingIndexFields,
+                              boolean canCacheResultSet) throws StandardException{
         super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,
                 sameStartStopPosition,rowIdKey,qualifiersField,resultRowAllocator,lockMode,tableLocked,isolationLevel,
                 colRefItem,indexColItem,oneRowScan,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion,
                 splits,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem,
-              pastTxn, minRetentionPeriod, numUnusedLeadingIndexFields);
+                pastTxn, minRetentionPeriod, numUnusedLeadingIndexFields, canCacheResultSet);
         SpliceLogUtils.trace(LOG,"instantiated for tablename %s or indexName %s with conglomerateID %d",
                 tableName,indexName,conglomId);
         this.forUpdate=forUpdate;
@@ -322,14 +326,23 @@ public class TableScanOperation extends ScanOperation{
 
         assert currentTemplate!=null:"Current Template Cannot Be Null";
 
+        operationContext = dsp.createOperationContext(this);
+        if (cachedResultSet != null) {
+            return dataSetFromCachedResultSet(dsp);
+        }
         DataSet<ExecRow> ds = getTableScannerBuilder(dsp);
         if (ds.isNativeSpark())
             dsp.incrementOpDepth();
         dsp.prependSpliceExplainString(this.explainPlan);
         if (ds.isNativeSpark())
             dsp.decrementOpDepth();
+
+        if (canCacheResultSet && dsp.getType().equals(DataSetProcessor.Type.CONTROL))
+            ds = makeCachedResultSetFromDataSet(dsp, ds);
+
         return ds;
     }
+
 
     /**
      * @return the string representation for TableScan.
@@ -364,7 +377,6 @@ public class TableScanOperation extends ScanOperation{
      */
     public DataSet<ExecRow> getTableScannerBuilder(DataSetProcessor dsp) throws StandardException{
         TxnView txn = getCurrentTransaction();
-        operationContext = dsp.createOperationContext(this);
 
         // we currently don't support external tables in Control, so this shouldn't happen
         assert storedAs == null || !( dsp.getType() == DataSetProcessor.Type.CONTROL && !storedAs.isEmpty() )

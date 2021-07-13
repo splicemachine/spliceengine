@@ -68,11 +68,16 @@ import com.splicemachine.db.iapi.services.loader.InstanceGetter;
 import com.splicemachine.db.iapi.services.io.FormatableInstanceGetter;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import  com.splicemachine.db.io.StorageFactory;
 
 import com.splicemachine.db.iapi.services.info.JVMInfo;
 import com.splicemachine.db.iapi.services.i18n.BundleFinder;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
+import com.splicemachine.utils.Pair;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import splice.com.google.common.cache.CacheBuilder;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -106,6 +111,7 @@ import java.net.URL;
 
 */
 
+@SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "intentional")
 abstract class BaseMonitor
 	implements ModuleFactory, BundleFinder {
 
@@ -117,6 +123,10 @@ abstract class BaseMonitor
 	private HashMap serviceProviders = new HashMap();
 	private static final String LINE = 
         "----------------------------------------------------------------";
+
+	private ManagedCache<Pair<String,String>, ProtocolKey> protocolKeyCache =
+	    new ManagedCache<>(CacheBuilder.newBuilder().maximumSize(
+                           200).build(), 200);
 
 	// Vector of class objects of implementations, found in the System, application
 	// and default (modules.properties) properties
@@ -415,7 +425,12 @@ abstract class BaseMonitor
 		ProtocolKey key;
 
 		try {
-			key = ProtocolKey.create(factoryInterface, serviceName);
+			Pair<String, String> pkKey = new Pair<>(factoryInterface, serviceName);
+			key = protocolKeyCache.getIfPresent(pkKey);
+			if (key == null) {
+				key = ProtocolKey.create(factoryInterface, serviceName);
+				protocolKeyCache.put(pkKey, key);
+			}
 		} catch (StandardException se) {
 			return null;
 		}
@@ -688,6 +703,7 @@ abstract class BaseMonitor
 			t, identifier, "XX" /*ci.getClassName()*/);
 	}
 
+    @SuppressFBWarnings(value = "UUF_UNUSED_FIELD", justification = "intentional")
 	private Boolean exceptionTrace;
 
 	/**
@@ -764,6 +780,7 @@ abstract class BaseMonitor
 
 	/**
 	*/
+    @SuppressFBWarnings(value = "UPM_UNCALLED_PRIVATE_METHOD", justification = "intentional")
 	private Object newInstance(String className) {
 
 		try {

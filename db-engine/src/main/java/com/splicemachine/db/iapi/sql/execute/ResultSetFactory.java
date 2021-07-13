@@ -1079,7 +1079,8 @@ public interface ResultSetFactory {
                         int defaultValueMapItem,
                         long pastTxn,
                         long minRetentionPeriod,
-                        int numUnusedLeadingIndexFields
+                        int numUnusedLeadingIndexFields,
+                        boolean canCacheResultSet
                         )
 	        throws StandardException;
 
@@ -1124,7 +1125,8 @@ public interface ResultSetFactory {
                         int defaultValueMapItem,
                         long pastTxn,
                         long minRetentionPeriod,
-                        int numUnusedLeadingIndexFields
+                        int numUnusedLeadingIndexFields,
+                        boolean canCacheResultSet
                         )
         throws StandardException;
 
@@ -1237,7 +1239,8 @@ public interface ResultSetFactory {
             int defaultValueMapItem,
             long pastTxn,
             long minRetentionPeriod,
-            int numUnusedLeadingIndexFields)
+            int numUnusedLeadingIndexFields,
+            boolean canCacheResultSet)
             throws StandardException;
 
     NoPutResultSet getDistinctScanResultSet(
@@ -1327,7 +1330,8 @@ public interface ResultSetFactory {
             int defaultValueMapItem,
             long pastTxn,
             long minRetentionPeriod,
-            int numUnusedLeadingIndexFields
+            int numUnusedLeadingIndexFields,
+            boolean canCacheResultSet
     )
             throws StandardException;
 
@@ -2317,7 +2321,8 @@ public interface ResultSetFactory {
             String explainPlan,
             long pastTxn,
             long minRetentionPeriod,
-            int numUnusedLeadingIndexFields
+            int numUnusedLeadingIndexFields,
+            boolean canCacheResultSet
     ) throws StandardException;
 
     NoPutResultSet getLastIndexKeyResultSet

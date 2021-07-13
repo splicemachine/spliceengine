@@ -30,14 +30,15 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
 public abstract class DDLSingleTableConstantOperation extends DDLConstantOperation {
-    private static final Logger LOG = Logger.getLogger(DDLSingleTableConstantOperation.class);
+    private static final Logger LOG = LogManager.getLogger(DDLSingleTableConstantOperation.class);
     protected UUID tableId;
 
     DDLSingleTableConstantOperation(){}

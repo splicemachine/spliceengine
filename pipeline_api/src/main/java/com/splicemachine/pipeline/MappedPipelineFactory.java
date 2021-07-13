@@ -15,7 +15,8 @@
 package com.splicemachine.pipeline;
 
 import com.splicemachine.pipeline.api.WritePipelineFactory;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -24,7 +25,7 @@ import java.util.concurrent.ConcurrentMap;
  *         Date: 12/23/15
  */
 public class MappedPipelineFactory implements WritePipelineFactory{
-    private static final Logger LOG=Logger.getLogger(MappedPipelineFactory.class);
+    private static final Logger LOG=LogManager.getLogger(MappedPipelineFactory.class);
     private final ConcurrentMap<String,PartitionWritePipeline> map = new ConcurrentHashMap<>();
 
     @Override

@@ -17,7 +17,8 @@ package com.splicemachine.si.impl;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import splice.com.google.common.cache.Cache;
 import splice.com.google.common.cache.CacheBuilder;
 import java.io.IOException;
@@ -26,7 +27,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public class DDLFilter implements Comparable<DDLFilter> {
-    private static final Logger LOG=Logger.getLogger(DDLFilter.class);
+    private static final Logger LOG=LogManager.getLogger(DDLFilter.class);
     private final TxnView myTransaction;
     private Cache<Long,Boolean> visibilityMap;
 

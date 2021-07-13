@@ -69,7 +69,8 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import scala.Tuple2;
 
 import javax.annotation.Nullable;
@@ -163,7 +164,7 @@ import java.util.*;
  *
  */
 public class CreateIndexConstantOperation extends IndexConstantOperation implements Serializable {
-    private static final Logger LOG = Logger.getLogger(CreateIndexConstantOperation.class);
+    private static final Logger LOG = LogManager.getLogger(CreateIndexConstantOperation.class);
     /**
      * Is this for a CREATE TABLE, i.e. it is
      * for a constraint declared in a CREATE TABLE

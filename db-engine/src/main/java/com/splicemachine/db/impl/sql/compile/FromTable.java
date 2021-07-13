@@ -250,7 +250,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         ** Most Optimizables have no ordering, so tell the rowOrdering that
         ** this Optimizable is unordered, if appropriate.
         */
-        if(userSpecifiedJoinStrategy!=null){
+        if(userSpecifiedJoinStrategy!=null && !isSingleTableScan(optimizer)){
             /*
             ** User specified a join strategy, so we should look at only one
             ** strategy.  If there is a current strategy, we have already
@@ -441,6 +441,9 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      * @param accessPath the access path
      */
     public DataSetProcessorType getDataSetProcessorTypeForAccessPath(AccessPath accessPath) {
+        if (getLanguageConnectionContext().compilingRowTrigger())
+            return DataSetProcessorType.DEFAULT_OLTP;
+
         if (! dataSetProcessorType.isDefaultOltp()) {
             // No need to assess cost
             return dataSetProcessorType;
