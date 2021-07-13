@@ -24,7 +24,8 @@ public class SpliceCatalogUpgradeScriptsTest {
 
     String s2 = "VERSION4.1989: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddIndexColUseViewInSYSCAT\n" +
             "VERSION4.1992: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForTablePriorities\n" +
-            "VERSION4.2003: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeStoredObjects\n";
+            "VERSION4.2003: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeStoredObjects\n" +
+            "VERSION4.2023: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeFixIndexDescriptors\n";
 
     // see DB-12144 / DB-11296 / DB-10193 Those scripts must run before other upgrade scripts
     String s3 = "VERSION4.2020: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeAddConglomerateNumberIndex\n" +
