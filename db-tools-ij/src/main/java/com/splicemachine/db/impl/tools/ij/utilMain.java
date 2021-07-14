@@ -162,7 +162,7 @@ public class utilMain implements java.security.PrivilegedAction {
         connEnv = new ConnectionEnv[numConnections];
 
         for (int ictr = 0; ictr < numConnections; ictr++) {
-            commandGrabber[ictr] = new StatementFinder(langUtil.getNewInput(System.in), out, this.terminator);
+            commandGrabber[ictr] = new StatementFinder(langUtil.getNewInput(System.in), out, this.terminator, null);
             connEnv[ictr] = new ConnectionEnv(ictr, (numConnections > 1), (numConnections == 1));
         }
         initOptions();
@@ -281,18 +281,18 @@ public class utilMain implements java.security.PrivilegedAction {
     private void runSqlShellRc() {
         // first, check .sqlshellrc in local directory
         String f = Paths.get(sqlshellRcFilename).toAbsolutePath().toString();
-        if(! new File(f).exists()) {
-            // check $HOME/.sqlshellrc
-            try {
-                f = System.getProperty("user.home") + "/" + sqlshellRcFilename;
-                if(!new File(f).exists())
-                    return;
-            } catch(Exception e) {
-                return;
-            }
+        if(new File(f).exists()) {
+            newInput(f, "[ executing commands from file '" + f + "'");
         }
-        out.println("\n[ Executing init commands from '" + f + "' :");
-        newInput(f);
+        // check $HOME/.sqlshellrc
+        try {
+            f = System.getProperty("user.home") + "/" + sqlshellRcFilename;
+            if(new File(f).exists()) {
+                newInput(f, "[ executing commands from file '" + f + "'");
+            }
+            } catch(Exception e) {
+            return;
+        }
     }
 
     public void init(LocalizedOutput out)
@@ -365,7 +365,9 @@ public class utilMain implements java.security.PrivilegedAction {
                 //do nothing
             }
 
+            commandGrabber[currCE].promptFirst(out);
             connEnv[currCE].doPrompt(true, out);
+
             try {
                 command = null;
                 out.flush();
@@ -389,9 +391,12 @@ public class utilMain implements java.security.PrivilegedAction {
                 while (command == null && !oldGrabbers.empty()) {
                     // close the old input file if not System.in
                     if (fileInput) commandGrabber[currCE].close();
+                    commandGrabber[currCE].promptLast(out);
                     commandGrabber[currCE] = (StatementFinder) oldGrabbers.pop();
                     if (oldGrabbers.empty())
                         fileInput = initialFileInput;
+                    commandGrabber[currCE].promptFirst(out);
+                    connEnv[currCE].doPrompt(true, out);
                     command = commandGrabber[currCE].nextStatement();
                 }
 
@@ -707,7 +712,11 @@ public class utilMain implements java.security.PrivilegedAction {
         out.flush();
     }
 
-    void newInput(String fileName) {
+    void newInput(String filename) {
+        newInput(filename, null);
+    }
+
+    void newInput(String fileName, String additionalInformation) {
         FileInputStream newFile = null;
         try {
             newFile = new FileInputStream(fileName);
@@ -719,7 +728,7 @@ public class utilMain implements java.security.PrivilegedAction {
         oldGrabbers.push(commandGrabber[currCE]);
         commandGrabber[currCE] =
                 new StatementFinder(langUtil.getNewInput(new BufferedInputStream(newFile, BUFFEREDFILESIZE)), null,
-                        this.terminator);
+                        this.terminator, additionalInformation);
         fileInput = true;
     }
 
@@ -729,7 +738,7 @@ public class utilMain implements java.security.PrivilegedAction {
         oldGrabbers.push(commandGrabber[currCE]);
         commandGrabber[currCE] =
                 new StatementFinder(langUtil.getNewEncodedInput(new BufferedInputStream(is, BUFFEREDFILESIZE), "UTF8"), null,
-                        this.terminator);
+                        this.terminator, null);
         fileInput = true;
     }
 
