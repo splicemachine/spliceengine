@@ -15,7 +15,9 @@
 package com.splicemachine.si.impl.driver;
 
 import com.splicemachine.access.api.*;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.si.api.session.SessionsWatcher;
+import com.splicemachine.uuid.Snowflake;
 import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.data.ExceptionFactory;
