@@ -109,6 +109,32 @@ import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNA
  */
 
 public class FromBaseTable extends FromTable {
+
+    /**
+     * Constructor for a table in a FROM list. Parameters are as follows:
+     *
+     * @param tableName         The name of the table
+     * @param correlationName   The correlation name
+     * @param derivedRCL        The derived column list
+     * @param tableProperties   The Properties list associated with the table.
+     * @param cm                The context manager
+     */
+    FromBaseTable(TableName tableName,
+                  String correlationName,
+                  ResultColumnList derivedRCL,
+                  Properties tableProperties,
+                  ContextManager cm)
+    {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.FROM_BASE_TABLE);
+        init2(correlationName, tableProperties);
+        this.tableName = tableName;
+        resultColumns = derivedRCL;
+        setOrigTableName(this.tableName);
+        templateColumns = resultColumns;
+    }
+
+
     static final int UNSET=-1;
     /**
      * Whether or not we have checked the index statistics for staleness.
@@ -227,6 +253,9 @@ public class FromBaseTable extends FromTable {
 
     private boolean getUpdateLocks;
 
+    // non-null if we need to return a row location column
+    private String  rowLocationColumnName;
+
     // true if we are running with sql authorization and this is the SYSUSERS table
     private boolean authorizeSYSUSERS;
 
@@ -313,6 +342,12 @@ public class FromBaseTable extends FromTable {
         setOrigTableName(this.tableName);
         templateColumns=resultColumns;
         usedNoStatsColumnIds=new HashSet<>();
+    }
+
+    /** Set the name of the row location column */
+    void    setRowLocationColumnName( String rowLocationColumnName )
+    {
+        this.rowLocationColumnName = rowLocationColumnName;
     }
 
     /**
@@ -1093,12 +1128,8 @@ public class FromBaseTable extends FromTable {
 
         SelectNode selectNode = new SelectNode(
                             finalResultColumns,
-                            null,         /* AGGREGATE list */
                             fromList,
                             whereClause,
-                            null,
-                            null,
-                            null,
                             getContextManager());
         DMLStatementNode
         stmt = new CursorNode("SELECT", selectNode, null, null, null, null,
@@ -1633,12 +1664,8 @@ public class FromBaseTable extends FromTable {
 
        SelectNode selectNode = new SelectNode(
                             resultColumnList,
-                            null,
                             fromList,
                             whereClause,
-                            null,
-                            null,
-                            null,
                             getContextManager());
        return selectNode;
     }
@@ -2489,7 +2516,11 @@ public class FromBaseTable extends FromTable {
                 columnReference.setColumnNumber(
                         resultColumn.getColumnPosition());
 
-                if(tableDescriptor!=null){
+                // set the column-referenced bit if this is not the row location column
+                if ( (tableDescriptor != null) && ( (rowLocationColumnName == null) ||
+                                !(rowLocationColumnName.equals( columnReference.getColumnName() )) )
+                )
+                {
                     FormatableBitSet referencedColumnMap=tableDescriptor.getReferencedColumnMap();
                     if(referencedColumnMap==null)
                         referencedColumnMap=new FormatableBitSet(
@@ -3099,6 +3130,11 @@ public class FromBaseTable extends FromTable {
     public void generate(ActivationClassBuilder acb,
                          MethodBuilder mb)
             throws StandardException{
+
+        if ( rowLocationColumnName != null )
+        {
+            resultColumns.conglomerateId = tableDescriptor.getHeapConglomerateId();
+        }
         //
         // By now the map of referenced columns has been filled in.
         // We check to see if SYSUSERS.PASSWORD is referenced.
@@ -3590,7 +3626,7 @@ public class FromBaseTable extends FromTable {
      * @throws StandardException Thrown on error
      * @return TableName The exposed name of this table.
      */
-    private TableName getExposedTableName() throws StandardException{
+    TableName getExposedTableName() throws StandardException{
         if(correlationName!=null)
             return makeTableName(null,correlationName);
         else
@@ -3668,6 +3704,18 @@ public class FromBaseTable extends FromTable {
 
             /* Build the ResultColumnList to return */
             rcList.addResultColumn(resultColumn);
+        }
+
+        // add a row location column as necessary
+        if ( rowLocationColumnName != null )
+        {
+            CurrentRowLocationNode  rowLocationNode = new CurrentRowLocationNode( getContextManager() );
+            ResultColumn    rowLocationColumn = new ResultColumn
+                    ( rowLocationColumnName, rowLocationNode, getContextManager() );
+            rowLocationColumn.markGenerated();
+            rowLocationNode.bindExpression( null, null, null );
+            rowLocationColumn.bindResultColumnToExpression();
+            rcList.addResultColumn( rowLocationColumn );
         }
 
         return rcList;

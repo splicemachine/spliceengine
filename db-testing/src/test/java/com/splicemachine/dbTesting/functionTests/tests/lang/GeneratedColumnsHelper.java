@@ -58,8 +58,8 @@ public class GeneratedColumnsHelper extends BaseJDBCTestCase
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-    protected static final    String OBJECT_DOES_NOT_EXIST = "42X94";
-    protected static final    String NONEXISTENT_OBJECT = "42Y55";
+    protected static final    String  OBJECT_DOES_NOT_EXIST = "42X94";
+    protected static final    String  NONEXISTENT_OBJECT = "42Y55";
     protected static  final   String  REDUNDANT_CLAUSE = "42613";
     protected static  final   String  CANT_CONTAIN_NULLS = "42831";
     protected static  final   String  ILLEGAL_AGGREGATE = "42XA1";
@@ -144,12 +144,22 @@ public class GeneratedColumnsHelper extends BaseJDBCTestCase
      * Run good DDL.
      * @throws SQLException 
      */
-    protected void    goodStatement( Connection conn, String ddl ) throws SQLException
+    protected void goodStatement( Connection conn, String ddl ) throws SQLException
     {
-        PreparedStatement    ps = chattyPrepare( conn, ddl );
+        try(PreparedStatement ps = conn.prepareStatement( ddl ) ) {
+            ps.execute();
+        }
+    }
 
-        ps.execute();
-        ps.close();
+    /**
+     * Run a good update statement with an expected row count.
+     * @throws SQLException
+     */
+    protected void goodUpdate( Connection conn, String update, int expectedRowCount ) throws SQLException
+    {
+        try(PreparedStatement ps = conn.prepareStatement( update ) ) {
+            assertEquals("Expecting to touch " + expectedRowCount + " rows.", expectedRowCount, ps.executeUpdate());
+        }
     }
     
 	protected	static	ResultSet	executeQuery( Statement stmt, String text )
@@ -199,10 +209,7 @@ public class GeneratedColumnsHelper extends BaseJDBCTestCase
     {
         println( "\nExpecting " + sqlState + " when preparing:\n\t" + query );
 
-        PreparedStatement ps = null;
-
-        try {
-            ps = conn.prepareStatement( query );
+        try (PreparedStatement ps = conn.prepareStatement( query ) ) {
         } catch (SQLException se )
         {
             assertSQLState( sqlState, se );
@@ -272,6 +279,16 @@ public class GeneratedColumnsHelper extends BaseJDBCTestCase
     }
 
     /**
+     * Assert that the statement text, when executed, raises no warnings.
+     */
+    protected void    expectNoWarning( Connection conn, String query )
+            throws Exception
+    {
+        expectExecutionWarnings( conn, new String[] { }, query );
+    }
+
+
+    /**
      * Assert that the statement text, when executed, raises a warning.
      */
     protected void    expectExecutionWarnings( Connection conn, String[] sqlStates, String query )
@@ -311,22 +328,17 @@ public class GeneratedColumnsHelper extends BaseJDBCTestCase
     public  void    assertDeterministic( Connection conn, String routineName, boolean isDeterministic )
         throws Exception
     {
-        PreparedStatement   ps = conn.prepareStatement
-            (
-             "select a.aliasinfo\n" +
-             "from sys.sysaliases a\n" +
-             "where alias =  ?"
-             );
-        ps.setString( 1, routineName );
-        ResultSet               rs = ps.executeQuery();
-
-        rs.next();
-        RoutineAliasInfo    rai = (RoutineAliasInfo) rs.getObject( 1 );
-
-        assertEquals( isDeterministic, rai.isDeterministic() );
-
-        rs.close();
-        ps.close();
+        String sql = "select a.aliasinfo\n" +
+                "from sys.sysaliases a\n" +
+                "where alias =  ?";
+        try(PreparedStatement ps = conn.prepareStatement(sql) ) {
+            ps.setString(1, routineName);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                RoutineAliasInfo rai = (RoutineAliasInfo) rs.getObject(1);
+                assertEquals(isDeterministic, rai.isDeterministic());
+            }
+        }
     }
 
     /**
@@ -335,22 +347,17 @@ public class GeneratedColumnsHelper extends BaseJDBCTestCase
     protected void assertColumnTypes( Connection conn, String tableName, String[][] columnTypes )
         throws Exception
     {
-        PreparedStatement   ps = chattyPrepare
-            (
-             conn,
-             "select c.columnname, c.columndatatype\n" +
-             "from sys.syscolumns c, sys.systables t\n" +
-             "where t.tablename = ?\n" +
-             "and t.tableid = c.referenceid\n" +
-             "order by c.columnname\n"
-             );
-        ps.setString( 1, tableName );
-        ResultSet                   rs = ps.executeQuery();
-
-        assertResults( rs, columnTypes, true );
-
-        rs.close();
-        ps.close();
+        String sql = "select c.columnname, c.columndatatype\n" +
+                "from sys.syscolumns c, sys.systables t\n" +
+                "where t.tablename = ?\n" +
+                "and t.tableid = c.referenceid\n" +
+                "order by c.columnname\n";
+        try(PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, tableName);
+            try(ResultSet rs = ps.executeQuery()) {
+                assertResults(rs, columnTypes, true);
+            }
+        }
     }
         
     /**
@@ -359,13 +366,10 @@ public class GeneratedColumnsHelper extends BaseJDBCTestCase
     protected void assertResults( Connection conn, String query, String[][] rows, boolean trimResults )
         throws Exception
     {
-        PreparedStatement   ps = chattyPrepare( conn, query );
-        ResultSet                   rs = ps.executeQuery();
-
-        assertResults( rs, rows, trimResults );
-
-        rs.close();
-        ps.close();
+        try(PreparedStatement ps = conn.prepareStatement(query);
+            ResultSet rs = ps.executeQuery() ) {
+            assertResults(rs, rows, trimResults);
+        }
     }
         
     /**
@@ -374,12 +378,12 @@ public class GeneratedColumnsHelper extends BaseJDBCTestCase
     protected void assertResults( ResultSet rs, String[][] rows, boolean trimResults )
         throws Exception
     {
-        int     rowCount = rows.length;
+        int rowCount = rows.length;
 
         for ( int i = 0; i < rowCount; i++ )
         {
-            String[]    row = rows[ i ];
-            int             columnCount = row.length;
+            String[] row = rows[ i ];
+            int      columnCount = row.length;
 
             assertTrue( rs.next() );
 
@@ -388,7 +392,7 @@ public class GeneratedColumnsHelper extends BaseJDBCTestCase
                 String  expectedValue =  row[ j ];
                 //println( "(row, column ) ( " + i + ", " +  j + " ) should be " + expectedValue );
                 String  actualValue = null;
-                int         column = j+1;
+                int     column = j+1;
 
                 actualValue = rs.getString( column );
                 if ( rs.wasNull() ) { actualValue = null; }

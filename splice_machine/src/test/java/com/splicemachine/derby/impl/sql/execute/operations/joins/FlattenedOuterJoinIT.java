@@ -217,9 +217,9 @@ public class FlattenedOuterJoinIT  extends SpliceUnitTest {
     public void testOuterJoinWithDT() throws Exception {
         String sqlText = "select a3, b3, a2, b2, a1, b1 from t1 left join (select * from t2 left join t3 on a2=a3) dt on a1=a2 and a2=1 order by a1, b1, a2, b2";
         rowContainsQuery(new int[]{5, 6, 7, 8, 9, 10}, "explain " + sqlText, methodWatcher,
-                new String[]{"LeftOuterJoin", "preds=[(A1[10:1] = A2[10:3])]"},
-                new String[]{"ProjectRestrict", "preds=[(A2[8:1] = 1)]"},
-                new String[]{"LeftOuterJoin", "preds=[(A2[6:1] = A3[6:3])]"},
+                new String[]{"LeftOuterJoin", "preds=[(T1.A1[10:1] = DT.A2[10:3])]"},
+                new String[]{"ProjectRestrict", "preds=[(DT.A2[8:1] = 1)]"},
+                new String[]{"LeftOuterJoin", "preds=[(T2.A2[6:1] = T3.A3[6:3])]"},
                 new String[]{"TableScan[T3"},
                 new String[]{"TableScan[T2"},
                 new String[]{"TableScan[T1"});
@@ -241,9 +241,9 @@ public class FlattenedOuterJoinIT  extends SpliceUnitTest {
     public void testOuterJoinWithDTAndSingleTableConditionOnOuter() throws Exception {
         String sqlText = "select a3, b3, a2, b2, a1, b1 from t1 right join (select * from t2 left join t3 on a2=a3) dt on a1=a2 and a2=3 order by a1, b1, a2, b2";
         rowContainsQuery(new int[]{5, 6, 7, 8, 9}, "explain " + sqlText, methodWatcher,
-                new String[]{"LeftOuterJoin", "preds=[(A2[10:1] = 3),(A1[10:5] = A2[10:1])]"},
+                new String[]{"LeftOuterJoin", "preds=[(DT.A2[10:1] = 3),(T1.A1[10:5] = DT.A2[10:1])]"},
                 new String[]{"TableScan[T1"},
-                new String[]{"LeftOuterJoin", "preds=[(A2[4:1] = A3[4:3])]"},
+                new String[]{"LeftOuterJoin", "preds=[(T2.A2[4:1] = T3.A3[4:3])]"},
                 new String[]{"TableScan[T3"},
                 new String[]{"TableScan[T2"});
 
@@ -267,10 +267,10 @@ public class FlattenedOuterJoinIT  extends SpliceUnitTest {
         String sqlText = "select * from t1 left join (select a2 as X from t2 union all select a3 as X from t3) dt --splice-properties joinStrategy=nestedloop \n on a1=X and X=3";
         rowContainsQuery(new int[]{3, 4, 5, 6, 7}, "explain " + sqlText, methodWatcher,
                 new String[]{"LeftOuterJoin"},
-                new String[]{"ProjectRestrict", "preds=[(X[8:1] = 3)]"},
+                new String[]{"ProjectRestrict", "preds=[(DT.X[8:1] = 3)]"},
                 new String[]{"Union"},
-                new String[]{"TableScan[T3", "preds=[(A1[1:1] = A3[5:1])]"},
-                new String[]{"TableScan[T2", "preds=[(A1[1:1] = A2[2:1])]"});
+                new String[]{"TableScan[T3", "preds=[(T1.A1[1:1] = T3.A3[5:1])]"},
+                new String[]{"TableScan[T2", "preds=[(T1.A1[1:1] = T2.A2[2:1])]"});
 
         String expected = "A1 |B1 | C1  |  X  |\n" +
                 "--------------------\n" +
@@ -372,10 +372,10 @@ public class FlattenedOuterJoinIT  extends SpliceUnitTest {
         String sqlText = "select * from t1 left join t2 on a1=a2 where coalesce(a2,3)=3 and not exists (select 1 from t3 where a1=a3)";
 
         rowContainsQuery(new int[]{4, 5, 6, 7}, "explain " + sqlText, methodWatcher,
-                new String[]{"AntiJoin", "preds=[(A1[8:1] = A3[8:7])]"},
+                new String[]{"AntiJoin", "preds=[(A1[8:1] = T3.A3[8:7])]"},
                 new String[]{"TableScan[T3"},
                 new String[]{"ProjectRestrict", "preds=[(coalesce(A2[4:4], cast(3 as INTEGER))  = 3)]"},
-                new String[]{"LeftOuterJoin", "preds=[(A1[4:1] = A2[4:4])]"});
+                new String[]{"LeftOuterJoin", "preds=[(T1.A1[4:1] = T2.A2[4:4])]"});
 
         String expected = "A1 |B1 |C1 | A2  | B2  | C2  |\n" +
                 "------------------------------\n" +
@@ -394,7 +394,7 @@ public class FlattenedOuterJoinIT  extends SpliceUnitTest {
                 new String[]{"ProjectRestrict", "preds=[is null(subq=8)]"},
                 new String[]{"Subquery"},
                 new String[]{"ProjectRestrict", "preds=[(coalesce(A2[4:4], cast(3 as INTEGER))  = 3)]"},
-                new String[]{"LeftOuterJoin", "preds=[(A1[4:1] = A2[4:4])]"});
+                new String[]{"LeftOuterJoin", "preds=[(T1.A1[4:1] = T2.A2[4:4])]"});
 
         String expected = "A1 |B1 |C1 | A2  | B2  | C2  |\n" +
                 "------------------------------\n" +
@@ -411,10 +411,10 @@ public class FlattenedOuterJoinIT  extends SpliceUnitTest {
         String sqlText = "select a1, a2, a3 from (select * from t1 left join t2 on a1=a2 left join t3 on a1=a3) dt where a2=2";
 
         rowContainsQuery(new int[]{3, 4, 5, 6}, "explain " + sqlText, methodWatcher,
-                new String[]{"LeftOuterJoin", "preds=[(A1[8:1] = A3[8:3])]"},
+                new String[]{"LeftOuterJoin", "preds=[(A1[8:1] = T3.A3[8:3])]"},
                 new String[]{"TableScan[T3"},
-                new String[]{"ProjectRestrict", "preds=[(A2[4:2] = 2)]"},
-                new String[]{"LeftOuterJoin", "preds=[(A1[4:1] = A2[4:2])]"});
+                new String[]{"ProjectRestrict", "preds=[(DT.A2[4:2] = 2)]"},
+                new String[]{"LeftOuterJoin", "preds=[(T1.A1[4:1] = T2.A2[4:2])]"});
 
         String expected = "A1 |A2 | A3  |\n" +
                 "--------------\n" +

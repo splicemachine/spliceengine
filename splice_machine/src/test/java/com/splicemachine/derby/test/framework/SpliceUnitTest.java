@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.test.framework;
 
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.derby.utils.test.DecoderIT;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.utils.Pair;
@@ -1077,6 +1078,10 @@ public class SpliceUnitTest {
     }
 
     public static void assertFailed(Connection connection, String sql, String errorState) {
+       assertFailed(connection, sql, errorState, null);
+    }
+
+    public static void assertFailed(Connection connection, String sql, String errorState, String msg) {
         try(Statement s = connection.createStatement())
         {
             s.execute(sql);
@@ -1085,6 +1090,8 @@ public class SpliceUnitTest {
             assertTrue("Incorrect error type: " + e.getClass().getName(), e instanceof SQLException);
             SQLException se = (SQLException) e;
             assertTrue("Incorrect error state: " + se.getSQLState() + ", expected: " + errorState,  errorState.startsWith( se.getSQLState()));
+            if(msg != null)
+                assertEquals(msg, e.getMessage().split("\n")[0]);
         }
     }
 
@@ -1403,5 +1410,10 @@ public class SpliceUnitTest {
 
         filter = filter.replace("§", ".*");
         return filter;
+    }
+
+    public static void setOption(SpliceWatcher m, GlobalDBProperties.PropertyType type, String value) throws Exception {
+        m.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( '" + type.getName() + "'," +
+                        (value == null ? "null" : ("'" + value + "'") ) + " )");
     }
 }

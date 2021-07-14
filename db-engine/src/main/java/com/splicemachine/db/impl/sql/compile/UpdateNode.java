@@ -96,13 +96,25 @@ public final class UpdateNode extends DMLModStatementNode
     public static final String SUBQ_NAME = "UPDSBQ";
 
     public UpdateNode() {}
-    public UpdateNode(TableName tableName, SelectNode resultSet, Boolean cursorUpdate, ContextManager cm) {
+
+    /**
+     * Constructor for an UpdateNode.
+     *
+     * @param targetTableName  The name of the table to update
+     * @param resultSet        The ResultSet that we will generate
+     * @param matchingClause   Non-null if this DML is part of a MATCHED clause of a MERGE statement.
+     * @param cm               The context manager
+     */
+    public UpdateNode(TableName targetTableName, SelectNode resultSet, Boolean cursorUpdate,
+                      MatchingClauseNode matchingClause, ContextManager cm) {
         setContextManager(cm);
         setNodeType(C_NodeTypes.UPDATE_NODE);
         super.init(resultSet);
-        this.targetTableName = tableName;
+        this.targetTableName = targetTableName;
         this.cursorUpdate = cursorUpdate;
+        this.matchingClause = matchingClause;
     }
+
 
     /**
      * Initializer for an UpdateNode.
@@ -195,7 +207,6 @@ public final class UpdateNode extends DMLModStatementNode
         ValueNode         rowLocationNode;
         TableName         cursorTargetTableName = null;
         CurrentOfNode     currentOfNode = null;
-        FromList          resultFromList;
         ResultColumnList  afterColumns = null;
 
         DataDictionary dataDictionary = getDataDictionary();
@@ -278,7 +289,7 @@ public final class UpdateNode extends DMLModStatementNode
         // the table descriptor should always be found.
         verifyTargetTable();
 
-        if (sel.getFromList().size() > 1) {
+        if (sel.getFromList().size() > 1 && matchingClause  == null) {
             // Select items of the subquery may be expressions. However, a FromSubquery
             // is not flattenable if it selects expressions. There are other restrictions
             // that prevent a FromSubquery from being flattened, but this one can be
@@ -413,9 +424,10 @@ public final class UpdateNode extends DMLModStatementNode
         ** Get the result FromTable, which should be the only table in the
          ** from list.
         */
-        resultFromList = resultSet.getFromList();
+
         // Splice fork - don't enforce this if special subquery syntax
-        if (!isUpdateWithSubquery) {
+        if (!isUpdateWithSubquery && !inMatchingClause()) {
+            FromList resultFromList = resultSet.getFromList();
             if (SanityManager.DEBUG) {
                 SanityManager.ASSERT(resultFromList.size() == 1,
                         "More than one table in result from list in an update.");
@@ -515,11 +527,18 @@ public final class UpdateNode extends DMLModStatementNode
 
         changedColumnIds = getChangedColumnIds(resultSet.getResultColumns());
 
+        //
+        // Trigger transition tables are implemented as VTIs. This short-circuits some
+        // necessary steps if the source table of a MERGE statement is a trigger
+        // transition table. The following boolean is meant to prevent that short-circuiting.
+        //
+        boolean needBaseColumns = (targetVTI == null) || inMatchingClause();
+
         /*
         ** We need to add in all the columns that are needed
         ** by the constraints on this table.
         */
-        if (!allColumns && targetVTI == null)
+        if (!allColumns && needBaseColumns)
         {
             getCompilerContext().pushCurrentPrivType( Authorizer.NULL_PRIV);
             try
@@ -561,7 +580,7 @@ public final class UpdateNode extends DMLModStatementNode
             }
         }
 
-        if (targetVTI == null)
+        if (needBaseColumns)
         {
             /*
             ** Construct an empty heap row for use in our constant action.
@@ -676,7 +695,7 @@ public final class UpdateNode extends DMLModStatementNode
             }
         }
 
-        if( null != targetVTI)
+        if( null != targetVTI && !inMatchingClause() )
         {
             deferred = VTIDeferModPolicy.deferIt( DeferModification.UPDATE_STATEMENT,
                                                   targetVTI,
@@ -770,7 +789,7 @@ public final class UpdateNode extends DMLModStatementNode
         ** Updates are also deferred if they update a column in the index
         ** used to scan the table being updated.
         */
-        if (! deferred )
+        if ( !deferred && !inMatchingClause() )
         {
             /**
              * When the underneath SelectNode is unsatisfiable, we rewrite it to
@@ -806,7 +825,8 @@ public final class UpdateNode extends DMLModStatementNode
                         deferred, changedColumnIds);
         }
 
-        int lockMode = resultSet.updateTargetLockMode();
+        int lockMode = inMatchingClause() ?
+                TransactionController.MODE_RECORD : resultSet.updateTargetLockMode();
         long heapConglomId = targetTableDescriptor.getHeapConglomerateId();
         TransactionController tc =
             getLanguageConnectionContext().getTransactionCompile();
@@ -853,7 +873,8 @@ public final class UpdateNode extends DMLModStatementNode
                   readColsBitSet.getNumBitsSet(),
               positionedUpdate,
               resultSet.isOneRowResultSet(),
-              targetTableDescriptor.getStoragePositionArray()
+              targetTableDescriptor.getStoragePositionArray(),
+              inMatchingClause()
               );
     }
 
@@ -936,9 +957,18 @@ public final class UpdateNode extends DMLModStatementNode
         */
 
         acb.pushGetResultSetFactoryExpression(mb);
-        resultSet.generate(acb, mb); // arg 1
 
-        if( null != targetVTI)
+        // arg 1
+        if ( inMatchingClause() )
+        {
+            matchingClause.generateResultSetField( acb, mb );
+        }
+        else
+        {
+            resultSet.generate( acb, mb );
+        }
+
+        if( null != targetVTI  && !inMatchingClause() )
         {
             targetVTI.assignCostEstimate(resultSet.getNewCostEstimate());
             mb.push((double)this.resultSet.getFinalCostEstimate(false).getEstimatedRowCount());
@@ -1489,7 +1519,7 @@ public final class UpdateNode extends DMLModStatementNode
                 }
             }
 
-            if (!isUpdateWithSubquery) {
+            if (!isUpdateWithSubquery && !inMatchingClause() ) {
                 /* The table name is
                  * unnecessary for an update.  More importantly, though, it
                  * creates a problem in the degenerate case with a positioned
@@ -1571,7 +1601,10 @@ public final class UpdateNode extends DMLModStatementNode
 
         for ( int i = 0; i < count; i++ )
         {
-            ResultColumn    rc = (ResultColumn) targetRCL.elementAt( i );
+            ResultColumn rc = targetRCL.elementAt( i );
+
+            // defaults may already have been substituted for MERGE statements
+            if ( rc.wasDefaultColumn() ) { continue; }
 
             if ( rc.hasGenerationClause() )
             {

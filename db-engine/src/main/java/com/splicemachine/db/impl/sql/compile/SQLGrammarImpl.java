@@ -17,7 +17,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
-import org.python.antlr.op.Param;
 
 import java.sql.Types;
 import java.util.Arrays;
@@ -528,16 +527,12 @@ class SQLGrammarImpl {
 
         fromList.addFromTable(fromTable);
         SelectNode resultSet = new SelectNode(
-                null,
-                null,     /* AGGREGATE list */
-                fromList, /* FROM list */
+                null,        /* selectList */
+                fromList,    /* FROM list */
                 whereClause, /* WHERE clause */
-                null, /* GROUP BY list */
-                null, /* having clause */
-                null, /* window list */
                 getContextManager());
 
-        DeleteNode dn = new DeleteNode(tableName, resultSet, fromTable instanceof CurrentOfNode, targetProperties, getContextManager());
+        DeleteNode dn = new DeleteNode(tableName, resultSet, fromTable instanceof CurrentOfNode, targetProperties, null, getContextManager());
         setUpAndLinkParameters();
         return dn;
     }
@@ -559,20 +554,16 @@ class SQLGrammarImpl {
         fromList.addFromTable(fromTable);
 
         SelectNode resultSet = new SelectNode(
-                setClause, /* SELECT list */
-                null,     /* AGGREGATE list */
-                fromList, /* FROM list */
+                setClause,   /* SELECT list */
+                fromList,    /* FROM list */
                 whereClause, /* WHERE clause */
-                null, /* GROUP BY list */
-                null, /* having clause */
-                null, /* window list */
                 getContextManager());
 
         UpdateNode node = new UpdateNode(
                 tableName, /* target table for update */
                 resultSet, /* SelectNode just created */
                 fromTable instanceof CurrentOfNode,
-                getContextManager());
+                null, getContextManager());
         setUpAndLinkParameters();
 
         return node;
@@ -665,19 +656,15 @@ class SQLGrammarImpl {
 
         SelectNode resultSet = new SelectNode(
                 setClause, /* SELECT list */
-                null,   /* AGGREGATE list */
                 fromList, /* FROM list */
                 alteredWhereClause, /* WHERE clause */
-                null, /* GROUP BY list */
-                null, /* having clause */
-                null, /* window list */
                 getContextManager() );
 
         UpdateNode node = new UpdateNode(
                         tableName, /* target table for update */
                         resultSet, /* SelectNode just created */
                         fromTable instanceof CurrentOfNode,
-                        getContextManager());
+                        null, getContextManager());
 
         node.setUpdateWithSubquery(true);
         setUpAndLinkParameters();
@@ -707,12 +694,8 @@ class SQLGrammarImpl {
 
         SelectNode selectNode = new SelectNode(
                 innerRCL,  /* SELECT list */
-                null, /* AGGREGATE list */
                 fromList,  /* FROM list */
-                null, /* WHERE clause */
-                null, /* GROUP BY list */
-                null, /* having clause */
-                null, /* window list */
+                null,      /* WHERE clause */
                 getContextManager());
 
         return new SubqueryNode(selectNode,

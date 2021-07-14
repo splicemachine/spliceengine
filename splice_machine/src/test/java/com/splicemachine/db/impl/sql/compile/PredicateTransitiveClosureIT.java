@@ -85,7 +85,7 @@ public class PredicateTransitiveClosureIT extends SpliceUnitTest {
 
         ResultSet rs = methodWatcher.executeQuery("explain " + sqlText);
         String explainString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        Assert.assertTrue(sqlText + " expected to derive a2=1+2", explainString.contains("preds=[(A2[2:1] = (1 + 2))])"));
+        Assert.assertTrue(sqlText + " expected to derive a2=1+2", explainString.contains("preds=[(T2.A2[2:1] = (1 + 2))])"));
         rs.close();
         rs = methodWatcher.executeQuery(sqlText);
         Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -125,10 +125,10 @@ public class PredicateTransitiveClosureIT extends SpliceUnitTest {
 
          */
         rowContainsQuery(new int[]{7, 8, 11, 12}, "explain " + sqlText, conn,
-                new String[]{"TableScan[T3", "preds=[(A3[10:1] = 3)]"},
-                new String[]{"TableScan[T2", "preds=[(A2[8:1] = 3)]"},
-                new String[]{"TableScan[T3", "preds=[(A3[2:1] = 3)]"},
-                new String[]{"TableScan[T1", "preds=[(A1[0:1] = 3)]"});
+                new String[]{"TableScan[T3", "preds=[(T3.A3[10:1] = 3)]"},
+                new String[]{"TableScan[T2", "preds=[(DT2.A2[8:1] = 3)]"},
+                new String[]{"TableScan[T3", "preds=[(T3.A3[2:1] = 3)]"},
+                new String[]{"TableScan[T1", "preds=[(DT3.A1[0:1] = 3)]"});
 
 
         String expected = "A1 |\n" +

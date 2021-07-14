@@ -185,12 +185,12 @@ public class PredicateSimplificationIT  extends SpliceUnitTest {
             String explainText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
             if (containedStrings != null)
             for (String containedString : containedStrings) {
-                assertTrue(format("\n" + explainQuery + "\n\n" + "Expected to contain: %s\n", containedString),
+                assertTrue(format("\n" + explainText + "\n\n" + "Expected to contain: %s\n", containedString),
                     explainText.contains(containedString));
             }
             if (notContainedStrings != null)
             for (String notContainedString : notContainedStrings) {
-                assertTrue(format("\n" + explainQuery + "\n\n" + "Expected not to contain: %s\n", notContainedString),
+                assertTrue(format("\n" + explainText + "\n\n" + "Expected not to contain: %s\n", notContainedString),
                     !explainText.contains(notContainedString));
             }
         }
@@ -216,7 +216,7 @@ public class PredicateSimplificationIT  extends SpliceUnitTest {
         String query = format("select 1 from A --SPLICE-PROPERTIES useSpark=%s\n" +
             "where (a1 in (1,2,3) or false) or (a1 in (4,5,6) and (true or false)) ", useSpark);
 
-        List<String> containedStrings = Arrays.asList("MultiProbeIndexScan", "(A1[0:1] IN (1,2,3,4,5,6)");
+        List<String> containedStrings = Arrays.asList("MultiProbeIndexScan", "(A.A1[0:1] IN (1,2,3,4,5,6)");
         List<String> notContainedStrings = null;
         testQuery(query, expected);
         if (!disablePredicateSimpification && !disableConstantFolding)
@@ -232,7 +232,7 @@ public class PredicateSimplificationIT  extends SpliceUnitTest {
                 " 1 |\n" +
                 " 1 |";
 
-        containedStrings = Arrays.asList("MultiProbeIndexScan", "(A1[0:1] IN (4,5,6)");
+        containedStrings = Arrays.asList("MultiProbeIndexScan", "(A.A1[0:1] IN (4,5,6)");
         testQuery(query, expected);
         if (!disablePredicateSimpification && !disableConstantFolding)
             testExplainContains(query, containedStrings, notContainedStrings);
@@ -311,7 +311,7 @@ public class PredicateSimplificationIT  extends SpliceUnitTest {
         if (useSpark)
             Arrays.asList("MultiProbeIndexScan", "[(A1[0:1] IN (4,5,6))]");
         else
-            containedStrings = Arrays.asList("MultiProbeIndexScan", "[((A1[0:1],A2[0:2]) IN ((4,40),(4,50),(4,60),(5,40),(5,50),(5,60),(6,40),(6,50),(6,60)))]");
+            containedStrings = Arrays.asList("MultiProbeIndexScan", "[((A.A1[0:1],A.A2[0:2]) IN ((4,40),(4,50),(4,60),(5,40),(5,50),(5,60),(6,40),(6,50),(6,60)))]");
         notContainedStrings = null;
         testQuery(query, expected);
         if (!disablePredicateSimpification && !disableConstantFolding)
@@ -435,7 +435,8 @@ public class PredicateSimplificationIT  extends SpliceUnitTest {
         String query = format("select 1 from A --SPLICE-PROPERTIES useSpark=%s\n" +
             "where (a1 in (?,?,?) or false) or (a1 in (?,?,?) and (true or false)) ", useSpark);
 
-        List<String> containedStrings = Arrays.asList("MultiProbeIndexScan", "(A1[0:1] IN (dataTypeServices: INTEGER ,dataTypeServices: INTEGER ,dataTypeServices: INTEGER ,dataTypeServices: INTEGER ,dataTypeServices: INTEGER ,dataTypeServices: INTEGER )");
+        List<String> containedStrings = Arrays.asList("MultiProbeIndexScan", "(A.A1[0:1] IN (dataTypeServices: INTEGER ," +
+                "dataTypeServices: INTEGER ,dataTypeServices: INTEGER ,dataTypeServices: INTEGER ,dataTypeServices: INTEGER ,dataTypeServices: INTEGER )");
         List<String> notContainedStrings = null;
         List<Integer> paramList = Arrays.asList(1,2,3,4,5,6);
         testPreparedQuery(query, expected, paramList);

@@ -33,7 +33,6 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
@@ -43,8 +42,11 @@ import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.*;
+
+import static com.splicemachine.db.impl.sql.compile.ColumnReference.isBaseRowIdOrRowId;
 
 /**
  * A FromList represents the list of tables in a FROM clause in a DML
@@ -551,10 +553,12 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
      * @throws StandardException Thrown on error
      * @return ResultColumn    The matching ResultColumn
      */
+    @SuppressFBWarnings({"RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE"})
     public ValueNode bindColumnReference(ColumnReference columnReference) throws StandardException{
         boolean columnNameMatch=false;
         boolean tableNameMatch=false;
-        FromTable fromTable;
+        FromTable fromTable = null;
+        FromTable matchingTable = null;
         int currentLevel;
         int previousLevel=-1;
         int matchingIndex = -1;
@@ -588,9 +592,9 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
             previousLevel=currentLevel;
 
             ResultColumn resultColumn=fromTable.getMatchingColumn(columnReference);
-
             if(resultColumn!=null){
-                if(columnNameMatch) {
+                // if we have a rowid, we should take the latter column that matches on this and not complain about ambiguity
+                if(!ColumnReference.isRowId(columnReference.columnName) && columnNameMatch) {
                     ambiguousColumnMatch = true;
                     break;
                 }
@@ -622,7 +626,11 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
             columnReference.setSourceLevel(fromTable.getLevel());
 
             if (fromTable.isPrivilegeCollectionRequired())
+            {
                 getCompilerContext().addRequiredColumnPriv(matchingRC.getTableColumnDescriptor());
+            }
+
+            matchingTable = fromTable;
         } else {
             // not found in normal table, check if it is an alias?
             ValueNode node = getAlias(columnReference);
@@ -635,6 +643,21 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
         }
 
         addSPSPropertyDependency(columnReference);
+
+        // fill in the table name
+        if ( (matchingTable != null) && (matchingRC != null) && (columnReference.getTableName() == null) )
+        {
+            TableName   crtn = matchingTable.getTableName();
+            if ( matchingTable instanceof FromBaseTable )
+            {
+                FromBaseTable   fbt = (FromBaseTable) matchingTable;
+                if ( fbt.getExposedTableName() !=  null )
+                {
+                    crtn = fbt.getExposedTableName();
+                }
+            }
+            columnReference.setTableNameNode( crtn );
+        }
 
         return columnReference;
     }

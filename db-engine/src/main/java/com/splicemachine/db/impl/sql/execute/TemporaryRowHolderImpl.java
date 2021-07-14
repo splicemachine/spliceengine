@@ -560,5 +560,9 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 		state = STATE_UNINIT;
 		lastArraySlot = -1;
 	}
+
+	public int numRows() {
+		return lastArraySlot+1;
+	}
 }
 

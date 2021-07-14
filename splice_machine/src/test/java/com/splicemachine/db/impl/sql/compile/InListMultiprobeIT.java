@@ -437,7 +437,8 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
 
         String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
         Assert.assertTrue("MultiProbeTableScan is expected", resultString.contains("MultiProbeTableScan"));
-        Assert.assertTrue("In lists should be combined", resultString.contains("(A1[0:1] IN (A         ,B         ,C         ,D         ,E         ,F         )"));
+        Assert.assertTrue("In lists should be combined\n" + resultString,
+                resultString.contains("(T1.A1[0:1] IN (A         ,B         ,C         ,D         ,E         ,F         )"));
 
         rs = methodWatcher.executeQuery(sqlText);
 
@@ -472,7 +473,7 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
         Assert.assertTrue("MultiProbeTableScan is expected", resultString.contains("MultiProbeTableScan"));
 
-        Assert.assertTrue("Multicolumn IN list should be built", resultString.contains("[((A1[0:1],B1[0:2]) IN "));
+        Assert.assertTrue("Multicolumn IN list should be built", resultString.contains("[((T1.A1[0:1],T1.B1[0:2]) IN "));
 
         rs = methodWatcher.executeQuery(sqlText);
 
@@ -1435,13 +1436,15 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         level = 1;
         multiProbeFound = false;
         multiColINFound = false;
+        StringBuilder sb = new StringBuilder();
         while (rs.next()) {
             String resultString = rs.getString(1);
+            sb.append(resultString + "\n");
             if (level == 4 || level == 5) {
                 if (!multiProbeFound)
                     multiProbeFound = resultString.contains("MultiProbeTableScan");
                 if (!multiColINFound)
-                    multiColINFound = resultString.contains("keys=[((B1[0:2],A1[0:1]) IN ");
+                    multiColINFound = resultString.contains("keys=[((T22.B1[0:2],T22.A1[0:1]) IN ");
             }
             if (level > 4) {
                 Assert.assertTrue("MultiProbeTableScan is expected", multiProbeFound);

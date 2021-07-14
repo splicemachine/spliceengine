@@ -245,7 +245,7 @@ public class TPCHIT extends SpliceUnitTest {
     public void testPredicatePushdownOnRightSideOfJoin() throws Exception {
         rowContainsQuery(7,"explain select count(*) from --splice-properties joinOrder=fixed\n" +
                 " ORDERS, LINEITEM --splice-properties joinStrategy=BROADCAST\n" +
-                " where l_orderkey = o_orderkey and l_shipdate > date('1995-03-15') and o_orderdate > date('1995-03-15')","preds=[(L_SHIPDATE[2:2] > 1995-03-15)]",methodWatcher);
+                " where l_orderkey = o_orderkey and l_shipdate > date('1995-03-15') and o_orderdate > date('1995-03-15')","preds=[(LINEITEM.L_SHIPDATE[2:2] > 1995-03-15)]",methodWatcher);
     }
 
     @Test(expected = SQLException.class)

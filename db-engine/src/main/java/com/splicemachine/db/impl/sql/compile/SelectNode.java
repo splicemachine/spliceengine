@@ -37,7 +37,6 @@ import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
@@ -173,6 +172,13 @@ public class SelectNode extends ResultSetNode {
         setContextManager(cm);
         setNodeType(C_NodeTypes.SELECT_NODE);
         this.init(selectList, aggregateVector, fromList, whereClause, groupByList, havingClause, windowDefinitionList);
+    }
+
+    public SelectNode(ResultColumnList selectList,
+                      FromList fromList,
+                      ValueNode whereClause,
+                      ContextManager cm) throws StandardException {
+        this(selectList, null, fromList, whereClause, null, null, null, cm);
     }
 
     public void init(Object selectList,
@@ -580,8 +586,8 @@ public class SelectNode extends ResultSetNode {
         // Nested SelectNodes will not be scanned by this Visitor.
         if (!getCompilerContext().getDisablePredicateSimplification()) {
             Visitor predSimplVisitor =
-            new PredicateSimplificationVisitor(fromListParam,
-            SelectNode.class);
+                    new PredicateSimplificationVisitor(fromListParam,
+                            SelectNode.class);
             if (whereClause != null)
                 whereClause = (ValueNode) whereClause.accept(predSimplVisitor);
             if (havingClause != null)
@@ -592,7 +598,7 @@ public class SelectNode extends ResultSetNode {
             whereClause = new BooleanConstantNode(Boolean.FALSE, getContextManager());
         }
         if (havingClause instanceof ConstantNode && ((ConstantNode)havingClause).isNull()) {
-            havingClause =  new BooleanConstantNode(Boolean.FALSE, getContextManager());
+            havingClause = new BooleanConstantNode(Boolean.FALSE, getContextManager());
         }
 
         whereAggregates = new LinkedList<>();
@@ -652,11 +658,11 @@ public class SelectNode extends ResultSetNode {
 
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(fromListParam.size() == fromListParamSize,
-            "fromListParam.size() = " + fromListParam.size() +
-            ", expected to be restored to " + fromListParamSize);
+                    "fromListParam.size() = " + fromListParam.size() +
+                            ", expected to be restored to " + fromListParamSize);
             SanityManager.ASSERT(fromList.size() == fromListSize,
-            "fromList.size() = " + fromList.size() +
-            ", expected to be restored to " + fromListSize);
+                    "fromList.size() = " + fromList.size() +
+                            ", expected to be restored to " + fromListSize);
         }
 
         /* If query is grouped, bind the group by list. */
@@ -776,7 +782,7 @@ public class SelectNode extends ResultSetNode {
         // DERBY-4407: A derived table must have at least one column.
         if (resultColumns.isEmpty()) {
             throw StandardException.newException(
-            SQLState.LANG_EMPTY_COLUMN_LIST);
+                    SQLState.LANG_EMPTY_COLUMN_LIST);
         }
     }
 
@@ -872,7 +878,8 @@ public class SelectNode extends ResultSetNode {
     @Override
     public void rejectParameters() throws StandardException {
         super.rejectParameters();
-        fromList.rejectParameters();
+        if(fromList != null)
+            fromList.rejectParameters();
     }
 
     /**
@@ -1336,7 +1343,7 @@ public class SelectNode extends ResultSetNode {
                 if (havingClause != null) {
                     for (ResultColumn childRC : childResultColumns) {
                         IndexExpressionReplacementVisitor ierv =
-                        new IndexExpressionReplacementVisitor(childRC, null);
+                                new IndexExpressionReplacementVisitor(childRC, null);
                         havingClause.accept(ierv);
                     }
                 }
@@ -2050,7 +2057,7 @@ public class SelectNode extends ResultSetNode {
                         //user supplied optimizer overrides
                         fromList.properties,
                         getContextManager()
-                        );
+                );
             }
             joinNode.setCostEstimate(rightResultSet.getCostEstimate());
 
@@ -2060,14 +2067,14 @@ public class SelectNode extends ResultSetNode {
             // We want the predicates to be applied as join predicates
             // instead of after the join.
             JBitSet referencedTableMap = joinNode.getReferencedTableMap();
-            for(int index=predicateList.size()-1;index>=0;index--){
-                Predicate predicate=predicateList.elementAt(index);
-                if(!predicate.getPushable()){
+            for (int index = predicateList.size() - 1; index >= 0; index--) {
+                Predicate predicate = predicateList.elementAt(index);
+                if (!predicate.getPushable()) {
                     continue;
                 }
-                JBitSet curBitSet=predicate.getReferencedSet();
+                JBitSet curBitSet = predicate.getReferencedSet();
                 /* Do we have a match? */
-                if(referencedTableMap.contains(curBitSet)){
+                if (referencedTableMap.contains(curBitSet)) {
                     /* Remap all of the ROWID ColumnReferences to point to the
                      * source ProjectRestrictNode on the right or left of the join.
                      */
@@ -2089,13 +2096,13 @@ public class SelectNode extends ResultSetNode {
                     ((FromTable) rightResultSet).setPostJoinPredicates(null);
                     if (postJoinPredicates.size() > 0) {
                         ((ProjectRestrictNode) newPRNode).getRestrictionList()
-                        .replaceIndexExpression(joinNode.getResultColumns());
+                                .replaceIndexExpression(joinNode.getResultColumns());
                     }
                 }
             }
 
             fromList.setElementAt(newPRNode,
-            0
+                    0
             );
 
             fromList.removeElementAt(1);
@@ -2873,9 +2880,9 @@ public class SelectNode extends ResultSetNode {
 
     public List<QueryTreeNode> collectReferencedColumns() throws StandardException {
         CollectingVisitor<QueryTreeNode> cnVisitor = new ColumnCollectingVisitor(
-        Predicates.or(Predicates.instanceOf(ColumnReference.class),
-        Predicates.instanceOf(VirtualColumnNode.class),
-        Predicates.instanceOf(OrderedColumn.class)));
+                Predicates.or(Predicates.instanceOf(ColumnReference.class),
+                        Predicates.instanceOf(VirtualColumnNode.class),
+                        Predicates.instanceOf(OrderedColumn.class)));
         // collect column references from different components
 
         if (whereClause != null)
@@ -2943,7 +2950,8 @@ public class SelectNode extends ResultSetNode {
             FromTable fromTable = (FromTable) fromList.elementAt(i);
 
             ResultColumnList rcl = fromTable.getResultColumns();
-            rcl.setColumnReferences(false, true);
+            if(rcl != null)
+                rcl.setColumnReferences(false, true);
         }
 
         List<QueryTreeNode> refedcolmnList = collectReferencedColumns();
@@ -2960,7 +2968,7 @@ public class SelectNode extends ResultSetNode {
         if (groupByList == null || groupByList.isEmpty())
             return true;
         if (groupByList.size() != 1 ||
-            !(groupByList.elementAt(0) instanceof GroupByColumn))
+                !(groupByList.elementAt(0) instanceof GroupByColumn))
             return false;
 
         GroupByColumn groupByColumn = (GroupByColumn) groupByList.elementAt(0);
@@ -3045,7 +3053,7 @@ public class SelectNode extends ResultSetNode {
     }
 
     public void setFetchFirst(ValueNode fetchFirst) {
-        this.fetchFirst=fetchFirst;
+        this.fetchFirst = fetchFirst;
     }
 
     public boolean hasWindowFunction() {
