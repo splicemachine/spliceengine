@@ -60,11 +60,10 @@ import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SparkSQLUtils;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * LanguageConnectionContext keeps the result sets,
@@ -117,6 +116,13 @@ public interface LanguageConnectionContext extends Context {
     char LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_CHAR = '_';
     int LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_NUM_CHAR = 20;
 
+    void initTriggerInfo(TriggerDescriptor[] tds, java.util.UUID currentQueryId, long txnId);
+    ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo();
+    void recordAdditionalDisplayedTriggerInfo(long elapsedTime, long modifiedRows, java.util.UUID queryId);
+    void recordTriggerInfoWhileFiring(UUID triggerId);
+    HashMap<UUID, DisplayedTriggerInfo> getTriggerIdToTriggerInfoMap();
+    HashMap<java.util.UUID, DisplayedTriggerInfo> getQueryIdToTriggerInfoMap();
+    Stack<Pair<java.util.UUID, Long>> getQueryTxnIdStack();
     /**
      * Initialize. For use after pushing the contexts that initialization needs.
      *

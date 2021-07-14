@@ -156,7 +156,10 @@ public class ActivationHolder implements Externalizable {
                                             lcc.getDefaultRoles(),
                                             lcc.getInitialDefaultSchemaDescriptor(),
                                             lcc.getActiveStateTxId(),
-                                            lcc.getTransactionExecute(), lcc.getUserName(), lcc.getInstanceNumber());
+                                            lcc.getTransactionExecute(), lcc.getUserName(), lcc.getInstanceNumber(),
+                                            lcc.getDisplayedTriggerInfo(), lcc.getTriggerIdToTriggerInfoMap(),
+                                            lcc.getQueryIdToTriggerInfoMap(), lcc.getQueryTxnIdStack()
+                    );
             if (needToSet)
                 impl.set(txnResource);
         }

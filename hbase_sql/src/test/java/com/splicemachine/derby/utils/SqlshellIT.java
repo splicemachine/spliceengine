@@ -316,14 +316,14 @@ public class SqlshellIT {
     @Test
     public void testRunScript() throws IOException {
         String path = tempDir + "/script.sql";
-        FileWriter f = new FileWriter(path);
-        f.write("-- this is a comment\n" +
-                "values 3;\n" +
-                "-- another comment!\n" +
-                "values 5;\n"
-        );
-        f.flush();
-        f.close();
+        try(OutputStreamWriter f = new OutputStreamWriter(new FileOutputStream(path, true), StandardCharsets.UTF_8)) {
+            f.write("-- this is a comment\n" +
+                    "values 3;\n" +
+                    "-- another comment!\n" +
+                    "values 5;\n"
+            );
+            f.flush();
+        }
 
         execute("run '" + path + "';\n",
                 "splice> -- this is a comment\n" +

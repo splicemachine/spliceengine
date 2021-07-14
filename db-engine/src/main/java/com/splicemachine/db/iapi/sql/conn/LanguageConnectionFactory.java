@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.services.property.PropertyFactory;
 
 import com.splicemachine.db.iapi.sql.compile.*;
 
+import com.splicemachine.db.iapi.sql.dictionary.DisplayedTriggerInfo;
 import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueFactory;
@@ -55,9 +56,9 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
+import com.splicemachine.utils.Pair;
 
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 
 /**
@@ -131,7 +132,11 @@ public interface LanguageConnectionFactory {
                                  List<String> defaultRoles,
                                  SchemaDescriptor initialDefaultSchemaDescriptor,
 								 long driverTxnId,
-								 Properties sessionProperties)
+								 Properties sessionProperties,
+								 ArrayList<DisplayedTriggerInfo> triggerInfos,
+								 HashMap<UUID, DisplayedTriggerInfo> triggerIdToTriggerInfoMap,
+								 HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap,
+								 Stack<Pair<java.util.UUID, Long>> queryTxnIdStack)
 
 		throws StandardException;
 
