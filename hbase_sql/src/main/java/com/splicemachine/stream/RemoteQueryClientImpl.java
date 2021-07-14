@@ -117,12 +117,12 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             sql = sql == null ? root.toString() : sql;
             String userId = lcc.getCurrentUserId(activation);
             int localPort = config.getNetworkBindPort();
-            int sessionId = lcc.getInstanceNumber();
+            int sessionNumber = lcc.getInstanceNumber();
 
             Integer shufflePartitionsProperty = (Integer) lcc.getSessionProperties()
                     .getProperty(SessionProperties.PROPERTYNAME.OLAPSHUFFLEPARTITIONS);
             String opUuid = root.getUuid() != null ? "," + root.getUuid().toString() : "";
-            String session = hostname + ":" + localPort + "," + sessionId + opUuid;
+            String session = hostname + ":" + localPort + "," + sessionNumber + opUuid;
 
             RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(),
                     streamListenerUuid, host, port, session, userId, sql,

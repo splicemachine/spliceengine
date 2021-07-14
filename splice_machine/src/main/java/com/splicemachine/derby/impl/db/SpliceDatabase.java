@@ -24,9 +24,7 @@ import com.splicemachine.db.iapi.jdbc.AuthenticationService;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.daemon.Serviceable;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyFactory;
@@ -168,6 +166,7 @@ public class SpliceDatabase extends BasicDatabase{
     @Override
     public LanguageConnectionContext setupConnection(ContextManager cm, String user, List<String> groupuserlist, String drdaID, String dbname,
                                                      String rdbIntTkn,
+                                                     long uselessMachineID,
                                                      DataSetProcessorType dspt,
                                                      SparkExecutionType sparkExecutionType,
                                                      boolean skipStats,
@@ -178,11 +177,12 @@ public class SpliceDatabase extends BasicDatabase{
             throws StandardException{
 
         final LanguageConnectionContext lctx=super.setupConnection(cm, user, groupuserlist,
-                drdaID, dbname, rdbIntTkn, dspt, sparkExecutionType, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
+                drdaID, dbname, rdbIntTkn, getMachineId(), dspt, sparkExecutionType, skipStats,
+                defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
 
         setupASTVisitors(lctx);
 
-        SIDriver.driver().getSessionsWatcher().registerSession(lctx.getInstanceNumber());
+        SIDriver.driver().getSessionsWatcher().registerSession(lctx.getMachineID(), lctx.getSessionID());
         return lctx;
     }
 
@@ -206,7 +206,7 @@ public class SpliceDatabase extends BasicDatabase{
         cm.setLocaleFinder(this);
         pushDbContext(cm);
         LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,
-                groupuserlist,drdaID,dbname,rdbIntTkn,type, sparkExecutionType, skipStats, defaultSelectivityFactor,
+                groupuserlist,drdaID,dbname,rdbIntTkn,getMachineId(),type, sparkExecutionType, skipStats, defaultSelectivityFactor,
                 ipAddress, null,
                 spsCache, defaultRoles, initialDefaultSchemaDescriptor, driverTxnId, null);
 
@@ -216,6 +216,14 @@ public class SpliceDatabase extends BasicDatabase{
         lctx.initialize();
         setupASTVisitors(lctx);
         return lctx;
+    }
+
+    private long getMachineId() {
+        // In EngineLifeCycleService, internal connections can be created before
+        // engine driver is loaded. For these internal connections, machine IDs
+        // are not ready yet. Assign 0 for them.
+        EngineDriver driver = EngineDriver.driver();
+        return driver == null ? 0 : driver.getMachineID();
     }
 
     @Override
@@ -567,7 +575,7 @@ public class SpliceDatabase extends BasicDatabase{
     }
 
     @Override
-    public void unregisterSession(long sessionId) {
-        SIDriver.driver().getSessionsWatcher().unregisterSession(sessionId);
+    public void unregisterSession(long machineID, String sessionId) {
+        SIDriver.driver().getSessionsWatcher().unregisterSession(machineID, sessionId);
     }
 }

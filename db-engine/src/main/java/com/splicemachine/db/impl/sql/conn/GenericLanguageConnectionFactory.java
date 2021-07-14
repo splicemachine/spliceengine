@@ -61,7 +61,6 @@ import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.StringUtil;
@@ -155,7 +154,7 @@ public class GenericLanguageConnectionFactory
             String drdaID,
             String dbname,
             String rdbIntTkn,
-            DataSetProcessorType type,
+            long machineID, DataSetProcessorType type,
             SparkExecutionType sparkExecutionType,
             boolean skipStats,
             double defaultSelectvityFactor,
@@ -178,6 +177,7 @@ public class GenericLanguageConnectionFactory
                 drdaID,
                 dbname,
                 rdbIntTkn,
+                machineID,
                 type,
                 sparkExecutionType,
                 skipStats,
