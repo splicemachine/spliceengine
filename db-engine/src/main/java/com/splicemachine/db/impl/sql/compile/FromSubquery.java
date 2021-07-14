@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
@@ -304,14 +305,26 @@ public class FromSubquery extends FromTable
          * the table since the view was created.
          */
         subqueryRCL = subquery.getResultColumns();
-        if (resultColumns != null && resultColumns.getCountMismatchAllowed() &&
-            resultColumns.size() < subqueryRCL.size())
-        {
-            for (int index = subqueryRCL.size() - 1;
-                 index >= resultColumns.size();
-                 index--)
-            {
-                subqueryRCL.removeElementAt(index);
+        if (resultColumns != null && resultColumns.getCountMismatchAllowed()) {
+            if (resultColumns.size() < subqueryRCL.size()) {
+                // columns added to underlying table
+                for (int index = subqueryRCL.size() - 1;
+                     index >= resultColumns.size();
+                     index--) {
+                    subqueryRCL.removeElementAt(index);
+                }
+            } else if (resultColumns.size() > subqueryRCL.size()) {
+                // columns dropped from underlying table
+                throw StandardException.newException(SQLState.LANG_DERIVED_COLUMN_LIST_MISMATCH, correlationName);
+            } else {
+                // number of columns is OK, check column names
+                for (int i = 0; i < resultColumns.size(); ++i) {
+                    ResultColumn thisRC = resultColumns.elementAt(i);
+                    ResultColumn subqRC = subqueryRCL.elementAt(i);
+                    if (thisRC.getName() != null && !thisRC.getName().equals(subqRC.getName())) {
+                        throw StandardException.newException(SQLState.LANG_DERIVED_COLUMN_NAME_USE, thisRC.getName());
+                    }
+                }
             }
         }
 

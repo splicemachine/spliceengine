@@ -43,29 +43,37 @@ public class SpliceAdmin_GetActiveSessionsIT extends SpliceUnitTest {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-    @Ignore("DB-12283")
     @Test
     public void testGetActiveSessions() throws Exception {
         try (TestConnection rs1Conn = methodWatcher.createConnection()) {
-            Set<Integer> rs1Result = new HashSet<>();
+            Set<String> rs1Result = new HashSet<>();
+            String rs1ConnId;
             try (Statement s = rs1Conn.createStatement()) {
                 try (ResultSet rs = s.executeQuery("call syscs_util.syscs_get_active_sessions()")) {
                     while (rs.next()) {
-                        rs1Result.add(rs.getInt(1));
+                        rs1Result.add(rs.getString(1));
                     }
                 }
+                try (ResultSet rs = s.executeQuery("call syscs_util.syscs_get_session_info()")) {
+                    Assert.assertTrue(rs.next());
+                    rs1ConnId = (rs.getString(3));
+                }
             }
+            Assert.assertTrue(rs1Result.contains(rs1ConnId));
 
-            Set<Integer> rs2Result = new HashSet<>();
+            Set<String> rs2Result = new HashSet<>();
+            String rs2ConnId;
             if (isMemPlatform(spliceClassWatcher)) {
                 try (TestConnection secondConn = methodWatcher.createConnection()) {
                     try (Statement s = secondConn.createStatement()) {
                         try (ResultSet rs = s.executeQuery("call syscs_util.syscs_get_active_sessions()")) {
                             while (rs.next()) {
-                                rs2Result.add(rs.getInt(1));
+                                rs2Result.add(rs.getString(1));
                             }
-                            Assert.assertEquals(rs1Result.size() + 2, rs2Result.size());
-                            Assert.assertTrue(rs2Result.containsAll(rs1Result));
+                        }
+                        try (ResultSet rs = s.executeQuery("call syscs_util.syscs_get_session_info()")) {
+                            Assert.assertTrue(rs.next());
+                            rs2ConnId = (rs.getString(3));
                         }
                     }
                 }
@@ -74,15 +82,32 @@ public class SpliceAdmin_GetActiveSessionsIT extends SpliceUnitTest {
                     try (Statement s = rs2Conn.createStatement()) {
                         try (ResultSet rs = s.executeQuery("call syscs_util.syscs_get_active_sessions()")) {
                             while (rs.next()) {
-                                rs2Result.add(rs.getInt(1));
+                                rs2Result.add(rs.getString(1));
                             }
-                            Assert.assertEquals(rs1Result.size() + 1, rs2Result.size());
-                            Assert.assertTrue(rs2Result.containsAll(rs1Result));
+                        }
+                        try (ResultSet rs = s.executeQuery("call syscs_util.syscs_get_session_info()")) {
+                            Assert.assertTrue(rs.next());
+                            rs2ConnId = (rs.getString(3));
                         }
                     }
                 }
             }
+            Assert.assertTrue(rs2Result.contains(rs2ConnId));
+            Assert.assertTrue(rs2Result.contains(rs1ConnId));
+            Assert.assertTrue(rs2Result.size() > rs1Result.size());
+            Assert.assertTrue(rs2Result.containsAll(rs1Result));
 
+
+            Set<String> rs1Result2 = new HashSet<>();
+            try (Statement s = rs1Conn.createStatement()) {
+                try (ResultSet rs = s.executeQuery("call syscs_util.syscs_get_active_sessions()")) {
+                    while (rs.next()) {
+                        rs1Result2.add(rs.getString(1));
+                    }
+                }
+            }
+            Assert.assertTrue(rs1Result2.contains(rs1ConnId));
+            Assert.assertFalse(rs1Result2.contains(rs2ConnId));
         }
     }
 }

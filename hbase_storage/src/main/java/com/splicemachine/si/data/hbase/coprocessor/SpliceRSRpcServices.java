@@ -171,7 +171,7 @@ public class SpliceRSRpcServices extends SpliceMessage.SpliceRSRpcServices imple
 
         // Client sent SpliceActiveSessionsRequest to all RSs. For this RS, return our
         // local active sessions. The client aggregates all local active sessions.
-        Set<Long> activeSessionIds = SIDriver.driver().getSessionsWatcher().getLocalActiveSessions();
+        Set<String> activeSessionIds = SIDriver.driver().getSessionsWatcher().getLocalActiveSessions();
         writeResponse.addAllActiveSessionIds(activeSessionIds);
         callback.run(writeResponse.build());
     }

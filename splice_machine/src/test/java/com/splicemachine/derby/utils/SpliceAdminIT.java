@@ -279,12 +279,15 @@ public class SpliceAdminIT extends SpliceUnitTest {
 
     @Test
     public void testGetSessionInfo() throws Exception {
-        String hostname = ""; int session = 0;
+        String hostname = "";
+        int session_number = 0;
+        String session_id = "";
         try(CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_SESSION_INFO()");
             ResultSet rs = cs.executeQuery() ) {
             rs.next();
             hostname = rs.getString("HOSTNAME");
-            session = rs.getInt("SESSION");
+            session_number = rs.getInt("SESSION_NUMBER");
+            session_id = rs.getString("SESSION_ID");
             DbUtils.closeQuietly(rs);
         }
 
@@ -292,10 +295,12 @@ public class SpliceAdminIT extends SpliceUnitTest {
             ResultSet rs2 = cs2.executeQuery() ) {
             rs2.next();
             String hostname2 = rs2.getString("HOSTNAME");
-            int session2 = rs2.getInt("SESSION");
+            int session_number2 = rs2.getInt("SESSION_NUMBER");
+            String session_id2 = rs2.getString("SESSION_ID");
 
             Assert.assertEquals(hostname, hostname2);
-            Assert.assertNotEquals(session, session2);
+            Assert.assertNotEquals(session_number, session_number2);
+            Assert.assertNotEquals(session_id, session_id2);
 
             DbUtils.closeQuietly(rs2);
         }
