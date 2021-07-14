@@ -16,5 +16,5 @@ package com.splicemachine.access.api;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
-public interface GetActiveSessionsTask extends Callable<Set<Long>> {
+public interface GetActiveSessionsTask extends Callable<Set<String>> {
 }

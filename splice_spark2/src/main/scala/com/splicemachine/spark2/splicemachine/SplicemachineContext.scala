@@ -568,11 +568,12 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   var insertSql: String => String = _
   
   /* Sets up insertSql to be used by insert_streaming */
-  def setTable(schemaTableName: String, schema: StructType): Unit = {
+  def setTable(schemaTableName: String, schema: StructType, upsert: Boolean = false): Unit = {
     val colList = columnList(schema) + fmColList
     val schStr = schemaStringWithoutNullable(schema, url)
+    val upsertProp = if(upsert) { "--splice-properties insertMode=UPSERT" } else { "" }
     // Line break at the end of the first line and before select is required, other line breaks aren't required
-    insertSql = (topicName: String) => s"""insert into $schemaTableName ($colList)
+    insertSql = (topicName: String) => s"""insert into $schemaTableName ($colList) $upsertProp
                                        select $colList from 
       new com.splicemachine.derby.vti.KafkaVTI('$topicName') 
       as SpliceDatasetVTI ($schStr$fmSchemaStr)"""
@@ -589,13 +590,13 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       val sqlText = insertSql(topicInfo)
       debug(s"SMC.inss sql $sqlText")
       
-      trace( s"SMC.inss topicCount preex ${KafkaUtils.messageCount(kafkaServers, topicName)}")
+      //trace( s"SMC.inss topicCount preex ${KafkaUtils.messageCount(kafkaServers, topicName)}")
 
       debug("SMC.inss executeUpdate")
       executeUpdate(sqlText)
       debug("SMC.inss done")
 
-      debug( s"SMC.inss topicCount postex ${KafkaUtils.messageCount(kafkaServers, topicName)}")
+      //debug( s"SMC.inss topicCount postex ${KafkaUtils.messageCount(kafkaServers, topicName)}")
     } catch {
       case e: java.sql.SQLNonTransientConnectionException => 
         if( retries < 2 ) {
@@ -667,10 +668,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     rdd.rdd.mapPartitionsWithIndex(
       (partition, itrRow) => {
         val id = topicName.substring(0,5)+":"+partition.toString
-        trace(s"$id SMC.sendData p== $partition ${itrRow.nonEmpty}")
+        val nonEmpty = itrRow.nonEmpty
+        trace(s"$id SMC.sendData p== $partition ${nonEmpty}")
 
         var msgCount = 0
-        if( itrRow.nonEmpty ) {
+        if( nonEmpty ) {
           val taskContext = TaskContext.get
           val itr = if (taskContext != null && taskContext.attemptNumber > 0) {
             // Recover from previous task failure
@@ -758,7 +760,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
           insAccum.add(msgCount)
 
-          debug(s"$id SMC.sendData t $topicName p $partition records $msgCount")
+          info(s"$id SMC.sendData t $topicName p $partition records $msgCount")
 
           producer.flush
           producer.close

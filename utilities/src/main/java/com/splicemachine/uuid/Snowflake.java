@@ -214,6 +214,10 @@ public class Snowflake {
         return new Generator(this,s);
     }
 
+    public long getMachineId() {
+        return machineId;
+    }
+
     @Override
     public String toString() {
         return "Snowflake{" +

@@ -60,6 +60,7 @@ import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SparkSQLUtils;
 
 import java.util.List;
@@ -275,6 +276,15 @@ public interface LanguageConnectionContext extends Context {
      * @return true if the table is visible to current session, false otherwise
      */
     boolean isVisibleToCurrentSession(TableDescriptor td) throws StandardException;
+
+    /**
+     * Return the creating session ID of a local temporary table
+     *
+     * @param td TableDescriptor of a local temporary table
+     * @return The creating session ID of this local temporary table
+     * @throws StandardException
+     */
+    String getLocalTempTableSessionID(TableDescriptor td) throws StandardException;
 
     /**
      * Get table descriptor for the declared global temporary table from the list of temporary
@@ -1137,6 +1147,25 @@ public interface LanguageConnectionContext extends Context {
      * @param drdaID DRDA ID.
      */
     void setDrdaID(String drdaID);
+
+    /**
+     * Get the ID of the region server to which this session connects
+     * @return ID of the connected region server.
+     */
+    long getMachineID();
+
+    /**
+     * Get the ID of this LCC
+     * @return ID of this LCC.
+     */
+    java.util.UUID getLocalID();
+
+    /**
+     * Get the session ID
+     *
+     * @return Session ID.
+     */
+    String getSessionID();
 
     /**
      * Get the database name of this LCC.
