@@ -17,7 +17,9 @@ package com.splicemachine.si.api.txn;
 import com.splicemachine.utils.ByteSlice;
 
 import java.io.Externalizable;
+import java.sql.SQLWarning;
 import java.util.Iterator;
+import java.util.UUID;
 
 /**
  * Represents an unmodifiable view of a transaction.
@@ -225,5 +227,10 @@ public interface TxnView extends Externalizable {
     boolean hasActiveWriteableOrRolledBackTransactionInLineage(TxnView ancestor, boolean checkForRollbackOnly);
 
     TaskId getTaskId();
-    
+
+    UUID getParentQueryIdForTrigger(UUID currentId) throws SQLWarning;
+
+    void setCurrentQueryId(UUID uuid);
+
+    UUID getCurrentQueryId();
 }

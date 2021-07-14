@@ -242,6 +242,14 @@ Guide.
                 <text>Statistics are unavailable or out of date for one or more tables involved in this query.</text>
             </msg>
 
+
+            <msg>
+                <name>01J18</name>
+                <text>Unable to obtain parent queryId for triggered query {0} for loggging.</text>
+                <arg>queryId</arg>
+            </msg>
+
+
         </family>
 
         <family>

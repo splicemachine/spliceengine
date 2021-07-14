@@ -211,6 +211,21 @@ public interface Txn extends TxnView{
         public TaskId getTaskId() {
             return null;
         }
+
+        @Override
+        public UUID getParentQueryIdForTrigger(UUID currentId) {
+            return null;
+        }
+
+        @Override
+        public void setCurrentQueryId(UUID uuid) {
+
+        }
+
+        @Override
+        public UUID getCurrentQueryId() {
+            return null;
+        }
     };
 
     long newSubId();
