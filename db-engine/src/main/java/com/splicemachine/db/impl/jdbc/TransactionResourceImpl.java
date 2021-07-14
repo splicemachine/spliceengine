@@ -272,7 +272,7 @@ public final class TransactionResourceImpl
     void startTransaction() throws StandardException, SQLException
     {
         // setting up local connection
-        lcc = database.setupConnection(cm, username, groupuserlist, drdaID, dbname, rdbIntTkn, useSpark, useNativeSpark,
+        lcc = database.setupConnection(cm, username, groupuserlist, drdaID, dbname, rdbIntTkn, -1, useSpark, useNativeSpark,
                 skipStats, defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
     }
 

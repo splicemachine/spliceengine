@@ -276,7 +276,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
     @Override
     public LanguageConnectionContext setupConnection(ContextManager cm, String user, List<String> groupuserlist, String drdaID, String dbname,
                                                      String rdbIntTkn,
-                                                     DataSetProcessorType type,
+                                                     long machineID, DataSetProcessorType type,
                                                      SparkExecutionType sparkExecutionType,
                                                      boolean skipStats,
                                                      double defaultSelectivityFactor,
@@ -307,7 +307,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
         // push a database shutdown context
         // we also need to push a language connection context.
         LanguageConnectionContext lctx = lcf.newLanguageConnectionContext(cm, tc, lf, this, user, groupuserlist, drdaID, dbname,
-                rdbIntTkn, type, sparkExecutionType, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema,
+                rdbIntTkn, machineID, type, sparkExecutionType, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema,
                 null, null, null, -1, sessionProperties);
 
         // push the context that defines our class factory
