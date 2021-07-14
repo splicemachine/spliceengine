@@ -44,6 +44,26 @@ public class MultiProbeTableScanOperatonIT extends SpliceUnitTest {
     protected static SpliceTableWatcher t7Watcher = new SpliceTableWatcher("t7",schemaWatcher.schemaName,"(a7 int, b7 int, c7 int)");
     protected static SpliceIndexWatcher i7Watcher = new SpliceIndexWatcher("t7",schemaWatcher.schemaName,"ix_t7",schemaWatcher.schemaName,"(b7, c7)");
 
+    protected static SpliceTableWatcher t11Watcher = new SpliceTableWatcher("t11",schemaWatcher.schemaName,"   (a1 int,\n" +
+																										   "    b1 int,\n" +
+																										   "    c1 int,\n" +
+																										   "    d1 int,\n" +
+																										   "    e1 int,\n" +
+																										   "    f1 int,\n" +
+																										   "    g1 int,\n" +
+																										   "    h1 char(80),\n" +
+																										   "    primary key (a1, b1, c1))");
+    protected static SpliceIndexWatcher i11Watcher = new SpliceIndexWatcher("t11",schemaWatcher.schemaName,"idx_t11",schemaWatcher.schemaName,"(g1, f1, e1)");
+    protected static SpliceTableWatcher t22Watcher = new SpliceTableWatcher("t22",schemaWatcher.schemaName,"   (a2 int,\n" +
+																										   "    b2 int,\n" +
+																										   "    c2 int,\n" +
+																										   "    d2 int,\n" +
+																										   "    e2 int,\n" +
+																										   "    f2 int,\n" +
+																										   "    g2 int,\n" +
+																										   "    h2 char(80),\n" +
+																										   "    primary key (a2, b2, c2))");
+
 	private static int size = 10;
 
 	@ClassRule
@@ -59,6 +79,9 @@ public class MultiProbeTableScanOperatonIT extends SpliceUnitTest {
 			.around(i6Watcher)
             .around(t7Watcher)
             .around(i7Watcher)
+            .around(t11Watcher)
+            .around(i11Watcher)
+            .around(t22Watcher)
 			.around(new SpliceDataWatcher() {
 				@Override
 				protected void starting(Description description) {
@@ -139,6 +162,22 @@ public class MultiProbeTableScanOperatonIT extends SpliceUnitTest {
                         }
                         ps.executeBatch();
 
+                        ps = spliceClassWatcher.prepareStatement("insert into " + t11Watcher.toString() + " values (?,?,?,?,?,?,?,?)");
+                        for (int i = 0; i < 3; i++) {
+                            ps.setInt(1, i);
+                            ps.setInt(2, i);
+                            ps.setInt(3, i);
+                            ps.setInt(4, i);
+                            ps.setInt(5, i);
+                            ps.setInt(6, i);
+                            ps.setInt(7, i);
+                            ps.setString(8, "a");
+                            ps.addBatch();
+                        }
+                        ps.executeBatch();
+
+                        spliceClassWatcher.executeUpdate("insert into t22 select * from t11");
+
 					} catch (Exception e) {
 						throw new RuntimeException(e);
 					} finally {
@@ -151,29 +190,42 @@ public class MultiProbeTableScanOperatonIT extends SpliceUnitTest {
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
 	@Test
+	public void testMultiColumnMultiProbeWithAdditionalJoinPredicate() throws Exception {
+		String sql = "select a1, t22.a2 from t11 INNER JOIN t22 on t11.a1=t22.a2 " +
+					 "where a1=(SELECT MAX(a2) FROM t22   )   and  a1 in (0,1,2) "   +
+					 "and b1 in (0,1,2,3,4,5) and c1 in (0,1,2,3,4,5,6,7,8) order by t22.a2";
+		String expected = "A1 |A2 |\n" +
+						  "--------\n" +
+						  " 2 | 2 |";
+		testQuery(sql, expected, methodWatcher);
+	}
+
+	@Test
 	public void testMultiProbeTableScanScroll() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select user_id from "+t1Watcher+" where segment_id in (1,5,8,12)");
-		int i = 0;
-		while (rs.next()) {
-			i++;
+		try (ResultSet rs = methodWatcher.executeQuery("select user_id from "+t1Watcher+" where segment_id in (1,5,8,12)")) {
+			int i = 0;
+			while (rs.next()) {
+				i++;
+			}
+			Assert.assertEquals("Incorrect count returned!", 3, i);
 		}
-		Assert.assertEquals("Incorrect count returned!",3,i);
 	}
 
 	@Test
 	//DB-2575
 	public void testMultiProbeTableScanWithEqualPredicate() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select user_id from "+t1Watcher+" where segment_id in (1,5,8,12) and unixtime = 1");
-		int i = 0;
-		while (rs.next()) {
-			i++;
+		try (ResultSet rs = methodWatcher.executeQuery("select user_id from "+t1Watcher+" where segment_id in (1,5,8,12) and unixtime = 1")) {
+			int i = 0;
+			while (rs.next()) {
+				i++;
+			}
+			Assert.assertEquals("Incorrect count returned!", 3, i);
 		}
-		Assert.assertEquals("Incorrect count returned!",3,i);
 	}
 
 	@Test
 	public void testMultiProbeTableScanSink() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select count(user_id) from (" +
+		try (ResultSet rs = methodWatcher.executeQuery("select count(user_id) from (" +
 				"select user_id, ("+
 				"max(case when segment_id = 7 then true else false end) " +
 				"or " +
@@ -181,13 +233,14 @@ public class MultiProbeTableScanOperatonIT extends SpliceUnitTest {
 				") as in_segment " +
 				"from "+t1Watcher+ " " +
 				"where segment_id in (7, 4) " +
-				"group by user_id) foo where in_segment = true");
-		int i = 0;
-		while (rs.next()) {
-			i++;
-			Assert.assertEquals("Incorrect Distinct Customers",3,rs.getLong(1));
+				"group by user_id) foo where in_segment = true")) {
+			int i = 0;
+			while (rs.next()) {
+				i++;
+				Assert.assertEquals("Incorrect Distinct Customers", 3, rs.getLong(1));
+			}
+			Assert.assertEquals("Incorrect records returned!", 1, i);
 		}
-		Assert.assertEquals("Incorrect records returned!",1,i);
 	}
 
 	@Test
@@ -195,13 +248,12 @@ public class MultiProbeTableScanOperatonIT extends SpliceUnitTest {
 				/* Regression test for DB-1040 */
 		SpliceIndexWatcher indexWatcher = new SpliceIndexWatcher(t3Watcher.tableName, t3Watcher.getSchema(),"new_index_3",t3Watcher.getSchema(),"(collid)");
 		indexWatcher.starting(null);
-		try{
-			ResultSet rs = methodWatcher.executeQuery("select count(id) from docs where id > any (select id from colls where collid in (-2,1))");
+		try (ResultSet rs = methodWatcher.executeQuery("select count(id) from docs where id > any (select id from colls where collid in (-2,1))")) {
 			Assert.assertTrue("No results returned!",rs.next());
 			int count = rs.getInt(1);
 			Assert.assertEquals("Incorrect count returned!",4,count);
 			Assert.assertFalse("Too many rows returned!",rs.next());
-		}finally{
+		} finally{
 			indexWatcher.drop();
 		}
 	}
@@ -211,13 +263,14 @@ public class MultiProbeTableScanOperatonIT extends SpliceUnitTest {
 	public void testMultiProbeIntegerValue() throws Exception {
 		SpliceIndexWatcher indexWatcher = new SpliceIndexWatcher(t4Watcher.tableName, t4Watcher.getSchema(),"idxb",t4Watcher.getSchema(),"(d)");
 		indexWatcher.starting(null);
-		ResultSet rs = methodWatcher.executeQuery("select count(*) from b where d in (9,10)");
-		Assert.assertTrue(rs.next());
-		Assert.assertTrue("wrong count", rs.getInt(1) == 2);
-
-		rs = methodWatcher.executeQuery("select count(*) from b where d in (9)");
-		Assert.assertTrue(rs.next());
-		Assert.assertTrue("wrong count", rs.getInt(1)==1);
+		try (ResultSet rs = methodWatcher.executeQuery("select count(*) from b where d in (9,10)")) {
+			Assert.assertTrue(rs.next());
+			Assert.assertTrue("wrong count", rs.getInt(1) == 2);
+		}
+		try (ResultSet rs = methodWatcher.executeQuery("select count(*) from b where d in (9)")) {
+			Assert.assertTrue(rs.next());
+			Assert.assertTrue("wrong count", rs.getInt(1) == 1);
+		}
 	}
 
 	@Test
@@ -229,12 +282,13 @@ public class MultiProbeTableScanOperatonIT extends SpliceUnitTest {
 		ps.setInt(3,8);
 		ps.setInt(4,12);
 		ps.setLong(5,1);
-		ResultSet rs = ps.executeQuery();
-		int i = 0;
-		while (rs.next()) {
-			i++;
+		try (ResultSet rs = ps.executeQuery()) {
+			int i = 0;
+			while (rs.next()) {
+				i++;
+			}
+			Assert.assertEquals("Incorrect count returned!", 3, i);
 		}
-		Assert.assertEquals("Incorrect count returned!",3,i);
 	}
 
 
@@ -248,22 +302,22 @@ public class MultiProbeTableScanOperatonIT extends SpliceUnitTest {
     // DB-1323
     @Test
 	public void testMultiProbeWithSpark() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select count(*) from "+ t6Watcher+ "--splice-properties useSpark=true\n" +
-						" where j in (1181) and (i = 1 or i = 118 )");
-		Assert.assertTrue(rs.next());
-		Assert.assertTrue("wrong count", rs.getInt(1) == 3);
-        rs.close();
+		try (ResultSet rs = methodWatcher.executeQuery("select count(*) from "+ t6Watcher+ "--splice-properties useSpark=true\n" +
+						" where j in (1181) and (i = 1 or i = 118 )")) {
+			Assert.assertTrue(rs.next());
+			Assert.assertTrue("wrong count", rs.getInt(1) == 3);
+		}
 
-		rs = methodWatcher.executeQuery("select count(*) from "+ t6Watcher+ "--splice-properties useSpark=true\n" +
-				" where i in (1, 118)");
-		Assert.assertTrue(rs.next());
-		Assert.assertTrue("wrong count", rs.getInt(1) == 3);
-
+		try (ResultSet rs = methodWatcher.executeQuery("select count(*) from "+ t6Watcher+ "--splice-properties useSpark=true\n" +
+				" where i in (1, 118)")) {
+			Assert.assertTrue(rs.next());
+			Assert.assertTrue("wrong count", rs.getInt(1) == 3);
+		}
 	}
 
 	@Test
     public void testMultiProbeWithLargeInListThroughSpark() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(format("select count(*) from %s --splice-properties useSpark=true, index=%s\n" +
+        try (ResultSet rs = methodWatcher.executeQuery(format("select count(*) from %s --splice-properties useSpark=true, index=%s\n" +
                 " where b7 in (0,1,2,3,4,5,6,7,8,9,\n" +
                 "10,11,12,13,14,15,16,17,18,19,\n" +
                 "20,21,22,23,24,25,26,27,28,29,\n" +
@@ -313,9 +367,9 @@ public class MultiProbeTableScanOperatonIT extends SpliceUnitTest {
                 "460,461,462,463,464,465,466,467,468,469,\n" +
                 "470,471,472,473,474,475,476,477,478,479,\n" +
                 "480,481,482,483,484,485,486,487,488,489,\n" +
-                "490,491,492,493,494,495,496,497,498,499)", t7Watcher, "ix_t7"));
-        Assert.assertTrue(rs.next());
-        Assert.assertTrue(format("wrong count: expected: %d, actual: %d", 500, rs.getInt(1)), rs.getInt(1) == 500);
-        rs.close();
+                "490,491,492,493,494,495,496,497,498,499)", t7Watcher, "ix_t7"))) {
+			Assert.assertTrue(rs.next());
+			Assert.assertTrue(format("wrong count: expected: %d, actual: %d", 500, rs.getInt(1)), rs.getInt(1) == 500);
+		}
     }
 }
