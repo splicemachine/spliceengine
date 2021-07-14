@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
     Dependency Manager Interface
@@ -558,4 +559,14 @@ public interface DependencyManager {
             TransactionController tc)
             throws StandardException;
 
+    /**
+     * Returns an enumeration of all dependencies that this
+     * provider is supporting for any dependent at all (even
+     * invalid ones). Includes all dependency types.
+     *
+     * @param p the provider
+     * @return A list of dependents (possibly empty).
+     * @throws StandardException if something goes wrong
+     */
+    List<Dependency> getDependents (Provider p) throws StandardException;
 }
