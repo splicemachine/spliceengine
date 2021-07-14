@@ -295,6 +295,7 @@ public class SetOpOperationIT extends SpliceUnitTest {
     @Test
     public void exceptInSparkShouldUseDistinct() throws Exception {
         Assume.assumeTrue(useSpark); // skips control.
+        Assume.assumeTrue(!isMemPlatform(methodWatcher)); // only in HBase
 
         try(ResultSet rs = methodWatcher.executeQuery("sparkexplain select * from L --splice-properties useSpark=true\n" +
                                                           "except select * from R")) {
