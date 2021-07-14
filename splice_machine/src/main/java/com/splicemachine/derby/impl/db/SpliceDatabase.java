@@ -200,7 +200,7 @@ public class SpliceDatabase extends BasicDatabase{
                                                                        ArrayList<DisplayedTriggerInfo> triggerInfos,
                                                                        HashMap<UUID, DisplayedTriggerInfo> triggerIdToTriggerInfoMap,
                                                                        HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap,
-                                                                       Stack<Pair<java.util.UUID, Long>> queryTxnIdStack) throws StandardException{
+                                                                       HashMap<java.util.UUID, Long> queryTxnIdStack) throws StandardException{
         TransactionController tc = reuseTC == null ? ((SpliceAccessManager)af).marshallTransaction(cm,txn) : reuseTC;
         cm.setLocaleFinder(this);
         pushDbContext(cm);

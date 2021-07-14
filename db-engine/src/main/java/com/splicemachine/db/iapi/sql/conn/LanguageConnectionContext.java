@@ -122,7 +122,7 @@ public interface LanguageConnectionContext extends Context {
     void recordTriggerInfoWhileFiring(UUID triggerId);
     HashMap<UUID, DisplayedTriggerInfo> getTriggerIdToTriggerInfoMap();
     HashMap<java.util.UUID, DisplayedTriggerInfo> getQueryIdToTriggerInfoMap();
-    Stack<Pair<java.util.UUID, Long>> getQueryTxnIdStack();
+    HashMap<java.util.UUID, Long> getQueryTxnIdStack();
     /**
      * Initialize. For use after pushing the contexts that initialization needs.
      *

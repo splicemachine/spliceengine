@@ -406,7 +406,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         ArrayList<DisplayedTriggerInfo> triggerInfos,
         HashMap<UUID, DisplayedTriggerInfo> triggerIdToTriggerInfoMap,
         HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap,
-        Stack<Pair<java.util.UUID, Long>> queryTxnIdStack
+        HashMap<java.util.UUID, Long> queryTxnIdStack
     ) throws StandardException {
         super(cm, ContextId.LANG_CONNECTION);
         acts = new ArrayList<>();
@@ -435,7 +435,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         this.triggerInfos = triggerInfos == null ? new ArrayList<>() : triggerInfos;
         this.triggerIdToTriggerInfoMap = triggerIdToTriggerInfoMap == null ? new HashMap<>() : triggerIdToTriggerInfoMap;
         this.queryIdToTriggerInfoMap = queryIdToTriggerInfoMap == null ? new HashMap<>() : queryIdToTriggerInfoMap;
-        this.queryTxnIdStack = queryTxnIdStack == null ? new Stack<>() : queryTxnIdStack;
+        this.queryTxnIdStack = queryTxnIdStack == null ? new HashMap<>() : queryTxnIdStack;
         if (initialDefaultSchemaDescriptor != null)
             initialDefaultSchemaDescriptor.setDataDictionary(getDataDictionary());
 
@@ -572,7 +572,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private ArrayList<DisplayedTriggerInfo> triggerInfos = new ArrayList<>();
     private HashMap<com.splicemachine.db.catalog.UUID, DisplayedTriggerInfo> triggerIdToTriggerInfoMap = new HashMap<>();
     private HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap = new HashMap<>();
-    private Stack<Pair<java.util.UUID, Long>> queryTxnIdStack = new Stack<>();
+    private HashMap<java.util.UUID, Long> queryTxnIdStack = new HashMap();
 
     @Override
     public HashMap<UUID, DisplayedTriggerInfo> getTriggerIdToTriggerInfoMap() {
@@ -585,18 +585,18 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public Stack<Pair<java.util.UUID, Long>> getQueryTxnIdStack() {
+    public HashMap<java.util.UUID, Long> getQueryTxnIdStack() {
         return queryTxnIdStack;
     }
 
     @Override
     public void initTriggerInfo(TriggerDescriptor[] tds, java.util.UUID currentQueryId, long txnId) {
-        if (queryTxnIdStack.empty()) {
+        if (queryTxnIdStack.isEmpty()) {
             triggerIdToTriggerInfoMap = new HashMap<>();
             queryIdToTriggerInfoMap = new HashMap<>();
         }
 
-        queryTxnIdStack.push(new Pair<>(currentQueryId, txnId));
+        queryTxnIdStack.put(currentQueryId, txnId);
 
         if (tds != null) {
             for (TriggerDescriptor td : tds) {
@@ -612,24 +612,24 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public void recordTriggerInfoWhileFiring(UUID triggerId) {
-        Pair<java.util.UUID, Long> pair = queryTxnIdStack.peek();
-        DisplayedTriggerInfo info = triggerIdToTriggerInfoMap.get(triggerId);
-        queryIdToTriggerInfoMap.put(pair.getFirst(),
-                new DisplayedTriggerInfo(triggerId, info != null ? info.getName() : null,
-                        pair.getSecond(), pair.getFirst(), info != null ? info.getParentQueryId() : null));
+//        Pair<java.util.UUID, Long> pair = queryTxnIdStack.peek();
+//        DisplayedTriggerInfo info = triggerIdToTriggerInfoMap.get(triggerId);
+//        queryIdToTriggerInfoMap.put(pair.getFirst(),
+//                new DisplayedTriggerInfo(triggerId, info != null ? info.getName() : null,
+//                        pair.getSecond(), pair.getFirst(), info != null ? info.getParentQueryId() : null));
     }
 
     @Override
     public void recordAdditionalDisplayedTriggerInfo(long elapsedTime, long modifiedRows, java.util.UUID queryId) {
-        if (queryTxnIdStack == null || queryTxnIdStack.empty() || queryTxnIdStack.peek().getFirst() != queryId)
+        if (queryTxnIdStack == null || queryTxnIdStack.isEmpty() || !queryTxnIdStack.containsKey(queryId))
             return;
-        queryTxnIdStack.pop();
+//        queryTxnIdStack.pop();
         if (queryIdToTriggerInfoMap.containsKey(queryId)) {
             queryIdToTriggerInfoMap.get(queryId).setElapsedTime(elapsedTime);
             queryIdToTriggerInfoMap.get(queryId).setModifiedRowCount(modifiedRows);
         }
 
-        if (queryTxnIdStack.empty()) {
+        if (queryTxnIdStack.isEmpty()) {
             triggerInfos = new ArrayList<>(queryIdToTriggerInfoMap.values());
         }
     }

@@ -136,7 +136,7 @@ public interface LanguageConnectionFactory {
 								 ArrayList<DisplayedTriggerInfo> triggerInfos,
 								 HashMap<UUID, DisplayedTriggerInfo> triggerIdToTriggerInfoMap,
 								 HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap,
-								 Stack<Pair<java.util.UUID, Long>> queryTxnIdStack)
+								 HashMap<java.util.UUID, Long> queryTxnIdStack)
 
 		throws StandardException;
 

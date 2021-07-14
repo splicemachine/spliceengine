@@ -168,7 +168,7 @@ public class GenericLanguageConnectionFactory
             ArrayList<DisplayedTriggerInfo> triggerInfos,
             HashMap<UUID, DisplayedTriggerInfo> triggerIdToTriggerInfoMap,
             HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap,
-            Stack<Pair<java.util.UUID, Long>> queryTxnIdStack) throws StandardException {
+            HashMap<java.util.UUID, Long> queryTxnIdStack) throws StandardException {
         return new GenericLanguageConnectionContext(
                 cm,
                 tc,
