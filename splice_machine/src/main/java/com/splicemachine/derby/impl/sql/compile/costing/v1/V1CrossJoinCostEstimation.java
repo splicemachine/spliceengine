@@ -11,24 +11,26 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.impl.sql.compile.costing;
+package com.splicemachine.derby.impl.sql.compile.costing.v1;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.costing.SelectivityEstimator;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
-import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.derby.impl.sql.compile.costing.StrategyJoinCostEstimation;
 
-public class V1CrossJoinCostEstimation implements StrategyJoinCostEstimation{
+public class V1CrossJoinCostEstimation implements StrategyJoinCostEstimation {
     @Override
     public void estimateCost(Optimizable innerTable,
                              OptimizablePredicateList predList,
                              ConglomerateDescriptor cd,
                              CostEstimate outerCost,
+                             CostEstimate innerCost,
                              Optimizer optimizer,
-                             CostEstimate innerCost) throws StandardException {
+                             SelectivityEstimator selectivityEstimator) throws StandardException {
 
         if(outerCost.isUninitialized() ||(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0)){
             /*
@@ -44,13 +46,16 @@ public class V1CrossJoinCostEstimation implements StrategyJoinCostEstimation{
 
         // Only use cross join when it is inner join and run on Spark
         innerCost.setBase(innerCost.cloneMe());
-        double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.ALL);
+        double joinSelectivity =
+                SelectivityUtil.estimateJoinSelectivity(selectivityEstimator, innerTable, cd, predList,
+                                                        (long) innerCost.rowCount(), (long) outerCost.rowCount(),
+                                                        outerCost, SelectivityEstimator.JoinPredicateType.ALL);
         double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
         double totalJoinedRows = outerCost.rowCount() * innerCost.rowCount();
         double joinCost = crossJoinStrategyLocalCost(innerCost, outerCost, totalJoinedRows);
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerParallelTask(joinCost);
-        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer);
+        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionPerParallelTask(innerCost, outerCost, optimizer);
         innerCost.setRemoteCost(remoteCostPerPartition);
         innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
         innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalOutputRows));

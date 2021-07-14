@@ -41,7 +41,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
  *
  */
 public class NotEqualsSelectivity extends AbstractSelectivityHolder {
-    private final DataValueDescriptor value;
+    public final DataValueDescriptor value;
     private final StoreCostController storeCost;
     private final double selectivityFactor;
     private final boolean useExtrapolation;

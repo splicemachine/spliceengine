@@ -74,9 +74,7 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
         if (innerTable.indexFriendlyJoinsOnly())
             return false;
 
-        boolean feasible =
-            super.feasible(innerTable, predList, optimizer, outerCost, wasHinted, true);
-        return feasible;
+        return super.feasible(innerTable, predList, optimizer, outerCost, wasHinted, true);
     }
 
     @Override

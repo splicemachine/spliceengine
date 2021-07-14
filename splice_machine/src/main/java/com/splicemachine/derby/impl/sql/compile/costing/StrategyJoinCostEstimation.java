@@ -18,6 +18,7 @@ import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
 import com.splicemachine.db.iapi.sql.compile.Optimizer;
+import com.splicemachine.db.iapi.sql.compile.costing.SelectivityEstimator;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 
 public interface StrategyJoinCostEstimation {
@@ -25,6 +26,7 @@ public interface StrategyJoinCostEstimation {
                       OptimizablePredicateList predList,
                       ConglomerateDescriptor cd,
                       CostEstimate outerCost,
+                      CostEstimate innerCost,
                       Optimizer optimizer,
-                      CostEstimate innerCost) throws StandardException;
+                      SelectivityEstimator selectivityEstimator) throws StandardException;
 }

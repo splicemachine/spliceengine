@@ -1126,8 +1126,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
                                                     dataDictionary,
                                                     requiredRowOrdering,
                                                     getCompilerContext().getMaximalPossibleTableCount(),
-                                                    lcc,
-                                                    lcc.getCostModel());
+                                                    lcc);
         }
 
         optimizer.prepForNextRound();

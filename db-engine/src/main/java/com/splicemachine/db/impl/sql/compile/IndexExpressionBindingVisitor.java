@@ -38,7 +38,7 @@ import java.util.ArrayList;
 
 /**
  * Bind an index expression.
- * 
+ *
  */
 public class IndexExpressionBindingVisitor implements Visitor
 {
@@ -74,12 +74,12 @@ public class IndexExpressionBindingVisitor implements Visitor
         return node;
     }
 
-    public boolean stopTraversal() 
+    public boolean stopTraversal()
     {
         return false;
     }
 
-    public boolean skipChildren(Visitable node) 
+    public boolean skipChildren(Visitable node)
     {
         return false;
     }

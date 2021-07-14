@@ -97,7 +97,10 @@ public interface SessionProperties {
             property = SessionProperties.PROPERTYNAME.valueOf(propertyNameString);
         } catch (IllegalArgumentException e) {
             throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY,propertyNameString,
-                "useOLAP, useSpark (deprecated), defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit, tableLimitForExhaustiveSearch, minPlanTimeout, currentFunctionPath, disablePredsForIndexOrPkAccessPath, alwaysAllowIndexPrefixIteration, olapAlwaysPenalizeNLJ, favorIndexPrefixIteration, costModel, joinStrategy");
+                "useOLAP, useSpark (deprecated), defaultSelectivityFactor, skipStats, olapQueue, " +
+                        "recursiveQueryIterationLimit, tableLimitForExhaustiveSearch, minPlanTimeout, currentFunctionPath, " +
+                        "disablePredsForIndexOrPkAccessPath, alwaysAllowIndexPrefixIteration, olapAlwaysPenalizeNLJ, " +
+                        "favorIndexPrefixIteration, costModel, joinStrategy");
         }
 
         String valString = pair.getSecond();

@@ -973,7 +973,7 @@ public class FromBaseTable extends FromTable {
          ** to the maximum cost so that the optimizer will think that
          ** any access path is better than none.
          */
-        costEstimate.setCost(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
+        costEstimate.setCost(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
 
         super.startOptimizing(optimizer,rowOrdering);
     }
@@ -1276,7 +1276,7 @@ public class FromBaseTable extends FromTable {
 
         CostEstimate costEstimate=getCostEstimate(optimizer);
         currentAP.setCostEstimate(costEstimate);
-        costEstimate.setCost(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
+        costEstimate.setCost(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE);
 
         bestAP.setCostEstimate(fromTable.getCostEstimate());
         trulyBestAP.setCostEstimate(fromTable.getCostEstimate());
@@ -1802,7 +1802,10 @@ public class FromBaseTable extends FromTable {
                 rowTemplate,         // this is a correct row template for all cases
                 scanColumnList,      // meaningless in case of index on expressions
                 indexLookupList,
+                getLanguageConnectionContext().getOptimizerFactory().getIndexBatchSize(),
+                getLanguageConnectionContext().getOptimizerFactory().getIndexLookupBlocks(),
                 forUpdate(),
+                optimizer.isForSpark(),
                 usedNoStatsColumnIds);
 
         // check if specialMaxScan is applicable
@@ -3270,6 +3273,11 @@ public class FromBaseTable extends FromTable {
          *                                        (call to the ResultSetFactory)
          */
         if((updateOrDelete==UPDATE) || (updateOrDelete==DELETE) || rowIdColumn!=null){
+            String type = ClassName.CursorResultSet;
+            String fieldName = acb.getRowLocationScanResultSetName();
+            if (!acb.cb.existsField(type, fieldName)) {
+                acb.newFieldDeclaration(Modifier.PRIVATE, type, fieldName);
+            }
             mb.cast(ClassName.CursorResultSet);
             mb.putField(acb.getRowLocationScanResultSetName(),ClassName.CursorResultSet);
             mb.cast(ClassName.NoPutResultSet);

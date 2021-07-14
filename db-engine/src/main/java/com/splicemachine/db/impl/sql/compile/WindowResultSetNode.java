@@ -909,7 +909,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         CostEstimate costEstimate = getCostEstimate(optimizer);
         costEstimate.setCost(childCost.getEstimatedCost(),
                              childCost.rowCount(),
-                             childCost.singleScanRowCount());
+                             childCost.singleScanRowCount(),
+                             childCost.getRawRowCount());
 
         return costEstimate;
     }
@@ -1011,7 +1012,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
         costEstimate.setCost(childResult.getCostEstimate().getEstimatedCost(),
                              childResult.getCostEstimate().rowCount(),
-                             childResult.getCostEstimate().singleScanRowCount());
+                             childResult.getCostEstimate().singleScanRowCount(),
+                             childResult.getCostEstimate().getRawRowCount());
 
         return this;
     }

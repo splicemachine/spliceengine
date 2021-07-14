@@ -169,6 +169,12 @@ public interface LanguageConnectionContext extends Context {
     int getTableLimitForExhaustiveSearch();
 
     /**
+     * Get value of costModelName
+     * @return value of costModelName
+     */
+    String getCostModelName();
+
+    /**
      * Get value of minPlanTimeout
      * @return value of minPlanTimeout
      */
@@ -1616,7 +1622,7 @@ public interface LanguageConnectionContext extends Context {
 
     boolean favorIndexPrefixIteration();
 
-    CostModel getCostModel();
+    CostModel getCostModel(String costModelName);
 
     void setupLocalSPSCache(boolean fromSparkExecution,
                             SPSDescriptor fromTableDmlSpsDescriptor) throws StandardException;

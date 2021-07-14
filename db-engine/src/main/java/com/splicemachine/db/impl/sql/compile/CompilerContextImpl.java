@@ -416,6 +416,16 @@ public class CompilerContextImpl extends ContextImpl
         ssqFlatteningForUpdateDisabled = onOff;
     }
 
+    @Override
+    public String getCostModelName() {
+        return costModelName;
+    }
+
+    @Override
+    public void setCostModelName(String costModelName) {
+        this.costModelName = costModelName;
+    }
+
     /**
      * Get the current next subquery number from this CompilerContext.
      *
@@ -1303,6 +1313,7 @@ public class CompilerContextImpl extends ContextImpl
     private       boolean                             favorUnionedIndexScans                       = DEFAULT_FAVOR_UNIONED_INDEX_SCANS;
     private       boolean                             alterTableAutoViewRefreshing                 = DEFAULT_SPLICE_ALTER_TABLE_AUTO_VIEW_REFRESHING;
     private       boolean                             varcharDB2CompatibilityMode                  = DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE;
+    private       String                              costModelName                                = DEFAULT_COST_MODEL_NAME;
     /**
      * Saved execution time default schema, if we need to change it
      * temporarily.

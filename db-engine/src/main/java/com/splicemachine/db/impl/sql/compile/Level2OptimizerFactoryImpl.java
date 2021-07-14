@@ -38,7 +38,6 @@ import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
 import com.splicemachine.db.iapi.sql.compile.RequiredRowOrdering;
 
-import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -85,13 +84,12 @@ public class Level2OptimizerFactoryImpl
 	}
 
 	protected Optimizer getOptimizerImpl(
-			OptimizableList optimizableList,
-			OptimizablePredicateList predList,
-			DataDictionary dDictionary,
-			RequiredRowOrdering requiredRowOrdering,
-			int numTablesInQuery,
-			LanguageConnectionContext lcc,
-			CostModel costModel)
+            OptimizableList optimizableList,
+            OptimizablePredicateList predList,
+            DataDictionary dDictionary,
+            RequiredRowOrdering requiredRowOrdering,
+            int numTablesInQuery,
+            LanguageConnectionContext lcc)
 				throws StandardException
 	{
 
@@ -107,8 +105,8 @@ public class Level2OptimizerFactoryImpl
 							lcc.getLockEscalationThreshold(),
 							requiredRowOrdering,
 							numTablesInQuery,
-							lcc,
-							costModel);
+							lcc
+        );
 	}
 
 	/**

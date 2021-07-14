@@ -148,7 +148,7 @@ public class RowResultSetNode extends FromTable {
         if (costEstimate == null) {
             costEstimate = optimizer.newCostEstimate();
         }
-        costEstimate.setCost(0.1d, 1.0d, 1.0d);
+        costEstimate.setCost(0.1d, 1.0d, 1.0d, 1.0d);
         return costEstimate;
     }
 
@@ -582,7 +582,7 @@ public class RowResultSetNode extends FromTable {
 
     private void generateCostWhenNull(double outerRows) {
         costEstimate = optimizer.newCostEstimate();
-        costEstimate.setCost(1.0d, outerRows, outerRows);
+        costEstimate.setCost(1.0d, outerRows, outerRows, outerRows);
         costEstimate.setLocalCost(1.0d);
         costEstimate.setLocalCostPerParallelTask(1.0d);
         if (resultColumns != null)

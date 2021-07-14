@@ -11,20 +11,21 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.impl.sql.compile.costing;
+package com.splicemachine.derby.impl.sql.compile.costing.v2;
 
-import com.splicemachine.EngineDriver;
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.costing.SelectivityEstimator;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.impl.sql.compile.BinaryRelationalOperatorNode;
 import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.Predicate;
 import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
+import com.splicemachine.derby.impl.sql.compile.costing.StrategyJoinCostEstimation;
 
-public class V1MergeJoinCostEstimation implements StrategyJoinCostEstimation {
+public class V2MergeJoinCostEstimation implements StrategyJoinCostEstimation {
+    private static final double ONE_ROW_JOINING_COST = 0.5;  // 0.5 microseconds
 
     private boolean isOuterTableEmpty(Optimizable innerTable, OptimizablePredicateList predList) throws StandardException {
         for (int i = 0; i < predList.size(); i++) {
@@ -61,8 +62,7 @@ public class V1MergeJoinCostEstimation implements StrategyJoinCostEstimation {
                              OptimizablePredicateList predList,
                              ConglomerateDescriptor cd,
                              CostEstimate outerCost,
-                             Optimizer optimizer,
-                             CostEstimate innerCost) throws StandardException {
+                             CostEstimate innerCost, Optimizer optimizer, SelectivityEstimator selectivityEstimator) throws StandardException {
         if (outerCost.localCost() == 0d && outerCost.getEstimatedRowCount() == 1.0) {
             /*
              * Derby calls this method at the end of each table scan, even if it's not a join (or if it's
@@ -77,9 +77,15 @@ public class V1MergeJoinCostEstimation implements StrategyJoinCostEstimation {
         //preserve the underlying CostEstimate for the inner table
         CostEstimate baseInnerCost = innerCost.cloneMe();
         innerCost.setBase(baseInnerCost);
-        double joinSelectivityWithSearchConditionsOnly = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.MERGE_SEARCH);
-        double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.ALL);
-        double scanSelectivity = SelectivityUtil.estimateScanSelectivity(innerTable, predList, SelectivityUtil.JoinPredicateType.MERGE_SEARCH);
+        double joinSelectivityWithSearchConditionsOnly =
+                SelectivityUtil.estimateJoinSelectivity(selectivityEstimator, innerTable, cd, predList,
+                                                        (long) innerCost.rowCount(), (long) outerCost.rowCount(),
+                                                        outerCost, SelectivityEstimator.JoinPredicateType.MERGE_SEARCH);
+        double joinSelectivity =
+                SelectivityUtil.estimateJoinSelectivity(selectivityEstimator, innerTable, cd, predList,
+                                                        (long) innerCost.rowCount(), (long) outerCost.rowCount(),
+                                                        outerCost, SelectivityEstimator.JoinPredicateType.ALL);
+        double scanSelectivity = SelectivityUtil.estimateScanSelectivity(innerTable, predList, SelectivityEstimator.JoinPredicateType.MERGE_SEARCH);
         double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity * scanSelectivity, outerCost.rowCount(), innerCost.rowCount());
         innerCost.setParallelism(outerCost.getParallelism());
         boolean empty = isOuterTableEmpty(innerTable, predList);
@@ -93,40 +99,41 @@ public class V1MergeJoinCostEstimation implements StrategyJoinCostEstimation {
         innerTableScaleFactor = Math.min(innerTableScaleFactor, scanSelectivity);
 
         // Adjust the scanned rows so we can possibly avoid spark execution.
-        double rightRowCount = innerTableScaleFactor * innerCost.rowCount();
+        double rightRowCount = Math.min(1, innerTableScaleFactor * innerCost.rowCount());
         baseInnerCost.setScannedBaseTableRows(rightRowCount);
-        //innerCost.setRowCount(rightRowCount);
+        baseInnerCost.setRowCount(rightRowCount);
 
         double joinCost = mergeJoinStrategyLocalCost(innerCost, outerCost, empty, totalJoinedRows, innerTableScaleFactor);
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerParallelTask(joinCost);
         double remoteCostPerPartition =
-                SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer, innerTableScaleFactor);
+                SelectivityUtil.getTotalPerPartitionPerParallelTask(innerCost, outerCost, optimizer, innerTableScaleFactor);
         innerCost.setRemoteCost(remoteCostPerPartition);
         innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
         innerCost.setRowOrdering(outerCost.getRowOrdering());
         innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalOutputRows));
         innerCost.setRowCount(totalOutputRows);
+        innerCost.setRawRowCount(totalOutputRows);
     }
 
     /**
      * Merge Join Local Cost Computation
      * Total Cost = (Left Side Cost + Right Side Cost + Right Side Remote Cost)/Left Side Partition Count) + Open Cost + Close Cost
      */
-    public static double mergeJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, boolean outerTableEmpty, double numOfJoinedRows, double innerTableScaleFactor) {
-        SConfiguration config = EngineDriver.driver().getConfiguration();
-        double localLatency = config.getFallbackLocalLatency();
-        double joiningRowCost = numOfJoinedRows * localLatency;
+    public static double mergeJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost,
+                                                    boolean outerTableEmpty, double numOfJoinedRows,
+                                                    double innerTableScaleFactor) {
+        double joiningRowCost = numOfJoinedRows * ONE_ROW_JOINING_COST;
 
         assert innerCost.getRemoteCostPerParallelTask() != 0d || innerCost.remoteCost() == 0d;
         double innerRemoteCost = innerCost.getRemoteCostPerParallelTask() * innerTableScaleFactor *
                 innerCost.getParallelism();
         if (outerTableEmpty) {
-            return (outerCost.getLocalCostPerParallelTask()) + innerCost.getOpenCost() + innerCost.getCloseCost();
+            return outerCost.getLocalCostPerParallelTask();
         } else
-            return outerCost.getLocalCostPerParallelTask() + innerCost.getLocalCostPerParallelTask() * innerTableScaleFactor +
-                    innerRemoteCost / outerCost.getParallelism() +
-                    innerCost.getOpenCost() + innerCost.getCloseCost()
+            return outerCost.getLocalCostPerParallelTask()
+                    + innerCost.getLocalCost() * innerTableScaleFactor
+                    + innerRemoteCost / outerCost.getParallelism()
                     + joiningRowCost / outerCost.getParallelism();
     }
 

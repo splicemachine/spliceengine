@@ -341,6 +341,39 @@ public class SelectivityIT extends SpliceUnitTest {
         spliceClassWatcher.executeQuery(format(
                 "call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T5', false)",
                 spliceSchemaWatcher.schemaName));
+
+        new TableCreator(conn)
+                .withCreate("create table t6 (a6 int, b6 int)")
+                .withInsert("insert into t6 values(?, ?)")
+                .create();
+
+        for (int i = 1; i <= 20; i++) {
+            spliceClassWatcher.executeUpdate(format("insert into t6 values(%1$d, %1$d)", i));
+        }
+        for (int i = 0; i < 80; i++) {
+            spliceClassWatcher.executeUpdate("insert into t6 values(0, 21)");
+        }
+
+        spliceClassWatcher.executeQuery(format(
+                "call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T6', false)",
+                spliceSchemaWatcher.schemaName));
+
+        new TableCreator(conn)
+                .withCreate("create table t7 (a7 char(4))")
+                .withInsert("insert into t7 values(?)")
+                .withRows(rows(
+                        row("abc"),
+                        row("abc"),
+                        row("abc"),
+                        row("abc"),
+                        row("abc"),
+                        row("def"),
+                        row("def"),
+                        row("ghi"),
+                        row("jkl"),
+                        row("mno")))
+                .create();
+
         conn.commit();
     }
 
@@ -399,6 +432,26 @@ public class SelectivityIT extends SpliceUnitTest {
         secondRowContainsQuery("explain select * from tns_singlepk where c1 in (1,2,3)", "outputRows=3", methodWatcher);
         secondRowContainsQuery("explain select * from tns_multiplepk where c1 in (1,2,3)", "outputRows=3", methodWatcher);
 
+    }
+
+    @Test
+    public void testInSelectivityWithCastNode() throws Exception {
+        // select 4 rows
+        String query = "explain select * from t7 --splice-properties index=T7_IDX\n" +
+                " where a7 in (cast('def' as char(4)),cast('ghi' as char(4)),cast('mno' as char(4)))";
+
+        // without stats
+        // If cast nodes are not evaluated, output rows = default single point selectivity * default row count = 0.1 * 20 = 2.
+        // If case nodes are evaluated, output rows = default in-list selectivity * default row count = 0.9 * 20 = 18.
+        methodWatcher.executeUpdate("create index T7_IDX on T7 (a7)");
+        secondRowContainsQuery(query, "outputRows=18", methodWatcher);
+
+        // with stats
+        // If cast nodes are not evaluated, output rows rpv * num in-list elements = 2 * 3 = 6. Note that this estimate is the same for any three values.
+        // If cast nodes are evaluated, output rows = (sel('def') + sel('ghi') + sel('mno')) * row count = (0.2 + 0.1 + 0.1) * 10 = 4.
+        try (ResultSet rs0 = methodWatcher.executeQuery("analyze table T7")) {
+            secondRowContainsQuery(query, "outputRows=4", methodWatcher);
+        }
     }
 
     @Test
@@ -858,6 +911,26 @@ public class SelectivityIT extends SpliceUnitTest {
                                               "and a.a = c.a and a.a = d.a and a.a = e.a " +
                                               "and b.a = d.a and b.a = e.a and c.a = e.a","outputRows=10,",methodWatcher);
 
+    }
+
+    @Test
+    public void testSkewedNotEqualValueFallIntoRange() throws Exception {
+        double rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t6 where a6 < 3 and a6 <> 0", methodWatcher));
+        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 2, rowCount, 0.0);
+
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t6 where a6 <> 0 and a6 <= 2", methodWatcher));
+        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 2, rowCount, 0.0);
+
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t6 where b6 > 15 and b6 <> 21", methodWatcher));
+        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 5, rowCount, 0.0);
+
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t6 where b6 >= 15 and b6 <> 21", methodWatcher));
+        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 6, rowCount, 0.0);
+
+        // same as before because we cannot assume any relations between values in column a6 and b6
+        // 0.2 * sqrt(0.2) = 0.89
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t6 where a6 >= 0 and b6 <= 21 and a6 <> 0 and b6 <> 21", methodWatcher));
+        Assert.assertEquals("Estimation wrong, actual rowCount=" + rowCount, 9, rowCount, 0.0);
     }
 
 }

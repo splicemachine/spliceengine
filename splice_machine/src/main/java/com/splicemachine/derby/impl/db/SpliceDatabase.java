@@ -54,7 +54,8 @@ import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.ddl.DDLMessage.DDLChange;
 import com.splicemachine.derby.ddl.*;
-import com.splicemachine.derby.impl.sql.compile.costing.V1CostModel;
+import com.splicemachine.derby.impl.sql.compile.costing.v1.V1CostModel;
+import com.splicemachine.derby.impl.sql.compile.costing.v2.V2CostModel;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
@@ -131,6 +132,7 @@ public class SpliceDatabase extends BasicDatabase{
         }
 
         CostModelRegistry.registerCostModel("v1", new V1CostModel());
+        CostModelRegistry.registerCostModel("v2", new V2CostModel());
 
         if(create){
             SpliceLogUtils.info(LOG,"Creating the Splice Machine database");

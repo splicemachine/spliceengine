@@ -390,8 +390,9 @@ public abstract class SingleChildResultSetNode extends FromTable{
         optimizer.setForSpark(forSpark);
         costEstimate=optimizer.newCostEstimate();
         costEstimate.setCost(childResult.getCostEstimate().getEstimatedCost(),
-                childResult.getCostEstimate().rowCount(),
-                childResult.getCostEstimate().singleScanRowCount());
+                             childResult.getCostEstimate().rowCount(),
+                             childResult.getCostEstimate().singleScanRowCount(),
+                             childResult.getCostEstimate().getRawRowCount());
 
         return this;
     }

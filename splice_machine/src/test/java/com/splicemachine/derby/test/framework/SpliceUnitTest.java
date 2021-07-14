@@ -51,6 +51,9 @@ public class SpliceUnitTest {
     /// set the following boolean to true to prevent deletion of temporary files (e.g. for debugging)
     static private final boolean debug_no_delete = false;
 
+    public static String CM_V1 = "v1";
+    public static String CM_V2 = "v2";
+
     public String getSchemaName() {
         Class<?> enclosingClass = getClass().getEnclosingClass();
         if (enclosingClass != null)
@@ -260,6 +263,12 @@ public class SpliceUnitTest {
         }
     }
 
+    public static void rowContainsQuery(int[] levels, String query, String costModelVersion, SpliceWatcher methodWatcher, String[]... contains) throws Exception {
+        methodWatcher.execute(format("set session_property costModel='%s'", costModelVersion));
+        rowContainsQuery(levels, query, methodWatcher, contains);
+        methodWatcher.execute(format("set session_property costModel='%s'", CM_V1));
+    }
+
     public static void rowContainsQuery(int[] levels, String query, TestConnection conn, String[]... contains) throws Exception {
         try(ResultSet resultSet = conn.query(query)){
             int i=0;
@@ -326,6 +335,12 @@ public class SpliceUnitTest {
                     query,contains,level,actualString);
             Assert.assertTrue(failMessage,actualString.contains(contains));
         }
+    }
+
+    protected void rowContainsQuery(int level, String query, String contains, String costModelVersion, SpliceWatcher methodWatcher) throws Exception {
+        methodWatcher.execute(format("set session_property costModel='%s'", costModelVersion));
+        rowContainsQuery(level, query, contains, methodWatcher);
+        methodWatcher.execute(format("set session_property costModel='%s'", CM_V1));
     }
 
     protected void columnInRowsContainsQuery(int[] levels, int columnPosition, String query, SpliceWatcher methodWatcher, String... contains) throws Exception {

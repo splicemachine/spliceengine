@@ -57,13 +57,12 @@ public class Level2OptimizerImpl extends OptimizerImpl{
                                int tableLockThreshold,
                                RequiredRowOrdering requiredRowOrdering,
                                int numTablesInQuery,
-                               LanguageConnectionContext lcc,
-                               CostModel costModel)
+                               LanguageConnectionContext lcc)
             throws StandardException{
         super(optimizableList, predicateList, dDictionary,
               ruleBasedOptimization, noTimeout, useStatistics, maxMemoryPerTable,
               joinStrategies, tableLockThreshold, requiredRowOrdering,
-              numTablesInQuery, costModel);
+              numTablesInQuery, lcc.getCostModel(optimizableList.getCostModelName()));
 
         // Remember whether or not optimizer trace is on;
         optimizerTrace=lcc.getOptimizerTrace();

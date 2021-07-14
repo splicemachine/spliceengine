@@ -204,6 +204,7 @@ public interface CompilerContext extends Context
     boolean DEFAULT_FAVOR_UNIONED_INDEX_SCANS = false;
     boolean DEFAULT_SPLICE_ALTER_TABLE_AUTO_VIEW_REFRESHING = false;
     boolean DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE = false;
+    String DEFAULT_COST_MODEL_NAME = "v1";
 
     boolean DEFAULT_PRESERVE_LINE_ENDINGS = false;
 
@@ -815,4 +816,8 @@ public interface CompilerContext extends Context
     boolean compilingTrigger();
 
     void setCompilingTrigger(boolean newVal);
+
+    void setCostModelName(String costModelName);
+
+    String getCostModelName();
 }

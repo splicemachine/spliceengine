@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.costing.ScanCostEstimator;
+import com.splicemachine.db.iapi.sql.compile.costing.ScanCostEstimator;
 import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
@@ -71,6 +72,15 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
 
     protected static final int SCAN = 0;  // qualifier phase: BASE, FILTER_BASE
     protected static final int TOP  = 1;  // qualifier phase: FILTER_PROJECTION
+    /* These values are based on the results of index lookup microbenchmark (DB-11737) performed
+     * on an EKS cluster with 4 OLTP + 4 OLAP pods.
+     * Next step is to make them tunable (maybe as configurable parameters in site.xml). These
+     * numbers can be used as defaults. In theory, they can be set based on results of running
+     * index lookup microbenchmark in target environment.
+     */
+    private static final int OLTP_INDEXLOOKUP_COST_PER_ROW = 125;
+    private static final int OLAP_INDEXLOOKUP_COST_PER_ROW = 18;
+    private static final int OLAP_INDEXLOOKUP_STARTUP_COST = 85000;
 
     protected final Optimizable            baseTable;
     protected final ConglomerateDescriptor cd;
@@ -98,8 +108,18 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
     // positions of columns used in estimating selectivity but missing real statistics
     private final HashSet<Integer> usedNoStatsColumnIds;
 
+    // when index lookup is needed, the maximum number of rows that can be fired as a batch
+    // controlled by splice.index.batchSize, default value in SQLConfiguration
+    private final int indexLookupBatchRowCount;
+
+    // when index lookup is needed, the maximum number of batches that can be fired concurrently
+    // controlled by splice.index.numConcurrentLookups, default value in SQLConfiguration
+    private final int indexLookupConcurrentBatchesCount;
+
     // will be used shortly
     private final boolean forUpdate;
+
+    protected final boolean isOlap;
 
     // selectivity elements for scanning phase
     protected final List<SelectivityHolder>[] scanSelectivityHolder;
@@ -120,6 +140,20 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
      *     BASE -> Qualifiers on the row keys (start/stop Qualifiers, Multiprobe)
      *     FILTER_BASE -> Qualifiers applied after the scan but before the index lookup.
      *     FILTER_PROJECTION -> Qualifers and Predicates applied after any potential lookup, usually performed on the Projection Node in the scan.
+     *
+     *  @param baseTable  A base table on which a scan cost is going to be estimated.
+     *  @param cd         A conglomerate descriptor of the base table to be considered.
+     *  @param scc        A StoreCostController instance.
+     *  @param scanCost   A CostEstimate instance where the result will be stored. Output parameter.
+     *  @param resultColumns  The result columns of the base table.
+     *  @param scanRowTemplate  The row template of the base table.
+     *  @param baseColumnsInScan  The set of columns from the base table that will be scanned in store.
+     *  @param baseColumnsInLookup  The set of columns that has to be looked up because of a non-covering index.
+     *  @param indexLookupBatchRowCount  Maximum number of rows for which index lookup operation can be batched together.
+     *  @param indexLookupConcurrentBatchesCount  Maximum number of index lookup batches that can run concurrently.
+     *  @param forUpdate  Whether the base table is updatable (see forUpdate() for detailed explanation) or not (currently unused).
+     *  @param isOlap  Whether estimating a cost for OLAP or not.
+     *  @param usedNoStatsColumnIds  A set of columns which do not have statistics but should have to improve cost estimation. Output parameter.
      */
     public AbstractScanCostEstimator(Optimizable baseTable,
                                      ConglomerateDescriptor cd,
@@ -129,7 +163,10 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
                                      DataValueDescriptor[] scanRowTemplate,
                                      BitSet baseColumnsInScan,
                                      BitSet baseColumnsInLookup,
+                            int indexLookupBatchRowCount,
+                            int indexLookupConcurrentBatchesCount,
                                      boolean forUpdate,
+                            boolean isOlap,
                                      HashSet<Integer> usedNoStatsColumnIds) throws StandardException {
         this.baseTable=baseTable;
         this.cd = cd;
@@ -142,7 +179,10 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
         this.resultColumns = resultColumns;
         this.baseColumnsInScan = baseColumnsInScan;
         this.baseColumnsInLookup = baseColumnsInLookup;
-        this.forUpdate=forUpdate;
+        this.indexLookupBatchRowCount = indexLookupBatchRowCount;
+        this.indexLookupConcurrentBatchesCount = indexLookupConcurrentBatchesCount;
+        this.forUpdate = forUpdate;
+        this.isOlap = isOlap;
         this.usedNoStatsColumnIds = usedNoStatsColumnIds;
 
         /* We always allocate one extra column in a selectivity holder array because column
@@ -285,55 +325,13 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
 
     /**
      *
-     * Add Predicate and keep track of the selectivity
-     *
-     * @param p
-     * @throws StandardException
-     */
-    public void addPredicate(Predicate p, double defaultSelectivityFactor, Optimizer optimizer) throws StandardException{
-        if (p.isMultiProbeQualifier(indexColumns)) {// MultiProbeQualifier against keys (BASE)
-            addSelectivity(new InListSelectivity(scc, p, isIndexOnExpression ? indexColumns : null, QualifierPhase.BASE, defaultSelectivityFactor), SCAN);
-            collectNoStatsColumnsFromInListPred(p);
-        } else if (p.isInQualifier(baseColumnsInScan)) { // In Qualifier in Base Table (FILTER_PROJECTION) // This is not as expected, needs more research.
-            addSelectivity(new InListSelectivity(scc, p, null, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor), SCAN);
-            accumulateExprEvalCost(p);
-            collectNoStatsColumnsFromInListPred(p);
-        }
-        else if (p.isInQualifier(baseColumnsInLookup)) { // In Qualifier against looked up columns (FILTER_PROJECTION)
-            addSelectivity(new InListSelectivity(scc, p, null, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor), TOP);
-            accumulateExprEvalCost(p);
-            collectNoStatsColumnsFromInListPred(p);
-        }
-        else if ( (p.isStartKey() || p.isStopKey()) && scanPredicatePossible) { // Range Qualifier on Start/Stop Keys (BASE)
-            performQualifierSelectivity(p, QualifierPhase.BASE, isIndexOnExpression, defaultSelectivityFactor, SCAN, optimizer);
-            if (!p.isStartKey() || !p.isStopKey()) // Only allows = to further restrict BASE scan numbers
-                scanPredicatePossible = false;
-            collectNoStatsColumnsFromUnaryAndBinaryPred(p);
-        }
-        else if (p.isQualifier()) { // Qualifier in Base Table (FILTER_BASE)
-            performQualifierSelectivity(p, QualifierPhase.FILTER_BASE, isIndexOnExpression, defaultSelectivityFactor, SCAN, optimizer);
-            collectNoStatsColumnsFromUnaryAndBinaryPred(p);
-        }
-        else if (PredicateList.isQualifier(p,baseTable,cd,false)) { // Qualifier on Base Table After Index Lookup (FILTER_PROJECTION)
-            performQualifierSelectivity(p, QualifierPhase.FILTER_PROJECTION, isIndexOnExpression, defaultSelectivityFactor, TOP, optimizer);
-            accumulateExprEvalCost(p);
-            collectNoStatsColumnsFromUnaryAndBinaryPred(p);
-        }
-        else { // Project Restrict Selectivity Filter
-            addSelectivity(new DefaultPredicateSelectivity(p, baseTable, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor, optimizer), TOP);
-            accumulateExprEvalCost(p);
-        }
-    }
-
-    /**
-     *
      * Performs qualifier selectivity based on a qualifierPhase.
      *
      * @param p
      * @param qualifierPhase
      * @throws StandardException
      */
-    protected void performQualifierSelectivity (Predicate p, QualifierPhase qualifierPhase, boolean forIndexExpr, double selectivityFactor, int phase, Optimizer optimizer) throws StandardException {
+    protected void performQualifierSelectivity(Predicate p, QualifierPhase qualifierPhase, boolean forIndexExpr, double selectivityFactor, int phase, Optimizer optimizer) throws StandardException {
         if(p.compareWithKnownConstant(baseTable, true) &&
                 (p.getRelop().getColumnOperand(baseTable) != null ||
                         (forIndexExpr && p.getRelop().getExpressionOperand(baseTable.getTableNumber(), -1, (FromTable)baseTable, true) != null) && p.getIndexPosition() >= 0))
@@ -500,6 +498,15 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
                 columnHolder.add(new RangeSelectivity(scc,value,value,true,true, forIndexExpr, colNum,phase, selectivityFactor, useExtrapolation, p));
                 break;
             case RelationalOperator.NOT_EQUALS_RELOP:
+                for(SelectivityHolder sh: columnHolder){
+                    if (sh.isRangeSelectivity()) {
+                        RangeSelectivity rq = (RangeSelectivity) sh;
+                        boolean combined = combineNEAndRange(scc, value, rq, forIndexExpr, colNum);
+                        if (combined) {
+                            break OP_SWITCH;
+                        }
+                    }
+                }
                 columnHolder.add(new NotEqualsSelectivity(scc, forIndexExpr, colNum, phase, value, selectivityFactor, useExtrapolation, p));
                 break;
             case RelationalOperator.IS_NULL_RELOP:
@@ -519,7 +526,7 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(scc,value,null,true,true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation, p));
+                combineNEAndRange(columnHolder, new RangeSelectivity(scc,value,null,true,true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation, p));
                 break;
             case RelationalOperator.GREATER_THAN_RELOP:
                 for(SelectivityHolder sh: columnHolder){
@@ -532,7 +539,7 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(scc,value,null,false,true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation, p));
+                combineNEAndRange(columnHolder, new RangeSelectivity(scc,value,null,false,true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation, p));
                 break;
             case RelationalOperator.LESS_EQUALS_RELOP:
                 for(SelectivityHolder sh: columnHolder){
@@ -545,7 +552,7 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(scc,null,value,true,true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation, p));
+                combineNEAndRange(columnHolder, new RangeSelectivity(scc, null, value, true, true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation, p));
                 break;
             case RelationalOperator.LESS_THAN_RELOP:
                 for(SelectivityHolder sh: columnHolder){
@@ -558,11 +565,95 @@ public abstract class AbstractScanCostEstimator implements ScanCostEstimator {
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(scc,null,value,true,false, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation, p));
+                combineNEAndRange(columnHolder, new RangeSelectivity(scc, null, value, true, false, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation, p));
                 break;
             default:
                 throw new RuntimeException("Unknown Qualifier Type");
          }
         return true;
+    }
+
+    /* Handle cases where NE value falls into a range as a boundary value and this boundary value is highly skewed.
+     * Example:
+     * A column that has values [0, 0, 0, ...(80 0s), 1, 2, 3, ... , 20]. Among 100 values, there are 80 zeros.
+     * Consider predicates "COL < 3 AND COL <> 0" and we don't combine NE and range predicates.
+     * sel(COL <> 0) = 0.2, sel(COL < 3) = 0.82, sel_total = 0.2 * sqrt(0.82) = 0.18.
+     * Actually, if NE value is highly skewed, other predicates do not matter that much because the NE predicate is
+     * too selective and dominates the estimation. Suppose it's (COL <> 0 AND COL < 18), we see that total
+     * selectivity is 0.198 and it's not a big difference to 0.18. However, the former case returns 2 rows, while
+     * the latter returns 17 rows. In reality, this could be a big difference in the number of estimated rows.
+     *
+     * Note that in case of open ranges (start / stop == null), this procedure could under estimates when statistics
+     * are outdated over time when min/max are different.
+     */
+    private boolean combineNEAndRange(StoreCostController scc, DataValueDescriptor neValue, RangeSelectivity rsHolder,
+                                      boolean forIndexExpr, int colNum) throws StandardException {
+        boolean combined = false;
+        if (rsHolder.includeStart) {
+            if (rsHolder.start != null && neValue.compare(rsHolder.start) == 0) {
+                rsHolder.includeStart = false;
+                combined = true;
+            } else if (rsHolder.start == null && neValue.compare(scc.minValue(forIndexExpr, colNum)) == 0) {
+                rsHolder.start = neValue;
+                rsHolder.includeStart = false;
+                combined = true;
+            }
+        }
+        if (rsHolder.includeStop) {
+            if (rsHolder.stop != null && neValue.compare(rsHolder.stop) == 0) {
+                rsHolder.includeStop = false;
+                combined = true;
+            } else if (rsHolder.stop == null && neValue.compare(scc.maxValue(forIndexExpr, colNum)) == 0) {
+                rsHolder.stop = neValue;
+                rsHolder.includeStop = false;
+                combined = true;
+            }
+        }
+        return combined;
+    }
+
+    private void combineNEAndRange(List<SelectivityHolder> columnHolders, RangeSelectivity rsHolder) throws StandardException {
+        List<SelectivityHolder> toRemove = new ArrayList<>();
+        for (SelectivityHolder sh : columnHolders) {
+            if (sh instanceof NotEqualsSelectivity) {
+                NotEqualsSelectivity neq = (NotEqualsSelectivity) sh;
+                boolean combined = combineNEAndRange(scc, neq.value, rsHolder, rsHolder.useExprIndexStats, rsHolder.colNum);
+                if (combined) {
+                    toRemove.add(sh);
+                }
+            }
+        }
+        columnHolders.removeAll(toRemove);
+        columnHolders.add(rsHolder);
+    }
+
+    protected double estimateIndexLookupCost(double lookupRowsCount, double openLatency, double closeLatency) {
+        if (isOlap || lookupRowsCount == 1.0) {  // OLTP formula is simplified to OLAP formula if row count == 1
+            return lookupRowsCount * getIndexLookupCostPerRow() + openLatency + closeLatency
+                    + (isOlap ? OLAP_INDEXLOOKUP_STARTUP_COST : 0);
+        } else {
+            // a whole batch is a batch containing 'indexLookupBatchRowCount' rows
+            // if lookupRowsCount < indexLookupBatchRowCount, wholeBatchesCount == 0
+            double wholeBatchesCount = Math.floor(lookupRowsCount / indexLookupBatchRowCount);
+            double oneWholeBatchCost = indexLookupBatchRowCount * getIndexLookupCostPerRow() + openLatency + closeLatency;
+            double serialBatchesCount = Math.max(wholeBatchesCount / indexLookupConcurrentBatchesCount, 1);
+
+            boolean considerLastBatchSeparately = wholeBatchesCount % indexLookupConcurrentBatchesCount == 0;
+            if (considerLastBatchSeparately) {
+                // if we have k serial batch groups but the last batch group contains only one batch that is not a whole
+                // batch, calculate the cost of last batch separately
+                double lastBatchRowsCount = lookupRowsCount % indexLookupBatchRowCount;
+                double lastBatchCost = lastBatchRowsCount * getIndexLookupCostPerRow() + openLatency + closeLatency;
+                return oneWholeBatchCost * (wholeBatchesCount == 0 ? 0 : serialBatchesCount)
+                        + (lastBatchRowsCount == 0 ? 0 : lastBatchCost);
+            } else {
+                // if the last serial batch group has at least one whole batch, take it as a complete serial step
+                return oneWholeBatchCost * Math.ceil(serialBatchesCount);
+            }
+        }
+    }
+
+    private double getIndexLookupCostPerRow() {
+        return isOlap ? OLAP_INDEXLOOKUP_COST_PER_ROW : OLTP_INDEXLOOKUP_COST_PER_ROW;
     }
 }

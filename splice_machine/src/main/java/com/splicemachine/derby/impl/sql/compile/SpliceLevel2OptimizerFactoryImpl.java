@@ -25,7 +25,6 @@ import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
 import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
 import com.splicemachine.db.iapi.sql.compile.RequiredRowOrdering;
-import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.impl.sql.compile.OptimizerFactoryImpl;
@@ -54,8 +53,7 @@ public class SpliceLevel2OptimizerFactoryImpl extends OptimizerFactoryImpl {
                                   DataDictionary dDictionary,
                                   RequiredRowOrdering requiredRowOrdering,
                                   int numTablesInQuery,
-                                  LanguageConnectionContext lcc,
-                                  CostModel costModel) throws StandardException {
+                                  LanguageConnectionContext lcc) throws StandardException {
         /* Get/set up the array of join strategies.
          * See comment in boot().  If joinStrategySet
          * is null, then we may do needless allocations
@@ -67,6 +65,7 @@ public class SpliceLevel2OptimizerFactoryImpl extends OptimizerFactoryImpl {
          */
         if (joinStrategySet == null) { // Do not change order...
             joinStrategySet = new JoinStrategy[]{
+                    new JoinCardinalityEstimatorStrategy(),
                     new NestedLoopJoinStrategy(),
                     new MergeSortJoinStrategy(),
                     new BroadcastJoinStrategy(),
@@ -80,8 +79,8 @@ public class SpliceLevel2OptimizerFactoryImpl extends OptimizerFactoryImpl {
                                 dDictionary,
                                 requiredRowOrdering,
                                 numTablesInQuery,
-                                lcc,
-                                costModel);
+                                lcc
+        );
     }
 
 
@@ -91,8 +90,7 @@ public class SpliceLevel2OptimizerFactoryImpl extends OptimizerFactoryImpl {
             DataDictionary dDictionary,
             RequiredRowOrdering requiredRowOrdering,
             int numTablesInQuery,
-            LanguageConnectionContext lcc,
-            CostModel costModel) throws StandardException {
+            LanguageConnectionContext lcc) throws StandardException {
 
         return new SpliceLevel2OptimizerImpl(
                 optimizableList,
@@ -106,8 +104,8 @@ public class SpliceLevel2OptimizerFactoryImpl extends OptimizerFactoryImpl {
                 lcc.getLockEscalationThreshold(),
                 requiredRowOrdering,
                 numTablesInQuery,
-                lcc,
-                costModel);
+                lcc
+        );
     }
 
     /**
@@ -120,6 +118,16 @@ public class SpliceLevel2OptimizerFactoryImpl extends OptimizerFactoryImpl {
     public long getDetermineSparkRowThreshold() {
         SConfiguration configuration = EngineDriver.driver().getConfiguration();
         return configuration.getDetermineSparkRowThreshold();
+    }
+
+    public int getIndexBatchSize() {
+        SConfiguration configuration = EngineDriver.driver().getConfiguration();
+        return configuration.getIndexBatchSize();
+    }
+
+    public int getIndexLookupBlocks() {
+        SConfiguration configuration = EngineDriver.driver().getConfiguration();
+        return configuration.getIndexLookupBlocks();
     }
 }
 

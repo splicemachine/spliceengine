@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.Statement;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModelRegistry;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.depend.Dependency;
@@ -501,6 +502,7 @@ public class GenericStatement implements Statement{
         setSSQFlatteningForUpdateDisabled(lcc, cc);
         setAlterTableAutoViewRefreshing(lcc, cc);
         setVarcharDB2CompatibilityMode(lcc, cc);
+        setCostModelName(lcc, cc);
         return cc;
     }
 
@@ -726,7 +728,7 @@ public class GenericStatement implements Statement{
     private void setDisableSubqueryFlattening(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
         boolean param = getBooleanParam(lcc, Property.DISABLE_SUBQUERY_FLATTENING, CompilerContext.DEFAULT_DISABLE_SUBQUERY_FLATTENING);
         cc.setDisableSubqueryFlattening(param);
-    }          
+    }
 
     private void setDisableParallelTaskJoinCosting(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
         boolean param = getBooleanParam(lcc, GlobalDBProperties.DISABLE_PARALLEL_TASKS_JOIN_COSTING,
@@ -836,6 +838,17 @@ public class GenericStatement implements Statement{
             } else {
                 cc.setCountReturnType(Types.BIGINT);
             }
+        }
+    }
+
+    private void setCostModelName(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String costModelString = PropertyUtil.getCached(lcc, GlobalDBProperties.COST_MODEL);
+        if (costModelString == null) {
+            cc.setCostModelName(CompilerContext.DEFAULT_COST_MODEL_NAME);
+        } else if (CostModelRegistry.exists(costModelString)) {
+            cc.setCostModelName(costModelString);
+        } else if (costModelString.equalsIgnoreCase("null")) {
+            cc.setCostModelName(CompilerContext.DEFAULT_COST_MODEL_NAME);
         }
     }
 

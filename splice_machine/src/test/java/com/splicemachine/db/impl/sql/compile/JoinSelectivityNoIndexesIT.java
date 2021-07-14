@@ -136,6 +136,34 @@ public class JoinSelectivityNoIndexesIT extends SpliceUnitTest {
                         row(15),row(16),row(17),row(18),row(19),row(20),row(21))).create();
         new TableCreator(conn).withCreate("create table t2 (a2 int)").create();
         conn.createStatement().executeQuery("analyze table t1_left_outer");
+
+        new TableCreator(conn)
+                .withCreate("create table js1 (c1 int primary key)")
+                .withInsert("insert into js1 values(?)")
+                .withRows(rows(
+                        row(1),
+                        row(2),
+                        row(3),
+                        row(4),
+                        row(5),
+                        row(6),
+                        row(7),
+                        row(8),
+                        row(9),
+                        row(10)))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table js2 (c2 int)")
+                .withInsert("insert into js2 values(?)")
+                .withRows(rows(
+                        row(2)))
+                .create();
+
+        for (int i = 1, stride = 10; i <= 13; ++i, stride *= 2) {
+            spliceClassWatcher.executeUpdate(format("insert into js1 select c1+%d from js1", stride));
+        }
+
         conn.commit();
 
     }
@@ -158,5 +186,29 @@ public class JoinSelectivityNoIndexesIT extends SpliceUnitTest {
     @Test
     public void leftOuterJoinRowCount() throws Exception {
         thirdRowContainsQuery("explain select * from t1_left_outer left join t2 on a1 = a2","outputRows=21", methodWatcher);
+    }
+
+    @Test
+    public void testJoinSelectivityInRange() throws Exception {
+        methodWatcher.execute("analyze table js1");
+        methodWatcher.execute("analyze table js2");
+
+        String sqlText = "select * from --splice-properties joinOrder=fixed\n" +
+                "  JS1 A" +
+                " where A.c1 = 2 and" +
+                "  exists (select * from JS2 B where B.c2 = 2 and A.c1 = B.c2)";
+
+        // left row count == 1 because of A.c1 = 2
+        // right row count == 1 because of B.c2 = 2
+        // before join selectivity fix (1 row join 1 row outputs 81920 rows...):
+        //rowContainsQuery(new int[]{1,4,4}, "explain " + sqlText, methodWatcher, "OLAP", "BroadcastJoin", "outputRows=81920");
+        // after join selectivity fix (1 row join 1 row outputs 1 row):
+        methodWatcher.execute("set session_property costModel='v1'");
+        rowContainsQuery(new int[]{1,4,4}, "explain " + sqlText, methodWatcher, "OLTP", "Join", "outputRows=1");
+
+        methodWatcher.execute("set session_property costModel='v2'");
+        rowContainsQuery(new int[]{1,4,4}, "explain " + sqlText, methodWatcher, "OLTP", "Join", "outputRows=1");
+
+        methodWatcher.execute("set session_property costModel='v1'");
     }
 }
