@@ -1659,4 +1659,8 @@ public interface LanguageConnectionContext extends Context {
      * @return value of joinStrategy
      */
     String getHintedJoinStrategy();
+
+    boolean isCloningData();
+
+    void setCloningData(boolean cloningData);
 }

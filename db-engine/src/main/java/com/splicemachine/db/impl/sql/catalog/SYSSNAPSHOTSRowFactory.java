@@ -1,4 +1,6 @@
 /*
+ * Copyright (c) 2012 - 2021 Splice Machine, Inc.
+ *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
  * GNU Affero General Public License as published by the Free Software Foundation, either
@@ -8,27 +10,7 @@
  * See the GNU Affero General Public License for more details.
  * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
  * If not, see <http://www.gnu.org/licenses/>.
- *
- * Some parts of this source code are based on Apache Derby, and the following notices apply to
- * Apache Derby:
- *
- * Apache Derby is a subproject of the Apache DB project, and is licensed under
- * the Apache License, Version 2.0 (the "License"); you may not use these files
- * except in compliance with the License. You may obtain a copy of the License at:
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
- *
- * Splice Machine, Inc. has modified the Apache Derby code in this file.
- *
- * All such Splice Machine modifications are Copyright 2012 - 2020 Splice Machine, Inc.,
- * and are licensed to you under the GNU Affero General Public License.
  */
-
 package com.splicemachine.db.impl.sql.catalog;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -43,26 +25,23 @@ import org.joda.time.DateTime;
 
 import java.sql.Types;
 
-public class SYSSNAPSHOTSRowFactory extends CatalogRowFactory
-{
+public class SYSSNAPSHOTSRowFactory extends CatalogRowFactory {
     public static final String		TABLENAME_STRING = "SYSSNAPSHOTS";
 
     protected static final int		COLUMN_COUNT = 6;
+    /* Column #s for sysSnapshots (1 based) */
+    protected static final int		SNAPSHOTID = 1;
+    protected static final int		SCOPE = 2;
+    protected static final int		SCOPENAME = 3;
+    protected static final int		STATUS = 4;
+    protected static final int		BEGINTIMESTAMP =5;
+    protected static final int		ENDTIMESTAMP =6;
 
-    /* Column #s for systablesnapshots (1 based) */
-    protected static final int		SNAPSHOTNAME = 1;
-    protected static final int		SCHEMANAME = 2;
-    protected static final int		OBJECTNAME = 3;
-    protected static final int		CONGLOMERATENUMBER = 4;
-    protected static final int		CREATIONTIME =5;
-    protected static final int		LASTRESTORETIME = 6;
-
-    private	static	final	String[]	uuids =
-            {
-                     "80010018-00d0-fd77-3ed8-000a0a0b190e"	// catalog UUID
-                    ,"80010028-00d0-fd77-3ed8-000a0a0b190e"	// heap UUID
-                    ,"8001001a-00d0-fd77-3ed8-000a0a0b190e"	// SYSTABLESNAPSHOTS_INDEX1
-            };
+    private	static	final	String[]	uuids = {
+            "59cccae0-9272-11eb-a8b3-0242ac130003", // catalog UUID
+            "59cccd2e-9272-11eb-a8b3-0242ac130003", // heap UUID
+            "59ccce1e-9272-11eb-a8b3-0242ac130003"  // SYSTABLESNAPSHOTS_INDEX0
+    };
 
     protected static final int SYSSNAPSHOTS_INDEX1_ID = 0;
 
@@ -70,10 +49,9 @@ public class SYSSNAPSHOTSRowFactory extends CatalogRowFactory
             true
     };
 
-    private static final int[][] indexColumnPositions =
-            {
-                    {SNAPSHOTNAME, CONGLOMERATENUMBER},
-            };
+    private static final int[][] indexColumnPositions = {
+            {SNAPSHOTID},
+    };
 
     /////////////////////////////////////////////////////////////////////////////
     //
@@ -81,12 +59,11 @@ public class SYSSNAPSHOTSRowFactory extends CatalogRowFactory
     //
     /////////////////////////////////////////////////////////////////////////////
 
-    public SYSSNAPSHOTSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf,DataDictionary dd)
+    public SYSSNAPSHOTSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
     {
         super(uuidf,ef,dvf,dd);
         initInfo(COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, uniqueness, uuids);
     }
-
     /////////////////////////////////////////////////////////////////////////////
     //
     //	METHODS
@@ -94,7 +71,7 @@ public class SYSSNAPSHOTSRowFactory extends CatalogRowFactory
     /////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Make a SYSTABLESNAPSHOTS row
+     * Make a SYSTABLESNAPSHOTITEMS row
      *
      * @return	Row suitable for inserting into SYSTABLES.
      *
@@ -105,12 +82,12 @@ public class SYSSNAPSHOTSRowFactory extends CatalogRowFactory
             throws StandardException
     {
 
-        String snapshotName = null;
-        String schemaName = null;
-        String objectName = null;
-        long conglomerateNumber = 0;
-        DateTime creationTime = null;
-        DateTime lastRestoreTime = null;
+        long snapshotId = -1;
+        String scope = null;
+        String scopeName = null;
+        String status = null;
+        DateTime beginTimeStamp = null;
+        DateTime endTimeStamp = null;
 
         if (td != null)
         {
@@ -118,22 +95,21 @@ public class SYSSNAPSHOTSRowFactory extends CatalogRowFactory
                 throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
 
             SnapshotDescriptor descriptor = (SnapshotDescriptor)td;
-            snapshotName = descriptor.getSnapshotName();
-            schemaName = descriptor.getSchemaName();
-            objectName = descriptor.getObjectName();
-            conglomerateNumber = descriptor.getConglomerateNumber();
-            creationTime = descriptor.getCreationTime();
-            lastRestoreTime = descriptor.getLastRestoreTime();
+            snapshotId = descriptor.getSnapshotId();
+            scope = descriptor.getScope();
+            scopeName = descriptor.getScopeName();
+            status = descriptor.getStatus();
+            beginTimeStamp = descriptor.getBeginTimestamp();
+            endTimeStamp = descriptor.getEndTimestamp();
         }
 
         ExecRow row = getExecutionFactory().getValueRow(COLUMN_COUNT);
-        row.setColumn(SNAPSHOTNAME, new SQLVarchar(snapshotName));
-        row.setColumn(SCHEMANAME, new SQLVarchar(schemaName));
-        row.setColumn(OBJECTNAME, new SQLVarchar(objectName));
-        row.setColumn(CONGLOMERATENUMBER, new SQLLongint(conglomerateNumber));
-        row.setColumn(CREATIONTIME, new SQLTimestamp(creationTime));
-        row.setColumn(LASTRESTORETIME, new SQLTimestamp(lastRestoreTime));
-
+        row.setColumn(SNAPSHOTID, new SQLLongint(snapshotId));
+        row.setColumn(SCOPE, new SQLVarchar(scope));
+        row.setColumn(SCOPENAME, new SQLVarchar(scopeName));
+        row.setColumn(STATUS, new SQLVarchar(status));
+        row.setColumn(BEGINTIMESTAMP, new SQLTimestamp(beginTimeStamp));
+        row.setColumn(ENDTIMESTAMP, new SQLTimestamp(endTimeStamp));
         return row;
     }
 
@@ -148,37 +124,37 @@ public class SYSSNAPSHOTSRowFactory extends CatalogRowFactory
                     row.nColumns() == COLUMN_COUNT,
                     "Wrong number of columns for a SYSBACKUP row");
         }
-        DataValueDescriptor col = row.getColumn(SNAPSHOTNAME);
-        String snapshotName = col.getString();
+        DataValueDescriptor col = row.getColumn(SNAPSHOTID);
+        long snapshotId = col.getLong();
 
-        col = row.getColumn(SCHEMANAME);
-        String schemaName = col.getString();
+        col = row.getColumn(SCOPE);
+        String scope = col.getString();
 
-        col = row.getColumn(OBJECTNAME);
-        String objectName = col.getString();
+        col = row.getColumn(SCOPENAME);
+        String scopeName = col.getString();
 
-        col = row.getColumn(CONGLOMERATENUMBER);
-        long conglomerateNumber = col.getLong();
+        col = row.getColumn(STATUS);
+        String status = col.getString();
 
-        col = row.getColumn(CREATIONTIME);
-        DateTime creationTime = col.getDateTime();
+        col = row.getColumn(BEGINTIMESTAMP);
+        DateTime beginTimestamp = col.getDateTime();
 
-        col = row.getColumn(LASTRESTORETIME);
-        DateTime lastRestoreTime = col.getDateTime();
+        col = row.getColumn(ENDTIMESTAMP);
+        DateTime endTimestamp = col.getDateTime();
 
-        return new SnapshotDescriptor(snapshotName, schemaName, objectName, conglomerateNumber, creationTime, lastRestoreTime);
+        return new SnapshotDescriptor(snapshotId, scope, scopeName, status, beginTimestamp, endTimestamp);
     }
 
     @Override
     public SystemColumn[] buildColumnList() throws StandardException
     {
         return new SystemColumn[]{
-                SystemColumnImpl.getColumn("SNAPSHOTNAME",Types.VARCHAR,false,128),
-                SystemColumnImpl.getColumn("SCHEMANAME",Types.VARCHAR,false,128),
-                SystemColumnImpl.getColumn("OBJECTNAME",Types.VARCHAR,false,128),
-                SystemColumnImpl.getColumn("CONGLOMERATENUMBER", Types.BIGINT, false),
-                SystemColumnImpl.getColumn("CREATIONTIME",Types.TIMESTAMP,true),
-                SystemColumnImpl.getColumn("LASTRESTORETIME",Types.TIMESTAMP,true)
+                SystemColumnImpl.getColumn("SNAPSHOTID", Types.BIGINT,false),
+                SystemColumnImpl.getColumn("SCOPE",Types.VARCHAR,false,128),
+                SystemColumnImpl.getColumn("SCOPENAME",Types.VARCHAR,false,128),
+                SystemColumnImpl.getColumn("STATUS", Types.VARCHAR,false,128),
+                SystemColumnImpl.getColumn("BEGINTIMESTAMP",Types.TIMESTAMP,true),
+                SystemColumnImpl.getColumn("ENDTIMESTAMP",Types.TIMESTAMP,true),
         };
     }
 }
