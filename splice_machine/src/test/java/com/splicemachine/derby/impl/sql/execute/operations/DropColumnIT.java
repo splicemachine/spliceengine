@@ -367,4 +367,23 @@ public class DropColumnIT extends SpliceUnitTest {
                 "     2     | 2 |";
         testQuery(query, expected, methodWatcher);
     }
+
+    @Test
+    public void testCascadeDropTrigger() throws Exception {
+        methodWatcher.execute("create table m(id int, col1 int, col2 int, col3 int, col4 char(50))");
+        methodWatcher.execute("create table s(id int ,description varchar(100),tm_time timestamp)");
+        methodWatcher.execute("CREATE TRIGGER tr1 AFTER UPDATE of col1,col2 ON m FOR EACH STATEMENT insert into s values(7,'TR1',CURRENT_TIMESTAMP)");
+        methodWatcher.execute("CREATE TRIGGER tr2 AFTER UPDATE of col2 ON m FOR EACH STATEMENT insert into s values(6,'TR2',CURRENT_TIMESTAMP)");
+        methodWatcher.execute("alter table m drop col1");
+        methodWatcher.execute("alter table m drop col2");
+
+        String sql = String.format("select count(TRIGGERNAME) FROM SYS.SYSTRIGGERS WHERE TABLEID=(select tableid from sys.systables " +
+                "where tablename='M' and schemaid=(select schemaid from sys.sysschemas where schemaname='%s'))", SCHEMA_NAME);
+
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            rs.next();
+            int count = rs.getInt(1);
+            assertEquals(0, count);
+        }
+    }
 }
