@@ -194,7 +194,7 @@ public class BulkDataSetWriter  {
         Activation activation = operationContext.getActivation();
         DataDictionary dd = activation.getLanguageConnectionContext().getDataDictionary();
         ConglomerateDescriptor cd = dd.getConglomerateDescriptor(heapConglom);
-        TableDescriptor td = dd.getTableDescriptor(cd.getTableID());
+        TableDescriptor td = dd.getTableDescriptor(cd.getTableID(), null);
         ConglomerateDescriptorList list = td.getConglomerateDescriptorList();
 
         allCongloms.add(td.getHeapConglomerateId());

@@ -49,7 +49,7 @@ public class ColPermsDescriptor extends PermissionsDescriptor
     private String type;
     private FormatableBitSet columns;
     private String tableName;
-	
+
 	public ColPermsDescriptor( DataDictionary dd,
 			                   String grantee,
                                String grantor,
@@ -64,7 +64,7 @@ public class ColPermsDescriptor extends PermissionsDescriptor
         //tableUUID can be null only if the constructor with colPermsUUID
         //has been invoked.
         if (tableUUID != null)
-        	tableName = dd.getTableDescriptor(tableUUID).getName();
+            tableName = dd.getTableDescriptor(tableUUID, null).getName();
 	}
 
     /**
@@ -90,7 +90,7 @@ public class ColPermsDescriptor extends PermissionsDescriptor
     {
         return DataDictionary.SYSCOLPERMS_CATALOG_NUM;
     }
-	
+
 	/*----- getter functions for rowfactory ------*/
     public UUID getTableUUID() { return tableUUID;}
     public String getType() { return type;}
@@ -98,13 +98,13 @@ public class ColPermsDescriptor extends PermissionsDescriptor
 
 	public String toString()
 	{
-		return "colPerms: grantee=" + getGrantee() + 
+		return "colPerms: grantee=" + getGrantee() +
         ",colPermsUUID=" + getUUID() +
 			",grantor=" + getGrantor() +
           ",tableUUID=" + getTableUUID() +
           ",type=" + getType() +
           ",columns=" + getColumns();
-	}		
+	}
 
 	/**
      * @return true iff the key part of this permissions descriptor equals the key part of another permissions
@@ -128,13 +128,13 @@ public class ColPermsDescriptor extends PermissionsDescriptor
     	return super.keyHashCode() + tableUUID.hashCode() +
 		((type == null) ? 0 : type.hashCode());
     }
-	
+
 	/**
 	 * @see PermissionsDescriptor#checkOwner
 	 */
 	public boolean checkOwner(String authorizationId) throws StandardException
 	{
-		TableDescriptor td = getDataDictionary().getTableDescriptor(tableUUID);
+		TableDescriptor td = getDataDictionary().getTableDescriptor(tableUUID, null);
 		return td.getSchemaDescriptor().getAuthorizationId().equals(authorizationId);
 	}
 
@@ -151,7 +151,7 @@ public class ColPermsDescriptor extends PermissionsDescriptor
 	 */
 	public String getObjectName()
 	{
-		return "Column Privilege on " + tableName; 
+		return "Column Privilege on " + tableName;
 	}
 
 	/**
@@ -164,12 +164,12 @@ public class ColPermsDescriptor extends PermissionsDescriptor
 		return Dependable.COLUMNS_PERMISSION;
 	}
 
-	/**		
+	/**
 		@return the stored form of this provider
 
 			@see Dependable#getDependableFinder
 	 */
-	public DependableFinder getDependableFinder() 
+	public DependableFinder getDependableFinder()
 	{
         return getDependableFinder(
                 StoredFormatIds.COLUMNS_PERMISSION_FINDER_V01_ID);

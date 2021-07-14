@@ -295,7 +295,7 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
         if (type == SPS_TYPE_TRIGGER && triggerTable == null) {
             // name consists of (see CreateTriggerConstantAction): TRIGGER<ACTN|WHEN>_<UUID:36>_<UUID:36>
             String uuidStr = name.split("_")[2];
-            triggerTable = dd.getTableDescriptor(recreateUUID(uuidStr));
+            triggerTable = dd.getTableDescriptor(recreateUUID(uuidStr), tc);
             if (SanityManager.DEBUG) {
                 if (triggerTable == null) {
                     SanityManager.THROWASSERT("couldn't find trigger table for trigger sps " + name);

@@ -57,7 +57,7 @@ public class ExternalTableUtils {
             DataDictionary dd = lcc.getDataDictionary();
             ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomerateId);
             UUID tableId = cd.getTableID();
-            TableDescriptor td = dd.getTableDescriptor(tableId);
+            TableDescriptor td = dd.getTableDescriptor(tableId, null);
             ColumnDescriptorList cdl = td.getColumnDescriptorList();
             ExecRow execRow = new ValueRow(cdl.size());
             DataValueDescriptor[] dvds = execRow.getRowArray();

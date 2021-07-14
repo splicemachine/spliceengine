@@ -127,7 +127,7 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
 		*/
 		dd.startWriting(lcc);
 
-		td = dd.getTableDescriptor(tableId);
+		td = dd.getTableDescriptor(tableId, tc);
 
 		if (td == null)
 		{

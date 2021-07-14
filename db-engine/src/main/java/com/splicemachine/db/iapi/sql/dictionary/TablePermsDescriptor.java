@@ -52,7 +52,7 @@ public class TablePermsDescriptor extends PermissionsDescriptor
     private String updatePriv;
     private String referencesPriv;
     private String triggerPriv;
-	
+
 	public TablePermsDescriptor( DataDictionary dd,
                                  String grantee,
                                  String grantor,
@@ -75,7 +75,7 @@ public class TablePermsDescriptor extends PermissionsDescriptor
         //tableUUID can be null only if the constructor with tablePermsUUID
         //has been invoked.
         if (tableUUID != null)
-        	tableName = dd.getTableDescriptor(tableUUID).getName();
+            tableName = dd.getTableDescriptor(tableUUID, null).getName();
 	}
 
     /**
@@ -102,7 +102,7 @@ public class TablePermsDescriptor extends PermissionsDescriptor
     {
         return DataDictionary.SYSTABLEPERMS_CATALOG_NUM;
     }
-	
+
 	/*----- getter functions for rowfactory ------*/
     public UUID getTableUUID() { return tableUUID;}
     public String getSelectPriv() { return selectPriv;}
@@ -145,13 +145,13 @@ public class TablePermsDescriptor extends PermissionsDescriptor
     {
     	return super.keyHashCode() + tableUUID.hashCode();
     }
-	
+
 	/**
 	 * @see PermissionsDescriptor#checkOwner
 	 */
 	public boolean checkOwner(String authorizationId) throws StandardException
 	{
-		TableDescriptor td = getDataDictionary().getTableDescriptor(tableUUID);
+		TableDescriptor td = getDataDictionary().getTableDescriptor(tableUUID, null);
         return td.getSchemaDescriptor().getAuthorizationId().equals(authorizationId);
 	}
 
@@ -168,7 +168,7 @@ public class TablePermsDescriptor extends PermissionsDescriptor
 	 */
 	public String getObjectName()
 	{
-		return "Table Privilege on " + tableName; 
+		return "Table Privilege on " + tableName;
 	}
 
 	/**
@@ -181,12 +181,12 @@ public class TablePermsDescriptor extends PermissionsDescriptor
 		return Dependable.TABLE_PERMISSION;
 	}
 
-	/**		
+	/**
 		@return the stored form of this provider
 
 			@see Dependable#getDependableFinder
 	 */
-	public DependableFinder getDependableFinder() 
+	public DependableFinder getDependableFinder()
 	{
         return getDependableFinder(
                 StoredFormatIds.TABLE_PERMISSION_FINDER_V01_ID);

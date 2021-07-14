@@ -418,7 +418,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         }
         TableDescriptor td = activation.getDDLTableDescriptor();
         if (td == null) {
-            td = tableId != null?dd.getTableDescriptor(tableId):dd.getTableDescriptor(tableName, sd, userTransaction);
+            td = tableId != null?dd.getTableDescriptor(tableId, null):dd.getTableDescriptor(tableName, sd, userTransaction);
         }
 
         if (td!=null && td.getTableType()==TableDescriptor.EXTERNAL_TYPE) {

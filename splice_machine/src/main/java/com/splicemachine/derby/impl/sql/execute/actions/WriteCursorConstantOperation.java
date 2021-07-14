@@ -531,7 +531,7 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
 
 			dd = lcc.getDataDictionary();
 	
-			td = dd.getTableDescriptor(targetUUID);
+			td = dd.getTableDescriptor(targetUUID, null);
 	
 			emptyHeapRow = td.getEmptyExecRow();
 		}

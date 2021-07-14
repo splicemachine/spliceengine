@@ -374,7 +374,7 @@ public final class ViewDescriptor extends TupleDescriptor
 			case DependencyManager.REVOKE_ROLE:
                 
                 TableDescriptor td = 
-                        getDataDictionary().getTableDescriptor(uuid);
+                        getDataDictionary().getTableDescriptor(uuid, null);
                 
                 if (td == null) { 
                     // DERBY-5567 already dropped via another dependency 

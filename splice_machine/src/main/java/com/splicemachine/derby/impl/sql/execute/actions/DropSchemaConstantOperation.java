@@ -121,7 +121,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
         // views could be defined on other views/tables/aliases, and aliases could be on tables/views
 
         //get all the table/view/alias
-        ArrayList<TupleDescriptor> tableList = dd.getTablesInSchema(sd);
+        ArrayList<TableDescriptor> tableList = dd.getTablesInSchema(sd.getUUID().toString());
 
         // get all the table/view/alias and their dependents in the pendingDropList
         ArrayList<TupleDescriptor> pendingDropList = new ArrayList<>();
@@ -206,7 +206,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
                     assert true : "we should not be dropping table types reaching here";
             }
         } else if (tupleDescriptor instanceof ViewDescriptor) {
-            TableDescriptor viewTableDescriptor = dd.getTableDescriptor(((ViewDescriptor) tupleDescriptor).getObjectID());
+            TableDescriptor viewTableDescriptor = dd.getTableDescriptor(((ViewDescriptor) tupleDescriptor).getObjectID(), null);
             action = constantActionFactory.getDropViewConstantAction(viewTableDescriptor.getQualifiedName(),
                     viewTableDescriptor.getName(),
                     viewTableDescriptor.getSchemaDescriptor());
@@ -364,7 +364,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
             }
         } else if (dependentDescriptor instanceof ViewDescriptor) {
             ViewDescriptor viewDescriptor = (ViewDescriptor)dependentDescriptor;
-            TableDescriptor viewTdDescriptor = dd.getTableDescriptor(viewDescriptor.getObjectID());
+            TableDescriptor viewTdDescriptor = dd.getTableDescriptor(viewDescriptor.getObjectID(), null);
             if (!viewTdDescriptor.getSchemaDescriptor().getUUID().equals(sd.getUUID())) {
                 throw StandardException.newException(SQLState.LANG_PROVIDER_HAS_EXTERNAL_DEPENDENCY,
                         sd.getSchemaName(), objectType, providerDescriptor.getDescriptorName());
