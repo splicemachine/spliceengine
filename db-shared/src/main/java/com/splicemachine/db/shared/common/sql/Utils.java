@@ -28,4 +28,19 @@ public class Utils {
                  .replace("_", escapeCharacter + "_")
                  .replace("%", escapeCharacter + "%");
     }
+
+    public static String constructHbaseName(String tableName) {
+        if(tableName == null) {
+            return null;
+        }
+        try {
+            long conglomId = Long.parseLong(tableName);
+            return "splice:" + conglomId;
+        } catch(NumberFormatException nfe) {
+            if(!tableName.contains(":")) {
+                throw new IllegalArgumentException(String.format("improper HBase table name %s", tableName));
+            }
+        }
+        return tableName;
+    }
 }

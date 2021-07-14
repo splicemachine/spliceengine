@@ -193,6 +193,7 @@ public interface CompilerContext extends Context
     NewMergeJoinExecutionType DEFAULT_SPLICE_NEW_MERGE_JOIN = NewMergeJoinExecutionType.SYSTEM;
     boolean DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING = false;
     boolean DEFAULT_DISABLE_INDEX_PREFIX_ITERATION= false;
+    boolean DEFAULT_SPLICE_ALTER_TABLE_AUTO_VIEW_REFRESHING = false;
     boolean DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE = false;
 
     boolean DEFAULT_PRESERVE_LINE_ENDINGS = false;
@@ -765,6 +766,10 @@ public interface CompilerContext extends Context
     void setDisablePrefixIteratorMode(boolean newValue);
 
     boolean getDisablePrefixIteratorMode();
+
+    void setAlterTableAutoViewRefreshing(boolean newValue);
+
+    boolean getAlterTableAutoViewRefreshing();
 
     void setVarcharDB2CompatibilityMode(boolean newValue);
 

@@ -19,34 +19,33 @@ import org.apache.log4j.Logger;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 public class MSessionsWatcherImpl implements SessionsWatcher {
     private static final Logger LOG = Logger.getLogger(MSessionsWatcherImpl.class);
-    private final Set<Long> activeSessions = ConcurrentHashMap.newKeySet();
+    private final Set<String> activeSessions = ConcurrentHashMap.newKeySet();
 
     public static final MSessionsWatcherImpl INSTANCE = new MSessionsWatcherImpl();
 
     private MSessionsWatcherImpl(){}
 
     @Override
-    public Set<Long> getLocalActiveSessions() {
-        return new HashSet<>(activeSessions);
+    public Set<String> getLocalActiveSessions() {
+        return activeSessions;
     }
 
     @Override
-    public List<Long> getAllActiveSessions() {
-        List<Long> result = new ArrayList<>(activeSessions);
-        Collections.sort(result);
-        return result;
+    public List<String> getAllActiveSessions() {
+        return activeSessions.stream().sorted().collect(Collectors.toList());
     }
 
     @Override
-    public void registerSession(long sessionId) {
+    public void registerSession(long machineID, String sessionId) {
         activeSessions.add(sessionId);
     }
 
     @Override
-    public void unregisterSession(long sessionId) {
+    public void unregisterSession(long machineID, String sessionId) {
         activeSessions.remove(sessionId);
     }
 

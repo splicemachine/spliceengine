@@ -87,6 +87,7 @@ import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -3815,6 +3816,17 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         GenericDescriptorList list=new GenericDescriptorList();
 
         getDescriptorViaHeap(null,null,ti,null,list);
+        return list;
+    }
+
+    public List<TableDescriptor> getAllTableDescriptors() throws StandardException {
+        TabInfoImpl ti=coreInfo[SYSTABLES_CORE_NUM];
+        List<TableDescriptor> list = new ArrayList<>();
+        getDescriptorViaHeap(null, null, ti, null, list);
+        for (int i = 0; i < list.size(); i++) {
+            list.set(i, finishTableDescriptor(list.get(i)));
+        }
+
         return list;
     }
 
@@ -11119,4 +11131,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return false;
     }
 
+    @Override
+    public long getConglomerateCreationTxId(long tableConglom) throws StandardException {
+        return -1;
+    }
 }

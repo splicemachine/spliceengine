@@ -1831,6 +1831,12 @@ Guide.
             </msg>
 
             <msg>
+                <name>42X21</name>
+                <text>'{0}' is a special derived column which may not be defined in DDL statements.  Please rename the column.</text>
+                <arg>colName</arg>
+            </msg>
+
+            <msg>
                 <name>42X23</name>
                 <text>Cursor {0} is not updatable.</text>
                 <arg>cursorName</arg>
@@ -2897,6 +2903,15 @@ Guide.
                 <name>42Z02</name>
                 <text>Multiple DISTINCT aggregates are not supported at this time.</text>
             </msg>
+
+            <msg>
+                <name>42Z03</name>
+                <text>Specified index '{0}' is created at tx '{1}' which is after time-travel mapped past transaction id '{2}'.</text>
+                <arg>indexName</arg>
+                <arg>indexCreationTx</arg>
+                <arg>timeTravelTx</arg>
+            </msg>
+
 
             <msg>
                 <name>42Z07</name>

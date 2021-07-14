@@ -875,6 +875,7 @@ public interface SQLState {
     String LANG_NOT_COMPARABLE                                             = "42818";
     String LANG_NON_BOOLEAN_WHERE_CLAUSE                                   = "42X19";
     String LANG_INTEGER_LITERAL_EXPECTED                                   = "42X20";
+    String LANG_DERIVED_COLUMN_NAME_USE                                    = "42X21";
     String LANG_CURSOR_NOT_UPDATABLE                                       = "42X23";
     String LANG_INVALID_COL_HAVING_CLAUSE                                  = "42X24";
     String LANG_UNARY_FUNCTION_BAD_TYPE                                    = "42X25";
@@ -1072,6 +1073,7 @@ public interface SQLState {
     String LANG_UNTYPED                                                    = "42Z01.U";
     // TEMPORARY COMPILATION RESTRICTIONS
     String LANG_USER_AGGREGATE_MULTIPLE_DISTINCTS                          = "42Z02";
+    String LANG_USER_INDEX_CREATED_AFTER_PAST_TRANSACTION                  = "42Z03";
     String LANG_NO_AGGREGATES_IN_ON_CLAUSE                                 = "42Z07";
     String LANG_NO_BULK_INSERT_REPLACE_WITH_TRIGGER                        = "42Z08";
 
