@@ -132,7 +132,7 @@ public class DropAddColumnIT extends SpliceUnitTest {
 
         private Harness createTable(String name, String... columns) throws Exception {
             assert tables.stream().noneMatch(t -> t.name.equals(name));
-            assert columns.length > 1;
+            assert columns.length > 0;
             ddl.setLength(0);
             tableName = name;
             ddl.append(format("CREATE TABLE %s (%s", name, tuple(Arrays.stream(columns).map(c -> new Col(c, INT)).toArray()))); // finish the statement with calling begin.
@@ -325,6 +325,224 @@ public class DropAddColumnIT extends SpliceUnitTest {
                     "---------------------------------------------------------------------------------------------------------------------------\n" +
                     "VAL7 |  T2   |DROPADDCOLUMNIT | INTEGER |   N   |    0    |   4   |   0   |   5   | INTEGER |     4     |   1   |  NULL   |";
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        harness.finish();
+    }
+
+    @Test
+    public void testAutomaticViewRefreshingOn_SelectStarView() throws Exception {
+        // Turn on alter table auto view refreshing.
+        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.execution.alterTable.autoViewRefreshing', true)");
+
+        Harness harness = new Harness(connection);
+
+        Harness.Table table = harness.createTable("t3", "val1")
+                .begin()
+                .addRow(10)
+                .addRow(20);
+
+        methodWatcher.execute("create view v3 as select * from t3");
+        String viewQuery = "select * from v3";
+
+        try (ResultSet rs = methodWatcher.executeQuery(viewQuery)) {
+            String expected = "VAL1 |\n" +
+                    "------\n" +
+                    " 10  |\n" +
+                    " 20  |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        table = table.addColumn("val2", INT);
+        try (ResultSet rs = methodWatcher.executeQuery(viewQuery)) {
+            String expected = "VAL1 |VAL2 |\n" +
+                    "------------\n" +
+                    " 10  |NULL |\n" +
+                    " 20  |NULL |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        table = table.dropColumn("val2");
+        try (ResultSet rs = methodWatcher.executeQuery(viewQuery)) {
+            String expected = "VAL1 |\n" +
+                    "------\n" +
+                    " 10  |\n" +
+                    " 20  |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        table = table.addColumn("val2", INT).addColumn("val3", INT);
+        try (ResultSet rs = methodWatcher.executeQuery(viewQuery)) {
+            String expected = "VAL1 |VAL2 |VAL3 |\n" +
+                    "------------------\n" +
+                    " 10  |NULL |NULL |\n" +
+                    " 20  |NULL |NULL |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        table = table.dropColumn("val1");
+        try (ResultSet rs = methodWatcher.executeQuery(viewQuery)) {
+            String expected = "VAL2 |VAL3 |\n" +
+                    "------------\n" +
+                    "NULL |NULL |\n" +
+                    "NULL |NULL |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // Turn off alter table auto view refreshing.
+        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.execution.alterTable.autoViewRefreshing', null)");
+    }
+
+    @Test
+    public void testAutomaticViewRefreshingOn_SecondLevelSelectStarView() throws Exception {
+        // Turn on alter table auto view refreshing.
+        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.execution.alterTable.autoViewRefreshing', true)");
+
+        Harness harness = new Harness(connection);
+
+        Harness.Table table = harness.createTable("t32", "val1")
+                .begin()
+                .addRow(10)
+                .addRow(20);
+
+        methodWatcher.execute("create view v32 as select * from t32");
+        methodWatcher.execute("create view vv32 as select * from v32");
+        String viewQuery = "select * from vv32";
+
+        try (ResultSet rs = methodWatcher.executeQuery(viewQuery)) {
+            String expected = "VAL1 |\n" +
+                    "------\n" +
+                    " 10  |\n" +
+                    " 20  |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        table = table.addColumn("val2", INT);
+        try (ResultSet rs = methodWatcher.executeQuery(viewQuery)) {
+            String expected = "VAL1 |VAL2 |\n" +
+                    "------------\n" +
+                    " 10  |NULL |\n" +
+                    " 20  |NULL |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        table = table.dropColumn("val2");
+        try (ResultSet rs = methodWatcher.executeQuery(viewQuery)) {
+            String expected = "VAL1 |\n" +
+                    "------\n" +
+                    " 10  |\n" +
+                    " 20  |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        table = table.addColumn("val2", INT).addColumn("val3", INT);
+        try (ResultSet rs = methodWatcher.executeQuery(viewQuery)) {
+            String expected = "VAL1 |VAL2 |VAL3 |\n" +
+                    "------------------\n" +
+                    " 10  |NULL |NULL |\n" +
+                    " 20  |NULL |NULL |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        table = table.dropColumn("val1");
+        try (ResultSet rs = methodWatcher.executeQuery(viewQuery)) {
+            String expected = "VAL2 |VAL3 |\n" +
+                    "------------\n" +
+                    "NULL |NULL |\n" +
+                    "NULL |NULL |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // Turn off alter table auto view refreshing.
+        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.execution.alterTable.autoViewRefreshing', null)");
+    }
+
+    @Test
+    public void testAutomaticViewRefreshingOn_SelectExplicitColumnsView() throws Exception {
+        // Turn on alter table auto view refreshing.
+        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.execution.alterTable.autoViewRefreshing', true)");
+
+        Harness harness = new Harness(connection);
+
+        Harness.Table table = harness.createTable("t31", "val1", "val2")
+                .begin()
+                .addRow(10, 20)
+                .addRow(20, 40);
+
+        methodWatcher.execute("create view v31 as select val1 from t31");
+        String viewQuery = "select * from v31";
+
+        String expected = "VAL1 |\n" +
+                "------\n" +
+                " 10  |\n" +
+                " 20  |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(viewQuery)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        table = table.addColumn("val3", INT);
+        try (ResultSet rs = methodWatcher.executeQuery(viewQuery)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        table = table.dropColumn("val2");
+        try (ResultSet rs = methodWatcher.executeQuery(viewQuery)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        table = table.dropColumn("val1");
+        try (ResultSet rs = methodWatcher.executeQuery(viewQuery)) {
+            Assert.fail("expect to fail because view definition is on column val1 and val2, but val1 is dropped");
+        } catch (SQLException sqle) {
+            Assert.assertEquals("42X04", sqle.getSQLState());
+            Assert.assertTrue(sqle.getMessage().contains("Column 'VAL1' is either not in any table in the FROM list or"));
+        }
+
+        // Turn off alter table auto view refreshing.
+        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.execution.alterTable.autoViewRefreshing', null)");
+    }
+
+    @Test
+    public void testAutomaticViewRefreshingOff() throws Exception {
+        Harness harness = new Harness(connection);
+
+        Harness.Table table = harness.createTable("t4", "val1", "val2")
+                .begin()
+                .addRow(10, 10)
+                .addRow(20, 20);
+
+        methodWatcher.execute("create view v4 as select * from t4");
+        String viewQuery = "select * from v4";
+
+        String expected = "VAL1 |VAL2 |\n" +
+                "------------\n" +
+                " 10  | 10  |\n" +
+                " 20  | 20  |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(viewQuery)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        table = table.addColumn("val3", INT);
+        try (ResultSet rs = methodWatcher.executeQuery(viewQuery)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        table = table.dropColumn("val1");
+        try (ResultSet rs = methodWatcher.executeQuery(viewQuery)) {
+            Assert.fail("expect to fail because view definition is on column val1 and val2, but val1 is dropped");
+        } catch (SQLException sqle) {
+            Assert.assertEquals("42X21", sqle.getSQLState());
+            Assert.assertTrue(sqle.getMessage().contains("'VAL1' is a special derived column which may not be defined in DDL statements."));
+        }
+
+        table = table.dropColumn("val3");
+        try (ResultSet rs = methodWatcher.executeQuery(viewQuery)) {
+            Assert.fail("expect to fail because underlying table has fewer columns than view definition");
+        } catch (SQLException sqle) {
+            Assert.assertEquals("42X32", sqle.getSQLState());
+            Assert.assertTrue(sqle.getMessage().contains("The number of columns in the derived column list must match the number of columns in table 'V4'"));
         }
     }
 }
