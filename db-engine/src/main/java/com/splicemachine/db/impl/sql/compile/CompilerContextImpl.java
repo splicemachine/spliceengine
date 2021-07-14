@@ -335,6 +335,14 @@ public class CompilerContextImpl extends ContextImpl
 
     public boolean getFavorUnionedIndexScans() { return favorUnionedIndexScans; }
 
+    public void setAlterTableAutoViewRefreshing(boolean newValue) {
+        alterTableAutoViewRefreshing = newValue;
+    }
+
+    public boolean getAlterTableAutoViewRefreshing() {
+        return alterTableAutoViewRefreshing;
+    }
+
     public void setVarcharDB2CompatibilityMode(boolean newValue) {
         varcharDB2CompatibilityMode = newValue;
     }
@@ -1303,6 +1311,7 @@ public class CompilerContextImpl extends ContextImpl
     private       boolean                             disableSubqueryFlattening                    = DEFAULT_DISABLE_SUBQUERY_FLATTENING;
     private       boolean                             disableUnionedIndexScans                     = DEFAULT_DISABLE_UNIONED_INDEX_SCANS;
     private       boolean                             favorUnionedIndexScans                       = DEFAULT_FAVOR_UNIONED_INDEX_SCANS;
+    private       boolean                             alterTableAutoViewRefreshing                 = DEFAULT_SPLICE_ALTER_TABLE_AUTO_VIEW_REFRESHING;
     private       boolean                             varcharDB2CompatibilityMode                  = DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE;
     private       String                              costModelName                                = DEFAULT_COST_MODEL_NAME;
     /**

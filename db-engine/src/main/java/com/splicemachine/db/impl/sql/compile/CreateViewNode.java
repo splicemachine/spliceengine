@@ -547,7 +547,7 @@ public class CreateViewNode extends DDLStatementNode
       *
       *    @return    the parsed query expression.
       */
-    ResultSetNode    getParsedQueryExpression() { return queryExpression; }
+    public ResultSetNode getParsedQueryExpression() { return queryExpression; }
 
 
     /*

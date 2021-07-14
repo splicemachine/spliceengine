@@ -320,6 +320,10 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
         return keyFormatIds;
     }
 
+    public void setKeyFormatIds(int[] keyFormatIds) {
+        this.keyFormatIds = keyFormatIds;
+    }
+
     @Override
     public void dropColumn(TransactionManager xact_manager,int storagePosition, int position) throws StandardException{
         boolean dropColumnOrdering = false;

@@ -202,6 +202,7 @@ public interface CompilerContext extends Context
     boolean DEFAULT_DISABLE_SUBQUERY_FLATTENING = false;
     boolean DEFAULT_DISABLE_UNIONED_INDEX_SCANS = false;
     boolean DEFAULT_FAVOR_UNIONED_INDEX_SCANS = false;
+    boolean DEFAULT_SPLICE_ALTER_TABLE_AUTO_VIEW_REFRESHING = false;
     boolean DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE = false;
     String DEFAULT_COST_MODEL_NAME = "v1";
 
@@ -803,6 +804,10 @@ public interface CompilerContext extends Context
     void setFavorUnionedIndexScans(boolean newValue);
 
     boolean getFavorUnionedIndexScans();
+
+    void setAlterTableAutoViewRefreshing(boolean newValue);
+
+    boolean getAlterTableAutoViewRefreshing();
 
     void setVarcharDB2CompatibilityMode(boolean newValue);
 

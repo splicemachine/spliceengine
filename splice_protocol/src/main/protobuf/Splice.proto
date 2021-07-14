@@ -233,7 +233,7 @@ message SpliceActiveSessionsRequest {
 }
 
 message SpliceActiveSessionsResponse {
-    repeated int64 activeSessionIds = 1;
+    repeated string activeSessionIds = 1;
 }
 
 message TestResponse {

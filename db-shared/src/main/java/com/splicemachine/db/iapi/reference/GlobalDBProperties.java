@@ -119,6 +119,11 @@ public class GlobalDBProperties {
                     "if true, ignore trailing spaces in varchar comparisons",
                     Validator::parseBoolean);
 
+    public static PropertyType SPLICE_ALTER_TABLE_AUTO_VIEW_REFRESHING =
+            new PropertyType("splice.execution.alterTable.autoViewRefreshing",
+                             "if true, automatically refresh dependent views after adding or dropping a column",
+                             Validator::parseBoolean);
+
     /**
      * If enabled, disable calculation of join costs as cost per parallel task
      * and revert to using the old units: cost per partition (cost per region).
