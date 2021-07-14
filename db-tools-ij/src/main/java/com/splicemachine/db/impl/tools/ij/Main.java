@@ -63,221 +63,228 @@ import java.security.PrivilegedExceptionAction;
  *
  */
 public class Main {
-	private utilMain utilInstance;
-
-	/**
-	 * ij can be used directly on a shell command line through
-	 * its main program.
-	 * @param args allows 1 file name to be specified, from which
-	 *    input will be read; if not specified, stdin is used.
-	 */
-	public static void main(String[] args)
-		throws IOException
-	{
-		mainCore(args, new Main(true));
-	}
-
-	public static void mainCore(String[] args, Main main)
-		throws IOException
-	{
-		LocalizedInput in = null;
-		InputStream in1 = null;
-		Main me;
-		String file;
-		String inputResourceName;
-
-		LocalizedResource langUtil = LocalizedResource.getInstance();
-		LocalizedOutput out = langUtil.getNewOutput(System.out);
-
-                // Validate arguments, check for --help.
-		if (util.invalidArgs(args)) {
-			util.Usage(out);
-      		return;
-		}
-
-		// load the property file if specified
-		util.getPropertyArg(args);
-
-		// readjust output to db.ui.locale and db.ui.codeset if
-                // they were loaded from a property file.
-		langUtil.init();
-		out = langUtil.getNewOutput(System.out);
-                main.initAppUI();
-
-		file = util.getFileArg(args);
-		inputResourceName = util.getInputResourceNameArg(args);
-		if (inputResourceName != null) {
-			in = langUtil.getNewInput(util.getResourceAsStream(inputResourceName));
-			if (in == null) {
-				out.println(langUtil.getTextMessage("IJ_IjErroResoNo",inputResourceName));
-				return;
-			}
-		} else if (file == null) {
-			in = langUtil.getNewInput(System.in);
-                        out.flush();
-    	        } else {
-                    try {
-                    	final String inFile1 = file;
-                    	in1 = (FileInputStream) AccessController.doPrivileged(new PrivilegedExceptionAction() {
-            				public Object run() throws FileNotFoundException {
-        						return new FileInputStream(inFile1);
-            				}
-            			});
-                        if (in1 != null) {
-                            in1 = new BufferedInputStream(in1, utilMain.BUFFEREDFILESIZE);
-                            in = langUtil.getNewInput(in1);
-                        }
-                    } catch (PrivilegedActionException e) {
-                        if (Boolean.getBoolean("ij.searchClassPath")) {
-                            in = langUtil.getNewInput(util.getResourceAsStream(file));
-                        }
-                        if (in == null) {
-                        out.println(langUtil.getTextMessage("IJ_IjErroFileNo",file));
-            		  return;
-                        }
-                    }
-                }
-
-		final String outFile = util.getSystemProperty("ij.outfile");
-		if (outFile != null && !outFile.isEmpty()) {
-			LocalizedOutput oldOut = out;
-			FileOutputStream fos = (FileOutputStream) AccessController.doPrivileged(new PrivilegedAction() {
-				public Object run() {
-					FileOutputStream out = null;
-					try {
-						out = new FileOutputStream(outFile);
-					} catch (FileNotFoundException e) {
-						out = null;
-					}
-					return out;
-				}
-			});
-			out = langUtil.getNewOutput(fos);
-
-			if (out == null)
-			   oldOut.println(langUtil.getTextMessage("IJ_IjErroUnabTo",outFile));
-
-		}
-
-		// the old property name is deprecated...
-		String maxDisplayWidth = util.getSystemProperty("maximumDisplayWidth");
-		if (maxDisplayWidth==null)
-			maxDisplayWidth = util.getSystemProperty("ij.maximumDisplayWidth");
-		if (maxDisplayWidth != null && !maxDisplayWidth.isEmpty()) {
-			try {
-				int maxWidth = Integer.parseInt(maxDisplayWidth);
-				JDBCDisplayUtil.setMaxDisplayWidth(maxWidth);
-			}
-			catch (NumberFormatException nfe) {
-				out.println(langUtil.getTextMessage("IJ_IjErroMaxiVa", maxDisplayWidth));
-			}
-		}
-
-		/* Use the main parameter to get to
-		 * a new Main that we can use.
-		 * (We can't do the work in Main(out)
-		 * until after we do all of the work above
-		 * us in this method.
-		 */
-		me = main.getMain(out);
-
-		/* Let the processing begin! */
-		me.go(in, out);
-		if(in != null) {
-			in.close();
-		}
-		if(out != null) {
-			out.close();
-		}
-	}
-
-	/**
-	 * Get the right Main (according to
-	 * the JDBC version.
-	 *
-	 * @return	The right main (according to the JDBC version).
-	 */
-	public Main getMain(LocalizedOutput out)
-	{
-		return new Main(out);
-	}
-
-	/**
-	 * Get the right utilMain (according to
-	 * the JDBC version.
-	 *
-	 * @return	The right utilMain (according to the JDBC version).
-	 */
-	public utilMain getutilMain(int numConnections, LocalizedOutput out)
-	{
-		return new utilMain(numConnections, out);
-	}
+    private utilMain utilInstance;
 
     /**
-	 * Get the right utilMain (according to
-	 * the JDBC version. This overload allows the choice of whether
+     * ij can be used directly on a shell command line through
+     * its main program.
+     * @param args allows 1 file name to be specified, from which
+     *    input will be read; if not specified, stdin is used.
+     */
+    public static void main(String[] args)
+            throws IOException
+    {
+        mainCore(args, new Main(true));
+    }
+
+    public static void mainCore(String[] args, Main main)
+            throws IOException
+    {
+        LocalizedInput in = null;
+        InputStream in1 = null;
+        Main me;
+        String file;
+        String inputResourceName;
+
+        LocalizedResource langUtil = LocalizedResource.getInstance();
+        LocalizedOutput out = langUtil.getNewOutput(System.out);
+
+        // Validate arguments, check for --help.
+        if (util.invalidArgs(args)) {
+            util.Usage(out);
+            return;
+        }
+
+        // load the property file if specified
+        util.getPropertyArg(args);
+
+        // readjust output to db.ui.locale and db.ui.codeset if
+        // they were loaded from a property file.
+        langUtil.init();
+        out = langUtil.getNewOutput(System.out);
+        main.initAppUI();
+
+        file = util.getFileArg(args);
+        inputResourceName = util.getInputResourceNameArg(args);
+        if (inputResourceName != null) {
+            in = langUtil.getNewInput(util.getResourceAsStream(inputResourceName));
+            if (in == null) {
+                out.println(langUtil.getTextMessage("IJ_IjErroResoNo",inputResourceName));
+                return;
+            }
+        } else if (file == null) {
+            in = langUtil.getNewInput(System.in);
+            out.flush();
+        } else {
+            try {
+                final String inFile1 = file;
+                in1 = (FileInputStream) AccessController.doPrivileged(new PrivilegedExceptionAction() {
+                    public Object run() throws FileNotFoundException {
+                        return new FileInputStream(inFile1);
+                    }
+                });
+                if (in1 != null) {
+                    in1 = new BufferedInputStream(in1, utilMain.BUFFEREDFILESIZE);
+                    in = langUtil.getNewInput(in1);
+                }
+            } catch (PrivilegedActionException e) {
+                if (Boolean.getBoolean("ij.searchClassPath")) {
+                    in = langUtil.getNewInput(util.getResourceAsStream(file));
+                }
+                if (in == null) {
+                    out.println(langUtil.getTextMessage("IJ_IjErroFileNo",file));
+                    return;
+                }
+            }
+        }
+
+        out = getLocalizedOutput(langUtil, out);
+        setMaximumDisplayWidth(langUtil, out);
+
+        /* Use the main parameter to get to
+         * a new Main that we can use.
+         * (We can't do the work in Main(out)
+         * until after we do all of the work above
+         * us in this method.
+         */
+        me = main.getMain(out);
+
+        /* Let the processing begin! */
+        me.go(in, out);
+        if(in != null) {
+            in.close();
+        }
+        if(out != null) {
+            out.close();
+        }
+    }
+
+    private static LocalizedOutput getLocalizedOutput(LocalizedResource langUtil, LocalizedOutput out) {
+        String outFile = util.getSystemProperty("ij.outfile");
+        if (outFile != null && !outFile.isEmpty()) {
+            LocalizedOutput oldOut = out;
+            FileOutputStream fos = (FileOutputStream) AccessController.doPrivileged(new PrivilegedAction() {
+                public Object run() {
+                    FileOutputStream out = null;
+                    try {
+                        out = new FileOutputStream(outFile);
+                    } catch (FileNotFoundException e) {
+                        out = null;
+                    }
+                    return out;
+                }
+            });
+            out = langUtil.getNewOutput(fos);
+
+            if (out == null)
+                oldOut.println(langUtil.getTextMessage("IJ_IjErroUnabTo",outFile));
+
+        }
+        return out;
+    }
+
+    private static void setMaximumDisplayWidth(LocalizedResource langUtil, LocalizedOutput out) {
+        // the old property name is deprecated...
+        String maxDisplayWidth = util.getSystemProperty("maximumDisplayWidth");
+        if (maxDisplayWidth==null)
+            maxDisplayWidth = util.getSystemProperty("ij.maximumDisplayWidth");
+        if (maxDisplayWidth != null && !maxDisplayWidth.isEmpty()) {
+            try {
+                int maxWidth = Integer.parseInt(maxDisplayWidth);
+                JDBCDisplayUtil.setMaxDisplayWidth(maxWidth);
+            }
+            catch (NumberFormatException nfe) {
+                out.println(langUtil.getTextMessage("IJ_IjErroMaxiVa", maxDisplayWidth));
+            }
+        }
+    }
+
+    /**
+     * Get the right Main (according to
+     * the JDBC version.
+     *
+     * @return	The right main (according to the JDBC version).
+     */
+    public Main getMain(LocalizedOutput out)
+    {
+        return new Main(out);
+    }
+
+    /**
+     * Get the right utilMain (according to
+     * the JDBC version.
+     *
+     * @return	The right utilMain (according to the JDBC version).
+     */
+    public utilMain getutilMain(int numConnections, LocalizedOutput out)
+    {
+        return new utilMain(numConnections, out);
+    }
+
+    /**
+     * Get the right utilMain (according to
+     * the JDBC version. This overload allows the choice of whether
      * the system properties will be used or not.
-	 *
-	 * @return	The right utilMain (according to the JDBC version).
-	 */
+     *
+     * @return	The right utilMain (according to the JDBC version).
+     */
     public utilMain getutilMain(int numConnections, LocalizedOutput out, boolean loadSystemProperties)
-	{
-		return new utilMain(numConnections, out, loadSystemProperties);
-	}
+    {
+        return new utilMain(numConnections, out, loadSystemProperties);
+    }
 
-	/**
-		Give a shortcut to go on the utilInstance so
-		we don't expose utilMain.
-	 */
-	public void go(LocalizedInput in, LocalizedOutput out )
-	{
-		LocalizedInput[] inA = { in } ;
-		utilInstance.go(inA, out);
-	}
+    /**
+     Give a shortcut to go on the utilInstance so
+     we don't expose utilMain.
+     */
+    public void go(LocalizedInput in, LocalizedOutput out )
+    {
+        LocalizedInput[] inA = { in } ;
+        utilInstance.go(inA, out);
+    }
 
-	public void init(LocalizedOutput out) {
-		utilInstance.init(out);
-	}
-	public void goGuts(LocalizedInput in )
-	{
-		LocalizedInput[] inA = { in } ;
-		utilInstance.goStart(inA);
-	}
+    public void init(LocalizedOutput out) {
+        utilInstance.init(out);
+    }
+    public void goGuts(LocalizedInput in, boolean runRc)
+    {
+        LocalizedInput[] inA = { in } ;
+        utilInstance.goStart(inA, runRc);
+    }
 
-	/**
-	 * create an ij tool waiting to be given input and output streams.
-	 */
-	public Main() {
-		this(null);
-	}
+    /**
+     * create an ij tool waiting to be given input and output streams.
+     */
+    public Main() {
+        this(null);
+    }
 
-	public Main(LocalizedOutput out) {
-		if (out == null) {
-	        out = LocalizedResource.getInstance().getNewOutput(System.out);
-		}
-		utilInstance = getutilMain(1, out);
-		utilInstance.initFromEnvironment();
-	}
+    public Main(LocalizedOutput out) {
+        if (out == null) {
+            out = LocalizedResource.getInstance().getNewOutput(System.out);
+        }
+        utilInstance = getutilMain(1, out);
+        utilInstance.initFromEnvironment();
+    }
 
-	/**
-	 * This constructor is only used so that we
-	 * can get to the right Main based on the
-	 * JDBC version.  We don't do any work in
-	 * this constructor and we only use this
-	 * object to get to the right Main via
-	 * getMain().
-	 */
-	public Main(boolean trash)
-	{
-	}
-  private void initAppUI(){
-    //To fix a problem in the AppUI implementation, a reference to the AppUI class is
-    //maintained by this tool.  Without this reference, it is possible for the
-    //AppUI class to be garbage collected and the initialization values lost.
-    //langUtilClass = LocalizedResource.class;
+    /**
+     * This constructor is only used so that we
+     * can get to the right Main based on the
+     * JDBC version.  We don't do any work in
+     * this constructor and we only use this
+     * object to get to the right Main via
+     * getMain().
+     */
+    public Main(boolean trash)
+    {
+    }
+    private void initAppUI(){
+        //To fix a problem in the AppUI implementation, a reference to the AppUI class is
+        //maintained by this tool.  Without this reference, it is possible for the
+        //AppUI class to be garbage collected and the initialization values lost.
+        //langUtilClass = LocalizedResource.class;
 
-		// adjust the application in accordance with db.ui.locale and db.ui.codeset
-	LocalizedResource.getInstance();
-  }
-
+        // adjust the application in accordance with db.ui.locale and db.ui.codeset
+        LocalizedResource.getInstance();
+    }
 }

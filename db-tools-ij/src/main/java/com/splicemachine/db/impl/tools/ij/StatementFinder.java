@@ -130,6 +130,7 @@ public class StatementFinder {
     private LocalizedOutput promptwriter;
     private boolean doPrompt;
     private boolean continuedStatement;
+    private String additionalInformation;
 
     /**
      * The constructor does not assume the stream is data input
@@ -144,7 +145,7 @@ public class StatementFinder {
      *                   continuation prompts ("> ") to. If null,
      *                   no such prompts will be written.
      */
-    public StatementFinder(LocalizedInput s, LocalizedOutput promptDest, char terminator) {
+    public StatementFinder(LocalizedInput s, LocalizedOutput promptDest, char terminator, String additionalInformation) {
         source = s;
         if (promptDest != null && s.isStandardInput()) {
             promptwriter = promptDest;
@@ -153,6 +154,7 @@ public class StatementFinder {
             doPrompt = false;
         }
         setTerminator(terminator);
+        this.additionalInformation = additionalInformation;
     }
 
     /**
@@ -182,6 +184,8 @@ public class StatementFinder {
     public void close() throws IOException {
         source.close();
     }
+
+    boolean first = true;
 
     /**
      * get the next statement in the input stream. Returns it,
@@ -593,5 +597,24 @@ public class StatementFinder {
 
     public char getTerminator() {
         return terminator;
+    }
+
+    public boolean promptFirst(LocalizedOutput out) {
+        if(first) {
+            if(additionalInformation != null && out != null) {
+                out.println(additionalInformation);
+                return true;
+            }
+            first = false;
+        }
+        return false;
+    }
+
+    public boolean promptLast(LocalizedOutput out) {
+        if(additionalInformation != null && out != null) {
+            out.println("\n" + additionalInformation + " done\n");
+            return true;
+        }
+        return false;
     }
 }

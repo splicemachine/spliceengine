@@ -2,13 +2,13 @@ package com.splicemachine.db.impl.tools.ij;
 
 import com.splicemachine.db.iapi.tools.i18n.LocalizedOutput;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
-import com.splicemachine.db.shared.common.sql.Utils;
 import com.splicemachine.db.tools.JDBCDisplayUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.sql.*;
+import java.text.SimpleDateFormat;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Locale;
@@ -25,7 +25,7 @@ public class ijImpl extends ijCommands {
     static final String DOUBLEQUOTES = "\"\"";
 
     boolean elapsedTime = true;
-    boolean showProgressBar = false;
+    boolean showProgressBar = true;
 
     String urlCheck = null;
 
@@ -41,6 +41,29 @@ public class ijImpl extends ijCommands {
     // this is not a high concurrency situation, still we make most accesses synchronized.
     Statement currentStatement = null;
     Object currentStatementLock = new Object();
+
+    utilMain utilInstance = null;
+
+    public void setDateFormat(String f) {
+        try {
+            LocalizedResource.getInstance().setFormatDate(new SimpleDateFormat(f));
+        } catch(Exception e) {
+        }
+    }
+
+    public void setTimeFormat(String f) {
+        try {
+            LocalizedResource.getInstance().setFormatTime(new SimpleDateFormat(f));
+        } catch(Exception e) {
+        }
+    }
+
+    public void setTimestampFormat(String f) {
+        try {
+            LocalizedResource.getInstance().setFormatTimestamp(new SimpleDateFormat(f));
+        } catch(Exception e) {
+        }
+    }
 
     public boolean
     cancelCurrentStatement(LocalizedOutput out) {

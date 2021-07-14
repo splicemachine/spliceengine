@@ -222,3 +222,6 @@ tramp
 .cask/
 
 /platform_it/src/test/resources/ee.txt
+
+# sqlshell config
+splice_machine/.sqlshellrc

@@ -44,6 +44,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.nio.file.Paths;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.Hashtable;
@@ -62,6 +63,7 @@ public class utilMain implements java.security.PrivilegedAction {
         In the goodness of time, this could be an ij property
      */
     public static final int BUFFEREDFILESIZE = 2048;
+    static final String sqlshellRcFilename = ".sqlshellrc";
     private static boolean showPromptClock = false;
     private final int numConnections;
     /**
@@ -160,7 +162,7 @@ public class utilMain implements java.security.PrivilegedAction {
         connEnv = new ConnectionEnv[numConnections];
 
         for (int ictr = 0; ictr < numConnections; ictr++) {
-            commandGrabber[ictr] = new StatementFinder(langUtil.getNewInput(System.in), out, this.terminator);
+            commandGrabber[ictr] = new StatementFinder(langUtil.getNewInput(System.in), out, this.terminator, null);
             connEnv[ictr] = new ConnectionEnv(ictr, (numConnections > 1), (numConnections == 1));
         }
         initOptions();
@@ -218,6 +220,7 @@ public class utilMain implements java.security.PrivilegedAction {
         fileInput = false;
         initialFileInput = false;
         firstRun = true;
+
         omitHeader = util.getSystemPropertyBoolean("ij.omitHeader");
     }
 
@@ -264,13 +267,33 @@ public class utilMain implements java.security.PrivilegedAction {
         }
     }
 
-    public void goStart(LocalizedInput[] in)
+    public void goStart(LocalizedInput[] in, boolean runRc)
     {
         fileInput = initialFileInput = (!in[currCE].isStandardInput());
         for (int ictr = 0; ictr < commandGrabber.length; ictr++) {
             commandGrabber[ictr].reInit(in[ictr]);
         }
+
+        if(runRc)
+            runSqlShellRc();
         runScriptGuts();
+    }
+
+    private void runSqlShellRc() {
+        // first, check .sqlshellrc in local directory
+        String f = Paths.get(sqlshellRcFilename).toAbsolutePath().toString();
+        if(new File(f).exists()) {
+            newInput(f, "[ executing commands from file '" + f + "'");
+        }
+        // check $HOME/.sqlshellrc
+        try {
+            f = System.getProperty("user.home") + "/" + sqlshellRcFilename;
+            if(new File(f).exists()) {
+                newInput(f, "[ executing commands from file '" + f + "'");
+            }
+            } catch(Exception e) {
+            return;
+        }
     }
 
     public void init(LocalizedOutput out)
@@ -299,7 +322,7 @@ public class utilMain implements java.security.PrivilegedAction {
     public void go(LocalizedInput[] in, LocalizedOutput out)
             throws ijFatalException {
         init(out);
-        goStart(in);
+        goStart(in, true);
         cleanupGo(in);
     }
 
@@ -343,7 +366,9 @@ public class utilMain implements java.security.PrivilegedAction {
                 //do nothing
             }
 
+            commandGrabber[currCE].promptFirst(out);
             connEnv[currCE].doPrompt(true, out);
+
             try {
                 command = null;
                 out.flush();
@@ -367,9 +392,13 @@ public class utilMain implements java.security.PrivilegedAction {
                 while (command == null && !oldGrabbers.empty()) {
                     // close the old input file if not System.in
                     if (fileInput) commandGrabber[currCE].close();
+                    boolean needsPrompt = commandGrabber[currCE].promptLast(out);
                     commandGrabber[currCE] = (StatementFinder) oldGrabbers.pop();
                     if (oldGrabbers.empty())
                         fileInput = initialFileInput;
+                    needsPrompt = commandGrabber[currCE].promptFirst(out) || needsPrompt;
+                    if(needsPrompt)
+                        connEnv[currCE].doPrompt(true, out);
                     command = commandGrabber[currCE].nextStatement();
                 }
 
@@ -685,7 +714,11 @@ public class utilMain implements java.security.PrivilegedAction {
         out.flush();
     }
 
-    void newInput(String fileName) {
+    void newInput(String filename) {
+        newInput(filename, null);
+    }
+
+    void newInput(String fileName, String additionalInformation) {
         FileInputStream newFile = null;
         try {
             newFile = new FileInputStream(fileName);
@@ -697,7 +730,7 @@ public class utilMain implements java.security.PrivilegedAction {
         oldGrabbers.push(commandGrabber[currCE]);
         commandGrabber[currCE] =
                 new StatementFinder(langUtil.getNewInput(new BufferedInputStream(newFile, BUFFEREDFILESIZE)), null,
-                        this.terminator);
+                        this.terminator, additionalInformation);
         fileInput = true;
     }
 
@@ -707,7 +740,7 @@ public class utilMain implements java.security.PrivilegedAction {
         oldGrabbers.push(commandGrabber[currCE]);
         commandGrabber[currCE] =
                 new StatementFinder(langUtil.getNewEncodedInput(new BufferedInputStream(is, BUFFEREDFILESIZE), "UTF8"), null,
-                        this.terminator);
+                        this.terminator, null);
         fileInput = true;
     }
 
