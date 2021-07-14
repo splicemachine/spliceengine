@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2020 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2021 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -17,6 +17,11 @@ package com.splicemachine.nsds.kafka
 
 import com.splicemachine.primitives.Bytes
 import java.security.SecureRandom
+import java.util.concurrent.LinkedTransferQueue
+import java.util.concurrent.atomic.AtomicBoolean
+
+import scala.collection.JavaConverters._
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 
 @SerialVersionUID(20200518241L)
@@ -28,11 +33,31 @@ class KafkaTopics(
     continuousCleanup: Boolean = false
   ) extends Serializable
 {
-  val admin = new KafkaAdmin(kafkaServers)
-  val unneeded = collection.mutable.HashSet[String]()
+  private val admin = new KafkaAdmin(kafkaServers)
 
-  val unused = collection.mutable.Queue.fill(5)(createTopic())
+  private val unneeded = new LinkedTransferQueue[String]()
+  private val processing = new AtomicBoolean(true)
+
+  private val unused = collection.mutable.Queue.fill(5)(createTopic())
+
+  private def deleteTopics(): Unit = {
+    val toDelete = collection.mutable.Set.empty[String]
+    unneeded.drainTo(toDelete.asJava)
+    admin.deleteTopics(toDelete, 60*1000)
+  }
   
+  if(continuousCleanup) {
+    new Thread {
+      override def run {
+        while (processing.get) {
+          deleteTopics
+          Thread.sleep(60*1000)
+        }
+        deleteTopics
+      }
+    }.start
+  }
+
   def create(): String = {
     unused.enqueue(createTopic())
     unused.dequeue
@@ -51,7 +76,10 @@ class KafkaTopics(
     topicName
   }
 
-  def delete(topicName: String): Unit = unneeded += topicName
+  def delete(topicName: String): Unit = unneeded.put(topicName)
 
-  def cleanup(timeoutMs: Long = 0): Unit = admin.deleteTopics(unneeded, timeoutMs)
+  def shutdown(): Unit = {
+    processing.compareAndSet(true, false)
+    if(!continuousCleanup) deleteTopics
+  }
 }
