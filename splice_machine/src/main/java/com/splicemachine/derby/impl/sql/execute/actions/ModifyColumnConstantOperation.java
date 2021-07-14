@@ -751,8 +751,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
          * Cascaded drops of dependent generated columns may require us to
          * rebuild the table descriptor.
          */
-        tableDescriptor = dd.getTableDescriptor(tableId);
         TransactionController tc = lcc.getTransactionExecute();
+        tableDescriptor = dd.getTableDescriptor(tableId, tc);
 
         ColumnDescriptor columnDescriptor = tableDescriptor.getColumnDescriptor( columnName );
 
@@ -808,7 +808,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
          * conglomerate-not-found errors and the like due to our
          * stale table descriptor.
          */
-        tableDescriptor = dd.getTableDescriptor(tableId);
+        tableDescriptor = dd.getTableDescriptor(tableId, tc);
 
         ColumnDescriptorList tab_cdl = tableDescriptor.getColumnDescriptorList();
         int pos = tab_cdl.getColumnDescriptor(tableDescriptor.getUUID(), columnName).getPosition();

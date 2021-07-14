@@ -56,7 +56,7 @@ public class SpliceCompactionUtils {
                     ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomerateId);
                     if (cd != null) {
                         UUID tableID = cd.getTableID();
-                        TableDescriptor td = dd.getTableDescriptor(tableID);
+                        TableDescriptor td = dd.getTableDescriptor(tableID, null);
                         if (td != null)
                             return t.get(td);
                     }

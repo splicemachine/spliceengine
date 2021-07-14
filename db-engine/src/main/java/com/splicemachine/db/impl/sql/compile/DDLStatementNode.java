@@ -37,7 +37,6 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -326,7 +325,7 @@ abstract class DDLStatementNode extends StatementNode
     protected final TableDescriptor getTableDescriptor(UUID tableId)
         throws StandardException {
 
-        TableDescriptor td = getDataDictionary().getTableDescriptor(tableId);
+        TableDescriptor td = getDataDictionary().getTableDescriptor(tableId, null);
 
         td = checkTableDescriptor(td,true);
         return td;

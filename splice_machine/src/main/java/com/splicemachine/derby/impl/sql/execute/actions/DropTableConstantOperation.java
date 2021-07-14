@@ -83,7 +83,7 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
         dd.startWriting(lcc);
 
         /* Get the table descriptor. */
-        TableDescriptor td = dd.getTableDescriptor(tableId);
+        TableDescriptor td = dd.getTableDescriptor(tableId, tc);
         activation.setDDLTableDescriptor(td);
 
         if (td == null) {

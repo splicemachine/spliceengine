@@ -63,7 +63,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -519,7 +518,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
      */
     public TableDescriptor getTableDescriptor() throws StandardException {
         if (td == null) {
-            td = getDataDictionary().getTableDescriptor(triggerTableId);
+            td = getDataDictionary().getTableDescriptor(triggerTableId, null);
         }
         return td;
     }

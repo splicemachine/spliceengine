@@ -152,7 +152,7 @@ public class StatementTablePermission extends StatementSchemaPermission
 
     protected TableDescriptor getTableDescriptor(DataDictionary dd)  throws StandardException
     {
-        TableDescriptor td = dd.getTableDescriptor( tableUUID);
+        TableDescriptor td = dd.getTableDescriptor( tableUUID, null);
         if( td == null)
             throw StandardException.newException(SQLState.AUTH_INTERNAL_BAD_UUID, "table");
         return td;

@@ -68,11 +68,11 @@ public class SYSFILESRowFactory extends CatalogRowFactory {
     private static final int		GENERATION_ID_COL_NUM = 4;
     private static final String   GENERATION_ID_COL_NAME = "GENERATIONID";
 
-    static final int		SYSFILES_INDEX1_ID = 0;
+    public static final int		SYSFILES_INDEX1_ID = 0;
     static final int		SYSFILES_INDEX2_ID = 1;
 
 	private static final int[][] indexColumnPositions = {
-		{NAME_COL_NUM, SCHEMA_ID_COL_NUM},
+		{SCHEMA_ID_COL_NUM, NAME_COL_NUM},
 		{ID_COL_NUM}
 	};
 	// The SYSFILES_INDEX3(SCHEMA_ID_COL_NUM) UUID: "80000000-00d3-e222-be7c-000a0a0b1900"

@@ -267,7 +267,7 @@ public class RenameNode extends DDLStatementNode
                 throw StandardException.newException(
                                      SQLState.LANG_INDEX_NOT_FOUND, oldObjectName);
             /* Get the table descriptor */
-            td = dd.getTableDescriptor(indexDescriptor.getTableID());
+            td = dd.getTableDescriptor(indexDescriptor.getTableID(), null);
             initAndCheck(makeTableName(td.getSchemaName(),
                                        td.getName()));
         } else

@@ -214,7 +214,7 @@ public final class DefaultDescriptor
 		    default:
 				DataDictionary dd = getDataDictionary();
 				ColumnDescriptor cd = dd.getColumnDescriptorByDefaultId(defaultUUID);
-				TableDescriptor td = dd.getTableDescriptor(cd.getReferencingUUID());
+				TableDescriptor td = dd.getTableDescriptor(cd.getReferencingUUID(), null);
 
 				throw StandardException.newException(SQLState.LANG_PROVIDER_HAS_DEPENDENT_OBJECT, 
 									dm.getActionString(action), 

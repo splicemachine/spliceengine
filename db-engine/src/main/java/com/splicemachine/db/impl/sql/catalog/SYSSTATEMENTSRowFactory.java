@@ -78,13 +78,13 @@ public class SYSSTATEMENTSRowFactory extends CatalogRowFactory
 	public	static	final	int		SYSSTATEMENTS_HIDDEN_COLUMN_COUNT = 2;
 
 	protected static final int		SYSSTATEMENTS_INDEX1_ID = 0;
-	protected static final int		SYSSTATEMENTS_INDEX2_ID = 1;
+	public static final int			SYSSTATEMENTS_INDEX2_ID = 1;
 
 
 	private static final int[][] indexColumnPositions = 
 	{
 		{SYSSTATEMENTS_STMTID},
-		{SYSSTATEMENTS_STMTNAME, SYSSTATEMENTS_SCHEMAID}
+		{SYSSTATEMENTS_SCHEMAID, SYSSTATEMENTS_STMTNAME}
 	};
 
 	private	static	final	boolean[]	uniqueness = null;

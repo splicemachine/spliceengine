@@ -89,7 +89,7 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
     private static final int[][] indexColumnPositions =
             {
                     {SYSTRIGGERS_TRIGGERID},
-                    {SYSTRIGGERS_TRIGGERNAME, SYSTRIGGERS_SCHEMAID},
+                    {SYSTRIGGERS_SCHEMAID, SYSTRIGGERS_TRIGGERNAME},
                     {SYSTRIGGERS_TABLEID, SYSTRIGGERS_CREATIONTIMESTAMP}
             };
 
@@ -455,7 +455,7 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
                 isBefore,
                 isRow,
                 isEnabled,
-                dd.getTableDescriptor(tuuid),
+                dd.getTableDescriptor(tuuid, tc),
                 whenSPSID,
                 actionSPSIDList,
                 createTime,
