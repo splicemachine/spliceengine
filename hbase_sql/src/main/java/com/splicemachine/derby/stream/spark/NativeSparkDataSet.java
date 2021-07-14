@@ -600,13 +600,13 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public DataSet<V> subtract(DataSet<V> dataSet, OperationContext context){
-        return subtract(dataSet,"Substract/Except Operator",context,false,null);
+    public DataSet<V> subtract(DataSet<V> dataSet, OperationContext context, boolean isDistinct){
+        return subtract(dataSet, "Substract/Except Operator", context, isDistinct, false, null);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
-    public DataSet< V> subtract(DataSet< V> dataSet, String name, OperationContext context, boolean pushScope, String scopeDetail) {
+    public DataSet< V> subtract(DataSet<V> dataSet, String name, OperationContext context, boolean isDistinct, boolean pushScope, String scopeDetail) {
         pushScopeIfNeeded(context, pushScope, scopeDetail);
         try {
             //Convert this dataset backed iterator to a Spark untyped dataset
@@ -616,7 +616,12 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             Dataset<Row> right = getDataset(dataSet);
 
             //Do the subtract
-            Dataset<Row> result = left.except(right);
+            Dataset<Row> result;
+            if(isDistinct) {
+                result = left.distinct().except(right.distinct());
+            } else {
+                result = left.except(right);
+            }
 
             return new NativeSparkDataSet<>(result, context);
         }
