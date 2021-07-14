@@ -766,7 +766,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
         int maxStoragePosition = tableDescriptor.getColumnDescriptorList().maxStoragePosition();
         int size = tableDescriptor.getColumnDescriptorList().size();
-        int droppedColumnPosition = columnDescriptor.getStoragePosition();
+        int droppedColumnPosition = columnDescriptor.getPosition();
 
         FormatableBitSet toDrop = new FormatableBitSet(maxStoragePosition + 1);
         toDrop.set(droppedColumnPosition);
