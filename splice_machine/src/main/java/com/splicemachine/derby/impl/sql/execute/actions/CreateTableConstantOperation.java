@@ -250,11 +250,11 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         List<String> pkColumnNames = null;
         ColumnOrdering[] columnOrdering = null;
         if (constraintActions != null) {
-            for(ConstraintConstantOperation constantAction:constraintActions){
-                if(constantAction.getConstraintType()== DataDictionary.PRIMARYKEY_CONSTRAINT){
+            for (ConstraintConstantOperation constantAction : constraintActions) {
+                if (constantAction.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT) {
                     pkColumnNames = Arrays.asList(((CreateConstraintConstantOperation) constantAction).columnNames);
                     columnOrdering = new IndexColumnOrder[pkColumnNames.size()];
-                }else if(constantAction.getConstraintType()==DataDictionary.FOREIGNKEY_CONSTRAINT){
+                } else if (constantAction.getConstraintType() == DataDictionary.FOREIGNKEY_CONSTRAINT) {
                     constantAction.validateSupported();
                 }
             }
@@ -266,7 +266,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             }
         }
 
-        if(constraintActions != null) {
+        if (constraintActions != null) {
             for (ConstantAction ca : constraintActions) {
                 if (ca instanceof CreateConstraintConstantOperation) {
                     ((CreateConstraintConstantOperation) ca).prePrepareDataDictionaryActions(activation);
@@ -290,7 +290,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
         // Put displayable table name into properties, which will ultimately be persisted
         // in the HTableDescriptor for convenient fetching where DataDictionary not available.
-        if(properties==null)
+        if (properties == null)
             properties = new Properties();
         properties.setProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR, this.schemaName);
         properties.setProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR, this.tableName);
@@ -396,9 +396,9 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         }
 
         // The table itself can depend on the user defined types of its columns.
-        adjustUDTDependencies(activation, columnInfo, false );
+        adjustUDTDependencies(activation, columnInfo, false);
 
-        if ( tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE) {
+        if (tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE) {
             lcc.addDeclaredGlobalTempTable(td);
         }
 
@@ -427,10 +427,11 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
          *  get cleared on commit/rollback. If this proves too expensive, then a custom local-memory-only trigger
          *  mechanism can be written for this and CREATE_SCHEMA
          */
-        long txnId = ((SpliceTransactionManager)tc).getRawTransaction().getActiveStateTxn().getTxnId();
-        DDLMessage.DDLChange change =DDLMessage.DDLChange.newBuilder().setDdlChangeType(DDLMessage.DDLChangeType.CREATE_TABLE).setTxnId(txnId).build();
-
-        tc.prepareDataDictionaryChange(DDLDriver.driver().ddlController().notifyMetadataChange(change));
+        long txnId = ((SpliceTransactionManager) tc).getRawTransaction().getActiveStateTxn().getTxnId();
+        if (!lcc.isCloningData()) {
+            DDLMessage.DDLChange change = DDLMessage.DDLChange.newBuilder().setDdlChangeType(DDLMessage.DDLChangeType.CREATE_TABLE).setTxnId(txnId).build();
+            tc.prepareDataDictionaryChange(DDLDriver.driver().ddlController().notifyMetadataChange(change));
+        }
 
         // is this an external file ?
         if(storedAs != null) {

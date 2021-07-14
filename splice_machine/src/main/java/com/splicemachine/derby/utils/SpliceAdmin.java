@@ -2415,7 +2415,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     public static List<String> SHOW_CREATE_TABLE_CORE(String schemaName, String tableName, boolean separateFK) throws SQLException {
-        Connection connection = getDefaultConn();
+        Connection connection = getCurrentConnection();
         schemaName = EngineUtils.validateSchema(schemaName);
         tableName = EngineUtils.validateTable(tableName);
         List<String> ddls = Lists.newArrayList();

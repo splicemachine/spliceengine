@@ -492,7 +492,6 @@ public class RoutineAliasInfo extends MethodAliasInfo
 	public String toString() {
 
 		StringBuilder sb = new StringBuilder(100);
-		sb.append(getMethodName());
 		sb.append('(');
 		for (int i = 0; i < parameterCount; i++) {
 			if (i != 0)
@@ -506,8 +505,10 @@ public class RoutineAliasInfo extends MethodAliasInfo
 				sb.append(RoutineAliasInfo.parameterMode(parameterModes[i]));
 				sb.append(' ');
 			}
-			sb.append(IdUtil.normalToDelimited(parameterNames[i]));
-			sb.append(' ');
+			if (parameterNames[i].length() > 0) {
+				sb.append(IdUtil.normalToDelimited(parameterNames[i]));
+				sb.append(' ');
+			}
 			sb.append(parameterTypes[i].getSQLstring());
 		}
 		sb.append(')');

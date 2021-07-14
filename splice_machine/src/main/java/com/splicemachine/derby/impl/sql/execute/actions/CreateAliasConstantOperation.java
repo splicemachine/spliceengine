@@ -177,12 +177,12 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
 		
 		SchemaDescriptor sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, schemaName);
 
-        DDLMessage.DDLChange ddlChange = ProtoUtil.createAlias(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId());
-        // Run Remotely
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
-
-
-        //
+		if (!lcc.isCloningData()) {
+			DDLMessage.DDLChange ddlChange = ProtoUtil.createAlias(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId());
+			// Run Remotely
+			tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+		}
+		//
 		// Create a new alias descriptor with aliasID filled in.
 		// 
 		UUID aliasID = dd.getUUIDFactory().createUUID();

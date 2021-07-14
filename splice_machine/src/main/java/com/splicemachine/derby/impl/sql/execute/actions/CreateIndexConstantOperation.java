@@ -434,7 +434,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         try {
             // invalidate any prepared statements that
             // depended on this table (including this one)
-            if (! forCreateTable)
+            if (! forCreateTable && !lcc.isCloningData())
                 dm.invalidateFor(td, DependencyManager.CREATE_INDEX, lcc);
 
             SpliceLogUtils.trace(LOG, "Translation Base Column Names");
@@ -922,8 +922,11 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                     activation.getLanguageConnectionContext(),
                     td.getHeapConglomerateId(), conglomId, td, indexRowGenerator, defaultValue);
 
-            String changeId = DDLUtils.notifyMetadataChange(ddlChange);
-            tc.prepareDataDictionaryChange(changeId);
+            if (!activation.getLanguageConnectionContext().isCloningData()) {
+                String changeId = DDLUtils.notifyMetadataChange(ddlChange);
+                tc.prepareDataDictionaryChange(changeId);
+            }
+
             Txn indexTransaction = DDLUtils.getIndexTransaction(tc, tentativeTransaction, td.getHeapConglomerateId(),indexName);
             populateIndex(td, activation, indexTransaction, tentativeTransaction.getCommitTimestamp(),
                     ddlChange.getTentativeIndex(), hfilePath, defaultRow);

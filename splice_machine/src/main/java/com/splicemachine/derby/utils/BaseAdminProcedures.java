@@ -27,6 +27,9 @@ import javax.management.remote.JMXConnector;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.jdbc.ConnectionContext;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -40,6 +43,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.utils.Pair;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Common static utility functions for subclasses which provide
@@ -116,6 +120,7 @@ public abstract class BaseAdminProcedures {
      * 
      * @param connections
      */
+    @SuppressFBWarnings("DE_MIGHT_IGNORE")
     protected static void close(List<Pair<String, JMXConnector>> connections) {
         if (connections != null) {
             for (Pair<String, JMXConnector> connectorPair : connections) {
@@ -163,6 +168,7 @@ public abstract class BaseAdminProcedures {
         throw Util.noCurrentConnection();
     }
 
+    @SuppressFBWarnings(value = {"ODR_OPEN_DATABASE_RESOURCE", "OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE"}, justification = "intentional")
     public static ResultSet executeStatement(StringBuilder sb) throws SQLException {
         ResultSet result = null;
         Connection connection = getDefaultConn();
@@ -190,6 +196,15 @@ public abstract class BaseAdminProcedures {
             throw PublicAPI.wrapStandardException(e);
         }
         return template;
+    }
+
+    public static Connection getCurrentConnection() throws SQLException {
+
+        ContextManager cm = ContextService.getCurrentContextManager();
+        ConnectionContext cc =
+                (ConnectionContext) cm.getContext(ConnectionContext.CONTEXT_ID);
+
+        return cc.getNestedConnection(true);
     }
 
 }
