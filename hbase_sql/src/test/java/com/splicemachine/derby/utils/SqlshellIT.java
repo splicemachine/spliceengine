@@ -77,7 +77,7 @@ public class SqlshellIT {
     static String execute(String in) {
         baos.reset();
         LocalizedInput input = langUtil.getNewInput(IOUtils.toInputStream(in));
-        me.goGuts(input);
+        me.goGuts(input, false);
         try {
             return baos.toString(StandardCharsets.UTF_8.name());
         } catch (UnsupportedEncodingException e) {

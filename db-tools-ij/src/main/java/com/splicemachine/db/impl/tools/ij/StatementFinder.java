@@ -599,16 +599,22 @@ public class StatementFinder {
         return terminator;
     }
 
-    public void promptFirst(LocalizedOutput out) {
+    public boolean promptFirst(LocalizedOutput out) {
         if(first) {
-            if(additionalInformation != null && out != null)
+            if(additionalInformation != null && out != null) {
                 out.println(additionalInformation);
+                return true;
+            }
             first = false;
         }
+        return false;
     }
 
-    public void promptLast(LocalizedOutput out) {
-        if(additionalInformation != null && out != null)
+    public boolean promptLast(LocalizedOutput out) {
+        if(additionalInformation != null && out != null) {
             out.println("\n" + additionalInformation + " done\n");
+            return true;
+        }
+        return false;
     }
 }

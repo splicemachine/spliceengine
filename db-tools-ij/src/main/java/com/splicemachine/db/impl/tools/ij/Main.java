@@ -246,10 +246,10 @@ public class Main {
     public void init(LocalizedOutput out) {
         utilInstance.init(out);
     }
-    public void goGuts(LocalizedInput in )
+    public void goGuts(LocalizedInput in, boolean runRc)
     {
         LocalizedInput[] inA = { in } ;
-        utilInstance.goStart(inA);
+        utilInstance.goStart(inA, runRc);
     }
 
     /**

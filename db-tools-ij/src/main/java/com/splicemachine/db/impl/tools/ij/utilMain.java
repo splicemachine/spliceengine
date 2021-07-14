@@ -267,14 +267,15 @@ public class utilMain implements java.security.PrivilegedAction {
         }
     }
 
-    public void goStart(LocalizedInput[] in)
+    public void goStart(LocalizedInput[] in, boolean runRc)
     {
         fileInput = initialFileInput = (!in[currCE].isStandardInput());
         for (int ictr = 0; ictr < commandGrabber.length; ictr++) {
             commandGrabber[ictr].reInit(in[ictr]);
         }
 
-        runSqlShellRc();
+        if(runRc)
+            runSqlShellRc();
         runScriptGuts();
     }
 
@@ -321,7 +322,7 @@ public class utilMain implements java.security.PrivilegedAction {
     public void go(LocalizedInput[] in, LocalizedOutput out)
             throws ijFatalException {
         init(out);
-        goStart(in);
+        goStart(in, true);
         cleanupGo(in);
     }
 
@@ -391,12 +392,13 @@ public class utilMain implements java.security.PrivilegedAction {
                 while (command == null && !oldGrabbers.empty()) {
                     // close the old input file if not System.in
                     if (fileInput) commandGrabber[currCE].close();
-                    commandGrabber[currCE].promptLast(out);
+                    boolean needsPrompt = commandGrabber[currCE].promptLast(out);
                     commandGrabber[currCE] = (StatementFinder) oldGrabbers.pop();
                     if (oldGrabbers.empty())
                         fileInput = initialFileInput;
-                    commandGrabber[currCE].promptFirst(out);
-                    connEnv[currCE].doPrompt(true, out);
+                    needsPrompt = commandGrabber[currCE].promptFirst(out) || needsPrompt;
+                    if(needsPrompt)
+                        connEnv[currCE].doPrompt(true, out);
                     command = commandGrabber[currCE].nextStatement();
                 }
 
