@@ -296,6 +296,14 @@ public class CompilerContextImpl extends ContextImpl
         varcharDB2CompatibilityMode = newValue;
     }
 
+    public void setAlterTableAutoViewRefreshing(boolean newValue) {
+        alterTableAutoViewRefreshing = newValue;
+    }
+
+    public boolean getAlterTableAutoViewRefreshing() {
+        return alterTableAutoViewRefreshing;
+    }
+
     public boolean getVarcharDB2CompatibilityMode() { return varcharDB2CompatibilityMode; }
 
     public void setCurrentTimestampPrecision(int newValue) {
@@ -1028,7 +1036,7 @@ public class CompilerContextImpl extends ContextImpl
          if (requiredUsagePrivileges.get( objectID ) == null)
         { requiredUsagePrivileges.put( objectID, objectType ); }
     }
-    
+
     /**
      * Add a required schema privilege to the list privileges.
      *
@@ -1203,6 +1211,7 @@ public class CompilerContextImpl extends ContextImpl
     private       boolean                             ssqFlatteningForUpdateDisabled;
     private       NewMergeJoinExecutionType           newMergeJoin                                 = DEFAULT_SPLICE_NEW_MERGE_JOIN;
     private       boolean                             disablePerParallelTaskJoinCosting            = DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING;
+    private       boolean                             alterTableAutoViewRefreshing                 = DEFAULT_SPLICE_ALTER_TABLE_AUTO_VIEW_REFRESHING;
     private       boolean                             varcharDB2CompatibilityMode                  = DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE;
     /**
      * Saved execution time default schema, if we need to change it

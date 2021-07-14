@@ -172,26 +172,13 @@ public class BasicDependencyManager implements DependencyManager {
         // one list is a duplicate, then it should be a duplicate in the
         // other list.
         boolean addedToDeps;
-        boolean addedToProvs = false;
-
         addedToDeps = addDependencyToTable(dependents, d.getObjectID(), dy);
         if (addedToDeps) {
-            addedToProvs = addDependencyToTable(providers, p.getObjectID(), dy);
+            addDependencyToTable(providers, p.getObjectID(), dy);
         } else if (SanityManager.DEBUG) {
-            addedToProvs = addDependencyToTable(providers, p.getObjectID(), dy);
+            addDependencyToTable(providers, p.getObjectID(), dy);
         }
 
-        // Dependency should have been added to both or neither.
-		// No Longer the case due to with clauses
-/*        if (SanityManager.DEBUG) {
-            if (addedToDeps != addedToProvs) {
-                SanityManager.THROWASSERT(
-                    "addedToDeps (" + addedToDeps +
-                    ") and addedToProvs (" +
-                    addedToProvs + ") are expected to agree");
-            }
-        }
-*/
         // Add the dependency to the StatementContext, so that
         // it can be cleared on a pre-execution error.
         StatementContext sc = (StatementContext) cm.getContext(
@@ -1075,15 +1062,9 @@ public class BasicDependencyManager implements DependencyManager {
 	}
 
     /**
-     * Returns an enumeration of all dependencies that this
-     * provider is supporting for any dependent at all (even
-     * invalid ones). Includes all dependency types.
-     *
-     * @param p the provider
-     * @return A list of dependents (possibly empty).
-     * @throws StandardException if something goes wrong
-	 */
-	private List<Dependency> getDependents (Provider p) throws StandardException {
+     * @see DependencyManager#getDependents
+     */
+    public List<Dependency> getDependents (Provider p) throws StandardException {
         List<Dependency> deps = new ArrayList<>();
         synchronized (this) {
             List<Dependency> memDeps = providers.get(p.getObjectID());

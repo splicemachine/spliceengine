@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
 	Dependency Manager Interface
@@ -51,7 +52,7 @@ import java.util.Collection;
 	datadictionary keeping track of dependencies between objects that it handles
 	(descriptors) as well as prepared statements.
 	<p>
-	The primary example of this is a prepared statement's needs of 
+	The primary example of this is a prepared statement's needs of
 	schema objects such as tables.
 	<p>
 	Dependencies are used so that we can determine when we
@@ -65,8 +66,8 @@ import java.util.Collection;
 	subqueries), the authorities it uses to do this,
 	and any constraints or triggers it needs to check.
 	<p>
-	A prepared insert statement has a dependency on the target table 
-	of the insert. When it is compiled, that dependency is registered 
+	A prepared insert statement has a dependency on the target table
+	of the insert. When it is compiled, that dependency is registered
 	from the prepared statement on the data dictionary entry for the
 	table. This dependency is added to the prepared statement's dependency
 	list, which is also accessible from an overall dependency pool.
@@ -94,15 +95,15 @@ import java.util.Collection;
 	The insert will recompile itself when its next execution
 	is requested (not when it is invalidated). We don't want it to
 	recompile when the DDL is issued, as that would increase the time
-	of execution of the DDL command unacceptably.  Note that the DDL 
-	command is also allowed to proceed even if it would make the 
+	of execution of the DDL command unacceptably.  Note that the DDL
+	command is also allowed to proceed even if it would make the
 	statement no longer compilable.  It can be useful to have a way
 	to recompile invalid statements during idle time in the system,
 	but our first implementation will simply recompile at the next
 	execution.
 	<p>
 	The start of a recompile will release the connection to
-	all dependencies when it releases the activation class and 
+	all dependencies when it releases the activation class and
 	generates a new one.
 	<p>
 	The Dependency Manager is capable of storing dependencies to
@@ -127,16 +128,16 @@ import java.util.Collection;
 	<ul>
 	<li> to note a type of dependency, and to invalidate or perform
 	  an invalidation action based on dependency type
-	<li> to note a type of invalidation, so the revalidation could 
-	  actually take some action other than recompilation, such as 
+	<li> to note a type of invalidation, so the revalidation could
+	  actually take some action other than recompilation, such as
 	  simply ensuring the provider objects still existed.
 	<li> to control the order of invalidation, so that if (for example)
 	  the invalidation action actually includes the revalidation attempt,
 	  revalidation is not attempted until all invalidations have occurred.
-	<li> to get a list of dependencies that a Dependent or 
+	<li> to get a list of dependencies that a Dependent or
 	  a Provider has (this is included in the above, although the
 	  basic system does not need to expose the list).
-	<li> to find out which of the dependencies for a dependent were marked 
+	<li> to find out which of the dependencies for a dependent were marked
 	  invalid.
 	</ul>
 	<p>
@@ -177,25 +178,25 @@ import java.util.Collection;
 		void clearDependencies(Dependent d, DependencyType dt);
 		Enumeration getProviders (Dependent d);
 		Enumeration getProviders (Dependent d, DependencyType dt);
-		Enumeration getInvalidDependencies (Dependent d, 
+		Enumeration getInvalidDependencies (Dependent d,
 			DependencyType dt, InvalidType it);
 		Enumeration getDependents (Provider p);
 		Enumeration getDependents (Provider p, DependencyType dt);
-		Enumeration getInvalidDependencies (Provider p, 
+		Enumeration getInvalidDependencies (Provider p,
 			DependencyType dt, InvalidType it);
 	}
 	</pre>
 	<p>
-	The simplest things for DependencyType and InvalidType to be are 
+	The simplest things for DependencyType and InvalidType to be are
 	integer id's or strings, rather than complex objects.
 	<p>
-	In terms of ensuring that no makeInvalid calls are made until we have 
-	identified all objects that could be, so that the calls will be made 
-	from "leaf" invalid objects (those not in turn relied on by other 
-	dependents) to dependent objects upon which others depend, the 
-	dependency manager will need to maintain an internal queue of 
-	dependencies and make the calls once it has completes its analysis 
-	of the dependencies of which it is aware.  Since it is much simpler 
+	In terms of ensuring that no makeInvalid calls are made until we have
+	identified all objects that could be, so that the calls will be made
+	from "leaf" invalid objects (those not in turn relied on by other
+	dependents) to dependent objects upon which others depend, the
+	dependency manager will need to maintain an internal queue of
+	dependencies and make the calls once it has completes its analysis
+	of the dependencies of which it is aware.  Since it is much simpler
 	and potentially faster for makeInvalid calls to be made as soon
 	as the dependents are identified, separate implementations may be
 	called for, or separate interfaces to trigger the different
@@ -210,42 +211,42 @@ import java.util.Collection;
 	or a flag on the makeInvalid method to choose the style to use.
 	<p>
 	In terms of separate implementations, the ImmediateInvalidate
-	manager might have simpler internal structures for 
+	manager might have simpler internal structures for
 	tracking dependencies than the OrderedInvalidate manager.
 	<p>
 	The language system doesn't tend to suffer from this ordering problem,
 	as it tends to handle the impact of invalidation by simply deferring
 	recompilation until the next execution.  So, a prepared statement
 	might be invalidated several times by a transaction that contains
-	several DDL operations, and only recompiled once, at its next 
+	several DDL operations, and only recompiled once, at its next
 	execution.  This is sufficient for the common use of a system, where
 	DDL changes tend to be infrequent and clustered.
 	<p>
-	There could be ways to push this "ordering problem" out of the 
+	There could be ways to push this "ordering problem" out of the
 	dependency system, but since it knows when it starts and when it
 	finished finding all of the invalidating actions, it is likely
 	the best home for this.
 	<p>
 	One other problem that could arise is multiple invalidations occurring
-	one after another.  The above design of the dependency system can 
-	really only react to each invalidation request as a unit, not 
+	one after another.  The above design of the dependency system can
+	really only react to each invalidation request as a unit, not
 	to multiple invalidation requests.
 	<p>
 	Another extension that might be desired is for the dependency manager
 	to provide for cascading invalidations -- that is, if it finds
 	and marks one Dependent object as invalid, if that object can also
 	be a provider, to look for its dependent objects and cascade the
-	dependency on to them.  This can be a way to address the 
+	dependency on to them.  This can be a way to address the
 	multiple-invalidation request need, if it should arise.  The simplest
 	way to do this is to always cascade the same invalidation type;
 	otherwise, dependents need to be able to say what a certain type
 	of invalidation type gets changed to when it is handed on.
 	<p>
-	The basic language system does not need support for cascaded 
+	The basic language system does not need support for cascaded
 	dependencies -- statements do not depend on other statements
 	in a way that involves the dependency system.
 	<p>
-	I do not know if it would be worthwhile to consider using the 
+	I do not know if it would be worthwhile to consider using the
 	dependency manager to aid in the implementation of the SQL DROP
 	statements or not. Past implementations
 	of database systems have not used the dependency system to implement
@@ -323,10 +324,10 @@ public interface DependencyManager {
 	//  UPDATE and DELETE privileges. For all these privilege types,
 	//  a revoke statement causes the dependents to drop
 	int REVOKE_PRIVILEGE = 44;
-	
+
 	//This special revoke action is for when revoke should fail if
 	//  there are dependents on the privilege being revoked. When
-	//  such an action type is received by any dependents, they 
+	//  such an action type is received by any dependents, they
 	//  should throw an exception. Such a form of revoke will succeed
 	//  only if there are no dependents on the privilege being revoked.
 	//
@@ -352,7 +353,7 @@ public interface DependencyManager {
 
     int DROP_UDT = 50;
     int DROP_AGGREGATE = 51;
-    
+
     /**
      * Extensions to this interface may use action codes > MAX_ACTION_CODE without fear of
      * clashing with action codes in this base interface.
@@ -374,7 +375,7 @@ public interface DependencyManager {
 
 		@exception StandardException thrown if something goes wrong
 	 */
-	void addDependency(Dependent d, Provider p, ContextManager cm) throws StandardException; 
+	void addDependency(Dependent d, Provider p, ContextManager cm) throws StandardException;
 
 	/**
 		mark all dependencies on the named provider as invalid.
@@ -399,7 +400,7 @@ public interface DependencyManager {
 
 		@exception StandardException thrown if unable to make it invalid
 	 */
-	void invalidateFor(Provider p, int action, LanguageConnectionContext lcc) 
+	void invalidateFor(Provider p, int action, LanguageConnectionContext lcc)
 		throws StandardException;
 
 	/**
@@ -482,7 +483,7 @@ public interface DependencyManager {
 	/**
  	 * Copy dependencies from one dependent to another.
 	 *
-	 * @param copy_From the dependent to copy from	
+	 * @param copy_From the dependent to copy from
 	 * @param copyTo the dependent to copy to
 	 * @param persistentOnly only copy persistent dependencies
 	 * @param cm			Current ContextManager
@@ -495,7 +496,7 @@ public interface DependencyManager {
 			boolean persistentOnly,
 			ContextManager cm)
 			throws StandardException;
-	
+
 	/**
 	 * Returns a string representation of the SQL action, hence no
 	 * need to internationalize, which is causing the invokation
@@ -538,7 +539,7 @@ public interface DependencyManager {
 		@param lcc	Compiler state
 		@param d the dependent
 		@param tc transaction controller
-	
+
 		@exception StandardException		Thrown on failure
 	*/
 	void clearDependencies(LanguageConnectionContext lcc,
@@ -550,7 +551,7 @@ public interface DependencyManager {
 	/**
  	 * Copy dependencies from one dependent to another.
 	 *
-	 * @param copy_From the dependent to copy from	
+	 * @param copy_From the dependent to copy from
 	 * @param copyTo the dependent to copy to
 	 * @param persistentOnly only copy persistent dependencies
 	 * @param cm			Current ContextManager
@@ -565,5 +566,15 @@ public interface DependencyManager {
 			ContextManager cm,
 			TransactionController tc)
 			throws StandardException;
-	
+
+    /**
+     * Returns an enumeration of all dependencies that this
+     * provider is supporting for any dependent at all (even
+     * invalid ones). Includes all dependency types.
+     *
+     * @param p the provider
+     * @return A list of dependents (possibly empty).
+     * @throws StandardException if something goes wrong
+     */
+    List<Dependency> getDependents (Provider p) throws StandardException;
 }
