@@ -155,6 +155,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private String drdaID;
     private String dbname;
     private String rdbIntTkn;
+    private final java.util.UUID localID;
+    private final long machineID;
+    private final String sessionID;
 
     private Object lastQueryTree; // for debugging
 
@@ -204,7 +207,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     protected OptimizerFactory of;
     protected LanguageConnectionFactory connFactory;
 
-    /* 
+    /*
      * A statement context is "pushed" and "popped" at the beginning and
      * end of every statement so that only that statement is cleaned up
      * on a Statement Exception.  As a performance optimization, we only push
@@ -371,6 +374,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             String drdaID,
             String dbname,
             String rdbIntTkn,
+            long machineID,
             DataSetProcessorType type,
             SparkExecutionType sparkExecutionType,
             boolean skipStats,
@@ -397,6 +401,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         this.drdaID=drdaID;
         this.dbname=dbname;
         this.rdbIntTkn=rdbIntTkn;
+        this.localID=java.util.UUID.randomUUID();
+        this.machineID=machineID;
+        this.sessionID=machineID + ":" + localID;
         this.commentStripper = lcf.newCommentStripper();
         this.defaultSchema = defaultSchema;
 
@@ -806,7 +813,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public String mangleTableName(String tableName) {
         // 20 underscores + session ID
-        return String.format("%s" + LOCAL_TEMP_TABLE_SUFFIX_FIX_PART + "%d", tableName, getInstanceNumber());
+        return String.format("%s" + LOCAL_TEMP_TABLE_SUFFIX_FIX_PART + "%s", tableName, getSessionID());
     }
 
     @Override
@@ -816,6 +823,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         if (td.getTableType() != TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE)
             return true;
 
+        return getSessionID().equals(getLocalTempTableSessionID(td));
+    }
+
+    @Override
+    public String getLocalTempTableSessionID(TableDescriptor td) throws StandardException {
+        if (td == null || td.getTableType() != TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE) {
+            return null;
+        }
+
         String tableName = td.getName();
         int lastIdx = tableName.lastIndexOf(LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_CHAR);
         if (lastIdx < LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_NUM_CHAR || lastIdx >= tableName.length() - 1)  // -1 case included
@@ -824,14 +840,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             if (tableName.charAt(i) != LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_CHAR)
                 throw StandardException.newException(SQLState.LANG_INVALID_INTERNAL_TEMP_TABLE_NAME, tableName);
         }
-        try {
-            if (Integer.parseInt(tableName.substring(lastIdx + 1)) == getInstanceNumber())
-                return true;
-            return false;
-        }
-        catch (NumberFormatException e) {
-            throw StandardException.newException(SQLState.LANG_INVALID_INTERNAL_TEMP_TABLE_NAME, tableName);
-        }
+        return tableName.substring(lastIdx + 1);
     }
 
     /**
@@ -962,8 +971,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     /*Reset the connection before it is returned (indirectly) by a PooledConnection object. See EmbeddedConnection. */
     @Override
-    public void resetFromPool() throws StandardException{
-        db.unregisterSession(instanceNumber);
+    public void resetFromPool() throws StandardException {
+        db.unregisterSession(getMachineID(), getSessionID());
 
         interruptedException=null;
 
@@ -2146,7 +2155,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             if(!a.isInUse()){
                 continue;
             }
-            
+
             /* for this prepared statement */
             if(pStmt==a.getPreparedStatement()){
                 ResultSet rs=a.getResultSet();
@@ -2382,8 +2391,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                 cc.firstOnStack();
             }
         }else{
-            /* Reset the next column,table, subquery and ResultSet numbers at 
-            * the beginning of each statement 
+            /* Reset the next column,table, subquery and ResultSet numbers at
+            * the beginning of each statement
             */
             cc.resetContext();
         }
@@ -2398,10 +2407,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
          * Set the compilation schema when its UUID is available.
          * i.e.:  Schema may not have been physically created yet, so
          *        its UUID will be null.
-         * 
+         *
          * o For trigger SPS recompilation, the system must use its
-         *   compilation schema to recompile the statement. 
-         * 
+         *   compilation schema to recompile the statement.
+         *
          * o For view recompilation, we set the compilation schema
          *   for this compiler context if its UUID is available.
          *   Otherwise, the compilation schema will be determined
@@ -2962,7 +2971,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         ** If it isn't a StandardException, then assume
         ** session severity. It is probably an unexpected
         ** java error somewhere in the language.
-        ** Store layer treats JVM error as session severity, 
+        ** Store layer treats JVM error as session severity,
         ** hence to be consistent and to avoid getting rawstore
         ** protocol violation errors, we treat java errors here
         ** to be of session severity.
@@ -3329,6 +3338,21 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public long getMachineID() {
+        return machineID;
+    }
+
+    @Override
+    public java.util.UUID getLocalID() {
+        return localID;
+    }
+
+    @Override
+    public String getSessionID() {
+        return sessionID;
+    }
+
+    @Override
     public String getDbname(){
         return dbname;
     }
@@ -3345,14 +3369,14 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         if(tc==null)
             return null;
 
-        StringBuffer sb=new StringBuffer(200);
+        StringBuffer sb = new StringBuffer(256);
 
         sb.append(LanguageConnectionContext.xidStr);
         sb.append(tc.getTransactionIdString());
         sb.append("), ");
 
         sb.append(LanguageConnectionContext.lccStr);
-        sb.append(Integer.toString(getInstanceNumber()));
+        sb.append(getSessionID());
         sb.append("), ");
 
         sb.append(LanguageConnectionContext.dbnameStr);
@@ -3950,7 +3974,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         return String.format(
                 "XID=%s, SessionID=%s, Database=%s, DRDAID=%s, UserID=%s",
                 getTransactionExecute().getTransactionIdString(),
-                getInstanceNumber(),
+                getSessionID(),
                 getDbname(),
                 getDrdaID(),
                 getSessionUserId());

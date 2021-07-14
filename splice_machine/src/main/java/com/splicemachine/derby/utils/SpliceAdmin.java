@@ -719,8 +719,6 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
         // sys query for table conglomerate for in schema
         PartitionFactory tableFactory = SIDriver.driver().getTableFactory();
-        schemaName = EngineUtils.validateSchema(schemaName);
-        tableName = tableName == null ? null : EngineUtils.validateTable(tableName);
         for (long conglomID : getConglomNumbers(getDefaultConn(), schemaName, tableName)) {
             try {
                 ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomID);
@@ -767,8 +765,6 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
         // sys query for table conglomerate for in schema
         PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
-        schemaName = EngineUtils.validateSchema(schemaName);
-        tableName = tableName == null ? null : EngineUtils.validateTable(tableName);
         for(long conglomID : getConglomNumbers(getDefaultConn(),schemaName,tableName)){
             try(Partition partition=tableFactory.getTable(Long.toString(conglomID))){
                 partition.flush();
@@ -1830,11 +1826,13 @@ public class SpliceAdmin extends BaseAdminProcedures{
         ExecRow row = new ValueRow(2);
         row.setColumn(1, new SQLVarchar(hostname + ":" + port));
         row.setColumn(2, new SQLInteger(sessionNumber));
+        row.setColumn(3, new SQLVarchar(lcc.getSessionID()));
         rows.add(row);
 
         IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, new GenericColumnDescriptor[]{
                 new GenericColumnDescriptor("HOSTNAME", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 120)),
-                new GenericColumnDescriptor("SESSION", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+                new GenericColumnDescriptor("SESSION_NUMBER", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+                new GenericColumnDescriptor("SESSION_ID", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 48)),
         },
                 lastActivation);
         try {
@@ -1934,9 +1932,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
     public static void SYSCS_GET_ACTIVE_SESSIONS(ResultSet[] resultSet) throws SQLException {
         ResultHelper res = new ResultHelper();
-        ResultHelper.BigintColumn col = res.addBigint("sessionId", 6);
-        List<Long> result = SIDriver.driver().getSessionsWatcher().getAllActiveSessions();
-        for (long sessionId : result) {
+        ResultHelper.VarcharColumn col = res.addVarchar("sessionId", 48);
+        List<String> result = SIDriver.driver().getSessionsWatcher().getAllActiveSessions();
+        for (String sessionId : result) {
             res.newRow();
             col.set(sessionId);
         }

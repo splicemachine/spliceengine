@@ -91,7 +91,7 @@ public interface InternalDatabase extends com.splicemachine.db.database.Database
 	 */
 	public LanguageConnectionContext setupConnection(ContextManager cm, String user, List<String> groupuserlist, String drdaID, String dbname,
                                                      String rdbIntTkn,
-                                                     DataSetProcessorType dataSetProcessorType,
+                                                     long machineID, DataSetProcessorType dataSetProcessorType,
                                                      SparkExecutionType sparkExecutionType, boolean skipStats,
                                                      double defaultSelectivityFactor,
                                                      String ipAddress,
@@ -154,5 +154,5 @@ public interface InternalDatabase extends com.splicemachine.db.database.Database
 
 	long replaceJar(final InputStream is, JarUtil util) throws StandardException;
 
-	default void unregisterSession(long sessionId) {};
+	default void unregisterSession(long machineID, String sessionId) {};
 }
