@@ -69,4 +69,15 @@ public class Constants {
 
     public static final String HBASE_CONFIGURATION_ZOOKEEPER_QUORUM = "hbase.zookeeper.quorum";
     public static final String HBASE_CONFIGURATION_ZOOKEEPER_CLIENTPORT = "hbase.zookeeper.property.clientPort";
+
+    public final static String TBL_REGION_COL0 = "index";
+    public final static String TBL_REGION_COL1 = "name";
+    public final static String TBL_REGION_COL2 = "offline";
+    public final static String TBL_REGION_COL3 = "start";
+    public final static String TBL_REGION_COL4 = "stop";
+    public final static String TBL_REGION_COL5 = "host";
+    public final static String TBL_REGION_COL6 = "HFile count";
+    public final static String TBL_REGION_COL7 = "HFile size";
+    public final static String TBL_REGION_COL8 = "MemStore size";
+    public final static String TBL_REGION_COL9 = "last major compaction";
 }

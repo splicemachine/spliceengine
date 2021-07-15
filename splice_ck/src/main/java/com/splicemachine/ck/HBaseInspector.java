@@ -258,9 +258,9 @@ public class HBaseInspector {
             throw new IOException(String.format("could not find region information for table %s.%s", schemaName, tableName));
         }
         regions.sort((lhs, rhs) -> Bytes.compareTo(lhs.getStartKey(), rhs.getStartKey()));
-        Utils.Tabular tabular = new Utils.Tabular(Utils.Tabular.SortHint.AsInteger, "Index", "RegionName",
-                                                  "Offline?", "Start", "Stop", "Host", "HFile count", "HFile size",
-                                                  "MemStore size", "Latest Major Compaction");
+        Utils.Tabular tabular = new Utils.Tabular(Utils.Tabular.SortHint.AsInteger, TBL_REGION_COL0, TBL_REGION_COL1,
+                                                  TBL_REGION_COL2, TBL_REGION_COL3, TBL_REGION_COL4, TBL_REGION_COL5,
+                                                  TBL_REGION_COL6, TBL_REGION_COL7, TBL_REGION_COL8, TBL_REGION_COL9);
         int i = 0;
         for (RegionInfo region : regions) {
             Pair<ServerName, RegionMetrics> regionMetrics = regionMetrices.get(region.getRegionNameAsString());
