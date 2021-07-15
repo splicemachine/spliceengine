@@ -45,8 +45,8 @@ import org.junit.Rule;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-public class AutoIncrementTest extends BaseJDBCTestCase {
-    public static final String SCHEMA_NAME = AutoIncrementTest.class.getSimpleName().toUpperCase();
+public class AutoIncrementIT extends BaseJDBCTestCase {
+    public static final String SCHEMA_NAME = AutoIncrementIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
     private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
 
