@@ -74,6 +74,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
                           long input_containerid,
                           DataValueDescriptor[] template,
                           ColumnOrdering[] columnOrder,
+                          int[] keyFormatIds,
                           int[] collationIds,
                           Properties properties,
                           int conglom_format_id,
@@ -85,6 +86,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
                 input_containerid,
                 template,
                 columnOrder,
+                keyFormatIds,
                 collationIds,
                 properties,
                 conglom_format_id,
@@ -123,11 +125,13 @@ public class HBaseConglomerate extends SpliceConglomerate{
     }
 
     @Override
-    public void dropColumn(TransactionManager xact_manager,int column_id) throws StandardException{
-        SpliceLogUtils.trace(LOG,"dropColumn column_id=%s, table_nam=%s",column_id,getContainerid());
+    public void dropColumn(TransactionManager xact_manager,int storagePosition, int position) throws StandardException{
+        SpliceLogUtils.trace(LOG,"dropColumn storagePosition=%d, position=%d table_nam=%s",
+                storagePosition, position, getContainerid());
         try{
-            format_ids=ConglomerateUtils.dropValueFromArray(format_ids,column_id-1);
-            collation_ids=ConglomerateUtils.dropValueFromArray(collation_ids,column_id-1);
+            super.dropColumn(xact_manager, storagePosition, position);
+            format_ids=ConglomerateUtils.dropValueFromArray(format_ids,position-1);
+            collation_ids=ConglomerateUtils.dropValueFromArray(collation_ids,position-1);
             ConglomerateUtils.updateConglomerate(this,(Txn)((SpliceTransactionManager)xact_manager).getActiveStateTxn());
         }catch(StandardException e){
             SpliceLogUtils.logAndThrow(LOG,"exception in HBaseConglomerate#addColumn",e);
@@ -344,18 +348,20 @@ public class HBaseConglomerate extends SpliceConglomerate{
 
     @Override
     public TypeMessage.DataValueDescriptor toProtobuf() throws IOException {
-        TypeMessage.HBaseConglomerate hbaseConglomerate = TypeMessage.HBaseConglomerate.newBuilder()
+        TypeMessage.HBaseConglomerate.Builder hbaseConglomerate = TypeMessage.HBaseConglomerate.newBuilder()
                 .setConglomerateFormatId(conglom_format_id)
                 .setTmpFlag(tmpFlag)
                 .setContainerId(containerId)
                 .addAllFormatIds(Arrays.stream(format_ids).boxed().collect(Collectors.toList()))
                 .addAllCollationIds(Arrays.stream(collation_ids).boxed().collect(Collectors.toList()))
-                .addAllColumnOrdering(Arrays.stream(columnOrdering).boxed().collect(Collectors.toList()))
-                .build();
+                .addAllColumnOrdering(Arrays.stream(columnOrdering).boxed().collect(Collectors.toList()));
+        if (keyFormatIds != null) {
+            hbaseConglomerate.addAllKeyFormatIds(Arrays.stream(keyFormatIds).boxed().collect(Collectors.toList()));
+        }
 
         TypeMessage.SpliceConglomerate spliceConglomerate = TypeMessage.SpliceConglomerate.newBuilder()
                 .setType(TypeMessage.SpliceConglomerate.Type.HBaseConglomerate)
-                .setExtension(TypeMessage.HBaseConglomerate.hbaseConglomerate, hbaseConglomerate)
+                .setExtension(TypeMessage.HBaseConglomerate.hbaseConglomerate, hbaseConglomerate.build())
                 .build();
 
         TypeMessage.DataValueDescriptor dvd = TypeMessage.DataValueDescriptor.newBuilder()
@@ -413,6 +419,11 @@ public class HBaseConglomerate extends SpliceConglomerate{
         columnOrdering = new int[hbaseConglomerate.getColumnOrderingCount()];
         for (int i = 0; i < columnOrdering.length; ++i) {
             columnOrdering[i] = hbaseConglomerate.getColumnOrdering(i);
+        }
+
+        keyFormatIds = new int[hbaseConglomerate.getKeyFormatIdsCount()];
+        for (int i = 0; i < keyFormatIds.length; ++i) {
+            keyFormatIds[i] = hbaseConglomerate.getKeyFormatIds(i);
         }
     }
 

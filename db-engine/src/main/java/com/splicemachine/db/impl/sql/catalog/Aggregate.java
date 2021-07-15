@@ -90,7 +90,7 @@ public class Aggregate {
                         namespace,
                         false,
                         aliasInfo,
-                        null);
+                        null, tc);
         dataDictionary.addDescriptor(
                 ads, null, DataDictionary.SYSALIASES_CATALOG_NUM, false, tc, false);
     }

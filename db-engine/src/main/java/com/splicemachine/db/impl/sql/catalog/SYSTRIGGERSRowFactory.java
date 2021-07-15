@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import com.splicemachine.utils.Pair;
@@ -88,7 +89,7 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
     private static final int[][] indexColumnPositions =
             {
                     {SYSTRIGGERS_TRIGGERID},
-                    {SYSTRIGGERS_TRIGGERNAME, SYSTRIGGERS_SCHEMAID},
+                    {SYSTRIGGERS_SCHEMAID, SYSTRIGGERS_TRIGGERNAME},
                     {SYSTRIGGERS_TABLEID, SYSTRIGGERS_CREATIONTIMESTAMP}
             };
 
@@ -289,13 +290,14 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
      * @param row                   a SYSTRIGGERS row
      * @param parentTupleDescriptor unused
      * @param dd                    dataDictionary
+     * @param tc
      * @return a descriptor equivalent to a SYSTRIGGERS row
      */
     @Override
     public TupleDescriptor buildDescriptor(
             ExecRow row,
             TupleDescriptor parentTupleDescriptor,
-            DataDictionary dd) throws StandardException {
+            DataDictionary dd, TransactionController tc) throws StandardException {
         DataValueDescriptor col;
         String name;
         char theChar;
@@ -453,7 +455,7 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
                 isBefore,
                 isRow,
                 isEnabled,
-                dd.getTableDescriptor(tuuid),
+                dd.getTableDescriptor(tuuid, tc),
                 whenSPSID,
                 actionSPSIDList,
                 createTime,

@@ -34,6 +34,7 @@ package com.splicemachine.db.iapi.db;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.error.PublicAPI;
 
+import com.splicemachine.db.iapi.sql.Row;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
@@ -148,7 +149,7 @@ public class ConsistencyChecker
 
             ExecutionFactory ef = lcc.getLanguageConnectionFactory().getExecutionFactory();
 
-            sd = dd.getSchemaDescriptor(schemaName, tc, true);
+            sd = dd.getSchemaDescriptor(null, schemaName, tc, true);
             td = dd.getTableDescriptor(tableName, sd, tc);
 
             if (td == null)
@@ -238,14 +239,14 @@ public class ConsistencyChecker
                                 null,    // stopKeyValue
                                 0)) {       // not used with null stop posn.
 
-                            /* Also, get the row location template for index rows */
-                            rl = scan.newRowLocationTemplate();
-                            scanRL = scan.newRowLocationTemplate();
+                    /* Also, get the row location template for index rows */
+                    rl = scan.newRowLocationTemplate();
+                    scanRL = scan.newRowLocationTemplate();
 
-                            for (baseRowCount = 0; scan.next(); baseRowCount++)
-                                ;    /* Empty statement */
-                        }
+                    for (baseRowCount = 0; scan.next(); baseRowCount++)
+                        ;    /* Empty statement */
                     }
+                }
 
                     baseColumnPositions =
                             indexCD.getIndexDescriptor().baseColumnPositions();
@@ -288,48 +289,48 @@ public class ConsistencyChecker
                                 new DataValueDescriptor[baseColumns];
                         DataValueDescriptor[] baseObjectArray = baseRow.getRowArray();
 
-                        for (int i = 0; i < baseColumns; i++) {
-                            baseRowIndexOrder[i] = baseObjectArray[baseColumnPositions[i] - 1];
-                        }
+                for (int i = 0; i < baseColumns; i++) {
+                    baseRowIndexOrder[i] = baseObjectArray[baseColumnPositions[i] - 1];
+                }
 
-                        /* Get the index rows and count them */
-                        for (indexRows = 0; scan.fetchNext(indexRow.getRowArray()); indexRows++) {
-                            /*
-                             ** Get the base row using the RowLocation in the index row,
-                             ** which is in the last column.
-                             */
-                            RowLocation baseRL = (RowLocation) indexRow.getColumn(baseColumns + 1);
-                            ExecRow row = new ValueRow();
-                            row.setRowArray(baseObjectArray);
-                            boolean base_row_exists =
-                                    baseCC.fetch(
-                                            baseRL, row, indexColsBitSet);
+                /* Get the index rows and count them */
+                for (indexRows = 0; scan.fetchNext(indexRow.getRowArray()); indexRows++) {
+                    /*
+                    ** Get the base row using the RowLocation in the index row,
+                    ** which is in the last column.
+                    */
+                    RowLocation baseRL = (RowLocation) indexRow.getColumn(baseColumns + 1);
+                    ExecRow row = new ValueRow();
+                    row.setRowArray(baseObjectArray);
+                    boolean base_row_exists =
+                            baseCC.fetch(
+                                    baseRL, row, indexColsBitSet);
 
-                            /* Throw exception if fetch() returns false */
-                            if (!base_row_exists) {
-                                String indexName = indexCD.getConglomerateName();
-                                throw StandardException.newException(SQLState.LANG_INCONSISTENT_ROW_LOCATION,
-                                        (schemaName + "." + tableName),
-                                        indexName,
-                                        baseRL.toString(),
-                                        indexRow.toString());
+                    /* Throw exception if fetch() returns false */
+                    if (!base_row_exists) {
+                        String indexName = indexCD.getConglomerateName();
+                        throw StandardException.newException(SQLState.LANG_INCONSISTENT_ROW_LOCATION,
+                                (schemaName + "." + tableName),
+                                indexName,
+                                baseRL.toString(),
+                                ((Row)indexRow).toString());
                             }
 
-                            /* Compare all the column values */
-                            for (int column = 0; column < baseColumns; column++) {
-                                DataValueDescriptor indexColumn =
-                                        indexRow.getColumn(column + 1);
-                                DataValueDescriptor baseColumn =
-                                        baseRowIndexOrder[column];
+                    /* Compare all the column values */
+                    for (int column = 0; column < baseColumns; column++) {
+                        DataValueDescriptor indexColumn =
+                                indexRow.getColumn(column + 1);
+                        DataValueDescriptor baseColumn =
+                                baseRowIndexOrder[column];
 
-                                /*
-                                 ** With this form of compare(), null is considered equal
-                                 ** to null.
-                                 */
-                                if (indexColumn.compare(baseColumn) != 0) {
-                                    ColumnDescriptor cd =
-                                            td.getColumnDescriptor(
-                                                    baseColumnPositions[column]);
+                        /*
+                        ** With this form of compare(), null is considered equal
+                        ** to null.
+                        */
+                        if (indexColumn.compare(baseColumn) != 0) {
+                            ColumnDescriptor cd =
+                                    td.getColumnDescriptor(
+                                            baseColumnPositions[column]);
 
                             /*
                             System.out.println(
@@ -353,7 +354,7 @@ public class ConsistencyChecker
                                             cd.getColumnName(),
                                             indexColumn.toString(),
                                             baseColumn.toString(),
-                                            indexRow.toString());
+                                    ((Row)indexRow).toString());
                                 }
                             }
                         }

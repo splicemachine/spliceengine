@@ -35,9 +35,11 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
@@ -48,6 +50,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -101,25 +104,28 @@ public class ExplainNode extends DMLStatementNode {
 
     public String statementToString() { return "Explain"; }
 
-    public void init(Object statementNode,
-                     Object sparkExplainKind,
-                     Object showNoStatsObjects) {
-        init(statementNode, sparkExplainKind, showNoStatsObjects, null, null);
+    public ExplainNode(StatementNode statementNode,
+                       SparkExplainKind sparkExplainKind,
+                       Boolean showNoStatsObjects,
+                       ContextManager cm) {
+        this(statementNode, sparkExplainKind, showNoStatsObjects, null, null, cm);
     }
 
-    public void init(Object statementNode,
-                     Object sparkExplainKind,
-                     Object showNoStatsObjects,
-                     Object start,
-                     Object end) {
-        node = (StatementNode)statementNode;
-        this.sparkExplainKind = (SparkExplainKind)sparkExplainKind;
-        this.showNoStatsObjects = (Boolean)showNoStatsObjects;
+    public ExplainNode(StatementNode statementNode,
+                       SparkExplainKind sparkExplainKind,
+                       Boolean showNoStatsObjects,
+                       Integer start,
+                       Integer end,
+                       ContextManager cm) {
+        setContextManager(cm);
+        node = statementNode;
+        this.sparkExplainKind = sparkExplainKind;
+        this.showNoStatsObjects = showNoStatsObjects;
         if(start != null) {
-            explainedStatementStart = (int)start;
+            explainedStatementStart = start;
         }
         if(end != null) {
-            explainedStatementEnd = (int)end;
+            explainedStatementEnd = end;
         }
     }
 
@@ -232,7 +238,7 @@ public class ExplainNode extends DMLStatementNode {
     }
 
     @Override
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
+    public void buildTree(Collection<Pair<QueryTreeNode,Integer>> tree, int depth) throws StandardException {
         if ( node!= null)
             node.buildTree(tree,depth);
     }
@@ -245,13 +251,15 @@ public class ExplainNode extends DMLStatementNode {
         node.accept(cnv);
         List<FromBaseTable> baseTableNodes = cnv.getList();
         for (FromBaseTable t : baseTableNodes) {
-            String tableName = t.getExposedName();
+            String tableName = t.getTableDescriptor().getQualifiedName();
             if (!t.useRealTableStats()) {
                 noStatsTables.add(new SQLVarchar(tableName));
             } else if (!t.getNoStatsColumnIds().isEmpty()) {
                 TableDescriptor td = t.getTableDescriptor();
                 for (int columnId : t.getNoStatsColumnIds()) {
-                    noStatsColumnSet.add(tableName + "." + td.getColumnDescriptor(columnId).getColumnName());
+                    // RowID columns may have column id of zero.
+                    if (columnId > 0)
+                        noStatsColumnSet.add(tableName + "." + td.getColumnDescriptor(columnId).getColumnName());
                 }
             }
         }

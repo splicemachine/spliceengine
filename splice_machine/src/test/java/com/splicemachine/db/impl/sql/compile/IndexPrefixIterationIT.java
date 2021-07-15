@@ -156,6 +156,51 @@ public class IndexPrefixIterationIT  extends SpliceUnitTest {
         notContainedStrings = Arrays.asList("IndexPrefixIteratorMode");
         testQuery(query, expected, methodWatcher);
         testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+        methodWatcher.execute("set session_property disablePredsForIndexOrPkAccessPath=false");
+
+        methodWatcher.execute("set session_property favorIndexPrefixIteration=true");
+        
+        // Values with b1 == 1 should be excluded.
+        query = format("select * from t1 --SPLICE-PROPERTIES useSpark=%s\n" +
+                                "where\n" +
+                                "b1 >= -1 and b1 < 1\n", useSpark);
+        expected =
+            "A1 |B1 |C1 |D1 |E1 |F1 |G1 |            H1             |\n" +
+            "--------------------------------------------------------\n" +
+            "-1 |-1 |-1 |-1 |-1 |-1 |-1 |2018-12-31 15:59:59.321111 |";
+
+        containedStrings = Arrays.asList("TableScan", "IndexPrefixIteratorMode");
+        notContainedStrings = null;
+        testQuery(query, expected, methodWatcher);
+        testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+
+        // All values should be excluded.
+        query = format("select * from t1 --SPLICE-PROPERTIES useSpark=%s\n" +
+                                "where\n" +
+                                "b1 > -1 and b1 < 1\n", useSpark);
+        expected =
+            "";
+
+        containedStrings = Arrays.asList("TableScan", "IndexPrefixIteratorMode");
+        notContainedStrings = null;
+        testQuery(query, expected, methodWatcher);
+        testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+
+        // Only include b1 == 1 values.
+        query = format("select count(*) from t1 --SPLICE-PROPERTIES useSpark=%s\n" +
+                                "where\n" +
+                                "b1 > -1 and b1 <= 1\n", useSpark);
+        expected =
+            "1  |\n" +
+            "-----\n" +
+            "576 |";
+
+        containedStrings = Arrays.asList("TableScan", "IndexPrefixIteratorMode");
+        notContainedStrings = null;
+        testQuery(query, expected, methodWatcher);
+        testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+
+        methodWatcher.execute("set session_property favorIndexPrefixIteration=false");
 
     }
 
@@ -237,7 +282,7 @@ public class IndexPrefixIterationIT  extends SpliceUnitTest {
             "----\n" +
             " 1 |";
 
-        containedStrings = Arrays.asList("IndexScan", "T11_IX4", "IndexPrefixIteratorMode(129 values)", "scannedRows=1");
+        containedStrings = Arrays.asList("TableScan", "IndexPrefixIteratorMode(129 values)", "scannedRows=1");
         testQuery(query, expected, methodWatcher);
         testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
 
@@ -330,6 +375,30 @@ public class IndexPrefixIterationIT  extends SpliceUnitTest {
         List<String> notContainedStrings = Arrays.asList("IndexPrefixIteratorMode");
         testQuery(query, expected, methodWatcher);
         testExplainContains(query, methodWatcher, containedStrings, notContainedStrings);
+        methodWatcher.execute("set session_property favorIndexPrefixIteration=false");
+    }
+
+    @Test
+    public void testCodeGenerationNoNPE() throws Exception {
+        if (isMemPlatform && useSpark)
+            return;
+
+        String query = format("explain SELECT DP.COL1,\n" +
+                                      "       DP.COL3,\n" +
+                                      "       DP.COL9,\n" +
+                                      "       DP.COL8,\n" +
+                                      "       DP.COL10\n" +
+                                      "FROM --splice-properties joinOrder=fixed\n" +
+                                      "       Table1 DP --splice-properties index=Table1_Idx2\n" +
+                                      "     , Table1 X  --splice-properties joinStrategy=nestedloop\n" +
+                                      "WHERE\n" +
+                                      "       DP.COL5 = 'N'\n" +
+                                      "   AND DP.COL3 <= '2011-11-01'\n" +
+                                      "                    || '-00.00.00.000000'\n", useSpark);
+
+        methodWatcher.execute("set session_property favorIndexPrefixIteration=true");
+        rowContainsQuery(new int[]{7,8}, query, methodWatcher, new String[]{"IndexLookup"},
+                         new String[]{"IndexScan[TABLE1_IDX2", "IndexPrefixIteratorMode(1 values)"});
         methodWatcher.execute("set session_property favorIndexPrefixIteration=false");
     }
 }

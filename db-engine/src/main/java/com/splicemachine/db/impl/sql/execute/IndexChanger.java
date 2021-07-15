@@ -180,7 +180,7 @@ public class IndexChanger
                                 RowLocation baseRowLoc)
          throws StandardException
     {
-            ourIndexRow = irg.getIndexRowKeyTemplate();
+            ourIndexRow = irg.getIndexRowKeyTemplate(false);
 
             irg.getIndexRowKey(baseRow, baseRowLoc, ourIndexRow, baseRowReadMap);
     }
@@ -197,7 +197,7 @@ public class IndexChanger
                                 RowLocation baseRowLoc)
         throws StandardException
     {
-        ourUpdatedIndexRow = irg.getIndexRowKeyTemplate();
+        ourUpdatedIndexRow = irg.getIndexRowKeyTemplate(false);
 
         irg.getIndexRowKey(baseRow, baseRowLoc, ourUpdatedIndexRow, baseRowReadMap);
     }
@@ -493,7 +493,7 @@ public class IndexChanger
             ConglomerateDescriptor cd = dd.getConglomerateDescriptor(indexCID);
 
             UUID tableID = cd.getTableID();
-            TableDescriptor td = dd.getTableDescriptor(tableID);
+            TableDescriptor td = dd.getTableDescriptor(tableID, tc);
             String tableName = td.getName();
 
             if (indexOrConstraintName == null) // no index name passed in

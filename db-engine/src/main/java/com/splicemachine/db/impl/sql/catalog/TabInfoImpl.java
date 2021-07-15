@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.StreamStorable;
@@ -51,7 +52,6 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-import java.util.UUID;
 
 /**
  * A poor mans structure used in DataDictionaryImpl.java.
@@ -229,6 +229,11 @@ public class TabInfoImpl
     public String getTableName()
     {
         return crf.getCatalogName();
+    }
+
+    public UUID getTableUUID()
+    {
+        return crf.getCanonicalTableUUID();
     }
 
     /**
@@ -436,12 +441,14 @@ public class TabInfoImpl
      *
      * @exception StandardException        Thrown on failure
      */
-    int insertRowList(ExecRow[] rowList, TransactionController tc )
+    int insertRowList(ExecRow[] rowList, TransactionController tc, RowLocation[] rowLocations )
             throws StandardException
     {
-        RowLocation[]             notUsed = new RowLocation[1];
+        if (rowLocations == null) {
+            rowLocations = new RowLocation[rowList.length];
+        }
 
-        return insertRowListImpl(rowList,tc,notUsed);
+        return insertRowListImpl(rowList,tc,rowLocations);
     }
 
     /**
@@ -454,17 +461,15 @@ public class TabInfoImpl
      </OL>
      @param rowList the list of rows to insert
      @param tc    transaction controller
-     @param rowLocationOut on output rowLocationOut[0] is set to the
+     @param rowLocations on output rowLocationOut[0] is set to the
      last RowLocation inserted.
      @return row number (>= 0) if duplicate row inserted into an index
      ROWNOTDUPLICATE otherwise
      */
     private int insertRowListImpl(ExecRow[] rowList, TransactionController tc,
-                                  RowLocation[] rowLocationOut)
+                                  RowLocation[] rowLocations)
             throws StandardException
     {
-        RowLocation                    heapLocation;
-        ExecIndexRow                indexableRow;
         int                            insertRetCode;
         int                            retCode = ROWNOTDUPLICATE;
         int                            indexCount = crf.getNumIndexes();
@@ -500,10 +505,6 @@ public class TabInfoImpl
                     }
                 }
 
-                heapLocation = heapController.newRowLocationTemplate();
-                rowLocationOut[0] = heapLocation;
-
-                RowLocation[] rowLocations = new RowLocation[rowList.length];
                 for (int i = 0; i < rowLocations.length; i++) {
                     rowLocations[i] = heapController.newRowLocationTemplate();
                 }
@@ -792,9 +793,6 @@ public class TabInfoImpl
             rc.finish();
         }
 
-        // Create a savepoint so that any subsequent writes to the rows we just deleted don't end up
-        // with the same timestamp, see DB-9553
-        tc.setSavePoint("DD_SAVEPOINT-" + UUID.randomUUID().toString(), null);
         tc.elevate("dictionary");
 
         return rowsDeleted;

@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
@@ -85,7 +86,7 @@ public class CursorNode extends DMLStatementNode{
     private int indexOfSessionTableNamesInSavedObjects=-1;
 
     /**
-     * Initializer for a CursorNode
+     * Constructor for a CursorNode
      *
      * @param statementType      Type of statement (SELECT, UPDATE, INSERT)
      * @param resultSet          A ResultSetNode specifying the result set for
@@ -104,6 +105,21 @@ public class CursorNode extends DMLStatementNode{
      *                           provided if the updateMode parameter is
      *                           CursorNode.UPDATE.
      */
+    public CursorNode(String statementType,
+                      ResultSetNode resultSet,
+                      String name,
+                      OrderByList orderByList,
+                      ValueNode offset,
+                      ValueNode fetchFirst,
+                      Boolean hasJDBClimitClause,
+                      Integer updateMode,
+                      Vector updatableColumns, ContextManager cm) {
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.CURSOR_NODE);
+        init(statementType, resultSet, name, orderByList, offset, fetchFirst, hasJDBClimitClause, updateMode, updatableColumns);
+    }
+
+    public CursorNode() {}
     @Override
     public void init(
             Object statementType,
@@ -207,10 +223,7 @@ public class CursorNode extends DMLStatementNode{
 
         getCompilerContext().pushCurrentPrivType(getPrivType());
         try{
-            FromList fromList=(FromList)getNodeFactory().getNode(
-                    C_NodeTypes.FROM_LIST,
-                    getNodeFactory().doJoinOrderOptimization(),
-                    getContextManager());
+            FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
 
             /* Check for ? parameters directly under the ResultColums */
             DataTypeDescriptor untypedExpressionType = getCompilerContext().getCursorUntypedExpressionType();
@@ -737,9 +750,7 @@ public class CursorNode extends DMLStatementNode{
 
         if(targetColumnDescriptors!=null) return targetColumnDescriptors;
 
-        newList=(ResultColumnList)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        newList = new ResultColumnList(getContextManager());
         ResultColumnList rcl=updateTable.getResultColumns();
         int rclSize=rcl.size();
         for(int index=0;index<rclSize;index++){
@@ -756,11 +767,7 @@ public class CursorNode extends DMLStatementNode{
                             origCol.getTableName()),
                     origCol.getTypeServices(),
                     getContextManager());
-            newCol=(ResultColumn)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    origCol.columnDescriptor,
-                    newNode,
-                    getContextManager());
+            newCol = new ResultColumn(origCol.columnDescriptor, newNode, getContextManager());
 
             /* Build the ResultColumnList to return */
             newList.addResultColumn(newCol);

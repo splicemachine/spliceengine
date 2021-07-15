@@ -83,7 +83,7 @@ public final class ViewDescriptor extends TupleDescriptor
 	 * @param compSchemaId	the schemaid to compile in
 	 */
 
-	public ViewDescriptor(DataDictionary dataDictionary, UUID viewID, String viewName, String viewText, 
+	public ViewDescriptor(DataDictionary dataDictionary, UUID viewID, String viewName, String viewText,
 							  int checkOption, UUID compSchemaId)
 	{
 		super( dataDictionary );
@@ -178,7 +178,7 @@ public final class ViewDescriptor extends TupleDescriptor
 	// Provider interface
 	//
 
-	/**		
+	/**
 		@return the stored form of this provider
 
 			@see Dependable#getDependableFinder
@@ -199,7 +199,7 @@ public final class ViewDescriptor extends TupleDescriptor
 	}
 
 	/**
-	 * Get the provider's UUID 
+	 * Get the provider's UUID
 	 *
 	 * @return String	The provider's UUID
 	 */
@@ -241,7 +241,7 @@ public final class ViewDescriptor extends TupleDescriptor
 		@exception StandardException thrown if unable to make it invalid
 	 */
 	public void prepareToInvalidate(Provider p, int action,
-					LanguageConnectionContext lcc) 
+					LanguageConnectionContext lcc)
 		throws StandardException
 	{
 		switch ( action )
@@ -273,10 +273,10 @@ public final class ViewDescriptor extends TupleDescriptor
 			*/
 		    case DependencyManager.SET_CONSTRAINTS_ENABLE:
 		    case DependencyManager.SET_TRIGGERS_ENABLE:
-			//When REVOKE_PRIVILEGE gets sent (this happens for privilege 
-			//types SELECT, UPDATE, DELETE, INSERT, REFERENCES, TRIGGER), we  
-			//don't do anything here. Later in makeInvalid method, we make  
-			//the ViewDescriptor drop itself. 
+			//When REVOKE_PRIVILEGE gets sent (this happens for privilege
+			//types SELECT, UPDATE, DELETE, INSERT, REFERENCES, TRIGGER), we
+			//don't do anything here. Later in makeInvalid method, we make
+			//the ViewDescriptor drop itself.
 		    case DependencyManager.REVOKE_PRIVILEGE:
 
 			// When a role grant is revoked, any a view dependent on priviliges
@@ -300,8 +300,8 @@ public final class ViewDescriptor extends TupleDescriptor
 
 			//Notice that REVOKE_PRIVILEGE_RESTRICT is not caught earlier.
 		    //It gets handled in this default: action where an exception
-		    //will be thrown. This is because, if such an invalidation 
-		    //action type is ever received by a dependent, the dependent 
+		    //will be thrown. This is because, if such an invalidation
+		    //action type is ever received by a dependent, the dependent
 		    //show throw an exception.
 			//In Derby, at this point, REVOKE_PRIVILEGE_RESTRICT gets sent
 		    //when execute privilege on a routine is getting revoked.
@@ -315,8 +315,8 @@ public final class ViewDescriptor extends TupleDescriptor
 				DependencyManager dm;
 
 				dm = getDataDictionary().getDependencyManager();
-				throw StandardException.newException(SQLState.LANG_PROVIDER_HAS_DEPENDENT_VIEW, 
-					dm.getActionString(action), 
+				throw StandardException.newException(SQLState.LANG_PROVIDER_HAS_DEPENDENT_VIEW,
+					dm.getActionString(action),
 					p.getObjectName(), viewName);
 
 		}	// end switch
@@ -330,7 +330,7 @@ public final class ViewDescriptor extends TupleDescriptor
 
 		@exception StandardException thrown if unable to make it invalid
 	 */
-	public void makeInvalid(int action, LanguageConnectionContext lcc) 
+	public void makeInvalid(int action, LanguageConnectionContext lcc)
 		throws StandardException
 	{
 		switch ( action )
@@ -374,7 +374,7 @@ public final class ViewDescriptor extends TupleDescriptor
 			case DependencyManager.REVOKE_ROLE:
                 
                 TableDescriptor td = 
-                        getDataDictionary().getTableDescriptor(uuid);
+                        getDataDictionary().getTableDescriptor(uuid, null);
                 
                 if (td == null) { 
                     // DERBY-5567 already dropped via another dependency 
@@ -454,7 +454,7 @@ public final class ViewDescriptor extends TupleDescriptor
      * @param action action
      * @throws StandardException standard error policy
      */
-    private void drop(
+    public void drop(
             LanguageConnectionContext lcc,
             SchemaDescriptor sd,
             TableDescriptor td,

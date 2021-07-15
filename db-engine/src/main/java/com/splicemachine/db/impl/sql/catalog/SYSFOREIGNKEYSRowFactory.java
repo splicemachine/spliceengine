@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
@@ -184,15 +185,16 @@ public class SYSFOREIGNKEYSRowFactory extends CatalogRowFactory
 	 * Make a ViewDescriptor out of a SYSFOREIGNKEYS row
 	 *
 	 * @param row a SYSFOREIGNKEYS row
-	 * @param parentTupleDescriptor	Null for this kind of descriptor.
+	 * @param parentTupleDescriptor    Null for this kind of descriptor.
 	 * @param dd dataDictionary
 	 *
+	 * @param tc
 	 * @exception   StandardException thrown on failure
 	 */
 	public TupleDescriptor buildDescriptor(
-		ExecRow					row,
-		TupleDescriptor			parentTupleDescriptor,
-		DataDictionary 			dd )
+			ExecRow row,
+			TupleDescriptor parentTupleDescriptor,
+			DataDictionary dd, TransactionController tc)
 					throws StandardException
 	{
 

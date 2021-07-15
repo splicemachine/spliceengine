@@ -96,7 +96,7 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation){
+    public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) {
         return delegate.createOperationContext(spliceOperation);
     }
 
@@ -162,6 +162,10 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
                                           double sampleFraction) throws StandardException {
         return delegate.readParquetFile(schema, baseColumnMap, partitionColumnMap,location, context, qualifiers,
                 probeValue,execRow, useSample, sampleFraction);
+    }
+
+    public <V> DataSet<V> readFileX(String location, String extension, SpliceOperation op) throws StandardException {
+        return delegate.readFileX(location, extension, op);
     }
 
     @Override

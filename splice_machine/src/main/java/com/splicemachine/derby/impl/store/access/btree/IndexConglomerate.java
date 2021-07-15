@@ -97,6 +97,7 @@ public class IndexConglomerate extends SpliceConglomerate{
                           long input_containerid,
                           DataValueDescriptor[] template,
                           ColumnOrdering[] columnOrder,
+                          int[] keyFormatIds,
                           int[] collationIds,
                           Properties properties,
                           int conglom_format_id,
@@ -108,6 +109,7 @@ public class IndexConglomerate extends SpliceConglomerate{
                 input_containerid,
                 template,
                 columnOrder,
+                keyFormatIds,
                 collationIds,
                 properties,
                 conglom_format_id,
@@ -214,13 +216,15 @@ public class IndexConglomerate extends SpliceConglomerate{
      * This routine update's the in-memory object version of the HBase
      * Conglomerate to have one less column
      *
-     * @param column_id        The column number to add this column at.
+     * @param storagePosition  The storage number to remove this column at.
+     * @param position         The column number to remove this column at.
      *
      * @exception  StandardException  Standard exception policy.
      **/
     public void dropColumn(
             TransactionManager  xact_manager,
-            int                 column_id)
+            int                 storagePosition,
+            int                 position)
             throws StandardException {
         throw StandardException.newException(SQLState.BTREE_UNIMPLEMENTED_FEATURE);
     }
@@ -469,14 +473,16 @@ public class IndexConglomerate extends SpliceConglomerate{
     @Override
     public TypeMessage.DataValueDescriptor toProtobuf() throws IOException {
 
-        TypeMessage.HBaseConglomerate hbaseConglomerate = TypeMessage.HBaseConglomerate.newBuilder()
+        TypeMessage.HBaseConglomerate.Builder hbaseConglomerate = TypeMessage.HBaseConglomerate.newBuilder()
                 .setConglomerateFormatId(conglom_format_id)
                 .setTmpFlag(tmpFlag)
                 .setContainerId(containerId)
                 .addAllFormatIds(Arrays.stream(format_ids).boxed().collect(Collectors.toList()))
                 .addAllCollationIds(Arrays.stream(collation_ids).boxed().collect(Collectors.toList()))
-                .addAllColumnOrdering(Arrays.stream(columnOrdering).boxed().collect(Collectors.toList()))
-                .build();
+                .addAllColumnOrdering(Arrays.stream(columnOrdering).boxed().collect(Collectors.toList()));
+        if (keyFormatIds != null) {
+            hbaseConglomerate.addAllKeyFormatIds(Arrays.stream(keyFormatIds).boxed().collect(Collectors.toList()));
+        }
 
         List<Boolean> ascDescInfoList = Lists.newArrayList();
         for (boolean info : ascDescInfo) {
@@ -484,7 +490,7 @@ public class IndexConglomerate extends SpliceConglomerate{
         }
 
         TypeMessage.IndexConglomerate indexConglomerate = TypeMessage.IndexConglomerate.newBuilder()
-                .setBase(hbaseConglomerate)
+                .setBase(hbaseConglomerate.build())
                 .setUniqueWithDuplicateNulls(uniqueWithDuplicateNulls)
                 .setNKeyFields(nKeyFields)
                 .setNUniqueColumns(nUniqueColumns)
@@ -549,6 +555,10 @@ public class IndexConglomerate extends SpliceConglomerate{
         for (int i = 0; i < format_ids.length; ++i) {
             format_ids[i] = hbaseConglomerate.getFormatIds(i);
         }
+        keyFormatIds = new int[hbaseConglomerate.getKeyFormatIdsCount()];
+        for (int i = 0; i < keyFormatIds.length; ++i) {
+            keyFormatIds[i] = hbaseConglomerate.getKeyFormatIds(i);
+        }
         baseConglomerateId = indexConglomerate.getBaseConglomerateId();
         rowLocationColumn = indexConglomerate.getRowLocationColumn();
         ascDescInfo=new boolean[indexConglomerate.getAscDescInfoCount()];
@@ -596,6 +606,10 @@ public class IndexConglomerate extends SpliceConglomerate{
             columnOrdering = new int[ascDescInfo.length + extraColumnsCount];
             for (int i=0; i < columnOrdering.length; i++)
                 columnOrdering[i] = i;
+            keyFormatIds = new int[columnOrdering.length];
+            for (int i = 0; i < keyFormatIds.length; ++i) {
+                keyFormatIds[i] = format_ids[columnOrdering[i]];
+            }
         }
     }
     @Override

@@ -52,13 +52,9 @@ import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 
@@ -115,6 +111,11 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
     private int initialListSize=0;
 
     public ResultColumnList(){
+    }
+
+    public ResultColumnList(ContextManager contextManager) {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.RESULT_COLUMN_LIST);
     }
 
     /**
@@ -206,6 +207,16 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         return null;
     }
 
+    public ResultColumn getResultColumnByStoragePosition(int position){
+        int size=size();
+        for(int index=0;index<size;index++){
+            ResultColumn rc=elementAt(index);
+            if(rc.getStoragePosition() == position){
+                return rc;
+            }
+        }
+        return null;
+    }
     /**
      * Take a column position and a ResultSetNode and find the ResultColumn
      * in this RCL whose source result set is the same as the received
@@ -770,10 +781,14 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             if( index >= firstOrderByIndex )
                 fromList.useAliases();
 
-            ValueNode vn=elementAt(index);
-            vn=vn.bindExpression(fromList,subqueryList,aggregateVector);
+            ValueNode vn = elementAt(index);
+            vn = vn.bindExpression(fromList,subqueryList,aggregateVector);
             //-sf- this cast is safe because ResultColumn returns a ResultColumn from bindExpression()
             ResultColumn rc = (ResultColumn)vn;
+            if (rc.getExpression() instanceof ValueTupleNode) {
+                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+                                                     "Tuple values as a column in select list is not supported");
+            }
             setElementAt((ResultColumn)vn,index);
 
             // if we have aliases in the SELECT part, add them, so ORDER BY can resolve them later
@@ -1137,11 +1152,11 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             RowLocation rlTemplate = scc.newRowLocationTemplate();
             row.setColumn(indexColumnTypes.length + 1, rlTemplate);
         } else {
-            int[] baseCols = cd.getIndexDescriptor().baseColumnPositions();
+            int[] baseCols = cd.getIndexDescriptor().baseColumnStoragePositions();
             row = getExecutionFactory().getValueRow(baseCols.length + 1);
 
             for (int i = 0; i < baseCols.length; i++) {
-                ColumnDescriptor coldes = td.getColumnDescriptor(baseCols[i]);
+                ColumnDescriptor coldes = td.getColumnDescriptorByStoragePosition(baseCols[i]);
                 DataTypeDescriptor dataType = coldes.getType();
 
                 DataValueDescriptor dataValue = dataType.getNull();
@@ -1268,10 +1283,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
                 int isolationLevel=TransactionController.ISOLATION_NOLOCK;
 
-                try (ConglomerateController cc = lcc.getTransactionCompile().openConglomerate(
-                        conglomerateId,false,0,TransactionController.MODE_RECORD,isolationLevel)) {
-                    rl=cc.newRowLocationTemplate();
-                }
+                rl = new HBaseRowLocation();
 
                 savedItem=acb.addItem(rl);
 
@@ -1606,7 +1618,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         ResultColumnList newList;
 
         /* Create the new ResultColumnList */
-        newList=(ResultColumnList)getNodeFactory().getNode( C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
+        newList = new ResultColumnList(getContextManager());
 
         /* Walk the current list - for each ResultColumn in the list, make a copy
          * and add it to the new list.
@@ -1676,12 +1688,8 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             /* dts = resultColumn.getExpression().getTypeServices(); */
 
             /* Vectors are 0-based, VirtualColumnIds are 1-based */
-            resultColumn.expression=(ValueNode)getNodeFactory().getNode(
-                    C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                    sourceResultSet,
-                    sourceResultColumnList.elementAt(index),
-                    ReuseFactory.getInteger(index+1),
-                    getContextManager());
+            resultColumn.expression = new VirtualColumnNode(sourceResultSet, sourceResultColumnList.elementAt(index),
+                    index+1, getContextManager());
 
             /* Mark the ResultColumn as being referenced */
             if(markReferenced){
@@ -2003,11 +2011,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         }
 
         /* Make a dummy TableName to be shared by all new CRs */
-        dummyTN=(TableName)getNodeFactory().getNode(
-                C_NodeTypes.TABLE_NAME,
-                null,
-                null,
-                getContextManager());
+        dummyTN = new TableName(null, null, getContextManager());
 
         int size=visibleSize();
         for(int index=0;index<size;index++){
@@ -2060,10 +2064,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                         cf);
             }
 
-            newCR=(ColumnReference)getNodeFactory().getNode(
-                    C_NodeTypes.COLUMN_REFERENCE,
-                    thisRC.getName(),
-                    dummyTN,
+            newCR = new ColumnReference(thisRC.getName(), dummyTN,
                     getContextManager());
             newCR.setType(resultType);
             /* Set the tableNumber and nesting levels in newCR.
@@ -2244,7 +2245,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         int posn;
 
         /* Get a new ResultColumnList */
-        retval=(ResultColumnList)getNodeFactory().getNode( C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
+        retval = new ResultColumnList(getContextManager());
 
         /*
         ** Form a sorted array of the ResultColumns
@@ -2710,10 +2711,12 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                         continue;
                     }
                 }
-                rc.setUnreferenced();
+                if (!rc.sourceResultSetForbidsColumnRemoval())
+                    rc.setUnreferenced();
             }
         }
     }
+
     /**
      * Copy the referenced RCs from this list to the supplied target list.
      *
@@ -2873,11 +2876,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                 tableName,
                 dts,
                 getContextManager());
-        ResultColumn rc=(ResultColumn)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                columnName,
-                bcn,
-                getContextManager());
+        ResultColumn rc = new ResultColumn(columnName, bcn, getContextManager());
         rc.setType(dts);
         addResultColumn(rc);
     }
@@ -2896,13 +2895,9 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         CurrentRowLocationNode rowLocationNode;
 
         /* Generate the RowLocation column */
-        rowLocationNode=(CurrentRowLocationNode)getNodeFactory().getNode(C_NodeTypes.CURRENT_ROW_LOCATION_NODE,getContextManager());
-        rowLocationColumn=
-                (ResultColumn)getNodeFactory().getNode(
-                        C_NodeTypes.RESULT_COLUMN,
-                        "",
-                        rowLocationNode,
-                        getContextManager());
+        rowLocationNode = new CurrentRowLocationNode(getContextManager());
+        rowLocationNode.bindExpression(null, null, null);
+        rowLocationColumn = new ResultColumn("", rowLocationNode, getContextManager());
         rowLocationColumn.markGenerated();
 
         /* Append to the ResultColumnList */
@@ -3172,9 +3167,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             return this;
         }
 
-        ResultColumnList newCols=(ResultColumnList)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        ResultColumnList newCols = new ResultColumnList(getContextManager());
         newCols.setFromExprIndex(fromExprIndex);
 
         int size=size();
@@ -3378,10 +3371,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                                     getLanguageConnectionContext(),
                                     getCompilerContext()));
                 }else{
-                    rc.setExpression(
-                            (ValueNode)getNodeFactory().getNode(
-                                    C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
-                                    getContextManager()));
+                    rc.setExpression(new UntypedNullConstantNode(getContextManager()));
                     rc.setWasDefaultColumn(true);
                 }
                 rc.setDefaultColumn(false);
@@ -3456,19 +3446,12 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
     }
 
     private ResultColumn makeColumnFromName(String columnName) throws StandardException{
-        return (ResultColumn)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,columnName,null,getContextManager());
+        return new ResultColumn(columnName, null, getContextManager());
     }
 
     private ResultColumn makeColumnReferenceFromName ( TableName tableName, String columnName ) throws StandardException{
         ContextManager cm=getContextManager();
-        NodeFactory nodeFactory=getNodeFactory();
-
-        return (ResultColumn)nodeFactory.getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                columnName,
-                nodeFactory.getNode(C_NodeTypes.COLUMN_REFERENCE, columnName, tableName, cm),
-                cm
-        );
+        return new ResultColumn(columnName, new ColumnReference(columnName, tableName, cm), cm);
     }
 
     /**
@@ -3990,6 +3973,16 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
     public void setFromExprIndex(boolean fromExprIndex) {
         this.fromExprIndex = fromExprIndex;
+    }
+
+    // Does this list of columns have any referenced columns?
+    public boolean hasReferencedColumn() {
+        for(int index=0;index<size();index++){
+            ResultColumn rc=elementAt(index);
+            if (rc.isReferenced())
+                return true;
+        }
+        return false;
     }
 
 }

@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -296,18 +297,19 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
     /**
      * Make a ColumnDescriptor out of a SYSCOLUMNS row
      *
-     * @param row 					a SYSCOLUMNS row
-     * @param parentTupleDescriptor	The UniqueTupleDescriptor for the object that is tied
+     * @param row                    a SYSCOLUMNS row
+     * @param parentTupleDescriptor    The UniqueTupleDescriptor for the object that is tied
      *								to this column
-     * @param dd 					dataDictionary
+     * @param dd                    dataDictionary
      *
+     * @param tc
      * @return	a column descriptor equivalent to a SYSCOLUMNS row
      *
      * @exception   StandardException thrown on failure
      */
     public TupleDescriptor buildDescriptor(ExecRow row,
                                            TupleDescriptor parentTupleDescriptor,
-                                           DataDictionary	dd) throws StandardException{
+                                           DataDictionary dd, TransactionController tc) throws StandardException{
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(row.nColumns() == SYSCOLUMNS_COLUMN_COUNT,
                     "Wrong number of columns for a SYSCOLUMNS row");
@@ -627,7 +629,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             "     when COL.COLUMNTYPE='DECFLOAT' then 16  -- we have only decfloat(34)\n" +
             "     else COL.COLUMNDATATYPE.getMaximumWidth() end as LONGLENGTH,\n" +
             "case when CON.keydesc is null then NULL ELSE \n" +
-            "   CASE WHEN CON.keydesc.getKeyColumnPosition(COL.columnnumber) > 0 then CON.keydesc.getKeyColumnPosition(COL.columnnumber) END \n" +
+            "   CASE WHEN CON.keydesc.getKeyColumnPosition(COL.STORAGENUMBER) > 0 then CON.keydesc.getKeyColumnPosition(COL.STORAGENUMBER) END \n" +
             "     end as KEYSEQ,\n" +
             "     COL.COLUMNDEFAULT as \"DEFAULT\"\n" +
             "from \n" +
@@ -635,15 +637,19 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             "        t.tablename,\n" +
             "        s.schemaname,\n" +
             "        c.columnnumber,\n" +
+            "        c.storagenumber,\n" +
             "        c.columndatatype,\n" +
             "        cast (c.columndatatype.getTypeName() as varchar(128)) as columntype,\n" +
             "        cast(cast (c.columndefault as long varchar) as clob(65536)) as columndefault,\n" +
             "        t.tableid\n" +
             "from sys.syscolumns c,\n" +
             "     sys.systables t,\n" +
-            "     sys.sysschemas s\n" +
+            "     sys.sysschemas s,\n" +
+            "     sys.sysdatabases d\n" +
             "where c.referenceid = t.tableid and\n" +
-            "      t.schemaid = s.schemaid\n" +
+            "      t.schemaid = s.schemaid and\n" +
+            "      s.databaseid = d.databaseid and\n" +
+            SYSSCHEMASRowFactory.FILTER_SYS_SCHEMAS_OR_CURRENT_DB_SCHEMAS +
             ") col\n" +
             "left join (\n" +
             "select cons.tableid,\n" +

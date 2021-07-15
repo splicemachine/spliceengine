@@ -71,8 +71,8 @@ public class UnaryOperatorNode extends OperatorNode
      */
     private int operatorType;
 
-    String		resultInterfaceType;
-    String		receiverInterfaceType;
+    String        resultInterfaceType;
+    String        receiverInterfaceType;
 
     // At the time of adding XML support, it was decided that
     // we should avoid creating new OperatorNodes where possible.
@@ -108,14 +108,14 @@ public class UnaryOperatorNode extends OperatorNode
     };
 
     static final String[] UnaryResultTypes = {
-            ClassName.XMLDataValue, 		// XMLParse
-            ClassName.StringDataValue,		// XMLSerialize
-            ClassName.StringDataValue	    // DIGITS
+            ClassName.XMLDataValue,         // XMLParse
+            ClassName.StringDataValue,        // XMLSerialize
+            ClassName.StringDataValue        // DIGITS
     };
 
     static final String[] UnaryArgTypes = {
-            ClassName.StringDataValue,		// XMLParse
-            ClassName.XMLDataValue,			// XMLSerialize
+            ClassName.StringDataValue,        // XMLParse
+            ClassName.XMLDataValue,            // XMLSerialize
             ClassName.NumberDataValue       // DIGITS
     };
 
@@ -131,13 +131,6 @@ public class UnaryOperatorNode extends OperatorNode
      */
     protected int operandMatchIndexExpr = -1;
 
-    /* The following four fields record operand matches for
-     * which conglomerate and which column. These values
-     * are reset and valid only for the current access path.
-     * They should not be used beyond cost estimation.
-     */
-    ConglomerateDescriptor operandMatchIndexExprConglomDesc = null;
-
     // 0-based index column position
     protected int operandMatchIndexExprColumnPosition = -1;
 
@@ -145,10 +138,10 @@ public class UnaryOperatorNode extends OperatorNode
      * Initializer for a UnaryOperatorNode.
      *
      * <ul>
-     * @param operand	The operand of the node
-     * @param operatorOrOpType	Either 1) the name of the operator,
+     * @param operand    The operand of the node
+     * @param operatorOrOpType    Either 1) the name of the operator,
      *  OR 2) an Integer holding the operatorType for this operator.
-     * @param methodNameOrAddedArgs	Either 1) name of the method
+     * @param methodNameOrAddedArgs    Either 1) name of the method
      *  to call for this operator, or 2) an array of Objects
      *  from which primitive method parameters can be
      *  retrieved.
@@ -156,9 +149,9 @@ public class UnaryOperatorNode extends OperatorNode
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "DB-9407")
     public void init(
-            Object	operand,
-            Object		operatorOrOpType,
-            Object		methodNameOrAddedArgs)
+            Object    operand,
+            Object        operatorOrOpType,
+            Object        methodNameOrAddedArgs)
     {
         operands = new ArrayList<>(Collections.singletonList((ValueNode) operand));
         if (operatorOrOpType instanceof String)  {
@@ -191,9 +184,9 @@ public class UnaryOperatorNode extends OperatorNode
     /**
      * Initializer for a UnaryOperatorNode
      *
-     * @param operand	The operand of the node
+     * @param operand    The operand of the node
      */
-    public void init(Object	operand)
+    public void init(Object    operand)
     {
         this.operands = new ArrayList<>(Collections.singletonList((ValueNode) operand));
         this.operatorType = -1;
@@ -208,7 +201,7 @@ public class UnaryOperatorNode extends OperatorNode
     /**
      * Set the operator.
      *
-     * @param operator	The operator.
+     * @param operator    The operator.
      */
     void setOperator(String operator)
     {
@@ -219,7 +212,7 @@ public class UnaryOperatorNode extends OperatorNode
     /**
      * Set the methodName.
      *
-     * @param methodName	The methodName.
+     * @param methodName    The methodName.
      */
     void setMethodName(String methodName)
     {
@@ -230,7 +223,7 @@ public class UnaryOperatorNode extends OperatorNode
     /**
      * Get the operand of this unary operator.
      *
-     * @return	The operand of this unary operator.
+     * @return    The operand of this unary operator.
      */
     public ValueNode getOperand()
     {
@@ -245,7 +238,7 @@ public class UnaryOperatorNode extends OperatorNode
      * This gets called when ParameterNode is needed to get parameter
      * specific information like getDefaultValue(), getParameterNumber() etc
      *
-     * @return	The parameter operand of this unary operator else null.
+     * @return    The parameter operand of this unary operator else null.
      */
     public ParameterNode getParameterOperand() throws StandardException
     {
@@ -267,19 +260,19 @@ public class UnaryOperatorNode extends OperatorNode
      * Sub-classes need to implement their own bindExpression() method
      * for their own specific rules.
      *
-     * @param fromList		The FROM list for the query this
-     *				expression is in, for binding columns.
-     * @param subqueryList		The subquery list being built as we find SubqueryNodes
-     * @param aggregateVector	The aggregate vector being built as we find AggregateNodes
+     * @param fromList        The FROM list for the query this
+     *                expression is in, for binding columns.
+     * @param subqueryList        The subquery list being built as we find SubqueryNodes
+     * @param aggregateVector    The aggregate vector being built as we find AggregateNodes
      *
-     * @return	The new top of the expression tree.
+     * @return    The new top of the expression tree.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     @Override
     public ValueNode bindExpression( FromList fromList,
                                      SubqueryList subqueryList,
-                                     List<AggregateNode>	aggregateVector) throws StandardException {
+                                     List<AggregateNode>    aggregateVector) throws StandardException {
         bindOperand(fromList, subqueryList, aggregateVector);
         if (operatorType == XMLPARSE_OP)
             bindXMLParse();
@@ -298,7 +291,7 @@ public class UnaryOperatorNode extends OperatorNode
      */
     protected void bindOperand(FromList fromList,
                                SubqueryList subqueryList,
-                               List<AggregateNode>	aggregateVector) throws StandardException {
+                               List<AggregateNode>    aggregateVector) throws StandardException {
         bindOperands(fromList, subqueryList, aggregateVector);
 
         if (getOperand().requiresTypeFromContext()) {
@@ -484,7 +477,7 @@ public class UnaryOperatorNode extends OperatorNode
      * will not be pushed down.
      *
      * For example, in:
-     *		select * from (select 1 from s) a (x) where x = 1
+     *        select * from (select 1 from s) a (x) where x = 1
      * we will not push down x = 1.
      * NOTE: It would be easy to handle the case of a constant, but if the
      * inner SELECT returns an arbitrary expression, then we would have to copy
@@ -492,17 +485,17 @@ public class UnaryOperatorNode extends OperatorNode
      * subqueries and method calls.
      * RESOLVE - revisit this issue once we have views.
      *
-     * @param referencedTabs	JBitSet with bit map of referenced FromTables
+     * @param referencedTabs    JBitSet with bit map of referenced FromTables
      * @param referencedColumns  An object which maps tableNumber to the columns
      *                           from that table which are present in the predicate.
-     * @param simplePredsOnly	Whether or not to consider method
-     *							calls, field references and conditional nodes
-     *							when building bit map
+     * @param simplePredsOnly    Whether or not to consider method
+     *                            calls, field references and conditional nodes
+     *                            when building bit map
      *
-     * @return boolean		Whether or not source.expression is a ColumnReference
-     *						or a VirtualColumnNode.
+     * @return boolean        Whether or not source.expression is a ColumnReference
+     *                        or a VirtualColumnNode.
      *
-     * @exception StandardException			Thrown on error
+     * @exception StandardException            Thrown on error
      */
     public boolean categorize(JBitSet referencedTabs, ReferencedColumnsMap referencedColumns, boolean simplePredsOnly)
             throws StandardException
@@ -514,12 +507,12 @@ public class UnaryOperatorNode extends OperatorNode
      * By default unary operators don't accept ? parameters as operands.
      * This can be over-ridden for particular unary operators.
      *
-     *	We throw an exception if the parameter doesn't have a datatype
-     *	assigned to it yet.
+     *    We throw an exception if the parameter doesn't have a datatype
+     *    assigned to it yet.
      *
-     * @exception StandardException		Thrown if ?  parameter doesn't
-     *									have a type bound to it yet.
-     *									? parameter where it isn't allowed.
+     * @exception StandardException        Thrown if ?  parameter doesn't
+     *                                    have a type bound to it yet.
+     *                                    ? parameter where it isn't allowed.
      */
 
     void bindParameter() throws StandardException
@@ -579,11 +572,11 @@ public class UnaryOperatorNode extends OperatorNode
     /**
      * Do code generation for this unary operator.
      *
-     * @param acb	The ExpressionClassBuilder for the class we're generating
-     * @param mb	The method the expression will go into
+     * @param acb    The ExpressionClassBuilder for the class we're generating
+     * @param mb    The method the expression will go into
      *
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
 
     public void generateExpression(ExpressionClassBuilder acb,
@@ -594,9 +587,6 @@ public class UnaryOperatorNode extends OperatorNode
                 (operatorType == -1)
                         ? getTypeCompiler().interfaceName()
                         : resultInterfaceType;
-
-        // System.out.println("resultTypeName " + resultTypeName + " method " + methodName);
-        // System.out.println("isBooleanTypeId() " + getTypeId().isBooleanTypeId());
 
         boolean needField = !getTypeId().isBooleanTypeId();
 
@@ -633,7 +623,7 @@ public class UnaryOperatorNode extends OperatorNode
              ** Store the result of the method call in the field, so we can re-use
              ** the object.
              */
-//			mb.putField(field);
+//            mb.putField(field);
         } else {
             mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null,
                     methodName, resultTypeName, 0);
@@ -647,7 +637,7 @@ public class UnaryOperatorNode extends OperatorNode
      * Override in nodes that use methods on super-interfaces of
      * the receiver's interface, such as comparisons.
      *
-     * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
     public String getReceiverInterfaceName() throws StandardException {
         if (SanityManager.DEBUG)
@@ -697,7 +687,7 @@ public class UnaryOperatorNode extends OperatorNode
                     (DataTypeDescriptor)additionalArgs[0];
             mb.push(targetType.getJDBCTypeId());
             mb.push(targetType.getMaximumWidth());
-            mb.push(getSchemaDescriptor(null, false).getCollationType());
+            mb.push(getSchemaDescriptor(null, null, false).getCollationType());
             return 3;
         }
 
@@ -740,7 +730,6 @@ public class UnaryOperatorNode extends OperatorNode
     public void setMatchIndexExpr(int tableNumber, int columnPosition, ConglomerateDescriptor conglomDesc) {
         this.operandMatchIndexExpr = tableNumber;
         this.operandMatchIndexExprColumnPosition = columnPosition;
-        this.operandMatchIndexExprConglomDesc = conglomDesc;
     }
 
     public void castOperandAndBindCast(DataTypeDescriptor type) throws StandardException {

@@ -52,107 +52,109 @@ import java.io.ObjectOutput;
  *
  */
 public final class MaxMinAggregator extends OrderableAggregator {
-	private boolean isMax; // true for max, false for min
-	/**
-	 */
-	public ExecAggregator setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnType ) {
-			super.setup( cf, aggregateName, returnType );
-			isMax = aggregateName.equals("MAX");
-			return this;
-	}
+    private boolean isMax; // true for max, false for min
+    /**
+     */
+    public ExecAggregator setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnType ) {
+            super.setup( cf, aggregateName, returnType );
+            isMax = aggregateName.equals("MAX");
+            return this;
+    }
 
-	/**
-	 * Accumulate
- 	 *
-	 * @param addend	value to be added in
-	 *
-	 * @exception StandardException on error
-	 *
-	 */
-	protected void accumulate(DataValueDescriptor addend) throws StandardException {
-		if (value == null)
-			value = addend.cloneValue(false);			
-		else {
-			int compare = value.compare(addend);
-			if ( (isMax && compare <0) || (!isMax && compare >0)) {
-				value = addend.cloneValue(false);
-			}
-		}
-	}
+    /**
+     * Accumulate
+      *
+     * @param addend    value to be added in
+     *
+     * @exception StandardException on error
+     *
+     */
+    protected void accumulate(DataValueDescriptor addend) throws StandardException {
+        if (value == null)
+            value = addend.cloneValue(false);
+        else {
+            int compare = value.compare(addend);
+            if ( (isMax && compare <0) || (!isMax && compare >0)) {
+                value = addend.cloneValue(false);
+            }
+        }
+    }
 
-	/**
-	 * @return ExecAggregator the new aggregator
-	 */
-	public ExecAggregator newAggregator()
-	{
-		MaxMinAggregator ma = new MaxMinAggregator();
-		ma.isMax = isMax;
-		return ma;
-	}
+    /**
+     * @return ExecAggregator the new aggregator
+     */
+    public ExecAggregator newAggregator()
+    {
+        MaxMinAggregator ma = new MaxMinAggregator();
+        ma.isMax = isMax;
+        return ma;
+    }
 
-	/////////////////////////////////////////////////////////////
-	//
-	// FORMATABLE INTERFACE
-	//
-	// Formatable implementations usually invoke the super()
-	// version of readExternal or writeExternal first, then
-	// do the additional actions here. However, since the
-	// superclass of this class requires that its externalized
-	// data must be the last data in the external stream, we
-	// invoke the superclass's read/writeExternal method
-	// last, not first. See DERBY-3219 for more discussion.
-	/////////////////////////////////////////////////////////////
-	@Override
-	protected void writeExternalOld(ObjectOutput out) throws IOException {
-		out.writeBoolean(isMax);
-		super.writeExternalOld(out);
-	}
+    /////////////////////////////////////////////////////////////
+    //
+    // FORMATABLE INTERFACE
+    //
+    // Formatable implementations usually invoke the super()
+    // version of readExternal or writeExternal first, then
+    // do the additional actions here. However, since the
+    // superclass of this class requires that its externalized
+    // data must be the last data in the external stream, we
+    // invoke the superclass's read/writeExternal method
+    // last, not first. See DERBY-3219 for more discussion.
+    /////////////////////////////////////////////////////////////
+    @Override
+    protected void writeExternalOld(ObjectOutput out) throws IOException {
+        out.writeBoolean(isMax);
+        super.writeExternalOld(out);
+    }
 
-	/**
-	 * @see java.io.Externalizable#readExternal
-	 *
-	 * @exception IOException on error
-	 * @exception ClassNotFoundException on error
-	 */
-	@Override
-	protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
-		isMax = in.readBoolean();
-		super.readExternal(in);
-	}
+    /**
+     * @see java.io.Externalizable#readExternal
+     *
+     * @exception IOException on error
+     * @exception ClassNotFoundException on error
+     */
+    @Override
+    protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
+        isMax = in.readBoolean();
+        super.readExternal(in);
+    }
 
-	@Override
-	protected CatalogMessage.SystemAggregator.Builder toProtobufBuilder() throws IOException {
-		CatalogMessage.SystemAggregator.Builder builder = super.toProtobufBuilder();
+    @Override
+    protected CatalogMessage.SystemAggregator.Builder toProtobufBuilder() throws IOException {
+        CatalogMessage.SystemAggregator.Builder builder = super.toProtobufBuilder();
 
-		CatalogMessage.MaxMinAggregator aggregator = CatalogMessage.MaxMinAggregator.newBuilder()
-				.setIsMax(isMax)
-				.setValue(value.toProtobuf())
-				.build();
+        CatalogMessage.MaxMinAggregator.Builder aggregatorBuilder = CatalogMessage.MaxMinAggregator.newBuilder();
+        aggregatorBuilder.setIsMax(isMax);
+        if (value != null) {
+            aggregatorBuilder.setValue(value.toProtobuf());
+        }
+        CatalogMessage.MaxMinAggregator aggregator = aggregatorBuilder.build();
 
-		builder.setType(CatalogMessage.SystemAggregator.Type.MaxMinAggregator)
-				.setExtension(CatalogMessage.MaxMinAggregator.maxMinAggregator, aggregator);
+        builder.setType(CatalogMessage.SystemAggregator.Type.MaxMinAggregator)
+                .setExtension(CatalogMessage.MaxMinAggregator.maxMinAggregator, aggregator);
 
-		return builder;
-	}
+        return builder;
+    }
 
-	@Override
-	protected void init(CatalogMessage.SystemAggregator systemAggregator) throws IOException, ClassNotFoundException {
-		super.init(systemAggregator);
-		CatalogMessage.MaxMinAggregator aggregator =
-				systemAggregator.getExtension(CatalogMessage.MaxMinAggregator.maxMinAggregator);
-		isMax = aggregator.getIsMax();
-		value = aggregator.hasValue() ? ProtobufUtils.fromProtobuf(aggregator.getValue()) : null;
-	}
+    @Override
+    protected void init(CatalogMessage.SystemAggregator systemAggregator) throws IOException, ClassNotFoundException {
+        super.init(systemAggregator);
+        CatalogMessage.MaxMinAggregator aggregator =
+                systemAggregator.getExtension(CatalogMessage.MaxMinAggregator.maxMinAggregator);
+        isMax = aggregator.getIsMax();
+        value = aggregator.hasValue() ? ProtobufUtils.fromProtobuf(aggregator.getValue()) : null;
+    }
 
-	/**
-	 * Get the formatID which corresponds to this class.
-	 *
-	 *	@return	the formatID of this class
-	 */
-	public	int	getTypeFormatId()	{ return StoredFormatIds.AGG_MAX_MIN_V01_ID; }
+    /**
+     * Get the formatID which corresponds to this class.
+     *
+     *    @return    the formatID of this class
+     */
+    public    int    getTypeFormatId()    { return StoredFormatIds.AGG_MAX_MIN_V01_ID; }
     public String toString() {
-    	if (isMax)
-    		return "Max (" + (value !=null?value:"NULL") + ")";
-		return "Min (" + (value !=null?value:"NULL") + ")";
+        if (isMax)
+            return "Max (" + (value !=null?value:"NULL") + ")";
+        return "Min (" + (value !=null?value:"NULL") + ")";
     }
 }

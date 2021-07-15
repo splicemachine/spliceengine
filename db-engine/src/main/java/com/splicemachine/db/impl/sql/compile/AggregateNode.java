@@ -163,21 +163,14 @@ public class AggregateNode extends UnaryOperatorNode {
             String generatedColName;
             CompilerContext cc = getCompilerContext();
             generatedColName = "SQLCol" + cc.getNextColumnNumber();
-            generatedRC = (ResultColumn) getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    generatedColName,
-                    this,
-                    getContextManager());
+            generatedRC = new ResultColumn(generatedColName, this, getContextManager());
             generatedRC.markGenerated();
 
             /*
              ** Parse time.
              */
-            generatedRef = (ColumnReference) getNodeFactory().getNode(
-                    C_NodeTypes.COLUMN_REFERENCE,
-                    generatedRC.getName(),
-                    null,
-                    getContextManager());
+            generatedRef = new ColumnReference(generatedRC.getName(),
+                    null,getContextManager());
 
             // RESOLVE - unknown nesting level, but not correlated, so nesting levels must be 0
             generatedRef.setSource(generatedRC);
@@ -271,7 +264,7 @@ public class AggregateNode extends UnaryOperatorNode {
             AliasDescriptor ad = resolveAggregate
                     (
                             dd,
-                            getSchemaDescriptor(userAggregateName.getSchemaName(), true),
+                            getSchemaDescriptor(null, userAggregateName.getSchemaName(), true),
                             userAggregateName.getTableName()
                     );
             if (ad == null) {
@@ -344,7 +337,7 @@ public class AggregateNode extends UnaryOperatorNode {
              */
             dts = getOperand().getTypeServices();
 
-            /* Convert count(nonNullableColumn) to count(*)	*/
+            /* Convert count(nonNullableColumn) to count(*)    */
             if (uad instanceof CountAggregateDefinition &&
                     !dts.isNullable()) {
                 setOperator(aggregateName);
@@ -424,6 +417,8 @@ public class AggregateNode extends UnaryOperatorNode {
         checkAggregatorClassName(aggregatorClassName.toString());
 
         setType(resultType);
+
+        addSPSPropertyDependency();
 
         return this;
     }
@@ -584,11 +579,7 @@ public class AggregateNode extends UnaryOperatorNode {
          ** Create a result column with this new node below
          ** it.
          */
-        return (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                aggregateName,
-                nullNode,
-                getContextManager());
+        return new ResultColumn(aggregateName, nullNode, getContextManager());
     }
 
 
@@ -613,12 +604,7 @@ public class AggregateNode extends UnaryOperatorNode {
                 this.getNewNullResultExpression() :
                 getOperand();
 
-
-        return (ResultColumn) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN,
-                "##aggregate expression",
-                node,
-                getContextManager());
+        return new ResultColumn("##aggregate expression", node, getContextManager());
     }
 
     /**

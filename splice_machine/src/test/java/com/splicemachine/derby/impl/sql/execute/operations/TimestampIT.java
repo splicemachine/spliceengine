@@ -81,7 +81,6 @@ public class TimestampIT extends SpliceUnitTest {
     public static void createDataSet() throws Exception {
         spliceClassWatcher.setAutoCommit(false);
         createSharedTables(spliceClassWatcher.getOrCreateConnection());
-        spliceClassWatcher.closeAll();
     }
 
     @After
@@ -110,6 +109,7 @@ public class TimestampIT extends SpliceUnitTest {
             s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t3b"));
             s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t4"));
             s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t5"));
+            s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t6"));
 
             s.executeUpdate(String.format("create table %s ", SCHEMA + ".t1") + "(col1 timestamp, col2 int, primary key(col1,col2))");
             s.executeUpdate(String.format("create table %s ", SCHEMA + ".t11") + "(col1 timestamp, col2 int)");
@@ -119,6 +119,7 @@ public class TimestampIT extends SpliceUnitTest {
             s.executeUpdate(String.format("create index idx1 on %s ", SCHEMA + ".t3") + "(col1)");
             s.executeUpdate(String.format("create table %s ", SCHEMA + ".t4") + "(col1 timestamp, col2 timestamp)");
             s.executeUpdate(String.format("create table %s ", SCHEMA + ".t5") + "(col1 timestamp)");
+            s.executeUpdate(String.format("create table %s ", SCHEMA + ".t6") + "(FIPS1 TIME, FIPS2 TIMESTAMP)");
 
             conn.commit();
             ResultSet rs = s.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_GLOBAL_DATABASE_PROPERTY('derby.database.createTablesWithVersion2Serializer')");
@@ -781,7 +782,9 @@ public class TimestampIT extends SpliceUnitTest {
         try (Statement s = conn.createStatement()) {
             s.execute("CALL SYSCS_UTIL.SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE()");
             s.execute("CALL SYSCS_UTIL.INVALIDATE_GLOBAL_DICTIONARY_CACHE()");
-            s.execute("call syscs_util.syscs_set_global_database_property('derby.database.convertOutOfRangeTimeStamps', 'false')");
+            s.execute("call syscs_util.syscs_set_global_database_property('derby.database.convertOutOfRangeTimeStamps', null)");
+            s.execute("call syscs_util.syscs_set_global_database_property('splice.function.timestampFormat', null)");
+            s.execute("call syscs_util.syscs_set_global_database_property('splice.function.currentTimestampPrecision', null)");
 
             s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t1"));
             s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t11"));
@@ -886,6 +889,31 @@ public class TimestampIT extends SpliceUnitTest {
         }
     }
 
+    @Test
+    public void testTimestampInsertOnSpark6DigitsPrecision() throws Exception {
+        methodWatcher.executeUpdate("insert into t6 values ( TIME( '16:03:00'), TIMESTAMP( '1996-08-24 16:03:00.999999') )");
+        String expected =
+            "FIPS1  |           FIPS2           |\n" +
+            "--------------------------------------\n" +
+            "16:03:00 |1996-08-24 16:03:00.999999 |";
+        String query = format("SELECT * FROM t6 --splice-properties useSpark=%s", useSpark);
+        //testQuery(query, expected, methodWatcher);
+        methodWatcher.executeUpdate("insert into t6 values ( TIME( '14:03:00'), TIMESTAMP( '0001-01-01 00:00:00.123456') )");
+        methodWatcher.executeUpdate("insert into t6 values ( TIME( '13:03:00'), TIMESTAMP( '9999-12-31 23:59:59.123456') )");
+        expected =
+            "FIPS1  |           FIPS2           |\n" +
+            "--------------------------------------\n" +
+            "13:03:00 |9999-12-31 23:59:59.123456 |\n" +
+            "14:03:00 |0001-01-01 00:00:00.123456 |\n" +
+            "16:03:00 |1996-08-24 16:03:00.999999 |";
+        testQuery(query, expected, methodWatcher);
+
+        // Not allowed to specify more than 6 decimal digits in a timestamp.
+        testFail("XJ207", "insert into t6 values ( TIME( '13:03:00'), TIMESTAMP( '9999-12-31 23:59:59.1234567') )", methodWatcher);
+
+        methodWatcher.executeUpdate("delete from t6");
+    }
+
     private void withFormat(String format) throws Exception {
         methodWatcher.execute(String.format("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.timestampFormat', '%s' )", format));
     }
@@ -912,46 +940,48 @@ public class TimestampIT extends SpliceUnitTest {
     @Test
     public void testConfigurableTimestampPrecision() throws Exception {
         withFormat("yyyy-MM-dd HH:mm:ss"); shouldEqual("2020-11-30 19:11:12", "2020-11-30 19:11:12");
-        withFormat("yyyy-MM-dd HH:mm:ss"/*0*/); shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30 19:11:12");
+        withFormat("yyyy-MM-dd HH:mm:ss"/*0*/); shouldEqual("2020-11-30 19:11:12.123456", "2020-11-30 19:11:12");
         withFormat("yyyy-MM-dd HH:mm:ss.SSS"/*3*/); shouldEqual("2020-11-30 19:11:12", "2020-11-30 19:11:12.000");
-        withFormat("yyyy-MM-dd HH:mm:ss.SSS"/*3*/); shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30 19:11:12.123");
+        withFormat("yyyy-MM-dd HH:mm:ss.SSS"/*3*/); shouldEqual("2020-11-30 19:11:12.123456", "2020-11-30 19:11:12.123");
         withFormat("yyyy-MM-dd HH:mm:ss.SSSSSS"/*6*/); shouldEqual("2020-11-30 19:11:12", "2020-11-30 19:11:12.000000");
-        withFormat("yyyy-MM-dd HH:mm:ss.SSSSSS"/*6*/); shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30 19:11:12.123456");
-        withFormat("yyyy-MM-dd HH:mm:ss.SSSSSSSSS"/*9*/); shouldEqual("2020-11-30 19:11:12", "2020-11-30 19:11:12.000000000");
-        withFormat("yyyy-MM-dd HH:mm:ss.SSSSSSSSS"/*9*/); shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30 19:11:12.123456789");
+        withFormat("yyyy-MM-dd HH:mm:ss.SSSSSS"/*6*/); shouldEqual("2020-11-30 19:11:12.123456", "2020-11-30 19:11:12.123456");
 
-        withFormat("MM/dd/uuuu, hh:mm:ss.SS a"); shouldEqual("2020-11-30 19:11:12.123456789", "11/30/2020, 07:11:12.12 PM");
+        withFormat("MM/dd/uuuu, hh:mm:ss.SS a"); shouldEqual("2020-11-30 19:11:12.123456", "11/30/2020, 07:11:12.12 PM");
 
         withFormat("yyyy-MM-dd-HH.mm.ss.SSSSSSSS"/*8*/);
-        shouldEqual("2020-11-30 19:11:12.123456789", "2020-11-30-19.11.12.12345678");
+        shouldEqual("2020-11-30 19:11:12.123456", "2020-11-30-19.11.12.12345600");
 
         // test code in UserTypeConstantNode
         Assert.assertEquals("1700-12-31-23.59.58.99999900", methodWatcher.executeGetString( "values( char({ts'1700-12-31 23:59:58.999999'}) )", 1));
 
         // reset to default
         withFormat(CompilerContext.DEFAULT_TIMESTAMP_FORMAT);
-        Assert.assertEquals("1700-12-31 23:59:58.999999000", methodWatcher.executeGetString( "values( char({ts'1700-12-31 23:59:58.999999'}) )", 1));
+        Assert.assertEquals("1700-12-31 23:59:58.999999", methodWatcher.executeGetString( "values( char({ts'1700-12-31 23:59:58.999999'}) )", 1));
     }
 
     @Test
     public void testCurrentTimestampPrecision() throws Exception {
 
-        // we might get very unlucky when timestamps end in 0s, e.g.
-        // 2020-12-06 21:50:13.123456000 would have length of 2020-12-06 21:50:13.123456, even if precision is set to 9
-        // to avoid sporadics, we try this 100 times
-        for(int i=0; i<100; i++)
-        {
-            boolean bOK;
-            methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.currentTimestampPrecision', '1' )");
-            bOK = "2020-12-06 21:50:13.1".length()
-                    == methodWatcher.executeGetString( "values current timestamp", 1 ).length();
-            methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.currentTimestampPrecision', '9' )");
-            bOK = bOK && "2020-12-06 21:50:13.123456789".length()
-                    == methodWatcher.executeGetString( "values current timestamp", 1 ).length();
+        try {
+            // we might get very unlucky when timestamps end in 0s, e.g.
+            // 2020-12-06 21:50:13.123456000 would have length of 2020-12-06 21:50:13.123456, even if precision is set to 9
+            // to avoid sporadics, we try this 100 times
+            for (int i = 0; i < 100; i++) {
+                boolean bOK;
+                methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.currentTimestampPrecision', '1' )");
+                bOK = "2020-12-06 21:50:13.1".length()
+                        == methodWatcher.executeGetString("values current timestamp", 1).length();
+                methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.currentTimestampPrecision', '6' )");
+                bOK = bOK && "2020-12-06 21:50:13.123456".length()
+                        == methodWatcher.executeGetString("values current timestamp", 1).length();
 
-            if(bOK) return;
+                if (bOK) return;
+            }
+            Assert.fail("current timestamp precision didn't work");
         }
-        Assert.fail("current timestamp precision didn't work");
+        finally {
+            methodWatcher.execute("call SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY( 'splice.function.currentTimestampPrecision', null )");
+        }
     }
 
     private static void verifyCurrentTimezoneInvalid(String query) throws Exception {

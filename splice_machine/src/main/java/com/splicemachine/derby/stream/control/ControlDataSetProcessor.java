@@ -22,7 +22,9 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
+import com.splicemachine.db.shared.common.reference.MessageId;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.function.Partitioner;
@@ -43,6 +45,7 @@ import com.splicemachine.storage.Partition;
 import com.splicemachine.system.CsvOptions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.iterators.SingletonIterator;
+import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
@@ -171,7 +174,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation){
+    public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) {
         OperationContext<Op> operationContext=new ControlOperationContext<>(spliceOperation);
         spliceOperation.setOperationContext(operationContext);
         if(permissive){
@@ -293,12 +296,15 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     /*private helper methods*/
     private InputStream newInputStream(DistributedFileSystem dfs,@Nonnull String p,OpenOption... options) throws IOException{
         assert p!=null;
-        InputStream value = dfs.newInputStream(p,options);
-        if(p.endsWith("gz")){
+        InputStream stream = dfs.newInputStream(p,options);
+        if(p.endsWith(".gz")){
             //need to open up a decompressing inputStream
-            value = new GZIPInputStream(value);
+            return new GZIPInputStream(stream);
         }
-        return value;
+        else if(p.endsWith(".bz2")){
+            return new BZip2CompressorInputStream(stream);
+        }
+        return stream;
     }
 
     private InputStream getFileStream(String s) throws IOException, URISyntaxException {
@@ -330,6 +336,13 @@ public class ControlDataSetProcessor implements DataSetProcessor{
             return new ControlDataSet(proc.readParquetFile(schema, baseColumnMap,partitionColumnMap, location,
                     context, qualifiers, probeValue,execRow, useSample, sampleFraction).toLocalIterator());
    }
+
+    public <V> DataSet<V> readFileX(String location, String extension, SpliceOperation op) throws StandardException {
+        DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
+        if(proc.getType() == Type.CONTROL)
+            throw StandardException.newException(MessageId.SPLICE_UNSUPPORTED_OPERATION, "read Parquet/ORC/AVRO on mem");
+        return proc.readFileX(location, extension, op);
+    }
 
     @Override
     public <V> DataSet<V> readAvroFile(StructType schema, int[] baseColumnMap, int[] partitionColumnMap,
@@ -377,10 +390,10 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     @Override
     public GetSchemaExternalResult getExternalFileSchema(String storedAs, String location, boolean mergeSchema,
                                                          CsvOptions csvOptions, StructType nonPartitionColumns,
-                                                         StructType partitionColumns) throws StandardException {
+                                                         StructType partitionColumns, OlapStatus jobStatus) throws StandardException {
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
         return proc.getExternalFileSchema(storedAs,location,mergeSchema, csvOptions,
-                nonPartitionColumns, partitionColumns);
+                nonPartitionColumns, partitionColumns, null);
     }
 
     @Override

@@ -20,6 +20,8 @@ import com.splicemachine.db.iapi.util.StringUtil;
 import org.python.antlr.op.Param;
 
 import java.sql.Types;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
 
@@ -522,9 +524,7 @@ class SQLGrammarImpl {
                                        Properties targetProperties, Vector parameterList)
             throws StandardException
     {
-        FromList   fromList = (FromList) nodeFactory.getNode(
-                C_NodeTypes.FROM_LIST,
-                getContextManager());
+        FromList fromList = new FromList(getContextManager());
 
         fromList.addFromTable(fromTable);
         SelectNode resultSet = new SelectNode(
@@ -537,7 +537,7 @@ class SQLGrammarImpl {
                 null, /* window list */
                 getContextManager());
 
-        DeleteNode dn = new DeleteNode(getContextManager(), tableName, resultSet, fromTable instanceof CurrentOfNode, targetProperties);
+        DeleteNode dn = new DeleteNode(tableName, resultSet, fromTable instanceof CurrentOfNode, targetProperties, getContextManager());
         setUpAndLinkParameters();
         return dn;
     }
@@ -554,9 +554,7 @@ class SQLGrammarImpl {
                                         ValueNode whereClause)
             throws StandardException
     {
-        FromList   fromList = (FromList) nodeFactory.getNode(
-                C_NodeTypes.FROM_LIST,
-                getContextManager());
+        FromList fromList = new FromList(getContextManager());
 
         fromList.addFromTable(fromTable);
 
@@ -587,9 +585,7 @@ class SQLGrammarImpl {
                                        ValueNode subQuery) /* inner source subquery for multi column syntax */
             throws StandardException
     {
-        FromList fromList = (FromList) nodeFactory.getNode(
-                C_NodeTypes.FROM_LIST,
-                getContextManager());
+        FromList fromList = new FromList(getContextManager());
         fromList.addFromTable(fromTable);
 
         // Don't flatten the subquery here but build it as a derived table. If we
@@ -598,9 +594,12 @@ class SQLGrammarImpl {
         // even more hacky code.
         // The derived table flattening logic in preprocess will be triggered to
         // flatten the subquery.
+        if (!(subQuery instanceof SubqueryNode)) {
+            throw StandardException.newException(SQLState.LANG_INVALID_UPDATE_STATEMENT,
+                                                 "Expecting RHS to be a subquery when LHS of set clause is a tuple");
+        }
         SubqueryNode subq = (SubqueryNode) subQuery;
-        FromTable fromSubq = (FromTable) nodeFactory.getNode(
-                C_NodeTypes.FROM_SUBQUERY,
+        FromTable fromSubq = new FromSubquery(
                 subq.getResultSet(),
                 subq.getOrderByList(),
                 subq.getOffset(),
@@ -630,9 +629,7 @@ class SQLGrammarImpl {
         ValueNode alteredWhereClause;
 
         if (whereClause != null && innerWhere != null) {
-            alteredWhereClause = (ValueNode) getNodeFactory().getNode(
-                    C_NodeTypes.AND_NODE,
-                    whereClause, /* the one passed into this method */
+            alteredWhereClause = new AndNode(whereClause, /* the one passed into this method */
                     innerWhere,  /* the one pulled from subquery */
                     getContextManager());
         } else {
@@ -661,11 +658,8 @@ class SQLGrammarImpl {
                 innerResultColumn.setName(innerColumnName);
                 innerResultColumn.setNameGenerated(true);
             }
-            ValueNode colRef = (ValueNode) getNodeFactory().getNode(
-                    C_NodeTypes.COLUMN_REFERENCE,
-                    innerColumnName,
-                    ((FromTable)fromList.getNodes().get(1)).getTableName(),
-                    getContextManager());
+            ValueNode colRef = new ColumnReference(innerColumnName,
+                    ((FromTable)fromList.getNodes().get(1)).getTableName(), getContextManager());
             rc.setExpression(colRef);
         }
 
@@ -692,9 +686,7 @@ class SQLGrammarImpl {
     }
 
     SubqueryNode assembleUpdateSubquery(ResultColumnList setClause, FromList fromList) throws StandardException {
-        ResultColumnList innerRCL = (ResultColumnList) nodeFactory.getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        ResultColumnList innerRCL = new ResultColumnList(getContextManager());
 
         boolean generateName;
         for (int index = 0; index < setClause.size(); index++) {
@@ -705,11 +697,7 @@ class SQLGrammarImpl {
                 columnName = "UPD_SUBQ_COL_" + index;
                 generateName = true;
             }
-            ResultColumn innerRC = (ResultColumn) nodeFactory.getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    columnName,
-                    rc.getExpression(),
-                    getContextManager());
+            ResultColumn innerRC = new ResultColumn(columnName, rc.getExpression(), getContextManager());
             if (generateName) {
                 innerRC.setNameGenerated(true);
             }
@@ -717,8 +705,7 @@ class SQLGrammarImpl {
             innerRCL.addResultColumn(innerRC);
         }
 
-        SelectNode selectNode = (SelectNode) nodeFactory.getNode(
-                C_NodeTypes.SELECT_NODE,
+        SelectNode selectNode = new SelectNode(
                 innerRCL,  /* SELECT list */
                 null, /* AGGREGATE list */
                 fromList,  /* FROM list */
@@ -728,9 +715,7 @@ class SQLGrammarImpl {
                 null, /* window list */
                 getContextManager());
 
-        return (SubqueryNode) nodeFactory.getNode(
-                C_NodeTypes.SUBQUERY_NODE,
-                selectNode,
+        return new SubqueryNode(selectNode,
                 SubqueryNode.FROM_SUBQUERY,
                 null,  /* left op */
                 null,  /* order by list */
@@ -757,12 +742,8 @@ class SQLGrammarImpl {
                                   ValueNode trimSource, boolean forDB2RTrim,
                                   ContextManager cm) throws StandardException
     {
-        if (trimChar == null)
-        {
-            trimChar = (CharConstantNode) nodeFactory.getNode(
-                    C_NodeTypes.CHAR_CONSTANT_NODE,
-                    " ",
-                    getContextManager());
+        if (trimChar == null) {
+            trimChar = new CharConstantNode(" ", getContextManager());
         }
         final int trimType = forDB2RTrim ? TernaryOperatorNode.DB2RTRIM : TernaryOperatorNode.TRIM;
         return new TernaryOperatorNode(
@@ -1123,9 +1104,7 @@ class SQLGrammarImpl {
         switch(joinType)
         {
             case JoinNode.INNERJOIN:
-                return (JoinNode) nodeFactory.getNode(
-                        C_NodeTypes.JOIN_NODE,
-                        leftRSN,
+                return new JoinNode(leftRSN,
                         rightRSN,
                         onClause,
                         usingClause,
@@ -1274,11 +1253,7 @@ class SQLGrammarImpl {
             throw StandardException.newException(SQLState.LANG_TRUNCATE_UNKNOWN_TYPE_OPERAND, operandNode);
         }
 
-        return (ValueNode) nodeFactory.getNode(
-                C_NodeTypes.TRUNC_NODE,
-                truncateOperand,
-                truncValue,
-                getContextManager());
+        return new TruncateOperatorNode(truncateOperand, truncValue, getContextManager());
     }
 
     /**
@@ -1328,11 +1303,67 @@ class SQLGrammarImpl {
 
     ValueNode getNullForCase() throws StandardException {
 
-        ValueNode untypedNullConstantNode = (ValueNode) nodeFactory.getNode(C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE, cm);
+        UntypedNullConstantNode untypedNullConstantNode = new UntypedNullConstantNode(cm);
         DataTypeDescriptor type = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1);
         ValueNode value = new CastNode(untypedNullConstantNode, type, cm);
         ((CastNode) value).setForExternallyGeneratedCASTnode();
         ((CastNode) value).setForNullsInConditionalNode();
         return value;
+    }
+
+    void
+    validateParameters(boolean isExternal, String storageFormat, ValueNode terminationChar, ValueNode escapedByChar,
+                       ValueNode linesTerminatedByChar, ValueNode location, String compression,
+                       ResultColumnList partitionedResultColumns, TableElementList tableElementList)
+            throws StandardException
+    {
+        {
+            if (isExternal && partitionedResultColumns != null){
+                List<String> columnsPartitions = Arrays.asList(partitionedResultColumns.getColumnNames());
+
+                for(String columnPartititon : columnsPartitions){
+                    ColumnDefinitionNode definition = tableElementList.findColumnDefinition(columnPartititon);
+                    if(definition ==  null){
+                        throw StandardException.newException(SQLState.EXTERNAL_TABLES_PARTITIONS_REQUIRED, columnPartititon);
+                    }
+                }
+            }
+
+            if (isExternal && storageFormat == null)
+                throw StandardException.newException(
+                        SQLState.STORED_AS_REQUIRED_WITH_EXTERNAL_TABLES);
+            if (isExternal && location == null)
+                throw StandardException.newException(
+                        SQLState.LOCATION_REQUIRED_WITH_EXTERNAL_TABLES);
+
+            //COMPRESSION ERROR WITH TEXT
+            if(compression != "none" && storageFormat.equals("T")){
+                throw StandardException.newException(SQLState.COMPRESSION_NOT_ALLOWED_WITH_TEXT_FILE);
+            }
+
+            // PARQUET ERRORS
+            if (storageFormat != null && storageFormat.equals("P")) {
+                if (terminationChar !=null || escapedByChar !=null || linesTerminatedByChar != null)
+                    throw StandardException.newException(
+                            SQLState.ROW_FORMAT_NOT_ALLOWED_WITH_PARQUET);
+            }
+            // AVRO ERRORS
+            if (storageFormat != null && storageFormat.equals("A")) {
+                if (terminationChar !=null || escapedByChar !=null || linesTerminatedByChar != null)
+                    throw StandardException.newException(
+                            SQLState.ROW_FORMAT_NOT_ALLOWED_WITH_AVRO);
+            }
+            // ORC Errors
+            if (storageFormat != null && storageFormat.equals("O")) {
+                if (terminationChar !=null || escapedByChar !=null || linesTerminatedByChar != null)
+                    throw StandardException.newException(
+                            SQLState.ROW_FORMAT_NOT_ALLOWED_WITH_ORC);
+            }
+            // STORAGE OR LOCATION WITHOUT EXTERNAL
+            if ( (storageFormat != null || location !=null) && !isExternal)
+                throw StandardException.newException(
+                        SQLState.STORED_AS_OR_LOCATION_WITHOUT_EXTERNAL);
+
+        }
     }
 }

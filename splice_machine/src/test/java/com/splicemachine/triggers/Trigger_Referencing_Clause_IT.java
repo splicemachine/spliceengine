@@ -69,6 +69,7 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
     private static int numTables = 0;
     private static boolean isMemPlatform = false;
     private static int runningOperations;
+    private boolean isSpark;
 
     @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
@@ -95,6 +96,7 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
 
     public Trigger_Referencing_Clause_IT(String connectionString ) {
         this.connectionString = connectionString;
+        isSpark = connectionString.contains("useSpark");
     }
 
     public static boolean
@@ -763,6 +765,48 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
         }
     }
 
+    @Test // DB-11580
+    public void testSparkInMemoryTriggerRows() throws Exception {
+        if (!isSpark)
+            return;
+        try(Statement s = conn.createStatement()) {
+            s.execute("create table t1 (a int, b int)");
+            s.execute("create table t2 (a int, b int)");
+            s.execute("insert into t1 values(1,1)");
+            s.execute("insert into t1 values(1,1)");
+
+            s.execute("CREATE TRIGGER mytrig\n" +
+                        "   AFTER UPDATE OF a,b\n" +
+                        "   ON t1\n" +
+                        "   REFERENCING OLD TABLE AS OLD NEW TABLE AS NEW\n" +
+                        "   FOR EACH STATEMENT\n" +
+                        "   INSERT INTO T2 SELECT NEW.A, NEW.B from NEW, OLD\n");
+
+            s.execute("UPDATE t1 SET a=4");
+            String query = "select * from t2";
+            String expected = "A | B |\n" +
+                              "--------\n" +
+                              " 4 | 1 |\n" +
+                              " 4 | 1 |\n" +
+                              " 4 | 1 |\n" +
+                              " 4 | 1 |";
+            testQuery(query, expected, s);
+            s.execute("drop trigger mytrig");
+
+            // Nested loop join should be illegal on spark
+            // when the NEW TABLE or OLD TABLE is the inner table.
+            testFail("42Y69",
+                     "CREATE TRIGGER mytrig\n" +
+                        "   AFTER UPDATE OF a,b\n" +
+                        "   ON t1\n" +
+                        "   REFERENCING OLD TABLE AS OLD NEW TABLE AS NEW\n" +
+                        "   FOR EACH STATEMENT\n" +
+                        "   INSERT INTO T2 SELECT NEW.A, NEW.B from --splice-properties joinOrder=fixed \n" +
+                        "   T1, " +
+                        "   NEW --splice-properties joinStrategy=nestedloop \n", s);
+        }
+    }
+
     @Test
     public void testSignal() throws Exception {
         try (Statement s = conn.createStatement()) {
@@ -933,6 +977,12 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
         if (isMemPlatform)
             return;
 
+        // We're only really interested in testing the switch from
+        // control to Spark.  Let's avoid this long-running test
+        // if already on Spark.
+        if (isSpark)
+            return;
+
         try(Statement s = conn.createStatement()) {
             s.execute("create table t1 (a int, b int)");
             s.execute("create table t2 (a int, b int)");
@@ -1000,8 +1050,8 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
 
             String query = "select count(*) from t2";
             String expected = "1   |\n" +
-            "--------\n" +
-            "327680 |";
+                              "--------\n" +
+                              "327680 |";
             testQuery(query, expected, s);
 
             query = "select count(*) from t3";

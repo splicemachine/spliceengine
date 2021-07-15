@@ -158,13 +158,17 @@ public class SchemaPermsDescriptor  extends PermissionsDescriptor {
         return super.keyHashCode() + schemaUUID.hashCode();
     }
 
+    @Override
+    public SchemaDescriptor getSchemaDescriptor() throws StandardException {
+        return getDataDictionary().getSchemaDescriptor(schemaUUID,null);
+    }
+
     /**
      * @see PermissionsDescriptor#checkOwner
      */
     public boolean checkOwner(String authorizationId) throws StandardException
     {
-        SchemaDescriptor sc = getDataDictionary().getSchemaDescriptor(schemaUUID,null);
-        return sc.getAuthorizationId().equals(authorizationId);
+        return getSchemaDescriptor().getAuthorizationId().equals(authorizationId);
     }
 
     //////////////////////////////////////////////

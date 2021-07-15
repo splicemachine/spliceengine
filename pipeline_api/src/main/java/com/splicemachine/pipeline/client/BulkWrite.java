@@ -105,6 +105,11 @@ public class BulkWrite {
         return "BulkWrite{" +
                 ", encodedStringName='" + encodedStringName + '\'' +
                 ", rows="+mutations+
+                (skipIndexWrite ? ", skipIndexWrite" : "") +
+                (skipConflictDetection ? ", skipConflictDetection" : "") +
+                (skipWAL ? ", skipWAL" : "") +
+                (rollforward ? ", rollforward" : "") +
+                (loadReplaceMode ? ", loadReplaceMode" : "") +
                 '}';
     }
 

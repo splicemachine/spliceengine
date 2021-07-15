@@ -44,6 +44,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.nio.file.Paths;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.Hashtable;
@@ -62,6 +63,7 @@ public class utilMain implements java.security.PrivilegedAction {
         In the goodness of time, this could be an ij property
      */
     public static final int BUFFEREDFILESIZE = 2048;
+    static final String sqlshellRcFilename = ".sqlshellrc";
     private static boolean showPromptClock = false;
     private final int numConnections;
     /**
@@ -95,6 +97,7 @@ public class utilMain implements java.security.PrivilegedAction {
     private boolean omitHeader = false;
     private String logFileName = null;
     private char terminator = StatementFinder.SEMICOLON;
+    ProgressThread progressThread = null;
 
     /**
      * Set up the test to run with 'numConnections' connections/users.
@@ -159,14 +162,20 @@ public class utilMain implements java.security.PrivilegedAction {
         connEnv = new ConnectionEnv[numConnections];
 
         for (int ictr = 0; ictr < numConnections; ictr++) {
-            commandGrabber[ictr] = new StatementFinder(langUtil.getNewInput(System.in), out, this.terminator);
+            commandGrabber[ictr] = new StatementFinder(langUtil.getNewInput(System.in), out, this.terminator, null);
             connEnv[ictr] = new ConnectionEnv(ictr, (numConnections > 1), (numConnections == 1));
         }
         initOptions();
 
         // adding Ctrl+C to cancel queries
         // to quit terminal, use 'quit;' or Ctrl+D (on Linux/Mac).
-        addSignalHandler( "INT", () -> ijParser.cancelCurrentStatement(out) );
+        addSignalHandler( "INT", this::ctrlC);
+    }
+
+    @SuppressFBWarnings("DM_EXIT")
+    public void ctrlC() {
+        if( !ijParser.cancelCurrentStatement(out) )
+            java.lang.System.exit(0);
     }
 
     /**
@@ -211,6 +220,7 @@ public class utilMain implements java.security.PrivilegedAction {
         fileInput = false;
         initialFileInput = false;
         firstRun = true;
+
         omitHeader = util.getSystemPropertyBoolean("ij.omitHeader");
     }
 
@@ -257,13 +267,33 @@ public class utilMain implements java.security.PrivilegedAction {
         }
     }
 
-    public void goStart(LocalizedInput[] in)
+    public void goStart(LocalizedInput[] in, boolean runRc)
     {
         fileInput = initialFileInput = (!in[currCE].isStandardInput());
         for (int ictr = 0; ictr < commandGrabber.length; ictr++) {
             commandGrabber[ictr].reInit(in[ictr]);
         }
+
+        if(runRc)
+            runSqlShellRc();
         runScriptGuts();
+    }
+
+    private void runSqlShellRc() {
+        // first, check .sqlshellrc in local directory
+        String f = Paths.get(sqlshellRcFilename).toAbsolutePath().toString();
+        if(new File(f).exists()) {
+            newInput(f, "[ executing commands from file '" + f + "'");
+        }
+        // check $HOME/.sqlshellrc
+        try {
+            f = System.getProperty("user.home") + "/" + sqlshellRcFilename;
+            if(new File(f).exists()) {
+                newInput(f, "[ executing commands from file '" + f + "'");
+            }
+            } catch(Exception e) {
+            return;
+        }
     }
 
     public void init(LocalizedOutput out)
@@ -292,28 +322,8 @@ public class utilMain implements java.security.PrivilegedAction {
     public void go(LocalizedInput[] in, LocalizedOutput out)
             throws ijFatalException {
         init(out);
-        goStart(in);
+        goStart(in, true);
         cleanupGo(in);
-    }
-
-
-    /**
-     * Support to run a script. Performs minimal setup
-     * to set the passed in connection into the existing
-     * ij setup, ConnectionEnv.
-     *
-     * @param conn
-     * @param in
-     */
-    public int goScript(Connection conn,
-                        LocalizedInput in) {
-        connEnv[0].addSession(conn, (String) null);
-        ijParser.setConnection(connEnv[0], (numConnections > 1));
-        supportIJProperties(connEnv[0]);
-
-        fileInput = initialFileInput = !in.isStandardInput();
-        commandGrabber[0].reInit(in);
-        return runScriptGuts();
     }
 
     private void supportIJProperties(ConnectionEnv env) {
@@ -342,6 +352,7 @@ public class utilMain implements java.security.PrivilegedAction {
      *
      * @return The number of errors seen in the script.
      */
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     private int runScriptGuts() {
 
         int scriptErrorCount = 0;
@@ -355,7 +366,9 @@ public class utilMain implements java.security.PrivilegedAction {
                 //do nothing
             }
 
+            commandGrabber[currCE].promptFirst(out);
             connEnv[currCE].doPrompt(true, out);
+
             try {
                 command = null;
                 out.flush();
@@ -379,9 +392,13 @@ public class utilMain implements java.security.PrivilegedAction {
                 while (command == null && !oldGrabbers.empty()) {
                     // close the old input file if not System.in
                     if (fileInput) commandGrabber[currCE].close();
+                    boolean needsPrompt = commandGrabber[currCE].promptLast(out);
                     commandGrabber[currCE] = (StatementFinder) oldGrabbers.pop();
                     if (oldGrabbers.empty())
                         fileInput = initialFileInput;
+                    needsPrompt = commandGrabber[currCE].promptFirst(out) || needsPrompt;
+                    if(needsPrompt)
+                        connEnv[currCE].doPrompt(true, out);
                     command = commandGrabber[currCE].nextStatement();
                 }
 
@@ -408,9 +425,15 @@ public class utilMain implements java.security.PrivilegedAction {
                         beginTime = System.currentTimeMillis();
                     }
 
-                    ijResult result = ijParser.ijStatement();
+                    ijResult result;
+                    progressThread = new ProgressThread(ijParser, command, System.out);
+                    if(ijParser.showProgressBar) {
+                        progressThread.start();
+                    }
+                    result = ijParser.ijStatement();
 
                     if (!(result instanceof ijShellConfigResult)) {
+                        progressThread.stopProgress();
                         displayResult(out, result, connEnv[currCE].getConnection());
 
                         // if something went wrong, an SQLException or ijException was thrown.
@@ -432,10 +455,11 @@ public class utilMain implements java.security.PrivilegedAction {
                 }
 
             } catch (ParseException e) {
-                scriptErrorCount += doCatch(command) ? 0 : 1;
+                scriptErrorCount += doCatch(command, progressThread) ? 0 : 1;
             } catch (TokenMgrError e) {
-                if (command != null)
-                    scriptErrorCount += doCatch(command) ? 0 : 1;
+                if (command != null) {
+                    scriptErrorCount += doCatch(command, progressThread) ? 0 : 1;
+                }
             } catch (SQLException e) {
                 scriptErrorCount++;
                 // SQL exception occurred in ij's actions; print and continue
@@ -450,6 +474,10 @@ public class utilMain implements java.security.PrivilegedAction {
                 scriptErrorCount++;
                 out.println(langUtil.getTextMessage("IJ_JavaErro0", e.toString()));
                 doTrace(e);
+            }
+            finally {
+                if(progressThread != null) progressThread.stopProgress();
+                progressThread = null;
             }
 
             /* Go to the next connection/user, if there is one */
@@ -579,7 +607,7 @@ public class utilMain implements java.security.PrivilegedAction {
      * catch processing on failed commands. This really ought to
      * be in ij somehow, but it was easier to catch in Main.
      */
-    private boolean doCatch(String command) {
+    private boolean doCatch(String command, ProgressThread progressThread) {
         // this retries the failed statement
         // as a JSQL statement; it uses the
         // ijParser since that maintains our
@@ -596,6 +624,9 @@ public class utilMain implements java.security.PrivilegedAction {
             }
 
             ijResult result = ijParser.executeImmediate(command);
+            if(progressThread != null)
+                progressThread.stopProgress();
+
             displayResult(out, result, connEnv[currCE].getConnection());
 
             /* Print the elapsed time if appropriate */
@@ -683,7 +714,11 @@ public class utilMain implements java.security.PrivilegedAction {
         out.flush();
     }
 
-    void newInput(String fileName) {
+    void newInput(String filename) {
+        newInput(filename, null);
+    }
+
+    void newInput(String fileName, String additionalInformation) {
         FileInputStream newFile = null;
         try {
             newFile = new FileInputStream(fileName);
@@ -695,7 +730,7 @@ public class utilMain implements java.security.PrivilegedAction {
         oldGrabbers.push(commandGrabber[currCE]);
         commandGrabber[currCE] =
                 new StatementFinder(langUtil.getNewInput(new BufferedInputStream(newFile, BUFFEREDFILESIZE)), null,
-                        this.terminator);
+                        this.terminator, additionalInformation);
         fileInput = true;
     }
 
@@ -705,7 +740,7 @@ public class utilMain implements java.security.PrivilegedAction {
         oldGrabbers.push(commandGrabber[currCE]);
         commandGrabber[currCE] =
                 new StatementFinder(langUtil.getNewEncodedInput(new BufferedInputStream(is, BUFFEREDFILESIZE), "UTF8"), null,
-                        this.terminator);
+                        this.terminator, null);
         fileInput = true;
     }
 

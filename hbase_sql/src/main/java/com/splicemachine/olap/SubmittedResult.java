@@ -14,6 +14,7 @@
 
 package com.splicemachine.olap;
 
+import com.splicemachine.db.shared.ProgressInfo;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 
 /**
@@ -23,6 +24,7 @@ import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 public class SubmittedResult implements OlapResult{
     private static final long serialVersionUID = 1l;
     private long tickTime;
+    private String progressStr = "";
 
     public SubmittedResult(){
     }
@@ -30,9 +32,16 @@ public class SubmittedResult implements OlapResult{
     public SubmittedResult(long tickTime){
         this.tickTime=tickTime;
     }
+    public SubmittedResult(OlapMessage.ProgressResponse response){
+        this.tickTime = response.getTickTimeMillis();
+        this.progressStr = response.getProgressStr();
+    }
 
     public long getTickTime(){
         return tickTime;
+    }
+    public String getProgressStr(){
+        return progressStr;
     }
 
     @Override public boolean isSuccess(){ return false; }

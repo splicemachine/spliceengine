@@ -39,6 +39,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
 import com.splicemachine.storage.*;
+import com.splicemachine.storage.util.UpdateUtils;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -185,7 +186,7 @@ public class SITransactor implements Transactor{
         SimpleTxnFilter constraintState=null;
         TxnSupplier supplier = null;
         if(constraintChecker!=null) {
-            constraintState = new SimpleTxnFilter(null, txn, NoOpReadResolver.INSTANCE, txnSupplier);
+            constraintState = new SimpleTxnFilter(txn, NoOpReadResolver.INSTANCE, txnSupplier);
             supplier = constraintState.getTxnSupplier();
         } else {
             SIDriver driver = SIDriver.driver();
@@ -278,6 +279,7 @@ public class SITransactor implements Transactor{
         if (rollforward) {
             toRollforward = new ArrayList<>(dataAndLocks.length);
         }
+
         for(int i = 0; i<dataAndLocks.length; i++) {
             Pair<KVPair, Lock> baseDataAndLock = dataAndLocks[i];
             if(baseDataAndLock==null) continue;
@@ -298,8 +300,19 @@ public class SITransactor implements Transactor{
                  */
                 //todo -sf remove the Row key copy here
                 checkedConflicts = true;
-                possibleConflicts=bloomInMemoryCheck==null||bloomInMemoryCheck.get(i)?table.getLatest(kvPair.getRowKey(),possibleConflicts):null;
-                if(possibleConflicts!=null && !possibleConflicts.isEmpty()){
+
+                possibleConflicts = bloomInMemoryCheck == null ||
+                        bloomInMemoryCheck.get(i) ? table.getLatest(kvPair.getRowKey(), possibleConflicts, rollForwardQueue) : null;
+                if (possibleConflicts != null && !possibleConflicts.isEmpty()) {
+                    if (LOG.isDebugEnabled()) {
+                        for (DataCell dataCell : possibleConflicts) {
+                            CellType type = dataCell.dataType();
+                            byte[] k = dataCell.key();
+                            byte[] v = dataCell.value();
+                            SpliceLogUtils.debug(LOG, "Possible conflicts: %s, k%s, v=%s",
+                                    type.toString(), Bytes.toStringBinary(k), Bytes.toStringBinary(v));
+                        }
+                    }
                     //we need to check for write conflicts
                     try {
                         conflictResults = ensureNoWriteConflict(transaction, writeType, possibleConflicts, rollForwardQueue, supplier);
@@ -309,18 +322,32 @@ public class SITransactor implements Transactor{
                             continue;
                         } else throw ioe;
                     }
-                    if(applyConstraint(constraintChecker,constraintStateFilter,i,kvPair,possibleConflicts,finalStatus,conflictResults.hasAdditiveConflicts())) //filter this row out, it fails the constraint
-                        continue;
-                }
-                //TODO -sf- if type is an UPSERT, and conflict type is ADDITIVE_CONFLICT, then we
-                //set the status on the row to ADDITIVE_CONFLICT_DURING_UPSERT
-                if(KVPair.Type.UPSERT.equals(writeType)){
-                    /*
-                     * If the type is an upsert, then we want to check for an ADDITIVE conflict. If so,
-                     * we fail this row with an ADDITIVE_UPSERT_CONFLICT.
-                     */
-                    if(conflictResults.hasAdditiveConflicts()){
-                        finalStatus[i]=operationStatusLib.failure(exceptionLib.additiveWriteConflict());
+
+                    if (constraintChecker != null) {
+                        List<DataCell> visibleColumns = filterCells(possibleConflicts, constraintStateFilter);
+                        if (visibleColumns.size() == 0 && !conflictResults.hasAdditiveConflicts()) {
+                            // Though the latest row was either committed or pending and passed RollbackTxnFilter,
+                            // it could be rolled back at this point. This is very rarely happen. For simplicity,
+                            // report a ww-conflict for this case. This could be a false positive
+                            if (isRolledBack(possibleConflicts)) {
+                                finalStatus[i] = operationStatusLib.failure("write-write conflict");
+                            }
+                        }
+                        else if (applyConstraint(visibleColumns, constraintChecker, i, kvPair, finalStatus)) {
+                            continue;
+                        }
+                    }
+
+                    //TODO -sf- if type is an UPSERT, and conflict type is ADDITIVE_CONFLICT, then we
+                    //set the status on the row to ADDITIVE_CONFLICT_DURING_UPSERT
+                    if (KVPair.Type.UPSERT.equals(writeType)) {
+                        /*
+                         * If the type is an upsert, then we want to check for an ADDITIVE conflict. If so,
+                         * we fail this row with an ADDITIVE_UPSERT_CONFLICT.
+                         */
+                        if (conflictResults.hasAdditiveConflicts()) {
+                            finalStatus[i] = operationStatusLib.failure(exceptionLib.additiveWriteConflict());
+                        }
                     }
                 }
             }
@@ -343,6 +370,13 @@ public class SITransactor implements Transactor{
                 }
             }
 
+            // Merge incoming update with existing data to materialize all values at the beginning of the MVCC history
+            if (possibleConflicts != null && possibleConflicts.userData() != null) {
+                DataCell data = possibleConflicts.userData();
+                if (supplier.getTransaction(data.version()).getEffectiveState() != Txn.State.ROLLEDBACK)
+                    UpdateUtils.mergeUpdate(kvPair, data);
+            }
+
             DataPut mutationToRun = getMutationToRun(
                     table, kvPair, family, qualifier, transaction, conflictResults, addFirstOccurrenceToken, skipWAL, toRollforward);
             finalMutationsToWrite.put(i,mutationToRun);
@@ -354,41 +388,48 @@ public class SITransactor implements Transactor{
         return finalMutationsToWrite;
     }
 
-    private boolean applyConstraint(ConstraintChecker constraintChecker,
-                                    TxnFilter constraintStateFilter,
-                                    int rowPosition,
-                                    KVPair mutation,
-                                    DataResult row,
-                                    MutationStatus[] finalStatus,
-                                    boolean additiveConflict) throws IOException{
-        /*
-         * Attempts to apply the constraint (if there is any). When this method returns true, the row should be filtered
-         * out.
-         */
-        if(constraintChecker==null) return false;
+    private boolean isRolledBack(DataResult result) throws IOException {
+        for (DataCell cell : result) {
+            long timestamp = cell.version();
+            TxnView txn = txnSupplier.getTransaction(timestamp);
+            if (txn.getEffectiveState() == Txn.State.ROLLEDBACK){
+                return true;
+            }
+        }
+        return false;
+    }
 
-        if(row==null || row.isEmpty()) return false;
+    private List<DataCell> filterCells(DataResult row, TxnFilter constraintStateFilter) throws IOException {
         //must reset the filter here to avoid contaminating multiple rows with tombstones and stuff
         constraintStateFilter.reset();
-
         //we need to make sure that this row is visible to the current transaction
         List<DataCell> visibleColumns=Lists.newArrayListWithExpectedSize(row.size());
-        for(DataCell data : row){
-            DataFilter.ReturnCode code=constraintStateFilter.filterCell(data);
-            switch(code){
+        for (DataCell data : row) {
+            DataFilter.ReturnCode code = constraintStateFilter.filterCell(data);
+            switch (code) {
                 case NEXT_ROW:
                 case NEXT_COL:
                 case SEEK:
-                    return false;
                 case SKIP:
+                    if (LOG.isDebugEnabled()) {
+                        SpliceLogUtils.debug(LOG, "skip k=%s, v=%s",
+                                Bytes.toStringBinary((data.key())), Bytes.toStringBinary(data.value()));
+                    }
                     continue;
                 default:
                     visibleColumns.add(data.getClone()); //TODO -sf- remove this clone
             }
         }
         constraintStateFilter.nextRow();
-        if(!additiveConflict && visibleColumns.size()<=0) return false; //no visible values to check
 
+        return visibleColumns;
+    }
+
+    private boolean applyConstraint(List<DataCell> visibleColumns,
+                                    ConstraintChecker constraintChecker,
+                                    int rowPosition,
+                                    KVPair mutation,
+                                    MutationStatus[] finalStatus) throws IOException {
         MutationStatus operationStatus=constraintChecker.checkConstraint(mutation,opFactory.newResult(visibleColumns));
         if(operationStatus!=null && !operationStatus.isSuccess()){
             finalStatus[rowPosition]=operationStatus;
@@ -396,7 +437,6 @@ public class SITransactor implements Transactor{
         }
         return false;
     }
-
 
     private void lockRows(Partition table,Collection<KVPair> mutations,Pair<KVPair, Lock>[] mutationsAndLocks,MutationStatus[] finalStatus) throws IOException{
         /*
@@ -610,6 +650,10 @@ public class SITransactor implements Transactor{
                                 +Bytes.toHex(cell.keyArray(),cell.keyOffset(),cell.keyLength()));
                     }
                     throw exceptionLib.writeWriteConflict(dataTransactionId,updateTransaction.getTxnId());
+                }
+                if(LOG.isTraceEnabled()){
+                    SpliceLogUtils.trace(LOG, "Cannot conflict with a rolled back transaction %d",
+                            dataTransaction.getEffectiveBeginTimestamp());
                 }
                 return conflictResults; //can't conflict with a rolled back transaction
             }

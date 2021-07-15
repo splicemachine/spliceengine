@@ -247,16 +247,16 @@ public class JoinOrderJumpModeIT extends SpliceUnitTest {
                 new String[] {"Join"},                                                        // 14
                 new String[] {"Scan["},                                                       // 16, IndexScan on mem but TableScan on cdh
                 new String[] {"Join"},                                                        // 17
-                new String[] {"TableScan[TABLE_5", "scannedRows=800,outputRows=800"},         // 18
+                new String[] {"TableScan[TABLE_5", "scannedRows=1,outputRows=1"},             // 18
                 new String[] {"Join"},                                                        // 19
                 new String[] {"TableScan[TABLE_4", "scannedRows=1,outputRows=1"},             // 20
                 new String[] {"Join"},                                                        // 21
                 new String[] {"IndexLookup"},                                                 // 23
                 new String[] {"IndexScan[IDX_3", "scannedRows=1,outputRows=1"},               // 24
                 new String[] {"Join"},                                                        // 25
-                new String[] {"IndexScan[IDX_2", "scannedRows=34609,outputRows=34609"},       // 27
+                new String[] {"IndexScan[IDX_2", "scannedRows=1,outputRows=1"},               // 27
                 new String[] {"IndexLookup"},                                                 // 28
                 new String[] {"IndexScan[IDX_1", "scannedRows=1,outputRows=1"}                // 29
                 );
-    }
+        }
 }

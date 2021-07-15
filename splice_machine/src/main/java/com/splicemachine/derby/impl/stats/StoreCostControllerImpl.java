@@ -22,8 +22,7 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.stats.*;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
 import com.splicemachine.db.impl.sql.compile.FirstColumnOfIndexStats;
@@ -57,18 +56,14 @@ public class StoreCostControllerImpl implements StoreCostController {
 
     private static Logger LOG = Logger.getLogger(StoreCostControllerImpl.class);
 
-    private static final Function<? super Partition,? extends String> partitionNameTransform = new Function<Partition, String>(){
-        @Override public String apply(Partition hRegionInfo) {
-            assert hRegionInfo != null : "regionInfo cannot be null!";
-            return hRegionInfo.getName();
-        }
+    private static final Function<? super Partition,? extends String> partitionNameTransform = (Function<Partition, String>) hRegionInfo -> {
+        assert hRegionInfo != null : "regionInfo cannot be null!";
+        return hRegionInfo.getName();
     };
 
-    private static final Function<PartitionStatisticsDescriptor,String> partitionStatisticsTransform = new Function<PartitionStatisticsDescriptor, String>(){
-        @Override public String apply(PartitionStatisticsDescriptor desc){
-            assert desc!=null: "Descriptor cannot be null!";
-            return desc.getPartitionId();
-        }
+    private static final Function<PartitionStatisticsDescriptor,String> partitionStatisticsTransform = desc -> {
+        assert desc!=null: "Descriptor cannot be null!";
+        return desc.getPartitionId();
     };
 
     private final double openLatency;
@@ -90,7 +85,8 @@ public class StoreCostControllerImpl implements StoreCostController {
     private double sampleFraction;
     private boolean isMergedStats;
     private int requestedSplits;
-	private FirstColumnOfIndexStats firstColumnStats;
+    private FirstColumnOfIndexStats firstColumnStats;
+    private boolean useDb2CompatibleVarchars;
 
     // The number of parallel Spark tasks that would run concurrently
     // to access this table.
@@ -102,7 +98,8 @@ public class StoreCostControllerImpl implements StoreCostController {
                                    List<PartitionStatisticsDescriptor> tablePartitionStatistics,
                                    List<PartitionStatisticsDescriptor> exprIndexPartitionStatistics,
                                    long defaultRowCount,
-                                   int requestedSplits) throws StandardException {
+                                   int requestedSplits,
+                                   boolean useDb2CompatibleVarchars) throws StandardException {
         SConfiguration config = EngineDriver.driver().getConfiguration();
         this.requestedSplits = requestedSplits;
         openLatency = config.getFallbackOpencloseLatency();
@@ -111,6 +108,7 @@ public class StoreCostControllerImpl implements StoreCostController {
         extraQualifierMultiplier = config.getOptimizerExtraQualifierMultiplier();
         fallbackLocalLatency =config.getFallbackLocalLatency();
         fallbackRemoteLatencyRatio =config.getFallbackRemoteLatencyRatio();
+        this.useDb2CompatibleVarchars = useDb2CompatibleVarchars;
 
         baseTableRow = td.getEmptyExecRow();
         if (conglomerateDescriptor.getIndexDescriptor() != null &&
@@ -349,8 +347,8 @@ public class StoreCostControllerImpl implements StoreCostController {
         cost.setOpenCost(openLatency);
         cost.setCloseCost(closeLatency);
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"getFetchFromFullKeyCost={columnSizeFactor=%f, cost=%s" +
-                    "cost=%s",columnSizeFactor,cost);
+            SpliceLogUtils.trace(LOG,"getFetchFromFullKeyCost={columnSizeFactor=%f, cost=%s}",
+                    columnSizeFactor,cost);
 
 
     }
@@ -360,8 +358,37 @@ public class StoreCostControllerImpl implements StoreCostController {
         return null;
     }
 
+    private StringDataValue trimKey(StringDataValue key) throws StandardException {
+        if (key == null || key.getString() == null) {
+            return key;
+        }
+        return key.ansiTrim(StringDataValue.TRAILING, new SQLChar(" "), null);
+    }
+
+    private StringDataValue padKey(StringDataValue key, int length) throws StandardException {
+        if (key == null || key.getString() == null) {
+            return key;
+        }
+        SQLChar newStopKey = new SQLChar(key.getString());
+        newStopKey.setWidth(length, -1, true);
+        return newStopKey;
+    }
+
     @Override
-    public double getSelectivity(boolean fromExprIndex, int columnNumber, DataValueDescriptor start, boolean includeStart, DataValueDescriptor stop, boolean includeStop, boolean useExtrapolation) {
+    public double getSelectivity(boolean fromExprIndex, int columnNumber, DataValueDescriptor start, boolean includeStart, DataValueDescriptor stop, boolean includeStop, boolean useExtrapolation) throws StandardException {
+        if (useDb2CompatibleVarchars && baseTableRow.getColumn(columnNumber).getTypeName().equals(TypeId.VARCHAR_NAME)) {
+            int varcharLength = ((SQLVarchar)baseTableRow.getColumn(columnNumber)).getSqlCharSize();
+            if (includeStart) {
+                start = trimKey((StringDataValue)start);
+            } else {
+                start = padKey((StringDataValue) start, varcharLength);
+            }
+            if (includeStop) {
+                stop = padKey((StringDataValue)stop, varcharLength);
+            } else {
+                stop = trimKey((StringDataValue) stop);
+            }
+        }
         if (fromExprIndex) {
             return exprIndexStatistics.rangeSelectivity(start, stop, includeStart, includeStop, columnNumber - 1, useExtrapolation);
         } else {

@@ -31,6 +31,7 @@
 
 package com.splicemachine.derby.catalog;
 
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.db.Factory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
@@ -87,7 +88,7 @@ import static com.splicemachine.derby.impl.sql.execute.operations.ScanOperation.
 public class TriggerNewTransitionRows
                    implements DatasetProvider, VTICosting, AutoCloseable {
 
-        private static final double DUMMY_ROWCOUNT_ESTIMATE = 1000;
+        private static final double DUMMY_ROWCOUNT_ESTIMATE = 1;
         private static final double DUMMY_COST_ESTIMATE = 1000;
 	private ResultSet resultSet;
 	private DataSet<ExecRow> sourceSet;
@@ -174,13 +175,16 @@ public class TriggerNewTransitionRows
                 tableVersion = triggerRowsHolder.getTableVersion();
                 templateRow = triggerRowsHolder.getExecRowDefinition();
             }
+            boolean needsTemporaryConglomerate = false;
+            if (triggerRowsHolder != null)
+                needsTemporaryConglomerate = triggerRowsHolder.needsTemporaryConglomerate();
 
             // Can the Dataset be reused?
-            boolean useCommonDataSet = op.isOlapServer() && sourceSet != null    &&
+            boolean useCommonDataSet = (op.isOlapServer() || SpliceClient.isClient()) &&
+                                          sourceSet != null    &&
                                           !(sourceSet instanceof ControlDataSet) &&
                                           !sourceSet.isNativeSpark()             &&
-                                          !tec.hasGeneratedColumn()              &&
-                                          !tec.hasSpecialFromTableTrigger();
+                                          !needsTemporaryConglomerate;
             boolean isSpark = triggerRowsHolder == null || triggerRowsHolder.isSpark();
             boolean isOldRows = this instanceof TriggerOldTransitionRows;
             DataSet<ExecRow> commonSourceSet = isOldRows ? oldRowsSourceSet : newRowsSourceSet;
@@ -233,7 +237,8 @@ public class TriggerNewTransitionRows
                     false,   // rowIdKey
                     conglomerate,
                     null,
-                    null);
+                    null,
+                    false);
 
                     s.cacheRows(SCAN_CACHE_SIZE).batchCells(-1);
                     deSiify(s);

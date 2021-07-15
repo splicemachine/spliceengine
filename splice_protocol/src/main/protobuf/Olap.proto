@@ -60,6 +60,7 @@ message ProgressResponse{
         required ProgressResponse response = 101;
     }
     required int64 tickTimeMillis = 1;
+    optional string progressStr = 11;
 }
 
 message CancelledResponse{

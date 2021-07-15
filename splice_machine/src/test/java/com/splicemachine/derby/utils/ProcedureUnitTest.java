@@ -1,7 +1,22 @@
+/*
+ * Copyright (c) 2012 - 2021 Splice Machine, Inc.
+ *
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.catalog.DefaultSystemProcedureGenerator;
 import com.splicemachine.db.impl.sql.catalog.Procedure;
@@ -204,7 +219,36 @@ public class ProcedureUnitTest {
     public void testCheckSpliceSystemProcedures() {
         List<Procedure> proc = new ArrayList<>();
         SpliceSystemProcedures.createSysUtilProcedures(proc);
-        Assert.assertEquals(-630442100, proc.stream().map( procedure -> procedure.getName() ).sorted()
+        // note: this value changes if you add new system procedures
+        // this is here to help in refactoring methods, move them around
+        // and be sure that there's still the same procedures afterwards
+        Assert.assertEquals(163, proc.stream().count());
+        Assert.assertEquals(221057424, proc.stream().map( procedure -> procedure.getName() ).sorted()
                 .map( s -> s.hashCode()).reduce(0, (subtotal, element) -> subtotal + element).longValue() );
+    }
+
+    @Test
+    public void testValidateGlobalOptions() {
+        Assert.assertEquals(
+                "Error parsing '2' for option splice.function.preserveLineEndings: " +
+                        "java.lang.RuntimeException: Expected either TRUE or FALSE.",
+                GlobalDBProperties.PRESERVE_LINE_ENDINGS.validate("2") );
+
+        Assert.assertEquals("", GlobalDBProperties.SPLICE_TIMESTAMP_FORMAT.validate("hh:mm:ss a") );
+        Assert.assertEquals("Error parsing 'h:mm:ss a' for option splice.function.timestampFormat: " +
+                        "java.lang.IllegalArgumentException: not supported format \"h:mm:ss a\": 'h' can't be repeated 1 times",
+                GlobalDBProperties.SPLICE_TIMESTAMP_FORMAT.validate("h:mm:ss a") );
+
+        Assert.assertEquals("", GlobalDBProperties.SPLICE_CURRENT_TIMESTAMP_PRECISION.validate("1234") );
+        Assert.assertEquals("Error parsing 'abcd' for option splice.function.currentTimestampPrecision: " +
+                        "java.lang.NumberFormatException: For input string: \"abcd\"",
+                GlobalDBProperties.SPLICE_CURRENT_TIMESTAMP_PRECISION.validate("abcd") );
+
+        Assert.assertEquals("", GlobalDBProperties.FLOATING_POINT_NOTATION.validate("plain") );
+        Assert.assertEquals("Error parsing 'abcd' for option splice.function.floatingPointNotation: " +
+                        "java.lang.RuntimeException: Supported values are [plain, normalized, default].",
+                GlobalDBProperties.FLOATING_POINT_NOTATION.validate("abcd") );
+
+
     }
 }

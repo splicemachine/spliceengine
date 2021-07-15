@@ -45,6 +45,8 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.lang.reflect.Modifier;
+import java.sql.Types;
+import java.util.Arrays;
 
 /**
  * A UnionNode represents a UNION in a DML statement.  It contains a boolean
@@ -141,18 +143,18 @@ public class UnionNode extends SetOperatorNode{
         ResultSetNode rsn;
 
         /*
-        ** Should only set types of ? parameters to types of result columns
-        ** if it's a table constructor.
-        */
+         ** Should only set types of ? parameters to types of result columns
+         ** if it's a table constructor.
+         */
         if(tableConstructor()){
             /* By looping through the union nodes, we avoid recursion */
             for(rsn=this;rsn instanceof UnionNode;){
                 UnionNode union=(UnionNode)rsn;
 
                 /*
-                ** Assume that table constructors are left-deep trees of UnionNodes
-                ** with RowResultSet nodes on the right.
-                */
+                 ** Assume that table constructors are left-deep trees of UnionNodes
+                 ** with RowResultSet nodes on the right.
+                 */
                 if(SanityManager.DEBUG)
                     SanityManager.ASSERT(
                             union.rightResultSet instanceof RowResultSetNode,
@@ -212,18 +214,20 @@ public class UnionNode extends SetOperatorNode{
                                    OptimizablePredicateList predList,
                                    CostEstimate outerCost,
                                    RowOrdering rowOrdering) throws StandardException{
+        if (skipBindAndOptimize)
+            return costEstimate;
         /*
-        ** RESOLVE: Most types of Optimizables only implement estimateCost(),
-        ** and leave it up to optimizeIt() in FromTable to figure out the
-        ** total cost of the join.  For unions, though, we want to figure out
-        ** the best plan for the sources knowing how many outer rows there are -
-        ** it could affect their strategies significantly.  So we implement
-        ** optimizeIt() here, which overrides the optimizeIt() in FromTable.
-        ** This assumes that the join strategy for which this union node is
-        ** the inner table is a nested loop join, which will not be a valid
-        ** assumption when we implement other strategies like materialization
-        ** (hash join can work only on base tables).
-        */
+         ** RESOLVE: Most types of Optimizables only implement estimateCost(),
+         ** and leave it up to optimizeIt() in FromTable to figure out the
+         ** total cost of the join.  For unions, though, we want to figure out
+         ** the best plan for the sources knowing how many outer rows there are -
+         ** it could affect their strategies significantly.  So we implement
+         ** optimizeIt() here, which overrides the optimizeIt() in FromTable.
+         ** This assumes that the join strategy for which this union node is
+         ** the inner table is a nested loop join, which will not be a valid
+         ** assumption when we implement other strategies like materialization
+         ** (hash join can work only on base tables).
+         */
 
         /* optimize() both resultSets */
 
@@ -257,9 +261,9 @@ public class UnionNode extends SetOperatorNode{
         // getNextDecoratedPermutation() method.
         updateBestPlanMap(ADD_PLAN,this);
 
-        leftResultSet=optimizeSource(optimizer, leftResultSet, getLeftOptPredicateList(), null, null);
+        leftResultSet=optimizeSource(optimizer, leftResultSet, getLeftOptPredicateList(), null, null, null);
 
-        rightResultSet=optimizeSource(optimizer, rightResultSet, getRightOptPredicateList(), null, null);
+        rightResultSet=optimizeSource(optimizer, rightResultSet, getRightOptPredicateList(), null, null, null);
 
         CostEstimate leftCost = leftResultSet.getCostEstimate();
         CostEstimate rightCost = rightResultSet.getCostEstimate();
@@ -311,8 +315,8 @@ public class UnionNode extends SetOperatorNode{
 
 
         /*
-        ** Get the cost of this result set in the context of the whole plan.
-        */
+         ** Get the cost of this result set in the context of the whole plan.
+         */
         getCurrentAccessPath().getJoinStrategy().estimateCost(this, predList, null, outerCost, optimizer, costEstimate);
 
         optimizer.considerCost(this,predList,costEstimate,outerCost);
@@ -351,21 +355,21 @@ public class UnionNode extends SetOperatorNode{
         // here in addition to UnionNode or SelectNode, like RowResultSetNode.
         if(leftResultSet instanceof UnionNode) {
             optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION, 0, 0, 0.0,
-                          "UnionNode pushing predicates into left UnionNode.", predicateList);
+                    "UnionNode pushing predicates into left UnionNode.", predicateList);
             ((UnionNode) leftResultSet).pushExpressions(predicateList);
         } else if(leftResultSet instanceof SelectNode) {
             optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION, 0, 0, 0.0,
-                          "UnionNode pushing predicates into left SelectNode.", predicateList);
+                    "UnionNode pushing predicates into left SelectNode.", predicateList);
             predicateList.pushExpressionsIntoSelect((SelectNode) leftResultSet, true);
         }
 
         if(rightResultSet instanceof UnionNode) {
             optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION, 0, 0, 0.0,
-                          "UnionNode pushing predicates into right UnionNode.", predicateList);
+                    "UnionNode pushing predicates into right UnionNode.", predicateList);
             ((UnionNode) rightResultSet).pushExpressions(predicateList);
         } else if(rightResultSet instanceof SelectNode) {
             optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION,0,0,0.0,
-                                     "UnionNode pushing predicates into right SelectNode.",predicateList);
+                    "UnionNode pushing predicates into right SelectNode.",predicateList);
             predicateList.pushExpressionsIntoSelect((SelectNode) rightResultSet, true);
         }
     }
@@ -514,26 +518,28 @@ public class UnionNode extends SetOperatorNode{
      */
     @Override
     public void bindExpressions(FromList fromListParam) throws StandardException{
+        if (skipBindAndOptimize)
+            return;
         super.bindExpressions(fromListParam);
 
         if (TriggerReferencingStruct.fromTableTriggerDescriptor.get() != null)
             throw StandardException.newException( SQLState.LANG_UNSUPPORTED_FROM_TABLE_QUERY,
-                                                  "set operation");
+                    "set operation");
         /*
-        ** Each ? parameter in a table constructor that is not in an insert
-        ** statement takes its type from the first non-? in its column
-        ** of the table constructor.  It's an error to have a column that
-        ** has all ?s.  Do this only for the top of the table constructor
-        ** list - we don't want to do this for every level of union node
-        ** in the table constructor.  Also, don't do this for an INSERT -
-        ** the types of the ? parameters come from the columns being inserted
-        ** into in that case.
-        */
+         ** Each ? parameter in a table constructor that is not in an insert
+         ** statement takes its type from the first non-? in its column
+         ** of the table constructor.  It's an error to have a column that
+         ** has all ?s.  Do this only for the top of the table constructor
+         ** list - we don't want to do this for every level of union node
+         ** in the table constructor.  Also, don't do this for an INSERT -
+         ** the types of the ? parameters come from the columns being inserted
+         ** into in that case.
+         */
         if(topUnionNode && (!insertSource)){
             /*
-            ** Step through all the rows in the table constructor to
-            ** get the type of the first non-? in each column.
-            */
+             ** Step through all the rows in the table constructor to
+             ** get the type of the first non-? in each column.
+             */
             DataTypeDescriptor[] types= new DataTypeDescriptor[leftResultSet.getResultColumns().size()];
 
             ResultSetNode rsn;
@@ -556,10 +562,10 @@ public class UnionNode extends SetOperatorNode{
             }
 
             /*
-            ** Loop through the nodes again. This time, look for parameter
-            ** nodes, and give them the type from the type array we just
-            ** constructed.
-            */
+             ** Loop through the nodes again. This time, look for parameter
+             ** nodes, and give them the type from the type array we just
+             ** constructed.
+             */
             for(rsn=this;rsn instanceof SetOperatorNode;){
                 SetOperatorNode setOperator=(SetOperatorNode)rsn;
 
@@ -738,5 +744,66 @@ public class UnionNode extends SetOperatorNode{
 
     public void setViewDescreiptor(TableDescriptor viewDescreiptor) {
         this.viewDescriptor = viewDescreiptor;
+    }
+
+    /**
+     * This function expands result column for multi-row insert. If columns were dropped from the table, place holders
+     * need to be added to the result column list of UnionNode.
+     * @param targetTableDescriptor
+     * @param resultColumnList
+     * @throws StandardException
+     */
+    protected void expandResultSetWithDeletedColumns(TableDescriptor targetTableDescriptor,
+                                                     ResultColumnList resultColumnList,
+                                                     UnionNode node) throws StandardException {
+        int maxColumnID = targetTableDescriptor.getMaxColumnID(); // 1-based
+        int maxStorageID = targetTableDescriptor.getMaxStorageColumnID(); // 1-based
+        if (maxColumnID == maxStorageID) {
+            // No columns were dropped so no need to expand
+            return;
+        }
+
+        int size = node.leftResultSet.getResultColumns().size();
+        int[] storagePosMap = new int[maxStorageID];
+        Arrays.fill(storagePosMap, -1);
+
+        for (int index = 1; index <= size; index++) {
+            ResultColumn targetRC = resultColumnList.getResultColumn(index);
+            int storagePosition = targetRC.columnDescriptor.getStoragePosition();
+            storagePosMap[storagePosition-1] = index;
+        }
+
+        ResultColumnList expandedLeftRS = (ResultColumnList)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
+        ResultColumnList expandedRightRS = (ResultColumnList)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
+        for (int index = 0; index < maxStorageID; index++) {
+            int pos = storagePosMap[index]; // index is 0-based, pos is 1-based
+            ResultColumn newLeftSourceRC = null;
+            ResultColumn newRightSourceRC = null;
+            if (pos != -1) {
+                ResultColumn leftSourceRC = node.leftResultSet.getResultColumns().getResultColumn(pos);
+                newLeftSourceRC = leftSourceRC.cloneMe();
+                ResultColumn rightSourceRC = node.rightResultSet.getResultColumns().getResultColumn(pos);
+                newRightSourceRC = rightSourceRC.cloneMe();
+            } else {
+                // Have to give it a type, which doesn't need to match what the dropped column was.
+                DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1);
+                newLeftSourceRC = (ResultColumn)getNodeFactory().getNode(
+                        C_NodeTypes.RESULT_COLUMN,
+                        "",
+                        getNullNode(dtd),
+                        getContextManager());
+                newRightSourceRC = newLeftSourceRC.cloneMe();
+            }
+            expandedLeftRS.addResultColumn(newLeftSourceRC);
+            expandedRightRS.addResultColumn(newRightSourceRC);
+        }
+        node.leftResultSet.setResultColumns(expandedLeftRS);
+        node.rightResultSet.setResultColumns(expandedRightRS);
+        if (node.leftResultSet instanceof UnionNode) {
+            expandResultSetWithDeletedColumns(targetTableDescriptor, resultColumnList, (UnionNode) node.leftResultSet);
+        }
+        if (node.rightResultSet instanceof UnionNode) {
+            expandResultSetWithDeletedColumns(targetTableDescriptor, resultColumnList, (UnionNode) node.rightResultSet);
+        }
     }
 }

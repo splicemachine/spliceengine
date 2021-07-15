@@ -14,7 +14,6 @@
 
 package com.splicemachine.pipeline.writehandler;
 
-import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.access.api.RegionBusyException;
 import com.splicemachine.access.api.WrongPartitionException;
@@ -41,7 +40,7 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 
-import static com.splicemachine.pipeline.writehandler.UpdateUtils.getBaseUpdateMutation;
+import static com.splicemachine.storage.util.UpdateUtils.updateFromWrite;
 
 /**
  * @author Scott Fines
@@ -91,7 +90,7 @@ public class PartitionWriteHandler implements WriteHandler {
                     toWrite = new KVPair(kvPair.getRowKey(), kvPair.getValue(), KVPair.Type.DELETE);
                     break;
                 case UPDATE:
-                    toWrite = getBaseUpdateMutation(kvPair);
+                    toWrite = updateFromWrite(kvPair);
                     break;
                 default:
                     toWrite = kvPair;
@@ -241,4 +240,9 @@ public class PartitionWriteHandler implements WriteHandler {
         mutations = null; // Dereference
     }
 
+    @Override
+    public String toString() {
+        return "PartitionWriteHandler { region = " + region.toString() + " constraintChecker = " +
+                (constraintChecker == null ? "null" : constraintChecker.toString()) + "}";
+    }
 }

@@ -1842,6 +1842,12 @@ Guide.
             </msg>
 
             <msg>
+                <name>42X21</name>
+                <text>'{0}' is a special derived column which may not be defined in DDL statements.  Please rename the column.</text>
+                <arg>colName</arg>
+            </msg>
+
+            <msg>
                 <name>42X23</name>
                 <text>Cursor {0} is not updatable.</text>
                 <arg>cursorName</arg>
@@ -2526,6 +2532,17 @@ Guide.
             </msg>
 
             <msg>
+                <name>42Y18</name>
+                <text>Database '{0}' does not exist</text>
+                <arg>databaeName</arg>
+            </msg>
+
+            <msg>
+                <name>42Y19</name>
+                <text>Multidatabase is disabled</text>
+            </msg>
+
+            <msg>
                 <name>42Y22</name>
                 <text>Aggregate {0} cannot operate on type {1}.</text>
                 <arg>aggregateType</arg>
@@ -2801,6 +2818,12 @@ Guide.
             </msg>
 
             <msg>
+                <name>42Y68</name>
+                <text>Database '{0}' cannot be dropped.</text>
+                <arg>dbName</arg>
+            </msg>
+
+            <msg>
                 <name>42Y69</name>
                                 <text>No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.</text>
                                 <!--                <text>No valid execution plan was found for this statement. This may have one of two causes: either you specified a hash join strategy when hash join is not allowed (no optimizable equijoin) or you are attempting to join two external virtual tables, each of which references the other, and so the statement cannot be evaluated.  </text> -->
@@ -2919,6 +2942,22 @@ Guide.
                 <name>42Z02</name>
                 <text>Multiple DISTINCT aggregates are not supported at this time.</text>
             </msg>
+
+            <msg>
+                <name>42Z03</name>
+                <text>'{0}' is not allowed on '{1}' because it is not a view.</text>
+                <arg>statement</arg>
+                <arg>viewName</arg>
+            </msg>
+
+            <msg>
+                <name>42Z04</name>
+                <text>Specified index '{0}' is created at tx '{1}' which is after time-travel mapped past transaction id '{2}'.</text>
+                <arg>indexName</arg>
+                <arg>indexCreationTx</arg>
+                <arg>timeTravelTx</arg>
+            </msg>
+
 
             <msg>
                 <name>42Z07</name>
@@ -3870,6 +3909,12 @@ Guide.
                 <text>Constraint '{0}' is invalid: referenced table {1} does not exist.</text>
                 <arg>constraintName</arg>
                 <arg>tableName</arg>
+            </msg>
+
+            <msg>
+                <name>X0Y53.S</name>
+                <text>Database '{0}' cannot be dropped because it is not empty.</text>
+                <arg>dbName</arg>
             </msg>
 
             <msg>
