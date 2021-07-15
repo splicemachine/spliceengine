@@ -144,7 +144,7 @@ public class RenameNode extends DDLStatementNode
 				break;
 
 			default:
-				if (SanityManager.DEBUG) 
+				if (SanityManager.DEBUG)
 				SanityManager.THROWASSERT(
 				"Unexpected rename action in RenameNode");
 		}
@@ -265,7 +265,7 @@ public class RenameNode extends DDLStatementNode
 				throw StandardException.newException(
 									 SQLState.LANG_INDEX_NOT_FOUND, oldObjectName);
 			/* Get the table descriptor */
-			td = dd.getTableDescriptor(indexDescriptor.getTableID());
+            td = dd.getTableDescriptor(indexDescriptor.getTableID(), null);
 			initAndCheck(makeTableName(td.getSchemaName(),
 									   td.getName()));
 		} else
@@ -327,7 +327,7 @@ public class RenameNode extends DDLStatementNode
 	public boolean referencesSessionSchema()
 		throws StandardException
 	{
-		//If rename is on a SESSION schema table, then return true. 
+		//If rename is on a SESSION schema table, then return true.
 		if (isSessionSchema(td.getSchemaName()))//existing table with rename action
 			return true;
 

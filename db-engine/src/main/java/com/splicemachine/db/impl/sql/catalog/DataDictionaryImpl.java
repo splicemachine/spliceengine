@@ -66,7 +66,6 @@ import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
 import com.splicemachine.db.impl.sql.compile.SetNode;
 import com.splicemachine.db.impl.sql.compile.TableName;
-import com.splicemachine.db.impl.sql.execute.GenericScanQualifier;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -87,7 +86,6 @@ import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -953,7 +951,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         if (sd!=null)
             dataDictionaryCache.schemaCacheAdd(schemaName,sd);
-        //if no schema found and schema name is SESSION, then create an 
+        //if no schema found and schema name is SESSION, then create an
         //in-memory schema descriptor
         if(sd==null && getDeclaredGlobalTemporaryTablesSchemaDescriptor().getSchemaName().equals(schemaName)){
             return getDeclaredGlobalTemporaryTablesSchemaDescriptor();
@@ -1502,8 +1500,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         /* Set up the start/stop position for the scan */
         ExecIndexRow keyRow=exFactory.getIndexableRow(2);
-        keyRow.setColumn(1,tableNameOrderable);
-        keyRow.setColumn(2,schemaIDOrderable);
+        keyRow.setColumn(1,schemaIDOrderable);
+        keyRow.setColumn(2,tableNameOrderable);
 
         td=(TableDescriptor)getDescriptorViaIndex(
                 SYSTABLESRowFactory.SYSTABLES_INDEX1_ID,
@@ -1565,28 +1563,19 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         /* Set up the start position for the scan */
         ExecIndexRow startKeyRow=exFactory.getIndexableRow(2);
-        startKeyRow.setColumn(1,tableNameStartOrderable);
-        startKeyRow.setColumn(2,schemaIDOrderable);
+        startKeyRow.setColumn(1,schemaIDOrderable);
+        startKeyRow.setColumn(2,tableNameStartOrderable);
 
         /* Set up the stop position for the scan */
         ExecIndexRow endKeyRow=exFactory.getIndexableRow(2);
-        endKeyRow.setColumn(1,tableNameEndOrderable);
-        endKeyRow.setColumn(2,schemaIDOrderable);
-
-        /* Set a scan qualifier on SYSTABLES.SCHEMAID */
-        GenericScanQualifier[][] qualifiers = new GenericScanQualifier[1][];
-        qualifiers[0] = new GenericScanQualifier[1];
-        GenericScanQualifier gsq = new GenericScanQualifier();
-        // since we are scanning an index, columnId is the index column position of SCHEMAID
-        // index column position is 0-based
-        gsq.setQualifier(1, new SQLVarchar(schemaUUID), DataValueDescriptor.ORDER_OP_EQUALS, false, false, false);
-        qualifiers[0][0] = gsq;
+        endKeyRow.setColumn(1,schemaIDOrderable);
+        endKeyRow.setColumn(2,tableNameEndOrderable);
 
         getDescriptorsViaIndex(
                 SYSTABLESRowFactory.SYSTABLES_INDEX1_ID,
                 startKeyRow,
                 endKeyRow,
-                qualifiers,
+                null,
                 ti,
                 null,
                 tds,
@@ -1608,7 +1597,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on failure
      */
     public TableDescriptor getUncachedTableDescriptor(UUID tableId) throws StandardException{
-        return getTableDescriptorIndex2Scan(tableId.toString());
+        return getTableDescriptorIndex2Scan(tableId.toString(), null);
     }
 
     /**
@@ -1621,16 +1610,17 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * is needed).
      *
      * @param tableID The UUID of the table to get the descriptor for
+     * @param tc
      * @return The descriptor for the table, null if the table does
      * not exist.
      * @throws StandardException Thrown on failure
      */
     @Override
-    public TableDescriptor getTableDescriptor(UUID tableID) throws StandardException{
+    public TableDescriptor getTableDescriptor(UUID tableID, TransactionController tc) throws StandardException{
         TableDescriptor td = dataDictionaryCache.oidTdCacheFind(tableID);
         if (td != null)
             return td;
-        td = getTableDescriptorIndex2Scan(tableID.toString());
+        td = getTableDescriptorIndex2Scan(tableID.toString(), tc);
         if (td != null)
             dataDictionaryCache.oidTdCacheAdd(tableID,td);
         return td;
@@ -1642,7 +1632,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @return TableDescriptor    The matching descriptor, if any.
      * @throws StandardException Thrown on failure
      */
-    private TableDescriptor getTableDescriptorIndex2Scan(String tableUUID) throws StandardException{
+    private TableDescriptor getTableDescriptorIndex2Scan(String tableUUID, TransactionController tc) throws StandardException{
         DataValueDescriptor tableIDOrderable;
         TableDescriptor td;
         TabInfoImpl ti=coreInfo[SYSTABLES_CORE_NUM];
@@ -1723,21 +1713,21 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         if(isSchemaReferenced(tc,getNonCoreTI(SYSCONSTRAINTS_CATALOG_NUM),
                 SYSCONSTRAINTSRowFactory.SYSCONSTRAINTS_INDEX2_ID,
-                2,
+                1,
                 schemaIdOrderable)){
             return false;
         }
 
         if(isSchemaReferenced(tc,getNonCoreTI(SYSSTATEMENTS_CATALOG_NUM),
                 SYSSTATEMENTSRowFactory.SYSSTATEMENTS_INDEX2_ID,
-                2,
+                1,
                 schemaIdOrderable)){
             return false;
         }
 
         if(isSchemaReferenced(tc,getNonCoreTI(SYSTRIGGERS_CATALOG_NUM),
                 SYSTRIGGERSRowFactory.SYSTRIGGERS_INDEX2_ID,
-                2,
+                1,
                 schemaIdOrderable)){
             return false;
         }
@@ -1753,7 +1743,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         // don't orphan Files
         if(isSchemaReferenced(tc,getNonCoreTI(SYSFILES_CATALOG_NUM),
                 SYSFILESRowFactory.SYSFILES_INDEX1_ID,
-                2,
+                1,
                 schemaIdOrderable)){
             return false;
         }
@@ -1830,31 +1820,27 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
     }
 
-    public ArrayList<TupleDescriptor> getTablesInSchema(SchemaDescriptor sd) throws StandardException{
+    @Override
+    public ArrayList<TableDescriptor> getTablesInSchema(String schemaId) throws StandardException{
+        TabInfoImpl ti=getTableInfo(SYSTABLES_CATALOG_NUM);
 
-        DataValueDescriptor schemaIdOrderable;
+        /* Set up the start/stop position for the scan */
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1,new SQLChar(schemaId));
 
-        schemaIdOrderable=getIDValueAsCHAR(sd.getUUID());
-
-        TabInfoImpl ti = coreInfo[SYSTABLES_CATALOG_NUM];
-        int columnId = SYSTABLESRowFactory.SYSTABLES_SCHEMAID;
-
-        ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(1);
-        scanQualifier[0][0].setQualifier(
-                columnId - 1,    /* column number */
-                schemaIdOrderable,
-                Orderable.ORDER_OP_EQUALS,
-                false,
-                false,
+        ArrayList<TableDescriptor> resultList = new ArrayList<>();
+        getDescriptorViaIndex(SYSTABLESRowFactory.SYSTABLES_INDEX1_ID,
+                keyRow,
+                null,
+                ti,
+                null,
+                resultList,
                 false);
 
-        ArrayList<TupleDescriptor> list = new ArrayList<>();
-        getDescriptorViaHeap(null,scanQualifier,ti,null,list);
-
-        for (int i = 0; i < list.size(); i++) {
-            list.set(i, finishTableDescriptor((TableDescriptor)(list.get(i))));
+        for (int i = 0; i < resultList.size(); i++) {
+            resultList.set(i, finishTableDescriptor(resultList.get(i)));
         }
-        return list;
+        return resultList;
     }
 
     @Override
@@ -1897,52 +1883,41 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
     @Override
     public ArrayList<FileInfoDescriptor> getFilesInSchema(String schemaId) throws StandardException {
+
         TabInfoImpl ti=getNonCoreTI(SYSFILES_CATALOG_NUM);
 
-        DataValueDescriptor schemaIdOrderable;
+        /* Set up the start/stop position for the scan */
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1,new SQLChar(schemaId));
 
-        schemaIdOrderable=new SQLChar(schemaId);
-
-        int columnId = SYSFILESRowFactory.SCHEMA_ID_COL_NUM;
-
-        ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(1);
-        scanQualifier[0][0].setQualifier(
-                columnId - 1,    /* column number */
-                schemaIdOrderable,
-                Orderable.ORDER_OP_EQUALS,
-                false,
-                false,
+        ArrayList<FileInfoDescriptor> resultList = new ArrayList<>();
+        getDescriptorViaIndex(SYSFILESRowFactory.SYSFILES_INDEX1_ID,
+                keyRow,
+                null,
+                ti,
+                null,
+                resultList,
                 false);
-
-        ArrayList<FileInfoDescriptor> list = new ArrayList<>();
-        getDescriptorViaHeap(null,scanQualifier,ti,null,list);
-
-        return list;
+        return resultList;
     }
 
     @Override
     public ArrayList<TriggerDescriptor> getTriggersInSchema(String schemaId) throws StandardException {
         TabInfoImpl ti=getNonCoreTI(SYSTRIGGERS_CATALOG_NUM);
 
-        DataValueDescriptor schemaIdOrderable;
+        /* Set up the start/stop position for the scan */
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1,new SQLChar(schemaId));
 
-        schemaIdOrderable=new SQLChar(schemaId);
-
-        int columnId = SYSTRIGGERSRowFactory.SYSTRIGGERS_SCHEMAID;
-
-        ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(1);
-        scanQualifier[0][0].setQualifier(
-                columnId - 1,    /* column number */
-                schemaIdOrderable,
-                Orderable.ORDER_OP_EQUALS,
-                false,
-                false,
+        ArrayList<TriggerDescriptor> resultList = new ArrayList<>();
+        getDescriptorViaIndex(SYSTRIGGERSRowFactory.SYSTRIGGERS_INDEX2_ID,
+                keyRow,
+                null,
+                ti,
+                null,
+                resultList,
                 false);
-
-        ArrayList<TriggerDescriptor> list = new ArrayList<>();
-        getDescriptorViaHeap(null,scanQualifier,ti,null,list);
-
-        return list;
+        return resultList;
     }
 
     /**
@@ -1971,8 +1946,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         /* Set up the start/stop position for the scan */
         keyRow1=exFactory.getIndexableRow(2);
-        keyRow1.setColumn(1,tableNameOrderable);
-        keyRow1.setColumn(2,schemaIDOrderable);
+        keyRow1.setColumn(1,schemaIDOrderable);
+        keyRow1.setColumn(2,tableNameOrderable);
 
         ti.deleteRow(tc,keyRow1,SYSTABLESRowFactory.SYSTABLES_INDEX1_ID);
     }
@@ -2003,8 +1978,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         /* Set up the start/stop position for the scan */
         keyRow1=exFactory.getIndexableRow(2);
-        keyRow1.setColumn(1,tableNameOrderable);
-        keyRow1.setColumn(2,schemaIDOrderable);
+        keyRow1.setColumn(1,schemaIDOrderable);
+        keyRow1.setColumn(2,tableNameOrderable);
 
         // build the row to be stuffed into SYSTABLES. 
         row=rf.makeRow(td,schema);
@@ -3079,7 +3054,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public ViewDescriptor getViewDescriptor(UUID uuid) throws StandardException{
-        return getViewDescriptor(getTableDescriptor(uuid));
+        return getViewDescriptor(getTableDescriptor(uuid, null));
     }
 
     /**
@@ -3204,8 +3179,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         /* Set up the start/stop position for the scan */
         ExecIndexRow keyRow=exFactory.getIndexableRow(2);
-        keyRow.setColumn(1,nameOrderable);
-        keyRow.setColumn(2,schemaIDOrderable);
+        keyRow.setColumn(1,schemaIDOrderable);
+        keyRow.setColumn(2,nameOrderable);
         return (FileInfoDescriptor)
                 getDescriptorViaIndex(SYSFILESRowFactory.SYSFILES_INDEX1_ID,keyRow,null,ti,null,null,false);
     }
@@ -3344,8 +3319,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         /* Set up the start/stop position for the scan */
         ExecIndexRow keyRow=exFactory.getIndexableRow(2);
-        keyRow.setColumn(1,stmtNameOrderable);
-        keyRow.setColumn(2,schemaIDOrderable);
+        keyRow.setColumn(1,schemaIDOrderable);
+        keyRow.setColumn(2,stmtNameOrderable);
 
         SPSDescriptor spsd=(SPSDescriptor)
                 getDescriptorViaIndex(
@@ -3648,7 +3623,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     public void clearSPSPlans() throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSSTATEMENTS_CATALOG_NUM);
-        faultInTabInfo(ti);
+        faultInTabInfo(ti, null);
 
         TransactionController tc=getTransactionExecute();
 
@@ -4504,8 +4479,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         /* Set up the start/stop position for the scan */
         ExecIndexRow keyRow=exFactory.getIndexableRow(2);
-        keyRow.setColumn(1,triggerNameOrderable);
-        keyRow.setColumn(2,schemaIDOrderable);
+        keyRow.setColumn(1,schemaIDOrderable);
+        keyRow.setColumn(2,triggerNameOrderable);
 
         return (TriggerDescriptor)
                 getDescriptorViaIndex(SYSTRIGGERSRowFactory.SYSTRIGGERS_INDEX2_ID,keyRow,null,ti,null,null,false);
@@ -4650,8 +4625,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         /* Set up the start/stop position for the scan */
         ExecIndexRow keyRow=exFactory.getIndexableRow(2);
-        keyRow.setColumn(1,constraintNameOrderable);
-        keyRow.setColumn(2,UUIDStringOrderable);
+        keyRow.setColumn(1,UUIDStringOrderable);
+        keyRow.setColumn(2,constraintNameOrderable);
 
         return getConstraintDescriptorViaIndex(SYSCONSTRAINTSRowFactory.SYSCONSTRAINTS_INDEX2_ID,keyRow,ti,null,null,false);
     }
@@ -5035,7 +5010,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
 
         // get the table descriptor
-        return getTableDescriptor((UUID)slist.get(0));
+        return getTableDescriptor((UUID)slist.get(0), null);
     }
 
     /**
@@ -5322,8 +5297,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         /* Set up the start/stop position for the scan */
         keyRow=exFactory.getIndexableRow(2);
-        keyRow.setColumn(1,constraintNameOrderable);
-        keyRow.setColumn(2,schemaIDOrderable);
+        keyRow.setColumn(1,schemaIDOrderable);
+        keyRow.setColumn(2,constraintNameOrderable);
 
         ti.deleteRow(tc,keyRow,SYSCONSTRAINTSRowFactory.SYSCONSTRAINTS_INDEX2_ID);
     }
@@ -5410,7 +5385,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             ti = getNonCoreTI(baseNum);
         } else if(constraint.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT){
             ti=getPkTable();
-            faultInTabInfo(ti);
+            faultInTabInfo(ti, tc);
             indexNum=0;
         } else{
             baseNum=SYSKEYS_CATALOG_NUM;
@@ -6912,8 +6887,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         /* Set up the start/stop position for the scan */
         ExecIndexRow keyRow = exFactory.getIndexableRow(2);
-        keyRow.setColumn(1, tableNameOrderable);
-        keyRow.setColumn(2, schemaIDOrderable);
+        keyRow.setColumn(1, schemaIDOrderable);
+        keyRow.setColumn(2, tableNameOrderable);
 
         try (ConglomerateController heapCC = tc.openConglomerate(
                 ti.getHeapConglomerate(), false, 0,
@@ -7851,9 +7826,13 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on error
      */
     protected TabInfoImpl getNonCoreTI(int catalogNumber) throws StandardException{
+        return getNonCoreTI(catalogNumber, null);
+    }
+
+    protected TabInfoImpl getNonCoreTI(int catalogNumber, TransactionController tc) throws StandardException{
         TabInfoImpl ti=getNonCoreTIByNumber(catalogNumber);
 
-        faultInTabInfo(ti);
+        faultInTabInfo(ti, tc);
 
         return ti;
     }
@@ -8028,9 +8007,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * NOP if TabInfoImpl has already been faulted in.
      *
      * @param ti TabInfoImpl to fault in.
+     * @param tc
      * @throws StandardException Thrown on error
      */
-    public void faultInTabInfo(TabInfoImpl ti) throws StandardException{
+    public void faultInTabInfo(TabInfoImpl ti, TransactionController tc) throws StandardException{
         int numIndexes;
 
         /* Most of the time, the noncoreInfo will be complete.
@@ -8061,7 +8041,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 return;
             }
 
-            TableDescriptor td=getTableDescriptor(ti.getTableName(),getSystemSchemaDescriptor(),null);
+            TableDescriptor td=getTableDescriptor(ti.getTableUUID(), tc);
 
             // It's possible that the system table is not there right
             // now. This can happen, for example, if we're in the
@@ -9771,7 +9751,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             if( permissions == null)
             {
                 // The owner has all privileges unless they have been revoked.
-                TableDescriptor td = getTableDescriptor(tablePermsKey.getTableUUID());
+                TableDescriptor td = getTableDescriptor(tablePermsKey.getTableUUID(), null);
                 SchemaDescriptor sd = td.getSchemaDescriptor();
 
                 if( metadataAccessRestrictionEnabled && sd.isSystemViewSchema() ||
@@ -11134,5 +11114,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     @Override
     public long getConglomerateCreationTxId(long tableConglom) throws StandardException {
         return -1;
+    }
+
+    public TabInfoImpl getTableInfo(int catalogNum) throws StandardException{
+        TabInfoImpl ti = (catalogNum < NUM_CORE) ? coreInfo[catalogNum] : getNonCoreTI(catalogNum);
+        return ti;
     }
 }

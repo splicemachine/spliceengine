@@ -906,7 +906,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 List<TableDescriptor> tds = new LinkedList<>();
                 while (resultSet.next()) {
                     com.splicemachine.db.catalog.UUID tableId = uuidFactory.recreateUUID(resultSet.getString(1));
-                    TableDescriptor tableDescriptor = dd.getTableDescriptor(tableId);
+                    TableDescriptor tableDescriptor = dd.getTableDescriptor(tableId, null);
                     /*
                      * We need to filter out views from the TableDescriptor list. Views
                      * are special cases where the number of conglomerate descriptors is 0. We

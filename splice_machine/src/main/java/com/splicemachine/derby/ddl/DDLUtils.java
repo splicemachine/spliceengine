@@ -351,7 +351,7 @@ public class DDLUtils {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
             try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
                 transactionResource.marshallTransaction(txn);
-                TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(change.getDropTable().getTableId()));
+                TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(change.getDropTable().getTableId()), null);
                 if (td == null) // Table Descriptor transaction never committed
                     return;
                 dm.invalidateFor(td, DependencyManager.DROP_TABLE, transactionResource.getLcc());
@@ -370,7 +370,7 @@ public class DDLUtils {
                 transactionResource.marshallTransaction(txn);
                 List<DerbyMessage.UUID> tdUIDs=change.getAlterStats().getTableIdList();
                 for(DerbyMessage.UUID uuuid : tdUIDs){
-                    TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
+                TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid), null);
                     if(td==null) // Table Descriptor transaction never committed
                         return;
                     dm.invalidateFor(td,DependencyManager.DROP_STATISTICS,transactionResource.getLcc());
@@ -441,7 +441,7 @@ public class DDLUtils {
                 TransactionController tc = lcc.getTransactionExecute();
                 DDLMessage.DropIndex dropIndex = change.getDropIndex();
             SchemaDescriptor sd = dd.getSchemaDescriptor(dropIndex.getSchemaName(),tc,true);
-                TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(dropIndex.getTableUUID()));
+                TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(dropIndex.getTableUUID()), null);
                 ConglomerateDescriptor cd = dd.getConglomerateDescriptor(dropIndex.getIndexName(), sd, true);
                 if (td != null) { // Table Descriptor transaction never committed
                     dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
@@ -462,7 +462,7 @@ public class DDLUtils {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
             try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
                 transactionResource.marshallTransaction(txn);
-                TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuid));
+                TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuid), null);
                 if (td == null) // Table Descriptor transaction never committed
                     return;
                 dm.invalidateFor(td, action, transactionResource.getLcc());
@@ -480,7 +480,7 @@ public class DDLUtils {
             try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
                 transactionResource.marshallTransaction(txn);
                 DerbyMessage.UUID uuuid=change.getRenameTable().getTableId();
-                TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
+            TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid), null);
                 if(td==null) // Table Descriptor transaction never committed
                     return;
                 dm.invalidateFor(td,DependencyManager.RENAME,transactionResource.getLcc());
@@ -507,7 +507,7 @@ public class DDLUtils {
             try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
                 transactionResource.marshallTransaction(txn);
                 DerbyMessage.UUID uuuid=change.getRenameColumn().getTableId();
-                TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
+            TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid), null);
                 if(td==null) // Table Descriptor transaction never committed
                     return;
                 ColumnDescriptor columnDescriptor=td.getColumnDescriptor(change.getRenameColumn().getColumnName());
@@ -547,7 +547,7 @@ public class DDLUtils {
             try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
                 transactionResource.marshallTransaction(txn);
                 DerbyMessage.UUID uuuid=change.getRenameIndex().getTableId();
-                TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
+            TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid), null);
                 if(td==null) // Table Descriptor transaction never committed
                     return;
                 dm.invalidateFor(td,DependencyManager.RENAME_INDEX,transactionResource.getLcc());
@@ -642,7 +642,7 @@ public class DDLUtils {
                 transactionResource.marshallTransaction(txn);
                 DDLMessage.DropView dropView=change.getDropView();
 
-                TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(dropView.getTableId()));
+            TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(dropView.getTableId()), null);
                 if(td==null) // Table Descriptor transaction never committed
                     return;
                 dm.invalidateFor(td,DependencyManager.DROP_VIEW,transactionResource.getLcc());
@@ -698,7 +698,7 @@ public class DDLUtils {
             try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
                 transactionResource.marshallTransaction(txn);
                 DerbyMessage.UUID uuuid=change.getCreateTrigger().getTableId();
-                TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
+            TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid), null);
                 if(td==null)
                     return;
                 dm.invalidateFor(td,DependencyManager.CREATE_TRIGGER,transactionResource.getLcc());
@@ -719,7 +719,7 @@ public class DDLUtils {
                 DerbyMessage.UUID triggeruuid=change.getDropTrigger().getTriggerId();
                 SPSDescriptor spsd=dd.getSPSDescriptor(ProtoUtil.getDerbyUUID(change.getDropTrigger().getSpsDescriptorUUID()));
 
-                TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(tableuuid));
+            TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(tableuuid), null);
                 TriggerDescriptor triggerDescriptor=dd.getTriggerDescriptor(ProtoUtil.getDerbyUUID(triggeruuid));
                 if(td!=null)
                     dm.invalidateFor(td,DependencyManager.DROP_TRIGGER,transactionResource.getLcc());
@@ -754,7 +754,7 @@ public class DDLUtils {
             try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
                 transactionResource.marshallTransaction(txn);
                 for (DerbyMessage.UUID uuid : change.getAlterTable().getTableIdList()) {
-                    TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuid));
+                TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuid), null);
                     if (td == null) // Table Descriptor transaction never committed
                         return;
                     dm.invalidateFor(td, DependencyManager.ALTER_TABLE, transactionResource.getLcc());
@@ -805,7 +805,7 @@ public class DDLUtils {
         try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
             transactionResource.marshallTransaction(txn);
             BasicUUID uuid = ProtoUtil.getDerbyUUID(change.getTruncateTable().getTableId());
-            TableDescriptor td = dd.getTableDescriptor(uuid);
+            TableDescriptor td = dd.getTableDescriptor(uuid, null);
             dm.invalidateFor(td, DependencyManager.TRUNCATE_TABLE, transactionResource.getLcc());
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
@@ -853,7 +853,7 @@ public class DDLUtils {
 
         BasicUUID uuid = ProtoUtil.getDerbyUUID(revokeTablePrivilege.getTableId());
         BasicUUID objectId = ProtoUtil.getDerbyUUID(revokeTablePrivilege.getPermObjectId());
-        TableDescriptor td = dd.getTableDescriptor(uuid);
+        TableDescriptor td = dd.getTableDescriptor(uuid, null);
 
         TablePermsDescriptor tablePermsDesc =
             new TablePermsDescriptor(
@@ -915,7 +915,7 @@ public class DDLUtils {
 
         BasicUUID uuid = ProtoUtil.getDerbyUUID(revokeColumnPrivilege.getTableId());
         BasicUUID objectId = ProtoUtil.getDerbyUUID(revokeColumnPrivilege.getPermObjectId());
-        TableDescriptor td = dd.getTableDescriptor(uuid);
+        TableDescriptor td = dd.getTableDescriptor(uuid, null);
         ColPermsDescriptor colPermsDescriptor =
             new ColPermsDescriptor(
                 dd,

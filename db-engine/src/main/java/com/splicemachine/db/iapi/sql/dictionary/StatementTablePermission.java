@@ -55,7 +55,7 @@ public class StatementTablePermission extends StatementSchemaPermission
 	/**
 	 * Constructor for StatementTablePermission. Creates an instance of
 	 * table permission requested for the given access.
-	 * 
+	 *
 	 * @param tableUUID	UUID of the table
 	 * @param privType	Access privilege requested
 	 *
@@ -126,7 +126,7 @@ public class StatementTablePermission extends StatementSchemaPermission
 	{
 		return privType + tableUUID.hashCode();
 	}
-	
+
 	/**
 	 * @see StatementPermission#check
 	 */
@@ -152,7 +152,7 @@ public class StatementTablePermission extends StatementSchemaPermission
 
 	protected TableDescriptor getTableDescriptor(DataDictionary dd)  throws StandardException
 	{
-		TableDescriptor td = dd.getTableDescriptor( tableUUID);
+        TableDescriptor td = dd.getTableDescriptor( tableUUID, null);
 		if( td == null)
 			throw StandardException.newException(SQLState.AUTH_INTERNAL_BAD_UUID, "table");
 		return td;
@@ -304,9 +304,9 @@ public class StatementTablePermission extends StatementSchemaPermission
 		TablePermsDescriptor perms = dd.getTablePermissions( tableUUID, authorizationId);
 		if( perms == null)
 			return NONE;
-		
+
 		String priv = null;
-			
+
 		switch( privType)
 		{
 		case Authorizer.SELECT_PRIV:
@@ -327,6 +327,8 @@ public class StatementTablePermission extends StatementSchemaPermission
 			break;
 		case Authorizer.TRIGGER_PRIV:
 			priv = perms.getTriggerPriv();
+			break;
+		default:
 			break;
 		}
 
@@ -362,6 +364,8 @@ public class StatementTablePermission extends StatementSchemaPermission
 				break;
 			case Authorizer.TRIGGER_PRIV:
 				priv = perms.getTriggerPriv();
+				break;
+			default:
 				break;
 		}
 

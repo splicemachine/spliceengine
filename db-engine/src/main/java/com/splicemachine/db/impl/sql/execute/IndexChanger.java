@@ -493,7 +493,7 @@ public class IndexChanger
             ConglomerateDescriptor cd = dd.getConglomerateDescriptor(indexCID);
 
             UUID tableID = cd.getTableID();
-            TableDescriptor td = dd.getTableDescriptor(tableID);
+            TableDescriptor td = dd.getTableDescriptor(tableID, tc);
             String tableName = td.getName();
 
             if (indexOrConstraintName == null) // no index name passed in

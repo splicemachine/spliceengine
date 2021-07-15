@@ -129,7 +129,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
             /* tableId will be non-null if adding a
              * constraint to an existing table.
              */
-            result = tableId!=null?dd.getTableDescriptor(tableId):dd.getTableDescriptor(tableName, sd, tc);
+            result = tableId!=null?dd.getTableDescriptor(tableId, tc):dd.getTableDescriptor(tableName, sd, tc);
             if (result == null) {
                 if(shouldThrowIfNull) {
                     throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, tableName);
