@@ -1589,6 +1589,13 @@ Guide.
             </msg>
 
             <msg>
+                <name>42846.EX</name>
+                <text>Could not resolve function or procedure call '{0}':{1}</text>
+                <arg>type</arg>
+                <arg>type</arg>
+            </msg>
+
+            <msg>
                 <name>42846.A</name>
                 <text>Cannot set a length for a cast from '{0}' to '{1}'.</text>
                 <arg>type</arg>
