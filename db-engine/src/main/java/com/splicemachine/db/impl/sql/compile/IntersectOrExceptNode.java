@@ -206,7 +206,7 @@ public class IntersectOrExceptNode extends SetOperatorNode
     {
         ContextManager cm = getContextManager();
         NodeFactory nf = getNodeFactory();
-        OrderByList orderByList = (OrderByList) nf.getNode( C_NodeTypes.ORDER_BY_LIST, cm);
+        OrderByList orderByList = new OrderByList(cm);
         for( int i = 0; i < intermediateOrderByColumns.length; i++)
         {
             OrderByColumn orderByColumn = (OrderByColumn)
@@ -236,18 +236,16 @@ public class IntersectOrExceptNode extends SetOperatorNode
                           throws StandardException
     {
         leftResultSet = optimizeSource(
-                            optimizer,
-                            leftResultSet,
-                            (PredicateList) null,
-                            null,
-                            null);
+                optimizer,
+                leftResultSet,
+                null, null,
+                null, null);
 
         rightResultSet = optimizeSource(
-                            optimizer,
-                            rightResultSet,
-                            (PredicateList) null,
-                            null,
-                            null);
+                optimizer,
+                rightResultSet,
+                null, null,
+                null, null);
 
         CostEstimate costEstimate = getCostEstimate(optimizer);
         CostEstimate leftCostEstimate = leftResultSet.getCostEstimate();

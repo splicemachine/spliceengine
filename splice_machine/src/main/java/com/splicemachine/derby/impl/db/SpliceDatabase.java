@@ -24,9 +24,7 @@ import com.splicemachine.db.iapi.jdbc.AuthenticationService;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.PropertyHelper;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.daemon.Serviceable;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyFactory;
@@ -34,7 +32,7 @@ import com.splicemachine.db.iapi.services.property.PropertySetCallback;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
-import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModelRegistry;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModelRegistry;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -44,10 +42,10 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.ast.*;
 import com.splicemachine.db.impl.db.BasicDatabase;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
 import com.splicemachine.db.impl.sql.catalog.ManagedCache;
@@ -56,9 +54,8 @@ import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.ddl.DDLMessage.DDLChange;
 import com.splicemachine.derby.ddl.*;
-import com.splicemachine.derby.impl.sql.compile.costing.V1JoinCostEstimationModel;
+import com.splicemachine.derby.impl.sql.compile.costing.V1CostModel;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
 import com.splicemachine.primitives.Bytes;
@@ -113,7 +110,7 @@ public class SpliceDatabase extends BasicDatabase{
 
         configureAuthentication();
 
-        create=Boolean.TRUE.equals(EngineLifecycleService.isCreate.get()); //written like this to avoid autoboxing
+        create = Boolean.TRUE.equals(EngineLifecycleService.isCreate.get()); //written like this to avoid autoboxing
 
         if (!create) {
             String catalogVersion = startParams.getProperty("catalogVersion");
@@ -133,7 +130,7 @@ public class SpliceDatabase extends BasicDatabase{
             }
         }
 
-        JoinCostEstimationModelRegistry.registerJoinCostEstimationModel("v1", new V1JoinCostEstimationModel());
+        CostModelRegistry.registerCostModel("v1", new V1CostModel());
 
         if(create){
             SpliceLogUtils.info(LOG,"Creating the Splice Machine database");
@@ -157,8 +154,9 @@ public class SpliceDatabase extends BasicDatabase{
         afterOptVisitors.add(LimitOffsetVisitor.class);
         afterOptVisitors.add(PlanPrinter.class);
 
-        List<Class<? extends ISpliceVisitor>> afterBindVisitors=new ArrayList<>(1);
+        List<Class<? extends ISpliceVisitor>> afterBindVisitors=new ArrayList<>(2);
         afterBindVisitors.add(RepeatedPredicateVisitor.class);
+        afterBindVisitors.add(QueryRewriteVisitor.class);
 
         List<Class<? extends ISpliceVisitor>> afterParseClasses=Collections.emptyList();
         lctx.setASTVisitor(new SpliceASTWalker(afterParseClasses, afterBindVisitors, afterOptVisitors));
@@ -168,6 +166,7 @@ public class SpliceDatabase extends BasicDatabase{
     @Override
     public LanguageConnectionContext setupConnection(ContextManager cm, String user, List<String> groupuserlist, String drdaID, String dbname,
                                                      String rdbIntTkn,
+                                                     long uselessMachineID,
                                                      DataSetProcessorType dspt,
                                                      SparkExecutionType sparkExecutionType,
                                                      boolean skipStats,
@@ -178,9 +177,12 @@ public class SpliceDatabase extends BasicDatabase{
             throws StandardException{
 
         final LanguageConnectionContext lctx=super.setupConnection(cm, user, groupuserlist,
-                drdaID, dbname, rdbIntTkn, dspt, sparkExecutionType, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
+                drdaID, dbname, rdbIntTkn, getMachineId(), dspt, sparkExecutionType, skipStats,
+                defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
 
         setupASTVisitors(lctx);
+
+        SIDriver.driver().getSessionsWatcher().registerSession(lctx.getMachineID(), lctx.getSessionID());
         return lctx;
     }
 
@@ -204,7 +206,7 @@ public class SpliceDatabase extends BasicDatabase{
         cm.setLocaleFinder(this);
         pushDbContext(cm);
         LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,
-                groupuserlist,drdaID,dbname,rdbIntTkn,type, sparkExecutionType, skipStats, defaultSelectivityFactor,
+                groupuserlist,drdaID,dbname,rdbIntTkn,getMachineId(),type, sparkExecutionType, skipStats, defaultSelectivityFactor,
                 ipAddress, null,
                 spsCache, defaultRoles, initialDefaultSchemaDescriptor, driverTxnId, null);
 
@@ -214,6 +216,14 @@ public class SpliceDatabase extends BasicDatabase{
         lctx.initialize();
         setupASTVisitors(lctx);
         return lctx;
+    }
+
+    private long getMachineId() {
+        // In EngineLifeCycleService, internal connections can be created before
+        // engine driver is loaded. For these internal connections, machine IDs
+        // are not ready yet. Assign 0 for them.
+        EngineDriver driver = EngineDriver.driver();
+        return driver == null ? 0 : driver.getMachineID();
     }
 
     @Override
@@ -358,132 +368,7 @@ public class SpliceDatabase extends BasicDatabase{
             public void startChange(DDLChange change) throws StandardException{
                 DataDictionary dataDictionary=getDataDictionary();
                 DependencyManager dependencyManager=dataDictionary.getDependencyManager();
-                switch(change.getDdlChangeType()){
-                    case CREATE_INDEX:
-                        DDLUtils.preCreateIndex(change,dataDictionary,dependencyManager);
-                        break;
-                    case DROP_INDEX:
-                        DDLUtils.preDropIndex(change,dataDictionary,dependencyManager);
-                        break;
-                    case DROP_SEQUENCE:
-                        DDLUtils.preDropSequence(change,dataDictionary,dependencyManager);
-                        break;
-                    case CHANGE_PK:
-                    case ADD_CHECK:
-                    case ADD_NOT_NULL:
-                    case ADD_COLUMN:
-                    case ADD_PRIMARY_KEY:
-                    case ADD_UNIQUE_CONSTRAINT:
-                    case DROP_COLUMN:
-                    case DROP_CONSTRAINT:
-                    case DROP_PRIMARY_KEY:
-                    case DICTIONARY_UPDATE:
-                    case CREATE_TABLE:
-                    case CREATE_SCHEMA:
-                        break;
-                    case DROP_TABLE:
-                        DDLUtils.preDropTable(change,dataDictionary,dependencyManager);
-                        break;
-                    case DROP_VIEW:
-                        DDLUtils.preDropView(change,dataDictionary,dependencyManager);
-                        break;
-                    case ALTER_TABLE:
-                        DDLUtils.preAlterTable(change,dataDictionary,dependencyManager);
-                        break;
-                    case RENAME_TABLE:
-                        DDLUtils.preRenameTable(change,dataDictionary,dependencyManager);
-                        break;
-                    case CREATE_TRIGGER:
-                        DDLUtils.preCreateTrigger(change,dataDictionary,dependencyManager);
-                        break;
-                    case CREATE_ROLE:
-                        DDLUtils.preCreateRole(change,dataDictionary,dependencyManager);
-                        break;
-                    case DROP_TRIGGER:
-                        DDLUtils.preDropTrigger(change,dataDictionary,dependencyManager);
-                        break;
-                    case DROP_ALIAS:
-                        DDLUtils.preDropAlias(change,dataDictionary,dependencyManager);
-                        break;
-                    case RENAME_INDEX:
-                        DDLUtils.preRenameIndex(change,dataDictionary,dependencyManager);
-                        break;
-                    case RENAME_COLUMN:
-                        DDLUtils.preRenameColumn(change,dataDictionary,dependencyManager);
-                        break;
-                    case DROP_SCHEMA:
-                        DDLUtils.preDropSchema(change,dataDictionary,dependencyManager);
-                        break;
-                    case UPDATE_SCHEMA_OWNER:
-                        DDLUtils.preUpdateSchemaOwner(change,dataDictionary,dependencyManager);
-                        break;
-                    case DROP_ROLE:
-                        DDLUtils.preDropRole(change,dataDictionary,dependencyManager);
-                        break;
-                    case TRUNCATE_TABLE:
-                        DDLUtils.preTruncateTable(change,dataDictionary,dependencyManager);
-                        break;
-                    case REVOKE_PRIVILEGE:
-                        DDLUtils.preRevokePrivilege(change,dataDictionary,dependencyManager);
-                        break;
-                    case ALTER_STATS:
-                        DDLUtils.preAlterStats(change,dataDictionary,dependencyManager);
-                        break;
-                    case ENTER_RESTORE_MODE:
-                        SIDriver.driver().lifecycleManager().enterRestoreMode();
-                        Collection<Context> allContexts = ContextService.getService().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
-                        for (Context context : allContexts) {
-                            ((LanguageConnectionContext) context).enterRestoreMode();
-                        }
-                        break;
-                    case SET_REPLICATION_ROLE:
-                        String role = change.getSetReplicationRole().getRole();
-                        SIDriver.driver().lifecycleManager().setReplicationRole(role);
-                        allContexts=ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
-                        for(Context context : allContexts){
-                            ((LanguageConnectionContext) context).setReplicationRole(role);
-                        }
-                        SpliceLogUtils.info(LOG,"set replication role to %s", role);
-                        break;
-                    case ROLLING_UPGRADE:
-                        DDLMessage.RollingUpgrade.OperationType type = change.getRollingUpgrade().getType();
-                        if (type == DDLMessage.RollingUpgrade.OperationType.BEGIN) {
-                            SIDriver.driver().setRollingUpgrade(true);
-                        }
-                        else if (type == DDLMessage.RollingUpgrade.OperationType.END) {
-                            SIDriver.driver().setRollingUpgrade(false);
-                        }
-                        break;
-                    case NOTIFY_JAR_LOADER:
-                        DDLUtils.preNotifyJarLoader(change,dataDictionary,dependencyManager);
-                        break;
-                    case NOTIFY_MODIFY_CLASSPATH:
-                        DDLUtils.preNotifyModifyClasspath(change,dataDictionary,dependencyManager);
-                        break;
-                    case REFRESH_ENTRPRISE_FEATURES:
-                        EngineDriver.driver().refreshEnterpriseFeatures();
-                        break;
-                    case GRANT_REVOKE_ROLE:
-                        DDLUtils.preGrantRevokeRole(change, dataDictionary, dependencyManager);
-                        break;
-                    case SET_DATABASE_PROPERTY:
-                        DDLUtils.preSetDatabaseProperty(change, dataDictionary, dependencyManager);
-                        break;
-                    case UPDATE_SYSTEM_PROCEDURES:
-                        DDLUtils.preUpdateSystemProcedures(change, dataDictionary);
-                        break;
-                    case CREATE_ALIAS:
-                    case CREATE_VIEW:
-                        break;
-                    case LEAVE_RESTORE_MODE:
-                        DDLUtils.preLeaveRestore(change, dataDictionary);
-                        break;
-                    case ADD_FOREIGN_KEY: // fallthrough, this is necessary since the parent of the foreign key now has one extra child!
-                    case DROP_FOREIGN_KEY:
-                        DDLUtils.preDropForeignKey(change, dataDictionary);
-                    default:
-                        break;
-                }
+                DDLUtils.dispatchChangeAction(change, dataDictionary, dependencyManager, null);
                 final List<DDLAction> ddlActions = new ArrayList<>();
                 ddlActions.add(new AddIndexToPipeline());
                 ddlActions.add(new DropIndexFromPipeline());
@@ -523,10 +408,8 @@ public class SpliceDatabase extends BasicDatabase{
         af=(AccessFactory)Monitor.bootServiceModule(create,this,AccessFactory.MODULE,startParams);
         ((SpliceAccessManager) af).setDatabase(this);
         if(create){
-            TransactionController tc=af.getTransaction(ContextService.getFactory().getCurrentContextManager());
-            ((SpliceTransaction)((SpliceTransactionManager)tc).getRawTransaction()).elevate(Bytes.toBytes("boot"));
+            af.elevateRawTransaction(Bytes.toBytes("boot"));
         }
-
     }
 
     /**
@@ -562,10 +445,10 @@ public class SpliceDatabase extends BasicDatabase{
                     StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
                             fid.getDescriptorType(), util.getSqlName(), fid.getSchemaDescriptor().getDescriptorType(), util.getSchemaName());
 
-        SchemaDescriptor sd = dd.getSchemaDescriptor(util.getSchemaName(), null, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(null, util.getSchemaName(), null, true);
         try {
             TransactionController tc= ((DataDictionaryImpl)dd).getTransactionCompile();
-            DDLMessage.DDLChange ddlChange = ProtoUtil.createNotifyJarLoader( ((SpliceTransactionManager)tc).getActiveStateTxn().getTxnId(), false,false,null,null);
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createNotifyJarLoader( ((SpliceTransactionManager)tc).getActiveStateTxn().getTxnId(), false,false,null,null, null);
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
             com.splicemachine.db.catalog.UUID id = Monitor.getMonitor().getUUIDFactory().createUUID();
             final String jarExternalName = JarUtil.mkExternalName(
@@ -611,7 +494,13 @@ public class SpliceDatabase extends BasicDatabase{
 
         try {
             TransactionController tc= ((DataDictionaryImpl)dd).getTransactionCompile();
-            DDLMessage.DDLChange ddlChange = ProtoUtil.createNotifyJarLoader( ((SpliceTransactionManager)tc).getActiveStateTxn().getTxnId(), false,true,util.getSchemaName(),util.getSqlName());
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createNotifyJarLoader(
+                    ((SpliceTransactionManager)tc).getActiveStateTxn().getTxnId(),
+                    false,
+                    true,
+                    util.getSchemaName(),
+                    util.getSqlName(),
+                    (BasicUUID) util.getDbId());
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
             com.splicemachine.db.catalog.UUID id = fid.getUUID();
             dd.dropFileInfoDescriptor(fid);
@@ -641,7 +530,7 @@ public class SpliceDatabase extends BasicDatabase{
         try {
             // disable loads from this jar
             TransactionController tc= ((DataDictionaryImpl)dd).getTransactionCompile();
-            DDLMessage.DDLChange ddlChange = ProtoUtil.createNotifyJarLoader( ((SpliceTransactionManager)tc).getActiveStateTxn().getTxnId(), false,false,null,null);
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createNotifyJarLoader( ((SpliceTransactionManager)tc).getActiveStateTxn().getTxnId(), false,false,null,null, null);
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
             dd.dropFileInfoDescriptor(fid);
             final String jarExternalName =
@@ -685,4 +574,8 @@ public class SpliceDatabase extends BasicDatabase{
                 Monitor.bootServiceModule(create, this, AuthenticationService.MODULE, props);
     }
 
+    @Override
+    public void unregisterSession(long machineID, String sessionId) {
+        SIDriver.driver().getSessionsWatcher().unregisterSession(machineID, sessionId);
+    }
 }

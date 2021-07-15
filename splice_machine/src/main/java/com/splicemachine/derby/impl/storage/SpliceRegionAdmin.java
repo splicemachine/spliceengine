@@ -19,8 +19,9 @@ import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.catalog.IndexDescriptor;
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -103,7 +104,7 @@ public class SpliceRegionAdmin {
         schemaName = EngineUtils.validateSchema(schemaName);
         objectName = EngineUtils.validateTable(objectName);
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-        long conglomerateNumber = getConglomerateNumber(lcc, schemaName, objectName);
+        long conglomerateNumber = getConglomerateNumber(lcc, null, schemaName, objectName);
         PartitionFactory partitionFactory = SIDriver.driver().getTableFactory();
         Partition table = partitionFactory.getTable(Long.toString(conglomerateNumber));
 
@@ -155,10 +156,10 @@ public class SpliceRegionAdmin {
      * @throws SQLException
      * @throws StandardException
      */
-    private static long getConglomerateNumber(LanguageConnectionContext lcc, String schemaName, String objectName) throws SQLException, StandardException {
+    private static long getConglomerateNumber(LanguageConnectionContext lcc, UUID databaseId, String schemaName, String objectName) throws SQLException, StandardException {
         TransactionController tc = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(databaseId, schemaName, tc, true);
         TableDescriptor td = dd.getTableDescriptor(objectName, sd, tc);
         long conglomerateNumber = 0;
         if (td != null) {
@@ -193,7 +194,7 @@ public class SpliceRegionAdmin {
 
             schemaName = EngineUtils.validateSchema(schemaName);
             objectName = EngineUtils.validateTable(objectName);
-            long conglomerateNumber = getConglomerateNumber(lcc, schemaName, objectName);
+            long conglomerateNumber = getConglomerateNumber(lcc, null, schemaName, objectName);
             PartitionFactory partitionFactory = SIDriver.driver().getTableFactory();
             Partition table = partitionFactory.getTable(Long.toString(conglomerateNumber));
             List<Partition> partitions = table.subPartitions(new byte[0], new byte[0], true);
@@ -243,7 +244,7 @@ public class SpliceRegionAdmin {
         TxnView txn = ((SpliceTransactionManager) tc).getActiveStateTxn();
         schemaName = EngineUtils.validateSchema(schemaName);
         tableName = EngineUtils.validateTable(tableName);
-        long conglomerateNumber = getConglomerateNumber(lcc, schemaName, tableName);
+        long conglomerateNumber = getConglomerateNumber(lcc, null, schemaName, tableName);
         PartitionFactory partitionFactory = SIDriver.driver().getTableFactory();
         Partition table = partitionFactory.getTable(Long.toString(conglomerateNumber));
         List<Partition> partitions = table.subPartitions(new byte[0], new byte[0], true);
@@ -324,7 +325,7 @@ public class SpliceRegionAdmin {
             try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()){
                 transactionResource.marshallTransaction(txn);
                 LanguageConnectionContext lcc = transactionResource.getLcc();
-                long conglomerateNumber = getConglomerateNumber(lcc, schemaName, tableName);
+                long conglomerateNumber = getConglomerateNumber(lcc, null, schemaName, tableName);
                 if (LOG.isDebugEnabled()) {
                     SpliceLogUtils.debug(LOG, "Localize index for table %s.%s : %d",
                             schemaName, tableName, conglomerateNumber);
@@ -1010,11 +1011,11 @@ public class SpliceRegionAdmin {
         if (index != null) {
             IndexRowGenerator irg = index.getIndexDescriptor();
             IndexDescriptor id = irg.getIndexDescriptor();
-            int[] positions = id.baseColumnPositions();
+            int[] positions = id.baseColumnStoragePositions();
             int[] typeFormatIds = new int[positions.length];
             int i = 0;
             for(int position : positions) {
-                ColumnDescriptor cd = td.getColumnDescriptor(position);
+                ColumnDescriptor cd = td.getColumnDescriptorByStoragePosition(position);
                 typeFormatIds[i++] = cd.getType().getNull().getTypeFormatId();
             }
             execRow = WriteReadUtils.getExecRowFromTypeFormatIds(typeFormatIds);
@@ -1070,10 +1071,10 @@ public class SpliceRegionAdmin {
             valueSizeHints.add(dvd.estimateMemoryUsage());
         }
 
-        boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
-                lcc, Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
-        boolean preserveLineEndings = PropertyUtil.getCachedDatabaseBoolean(
-                lcc, Property.PRESERVE_LINE_ENDINGS);
+        boolean quotedEmptyIsNull = !PropertyUtil.getCachedBoolean(
+                lcc, GlobalDBProperties.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
+        boolean preserveLineEndings = PropertyUtil.getCachedBoolean(
+                lcc, GlobalDBProperties.PRESERVE_LINE_ENDINGS);
 
         CsvParserConfig config = new CsvParserConfig(preference)
                 .oneLineRecord(false).quotedEmptyIsNull(quotedEmptyIsNull).preserveLineEndings(preserveLineEndings);

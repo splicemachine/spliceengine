@@ -115,7 +115,7 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
             if(conglomerateDescriptor!=null){
                 dataDictionary.getExecutionFactory().newExecutionContext(ContextService.getFactory().getCurrentContextManager());
                 //Hbase scan
-                TableDescriptor td=dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
+                TableDescriptor td=dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID(), null);
 
                 if(td!=null){
                     startDirect(conglomId,transactionResource.getLcc(),dataDictionary,td,conglomerateDescriptor);
@@ -209,7 +209,7 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
             transactionResource.marshallTransaction(txn);
             DataDictionary dd =transactionResource.getLcc().getDataDictionary();
             UUID tableId = ProtoUtil.getDerbyUUID(ddlChange.getDropIndex().getTableUUID());
-            TableDescriptor td = dd.getTableDescriptor(tableId);
+            TableDescriptor td = dd.getTableDescriptor(tableId, null);
             ConglomerateDescriptorList cdl = td.getConglomerateDescriptorList();
             int count = 0;
             for (ConglomerateDescriptor cd : cdl) {
@@ -323,7 +323,7 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
                     ColumnDescriptorList cdl = td.getColumnDescriptorList();
                     DDLMessage.TentativeIndex ti=ProtoUtil.createTentativeIndex(lcc,td.getBaseConglomerateDescriptor().getConglomerateNumber(),
                             indexConglom.get().getConglomerateNumber(),td,indexDescriptor,
-                            td.getDefaultValue(indexConglom.get().getIndexDescriptor().baseColumnPositions()[0]));
+                            td.getDefaultValue(indexConglom.get().getIndexDescriptor().baseColumnStoragePositions()[0]));
                     IndexFactory indexFactory=IndexFactory.create(ti);
                     indexFactories.replace(indexFactory);
                 }

@@ -177,6 +177,11 @@ public enum TestType  {
         public void check(MultiFieldDecoder decoder, Object correct) {
             Assert.assertEquals("Incorrect Float encode/decode", (Float) correct, decoder.decodeNextFloat(),FLOAT_SIZE);
         }
+
+        @Override
+        public boolean isFloatType() {
+            return true;
+        }
     },
     DOUBLE{
         @Override public Object generateRandom(Random random) { return random.nextDouble(); }
@@ -198,6 +203,11 @@ public enum TestType  {
         @Override
         public void check(MultiFieldDecoder decoder, Object correct) {
             Assert.assertEquals("Incorrect Double encode/decode", (Double) correct, decoder.decodeNextDouble(),DOUBLE_SIZE);
+        }
+
+        @Override
+        public boolean isDoubleType() {
+            return true;
         }
     },
     DECIMAL{
@@ -381,6 +391,10 @@ public enum TestType  {
             decoder.skipFloat();
         }
 
+        @Override
+        public boolean isFloatType() {
+            return true;
+        }
     },
     NULL_DOUBLE{
         @Override
@@ -408,6 +422,11 @@ public enum TestType  {
         public void check(MultiFieldDecoder decoder, Object correct) {
             Assert.assertTrue("Value is not null!",decoder.nextIsNullDouble());
             decoder.skipDouble();
+        }
+
+        @Override
+        public boolean isDoubleType() {
+            return true;
         }
     };
 
@@ -438,6 +457,14 @@ public enum TestType  {
     }
 
     public boolean isScalarType() {
+        return false;
+    }
+
+    public boolean isFloatType() {
+        return false;
+    }
+
+    public boolean isDoubleType() {
         return false;
     }
 }

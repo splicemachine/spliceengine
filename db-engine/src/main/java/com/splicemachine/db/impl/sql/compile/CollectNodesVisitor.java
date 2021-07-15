@@ -45,6 +45,7 @@ public class CollectNodesVisitor implements Visitor {
     private Vector nodeList;
     private Class nodeClass;
     private Class skipOverClass;
+    private boolean skipBranchesAlreadyBoundAndOptimized = false;
 
     /**
      * Construct a visitor
@@ -103,7 +104,18 @@ public class CollectNodesVisitor implements Visitor {
      */
     @Override
     public boolean skipChildren(Visitable node) {
-        return (skipOverClass != null) && skipOverClass.isInstance(node);
+
+        boolean skipClass = (skipOverClass != null) && skipOverClass.isInstance(node);
+        if (skipClass)
+            return true;
+        if (skipBranchesAlreadyBoundAndOptimized) {
+            if (node instanceof ResultSetNode) {
+                ResultSetNode resultSetNode = (ResultSetNode) node;
+                if (resultSetNode.skipBindAndOptimize)
+                    return true;
+            }
+        }
+        return false;
     }
 
     ////////////////////////////////////////////////
@@ -117,5 +129,9 @@ public class CollectNodesVisitor implements Visitor {
      */
     public Vector getList() {
         return nodeList;
+    }
+
+    public void skipBranchesAlreadyBoundAndOptimized() {
+        this.skipBranchesAlreadyBoundAndOptimized = true;
     }
 }

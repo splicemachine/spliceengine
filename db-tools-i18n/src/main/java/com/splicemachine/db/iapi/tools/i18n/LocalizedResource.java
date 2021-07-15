@@ -54,6 +54,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 
 
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings({"NM_METHOD_NAMING_CONVENTION", "NM_METHOD_NAMING_CONVENTION"})
 public final class LocalizedResource  implements java.security.PrivilegedAction {
 
 	private static final boolean SUPPORTS_BIG_DECIMAL_CALLS;
@@ -67,7 +68,7 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 			// J2ME/CDC/Foundation 1.0 profile.
 			Class.forName("java.math.BigDecimal");
 			// And no methods using BigDecimal are available with JSR169 spec.
-			Method getbd = ResultSet.class.getMethod("getBigDecimal", new Class[] {int.class});
+			ResultSet.class.getMethod("getBigDecimal", new Class[] {int.class});
 			supportsBigDecimalCalls = true;
 		} catch (Throwable t) {
 			supportsBigDecimalCalls = false;
@@ -86,7 +87,6 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 	private LocalizedOutput out;
 	private LocalizedInput in;
 	private boolean enableLocalized;
-	private boolean unicodeEscape;
 	private static LocalizedResource local;
 	private int dateSize;
 	private int timeSize;
@@ -96,6 +96,12 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 	private DateFormat formatTimestamp;
 	private NumberFormat formatNumber;
     private DecimalFormat formatDecimal;
+
+	boolean customFormatDate = false;
+	boolean customFormatTime = false;
+	boolean customFormatTimestamp = false;
+	private static final Object lock = new Object();
+
 	public LocalizedResource(){
 		init();
 	}
@@ -103,10 +109,12 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 		init(encStr,locStr,msgF);
 	}
 	public static LocalizedResource getInstance(){
-		if (local == null){
-			local = new  LocalizedResource();
+		synchronized (lock) {
+			if (local == null) {
+				local = new LocalizedResource();
+			}
+			return local;
 		}
-		return local;
 	}
     // Resets the 'local' field to null. This is not needed for normal
     // operations, however, when executing sql files in our junit tests, we use
@@ -162,16 +170,16 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 			formatNumber = NumberFormat.getInstance(locale);
 			formatDate = DateFormat.getDateInstance(DateFormat.LONG,locale);
 			formatTime = DateFormat.getTimeInstance(DateFormat.LONG,locale);
-			formatTimestamp = DateFormat.getDateTimeInstance(DateFormat.LONG,
-													DateFormat.LONG, locale);
+			formatTimestamp = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG, locale);
+			customFormatDate = customFormatTime = customFormatTimestamp = true;
 		}
 		else {
 			formatDecimal = (DecimalFormat)DecimalFormat.getInstance();
 			formatNumber = NumberFormat.getInstance();
 			formatDate = DateFormat.getDateInstance(DateFormat.LONG);
 			formatTime = DateFormat.getTimeInstance(DateFormat.LONG);
-			formatTimestamp = DateFormat.getDateTimeInstance(DateFormat.LONG,
-													DateFormat.LONG);
+			formatTimestamp = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG);
+			customFormatDate = customFormatTime = customFormatTimestamp = false;
 		}
 		//initialize display sizes for columns
 		initMaxSizes2();
@@ -230,8 +238,11 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 
 			Date td = new Date(ms);
 
-			String fd = formatTime.format(td);
+			DateFormat format = formatTime == null ?
+					DateFormat.getTimeInstance(DateFormat.LONG)
+					: formatTime;
 
+			String fd = format.format(td);
 			if (fd.length() > len)
 				len = fd.length();
 		}
@@ -331,7 +342,9 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 	public String getLocalizedString(ResultSet rs,
 										ResultSetMetaData rsm,
 										int columnNumber) throws SQLException{
-			if (!enableLocalized){
+			rs.getObject(columnNumber);
+			if(rs.wasNull()) return "NULL";
+			if (!enableLocalized && !customFormatTimestamp && !customFormatTime && !customFormatDate){
 				return rs.getString(columnNumber);
 			}
 			int type = rsm.getColumnType(columnNumber);
@@ -362,13 +375,13 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 		}
 
 	public String getDateAsString(Date d){
-		if (!enableLocalized){
+		if (!customFormatDate){
 			return d.toString();
 		}
 		return formatDate.format(d);
 	}
 	public String getTimeAsString(Date t){
-		if (!enableLocalized){
+		if (!customFormatTime){
 			return t.toString();
 		}
 		return formatTime.format(t,	new StringBuffer(),
@@ -406,7 +419,7 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 		return formatDecimal.format(o);
 	}
 	public String getTimestampAsString(Timestamp t){
-		if (!enableLocalized){
+		if (!customFormatTimestamp){
 			return t.toString();
 		}
 		return formatTimestamp.format
@@ -427,37 +440,7 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 					return timestampSize;
 		  return rsm.getColumnDisplaySize(columnNumber);
 	}
-	public String getStringFromDate(String dateStr)
-		throws ParseException{
-			if (!enableLocalized){
-				return dateStr;
-			}
-			Date d = formatDate.parse(dateStr);
-			return new java.sql.Date(d.getTime()).toString();
-	}
-	public String getStringFromTime(String timeStr)
-		throws ParseException{
-			if (!enableLocalized){
-				return timeStr;
-			}
-			Date t = formatTime.parse(timeStr);
-			return new java.sql.Time(t.getTime()).toString();
-	}
-	public String getStringFromValue(String val)
-		throws ParseException{
-			if (!enableLocalized){
-				return val;
-			}
-			return formatNumber.parse(val).toString();
-	}
-	public String getStringFromTimestamp(String timestampStr)
-		throws ParseException{
-			if (!enableLocalized){
-				return timestampStr;
-			}
-			Date ts = formatTimestamp.parse(timestampStr);
-			return new java.sql.Timestamp(ts.getTime()).toString();
-	}
+
 	public Locale getLocale(){
 			return locale;
 	}
@@ -525,4 +508,20 @@ public final class LocalizedResource  implements java.security.PrivilegedAction 
 			"timeSize=" + timeSize + "\n" +
 			"timestampSize="+timestampSize+ "\n}";
 	}
+
+	public void setFormatDate(DateFormat f) {
+		formatDate = f;
+		customFormatDate = true;
+	}
+
+	public void setFormatTime(DateFormat f) {
+		formatTime = f;
+		customFormatTime = true;
+	}
+	public void setFormatTimestamp(DateFormat f) {
+		formatTimestamp = f;
+		customFormatTimestamp = true;
+	}
+//	private NumberFormat formatNumber;
+//	private DecimalFormat formatDecimal;
 }

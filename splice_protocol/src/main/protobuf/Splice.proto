@@ -32,6 +32,11 @@ message AllocateFilterMessage {
     optional bytes addressMatch = 1;
 }
 
+message KeyPrefixProbingFilterMessage {
+    required int32 firstKeyColumnEncodingKind = 1;
+    required bytes  secondaryFilter = 2;
+}
+
 message SuccessFilterMessage {
     repeated bytes failedTasks = 1;
 }
@@ -223,6 +228,14 @@ message SpliceOldestActiveTransactionResponse {
     required int64 oldestActiveTransaction = 1;
 }
 
+message SpliceActiveSessionsRequest {
+
+}
+
+message SpliceActiveSessionsResponse {
+    repeated string activeSessionIds = 1;
+}
+
 message TestResponse {
     optional uint64 count = 1;
 }
@@ -244,6 +257,9 @@ service SpliceRSRpcServices {
 
     rpc getOldestActiveTransaction(SpliceOldestActiveTransactionRequest)
         returns (SpliceOldestActiveTransactionResponse);
+
+    rpc getActiveSessions(SpliceActiveSessionsRequest)
+        returns (SpliceActiveSessionsResponse);
 
 }
 

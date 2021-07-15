@@ -232,7 +232,7 @@ public class StaticMethodCallNode extends MethodCallNode {
             if(candidateSchemasProperty != null) {
                 String[] candidateSchemas = (String[]) (candidateSchemasProperty);
                 for (String candidateSchema : candidateSchemas) {
-                    sd = getSchemaDescriptor(candidateSchema, false);
+                    sd = getSchemaDescriptor(null, candidateSchema, false);
                     if (sd == null) {
                         throw StandardException.newException(SQLState.LANG_CURRENT_FUNCTION_PATH_SCHEMA_DOES_NOT_EXIST,
                                                              Arrays.toString(candidateSchemas), candidateSchema);
@@ -245,7 +245,7 @@ public class StaticMethodCallNode extends MethodCallNode {
                 }
             }
             if(ad == null) { // couldn't resolve with candidate schemas (if any), try with current one.
-                sd = getSchemaDescriptor(schemaName, schemaName != null);
+                sd = getSchemaDescriptor(null, schemaName, schemaName != null);
                 sd = setAliasDescriptor(fromList, subqueryList, aggregateVector, sd, schemaName == null,
                         errorList);
             }
@@ -296,7 +296,7 @@ public class StaticMethodCallNode extends MethodCallNode {
             {
                 if (!sd.isSystemSchema())
                     throw StandardException.newException(
-                        SQLState.LANG_TYPE_DOESNT_EXIST2, (Throwable) null,
+                        SQLState.LANG_TYPE_DOESNT_EXIST2, null,
                         javaClassName);
             }
         }
@@ -421,7 +421,7 @@ public class StaticMethodCallNode extends MethodCallNode {
             // was not qualified. E.g. COS(angle). The
             // SYSFUN functions are not in SYSALIASES but
             // an in-memory table, set up in DataDictionaryImpl.
-            result = getSchemaDescriptor("SYSFUN", true);
+            result = getSchemaDescriptor(null, "SYSFUN", true);
 
             resolveRoutine(fromList, subqueryList, aggregateVector, result, errorList);
             setIsSystemFunction(true);
@@ -789,7 +789,7 @@ public class StaticMethodCallNode extends MethodCallNode {
                 ad.getNameSpace(),
                 ad.getSystemAlias(),
                 routineInfo,
-                ad.getSpecificName());
+                ad.getSpecificName(), null);
 
         // Update signature by adding in the script String's corresponding JSQLType
         JSQLType pyCodeType = new JSQLType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(TypeId.BLOB_NAME));

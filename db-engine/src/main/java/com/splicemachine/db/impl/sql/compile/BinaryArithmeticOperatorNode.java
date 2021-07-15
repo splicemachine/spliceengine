@@ -37,11 +37,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 
-import com.splicemachine.db.iapi.types.DataTypeUtilities;
-import com.splicemachine.db.iapi.types.DateTimeDataValue;
-import com.splicemachine.db.iapi.types.TypeId;
-
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.*;
 
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 
@@ -249,7 +245,7 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
 
         MethodCallNode methodNode = new StaticMethodCallNode(
                 functionName,
-                "com.splicemachine.derby.utils.SpliceDateFunctions",
+                "com.splicemachine.derby.procedures.SpliceDateFunctions",
                 getContextManager());
         Vector<ValueNode> parameterList = new Vector<>();
         parameterList.addElement(getLeftOperand());
@@ -302,12 +298,7 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
                             timespan.getUnit());
             }
             MethodCallNode methodNode = new StaticMethodCallNode(
-                    getNodeFactory().getNode(
-                            C_NodeTypes.TABLE_NAME,
-                            null,
-                            function,
-                            getContextManager()
-                    ),
+                    new TableName(null, function, getContextManager()),
                     null,
                     getContextManager()
             );
@@ -367,5 +358,57 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
             localCost *= FLOAT_OP_COST_FACTOR;
         }
         return localCost + super.getBaseOperationCost() + SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
+    }
+
+    /** @see ValueNode#evaluateConstantExpressions */
+    @Override
+    ValueNode evaluateConstantExpressions() throws StandardException {
+        if (getLeftOperand() instanceof ConstantNode && getRightOperand() instanceof ConstantNode) {
+            ConstantNode lhs = (ConstantNode) getLeftOperand();
+            ConstantNode rhs = (ConstantNode) getRightOperand();
+
+            if (lhs.isNull()) {
+                return lhs;
+            }
+            if (rhs.isNull()) {
+                return rhs;
+            }
+            if (lhs instanceof NumericConstantNode && rhs instanceof NumericConstantNode) {
+                DataTypeDescriptor resultType = lhs.getTypeCompiler().resolveArithmeticOperation(
+                        lhs.getTypeServices(),
+                        rhs.getTypeServices(),
+                        operator
+                );
+                NumberDataValue result;
+                NumberDataValue leftValue = (NumberDataValue) lhs.getValue();
+                NumberDataValue rightValue = (NumberDataValue) rhs.getValue();
+                NumberDataValue receiver = leftIsReceiver() ? leftValue : rightValue;
+                switch (operator) {
+                    case TypeCompiler.TIMES_OP:
+                        result = receiver.times(leftValue, rightValue, null);
+                        break;
+                    case TypeCompiler.DIVIDE_OP:
+                        result = receiver.divide(leftValue, rightValue, null);
+                        break;
+                    case TypeCompiler.PLUS_OP:
+                        result = receiver.plus(leftValue, rightValue, null);
+                        break;
+                    case TypeCompiler.MINUS_OP:
+                        result = receiver.minus(leftValue, rightValue, null);
+                        break;
+                    case TypeCompiler.MOD_OP:
+                        result = receiver.mod(leftValue, rightValue, null);
+                        break;
+                    default:
+                        throw new IllegalStateException("Unexpected value: " + operator);
+                }
+                return new NumericConstantNode(
+                        getContextManager(),
+                        QueryTreeNode.getConstantNodeType(resultType),
+                        result,
+                        resultType);
+            }
+        }
+        return this;
     }
 }

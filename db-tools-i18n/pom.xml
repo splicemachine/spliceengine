@@ -33,10 +33,16 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.2.0.2013-SNAPSHOT</version>
+        <version>3.2.0.2024-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>db-tools-i18n</artifactId>
+    <dependencies>
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>annotations</artifactId>
+        </dependency>
+    </dependencies>
     <properties>
         <loc-src-dir>${project.basedir}/src/main/resources/com/splicemachine/db/loc/</loc-src-dir>
 	<loc-out-dir>${project.build.directory}/generated-resources/messages/com/splicemachine/db/loc</loc-out-dir>

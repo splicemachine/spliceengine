@@ -28,7 +28,8 @@ import java.io.ObjectOutput;
 
 public class SpliceSequence extends AbstractSequence{
     protected byte[] sysColumnsRow;
-    static final byte[] autoIncrementValueQualifier=Encoding.encode(7);
+    @SuppressFBWarnings(value = "MS_MUTABLE_ARRAY", justification = "intentional")
+    public static final byte[] autoIncrementValueQualifier=Encoding.encode(7);
     private PartitionFactory partitionFactory;
     private TxnOperationFactory opFactory;
 

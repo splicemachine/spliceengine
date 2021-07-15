@@ -79,6 +79,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     protected TaskContext taskContext;
     private Deque<ExecRow> firstBatch;
     private boolean oneRowOnly = false;
+    private boolean isSpark = false;
     private volatile boolean isClosed = false;
 
     protected ExecutorService executorService;
@@ -97,6 +98,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
             taskContext.addTaskCompletionListener((TaskCompletionListener) (t) -> close());
         }
         operationContext.getOperation().registerCloseable(this);
+        isSpark = operationContext.isSpark();
         SConfiguration configuration= EngineDriver.driver().getConfiguration();
         batchSize = configuration.getNestedLoopJoinBatchSize();
         nLeftRows = 0;
@@ -158,7 +160,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                 nLeftRows++;
                 ExecRow execRow = firstBatch.removeFirst();
                 OperationContext context =
-                        oneRowOnly ? operationContext :
+                        (oneRowOnly && !isSpark) ? operationContext :
                         operationContextList.isEmpty() ? null :
                                 operationContextList.remove(0);
                 Supplier<OperationContext> supplier = context != null ? () -> context : () -> {

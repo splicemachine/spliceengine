@@ -38,8 +38,7 @@ import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
 import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
 import com.splicemachine.db.iapi.sql.compile.RequiredRowOrdering;
-import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModel;
-import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModelRegistry;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.services.monitor.ModuleControl;
@@ -142,7 +141,7 @@ public class OptimizerFactoryImpl
 								  RequiredRowOrdering requiredRowOrdering,
 								  int numTablesInQuery,
 								  LanguageConnectionContext lcc,
-								  JoinCostEstimationModel joinCostEstimationModel)
+								  CostModel costModel)
 				throws StandardException
 	{
 		/* Get/set up the array of join strategies.
@@ -165,7 +164,7 @@ public class OptimizerFactoryImpl
 							requiredRowOrdering,
 							numTablesInQuery,
 							lcc,
-							joinCostEstimationModel);
+								costModel);
 	}
 
 	/**
@@ -199,7 +198,7 @@ public class OptimizerFactoryImpl
 										 RequiredRowOrdering requiredRowOrdering,
 										 int numTablesInQuery,
 										 LanguageConnectionContext lcc,
-										 JoinCostEstimationModel joinCostEstimationModel)
+										 CostModel costModel)
 				throws StandardException
 	{
 
@@ -215,7 +214,7 @@ public class OptimizerFactoryImpl
 							lcc.getLockEscalationThreshold(),
 							requiredRowOrdering,
 							numTablesInQuery,
-							joinCostEstimationModel);
+							costModel);
 	}
 
 	/**

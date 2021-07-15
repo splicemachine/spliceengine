@@ -38,14 +38,14 @@ public class DataDictionaryUtils {
 
     public static TableDescriptor getTableDescriptor(LanguageConnectionContext lcc, UUID tableId) throws StandardException {
         DataDictionary dd = lcc.getDataDictionary();
-        return dd.getTableDescriptor(tableId);
+        return dd.getTableDescriptor(tableId, null);
     }
 
     public static TableDescriptor getTableDescriptor(LanguageConnectionContext lcc, String schemaName, String tableName) throws StandardException {
         DataDictionary dd = lcc.getDataDictionary();
         SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
 
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, tc, true);
         if (sd == null) {
             throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
         }
@@ -90,7 +90,7 @@ public class DataDictionaryUtils {
 
             LanguageConnectionContext lcc = impl.getLcc();
             DataDictionary dd = lcc.getDataDictionary();
-            TableDescriptor td = dd.getTableDescriptor(tableId);
+            TableDescriptor td = dd.getTableDescriptor(tableId, null);
             ConstraintDescriptorList cdl = dd.getConstraintDescriptors(td);
             ReferencedKeyConstraintDescriptor keyDescriptor = cdl.getPrimaryKey();
 
@@ -159,7 +159,7 @@ public class DataDictionaryUtils {
             impl.marshallTransaction(txn);
             LanguageConnectionContext lcc = impl.getLcc();
             DataDictionary dd = lcc.getDataDictionary();
-            TableDescriptor td = dd.getTableDescriptor(tableId);
+            TableDescriptor td = dd.getTableDescriptor(tableId, null);
             if (td != null) {
                 return td.getFormatIds();
             } else {

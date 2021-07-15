@@ -30,8 +30,6 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -177,14 +175,14 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         */
         dd.startWriting(lcc);
 
-        SchemaDescriptor triggerSd = getSchemaDescriptorForCreate(dd, activation, triggerSchemaName);
+        SchemaDescriptor triggerSd = getSchemaDescriptorForCreate(dd, activation, null, triggerSchemaName);
 
         if (spsCompSchemaId == null) {
             SchemaDescriptor def = lcc.getDefaultSchema();
             if (def.getUUID() == null) {
                 // Descriptor for default schema is stale,
                 // look it up in the dictionary
-                def = dd.getSchemaDescriptor(def.getDescriptorName(), tc,
+                def = dd.getSchemaDescriptor(null, def.getDescriptorName(), tc,
                         false);
             }
 
@@ -229,7 +227,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
          * one we got at compile time, the lock on system table was released
          * when compile was done, and the table might well have been dropped.
          */
-        triggerTable = dd.getTableDescriptor(triggerTableId);
+        triggerTable = dd.getTableDescriptor(triggerTableId, tc);
         if (triggerTable!=null && triggerTable.getTableType()==TableDescriptor.EXTERNAL_TYPE) {
             throw StandardException.newException(
                     SQLState.EXTERNAL_TABLES_NO_TRIGGERS,triggerTable.getName());
@@ -244,7 +242,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         /* Lock the table for DDL.  Otherwise during our execution, the table
          * might be changed, even dropped.  Beetle 4269
          */
-        triggerTable = dd.getTableDescriptor(triggerTableId);
+        triggerTable = dd.getTableDescriptor(triggerTableId, tc);
         if (triggerTable == null) {
             throw StandardException.newException(
                     SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION,
@@ -261,9 +259,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         */
         dm.invalidateFor(triggerTable, DependencyManager.CREATE_TRIGGER, lcc);
 
-        DDLMessage.DDLChange ddlChange = ProtoUtil.createTrigger(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) this.tableId);
-        // Run Remotely
-        tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+        notifyMetadataChange(tc, ProtoUtil.createTrigger(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) this.tableId));
 
         /*
         ** Lets get our trigger id up front, we'll use it when

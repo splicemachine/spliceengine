@@ -380,6 +380,7 @@ message HBaseConglomerate {
   repeated int32 formatIds=4;
   repeated int32 collationIds=5;
   repeated int32 columnOrdering=6;
+  repeated int32 keyFormatIds=7;
 }
 
 message IndexConglomerate {

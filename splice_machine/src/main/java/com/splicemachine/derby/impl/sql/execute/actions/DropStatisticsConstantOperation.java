@@ -62,7 +62,7 @@ public class DropStatisticsConstantOperation extends DDLConstantOperation {
 		{
 			cd = dd.getConglomerateDescriptor(objectName,
 											 sd, false);
-			td = dd.getTableDescriptor(cd.getTableID());
+			td = dd.getTableDescriptor(cd.getTableID(), tc);
 		}
 
 		/* invalidate all SPS's on the table-- bad plan on SPS, so user drops

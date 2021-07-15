@@ -27,6 +27,7 @@ import org.junit.runner.Description;
 import splice.com.google.common.base.Joiner;
 
 import java.sql.*;
+import java.util.Collections;
 import java.util.List;
 
 import static junit.framework.TestCase.assertTrue;
@@ -977,7 +978,7 @@ public class IndexIT extends SpliceUnitTest{
 
         String query = format(
                 "SELECT \n" +
-                "      CAST (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) AS SMALLINT) as ORD \n" +
+                "      CAST (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.STORAGENUMBER) AS SMALLINT) as ORD \n" +
                 "    , cols.COLUMNNUMBER \n" +
                 "    , cols.COLUMNNAME \n" +
                 "  FROM --splice-properties joinOrder=fixed \n" +
@@ -990,7 +991,7 @@ public class IndexIT extends SpliceUnitTest{
                 "  AND T.TABLEID = CONGLOMS.TABLEID \n" +
                 "  AND T.TABLEID = COLS.REFERENCEID \n" +
                 "  AND (CASE WHEN CONGLOMS.DESCRIPTOR IS NOT NULL THEN \n" +
-                "         CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) ELSE \n" +
+                "         CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.STORAGENUMBER) ELSE \n" +
                 "         0 END) <> 0 \n" +
                 "  AND T.TABLENAME='%s' \n" +
                 "  AND CONGLOMS.CONGLOMERATENAME='%s'", tableName, tableName + "_IDX");
@@ -1537,6 +1538,30 @@ public class IndexIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testFullScanViaExpressionBasedIndexWithExpressionSelected() throws Exception {
+        String tableName = "TEST_FULL_SCAN_SELECT_INDEX_EXPR";
+        String indexExpr = "timestampdiff(SQL_TSI_FRAC_SECOND, timestamp('1970-01-01 00:00:00'), t)";
+        methodWatcher.executeUpdate(format("create table %s (t TIMESTAMP NOT NULL)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('2020-01-01 01:01:01')", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %1$s_IDX ON %1$s (%2$s)", tableName, indexExpr));
+        methodWatcher.executeUpdate(format("insert into %s values ('2020-02-02 02:02:02')", tableName));
+
+        String query = format("select %1$s from %2$s --splice-properties index=%2$s_IDX\n", indexExpr, tableName);
+
+        rowContainsQuery(new int[]{2,3}, "explain " + query, methodWatcher, "ScrollInsensitive", "IndexScan[TEST_FULL_SCAN_SELECT_INDEX_EXPR_IDX");
+
+        String expected = "1          |\n" +
+                "---------------------\n" +
+                "1577840461000000000 |\n" +
+                "1580608922000000000 |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
     public void testScansStarStopKeyFromIndexExpressionPredicate() throws Exception {
         String tableName = "TEST_START_STOP_KEY_EXPR_INDEX";
         methodWatcher.executeUpdate(format("create table %s (c char(4), i int)", tableName));
@@ -1789,7 +1814,8 @@ public class IndexIT extends SpliceUnitTest{
         methodWatcher.executeUpdate("create table TEST_IN_LIST_RHS_2(b1 int, b2 int)");
         methodWatcher.executeUpdate("insert into TEST_IN_LIST_RHS_2 values(0,0),(3,30),(5,50)");
 
-        String query = "select b1, a2 from TEST_IN_LIST_RHS --splice-properties index=TEST_IN_LIST_RHS_IDX\n, " +
+        String query = "select b1, a2 from --splice-properties joinOrder=fixed\n" +
+                "TEST_IN_LIST_RHS --splice-properties index=TEST_IN_LIST_RHS_IDX\n, " +
                 "TEST_IN_LIST_RHS_2 where b1 in (1, a1 * 3)";
 
         String[] expectedOps = new String[]{
@@ -2228,7 +2254,8 @@ public class IndexIT extends SpliceUnitTest{
         //////////////////////////
 
         query = "select *\n"+
-                " from PERSON_ADDRESS_1 pa --SPLICE-PROPERTIES index=pa_idx_1\n"+
+                " from --splice-properties joinOrder=fixed\n" +
+                " PERSON_ADDRESS_1 pa --SPLICE-PROPERTIES index=pa_idx_1\n"+
                 " join ADDRESS_1 a         --SPLICE-PROPERTIES index=a_idx_1 %s\n"+
                 "  on max(pa.addr_id, 300) = abs(a.addr_id)\n"+
                 " where lower(a.std_state_provence) in ('ia', 'fl', 'al')";
@@ -2236,11 +2263,11 @@ public class IndexIT extends SpliceUnitTest{
         /* check plan */
         expectedOps = new String[] {
                 "IndexLookup",                 // base row retrieving for ADDRESS_1
-                "IndexScan[PA_IDX_1",
-                "IndexLookup",                 // base row retrieving for PERSON_ADDRESS_1
                 "MultiProbeIndexScan[A_IDX_1", // in-list for ADDRESS_1
+                "IndexLookup",                 // base row retrieving for PERSON_ADDRESS_1
+                "IndexScan[PA_IDX_1",
         };
-        rowContainsQuery(new int[]{7,8,10,11}, "explain " + format(query, ""), methodWatcher, expectedOps);
+        rowContainsQuery(new int[]{4,5,6,7}, "explain " + format(query, ""), methodWatcher, expectedOps);
 
         /* check result */
         expected = "PID | ADDR_ID | ADDR_ID |STD_STATE_PROVENCE |\n" +
@@ -2680,6 +2707,75 @@ public class IndexIT extends SpliceUnitTest{
 
         try (ResultSet rs = methodWatcher.executeQuery(query)) {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testConglomeratesIndex() throws Exception {
+        testExplainContains(
+                "select conglomeratenumber from sys.sysconglomerates where conglomeratenumber=32",
+                methodWatcher,
+                Collections.singletonList("IndexScan"),
+                null);
+    }
+
+    @Test
+    public void testNonCoveringIoEHashableJoinNotFeasible() throws Exception {
+        String tableName1 = "TEST_IOE_T1";
+        String tableName2 = "TEST_IOE_T2";
+        methodWatcher.executeUpdate(format("create table %s (a1 int, b1 int, c1 int, d1 int)", tableName1));
+        methodWatcher.executeUpdate(format("insert into %s values (1,1,1,1), (2,2,2,2), (3,3,3,3), (4,4,4,4), (5,5,5,5)", tableName1));
+        methodWatcher.executeUpdate(format("CREATE INDEX %1$s_IDX1 ON %1$s (b1 + c1)", tableName1)); // index on expr
+        methodWatcher.executeUpdate(format("CREATE INDEX %1$s_IDX2 ON %1$s (b1)", tableName1));      // classic index
+
+        methodWatcher.executeUpdate(format("create table %s (a1 int, b1 int, c1 int, d1 int)", tableName2));
+        methodWatcher.executeUpdate(format("insert into %s values (1,1,1,1), (2,2,2,2)", tableName2));
+        methodWatcher.executeUpdate(format("CREATE INDEX %1$s_IDX1 ON %1$s (b1 + c1)", tableName2)); // index on expr
+        methodWatcher.executeUpdate(format("CREATE INDEX %1$s_IDX2 ON %1$s (b1)", tableName2));      // classic index
+
+        String queryTemplate = "select * from %s T1 --splice-properties index=%s_IDX%d\n" +
+                " join %s T2 --splice-properties %s index=%s_IDX%d\n" +
+                " on T1.b1 + T1.c1 = T2.b1 + T2.c1";
+
+        /* check plan */
+        String[] expectedOps = new String[] {
+                "NestedLoopJoin",
+                "IndexLookup",
+                "IndexScan",
+                "[((T1.B1[2:2] + T1.C1[2:3]) = (T2.B1[4:2] + T2.C1[4:3]))]",
+                "IndexLookup",
+                "IndexScan"
+        };
+        String query = format(queryTemplate, tableName1, tableName1, 1, tableName2, "", tableName2, 1);
+        rowContainsQuery(new int[]{3,4,5,5,6,7},
+                         "explain " + query,
+                         methodWatcher, expectedOps);
+
+        /* check result */
+        String expected = "A1 |B1 |C1 |D1 |A1 |B1 |C1 |D1 |\n" +
+                "--------------------------------\n" +
+                " 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |\n" +
+                " 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 |";
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // hint a hashable join doesn't work
+        query = format(queryTemplate, tableName1, tableName1, 1, tableName2, "joinStrategy=sortmerge, ", tableName2, 1);
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.fail("there should be no valid plan because hashable joins are not feasible for non-covering IoE");
+        } catch (SQLException e) {
+            Assert.assertEquals("42Y69", e.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("No valid execution plan was found for this statement"));
+        }
+
+        // make sure it's the same behavior for classic indexes
+        query = format(queryTemplate, tableName1, tableName1, 2, tableName2, "joinStrategy=sortmerge, ", tableName2, 2);
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.fail("there should be no valid plan because no hash key can be found for a hashable join");
+        } catch (SQLException e) {
+            Assert.assertEquals("42Y69", e.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("No valid execution plan was found for this statement"));
         }
     }
 }

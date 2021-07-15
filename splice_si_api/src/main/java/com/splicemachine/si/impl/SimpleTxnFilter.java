@@ -41,6 +41,8 @@ import java.io.IOException;
  *         Date: 6/23/14
  */
 public class SimpleTxnFilter implements TxnFilter{
+    private static int MAX_COMMITTED_KVS = 5; // number of committed kvs we process
+
     private final TxnSupplier transactionStore;
     private final TxnView myTxn;
     private final ReadResolver readResolver;
@@ -51,6 +53,7 @@ public class SimpleTxnFilter implements TxnFilter{
     private Long antiTombstonedTxnRow = null;
     private final ByteSlice rowKey=new ByteSlice();
     private boolean isReplica;
+    private int count = 0; // number of cells processed
 
     /*
      * The most common case for databases is insert-only--that is, that there
@@ -86,8 +89,7 @@ public class SimpleTxnFilter implements TxnFilter{
      */
     private final boolean ignoreNewerTransactions;
 
-    public SimpleTxnFilter(String tableName,
-                           TxnView myTxn,
+    public SimpleTxnFilter(TxnView myTxn,
                            ReadResolver readResolver,
                            TxnSupplier baseSupplier,
                            boolean ignoreNewerTransactions) {
@@ -109,11 +111,10 @@ public class SimpleTxnFilter implements TxnFilter{
     }
 
     @SuppressWarnings("unchecked")
-    public SimpleTxnFilter(String tableName,
-                           TxnView myTxn,
+    public SimpleTxnFilter(TxnView myTxn,
                            ReadResolver readResolver,
                            TxnSupplier baseSupplier){
-        this(tableName, myTxn, readResolver, baseSupplier, false);
+        this(myTxn, readResolver, baseSupplier, false);
     }
 
     @Override
@@ -137,11 +138,12 @@ public class SimpleTxnFilter implements TxnFilter{
 
     @Override
     public DataFilter.ReturnCode filterCell(DataCell keyValue) throws IOException{
+        count++;
         CellType type=keyValue.dataType();
         switch (type) {
             case COMMIT_TIMESTAMP:
                 ensureTransactionIsCached(keyValue);
-                return DataFilter.ReturnCode.SKIP;
+                return count < MAX_COMMITTED_KVS ? DataFilter.ReturnCode.SKIP : ReturnCode.NEXT_COL;
             case FOREIGN_KEY_COUNTER:
             case FIRST_WRITE_TOKEN:
             case DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN:
@@ -177,6 +179,7 @@ public class SimpleTxnFilter implements TxnFilter{
         tombstonedTxnRow = null;
         antiTombstonedTxnRow = null;
         rowKey.reset();
+        count = 0;
     }
 
     @Override

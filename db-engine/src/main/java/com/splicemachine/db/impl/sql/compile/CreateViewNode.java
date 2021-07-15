@@ -280,10 +280,7 @@ public class CreateViewNode extends DDLStatementNode
                                              ContextManager        cm)
         throws StandardException
     {
-        FromList    fromList = (FromList) nodeFactory.getNode(
-                                        C_NodeTypes.FROM_LIST,
-                                        nodeFactory.doJoinOrderOptimization(),
-                                        cm);
+        FromList fromList = new FromList(nodeFactory.doJoinOrderOptimization(), cm);
 
         ProviderList     prevAPL = compilerContext.getCurrentAuxiliaryProviderList();
         ProviderList     apl = new ProviderList();
@@ -382,10 +379,7 @@ public class CreateViewNode extends DDLStatementNode
                                                        ContextManager    cm)
             throws StandardException
     {
-        FromList    fromList = (FromList) nodeFactory.getNode(
-                C_NodeTypes.FROM_LIST,
-                nodeFactory.doJoinOrderOptimization(),
-                cm);
+        FromList fromList = new FromList(nodeFactory.doJoinOrderOptimization(), cm);
 
         ProviderList     prevAPL = compilerContext.getCurrentAuxiliaryProviderList();
         ProviderList     apl = new ProviderList();
@@ -553,7 +547,7 @@ public class CreateViewNode extends DDLStatementNode
       *
       *    @return    the parsed query expression.
       */
-    ResultSetNode    getParsedQueryExpression() { return queryExpression; }
+    public ResultSetNode getParsedQueryExpression() { return queryExpression; }
 
 
     /*

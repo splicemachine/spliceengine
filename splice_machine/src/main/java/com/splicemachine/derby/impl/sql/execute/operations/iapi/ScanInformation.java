@@ -65,13 +65,15 @@ public interface ScanInformation<T> {
     DataScan getScan(TxnView txn, T startKeyHint, int[] keyDecodingMap, T stopKeyPrefix,
                      List<Pair<T, T>> keyRows, DataValueDescriptor scanKeyPrefix,
                      boolean sameStartStopScanKeyPrefix,
-                     List<ExecRow> firstIndexColumnKeys) throws StandardException;
+                     List<ExecRow> firstIndexColumnKeys,
+                     boolean skipBuildOfFirstKeyColumn) throws StandardException;
 
     Qualifier[][] getScanQualifiers() throws StandardException;
 
     long getConglomerateId();
     
-    List<DataScan> getScans(TxnView txn, List<ExecRow> scanKeyPrefixes, Activation activation, int[] keyDecodingMap) throws StandardException;
+    List<DataScan> getScans(TxnView txn, List<ExecRow> scanKeyPrefixes, Activation activation,
+                            int[] keyDecodingMap, boolean skipBuildOfFirstKeyColumn) throws StandardException;
 
     int[] getColumnOrdering() throws StandardException;
 
@@ -86,4 +88,7 @@ public interface ScanInformation<T> {
     FormatableBitSet getDefaultValueMap() throws StandardException;
 
     boolean getSameStartStopPosition();
+
+    // Setting to true skips evaluation of the scan qualifiers.
+    void skipQualifiers(boolean skip);
 }

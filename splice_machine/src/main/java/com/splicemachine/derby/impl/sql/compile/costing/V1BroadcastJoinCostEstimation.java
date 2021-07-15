@@ -17,7 +17,6 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModel;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import com.splicemachine.db.impl.sql.compile.JoinNode;
@@ -71,8 +70,9 @@ public class V1BroadcastJoinCostEstimation implements StrategyJoinCostEstimation
                 estimatedMemoryMB<regionThreshold &&
                         estimatedRowCount<rowCountThreshold &&
                         (!currentAccessPath.isMissingHashKeyOK() ||
-                                // allow full outer join without equality join condition
-                                outerCost.getJoinType() == JoinNode.FULLOUTERJOIN||
+                                // allow outer join without equality join condition
+                                outerCost.getJoinType() == JoinNode.FULLOUTERJOIN ||
+                                outerCost.getJoinType() == JoinNode.LEFTOUTERJOIN ||  // DB-11063
                                 // allow left or inner join with non-equality broadcast join only if using spark
                                 (innerTable instanceof FromBaseTable && optimizer.isForSpark()));
 

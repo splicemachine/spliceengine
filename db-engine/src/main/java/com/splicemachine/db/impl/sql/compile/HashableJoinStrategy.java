@@ -61,6 +61,8 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
                             CostEstimate outerCost,
                             boolean wasHinted,
                             boolean skipKeyCheck) throws StandardException {
+        if (optimizer.getJoinPosition() > 0 && innerTable.outerTableOnly())
+            return false;
         int[] hashKeyColumns;
         ConglomerateDescriptor cd = null;
         OptimizerTrace tracer = optimizer.tracer();
@@ -166,49 +168,21 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
                 return true;
             }
 
-            if (innerTable instanceof FromTable                               &&
-                predList != null                                              &&
-                !outerCost.isSingleRow()                                      &&
-                (innerTable.isMaterializable() ||
+            if ((innerTable.isMaterializable() ||
                  innerTable.supportsMultipleInstantiations())                 &&
                 optimizer instanceof OptimizerImpl                            &&
                 !(innerTable instanceof RowResultSetNode)                     &&
                 !(innerTable instanceof SetOperatorNode)) {
 
-                // Base tables only supported for inequality broadcast
-                // join in the first pass to reduce risk.
-                FromTable prn = (FromTable)innerTable;
-                while (prn instanceof ProjectRestrictNode &&
-                       ((ProjectRestrictNode)prn).childResult instanceof FromTable)
-                    prn = (FromTable)((ProjectRestrictNode)prn).childResult;
-                if (!(prn instanceof FromBaseTable))
-                    return false;
-
-                Predicate pred = null;
-                // If we do not currently have a join predicate, it may just
-                // be because the predicate can't be applied given the current
-                // access path, so for now don't consider joins that have
-                // no join predicates.
-                for (int i = 0; i < predList.size(); i++) {
-                    pred = (Predicate)predList.getOptPredicate(i);
-                    if (pred.isHashableJoinPredicate()) {
-                        ap.setMissingHashKeyOK(true);
-
-                        AndNode andNode = pred.getAndNode();
-                        if (!(andNode.getLeftOperand() instanceof BinaryRelationalOperatorNode))
-                            continue;
-
-                        if (pred.isScopedForPush())
-                            continue;
-
-                        foundUnPushedJoinPred = true;
-                    }
-                }
-                if (ap.isMissingHashKeyOK() && foundUnPushedJoinPred)
+                // Consider BroadcastNestedLoopJoin for anything other
+                // than single-table scan.
+                if (!isSingleTableScan(optimizer)) {
+                    ap.setMissingHashKeyOK(true);
                     return true;
-
-                ap.setMissingHashKeyOK(false);
+                }
             }
+            else
+                ap.setMissingHashKeyOK(false);
         }
 
         return hashKeyColumns!=null;
@@ -598,14 +572,25 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         // Build a Vector of all the hash key columns
         Vector hashKeyVector = new Vector();
         if (cd != null && cd.isIndex() && cd.getIndexDescriptor().isOnExpression()) {
-            IndexRowGenerator irg = cd.getIndexDescriptor();
-            assert innerTable instanceof QueryTreeNode;
-            QueryTreeNode inner = (QueryTreeNode) innerTable;
+            if (innerTable.isCoveringIndex(cd)) {
+                // Check for hash keys only for covering IoEs. If not covering, expressions in
+                // predicates won't be replaced with column references. Consequently, we could
+                // have an expression such as "col1 + col2" as a hash key. Currently, we don't
+                // support this kind of hash key because in preparing for execution (fillResultSet),
+                // we need to get a row template for a projection. For that we need to invoke
+                // the projection generated method. If there contains something more than
+                // plain column references like arithmetic ops, it causes an NPE because data
+                // is not yet there. In theory, we should be able to support an expression as
+                // a hash key. But then we need to tune our code generation logic.
+                IndexRowGenerator irg = cd.getIndexDescriptor();
+                assert innerTable instanceof QueryTreeNode;
+                QueryTreeNode inner = (QueryTreeNode) innerTable;
 
-            ValueNode[] exprAsts = irg.getParsedIndexExpressions(inner.getLanguageConnectionContext(), innerTable);
-            for (int colIdx = 0; colIdx < exprAsts.length; colIdx++) {
-                if (predList.hasOptimizableEquijoin(innerTable, exprAsts[colIdx], joinedTableSet)) {
-                    hashKeyVector.add(colIdx);
+                ValueNode[] exprAsts = irg.getParsedIndexExpressions(inner.getLanguageConnectionContext(), innerTable);
+                for (int colIdx = 0; colIdx < exprAsts.length; colIdx++) {
+                    if (predList.hasOptimizableEquijoin(innerTable, exprAsts[colIdx], joinedTableSet)) {
+                        hashKeyVector.add(colIdx);
+                    }
                 }
             }
         } else {

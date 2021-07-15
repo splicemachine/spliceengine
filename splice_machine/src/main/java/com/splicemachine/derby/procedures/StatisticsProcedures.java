@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.procedures;
 
+import splice.com.google.common.collect.Iterables;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -85,6 +86,8 @@ import static com.splicemachine.derby.utils.EngineUtils.verifyTableExists;
  *         Date: 2/26/15
  */
 public class StatisticsProcedures extends BaseAdminProcedures {
+
+    private static final int DDL_NOTIFICATION_PARTITION_SIZE = 512;
 
     public static void addProcedures(List<Procedure> procedures) {
         /*
@@ -472,7 +475,7 @@ public class StatisticsProcedures extends BaseAdminProcedures {
 
             IteratorNoPutResultSet resultsToWrap = wrapResults(conn,
                     displayTableStatistics(statisticsOperations,true, dd, transactionExecute, display), COLLECTED_STATS_OUTPUT_COLUMNS);
-            ddlNotification(tc, tds);
+            ddlNotificationInPartitions(tc, tds, DDL_NOTIFICATION_PARTITION_SIZE);
             outputResults[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
@@ -718,6 +721,25 @@ public class StatisticsProcedures extends BaseAdminProcedures {
     private static void ddlNotification(TransactionController tc,  List<TableDescriptor> tds) throws StandardException {
         DDLChange ddlChange = ProtoUtil.alterStats(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),tds);
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+    }
+
+    /**
+     * When COLLECT_SCHEMA_STATISTICS analyzes a big schema with many tables, it could cause a DDL coordination timeout.
+     * The problem happens when the massage with ddlChangeType: ALTER_STATS has many table descriptor ids.
+     * To avoid this issue, the method splits the list of table descriptors into smaller partitions with the size given
+     * in partitionSize.
+     *
+     * @param tc
+     * @param tds
+     * @param partitionSize
+     * @throws StandardException
+     */
+    private static void ddlNotificationInPartitions(TransactionController tc,  List<TableDescriptor> tds, int partitionSize) throws StandardException {
+        Iterable<List<TableDescriptor>> tdPartitions = Iterables.partition(tds, partitionSize);
+        for (List<TableDescriptor> tdPartition : tdPartitions) {
+            DDLChange ddlChange = ProtoUtil.alterStats(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), tdPartition);
+            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+        }
     }
 
     /* ****************************************************************************************************************/
@@ -1041,7 +1063,7 @@ public class StatisticsProcedures extends BaseAdminProcedures {
                 List<TableDescriptor> tds = new LinkedList<>();
                 while (resultSet.next()) {
                     com.splicemachine.db.catalog.UUID tableId = uuidFactory.recreateUUID(resultSet.getString(1));
-                    TableDescriptor tableDescriptor = dd.getTableDescriptor(tableId);
+                    TableDescriptor tableDescriptor = dd.getTableDescriptor(tableId, null);
                     /*
                      * We need to filter out views from the TableDescriptor list. Views
                      * are special cases where the number of conglomerate descriptors is 0. We
@@ -1473,7 +1495,7 @@ public class StatisticsProcedures extends BaseAdminProcedures {
                     else if (statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS)
                         statsType = SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS;
                     Pair<String, String> pair = displayPair.get(conglomId);
-                    SchemaDescriptor sd = dataDictionary.getSchemaDescriptor(pair.getFirst(), tc, true);
+                                    SchemaDescriptor sd = dataDictionary.getSchemaDescriptor(null, pair.getFirst(), tc, true);
                     TableDescriptor td = dataDictionary.getTableDescriptor(pair.getSecond(), sd, tc);
                     ConglomerateDescriptor cd = null;
                     if (td == null) {

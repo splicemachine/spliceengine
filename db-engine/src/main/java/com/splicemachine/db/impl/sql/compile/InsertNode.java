@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.StatementType;
@@ -86,6 +87,31 @@ import java.util.Properties;
  * After optimizing, ...
  */
 public final class InsertNode extends DMLModStatementNode {
+
+    InsertNode() {}
+    InsertNode(
+            QueryTreeNode    targetName,
+            ResultColumnList insertColumns,
+            ResultSetNode    queryExpression,
+            Properties       targetProperties,
+            OrderByList      orderByList,
+            ValueNode        offset,
+            ValueNode        fetchFirst,
+            boolean          hasJDBClimitClause,
+            ContextManager cm)
+    {
+        setNodeType(C_NodeTypes.INSERT_NODE);
+        setContextManager(cm);
+        init(targetName,
+                insertColumns,
+                queryExpression,
+                targetProperties,
+                orderByList,
+                offset,
+                fetchFirst,
+                hasJDBClimitClause);
+    }
+
     public enum InsertMode {INSERT, UPSERT, LOAD_REPLACE}
 
     public InsertMode insertMode = InsertMode.INSERT;
@@ -264,10 +290,7 @@ public final class InsertNode extends DMLModStatementNode {
     public void bindStatement() throws StandardException {
         // We just need select privilege on the expressions
         getCompilerContext().pushCurrentPrivType( Authorizer.SELECT_PRIV);
-        FromList    fromList = (FromList) getNodeFactory().getNode(
-                                    C_NodeTypes.FROM_LIST,
-                                    getNodeFactory().doJoinOrderOptimization(),
-                                    getContextManager());
+        FromList fromList = new FromList(getNodeFactory().doJoinOrderOptimization(), getContextManager());
 
         // Bind and Optimize Real Time Views (OK, That is a made up name).
         bindAndOptimizeRealTimeViews();
@@ -590,8 +613,8 @@ public final class InsertNode extends DMLModStatementNode {
             storagePosMap[storagePosition-1] = index;
         }
 
-        ResultColumnList expandedRS = (ResultColumnList)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
-        ResultColumnList expandedRCL = (ResultColumnList)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
+        ResultColumnList expandedRS = new ResultColumnList(getContextManager());
+        ResultColumnList expandedRCL = new ResultColumnList(getContextManager());
         for (int index = 0; index < maxStorageID; index++) {
             int pos = storagePosMap[index]; // index is 0-based, pos is 1-based
             ResultColumn newSourceRC = null;
@@ -607,17 +630,19 @@ public final class InsertNode extends DMLModStatementNode {
                 // ValueNode nullNode = (ValueNode) getNodeFactory().getNode(
                 //     C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
                 //     getContextManager());
-                newSourceRC = (ResultColumn)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN,
-                    "",
-                    getNullNode(dtd),
-                    getContextManager());
+                newSourceRC = new ResultColumn("", getNullNode(dtd), getContextManager());
                 newSourceRCLEntry = newSourceRC.cloneMe();
             }
             expandedRS.addResultColumn(newSourceRC);
             expandedRCL.addResultColumn(newSourceRCLEntry);
         }
 
+
+
+        if (resultSet instanceof UnionNode) {
+            UnionNode node = (UnionNode) resultSet;
+            node.expandResultSetWithDeletedColumns(targetTableDescriptor, resultColumnList, node);
+        }
         // In the new result columns, virtualColumnId = storage position id of the column
         resultSet.setResultColumns(expandedRS);
         this.resultColumnList = expandedRCL;
@@ -908,7 +933,7 @@ public final class InsertNode extends DMLModStatementNode {
     public boolean[] getIndexedCols() throws StandardException
     {
         /* Create a boolean[] to track the (0-based) columns which are indexed */
-        boolean[] indexedCols = new boolean[targetTableDescriptor.getNumberOfColumns()];
+        boolean[] indexedCols = new boolean[targetTableDescriptor.getNumberOfStorageColumns()];
         for (IndexRowGenerator anIndicesToMaintain : indicesToMaintain) {
             int[] colIds = anIndicesToMaintain.getIndexDescriptor().baseColumnPositions();
 

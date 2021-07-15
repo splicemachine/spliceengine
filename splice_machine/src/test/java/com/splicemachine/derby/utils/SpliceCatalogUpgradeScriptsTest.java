@@ -9,6 +9,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 public class SpliceCatalogUpgradeScriptsTest {
     String s1 =
@@ -23,10 +24,14 @@ public class SpliceCatalogUpgradeScriptsTest {
 
     String s2 = "VERSION4.1989: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddIndexColUseViewInSYSCAT\n" +
             "VERSION4.1992: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptForTablePriorities\n" +
-            "VERSION4.2003: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeStoredObjects\n";
+            "VERSION4.2003: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeStoredObjects\n" +
+            "VERSION4.2023: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeFixIndexDescriptors\n";
 
-    // see DB-11296, UpgradeConglomerateTable must run before other upgrade scripts
-    String s3 = "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeConglomerateTable\n";
+    // Those scripts must run before other upgrade scripts
+    String s3 = "VERSION4.2020: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeAddConglomerateNumberIndex\n" +
+            "VERSION4.2024: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToPrioritizeSchemaIdInSystemIndices\n" +
+            "VERSION4.1996: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeConglomerateTable\n" +
+            "VERSION4.2020: com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeScriptToAddMultiDatabaseSupport\n";
     // add more scripts here
 
     private String replaceVersions(String s) {
@@ -39,7 +44,7 @@ public class SpliceCatalogUpgradeScriptsTest {
     @Test
     public void test_since_1933()
     {
-        SpliceCatalogUpgradeScripts s = new SpliceCatalogUpgradeScripts(null, null);
+        SpliceCatalogUpgradeScripts s = new SpliceCatalogUpgradeScripts(null, null, new Properties());
         Splice_DD_Version version = new Splice_DD_Version(null, 3,1,0, 1933);
         List<SpliceCatalogUpgradeScripts.VersionAndUpgrade> list =
                 SpliceCatalogUpgradeScripts.getScriptsToUpgrade(s.getScripts(), version);
@@ -49,7 +54,7 @@ public class SpliceCatalogUpgradeScriptsTest {
     @Test
     public void test_since_1987()
     {
-        SpliceCatalogUpgradeScripts s = new SpliceCatalogUpgradeScripts(null, null);
+        SpliceCatalogUpgradeScripts s = new SpliceCatalogUpgradeScripts(null, null, new Properties());
         Splice_DD_Version version = new Splice_DD_Version(null, 3,2,0, 1987);
         List<SpliceCatalogUpgradeScripts.VersionAndUpgrade> list =
                 SpliceCatalogUpgradeScripts.getScriptsToUpgrade(s.getScripts(), version);
@@ -59,7 +64,7 @@ public class SpliceCatalogUpgradeScriptsTest {
     @Test
     public void test_since_2000_upgrade_empty()
     {
-        SpliceCatalogUpgradeScripts s = new SpliceCatalogUpgradeScripts(null, null);
+        SpliceCatalogUpgradeScripts s = new SpliceCatalogUpgradeScripts(null, null, new Properties());
         Splice_DD_Version version = new Splice_DD_Version(null, 4,0,0, 2000);
         List<SpliceCatalogUpgradeScripts.VersionAndUpgrade> list =
                 SpliceCatalogUpgradeScripts.getScriptsToUpgrade(s.getScripts(), version);

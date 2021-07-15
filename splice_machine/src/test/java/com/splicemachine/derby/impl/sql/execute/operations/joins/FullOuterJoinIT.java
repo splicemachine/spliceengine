@@ -710,7 +710,7 @@ public class FullOuterJoinIT extends SpliceUnitTest {
                 "select a5 as X from t5) dt where X in (1,3,5,7)", useSpark, joinStrategy);
 
         rowContainsQuery(new int[]{5, 7, 8}, "explain " + sqlText, methodWatcher,
-                new String[]{"MultiProbeTableScan", "preds=[(A5[7:1] IN (1,3,5,7))]"},
+                new String[]{"MultiProbeTableScan", "keys=[(A5[7:1] IN (1,3,5,7))]"},
                 new String[]{"ProjectRestrict", "preds=[(A1[4:1] IN (1,3,5,7))]"},
                 new String[]{"FullOuterJoin", "preds=[(A1[4:1] = A2[4:2])]"});
 
@@ -1124,11 +1124,14 @@ public class FullOuterJoinIT extends SpliceUnitTest {
         8 rows selected
          */
         rowContainsQuery(new int[]{3,4,5,6,8}, "explain " + sqlText, methodWatcher,
-                new String[]{useSpark.equals("true")? "CrossJoin" : "NestedLoopJoin"},
+                new String[]{useSpark.equals("true")? "Join" : "NestedLoopJoin"},
                 new String[]{"TableScan[T3"},
                 new String[]{"LeftOuterJoin"},
                 new String[]{"TableScan[T2"},
                 new String[]{"TableScan[T1"});
+
+        if (useSpark.equals("true"))
+            queryDoesNotContainString("explain " + sqlText, "NestedLoopJoin", methodWatcher);
 
         String expected = "A1 |B1 | A2  | B2  |A3 |B3 |\n" +
                 "----------------------------\n" +

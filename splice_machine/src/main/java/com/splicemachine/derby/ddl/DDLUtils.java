@@ -15,6 +15,7 @@
 package com.splicemachine.derby.ddl;
 
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.catalog.UUID;
@@ -115,6 +116,27 @@ public class DDLUtils {
         SIDriver driver=SIDriver.driver();
 
         return new LazyTxnView(txnId, driver.getTxnSupplier(),driver.getExceptionFactory());
+    }
+
+    @FunctionalInterface
+    public interface DDLAction {
+        void apply(LanguageConnectionContext lcc) throws SQLException, StandardException;
+    }
+
+    private static void run(long txnId, LanguageConnectionContext lcc, DDLAction action) throws StandardException {
+        try {
+            if (lcc != null) {
+                action.apply(lcc);
+            } else {
+                try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
+                    TxnView txn = getLazyTransaction(txnId);
+                    transactionResource.marshallTransaction(txn);
+                    action.apply(transactionResource.getLcc());
+                }
+            }
+        } catch (SQLException e) {
+            throw StandardException.plainWrapException(e);
+        }
     }
 
     public static String outIntArray(int[] values) {
@@ -335,6 +357,14 @@ public class DDLUtils {
         }
     }
 
+    public static void preMultipleChanges(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
+        run(change.getTxnId(), null, lcc -> {
+            for (DDLMessage.DDLChange subChange : change.getChangeList()) {
+                dispatchChangeAction(subChange, dd, dm, lcc);
+            }
+        });
+    }
+
     /**
      *
      *
@@ -352,456 +382,371 @@ public class DDLUtils {
      * @param dm
      * @throws StandardException
      */
-    public static void preDropTable(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException{
+    public static void preDropTable(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm, LanguageConnectionContext lcc) throws StandardException{
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preDropTable with change=%s",change);
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-                transactionResource.marshallTransaction(txn);
-                TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(change.getDropTable().getTableId()));
-                if (td == null) // Table Descriptor transaction never committed
-                    return;
-                dm.invalidateFor(td, DependencyManager.DROP_TABLE, transactionResource.getLcc());
-            }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
+        run(change.getTxnId(), lcc, innerLcc -> {
+            TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(change.getDropTable().getTableId()), null);
+            if (td == null) // Table Descriptor transaction never committed
+                return;
+            dm.invalidateFor(td, DependencyManager.DROP_TABLE, innerLcc);
+        });
     }
 
     public static void preAlterStats(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException{
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preAlterStats with change=%s",change);
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-                transactionResource.marshallTransaction(txn);
-                List<DerbyMessage.UUID> tdUIDs=change.getAlterStats().getTableIdList();
-                for(DerbyMessage.UUID uuuid : tdUIDs){
-                    TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
-                    if(td==null) // Table Descriptor transaction never committed
-                        return;
-                    dm.invalidateFor(td,DependencyManager.DROP_STATISTICS,transactionResource.getLcc());
-                }
-            }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
-    }
-
-    public static void preDropSchema(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
-        if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG,"preDropSchema with change=%s",change);
-        DDLMessage.DropSchema dropSchema = change.getDropSchema();
-        UUID schemaId = ProtoUtil.getDerbyUUID(dropSchema.getSchemaUUID());
-        try {
-            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-                TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-                transactionResource.marshallTransaction(txn);
-                SchemaDescriptor sd = dd.getSchemaDescriptor(schemaId, transactionResource.getLcc().getTransactionExecute());
-                if(sd==null) // Schema Descriptor transaction never committed
+        run(change.getTxnId(), null, lcc -> {
+            List<DerbyMessage.UUID> tdUIDs=change.getAlterStats().getTableIdList();
+            for(DerbyMessage.UUID uuuid : tdUIDs){
+                TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid), null);
+                if(td==null) // Table Descriptor transaction never committed
                     return;
-                dm.invalidateFor(sd,DependencyManager.DROP_SCHEMA,transactionResource.getLcc());
+                dm.invalidateFor(td,DependencyManager.DROP_STATISTICS,lcc);
             }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
-        dd.getDataDictionaryCache().schemaCacheRemove(dropSchema.getSchemaName());
-        dd.getDataDictionaryCache().oidSchemaCacheRemove(schemaId);
-
+        });
     }
 
-    public static void preUpdateSchemaOwner(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
+    public static void preDropSchema(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm, LanguageConnectionContext lcc) throws StandardException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "preDropSchema with change=%s", change);
+        run(change.getTxnId(), lcc, innerLcc -> {
+            DDLMessage.DropSchema dropSchema = change.getDropSchema();
+            UUID schemaId = ProtoUtil.getDerbyUUID(dropSchema.getSchemaUUID());
+            SchemaDescriptor sd = dd.getSchemaDescriptor(schemaId, innerLcc.getTransactionExecute());
+            if (sd == null) // Schema Descriptor transaction never committed
+                return;
+            dm.invalidateFor(sd, DependencyManager.DROP_SCHEMA, innerLcc);
+            if (dropSchema.hasDbUUID()) {
+                dd.getDataDictionaryCache().schemaCacheRemove(ProtoUtil.getDerbyUUID(dropSchema.getDbUUID()), dropSchema.getSchemaName());
+            } else { // This was sent by a region server that does not support multidb yet. We invalidate the whole cache
+                SpliceLogUtils.warn(LOG, "We cannot invalidate schema cache for %s without DB information. " +
+                        "Invalidating the whole cache instead", dropSchema.getSchemaName());
+                dd.getDataDictionaryCache().clearSchemaCache();
+            }
+            dd.getDataDictionaryCache().oidSchemaCacheRemove(schemaId);
+        });
+    }
+
+    public static void preDropDatabase(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preDropDatabase with change=%s",change);
+        run(change.getTxnId(), null, lcc -> {
+            String dbName = change.getDropDatabase().getDbName();
+            DatabaseDescriptor desc = dd.getDatabaseDescriptor(dbName, lcc.getTransactionExecute());
+            if (desc == null)
+                return;
+            dm.invalidateFor(desc, DependencyManager.DROP_DATABASE, lcc);
+            dd.getDataDictionaryCache().databaseCacheRemove(change.getDropDatabase().getDbName());
+        });
+    }
+
+    public static void preUpdateSchemaOwner(DDLMessage.DDLChange change, DataDictionary dd) throws StandardException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preUpdateSchemaOwner with change=%s",change);
 
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-                transactionResource.marshallTransaction(txn);
-                // remove corresponding schema canche entry
-                dd.getDataDictionaryCache().schemaCacheRemove(change.getUpdateSchemaOwner().getSchemaName());
-                dd.getDataDictionaryCache().oidSchemaCacheRemove(ProtoUtil.getDerbyUUID(change.getUpdateSchemaOwner().getSchemaUUID()));
-                // clear permission cache as it has out-of-date permission info for the schema
-                dd.getDataDictionaryCache().clearPermissionCache();
-                // clear  TableDescriptor cache as it may reference the schema with an out-of-date authorization id
-                dd.getDataDictionaryCache().clearOidTdCache();
-                dd.getDataDictionaryCache().clearNameTdCache();
+        run(change.getTxnId(), null, lcc -> {
+            DDLMessage.UpdateSchemaOwner uso = change.getUpdateSchemaOwner();
+            DataDictionaryCache cache = dd.getDataDictionaryCache();
+            // remove corresponding schema cache entry
+            if (uso.hasDbUUID()) {
+                cache.schemaCacheRemove(ProtoUtil.getDerbyUUID(uso.getDbUUID()), uso.getSchemaName());
+            } else {
+                cache.clearSchemaCache();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw StandardException.plainWrapException(e);
-        }
+            cache.oidSchemaCacheRemove(ProtoUtil.getDerbyUUID(uso.getSchemaUUID()));
+            // clear permission cache as it has out-of-date permission info for the schema
+            cache.clearPermissionCache();
+            // clear  TableDescriptor cache as it may reference the schema with an out-of-date authorization id
+            cache.clearOidTdCache();
+            cache.clearNameTdCache();
+        });
     }
 
     public static void preCreateIndex(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
         preIndex(change, dd, dm, DependencyManager.CREATE_INDEX, change.getTentativeIndex().getTable().getTableUuid());
     }
 
-    public static void preDropIndex(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
+    public static void preDropIndex(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm, LanguageConnectionContext lcc) throws StandardException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preDropIndex with change=%s",change);
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-                transactionResource.marshallTransaction(txn);
-                LanguageConnectionContext lcc = transactionResource.getLcc();
-                TransactionController tc = lcc.getTransactionExecute();
-                DDLMessage.DropIndex dropIndex = change.getDropIndex();
-            SchemaDescriptor sd = dd.getSchemaDescriptor(dropIndex.getSchemaName(),tc,true);
-                TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(dropIndex.getTableUUID()));
-                ConglomerateDescriptor cd = dd.getConglomerateDescriptor(dropIndex.getIndexName(), sd, true);
-                if (td != null) { // Table Descriptor transaction never committed
-                    dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
-                }
-                if (cd != null) {
-                    dm.invalidateFor(cd, DependencyManager.DROP_INDEX, lcc);
-                }
+        run(change.getTxnId(), lcc, innerLcc -> {
+            TransactionController tc = innerLcc.getTransactionExecute();
+            DDLMessage.DropIndex dropIndex = change.getDropIndex();
+            TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(dropIndex.getTableUUID()), null);
+                SchemaDescriptor sd;
+            if (td != null) { // Table Descriptor transaction never committed
+                dm.invalidateFor(td, DependencyManager.ALTER_TABLE, innerLcc);
+                sd = td.getSchemaDescriptor();
+            } else if (dropIndex.hasDbUUID()){
+                sd = dd.getSchemaDescriptor(ProtoUtil.getDerbyUUID(dropIndex.getDbUUID()), dropIndex.getSchemaName(), tc, true);
+            } else { // This was sent by a region server that does not support multidb yet. We don't know yet what to do but throw
+                throw new IllegalStateException("preDropIndex called from a region server that does not support multidb");
             }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
+                ConglomerateDescriptor cd = dd.getConglomerateDescriptor(dropIndex.getIndexName(), sd, true);
+            if (cd != null) {
+                dm.invalidateFor(cd, DependencyManager.DROP_INDEX, innerLcc);
+            }
+        });
     }
 
     private static void preIndex(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm, int action, DerbyMessage.UUID uuid) throws StandardException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preIndex with change=%s",change);
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-                transactionResource.marshallTransaction(txn);
-                TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuid));
-                if (td == null) // Table Descriptor transaction never committed
-                    return;
-                dm.invalidateFor(td, action, transactionResource.getLcc());
-            }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
+        run(change.getTxnId(), null, lcc -> {
+            TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuid), null);
+            if (td == null) // Table Descriptor transaction never committed
+                return;
+            dm.invalidateFor(td, action, lcc);
+        });
     }
 
     public static void preRenameTable(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preRenameTable with change=%s",change);
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-                transactionResource.marshallTransaction(txn);
-                DerbyMessage.UUID uuuid=change.getRenameTable().getTableId();
-                TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
-                if(td==null) // Table Descriptor transaction never committed
-                    return;
-                dm.invalidateFor(td,DependencyManager.RENAME,transactionResource.getLcc());
-    		/* look for foreign key dependency on the table. If found any,
-	    	use dependency manager to pass the rename action to the
-		    dependents. */
+        run(change.getTxnId(), null, lcc -> {
+            DerbyMessage.UUID uuuid = change.getRenameTable().getTableId();
+            TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid), null);
+            if (td == null) // Table Descriptor transaction never committed
+                return;
+            dm.invalidateFor(td, DependencyManager.RENAME, lcc);
+            /* look for foreign key dependency on the table. If found any,
+            use dependency manager to pass the rename action to the
+            dependents. */
                 ConstraintDescriptorList constraintDescriptorList=dd.getConstraintDescriptors(td);
                 for(int index=0;index<constraintDescriptorList.size();index++){
                     ConstraintDescriptor constraintDescriptor=constraintDescriptorList.elementAt(index);
                     if(constraintDescriptor instanceof ReferencedKeyConstraintDescriptor)
-                        dm.invalidateFor(constraintDescriptor,DependencyManager.RENAME,transactionResource.getLcc());
-                }
+                    dm.invalidateFor(constraintDescriptor, DependencyManager.RENAME, lcc);
             }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
+        });
     }
 
     public static void preRenameColumn(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preRenameColumn with change=%s",change);
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-                transactionResource.marshallTransaction(txn);
-                DerbyMessage.UUID uuuid=change.getRenameColumn().getTableId();
-                TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
-                if(td==null) // Table Descriptor transaction never committed
-                    return;
-                ColumnDescriptor columnDescriptor=td.getColumnDescriptor(change.getRenameColumn().getColumnName());
-                if(columnDescriptor.isAutoincrement())
-                    columnDescriptor.setAutoinc_create_or_modify_Start_Increment(
-                            ColumnDefinitionNode.CREATE_AUTOINCREMENT);
+        run(change.getTxnId(), null, lcc -> {
+            DerbyMessage.UUID uuuid=change.getRenameColumn().getTableId();
+            TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid), null);
+            if(td==null) // Table Descriptor transaction never committed
+                return;
+            ColumnDescriptor columnDescriptor=td.getColumnDescriptor(change.getRenameColumn().getColumnName());
+            if(columnDescriptor.isAutoincrement())
+                columnDescriptor.setAutoinc_create_or_modify_Start_Increment(
+                        ColumnDefinitionNode.CREATE_AUTOINCREMENT);
 
-                int columnPosition=columnDescriptor.getPosition();
-                FormatableBitSet toRename=new FormatableBitSet(td.getColumnDescriptorList().size()+1);
-                toRename.set(columnPosition);
-                td.setReferencedColumnMap(toRename);
-                dm.invalidateFor(td,DependencyManager.RENAME,transactionResource.getLcc());
+            int columnPosition=columnDescriptor.getPosition();
+            FormatableBitSet toRename=new FormatableBitSet(td.getColumnDescriptorList().size()+1);
+            toRename.set(columnPosition);
+            td.setReferencedColumnMap(toRename);
+            dm.invalidateFor(td,DependencyManager.RENAME,lcc);
 
-                //look for foreign key dependency on the column.
-                ConstraintDescriptorList constraintDescriptorList=dd.getConstraintDescriptors(td);
-                for(int index=0;index<constraintDescriptorList.size();index++){
-                    ConstraintDescriptor constraintDescriptor=constraintDescriptorList.elementAt(index);
-                    int[] referencedColumns=constraintDescriptor.getReferencedColumns();
-                    int numRefCols=referencedColumns.length;
-                    for(int j=0;j<numRefCols;j++){
-                        if((referencedColumns[j]==columnPosition) &&
-                                (constraintDescriptor instanceof ReferencedKeyConstraintDescriptor))
-                            dm.invalidateFor(constraintDescriptor,DependencyManager.RENAME,transactionResource.getLcc());
-                    }
+            //look for foreign key dependency on the column.
+            ConstraintDescriptorList constraintDescriptorList=dd.getConstraintDescriptors(td);
+            for(int index=0;index<constraintDescriptorList.size();index++){
+                ConstraintDescriptor constraintDescriptor=constraintDescriptorList.elementAt(index);
+                int[] referencedColumns=constraintDescriptor.getReferencedColumns();
+                int numRefCols=referencedColumns.length;
+                for(int j=0;j<numRefCols;j++){
+                    if((referencedColumns[j]==columnPosition) &&
+                            (constraintDescriptor instanceof ReferencedKeyConstraintDescriptor))
+                        dm.invalidateFor(constraintDescriptor,DependencyManager.RENAME,lcc);
                 }
             }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
+        });
     }
 
     public static void preRenameIndex(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preRenameIndex with change=%s",change);
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-                transactionResource.marshallTransaction(txn);
-                DerbyMessage.UUID uuuid=change.getRenameIndex().getTableId();
-                TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
-                if(td==null) // Table Descriptor transaction never committed
-                    return;
-                dm.invalidateFor(td,DependencyManager.RENAME_INDEX,transactionResource.getLcc());
-            }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
+        run(change.getTxnId(), null, lcc -> {
+            DerbyMessage.UUID uuuid=change.getRenameIndex().getTableId();
+            TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid), null);
+            if(td==null) // Table Descriptor transaction never committed
+                return;
+            dm.invalidateFor(td,DependencyManager.RENAME_INDEX, lcc);
+        });
     }
 
-    public static void preDropAlias(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
+    public static void preDropAlias(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm, LanguageConnectionContext lcc) throws StandardException  {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preDropAlias with change=%s",change);
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-                transactionResource.marshallTransaction(txn);
-                DDLMessage.DropAlias dropAlias=change.getDropAlias();
-                AliasDescriptor ad=dd.getAliasDescriptor(dropAlias.getSchemaName(),dropAlias.getAliasName(),dropAlias.getNamespace().charAt(0));
-                if(ad==null) // Table Descriptor transaction never committed
-                    return;
-                DropAliasConstantOperation.invalidate(ad,dm,transactionResource.getLcc());
-            }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
+        run(change.getTxnId(), lcc, innerLcc -> {
+            DDLMessage.DropAlias dropAlias=change.getDropAlias();
+                AliasDescriptor ad=dd.getAliasDescriptor(dropAlias.getSchemaName(),dropAlias.getAliasName(),dropAlias.getNamespace().charAt(0), null);
+            if(ad==null) // Table Descriptor transaction never committed
+                return;
+            DropAliasConstantOperation.invalidate(ad,dm,innerLcc);
+        });
     }
 
     public static void preNotifyJarLoader(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preNotifyJarLoader with change=%s",change);
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-                transactionResource.marshallTransaction(txn);
-                dd.invalidateAllSPSPlans(); // This will break other nodes, must do ddl
-                ClassFactory cf = transactionResource.getLcc().getLanguageConnectionFactory().getClassFactory();
-                cf.notifyModifyJar(change.getNotifyJarLoader().getReload());
-                if (change.getNotifyJarLoader().getDrop()) {
-                    SchemaDescriptor sd = dd.getSchemaDescriptor(change.getNotifyJarLoader().getSchemaName(), null, true);
-                    if (sd ==null)
-                        return;
-                    FileInfoDescriptor fid = dd.getFileInfoDescriptor(sd,change.getNotifyJarLoader().getSqlName());
-                    if (fid==null)
-                        return;
-                    dm.invalidateFor(fid, DependencyManager.DROP_JAR, transactionResource.getLcc());
-
+        run(change.getTxnId(), null, lcc -> {
+            dd.invalidateAllSPSPlans(); // This will break other nodes, must do ddl
+            ClassFactory cf = lcc.getLanguageConnectionFactory().getClassFactory();
+            DDLMessage.NotifyJarLoader njl = change.getNotifyJarLoader();
+            cf.notifyModifyJar(njl.getReload());
+            if (njl.getDrop()) {
+                if (!njl.hasDbUUID()) { // This was sent by a region server that does not support multidb yet. We don't know yet what to do but throw
+                    throw new IllegalStateException("preNotifyJarLoader called from a region server that does not support multidb");
                 }
+                SchemaDescriptor sd = dd.getSchemaDescriptor(ProtoUtil.getDerbyUUID(njl.getDbUUID()), njl.getSchemaName(), null, true);
+                if (sd ==null)
+                    return;
+                    FileInfoDescriptor fid = dd.getFileInfoDescriptor(sd, njl.getSqlName());
+                if (fid==null)
+                    return;
+                dm.invalidateFor(fid, DependencyManager.DROP_JAR, lcc);
             }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
+        });
     }
 
     public static void postNotifyJarLoader(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preNotifyJarLoader with change=%s",change);
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-                transactionResource.marshallTransaction(txn);
-                ClassFactory cf = transactionResource.getLcc().getLanguageConnectionFactory().getClassFactory();
-                cf.notifyModifyJar(true);
-            }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
-
+        run(change.getTxnId(), null, lcc -> {
+            ClassFactory cf = lcc.getLanguageConnectionFactory().getClassFactory();
+            cf.notifyModifyJar(true);
+        });
     }
 
     public static void preNotifyModifyClasspath(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
         if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG,"preDropView with change=%s",change);
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-                transactionResource.marshallTransaction(txn);
-                transactionResource.getLcc().getLanguageConnectionFactory().getClassFactory().notifyModifyClasspath(change.getNotifyModifyClasspath().getClasspath());
-            }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
+            SpliceLogUtils.debug(LOG,"preNotifyModifyClasspath with change=%s",change);
+        run(change.getTxnId(), null,
+                lcc -> lcc.getLanguageConnectionFactory().getClassFactory().notifyModifyClasspath(change.getNotifyModifyClasspath().getClasspath())
+        );
     }
 
-
-
-    public static void preDropView(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
+    public static void preDropView(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm, LanguageConnectionContext lcc) throws StandardException  {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preDropView with change=%s",change);
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-                transactionResource.marshallTransaction(txn);
-                DDLMessage.DropView dropView=change.getDropView();
+        run(change.getTxnId(), lcc, innerLcc -> {
+            DDLMessage.DropView dropView=change.getDropView();
 
-                TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(dropView.getTableId()));
-                if(td==null) // Table Descriptor transaction never committed
-                    return;
-                dm.invalidateFor(td,DependencyManager.DROP_VIEW,transactionResource.getLcc());
-            }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
+            TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(dropView.getTableId()), null);
+            if(td==null) // Table Descriptor transaction never committed
+                return;
+            dm.invalidateFor(td,DependencyManager.DROP_VIEW,innerLcc);
+        });
     }
 
-    public static void preDropSequence(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
+    public static void preDropSequence(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm, LanguageConnectionContext lcc) throws StandardException  {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preDropSequence with change=%s",change);
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-                transactionResource.marshallTransaction(txn);
-                DDLMessage.DropSequence dropSequence=change.getDropSequence();
-                TransactionController tc = transactionResource.getLcc().getTransactionExecute();
-                SchemaDescriptor sd = dd.getSchemaDescriptor(dropSequence.getSchemaName(),tc,true);
-                if(sd==null) // Table Descriptor transaction never committed
-                    return;
-                SequenceDescriptor seqDesc = dd.getSequenceDescriptor(sd,dropSequence.getSequenceName());
-                if (seqDesc==null)
-                    return;
-                dm.invalidateFor(seqDesc, DependencyManager.DROP_SEQUENCE, transactionResource.getLcc());
+        run(change.getTxnId(), lcc, innerLcc -> {
+            DDLMessage.DropSequence dropSequence=change.getDropSequence();
+            TransactionController tc = innerLcc.getTransactionExecute();
+            if (!dropSequence.hasDbUUID()){
+                // This was sent by a region server that does not support multidb yet. We don't know yet what to do but throw
+                throw new IllegalStateException("preDropSequence called from a region server that does not support multidb");
             }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
+            SchemaDescriptor sd = dd.getSchemaDescriptor(ProtoUtil.getDerbyUUID(dropSequence.getDbUUID()), dropSequence.getSchemaName(),tc,true);
+            if(sd==null) // Table Descriptor transaction never committed
+                return;
+            SequenceDescriptor seqDesc = dd.getSequenceDescriptor(sd,dropSequence.getSequenceName());
+            if (seqDesc==null)
+                return;
+            dm.invalidateFor(seqDesc, DependencyManager.DROP_SEQUENCE, innerLcc);
+        });
     }
 
     public static void preCreateRole(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preCreateTrigger with change=%s",change);
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-                transactionResource.marshallTransaction(txn);
-                String roleName=change.getCreateRole().getRoleName();
-                dd.getDataDictionaryCache().roleCacheRemove(roleName);
-            }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
+        run(change.getTxnId(), null, lcc -> {
+            String roleName=change.getCreateRole().getRoleName();
+            dd.getDataDictionaryCache().roleCacheRemove(roleName);
+        });
     }
 
 
     public static void preCreateTrigger(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preCreateTrigger with change=%s",change);
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-                transactionResource.marshallTransaction(txn);
-                DerbyMessage.UUID uuuid=change.getCreateTrigger().getTableId();
-                TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid));
-                if(td==null)
-                    return;
-                dm.invalidateFor(td,DependencyManager.CREATE_TRIGGER,transactionResource.getLcc());
-            }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
+        run(change.getTxnId(), null, lcc -> {
+            DerbyMessage.UUID uuuid=change.getCreateTrigger().getTableId();
+            TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuuid), null);
+            if(td==null)
+                return;
+            dm.invalidateFor(td,DependencyManager.CREATE_TRIGGER,lcc);
+        });
     }
 
-    public static void preDropTrigger(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
+    public static void preDropTrigger(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm, LanguageConnectionContext lcc) throws StandardException  {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preDropTrigger with change=%s",change);
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-                transactionResource.marshallTransaction(txn);
-                DerbyMessage.UUID tableuuid=change.getDropTrigger().getTableId();
-                DerbyMessage.UUID triggeruuid=change.getDropTrigger().getTriggerId();
-                SPSDescriptor spsd=dd.getSPSDescriptor(ProtoUtil.getDerbyUUID(change.getDropTrigger().getSpsDescriptorUUID()));
+        run(change.getTxnId(), lcc, innerLcc -> {
+            DerbyMessage.UUID tableuuid=change.getDropTrigger().getTableId();
+            DerbyMessage.UUID triggeruuid=change.getDropTrigger().getTriggerId();
+            SPSDescriptor spsd=dd.getSPSDescriptor(ProtoUtil.getDerbyUUID(change.getDropTrigger().getSpsDescriptorUUID()));
 
-                TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(tableuuid));
-                TriggerDescriptor triggerDescriptor=dd.getTriggerDescriptor(ProtoUtil.getDerbyUUID(triggeruuid));
-                if(td!=null)
-                    dm.invalidateFor(td,DependencyManager.DROP_TRIGGER,transactionResource.getLcc());
-                if(triggerDescriptor!=null){
-                    dm.invalidateFor(triggerDescriptor,DependencyManager.DROP_TRIGGER,transactionResource.getLcc());
-//                dm.clearDependencies(transactionResource.getLcc(), triggerDescriptor);
-                    if(triggerDescriptor.getWhenClauseId()!=null){
-                        SPSDescriptor whereDescriptor=dd.getSPSDescriptor(triggerDescriptor.getWhenClauseId());
-                        if(whereDescriptor!=null){
-                            dm.invalidateFor(whereDescriptor,DependencyManager.DROP_TRIGGER,transactionResource.getLcc());
-//                        dm.clearDependencies(transactionResource.getLcc(), whereDescriptor);
-                        }
+            TableDescriptor td=dd.getTableDescriptor(ProtoUtil.getDerbyUUID(tableuuid), null);
+            TriggerDescriptor triggerDescriptor=dd.getTriggerDescriptor(ProtoUtil.getDerbyUUID(triggeruuid));
+            if(td!=null)
+                dm.invalidateFor(td,DependencyManager.DROP_TRIGGER,innerLcc);
+            if(triggerDescriptor!=null){
+                dm.invalidateFor(triggerDescriptor,DependencyManager.DROP_TRIGGER,innerLcc);
+//                dm.clearDependencies(innerLcc, triggerDescriptor);
+                if(triggerDescriptor.getWhenClauseId()!=null){
+                    SPSDescriptor whereDescriptor=dd.getSPSDescriptor(triggerDescriptor.getWhenClauseId());
+                    if(whereDescriptor!=null){
+                        dm.invalidateFor(whereDescriptor,DependencyManager.DROP_TRIGGER,innerLcc);
+//                        dm.clearDependencies(innerLcc, whereDescriptor);
                     }
                 }
-                if(spsd!=null){
-                    dm.invalidateFor(spsd,DependencyManager.DROP_TRIGGER,transactionResource.getLcc());
-                    //               dm.clearDependencies(transactionResource.getLcc(), spsd);
-                }
-                // Remove all TECs from trigger stack. They will need to be rebuilt.
-                transactionResource.getLcc().popAllTriggerExecutionContexts();
             }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
+            if(spsd!=null){
+                dm.invalidateFor(spsd,DependencyManager.DROP_TRIGGER,innerLcc);
+                //               dm.clearDependencies(innerLcc, spsd);
+            }
+            // Remove all TECs from trigger stack. They will need to be rebuilt.
+            innerLcc.popAllTriggerExecutionContexts();
+        });
     }
 
     public static void preAlterTable(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException  {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preAlterTable with change=%s",change);
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-                transactionResource.marshallTransaction(txn);
-                for (DerbyMessage.UUID uuid : change.getAlterTable().getTableIdList()) {
-                    TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuid));
-                    if (td == null) // Table Descriptor transaction never committed
-                        return;
-                    dm.invalidateFor(td, DependencyManager.ALTER_TABLE, transactionResource.getLcc());
-                }
+        run(change.getTxnId(), null, lcc -> {
+            for (DerbyMessage.UUID uuid : change.getAlterTable().getTableIdList()) {
+                TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(uuid), null);
+                if (td == null) // Table Descriptor transaction never committed
+                    return;
+                dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
             }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
+        });
     }
 
     public static void preDropRole(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException{
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preDropRole with change=%s",change);
-        TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-        try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-            transactionResource.marshallTransaction(txn);
-            String roleName = change.getDropRole().getRoleName();
-            RoleClosureIterator rci =
-                    dd.createRoleClosureIterator
-                            (transactionResource.getLcc().getTransactionCompile(),
-                                    roleName, false);
+        run(change.getTxnId(), null, lcc -> {
+            DDLMessage.DropRole dropRole = change.getDropRole();
+            String roleName = dropRole.getRoleName();
+            if (!dropRole.hasDbUUID()) {
+                // This was sent by a region server that does not support multidb yet. We don't know yet what to do but throw
+                throw new IllegalStateException("preDropRole called from a region server that does not support multidb");
+            }
+            UUID dbId = ProtoUtil.getDerbyUUID(dropRole.getDbUUID());
+            RoleClosureIterator rci = dd.createRoleClosureIterator (lcc.getTransactionCompile(), roleName, false, dbId);
 
             String role;
             while ((role = rci.next()) != null) {
-                RoleGrantDescriptor r = dd.getRoleDefinitionDescriptor(role);
+                RoleGrantDescriptor r = dd.getRoleDefinitionDescriptor(role, dbId);
                 if (r != null) {
-                    dm.invalidateFor(r, DependencyManager.REVOKE_ROLE, transactionResource.getLcc());
+                    dm.invalidateFor(r, DependencyManager.REVOKE_ROLE, lcc);
                 }
             }
 
-            dd.getDataDictionaryCache().roleCacheRemove(change.getDropRole().getRoleName());
+            dd.getDataDictionaryCache().roleCacheRemove(dropRole.getRoleName());
             // role grant cache may have entries of this role being granted to others, so need to invalidate
             dd.getDataDictionaryCache().clearRoleGrantCache();
             // permission cache may have permission entries related to this role, so need to invalidate
             dd.getDataDictionaryCache().clearPermissionCache();
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw StandardException.plainWrapException(e);
-        }
+        });
     }
 
     public static void preTruncateTable(DDLMessage.DDLChange change,
@@ -809,15 +754,12 @@ public class DDLUtils {
                                         DependencyManager dm) throws StandardException{
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preTruncateTable with change=%s",change);
-        TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-        try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-            transactionResource.marshallTransaction(txn);
+        run(change.getTxnId(), null, lcc -> {
             BasicUUID uuid = ProtoUtil.getDerbyUUID(change.getTruncateTable().getTableId());
-            TableDescriptor td = dd.getTableDescriptor(uuid);
-            dm.invalidateFor(td, DependencyManager.TRUNCATE_TABLE, transactionResource.getLcc());
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
+            TableDescriptor td = dd.getTableDescriptor(uuid, null);
+            dm.invalidateFor(td, DependencyManager.TRUNCATE_TABLE, lcc);
+
+        });
     }
 
     public static void preRevokePrivilege(DDLMessage.DDLChange change,
@@ -825,32 +767,23 @@ public class DDLUtils {
                                           DependencyManager dm) throws StandardException{
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preRevokePrivilege with change=%s",change);
-        DDLMessage.RevokePrivilege revokePrivilege = change.getRevokePrivilege();
-        DDLMessage.RevokePrivilege.Type type = revokePrivilege.getType();
-        DDLMessage.RevokePrivilege.OpType op = revokePrivilege.getOp();
-        boolean isGrant = (op == DDLMessage.RevokePrivilege.OpType.GRANT_OP);
-        TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-        try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-            transactionResource.marshallTransaction(txn);
-            LanguageConnectionContext lcc = transactionResource.getLcc();
+        run(change.getTxnId(), null, lcc -> {
+            DDLMessage.RevokePrivilege revokePrivilege = change.getRevokePrivilege();
+            DDLMessage.RevokePrivilege.Type type = revokePrivilege.getType();
+            DDLMessage.RevokePrivilege.OpType op = revokePrivilege.getOp();
+            boolean isGrant = (op == DDLMessage.RevokePrivilege.OpType.GRANT_OP);
             if (type == DDLMessage.RevokePrivilege.Type.REVOKE_TABLE_PRIVILEGE) {
                 preRevokeTablePrivilege(revokePrivilege.getRevokeTablePrivilege(), dd, dm, lcc, isGrant);
-            }
-            else if (type == DDLMessage.RevokePrivilege.Type.REVOKE_COLUMN_PRIVILEGE) {
+            } else if (type == DDLMessage.RevokePrivilege.Type.REVOKE_COLUMN_PRIVILEGE) {
                 preRevokeColumnPrivilege(revokePrivilege.getRevokeColumnPrivilege(), dd, dm, lcc, isGrant);
-            }
-            else if (type == DDLMessage.RevokePrivilege.Type.REVOKE_ROUTINE_PRIVILEGE) {
+            } else if (type == DDLMessage.RevokePrivilege.Type.REVOKE_ROUTINE_PRIVILEGE) {
                 preRevokeRoutinePrivilege(revokePrivilege.getRevokeRoutinePrivilege(), dd, dm, lcc, isGrant);
-            }
-            else if (type == DDLMessage.RevokePrivilege.Type.REVOKE_SCHEMA_PRIVILEGE) {
+            } else if (type == DDLMessage.RevokePrivilege.Type.REVOKE_SCHEMA_PRIVILEGE) {
                 preRevokeSchemaPrivilege(revokePrivilege.getRevokeSchemaPrivilege(), dd, dm, lcc, isGrant);
-            }
-            else if (type == DDLMessage.RevokePrivilege.Type.REVOKE_GENERIC_PRIVILEGE) {
+            } else if (type == DDLMessage.RevokePrivilege.Type.REVOKE_GENERIC_PRIVILEGE) {
                 preRevokeGenericPrivilege(revokePrivilege.getRevokeGenericPrivilege(), dd, dm, lcc, isGrant);
             }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
+        });
     }
 
     private static void preRevokeTablePrivilege(DDLMessage.RevokeTablePrivilege revokeTablePrivilege,
@@ -861,7 +794,7 @@ public class DDLUtils {
 
         BasicUUID uuid = ProtoUtil.getDerbyUUID(revokeTablePrivilege.getTableId());
         BasicUUID objectId = ProtoUtil.getDerbyUUID(revokeTablePrivilege.getPermObjectId());
-        TableDescriptor td = dd.getTableDescriptor(uuid);
+        TableDescriptor td = dd.getTableDescriptor(uuid, null);
 
         TablePermsDescriptor tablePermsDesc =
             new TablePermsDescriptor(
@@ -923,7 +856,7 @@ public class DDLUtils {
 
         BasicUUID uuid = ProtoUtil.getDerbyUUID(revokeColumnPrivilege.getTableId());
         BasicUUID objectId = ProtoUtil.getDerbyUUID(revokeColumnPrivilege.getPermObjectId());
-        TableDescriptor td = dd.getTableDescriptor(uuid);
+        TableDescriptor td = dd.getTableDescriptor(uuid, null);
         ColPermsDescriptor colPermsDescriptor =
             new ColPermsDescriptor(
                 dd,
@@ -957,13 +890,13 @@ public class DDLUtils {
                 dd,
                 revokeRoutinePrivilege.getGrantee(),
                 revokeRoutinePrivilege.getGrantor(),
-                uuid);
+                uuid, null);
         routinePermsDescriptor.setUUID(objectId);
 
         if (!isGrant) {
             dm.invalidateFor(routinePermsDescriptor, DependencyManager.REVOKE_PRIVILEGE_RESTRICT, lcc);
 
-            AliasDescriptor aliasDescriptor = dd.getAliasDescriptor(objectId);
+            AliasDescriptor aliasDescriptor = dd.getAliasDescriptor(objectId, null);
             if (aliasDescriptor != null) {
                 dm.invalidateFor(aliasDescriptor, DependencyManager.INTERNAL_RECOMPILE_REQUEST, lcc);
             }
@@ -999,7 +932,7 @@ public class DDLUtils {
             if (revokeGenericPrivilege.getObjectType().compareToIgnoreCase("SEQUENCE") == 0) {
                 privilegedSQLObject = dd.getSequenceDescriptor(objectId);
             } else {
-                privilegedSQLObject = dd.getAliasDescriptor(objectId);
+                privilegedSQLObject = dd.getAliasDescriptor(objectId, null);
             }
             if (privilegedSQLObject != null) {
                 dm.invalidateFor(privilegedSQLObject, invalidationType, lcc);
@@ -1008,12 +941,10 @@ public class DDLUtils {
         dd.getDataDictionaryCache().permissionCacheRemove(permDescriptor);
     }
 
-    public static void preGrantRevokeRole(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
+    public static void preGrantRevokeRole(DDLMessage.DDLChange change, DataDictionary dd) throws StandardException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preGrantRevokeRole with change=%s",change);
-        TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-        try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-            transactionResource.marshallTransaction(txn);
+        run(change.getTxnId(), null, lcc -> {
             //remove corresponding defaultRole entry
             dd.getDataDictionaryCache().defaultRoleCacheRemove(change.getGrantRevokeRole().getGranteeName());
 
@@ -1021,27 +952,18 @@ public class DDLUtils {
             String roleName = change.getGrantRevokeRole().getRoleName();
             String granteeName = change.getGrantRevokeRole().getGranteeName();
             dd.getDataDictionaryCache().roleGrantCacheRemove(new Pair<>(roleName, granteeName));
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw StandardException.plainWrapException(e);
-        }
-
+        });
     }
 
-    public static void preSetDatabaseProperty(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
+    public static void preSetDatabaseProperty(DDLMessage.DDLChange change, DataDictionary dd) throws StandardException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preSetDatabaseProperty with change=%s",change);
-        TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-        try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-            transactionResource.marshallTransaction(txn);
+        run(change.getTxnId(), null, lcc -> {
             //remove corresponding property from the data dictionary cache.
             dd.getDataDictionaryCache().propertyCacheRemove(change.getSetDatabaseProperty().getPropertyName());
             // invalidate dependents if it is an SPS property
             invalidateSpsProperty(change.getSetDatabaseProperty().getPropertyName());
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw StandardException.plainWrapException(e);
-        }
+        });
     }
 
     /**
@@ -1068,9 +990,7 @@ public class DDLUtils {
     public static void preUpdateSystemProcedures(DDLMessage.DDLChange change, DataDictionary dd) throws StandardException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preUpdateSystemProcedures with change=%s",change);
-        TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-        try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-            transactionResource.marshallTransaction(txn);
+        run(change.getTxnId(), null, lcc -> {
             //clear alias cache
             DataDictionaryCache dc = dd.getDataDictionaryCache();
             dc.clearAliasCache();
@@ -1078,19 +998,13 @@ public class DDLUtils {
             dc.clearPermissionCache();
             dc.clearSpsNameCache();
             dc.clearStoredPreparedStatementCache();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw StandardException.plainWrapException(e);
-        }
+        });
     }
 
     public static void preLeaveRestore(DDLMessage.DDLChange change, DataDictionary dd) throws StandardException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preRestore with change=%s",change);
-        TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-        try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-            transactionResource.marshallTransaction(txn);
+        run(change.getTxnId(), null, lcc -> {
             SIDriver.driver().getTxnSupplier().invalidate();
             SIDriver.driver().getIgnoreTxnSupplier().refresh();
             dd.getDataDictionaryCache().clearAll();
@@ -1100,10 +1014,143 @@ public class DDLUtils {
             for (Context context : allContexts) {
                 ((LanguageConnectionContext) context).leaveRestoreMode();
             }
+        });
+    }
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw StandardException.plainWrapException(e);
+    public static void dispatchChangeAction(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm, LanguageConnectionContext lcc) throws StandardException {
+        switch(change.getDdlChangeType()){
+            case MULTIPLE_CHANGES:
+                preMultipleChanges(change, dd, dm);
+                break;
+            case CREATE_INDEX:
+                preCreateIndex(change,dd,dm);
+                break;
+            case DROP_INDEX:
+                preDropIndex(change,dd,dm, lcc);
+                break;
+            case DROP_SEQUENCE:
+                preDropSequence(change,dd,dm, lcc);
+                break;
+            case CHANGE_PK:
+            case ADD_CHECK:
+            case ADD_NOT_NULL:
+            case ADD_COLUMN:
+            case ADD_PRIMARY_KEY:
+            case ADD_UNIQUE_CONSTRAINT:
+            case DROP_COLUMN:
+            case DROP_CONSTRAINT:
+            case DROP_PRIMARY_KEY:
+            case DICTIONARY_UPDATE:
+            case CREATE_TABLE:
+            case CREATE_SCHEMA:
+                break;
+            case DROP_TABLE:
+                preDropTable(change,dd,dm, lcc);
+                break;
+            case DROP_VIEW:
+                preDropView(change,dd,dm, lcc);
+                break;
+            case ALTER_TABLE:
+                preAlterTable(change,dd,dm);
+                break;
+            case RENAME_TABLE:
+                preRenameTable(change,dd,dm);
+                break;
+            case CREATE_TRIGGER:
+                preCreateTrigger(change,dd,dm);
+                break;
+            case CREATE_ROLE:
+                preCreateRole(change,dd,dm);
+                break;
+            case DROP_TRIGGER:
+                preDropTrigger(change,dd,dm, lcc);
+                break;
+            case DROP_ALIAS:
+                preDropAlias(change,dd,dm, lcc);
+                break;
+            case RENAME_INDEX:
+                preRenameIndex(change,dd,dm);
+                break;
+            case RENAME_COLUMN:
+                preRenameColumn(change,dd,dm);
+                break;
+            case DROP_SCHEMA:
+                preDropSchema(change,dd,dm, lcc);
+                break;
+            case UPDATE_SCHEMA_OWNER:
+                preUpdateSchemaOwner(change,dd);
+                break;
+            case DROP_ROLE:
+                preDropRole(change,dd,dm);
+                break;
+            case TRUNCATE_TABLE:
+                preTruncateTable(change,dd,dm);
+                break;
+            case REVOKE_PRIVILEGE:
+                preRevokePrivilege(change,dd,dm);
+                break;
+            case ALTER_STATS:
+                preAlterStats(change,dd,dm);
+                break;
+            case ENTER_RESTORE_MODE:
+                SIDriver.driver().lifecycleManager().enterRestoreMode();
+                Collection<Context> allContexts = ContextService.getService().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
+                for (Context context : allContexts) {
+                    ((LanguageConnectionContext) context).enterRestoreMode();
+                }
+                break;
+            case SET_REPLICATION_ROLE:
+                String role = change.getSetReplicationRole().getRole();
+                SIDriver.driver().lifecycleManager().setReplicationRole(role);
+                allContexts=ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
+                for(Context context : allContexts){
+                    ((LanguageConnectionContext) context).setReplicationRole(role);
+                }
+                SpliceLogUtils.info(LOG,"set replication role to %s", role);
+                break;
+            case ROLLING_UPGRADE:
+                DDLMessage.RollingUpgrade.OperationType type = change.getRollingUpgrade().getType();
+                if (type == DDLMessage.RollingUpgrade.OperationType.BEGIN) {
+                    SIDriver.driver().setRollingUpgrade(true);
+                }
+                else if (type == DDLMessage.RollingUpgrade.OperationType.END) {
+                    SIDriver.driver().setRollingUpgrade(false);
+                }
+                break;
+            case NOTIFY_JAR_LOADER:
+                preNotifyJarLoader(change,dd,dm);
+                break;
+            case NOTIFY_MODIFY_CLASSPATH:
+                preNotifyModifyClasspath(change,dd,dm);
+                break;
+            case REFRESH_ENTRPRISE_FEATURES:
+                EngineDriver.driver().refreshEnterpriseFeatures();
+                break;
+            case GRANT_REVOKE_ROLE:
+                preGrantRevokeRole(change, dd);
+                break;
+            case SET_DATABASE_PROPERTY:
+                preSetDatabaseProperty(change, dd);
+                break;
+            case UPDATE_SYSTEM_PROCEDURES:
+                preUpdateSystemProcedures(change, dd);
+                break;
+            case CREATE_ALIAS:
+            case CREATE_VIEW:
+                break;
+            case LEAVE_RESTORE_MODE:
+                preLeaveRestore(change, dd);
+                break;
+            case ADD_FOREIGN_KEY: // fallthrough, this is necessary since the parent of the foreign key now has one extra child!
+            case DROP_FOREIGN_KEY:
+                preDropForeignKey(change, dd);
+                break;
+            case DROP_DATABASE:
+                DDLUtils.preDropDatabase(change,dd, dm);
+                break;
+            default:
+                break;
         }
+
     }
 }

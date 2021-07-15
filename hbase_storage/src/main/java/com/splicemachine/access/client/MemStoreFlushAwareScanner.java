@@ -18,6 +18,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.NavigableSet;
 import java.util.concurrent.atomic.AtomicReference;
+
+import com.splicemachine.derby.hbase.KeyPrefixProbingFilter;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
@@ -76,7 +78,8 @@ public class MemStoreFlushAwareScanner extends StoreScanner implements RegionSca
         this.stopRow = Bytes.equals(scan.getStopRow(), HConstants.EMPTY_END_ROW) ? null : scan.getStopRow();
         this.filter = scan.getFilter();
         this.batch = scan.getBatch();
-        this.checkFilter = filter instanceof MultiRowRangeFilter;
+        this.checkFilter = filter instanceof MultiRowRangeFilter ||
+                           filter instanceof KeyPrefixProbingFilter;
     }
     
     protected boolean isStopRow(Cell peek) {

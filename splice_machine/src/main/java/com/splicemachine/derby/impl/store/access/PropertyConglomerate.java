@@ -90,13 +90,14 @@ public class PropertyConglomerate {
                 RawStoreFactory.PAGE_RESERVED_SPACE_PARAMETER, 
                 RawStoreFactory.PAGE_RESERVED_ZERO_SPACE_STRING);
             propertiesConglomId =
-                tc.createConglomerate(false,
-                    AccessFactoryGlobals.HEAP,
-                    template, 
-                    null,
-                        null, // use default collation for property conglom.
-                    conglomProperties, 
-                    TransactionController.IS_DEFAULT, Conglomerate.Priority.HIGH);
+                    tc.createConglomerate(false,
+                            AccessFactoryGlobals.HEAP,
+                            template,
+                            null,
+                            null,
+                            null, // use default collation for property conglom.
+                            conglomProperties,
+                            TransactionController.IS_DEFAULT, Conglomerate.Priority.HIGH);
 
             //
             // IMPORTANT: Hey, you!  Yeah, you!  Before you think about adding another "service" property default here,
@@ -110,7 +111,6 @@ public class PropertyConglomerate {
             serviceProperties.put(Property.DATABASE_PROPERTIES_ONLY, "false");
             serviceProperties.put(Property.DEFAULT_CONNECTION_MODE_PROPERTY, "fullAccess");
             serviceProperties.put(PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM, PropertyHelper.AUTHENTICATION_BUILTIN_ALGORITHM_DEFAULT);
-            serviceProperties.put(Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED, "false");
             for (Object key: serviceProperties.keySet()) {
                 propertyManager.addProperty((String)key,serviceProperties.getProperty((String)key));
             }

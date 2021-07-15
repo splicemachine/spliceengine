@@ -17,21 +17,20 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.impl.sql.actions.index.CustomerTable;
 import com.splicemachine.derby.test.framework.*;
 
+import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test_tools.TableCreator;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.Before;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSetMetaData;
-import java.sql.Connection;
-import java.sql.ResultSet;
+import java.sql.*;
+
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 /**
  * Created with IntelliJ IDEA.
@@ -43,11 +42,34 @@ import java.sql.ResultSet;
 public class DropColumnIT extends SpliceUnitTest {
     private static Logger LOG = Logger.getLogger(DropColumnIT.class);
 
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     private static final String SCHEMA_NAME = DropColumnIT.class.getSimpleName().toUpperCase();
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
     private static int nRows = 0;
     private static int nCols = 0;
+
+    private static String tableName = "TEST_TABLE";
+    private static String indexName = "TEST_IDEXN";
+
+    private static String tableWithConstraints = "TABLE_WITH_CONSTRAINTS";
+    private static String tableWithConstraints2 = "TABLE_WITH_CONSTRAINTS2";
+
+    @BeforeClass
+    public static void prepare() throws Exception {
+        TestConnection conn = spliceClassWatcher.getOrCreateConnection();
+        new TableCreator(conn).withCreate(format("create table %s (a int, b int, c int, d int, e int, f int, g int, primary key(c))", tableName))
+                .withRows(rows(row(1,2,3,4,5,6,7)))
+                .withInsert(format("insert into %s values (?,?,?,?,?,?,?)", tableName))
+                .withIndex(format("create index %s on %s(c,f)", indexName, tableName)).create();
+        new TableCreator(conn).withCreate(format("create table %s (a int, b int, c int, d int, primary key(c), unique(b))", tableWithConstraints))
+                .withRows(rows(row(1,2,3,4)))
+                .withInsert(format("insert into %s values (?,?,?,?)", tableWithConstraints))
+                .create();
+        new TableCreator(conn).withCreate(format("create table %s (a int, b int, c int references %s(c), d int)", tableWithConstraints2, tableName))
+                .withRows(rows(row(1,2,3,4)))
+                .withInsert(format("insert into %s values (?,?,?,?)", tableWithConstraints2))
+                .create();
+    }
 
     protected static CustomerTable customerTableWatcher = new CustomerTable(CustomerTable.TABLE_NAME,SCHEMA_NAME) {
         @Override
@@ -90,7 +112,7 @@ public class DropColumnIT extends SpliceUnitTest {
             .around(customerTableWatcher);
 
     @Rule
-    public SpliceWatcher methodWatcher = new SpliceWatcher();
+    public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
 
     @Before
     public void setup () {
@@ -168,5 +190,200 @@ public class DropColumnIT extends SpliceUnitTest {
         rs.close();
     }
 
+    private static void dropColumn(Statement s, String column) throws SQLException {
+        s.execute(format("alter table %s drop column %s", tableName, column));
+    }
 
+    private static void addColumn(Statement s, String column) throws SQLException {
+        s.execute(format("alter table %s add column %s int", tableName, column));
+    }
+
+    private static void select(Statement s, String columns, int... expectedValues) throws SQLException {
+        try(ResultSet rs = s.executeQuery(format("select %s from %s", columns, tableName))) {
+            Assert.assertTrue(rs.next());
+            for(int i = 0; i < expectedValues.length; ++i) {
+                Assert.assertEquals(expectedValues[i], rs.getInt(i+1));
+            }
+            Assert.assertFalse(rs.next());
+        }
+    }
+    private static void addRow(Statement s, int... values) throws SQLException {
+        StringBuilder sb = new StringBuilder();
+        for(int value : values) {
+            sb.append(value).append(",");
+        }
+        sb.deleteCharAt(sb.length()-1);
+
+        s.execute(format("insert into %s values (%s)", tableName, sb.toString()));
+    }
+
+    private static void emptyTable(Statement s) throws SQLException {
+        s.execute(format("drop table %s", tableName));
+    }
+
+    @Test
+    public void dropColumnWithIndex() throws Exception {
+
+        /**
+         * Cols   a, b, c, d, e, f, g
+         * Idx          .        .
+         * Val    1, 2, 3, 4, 5, 6, 7
+         */
+
+        try (Statement s = spliceClassWatcher.getOrCreateConnection().createStatement()) {
+            select(s, "c,f", 3, 6);
+            dropColumn(s, "d");
+            select(s, "c,f", 3, 6);
+            dropColumn(s, "e");
+            select(s, "c,f", 3, 6);
+            dropColumn(s, "g");
+            select(s, "c,f", 3, 6);
+            dropColumn(s, "b");
+            select(s, "c,f", 3, 6);
+            dropColumn(s, "a");
+            select(s, "c,f", 3, 6);
+        }
+    }
+
+    @Test
+    public void testDropColumnAfterInsertion() throws Exception {
+        methodWatcher.execute("create table t(i int, j bigint, k varchar(10), l real)");
+        methodWatcher.execute(("insert into t values (1,2,'3', 4.0)"));
+        methodWatcher.execute("alter table t drop j");
+        methodWatcher.execute("create index ti on t(k, i)");
+        String expected = "I | K | L  |\n" +
+                "-------------\n" +
+                " 1 | 3 |4.0 |";
+        try (ResultSet rs = methodWatcher.executeQuery("select * from t --splice-properties index=ti")) {
+            String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            assertEquals(expected, actual);
+        }
+        try (ResultSet rs = methodWatcher.executeQuery("select * from t --splice-properties index=null")) {
+            String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            assertEquals(expected, actual);
+        }
+        String sqlText = "explain select i, k from t";
+        testQueryContains(sqlText, "IndexScan", methodWatcher, true);
+    }
+
+    @Test
+    public void testInsertAfterDrop() throws Exception {
+        methodWatcher.execute("create table t1(a int, b int, c int, d int, e int, f int, g int, h int, z int)");
+        methodWatcher.execute("alter table t1 drop column b");
+        methodWatcher.execute("alter table t1 drop column c");
+        methodWatcher.execute("alter table t1 drop column d");
+        methodWatcher.execute("create index it1 on t1(a, z)");
+        methodWatcher.execute("insert into t1 values(1,5,6,7,8,9)");
+        methodWatcher.execute("alter table t1 drop column f");
+        methodWatcher.execute("alter table t1 drop column g");
+        methodWatcher.execute("alter table t1 drop column h");
+        methodWatcher.execute("insert into t1 values (11,55,99)");
+        String expected =
+                "A | E | Z |\n" +
+                "------------\n" +
+                " 1 | 5 | 9 |\n" +
+                "11 |55 |99 |";
+        try (ResultSet rs = methodWatcher.executeQuery("select * from t1 --splice-properties index=it1 \n" +
+                "order by 1")) {
+            String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            assertEquals(expected, actual);
+        }
+        try (ResultSet rs = methodWatcher.executeQuery("select * from t1 --splice-properties index=null \n " +
+                "order by 1")) {
+            String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            assertEquals(expected, actual);
+        }
+
+        String sqlText = "explain select a,z from t1";
+        testQueryContains(sqlText, "IndexScan", methodWatcher, true);
+    }
+
+    @Test
+    public void testShowPK() throws Exception {
+        methodWatcher.execute("create table t2 (a1 int, b1 int, c1 int, primary key(a1, c1))");
+        methodWatcher.execute("alter table t2 drop b1");
+        try (ResultSet rs = methodWatcher.executeQuery("CALL SYSIBM.SQLPRIMARYKEYS(null, 'DROPCOLUMNIT', 'T2', null)")) {
+            rs.next();
+            String column = rs.getString("COLUMN_NAME");
+            assertEquals(column, "A1");
+            int position = rs.getInt("KEY_SEQ");
+            assertEquals(position, 1);
+
+            rs.next();
+            column = rs.getString("COLUMN_NAME");
+            assertEquals(column, "C1");
+            position = rs.getInt("KEY_SEQ");
+            assertEquals(position, 2);
+        }
+    }
+
+    @Test
+    public void testMultiRowInsert() throws Exception {
+        methodWatcher.execute("create table t3 (c1 int not null, c2 int not null, c3 int not null default 37, c4 int not null)");
+        methodWatcher.execute("alter table t3 drop column c3");
+        methodWatcher.execute("insert into t3 values (6,6,6), (7,7,7), (8,8,8), (9,9,9)");
+        String expected =
+                "C1 |C2 |C4 |\n" +
+                "------------\n" +
+                " 6 | 6 | 6 |\n" +
+                " 7 | 7 | 7 |\n" +
+                " 8 | 8 | 8 |\n" +
+                " 9 | 9 | 9 |";
+        try (ResultSet rs = methodWatcher.executeQuery("select * from t3 order by 1")) {
+            String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            assertEquals(expected, actual);
+        }
+    }
+
+    @Test
+    public void testDropPKSelect() throws Exception {
+        methodWatcher.execute("create table t4(c1 int not null, c2 int not null, primary key (c1,c2))");
+        methodWatcher.execute("alter table t4 drop column c2");
+        methodWatcher.execute("insert into t4 values 1, 2");
+        String expected = "C1 |\n" +
+                "----\n" +
+                " 1 |\n" +
+                " 2 |";
+        try (ResultSet rs = methodWatcher.executeQuery("select * from t4 order by 1")) {
+            String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            assertEquals(expected, actual);
+        }
+    }
+
+    @Test
+    public void testDropRegressionDB12305() throws Exception {
+        methodWatcher.execute("create table t5(emplid int not null, name varchar(25) not null, reportsto int)");
+        methodWatcher.execute("insert into t5 values (10, 'a', 2), (11, 'b', 2), (2, 'c', 1), (1, 'd', 0)");
+        methodWatcher.execute("alter table t5 drop column name");
+        String query = "select reportsto, count(emplid)" +
+                " from t5 a where emplid in (" +
+                "select emplid from t5 b where a.emplid = b.emplid and a.reportsto = b.reportsto) " +
+                "group by a.reportsto " +
+                "order by a.reportsto";
+        String expected = "REPORTSTO | 2 |\n" +
+                "----------------\n" +
+                "     0     | 1 |\n" +
+                "     1     | 1 |\n" +
+                "     2     | 2 |";
+        testQuery(query, expected, methodWatcher);
+    }
+
+    @Test
+    public void testCascadeDropTrigger() throws Exception {
+        methodWatcher.execute("create table m(id int, col1 int, col2 int, col3 int, col4 char(50))");
+        methodWatcher.execute("create table s(id int ,description varchar(100),tm_time timestamp)");
+        methodWatcher.execute("CREATE TRIGGER tr1 AFTER UPDATE of col1,col2 ON m FOR EACH STATEMENT insert into s values(7,'TR1',CURRENT_TIMESTAMP)");
+        methodWatcher.execute("CREATE TRIGGER tr2 AFTER UPDATE of col2 ON m FOR EACH STATEMENT insert into s values(6,'TR2',CURRENT_TIMESTAMP)");
+        methodWatcher.execute("alter table m drop col1");
+        methodWatcher.execute("alter table m drop col2");
+
+        String sql = String.format("select count(TRIGGERNAME) FROM SYS.SYSTRIGGERS WHERE TABLEID=(select tableid from sys.systables " +
+                "where tablename='M' and schemaid=(select schemaid from sys.sysschemas where schemaname='%s'))", SCHEMA_NAME);
+
+        try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+            rs.next();
+            int count = rs.getInt(1);
+            assertEquals(0, count);
+        }
+    }
 }

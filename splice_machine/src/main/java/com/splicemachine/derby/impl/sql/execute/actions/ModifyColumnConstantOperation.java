@@ -14,10 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.db.catalog.DefaultInfo;
-import com.splicemachine.db.catalog.Dependable;
-import com.splicemachine.db.catalog.DependableFinder;
-import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.catalog.*;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -31,7 +28,9 @@ import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Parser;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.Dependency;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.RowUtil;
@@ -41,8 +40,9 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.StringUtil;
-import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
-import com.splicemachine.db.impl.sql.compile.StatementNode;
+import com.splicemachine.db.impl.sql.GenericStatement;
+import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.pipeline.ErrorState;
 import org.apache.log4j.Logger;
@@ -282,6 +282,13 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // granted on that new column.
         //
         dd.updateSYSCOLPERMSforAddColumnToUserTable(tableDescriptor.getUUID(), tc);
+
+        CompilerContext cc = lcc.pushCompilerContext();
+        boolean refreshViews = cc.getAlterTableAutoViewRefreshing();
+        lcc.popCompilerContext(cc);
+        if (refreshViews) {
+            refreshDependentViews(activation, tableDescriptor);
+        }
 
         // refresh the activation's TableDescriptor now that we've modified it
         activation.setDDLTableDescriptor(tableDescriptor);
@@ -692,6 +699,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                                      String columnName) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
+        checkColumnUsage(columnName, tableDescriptor);
         DependencyManager dm = dd.getDependencyManager();
         boolean cascade = (behavior == StatementType.DROP_CASCADE);
         // drop any generated columns which reference this column
@@ -743,8 +751,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
          * Cascaded drops of dependent generated columns may require us to
          * rebuild the table descriptor.
          */
-        tableDescriptor = dd.getTableDescriptor(tableId);
         TransactionController tc = lcc.getTransactionExecute();
+        tableDescriptor = dd.getTableDescriptor(tableId, tc);
 
         ColumnDescriptor columnDescriptor = tableDescriptor.getColumnDescriptor( columnName );
 
@@ -753,20 +761,14 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             throw ErrorState.LANG_COLUMN_NOT_FOUND_IN_TABLE.newException(columnName,tableDescriptor.getQualifiedName());
         }
 
-//        try {
-            tc.dropColumnFromConglomerate(tableDescriptor.getHeapConglomerateId(), columnDescriptor.getPosition());
-//        } catch (StandardException e) {
-//            if (ErrorState.WRITE_WRITE_CONFLICT.getSqlState().equals(e.getSQLState())) {
-//                throw ErrorState.DDL_ACTIVE_TRANSACTIONS.newException("DropColumn("+tableDescriptor.getQualifiedName()+"."+columnName+")",
-//                                                                      e.getMessage());
-//            }
-//            throw e;
-//        }
+        tc.dropColumnFromConglomerate(tableDescriptor.getHeapConglomerateId(),
+                columnDescriptor.getStoragePosition(), columnDescriptor.getPosition());
 
+        int maxStoragePosition = tableDescriptor.getColumnDescriptorList().maxStoragePosition();
         int size = tableDescriptor.getColumnDescriptorList().size();
         int droppedColumnPosition = columnDescriptor.getPosition();
 
-        FormatableBitSet toDrop = new FormatableBitSet(size + 1);
+        FormatableBitSet toDrop = new FormatableBitSet(maxStoragePosition + 1);
         toDrop.set(droppedColumnPosition);
         tableDescriptor.setReferencedColumnMap(toDrop);
 
@@ -806,9 +808,10 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
          * conglomerate-not-found errors and the like due to our
          * stale table descriptor.
          */
-        tableDescriptor = dd.getTableDescriptor(tableId);
+        tableDescriptor = dd.getTableDescriptor(tableId, tc);
 
         ColumnDescriptorList tab_cdl = tableDescriptor.getColumnDescriptorList();
+        int pos = tab_cdl.getColumnDescriptor(tableDescriptor.getUUID(), columnName).getPosition();
 
         // drop the column from syscolumns
         dd.dropColumnDescriptor(tableDescriptor.getUUID(), columnName, tc);
@@ -889,6 +892,48 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // list in case we were called recursively in order to cascade-drop a
         // dependent generated column.
         tab_cdl.remove( tableDescriptor.getColumnDescriptor( columnName ) );
+        ConglomerateDescriptor[] cds = tableDescriptor.getConglomerateDescriptors();
+        for (ConglomerateDescriptor cd : cds) {
+            boolean modified = false;
+            IndexDescriptor indexDescriptor =cd.getIndexDescriptor().getIndexDescriptor();
+            if (indexDescriptor != null) {
+                int[] positions = indexDescriptor.baseColumnPositions();
+                for (int i = 0; i < positions.length; ++i) {
+                    if (positions[i] > pos) {
+                        positions[i] = positions[i] - 1;
+                        modified = true;
+                    }
+                }
+                if (modified) {
+                    dd.dropConglomerateDescriptor(cd, tc);
+                    dd.addDescriptor(cd, sd,
+                            DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc, false);
+                }
+            }
+        }
+
+        CompilerContext cc = lcc.pushCompilerContext();
+        boolean refreshViews = cc.getAlterTableAutoViewRefreshing();
+        lcc.popCompilerContext(cc);
+        if (refreshViews) {
+            refreshDependentViews(activation, tableDescriptor);
+        }
+    }
+
+    private void checkColumnUsage(String columnName, TableDescriptor td) throws StandardException{
+        int storagePosition = td.getColumnDescriptor(columnName).getStoragePosition();
+        ConglomerateDescriptorList cdl = td.getConglomerateDescriptorList();
+        for (ConglomerateDescriptor cd : cdl) {
+            if (cd.isIndex()) {
+                int[] storagePositions = cd.getIndexDescriptor().baseColumnStoragePositions();
+                for (int sp : storagePositions) {
+                    if (sp == storagePosition) {
+                        throw ErrorState.LANG_PROVIDER_HAS_DEPENDENT_OBJECT.newException(
+                                "DROP COLUMN", columnName, "INDEX", cd.getObjectName());
+                    }
+                }
+            }
+        }
     }
 
     private List<ConstantAction> handleConstraints(Activation activation,
@@ -1395,6 +1440,62 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                         ixCongNums[j] = newCongNum;
                 }
             }
+        }
+    }
+
+    private void refreshDependentViews(Activation activation, TableDescriptor tableDescriptor) throws StandardException {
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        DependencyManager dm = dd.getDependencyManager();
+
+        List<Dependency> deps = dm.getDependents(tableDescriptor);
+        List<ViewDescriptor> views = new ArrayList<>(deps.size());
+        for (Dependency dep : deps) {
+            Dependent d = dep.getDependent();
+            if (d instanceof ViewDescriptor) {
+                views.add((ViewDescriptor) d);
+            }
+        }
+
+        for (ViewDescriptor vd : views) {
+            TableDescriptor viewTd = dd.getTableDescriptor(vd.getUUID());
+
+            if (viewTd == null) {
+                // already dropped via another dependency
+                continue;
+            }
+
+            String viewDef = vd.getViewText();
+            CreateViewNode cvn;
+            CompilerContext newCC = lcc.pushCompilerContext();
+            try {
+                Parser p = newCC.getParser();
+                cvn = (CreateViewNode) p.parseStatement(viewDef);
+                if (cvn == null) {
+                    continue;
+                }
+                // Only refresh views defined with top-level "select *". View definitions could be
+                // arbitrarily complex, having "select *" in a subquery. However, as long as the
+                // top-level select items are explicitly fixed (i.e., "select a, b, ..."), newly
+                // added column will not be selected even if we refresh the view. If one of the
+                // explicitly selected column is dropped, the view definition becomes invalid even
+                // if we refresh the view. As a result, in both cases, there is no need to refresh
+                // the view if its top-level select columns are explicit.
+                ResultSetNode rsn = cvn.getParsedQueryExpression();
+                if (!rsn.getResultColumns().containsAllResultColumn()) {
+                    continue;
+                }
+
+                GenericStatement gs = new GenericStatement(viewTd.getSchemaDescriptor(), viewDef, false, lcc);
+                GenericStorablePreparedStatement gsps = new GenericStorablePreparedStatement(gs);
+                newCC.setCurrentDependent(gsps);
+                cvn.bindStatement();
+            } finally {
+                lcc.popCompilerContext(newCC);
+            }
+
+            vd.drop(lcc, viewTd.getSchemaDescriptor(), viewTd, DependencyManager.ALTER_TABLE);
+            cvn.makeConstantAction().executeConstantAction(activation);
         }
     }
 

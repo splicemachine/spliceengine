@@ -20,16 +20,13 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.impl.sql.compile.FromBaseTable;
-import com.splicemachine.db.impl.sql.compile.Predicate;
-import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
-import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
+import com.splicemachine.db.impl.sql.compile.*;
 
 import static com.splicemachine.db.impl.sql.compile.JoinNode.INNERJOIN;
 
 public class V1NestedLoopJoinCostEstimationModel implements StrategyJoinCostEstimation {
 
-    private static final double NLJ_ON_SPARK_PENALTY = 1e15;  // msirek-temp
+    private static final double NLJ_ON_SPARK_PENALTY = 1e15;
 
     @Override
     public void estimateCost(Optimizable innerTable,
@@ -51,6 +48,11 @@ public class V1NestedLoopJoinCostEstimationModel implements StrategyJoinCostEsti
             return;
         }
 
+        double joinCostScaleFactor = 1.0d;
+        // Favor nested loop join for triggers that can utilize an index.
+        if (outerTableIsTriggerVTI(optimizer) && hasJoinPredicateWithIndexKeyLookup(predList))
+            joinCostScaleFactor = 0.1d;
+
         //set the base costs for the join
         innerCost.setBase(innerCost.cloneMe());
         double totalRowCount = outerCost.rowCount() * innerCost.rowCount();
@@ -65,9 +67,20 @@ public class V1NestedLoopJoinCostEstimationModel implements StrategyJoinCostEsti
         innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
         double joinCost = nestedLoopJoinStrategyLocalCost(innerCost, outerCost, totalRowCount, optimizer.isForSpark());
         joinCost += nljOnSparkPenalty;
+        joinCost *= joinCostScaleFactor;
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerParallelTask(joinCost);
         innerCost.setSingleScanRowCount(innerCost.getEstimatedRowCount());
+    }
+
+    private boolean outerTableIsTriggerVTI(Optimizer optimizer) {
+        ResultSetNode outerTable = optimizer.getOuterTable();
+        if (outerTable instanceof Optimizable) {
+            Optimizable outerOptimizable = (Optimizable)outerTable;
+            if (outerOptimizable.isTriggerVTI())
+                return true;
+        }
+        return false;
     }
 
     // Nested loop join is most useful if it can be used to

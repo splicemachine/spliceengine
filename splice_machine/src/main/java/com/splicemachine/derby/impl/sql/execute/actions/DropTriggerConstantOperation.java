@@ -30,9 +30,11 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *    This class  describes actions that are ALWAYS performed for a
@@ -66,7 +68,7 @@ public class DropTriggerConstantOperation extends DDLSingleTableConstantOperatio
      *
      * @exception StandardException        Thrown on failure
      */
-    public void executeConstantAction( Activation activation ) throws StandardException {
+    public void executeConstantAction(Activation activation, boolean notify) throws StandardException {
         TriggerDescriptor             triggerd;
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
@@ -81,16 +83,16 @@ public class DropTriggerConstantOperation extends DDLSingleTableConstantOperatio
         */
         dd.startWriting(lcc);
 
-        TableDescriptor td = dd.getTableDescriptor(tableId);
+        TransactionController tc = lcc.getTransactionExecute();
+        TableDescriptor td = dd.getTableDescriptor(tableId, tc);
         if (td == null) {
             throw StandardException.newException(
                                 SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION,
                                 tableId.toString());
         }
-        TransactionController tc = lcc.getTransactionExecute();
         // XXX - TODO NO LOCKING lockTableForDDL(tc, td.getHeapConglomerateId(), true);
         // get td again in case table shape is changed before lock is acquired
-        td = dd.getTableDescriptor(tableId);
+        td = dd.getTableDescriptor(tableId, tc);
         if (td == null)
         {
             throw StandardException.newException(
@@ -102,15 +104,10 @@ public class DropTriggerConstantOperation extends DDLSingleTableConstantOperatio
         ** Get the trigger descriptor.  We're responsible for raising
         ** the error if it isn't found
         */
-        triggerd = dd.getTriggerDescriptor(triggerName, sd);
-
-        if (triggerd == null) {
-            throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "TRIGGER",
-                    (sd.getSchemaName() + "." + triggerName));
-        }
+        triggerd = getTriggerDescriptor(activation);
 
         /*
-         ** Prepare all dependents to invalidate.  (This is there chance
+         ** Prepare all dependents to invalidate.  (This is their chance
         ** to say that they can't be invalidated.  For example, an open
         ** cursor referencing a table/trigger that the user is attempting to
         ** drop.) If no one objects, then invalidate any dependent objects.
@@ -118,17 +115,15 @@ public class DropTriggerConstantOperation extends DDLSingleTableConstantOperatio
 
         DependencyManager dm = dd.getDependencyManager();
         dm.invalidateFor(triggerd, DependencyManager.DROP_TRIGGER, lcc);
+        if (notify) {
+            long txnId = ((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId();
+            notifyMetadataChanges(tc, generateDDLChanges(txnId, activation));
+        }
 
         // Drop the spses
         for (UUID actionId: triggerd.getActionIdList()) {
             SPSDescriptor spsd = dd.getSPSDescriptor(actionId);
             dm.invalidateFor(spsd, DependencyManager.DROP_TRIGGER, lcc);
-
-            DDLMessage.DDLChange ddlChange = ProtoUtil.dropTrigger(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
-                    (BasicUUID) this.tableId, (BasicUUID) triggerd.getUUID(),
-                    (BasicUUID) actionId);
-            // Run Remotely
-            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 
             dm.clearDependencies(lcc, spsd);
 
@@ -148,7 +143,18 @@ public class DropTriggerConstantOperation extends DDLSingleTableConstantOperatio
             dm.clearDependencies(lcc, spsd);
             dd.dropSPSDescriptor(spsd, tc);
         }
+    }
 
+    @Override
+    public List<DDLMessage.DDLChange> generateDDLChanges(long txnId, Activation activation) throws StandardException {
+        TriggerDescriptor triggerDescriptor = getTriggerDescriptor(activation);
+        List<DDLMessage.DDLChange> changes = new ArrayList<>();
+        for (UUID actionId: triggerDescriptor.getActionIdList()) {
+            changes.add(ProtoUtil.dropTrigger(txnId,
+                    (BasicUUID) this.tableId, (BasicUUID) triggerDescriptor.getUUID(),
+                    (BasicUUID) actionId));
+        }
+        return changes;
     }
 
     public String toString()
@@ -156,5 +162,21 @@ public class DropTriggerConstantOperation extends DDLSingleTableConstantOperatio
         // Do not put this under SanityManager.DEBUG - it is needed for
         // error reporting.
         return "DROP TRIGGER "+triggerName;
+    }
+
+    private TriggerDescriptor getTriggerDescriptor(Activation activation) throws StandardException {
+        /*
+         ** Get the trigger descriptor.  We're responsible for raising
+         ** the error if it isn't found
+         */
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        TriggerDescriptor triggerd = dd.getTriggerDescriptor(triggerName, sd);
+
+        if (triggerd == null) {
+            throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "TRIGGER",
+                    (sd.getSchemaName() + "." + triggerName));
+        }
+        return triggerd;
     }
 }

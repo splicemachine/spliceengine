@@ -32,16 +32,18 @@
 package com.splicemachine.db.iapi.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.costing.JoinCostEstimationModel;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.compile.costing.CostModel;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.AggregateCostController;
 import com.splicemachine.db.iapi.store.access.SortCostController;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.sql.compile.AggregateNode;
+import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import com.splicemachine.db.impl.sql.compile.GroupByList;
 import com.splicemachine.db.impl.sql.compile.OrderByList;
+import com.splicemachine.db.impl.sql.compile.ResultSetNode;
+import com.splicemachine.db.impl.sql.compile.PredicateList;
 
 import java.util.List;
 
@@ -425,5 +427,25 @@ public interface Optimizer{
 
     default boolean isMemPlatform() { return false; };
 
-    JoinCostEstimationModel getJoinCostEstimationModel();
+    CostModel getCostModel();
+
+
+    void setOuterTableOfJoin(ResultSetNode outerTableOfJoin);
+
+    ResultSetNode getOuterTable();
+
+    CostEstimate getNewCostEstimate(double theCost, double theRowCount, double theSingleScanRowCount);
+
+    OptimizablePredicateList getPredicateList();
+
+    FromBaseTable getOuterBaseTable() throws StandardException;
+
+
+    void setNonPushablePredicates(PredicateList predicateList);
+
+    /**
+     * Postcondition @return != null.
+     * @return the non-pushable predicate list
+     */
+    PredicateList getNonPushablePredicates();
 }

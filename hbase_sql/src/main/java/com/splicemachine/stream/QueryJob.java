@@ -76,8 +76,6 @@ public class QueryJob implements Callable<Void>{
         return (LanguageConnectionContext) ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
     }
 
-
-
     @Override
     public Void call() throws Exception {
         if(!status.markRunning()){
@@ -127,42 +125,45 @@ public class QueryJob implements Callable<Void>{
 
             dsp.setJobGroup(jobName, sql);
             addUserJarsToSparkContext(activation, SpliceSpark.getContext());
-            dataset = root.getDataSet(dsp);
             if (lcc != null) {
                 int applicationJarsHash;
                 LanguageConnectionContext lccFromContext = getLCC();
                 if (lccFromContext != null) {
                     applicationJarsHash = lccFromContext.getApplicationJarsHashCode();
                     if (applicationJarsHash != 0 &&
-                        applicationJarsHash != initialApplicationJarsHash)
+                            applicationJarsHash != initialApplicationJarsHash)
                         SpliceSpark.setApplicationJarsHash(applicationJarsHash);
                 }
                 else {
                     applicationJarsHash = lcc.getApplicationJarsHashCode();
                     if (applicationJarsHash != 0 &&
-                        applicationJarsHash != initialApplicationJarsHash)
+                            applicationJarsHash != initialApplicationJarsHash)
                         SpliceSpark.setApplicationJarsHash(applicationJarsHash);
                 }
             }
-            context = dsp.createOperationContext(root);
-            SparkDataSet<ExecRow> sparkDataSet = (SparkDataSet<ExecRow>) dataset
-                    .map(new CloneFunction<>(context))
-                    .map(new IdentityFunction<>(context)); // force materialization into Derby's format
-            String clientHost = queryRequest.host;
-            int clientPort = queryRequest.port;
-            UUID uuid = queryRequest.uuid;
-            int numPartitions = sparkDataSet.rdd.rdd().getNumPartitions();
+            try(SparkProgressListener counter = new SparkProgressListener(queryRequest.uuid.toString(), status) )
+            {
+                dataset = root.getDataSet(dsp);
+                context = dsp.createOperationContext(root);
+                SparkDataSet<ExecRow> sparkDataSet = (SparkDataSet<ExecRow>) dataset
+                        .map(new CloneFunction<>(context))
+                        .map(new IdentityFunction<>(context)); // force materialization into Derby's format
+                String clientHost = queryRequest.host;
+                int clientPort = queryRequest.port;
+                UUID uuid = queryRequest.uuid;
+                int numPartitions = sparkDataSet.rdd.rdd().getNumPartitions();
 
-            JavaRDD rdd =  sparkDataSet.rdd;
-            StreamableRDD streamableRDD = new StreamableRDD<>(rdd, context, uuid, clientHost, clientPort,
-                    queryRequest.streamingBatches, queryRequest.streamingBatchSize,
-                    queryRequest.parallelPartitions, queryRequest.streamingThrottleMaxWait);
-            streamableRDD.setJobStatus(status);
-            streamableRDD.submit();
+                JavaRDD rdd = sparkDataSet.rdd;
+                StreamableRDD streamableRDD = new StreamableRDD<>(rdd, context, uuid, clientHost, clientPort,
+                        queryRequest.streamingBatches, queryRequest.streamingBatchSize,
+                    queryRequest.parallelPartitions, queryRequest.partitionExecutorThreads);
+                streamableRDD.setJobStatus(status);
+                streamableRDD.submit();
 
-            status.markCompleted(new QueryResult(numPartitions));
+                status.markCompleted(new QueryResult(numPartitions));
 
-            LOG.info("Completed query for session: " + session);
+                LOG.info("Completed query for session: " + session);
+            }
         } catch (CancellationException e) {
             if (jobName != null)
                 SpliceSpark.getContext().sc().cancelJobGroup(jobName);

@@ -19,7 +19,7 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.GlobalDBProperties;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
@@ -43,7 +43,6 @@ import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.impl.sql.compile.ValueNode;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
-import com.splicemachine.db.impl.sql.execute.RowUtil;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
@@ -256,6 +255,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             boolean              unique,
             boolean              uniqueWithDuplicateNulls,
             String               indexType,
+            UUID                 dbId,
             String               schemaName,
             String               indexName,
             String               tableName,
@@ -282,7 +282,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             ByteArray[]          exprBytecode,
             String[]             generatedClassNames,
             Properties           properties) {
-        super(tableId, indexName, tableName, schemaName);
+        super(tableId, indexName, tableName, schemaName, dbId);
         SpliceLogUtils.trace(LOG, "CreateIndexConstantOperation for table %s.%s with index named %s for columns %s",schemaName,tableName,indexName,Arrays.toString(columnNames));
         this.forCreateTable             = forCreateTable;
         this.unique                     = unique;
@@ -333,7 +333,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
      * for details on when that is necessary.
      */
     CreateIndexConstantOperation(ConglomerateDescriptor srcCD, TableDescriptor td, Properties properties) {
-        super(td.getUUID(),srcCD.getConglomerateName(), td.getName(), td.getSchemaName());
+        super(td.getUUID(),srcCD.getConglomerateName(), td.getName(), td.getSchemaName(), td.getSchemaDescriptor().getDatabaseId());
         SpliceLogUtils.trace(LOG, "CreateIndexConstantOperation for conglomerate {%s} and table {%s} with properties {%s}", srcCD,td,properties);
         this.forCreateTable = false;
 
@@ -408,7 +408,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         TransactionController userTransaction = lcc.getTransactionExecute();
 
         dd.startWriting(lcc);
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, userTransaction, true) ;
+        SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, userTransaction, true) ;
         ConglomerateDescriptor existingIndex = dd.getConglomerateDescriptor(indexName, sd, false);
         if (existingIndex != null) {
             throw StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
@@ -419,7 +419,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         }
         TableDescriptor td = activation.getDDLTableDescriptor();
         if (td == null) {
-            td = tableId != null?dd.getTableDescriptor(tableId):dd.getTableDescriptor(tableName, sd, userTransaction);
+            td = tableId != null?dd.getTableDescriptor(tableId, null):dd.getTableDescriptor(tableName, sd, userTransaction);
         }
 
         if (td!=null && td.getTableType()==TableDescriptor.EXTERNAL_TYPE) {
@@ -442,7 +442,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             // Translate the base column names to column positions
             IndexRowGenerator			indexRowGenerator = null;
             int[]	baseColumnPositions = new int[columnNames.length];
-            int maxBaseColumnPosition = td.getBaseColumnPositions(lcc, baseColumnPositions, columnNames);
+            int[]   baseColumnLogicalPosition = new int[columnNames.length];
+            int maxBaseColumnPosition = td.getBaseColumnPositions(lcc, baseColumnPositions, baseColumnLogicalPosition, columnNames);
 
             /* The code below tries to determine if the index that we're about
              * to create can "share" a conglomerate with an existing index.
@@ -571,6 +572,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                             new IndexRowGenerator(
                                     indexType, unique, uniqueWithDuplicateNulls,
                                     baseColumnPositions,
+                                    baseColumnLogicalPosition,
                                     indexColumnTypes,
                                     isAscending,
                                     isAscending.length,excludeNulls,excludeDefaults,
@@ -617,14 +619,12 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
 
             long heapConglomerateId = td.getHeapConglomerateId();
             Properties indexProperties = getIndexProperties(heapConglomerateId);
-            indexRowGenerator = getIndexRowGenerator(baseColumnPositions, indexRowGenerator, shareExisting);
+            indexRowGenerator = getIndexRowGenerator(baseColumnPositions, baseColumnLogicalPosition, indexRowGenerator, shareExisting);
 
             // Create the FormatableBitSet for mapping the partial to full base row
-            FormatableBitSet bitSet = FormatableBitSetUtils.fromIntArray(td.getNumberOfColumns()+1,baseColumnPositions);
-            FormatableBitSet zeroBasedBitSet = RowUtil.shift(bitSet, 1);
-
+            FormatableBitSet bitSet = FormatableBitSetUtils.fromIntArray(maxBaseColumnPosition+1, baseColumnPositions);
             ExecRow baseRow = activation.getExecutionFactory().getValueRow(maxBaseColumnPosition);
-            ExecIndexRow indexRow = indexRowGenerator.getIndexRowKeyTemplate();
+            ExecIndexRow indexRow = indexRowGenerator.getIndexRowKeyTemplate(true);
             ExecRow compactBaseRow = activation.getExecutionFactory().getValueRow(baseColumnPositions.length);
 
             indexTemplateRow = indexRow;//indexRows[0];
@@ -645,12 +645,13 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                 } else
                     defaultRow.setColumn(index+1, dts.getNull());
 
-                if (! zeroBasedBitSet.get(index)) {
+                int storagePosition = cd.getStoragePosition();
+                if (storagePosition >= bitSet.getLength() || ! bitSet.get(storagePosition)) {
                     continue;
                 }
                 numSet++;
                 // check if the current column is the leading index column, then set the defaultValue
-                if (cd.getPosition() == baseColumnPositions[0]) {
+                if (cd.getStoragePosition() == baseColumnPositions[0]) {
                     defaultValue = cd.getDefaultValue();
                 }
                 DataValueDescriptor colDescriptor = dts.getNull();
@@ -731,8 +732,9 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
     /*private helper methods*/
 
     private IndexRowGenerator getIndexRowGenerator(int[] baseColumnPositions,
-                                                     @Nullable IndexRowGenerator existingGenerator,
-                                                     boolean shareExisting) throws StandardException {
+                                                   int[] baseColumnLogicalPosition,
+                                                   @Nullable IndexRowGenerator existingGenerator,
+                                                   boolean shareExisting) {
         // For now, assume that all index columns are ordered columns
         if (! shareExisting) {
             existingGenerator = new IndexRowGenerator(
@@ -740,6 +742,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                     unique,
                     uniqueWithDuplicateNulls,
                     baseColumnPositions,
+                    baseColumnLogicalPosition,
                     indexColumnTypes,
                     isAscending,
                     isAscending.length,
@@ -876,8 +879,9 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
              * so that we can reuse the wrappers during an external
              * sort.
              */
+            int[] keyFormatIds = WriteReadUtils.getExecRowTypeFormatIds(indexTemplateRow);
             Conglomerate conglomerate = tc.createConglomerateAsync(td.isExternal(),indexType, indexTemplateRow.getRowArray(),
-                    getColumnOrderings(isAscending.length), indexRowGenerator.getColumnCollationIds(
+                    getColumnOrderings(isAscending.length), keyFormatIds, indexRowGenerator.getColumnCollationIds(
                             td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT,
                     splitKeys, Conglomerate.Priority.NORMAL);
             conglomerate.awaitCreation();
@@ -949,9 +953,9 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
 
             OperationContext operationContext = dsp.createOperationContext(activation);
             ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds);
-            boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
+            boolean quotedEmptyIsNull = !PropertyUtil.getCachedBoolean(
                 operationContext.getActivation().getLanguageConnectionContext(),
-                Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
+                GlobalDBProperties.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
             boolean oneLineRecord = false;
             boolean preserveLineEndings = false;
             DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,

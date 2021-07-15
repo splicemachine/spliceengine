@@ -127,7 +127,7 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
 		*/
 		dd.startWriting(lcc);
 
-		td = dd.getTableDescriptor(tableId);
+		td = dd.getTableDescriptor(tableId, tc);
 
 		if (td == null)
 		{
@@ -145,7 +145,7 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
 
 		SchemaDescriptor tdSd = td.getSchemaDescriptor();
 		SchemaDescriptor constraintSd = 
-			constraintSchemaName == null ? tdSd : dd.getSchemaDescriptor(constraintSchemaName, tc, true);
+			constraintSchemaName == null ? tdSd : dd.getSchemaDescriptor(null, constraintSchemaName, tc, true);
 
 
 		/* Get the constraint descriptor for the index, along

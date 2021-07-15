@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -62,7 +63,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
     public static final int SYSCONSTRAINTS_REFERENCECOUNT=7;
 
     protected static final int SYSCONSTRAINTS_INDEX1_ID=0;
-    protected static final int SYSCONSTRAINTS_INDEX2_ID=1;
+    public static final int SYSCONSTRAINTS_INDEX2_ID=1;
     protected static final int SYSCONSTRAINTS_INDEX3_ID=2;
 
     private static final boolean[] uniqueness={
@@ -74,7 +75,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
     private static final int[][] indexColumnPositions=
             {
                     {SYSCONSTRAINTS_CONSTRAINTID},
-                    {SYSCONSTRAINTS_CONSTRAINTNAME,SYSCONSTRAINTS_SCHEMAID},
+                    {SYSCONSTRAINTS_SCHEMAID, SYSCONSTRAINTS_CONSTRAINTNAME},
                     {SYSCONSTRAINTS_TABLEID}
             };
 
@@ -217,13 +218,14 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
      * @param row                   a SYSCONSTRAINTS row
      * @param parentTupleDescriptor Subconstraint descriptor with auxiliary info.
      * @param dd                    dataDictionary
+     * @param tc
      * @throws StandardException thrown on failure
      */
     @SuppressFBWarnings(value={"SF_SWITCH_FALLTHROUGH", "DLS_DEAD_LOCAL_STORE"}, justification = "DB-10654")
     public TupleDescriptor buildDescriptor(
             ExecRow row,
             TupleDescriptor parentTupleDescriptor,
-            DataDictionary dd)
+            DataDictionary dd, TransactionController tc)
             throws StandardException{
         ConstraintDescriptor constraintDesc=null;
 
@@ -280,7 +282,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
             td=scd.getTableDescriptor();
         }
         if(td==null){
-            td=dd.getTableDescriptor(tableUUID);
+            td=dd.getTableDescriptor(tableUUID, tc);
         }
 
 		/* 3rd column is NAME (varchar(128)) */
@@ -339,7 +341,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
                     // the ddl thread went through), we are not done yet, the
                     // dd ref count is not 0, hence it couldn't have turned
                     // into COMPILE_ONLY mode
-                    td=dd.getTableDescriptor(tableUUID);
+                    td=dd.getTableDescriptor(tableUUID, tc);
                     if(scd!=null)
                         scd.setTableDescriptor(td);
                     // try again now
@@ -354,7 +356,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
                 }
                 referencedConstraintId=((SubKeyConstraintDescriptor)
                         parentTupleDescriptor).getKeyConstraintId();
-                keyColumns=conglomDesc.getIndexDescriptor().baseColumnPositions();
+                keyColumns=conglomDesc.getIndexDescriptor().baseColumnStoragePositions();
                 break;
 
             case 'C':
@@ -647,7 +649,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
             "  S.SCHEMANAME AS TBCREATOR,\n" +
             "  T.TABLENAME AS TBNAME,\n" +
             "  COLS.COLUMNNAME AS COLNAME,\n" +
-            "  CAST(CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) AS SMALLINT) AS COLSEQ,\n" +
+            "  CAST(CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.STORAGENUMBER) AS SMALLINT) AS COLSEQ,\n" +
             "  CAST(COLS.COLUMNNUMBER AS SMALLINT) AS COLNO,\n" +
             "  'N' AS IBMREQD, -- IBM release depencency indicators, default 'N'\n" +
             "  '' AS PERIOD    -- indicates whether the column is the start or end column for the BUSINESS_TIME period, default blank\n" +
@@ -668,5 +670,5 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
             "  C.TABLEID = T.TABLEID AND\n" +
             "  C.TABLEID = COLS.REFERENCEID AND\n" +
             "  C.CONGLOMERATEID = CONGLOMS.CONGLOMERATEID AND\n" +
-            "  CASE WHEN CONGLOMS.DESCRIPTOR IS NULL THEN FALSE ELSE (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) > 0) END \n";
+            "  CASE WHEN CONGLOMS.DESCRIPTOR IS NULL THEN FALSE ELSE (CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.STORAGENUMBER) > 0) END \n";
 }

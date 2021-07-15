@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 
@@ -52,6 +53,8 @@ public interface SystemProcedureGenerator {
 	 * Create or update a system stored procedure.  If the system stored procedure already exists in the data dictionary,
 	 * the stored procedure will be dropped and then created again.
 	 * 
+	 *
+	 * @param dbId
 	 * @param schemaName           the schema where the procedure does and/or will reside
 	 * @param procName             the procedure to create or update
 	 * @param tc                   the xact
@@ -59,24 +62,26 @@ public interface SystemProcedureGenerator {
 	 * @throws StandardException
 	 */
     void createOrUpdateProcedure(
-    		String schemaName,
-    		String procName,
-    		TransactionController tc,
-    		HashSet newlyCreatedRoutines) throws StandardException;
+			UUID dbId, String schemaName,
+			String procName,
+			TransactionController tc,
+			HashSet newlyCreatedRoutines) throws StandardException;
 
     /**
 	 * Create or update all system stored procedures.  If the system stored procedure already exists in the data dictionary,
 	 * the stored procedure will be dropped and then created again.
 	 * 
+	 *
+	 * @param dbId
 	 * @param schemaName           the schema where the procedures do and/or will reside
 	 * @param tc                   the xact
 	 * @param newlyCreatedRoutines set of newly created procedures
 	 * @throws StandardException
 	 */
     void createOrUpdateAllProcedures(
-    		String schemaName,
-    		TransactionController tc,
-    		HashSet newlyCreatedRoutines) throws StandardException;
+			UUID dbId, String schemaName,
+			TransactionController tc,
+			HashSet newlyCreatedRoutines) throws StandardException;
 
     /**
 	 * Create a system stored procedure.

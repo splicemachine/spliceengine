@@ -63,7 +63,7 @@ import java.util.stream.Stream;
  *
  */
 
-abstract class MethodCallNode extends JavaValueNode
+public abstract class MethodCallNode extends JavaValueNode
 {
     /*
     ** Name of the method.
@@ -1406,5 +1406,11 @@ abstract class MethodCallNode extends JavaValueNode
             result = 31 * result + methodParm.hashCode();
         }
         return Objects.hash(result, deterministicBuiltInFunctions.contains(methodName.toLowerCase()));
+    }
+
+    public boolean isDeterministic() {
+        if (routineInfo == null)
+            return false;
+        return routineInfo.isDeterministic();
     }
 }

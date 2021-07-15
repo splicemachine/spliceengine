@@ -226,13 +226,13 @@ public class MetaDataAccessControlIT {
     @Test
     public void testShowTableWithAccessControl() throws Exception {
         ResultSet rs = user1Conn.query("call SYSIBM.SQLTABLES(null,null,null,null,null)");
-        /* expected 19 tables: 16 sysvw views, and 2 user tables t1, and t2, and 1 alias AS1 */
-        assertEquals("Expected to have 21 tables", 21, resultSetSize(rs));
+        /* expected 12 tables: 17 sysvw views, and 2 user tables t1, and t2, and 1 alias AS1 */
+        assertEquals("Expected to have 22 tables", 22, resultSetSize(rs));
         rs.close();
 
-        /* expected just 16 sysvw views */
+        /* expected just 19 sysvw views */
         rs = user2Conn.query("call SYSIBM.SQLTABLES(null,null,null,null,null)");
-        assertEquals("Expected to have 18 tables", 18, resultSetSize(rs));
+        assertEquals("Expected to have 19 tables", 19, resultSetSize(rs));
         rs.close();
 
     }
@@ -257,6 +257,8 @@ public class MetaDataAccessControlIT {
                 "-------------------------------------------------\n" +
                 "METADATAACCESSCONTROLITSCHEMA_A |     NULL      |\n" +
                 "METADATAACCESSCONTROLITSCHEMA_B |     NULL      |\n" +
+                "          SYSCS_UTIL            |     NULL      |\n" +
+                "            SYSFUN              |     NULL      |\n" +
                 "             SYSVW              |     NULL      |";
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
@@ -264,8 +266,10 @@ public class MetaDataAccessControlIT {
         rs = user2Conn.query("call SYSIBM.SQLTABLES(null,null,null,null,'GETSCHEMAS=2')");
         expected = "TABLE_SCHEM | TABLE_CATALOG |\n" +
                 "------------------------------\n" +
-                "    SYSVW    |     NULL      |";
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+                " SYSCS_UTIL  |     NULL      |\n" +
+                "   SYSFUN    |     NULL      |\n" +
+                "    SYSVW    |     NULL      |" ;
+                assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
     }
 
@@ -357,6 +361,8 @@ public class MetaDataAccessControlIT {
                     "-------------------------------------------------\n" +
                     "METADATAACCESSCONTROLITSCHEMA_A |     NULL      |\n" +
                     "METADATAACCESSCONTROLITSCHEMA_B |     NULL      |\n" +
+                    "          SYSCS_UTIL            |     NULL      |\n" +
+                    "            SYSFUN              |     NULL      |\n" +
                     "             SYSVW              |     NULL      |";
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
@@ -364,6 +370,8 @@ public class MetaDataAccessControlIT {
         try (ResultSet rs = sparkUser2Conn.query("call SYSIBM.SQLTABLES(null,null,null,null,'GETSCHEMAS=2')")) {
             String expected = "TABLE_SCHEM | TABLE_CATALOG |\n" +
                     "------------------------------\n" +
+                    " SYSCS_UTIL  |     NULL      |\n" +
+                    "   SYSFUN    |     NULL      |\n" +
                     "    SYSVW    |     NULL      |";
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }

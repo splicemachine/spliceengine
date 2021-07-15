@@ -361,6 +361,30 @@ public class BroadcastJoinIT extends SpliceUnitTest {
         row(3, "ce")
         )).create();
 
+        new TableCreator(conn)
+                .withCreate("create table VT (STARTTS TIMESTAMP, ENDTS TIMESTAMP)")
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table RTPS (\"FULLNAME\" VARCHAR(100) NOT NULL,\n" +
+                                    "           \"NAME\"     VARCHAR(100) NOT NULL,\n" +
+                                    "           \"TIME\"     TIMESTAMP    NOT NULL,\n" +
+                                    "           \"VALUE\"    DOUBLE,\n" +
+                                    "           \"QUALITY\"  INTEGER,\n" +
+                                    "           CONSTRAINT RTPS_PK PRIMARY KEY (\"FULLNAME\", \"TIME\"))")
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table TF (\"FULLNAME\"   VARCHAR(100) NOT NULL,\n" +
+                                    "         \"TBR\"        INTEGER,\n" +
+                                    "         \"COUNT\"      INTEGER,\n" +
+                                    "         CONSTRAINT TF_PK PRIMARY KEY (\"FULLNAME\"))")
+                .create();
+
+        classWatcher.execute(format("CALL SYSCS_UTIL.FAKE_TABLE_STATISTICS('%s', 'VT', 1000000, 100, 1)", schemaName));
+        classWatcher.execute(format("CALL SYSCS_UTIL.FAKE_TABLE_STATISTICS('%s', 'RTPS', 29921286817, 100, 1)", schemaName));
+        classWatcher.execute(format("CALL SYSCS_UTIL.FAKE_TABLE_STATISTICS('%s', 'TF', 10000, 100, 1)", schemaName));
+
         classWatcher.executeUpdate("insert into t11 values (2,2)");
         classWatcher.executeUpdate("insert into t11 values (3,3)");
         classWatcher.executeUpdate("insert into t11 values (4,4)");
@@ -1050,5 +1074,23 @@ public class BroadcastJoinIT extends SpliceUnitTest {
                             "where t11.a between 1 and 90 and t11.b = myTab.a";
             testQueryContains(explainQuery, "NestedLoopJoin", methodWatcher, true);
         }
+    }
+
+    @Test
+    public void testBroadcastLeftOuterJoinLowerCost() throws Exception {
+        String query = "explain select * from --splice-properties joinOrder=fixed\n" +
+                " (select 1 as JK, STARTTS, ENDTS from VT) T" +
+                " left outer join" +
+                " (select TIME from RTPS" +
+                "          where TIME between '2020-01-01 00:00:00' AND '2020-01-03 00:00:00'" +
+                "            and FULLNAME in ('1234', '5678')" +
+                "          group by TIME) TG" +
+                "   on T.STARTTS = TG.TIME" +
+                " left outer join" +
+                " (select * from TF" +
+                "          where FULLNAME in ('1234', '5678')) TX" +
+                "   on 1 = 1";
+
+        rowContainsQuery(new int[]{3,6}, query, methodWatcher, "BroadcastLeftOuterJoin", "MergeSortLeftOuterJoin");
     }
 }
