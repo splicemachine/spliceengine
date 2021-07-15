@@ -198,9 +198,9 @@ public class SpliceDatabase extends BasicDatabase{
                                                                        long driverTxnId,
                                                                        TransactionController reuseTC,
                                                                        ArrayList<DisplayedTriggerInfo> triggerInfos,
-                                                                       HashMap<UUID, DisplayedTriggerInfo> triggerIdToTriggerInfoMap,
+                                                                       HashMap<com.splicemachine.db.catalog.UUID, String> triggerIdToNameMap,
                                                                        HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap,
-                                                                       HashMap<java.util.UUID, Long> queryTxnIdStack) throws StandardException{
+                                                                       HashMap<java.util.UUID, Long> queryTxnIdSet) throws StandardException{
         TransactionController tc = reuseTC == null ? ((SpliceAccessManager)af).marshallTransaction(cm,txn) : reuseTC;
         cm.setLocaleFinder(this);
         pushDbContext(cm);
@@ -208,7 +208,7 @@ public class SpliceDatabase extends BasicDatabase{
                 groupuserlist,drdaID,dbname,rdbIntTkn,type, sparkExecutionType, skipStats, defaultSelectivityFactor,
                 ipAddress, null,
                 spsCache, defaultRoles, initialDefaultSchemaDescriptor, driverTxnId, null,
-                triggerInfos, triggerIdToTriggerInfoMap, queryIdToTriggerInfoMap, queryTxnIdStack);
+                triggerInfos, triggerIdToNameMap, queryIdToTriggerInfoMap, queryTxnIdSet);
 
         pushClassFactoryContext(cm,lcf.getClassFactory());
         ExecutionFactory ef=lcf.getExecutionFactory();

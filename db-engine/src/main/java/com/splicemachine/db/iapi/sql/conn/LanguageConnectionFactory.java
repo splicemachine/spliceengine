@@ -134,9 +134,9 @@ public interface LanguageConnectionFactory {
 								 long driverTxnId,
 								 Properties sessionProperties,
 								 ArrayList<DisplayedTriggerInfo> triggerInfos,
-								 HashMap<UUID, DisplayedTriggerInfo> triggerIdToTriggerInfoMap,
+								 HashMap<com.splicemachine.db.catalog.UUID, String> triggerIdToNameMap,
 								 HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap,
-								 HashMap<java.util.UUID, Long> queryTxnIdStack)
+								 HashMap<java.util.UUID, Long> queryTxnIdSet)
 
 		throws StandardException;
 

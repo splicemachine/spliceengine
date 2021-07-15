@@ -111,9 +111,9 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
                                     TransactionController reuseTC,
                                     String localUserName, Integer sessionNumber,
                                     ArrayList<DisplayedTriggerInfo> triggerInfos,
-                                    HashMap<UUID, DisplayedTriggerInfo> triggerIdToTriggerInfoMap,
+                                    HashMap<com.splicemachine.db.catalog.UUID, String> triggerIdToNameMap,
                                     HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap,
-                                    HashMap<java.util.UUID, Long> queryTxnIdStack ) throws StandardException, SQLException{
+                                    HashMap<java.util.UUID, Long> queryTxnIdSet ) throws StandardException, SQLException{
         if (prepared) {
             throw new IllegalStateException("Cannot create a new marshall Transaction as the last one wasn't closed");
         }
@@ -142,7 +142,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
                     defaultRoles,
                     initialDefaultSchemaDescriptor,
                     driverTxnId,
-                    reuseTC, triggerInfos, triggerIdToTriggerInfoMap, queryIdToTriggerInfoMap, queryTxnIdStack);
+                    reuseTC, triggerInfos, triggerIdToNameMap, queryIdToTriggerInfoMap, queryTxnIdSet);
 
         } catch (Throwable t) {
             LOG.error("Exception during marshallTransaction", t);

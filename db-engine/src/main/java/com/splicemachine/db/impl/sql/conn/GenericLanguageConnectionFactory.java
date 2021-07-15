@@ -166,9 +166,9 @@ public class GenericLanguageConnectionFactory
             long driverTxnId,
             Properties sessionProperties,
             ArrayList<DisplayedTriggerInfo> triggerInfos,
-            HashMap<UUID, DisplayedTriggerInfo> triggerIdToTriggerInfoMap,
+            HashMap<com.splicemachine.db.catalog.UUID, String> triggerIdToNameMap,
             HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap,
-            HashMap<java.util.UUID, Long> queryTxnIdStack) throws StandardException {
+            HashMap<java.util.UUID, Long> queryTxnIdSet) throws StandardException {
         return new GenericLanguageConnectionContext(
                 cm,
                 tc,
@@ -193,9 +193,9 @@ public class GenericLanguageConnectionFactory
                 driverTxnId,
                 sessionProperties,
                 triggerInfos,
-                triggerIdToTriggerInfoMap,
+                triggerIdToNameMap,
                 queryIdToTriggerInfoMap,
-                queryTxnIdStack);
+                queryTxnIdSet);
     }
 
     public Cacheable newCacheable(CacheManager cm) {

@@ -183,7 +183,8 @@ public abstract class GenericTriggerExecutor {
                 // timeout to its parent statement's timeout settings.
                 ((GenericPreparedStatement)ps).setNeedsSavepoint(false);
                 ResultSet rs = ps.executeSubStatement(activation, spsActivation, false, 0L);
-                lcc.recordTriggerInfoWhileFiring(triggerd.getUUID());
+                lcc.recordTriggerInfoWhileFiring(triggerd.getUUID(), activation.getResultSet().getUuid(), activation.getResultSet().getUuid());
+
                 if (isWhen)
                 {
                     // This is a WHEN clause. Expect a single BOOLEAN value

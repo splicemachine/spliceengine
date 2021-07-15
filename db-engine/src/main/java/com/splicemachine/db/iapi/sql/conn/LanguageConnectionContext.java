@@ -117,12 +117,13 @@ public interface LanguageConnectionContext extends Context {
     int LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_NUM_CHAR = 20;
 
     void initTriggerInfo(TriggerDescriptor[] tds, java.util.UUID currentQueryId, long txnId);
+    void addThreadLocalUUID(java.util.UUID threadLocalUUID);
     ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo();
     void recordAdditionalDisplayedTriggerInfo(long elapsedTime, long modifiedRows, java.util.UUID queryId);
-    void recordTriggerInfoWhileFiring(UUID triggerId);
-    HashMap<UUID, DisplayedTriggerInfo> getTriggerIdToTriggerInfoMap();
+    void recordTriggerInfoWhileFiring(UUID triggerId, java.util.UUID queryId, java.util.UUID parentQueryId);
+    HashMap<com.splicemachine.db.catalog.UUID, String> gettriggerIdToNameMap();
     HashMap<java.util.UUID, DisplayedTriggerInfo> getQueryIdToTriggerInfoMap();
-    HashMap<java.util.UUID, Long> getQueryTxnIdStack();
+    HashMap<java.util.UUID, Long> getQueryTxnIdSet();
     /**
      * Initialize. For use after pushing the contexts that initialization needs.
      *

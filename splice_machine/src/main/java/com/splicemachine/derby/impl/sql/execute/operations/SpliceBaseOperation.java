@@ -494,7 +494,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             } else {
                 activation.getLanguageConnectionContext().initTriggerInfo(null, uuid, txnId);
             }
-
+            activation.getLanguageConnectionContext().addThreadLocalUUID(uuid);
             sql=sql==null?this.toString():sql;
             String userId=activation.getLanguageConnectionContext().getCurrentUserId(activation);
             activation.getLanguageConnectionContext().setControlExecutionLimiter(EngineDriver.driver().processorFactory().getControlExecutionLimiter(activation));

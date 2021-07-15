@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collections;
 
 public class DisplayTriggerInfoIT implements SerialTest {
     static final LocalizedResource langUtil = LocalizedResource.getInstance();
@@ -84,6 +85,12 @@ public class DisplayTriggerInfoIT implements SerialTest {
     }
 
     private final static String uuidReg = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[ ]*";
+
+    private final static String header =
+            "triggerName [ ]*\\|triggerId [ ]*\\|txnId [ ]*\\|queryId [ ]*\\|parentQueryId  [ ]*\\|timeSpent [ ]*\\|numRowsModified [ ]*\n" +
+                    "--------------------------------------------------------------------------------------------------[-]*\n";
+    // variable columns:              triggerId   |   txnId  |   queryId       |  parentQueryId  | timeSpent
+    private final static String variableColumns = "\\|" + uuidReg + "\\|\\d+\\s*\\|" + uuidReg + "\\|" + uuidReg + "\\|\\d+\\s*\\|";
     /*
       This testcase essentially test whether the function executes without error.
       It can also perform correctness test to some extent, e.g., number of trigger records returned should match expectation
@@ -98,12 +105,6 @@ public class DisplayTriggerInfoIT implements SerialTest {
         execute("CREATE TRIGGER TR1 BEFORE INSERT ON TABLE1 REFERENCING NEW AS NEW FOR EACH ROW SET NEW.COL1=NEW.COL1*100;\n");
         execute("CREATE TRIGGER TR2 BEFORE INSERT ON TABLE1 REFERENCING NEW AS NEW FOR EACH ROW SET NEW.COL1=NEW.COL1*20;\n");
         execute("INSERT INTO TABLE1 VALUES(1), (2);");
-
-        String header =
-                "triggerName [ ]*\\|triggerId [ ]*\\|txnId [ ]*\\|queryId [ ]*\\|parentQueryId  [ ]*\\|timeSpent [ ]*\\|numRowsModified [ ]*\n" +
-                 "--------------------------------------------------------------------------------------------------[-]*\n";
-        // variable columns:              triggerId   |   txnId  |   queryId       |  parentQueryId  | timeSpent
-        String variableColumns = "\\|" + uuidReg + "\\|\\d+\\s*\\|" + uuidReg + "\\|" + uuidReg + "\\|\\d+\\s*\\|";
 
         // One single event triggering two triggers; they should have same parentQueryId and txnId but different queryId and elapsedTime
          // There will be a row for each query executed during trigger execution, meaning, trigger1 and trigger 2 should each have two queries/rows displayed
@@ -168,28 +169,36 @@ public class DisplayTriggerInfoIT implements SerialTest {
                 "1 row selected\n");
 
         // Drop all tables and triggers created
-        for (int i = 0; i < 7; i++) {
+        for (int i = 1; i <= 7; i++) {
             execute("DROP TRIGGER TR" + i + ";\n");
         }
-        for (int i = 0; i < 5; i++) {
+        for (int i = 1; i <= 5; i++) {
             execute("DROP TABLE TABLE" + i + ";\n");
         }
     }
 
     @Test
     public void testCallGetTriggerExecAll() {
+        int idxMin = 11;
+        int idxMax = 79;
+        int numTriggers = idxMax - idxMin + 1;
+        String row = "TR(([1-7][1-9])|([2-7]0)) [ ]*" + variableColumns + "0 [ ]*\n";
+
         execute("CREATE TABLE TABLEA (COL1 INT);\n");
-        execute("CREATE TRIGGER TR1 BEFORE INSERT ON TABLEA REFERENCING NEW AS NEW FOR EACH ROW values 1;\n");
-        execute("CREATE TRIGGER TR2 BEFORE INSERT ON TABLEA REFERENCING NEW AS NEW FOR EACH ROW values 2;\n");
-        execute("CREATE TRIGGER TR3 BEFORE INSERT ON TABLEA REFERENCING NEW AS NEW FOR EACH ROW values 3;\n");
-        execute("CREATE TRIGGER TR4 BEFORE INSERT ON TABLEA REFERENCING NEW AS NEW FOR EACH ROW values 4;\n");
-        execute("CREATE TRIGGER TR5 BEFORE INSERT ON TABLEA REFERENCING NEW AS NEW FOR EACH ROW values 5;\n");
-        execute("CREATE TRIGGER TR6 BEFORE INSERT ON TABLEA REFERENCING NEW AS NEW FOR EACH ROW values 6;\n");
-        execute("CREATE TRIGGER TR7 BEFORE INSERT ON TABLEA REFERENCING NEW AS NEW FOR EACH ROW values 7;\n");
-//        execute("CREATE TRIGGER TR8 BEFORE INSERT ON TABLEA REFERENCING NEW AS NEW FOR EACH ROW values 8;\n");
-//        execute("CREATE TRIGGER TR9 BEFORE INSERT ON TABLEA REFERENCING NEW AS NEW FOR EACH ROW values 9;\n");
-//        execute("CREATE TRIGGER TR10 BEFORE INSERT ON TABLEA REFERENCING NEW AS NEW FOR EACH ROW values 10;\n");
+        for (int i = idxMin; i <= idxMax; i++) {
+            execute("CREATE TRIGGER TR" + i + " BEFORE INSERT ON TABLEA REFERENCING NEW AS NEW FOR EACH ROW values " + i + ";\n");
+        }
         execute("INSERT INTO TABLEA VALUES(3);\n");
-        execute("CALL SYSCS_UTIL.SYSCS_GET_TRIGGER_EXEC();\n","");
+
+        String rows = String.join("", Collections.nCopies(numTriggers, row));
+        executeR("CALL SYSCS_UTIL.SYSCS_GET_TRIGGER_EXEC();\n",
+                header + rows +
+                        "\n" +
+                        numTriggers + " rows selected\n");
+
+        for (int i = idxMin; i <= idxMax; i++) {
+            execute("DROP TRIGGER TR" + i + ";\n");
+        }
+        execute("DROP TABLE TABLEA;\n");
     }
 }
