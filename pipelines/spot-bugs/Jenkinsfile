@@ -74,7 +74,11 @@ def generateStage(platform) {
                         cp pipelines/template/settings.xml ~/.m2/settings.xml
                         sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml
                         sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
-
+                        wget https://repository.mapr.com/nexus/content/groups/mapr-public/conjars/org/pentaho/pentaho-aggdesigner-algorithm/5.1.5-jhyde/pentaho-aggdesigner-algorithm-5.1.5-jhyde.jar
+                        wget https://repository.mapr.com/nexus/content/groups/mapr-public/conjars/org/pentaho/pentaho-aggdesigner-algorithm/5.1.5-jhyde/pentaho-aggdesigner-algorithm-5.1.5-jhyde.pom
+                        mvn install:install-file -Dfile=pentaho-aggdesigner-algorithm-5.1.5-jhyde.jar -DgroupId=org.pentaho -DartifactId=pentaho-aggdesigner-algorithm -Dversion=5.1.5-jhyde -Dpackaging=jar
+                        mvn install:install-file -Dfile=pentaho-aggdesigner-algorithm-5.1.5-jhyde.pom -DgroupId=org.pentaho -DartifactId=pentaho-aggdesigner-algorithm -Dversion=5.1.5-jhyde -Dpackaging=pom
+                        
                         if [[ "${platform}" =~ ^mem ]] ; then
                             profiles="core,mem"
                         elif [[ "${platform}" =~ ^cdh ]] ; then
@@ -204,6 +208,10 @@ node('splice-standalone') {
                 cp pipelines/template/settings.xml ~/.m2/settings.xml
                 sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml
                 sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
+                wget https://repository.mapr.com/nexus/content/groups/mapr-public/conjars/org/pentaho/pentaho-aggdesigner-algorithm/5.1.5-jhyde/pentaho-aggdesigner-algorithm-5.1.5-jhyde.jar
+                wget https://repository.mapr.com/nexus/content/groups/mapr-public/conjars/org/pentaho/pentaho-aggdesigner-algorithm/5.1.5-jhyde/pentaho-aggdesigner-algorithm-5.1.5-jhyde.pom
+                mvn install:install-file -Dfile=pentaho-aggdesigner-algorithm-5.1.5-jhyde.jar -DgroupId=org.pentaho -DartifactId=pentaho-aggdesigner-algorithm -Dversion=5.1.5-jhyde -Dpackaging=jar
+                mvn install:install-file -Dfile=pentaho-aggdesigner-algorithm-5.1.5-jhyde.pom -DgroupId=org.pentaho -DartifactId=pentaho-aggdesigner-algorithm -Dversion=5.1.5-jhyde -Dpackaging=pom
                 """
                 sh "mvn -B clean install -Pmem,core,$platforms,ee -DskipTests"
             }
