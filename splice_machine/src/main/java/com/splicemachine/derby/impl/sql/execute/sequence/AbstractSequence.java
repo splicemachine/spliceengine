@@ -49,10 +49,10 @@ public abstract class AbstractSequence implements Sequence, Externalizable{
 
     public long getNext() throws StandardException{
         rwLock.readLock().lock();
-        if (remaining.getAndDecrement() <= 0) {
-            allocateBlock(false);
-        }
         try {
+            if (remaining.getAndDecrement() <= 0) {
+                allocateBlock(false);
+            }
             return currPosition.getAndAdd(incrementSteps);
         } finally {
             rwLock.readLock().unlock();
@@ -61,10 +61,10 @@ public abstract class AbstractSequence implements Sequence, Externalizable{
 
     public long peekAtCurrentValue() throws StandardException {
         rwLock.readLock().lock();
-        if (remaining.get() <= 0) {
-            allocateBlock(true);
-        }
         try {
+            if (remaining.get() <= 0) {
+                allocateBlock(true);
+            }
             return currPosition.get();
         } finally {
             rwLock.readLock().unlock();
