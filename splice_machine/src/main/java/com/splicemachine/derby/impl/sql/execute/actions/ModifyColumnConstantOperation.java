@@ -1453,7 +1453,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         }
 
         for (ViewDescriptor vd : views) {
-            TableDescriptor viewTd = dd.getTableDescriptor(vd.getUUID());
+            TableDescriptor viewTd = dd.getTableDescriptor(vd.getUUID(), activation.getTransactionController());
 
             if (viewTd == null) {
                 // already dropped via another dependency
