@@ -227,7 +227,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
          * one we got at compile time, the lock on system table was released
          * when compile was done, and the table might well have been dropped.
          */
-        triggerTable = dd.getTableDescriptor(triggerTableId);
+        triggerTable = dd.getTableDescriptor(triggerTableId, tc);
         if (triggerTable!=null && triggerTable.getTableType()==TableDescriptor.EXTERNAL_TYPE) {
             throw StandardException.newException(
                     SQLState.EXTERNAL_TABLES_NO_TRIGGERS,triggerTable.getName());
@@ -242,7 +242,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         /* Lock the table for DDL.  Otherwise during our execution, the table
          * might be changed, even dropped.  Beetle 4269
          */
-        triggerTable = dd.getTableDescriptor(triggerTableId);
+        triggerTable = dd.getTableDescriptor(triggerTableId, tc);
         if (triggerTable == null) {
             throw StandardException.newException(
                     SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION,

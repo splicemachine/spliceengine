@@ -74,7 +74,7 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
 
         dd.startWriting(lcc);
 
-        TableDescriptor td=dd.getTableDescriptor(tableId);
+        TableDescriptor td=dd.getTableDescriptor(tableId, tc);
         if(td==null)
             throw ErrorState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION.newException(fullIndexName);
         if(!lcc.isVisibleToCurrentSession(td))

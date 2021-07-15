@@ -558,7 +558,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
             try {
                 ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomID);
                 if (cd != null) {
-                    TableDescriptor td = dd.getTableDescriptor(cd.getTableID());
+                    TableDescriptor td = dd.getTableDescriptor(cd.getTableID(), null);
                     // External tables can't be compacted.
                     if (td != null && td.isExternal())
                         continue;
@@ -970,7 +970,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
             try (ResultSet resultSet = statement.executeQuery()) {
                 List<TableDescriptor> tableDescriptors = new ArrayList<>();
                 while (resultSet.next()) {
-                    tableDescriptors.add(dataDictionary.getTableDescriptor(new BasicUUID(resultSet.getString(1))));
+                    tableDescriptors.add(dataDictionary.getTableDescriptor(new BasicUUID(resultSet.getString(1)), null));
                 }
                 return tableDescriptors;
             }

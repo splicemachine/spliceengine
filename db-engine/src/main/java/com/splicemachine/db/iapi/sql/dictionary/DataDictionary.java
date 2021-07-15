@@ -46,7 +46,6 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 
-import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.*;
 
@@ -643,7 +642,7 @@ public interface DataDictionary{
      * @param sd
      * @return
      */
-    ArrayList<TupleDescriptor> getTablesInSchema(SchemaDescriptor sd) throws StandardException;
+    ArrayList<TableDescriptor> getTablesInSchema(String schemaId) throws StandardException;
 
     ArrayList<AliasDescriptor> getAliasesInSchema(String schemaId) throws StandardException;
 
@@ -692,11 +691,12 @@ public interface DataDictionary{
      * is needed).
      *
      * @param tableID The UUID of the table to get the descriptor for
+     * @param tc
      * @return The descriptor for the table, null if the table does
      * not exist.
      * @throws StandardException Thrown on failure
      */
-    TableDescriptor getTableDescriptor(UUID tableID) throws StandardException;
+    TableDescriptor getTableDescriptor(UUID tableID, TransactionController tc) throws StandardException;
 
     /**
      * Get a list of TableDescriptors whose table names are in a given range within the given schema.

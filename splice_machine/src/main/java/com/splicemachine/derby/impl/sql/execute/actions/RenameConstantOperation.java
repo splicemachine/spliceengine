@@ -192,7 +192,7 @@ public class RenameConstantOperation extends DDLSingleTableConstantOperation {
         */
         dd.startWriting(lcc);
 
-        td = dd.getTableDescriptor(tableId);
+        td = dd.getTableDescriptor(tableId, null);
 
         if (td == null)
         {
@@ -218,7 +218,7 @@ public class RenameConstantOperation extends DDLSingleTableConstantOperation {
 
         /* need to get td again, in case it's changed before lock acquired
          */
-        td = dd.getTableDescriptor(tableId);
+        td = dd.getTableDescriptor(tableId, null);
         if (td == null)
         {
             throw StandardException.newException(
@@ -340,7 +340,7 @@ public class RenameConstantOperation extends DDLSingleTableConstantOperation {
 
         //Need to do following to reload the cache so that table
         //descriptor now has new column name
-        dd.getTableDescriptor(td.getObjectID());
+        dd.getTableDescriptor(td.getObjectID(), tc);
     }
 
     //do necessary work for rename index at execute time.

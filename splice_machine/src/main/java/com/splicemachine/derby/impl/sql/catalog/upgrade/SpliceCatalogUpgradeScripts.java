@@ -81,6 +81,7 @@ public class SpliceCatalogUpgradeScripts{
 
         scripts = new ArrayList<>();
         addUpgradeScript(baseVersion4, 2020, new UpgradeAddConglomerateNumberIndex(sdd, tc));
+        addUpgradeScript(baseVersion4, 2024, new UpgradeScriptToPrioritizeSchemaIdInSystemIndices(sdd, tc));
         // DB-11296: UpgradeConglomerateTable has to be executed first, because it adds a system table
         // CONGLOMERATE_SI_TABLE_NAME that is from then on needed to create tables, e.g.
         // in UpgradeScriptToAddSysNaturalNumbersTable. If UpgradeConglomerateTable is at the end,
