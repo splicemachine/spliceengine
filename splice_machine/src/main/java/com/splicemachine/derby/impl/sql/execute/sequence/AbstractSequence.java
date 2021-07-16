@@ -23,16 +23,14 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public abstract class AbstractSequence implements Sequence, Externalizable{
     protected final AtomicLong remaining=new AtomicLong(0l);
     protected final AtomicLong currPosition=new AtomicLong(0l);
     protected long blockAllocationSize;
     protected long incrementSteps;
-    protected final ReadWriteLock rwLock = new ReentrantReadWriteLock();
+    protected final Lock updateLock=new ReentrantLock();
     protected long startingValue;
 
     public AbstractSequence(){
@@ -48,27 +46,15 @@ public abstract class AbstractSequence implements Sequence, Externalizable{
     }
 
     public long getNext() throws StandardException{
-        rwLock.readLock().lock();
-        try {
-            if (remaining.getAndDecrement() <= 0) {
-                allocateBlock(false);
-            }
-            return currPosition.getAndAdd(incrementSteps);
-        } finally {
-            rwLock.readLock().unlock();
-        }
+        if(remaining.getAndDecrement()<=0)
+            allocateBlock(false);
+        return currPosition.getAndAdd(incrementSteps);
     }
 
     public long peekAtCurrentValue() throws StandardException {
-        rwLock.readLock().lock();
-        try {
-            if (remaining.get() <= 0) {
-                allocateBlock(true);
-            }
-            return currPosition.get();
-        } finally {
-            rwLock.readLock().unlock();
-        }
+        if(remaining.get()<= 0)
+            allocateBlock(true);
+        return currPosition.get();
     }
 
     protected abstract long getCurrentValue() throws IOException;
@@ -77,16 +63,12 @@ public abstract class AbstractSequence implements Sequence, Externalizable{
 
     public abstract void close() throws IOException;
 
-    // must be called with acquired read lock
     private void allocateBlock(boolean peek) throws StandardException{
         boolean success=false;
         long absIncrement = incrementSteps < 0 ? -incrementSteps :
                                                   incrementSteps;
         while(!success){
-            if(remaining.getAndDecrement()>0)
-                return;
-            rwLock.readLock().unlock();
-            rwLock.writeLock().lock();
+            updateLock.lock();
             try{
                 if(remaining.getAndDecrement()>0)
                     return;
@@ -104,9 +86,7 @@ public abstract class AbstractSequence implements Sequence, Externalizable{
             }catch(IOException e){
                 throw Exceptions.parseException(e);
             }finally{
-                // downgrade to read lock
-                rwLock.readLock().lock();
-                rwLock.writeLock().unlock();
+                updateLock.unlock();
             }
         }
     }
