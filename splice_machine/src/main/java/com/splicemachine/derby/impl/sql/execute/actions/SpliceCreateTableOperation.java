@@ -227,7 +227,7 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 		DataDictionary dd = lcc.getDataDictionary();
 
 		final String localTempTableNameStart = tableName + lcc.LOCAL_TEMP_TABLE_SUFFIX_FIX_PART;
-		final String localTempTableNameEnd = tableName + lcc.LOCAL_TEMP_TABLE_SUFFIX_FIX_PART + "a";
+		final String localTempTableNameEnd = tableName + lcc.LOCAL_TEMP_TABLE_SUFFIX_FIX_PART + "{";
 
 		return !dd.getTableDescriptors(localTempTableNameStart, localTempTableNameEnd, sd).isEmpty();
 	}

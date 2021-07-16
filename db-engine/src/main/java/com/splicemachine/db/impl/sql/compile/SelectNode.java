@@ -2052,6 +2052,19 @@ public class SelectNode extends ResultSetNode {
                         getContextManager()
                         );
             }
+            /*
+             * During Parsing phase, we construct a HalfOuterJoinNode and if it is a right outer join,
+             * we set joinResultSet and rightOuterJoinUsingClause in every result column of top select nodes.
+             * However, here, we removed the original HalfOuterJoinNode to create a new one.
+             * The new one will get a resultSetNumber assigned to it.
+             * We need to clear the top SelectNode of its reference to the original HalfOuterJoinNode
+             */
+            for (ResultColumn rc : this.getResultColumns()) {
+                rc.setJoinResultset(null);
+                rc.setRightOuterJoinUsingClause(false);
+                joinNode.isJoinColumnForRightOuterJoin(rc);
+            }
+
             joinNode.setCostEstimate(rightResultSet.getCostEstimate());
 
             ResultSetNode newPRNode = joinNode.genProjectRestrict();

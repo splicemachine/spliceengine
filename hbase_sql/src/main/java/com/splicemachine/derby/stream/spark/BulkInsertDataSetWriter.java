@@ -137,7 +137,7 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
         Activation activation = operationContext.getActivation();
         DataDictionary dd = activation.getLanguageConnectionContext().getDataDictionary();
         ConglomerateDescriptor cd = dd.getConglomerateDescriptor(heapConglom);
-        TableDescriptor td = dd.getTableDescriptor(cd.getTableID());
+        TableDescriptor td = dd.getTableDescriptor(cd.getTableID(), null);
         ConglomerateDescriptorList conglomerateDescriptorList = td.getConglomerateDescriptorList();
         List<Long> allCongloms = Lists.newArrayList();
         allCongloms.add(td.getHeapConglomerateId());

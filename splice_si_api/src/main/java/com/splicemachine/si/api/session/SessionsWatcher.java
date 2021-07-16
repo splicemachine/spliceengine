@@ -4,11 +4,11 @@ import java.util.List;
 import java.util.Set;
 
 public interface SessionsWatcher {
-    Set<Long> getLocalActiveSessions();
+    Set<String> getLocalActiveSessions();
 
-    List<Long> getAllActiveSessions();
+    List<String> getAllActiveSessions();
 
-    void registerSession(long sessionId);
+    void registerSession(long machineID, String sessionId);
 
-    void unregisterSession(long sessionId);
+    void unregisterSession(long machineID, String sessionId);
 }

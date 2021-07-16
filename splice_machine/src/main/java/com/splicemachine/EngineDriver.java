@@ -167,4 +167,7 @@ public class EngineDriver{
         return serviceDiscovery;
     }
 
+    public long getMachineID() {
+        return uuidGen.getMachineId();
+    }
 }

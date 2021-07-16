@@ -164,6 +164,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private final int instanceNumber;
     private String drdaID;
     private String rdbIntTkn;
+    private final java.util.UUID localID;
+    private final long machineID;
+    private final String sessionID;
 
     private Object lastQueryTree; // for debugging
     private ManagedCache<UUID, SPSDescriptor> spsCache = null;
@@ -385,13 +388,14 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         TransactionController tranCtrl,
         LanguageFactory lf,
         LanguageConnectionFactory lcf,
-            InternalDatabase spliceInstance,
+        InternalDatabase spliceInstance,
         String userName,
         List<String> groupuserlist,
         int instanceNumber,
         String drdaID,
-            String dbName,
+        String dbName,
         String rdbIntTkn,
+        long machineID,
         DataSetProcessorType type,
         SparkExecutionType sparkExecutionType,
         boolean skipStats,
@@ -426,6 +430,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         this.instanceNumber = instanceNumber;
         this.drdaID = drdaID;
         this.rdbIntTkn = rdbIntTkn;
+        this.localID = java.util.UUID.randomUUID();
+        this.machineID = machineID;
+        this.sessionID = machineID + ":" + localID;
         this.commentStripper = lcf.newCommentStripper();
         this.defaultSchema = defaultSchema;
         this.spsCache = spsCache;
@@ -980,7 +987,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public String mangleTableName(String tableName) {
         // 20 underscores + session ID
-        return String.format("%s" + LOCAL_TEMP_TABLE_SUFFIX_FIX_PART + "%d", tableName, getInstanceNumber());
+        return String.format("%s" + LOCAL_TEMP_TABLE_SUFFIX_FIX_PART + "%s", tableName, getSessionID());
     }
 
     @Override
@@ -990,6 +997,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         if (td.getTableType() != TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE)
             return true;
 
+        return getSessionID().equals(getLocalTempTableSessionID(td));
+    }
+
+    @Override
+    public String getLocalTempTableSessionID(TableDescriptor td) throws StandardException {
+        if (td == null || td.getTableType() != TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE) {
+            return null;
+        }
+
         String tableName = td.getName();
         int lastIdx = tableName.lastIndexOf(LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_CHAR);
         if (lastIdx < LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_NUM_CHAR || lastIdx >= tableName.length() - 1)  // -1 case included
@@ -998,13 +1014,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             if (tableName.charAt(i) != LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_CHAR)
                 throw StandardException.newException(SQLState.LANG_INVALID_INTERNAL_TEMP_TABLE_NAME, tableName);
         }
-        try {
-            if (Integer.parseInt(tableName.substring(lastIdx + 1)) == getInstanceNumber())
-                return true;
-            return false;
-        } catch (NumberFormatException e) {
-            throw StandardException.newException(SQLState.LANG_INVALID_INTERNAL_TEMP_TABLE_NAME, tableName);
-        }
+        return tableName.substring(lastIdx + 1);
     }
 
     /**
@@ -1136,7 +1146,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     /*Reset the connection before it is returned (indirectly) by a PooledConnection object. See EmbeddedConnection. */
     @Override
     public void resetFromPool() throws StandardException {
-        getSpliceInstance().unregisterSession(instanceNumber);
+        getSpliceInstance().unregisterSession(getMachineID(), getSessionID());
 
         interruptedException = null;
 
@@ -3534,6 +3544,21 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public long getMachineID() {
+        return machineID;
+    }
+
+    @Override
+    public java.util.UUID getLocalID() {
+        return localID;
+    }
+
+    @Override
+    public String getSessionID() {
+        return sessionID;
+    }
+
+    @Override
     public String getCurrentDatabaseName(Activation a) {
         return getCurrentDatabase(a).getDatabaseName();
     }
@@ -3555,14 +3580,14 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         if (tc == null)
             return null;
 
-        StringBuffer sb = new StringBuffer(200);
+        StringBuffer sb = new StringBuffer(256);
 
         sb.append(LanguageConnectionContext.xidStr);
         sb.append(tc.getTransactionIdString());
         sb.append("), ");
 
         sb.append(LanguageConnectionContext.lccStr);
-        sb.append(getInstanceNumber());
+        sb.append(getSessionID());
         sb.append("), ");
 
         sb.append(LanguageConnectionContext.dbnameStr);
@@ -4184,8 +4209,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         return String.format(
             "XID=%s, SessionID=%s, Database=%s, DRDAID=%s, UserID=%s",
             getTransactionExecute().getTransactionIdString(),
-            getInstanceNumber(),
-                getCurrentDatabase().getDatabaseName(),
+            getSessionID(),
+            getCurrentDatabase().getDatabaseName(),
             getDrdaID(),
             getSessionUserId());
     }

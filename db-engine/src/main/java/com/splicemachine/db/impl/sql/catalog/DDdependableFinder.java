@@ -315,7 +315,7 @@ public class DDdependableFinder implements	DependableFinder, Formatable
                 return dd.getSPSDescriptor(dependableObjectID);
 
 			case StoredFormatIds.TABLE_DESCRIPTOR_FINDER_V01_ID:
-                return dd.getTableDescriptor(dependableObjectID);
+                return dd.getTableDescriptor(dependableObjectID, null);
 
 			case StoredFormatIds.TRIGGER_DESCRIPTOR_FINDER_V01_ID:
                 return dd.getTriggerDescriptor(dependableObjectID);

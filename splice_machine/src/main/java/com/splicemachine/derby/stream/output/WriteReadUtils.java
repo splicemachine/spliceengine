@@ -56,7 +56,7 @@ public class WriteReadUtils {
         Pair<Long,Long>[] defaultAutoIncrementValues = new Pair[autoIncrementRowLocationArray.length];
         ConglomerateDescriptor conglomerateDescriptor = dataDictionary.getConglomerateDescriptor(seqConglomId);
         assert conglomerateDescriptor != null : "Can't find conglomerate descriptor for seqConglomId: "+seqConglomId;
-        TableDescriptor tableDescriptor = dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
+        TableDescriptor tableDescriptor = dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID(), null);
         ColumnDescriptorList columnDescriptorList = tableDescriptor.getColumnDescriptorList();
         for(int i = 0; i< autoIncrementRowLocationArray.length; i++){
             ColumnDescriptor cd = columnDescriptorList.get(i);

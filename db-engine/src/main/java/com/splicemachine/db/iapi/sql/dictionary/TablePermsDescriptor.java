@@ -75,7 +75,7 @@ public class TablePermsDescriptor extends PermissionsDescriptor
         //tableUUID can be null only if the constructor with tablePermsUUID
         //has been invoked.
         if (tableUUID != null)
-            tableName = dd.getTableDescriptor(tableUUID).getName();
+            tableName = dd.getTableDescriptor(tableUUID, null).getName();
     }
 
     /**
@@ -148,7 +148,7 @@ public class TablePermsDescriptor extends PermissionsDescriptor
 
     @Override
     public SchemaDescriptor getSchemaDescriptor() throws StandardException {
-        return getDataDictionary().getTableDescriptor(tableUUID).getSchemaDescriptor();
+        return getDataDictionary().getTableDescriptor(tableUUID, null).getSchemaDescriptor();
     }
 
     /**

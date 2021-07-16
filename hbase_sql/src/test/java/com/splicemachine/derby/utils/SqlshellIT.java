@@ -29,6 +29,10 @@ public class SqlshellIT {
     static File tempDir;
     static ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
+    String rowsSelected(int num) {
+        return "\n" + num + " row" + (num == 1 ? "" : "s") + " selected\n";
+    }
+
     @BeforeClass
     public static void startup() throws IOException {
         tempDir = SpliceUnitTest.createTempDirectory(SCHEMA_NAME);
@@ -74,7 +78,7 @@ public class SqlshellIT {
     static String execute(String in) {
         baos.reset();
         LocalizedInput input = langUtil.getNewInput(IOUtils.toInputStream(in));
-        me.goGuts(input);
+        me.goGuts(input, false);
         try {
             return baos.toString(StandardCharsets.UTF_8.name());
         } catch (UnsupportedEncodingException e) {
@@ -110,22 +114,18 @@ public class SqlshellIT {
                     "---\n" +
                     "CREATE TABLE \"SQLSHELLIT\".\"ABC\" (\n" +
                     "\"DEF\" INTEGER\n" +
-                    ") ;\n" +
-                    "\n" +
-                    "1 row selected\n");
+                    ") ;\n" + rowsSelected(1));
 
         execute("describe abc;\n",
                     "COLUMN_NAME                             |TYPE_NAME|DEC&|NUM&|COLUMN_SI&|COLUMN_DEF|CHAR_OCTE&|IS_NU&\n" +
                     "----------------------------------------------------------------------------------------------------\n" +
                     "DEF                                     |INTEGER  |0   |10  |10        |NULL      |NULL      |YES   \n" +
-                    "\n" +
-                    "1 row selected\n");
+                    rowsSelected(1));
 
         execute( "show primarykeys from abc;\n",
-                "TABLE_NAME                    |COLUMN_NAME                   |KEY_SEQ   |PK_NAME                       \n" +
-                        "-------------------------------------------------------------------------------------------------------\n" +
-                        "\n" +
-                        "0 rows selected\n");
+                    "TABLE_NAME                    |COLUMN_NAME                   |KEY_SEQ   |PK_NAME                       \n" +
+                    "-------------------------------------------------------------------------------------------------------\n" +
+                    rowsSelected(0));
     }
 
     @Test
@@ -139,8 +139,7 @@ public class SqlshellIT {
                         ",\"COL_3\" DOUBLE\n" +
                         ",\"COL_4\" VARCHAR\\(255\\)\n" +
                         ", CONSTRAINT .* PRIMARY KEY\\(\"COL_1\"\\)\\) ;\n" +
-                        "\n" +
-                        "1 row selected\n");
+                        rowsSelected(1));
 
         execute("describe T_2;\n",
                 "COLUMN_NAME                             |TYPE_NAME|DEC&|NUM&|COLUMN_SI&|COLUMN_DEF|CHAR_OCTE&|IS_NU&\n" +
@@ -149,15 +148,13 @@ public class SqlshellIT {
                         "COL_2                                   |INTEGER  |0   |10  |10        |NULL      |NULL      |YES   \n" +
                         "COL_3                                   |DOUBLE   |NULL|2   |52        |NULL      |NULL      |YES   \n" +
                         "COL_4                                   |VARCHAR  |NULL|NULL|255       |NULL      |510       |YES   \n" +
-                        "\n" +
-                        "4 rows selected\n");
+                        rowsSelected(4));
 
         executeR( "show primarykeys from T_2;\n", SpliceUnitTest.escapeRegexp(
                         "TABLE_NAME                    |COLUMN_NAME                   |KEY_SEQ   |PK_NAME                       \n" +
                         "-------------------------------------------------------------------------------------------------------\n" +
                         "T_2                           |COL_1                         |1         |§\n" +
-                        "\n" +
-                        "1 row selected\n") );
+                        rowsSelected(1)) );
     }
 
     @Test
@@ -185,8 +182,7 @@ public class SqlshellIT {
             "SQLSHELLIT          |ABC                                               |§|                    \n" +
             "SQLSHELLIT          |TX2                                               |§|                    \n" +
             "SQLSHELLIT          |T_2                                               |§|                    \n" +
-            "\n" +
-            "3 rows selected\n") );
+            rowsSelected(3)) );
     }
 
     @Test
@@ -197,8 +193,7 @@ public class SqlshellIT {
             "SQLSHELLIT          |VX1                                               |NULL      |                    \n" +
             "SQLSHELLIT          |V_1                                               |NULL      |                    \n" +
             "SQLSHELLIT          |V_2                                               |NULL      |                    \n" +
-            "\n" +
-            "3 rows selected\n");
+            rowsSelected(3));
     }
 
 
@@ -210,8 +205,7 @@ public class SqlshellIT {
                         "SQLJ                |INSTALL_JAR                                                 |com.splicemachine.db.catalog.SystemProcedures.INSTALL_JAR                                           \n" +
                         "SQLJ                |REMOVE_JAR                                                  |com.splicemachine.db.catalog.SystemProcedures.REMOVE_JAR                                            \n" +
                         "SQLJ                |REPLACE_JAR                                                 |com.splicemachine.db.catalog.SystemProcedures.REPLACE_JAR                                           \n" +
-                        "\n" +
-                        "3 rows selected\n");
+                        rowsSelected(3));
     }
 
     @Test
@@ -222,8 +216,7 @@ public class SqlshellIT {
                 "URL                             |VARCHAR                         |1               \n" +
                 "JAR                             |VARCHAR                         |2               \n" +
                 "DEPLOY                          |INTEGER                         |3               \n" +
-                "\n" +
-                "3 rows selected\n";
+                rowsSelected(3);
 
         execute("show procedurecols in SQLJ FROM INSTALL_JAR;\n", res);
         execute("show procedurecols FROM SQLJ.INSTALL_JAR;\n", res);
@@ -237,8 +230,7 @@ public class SqlshellIT {
                         "-----------------------------------------------------------------------------------------------------------------------------------\n" +
                         "SYSCS_UTIL    |SYSCS_GET_DATABASE_PROPERTY        |com.splicemachine.db.catalog.SystemProcedures.SYSCS_GET_DATABASE_PROPERTY       \n" +
                         "SYSCS_UTIL    |SYSCS_PEEK_AT_SEQUENCE             |com.splicemachine.db.catalog.SystemProcedures.SYSCS_PEEK_AT_SEQUENCE            \n" +
-                        "\n" +
-                        "2 rows selected\n");
+                        rowsSelected(2));
     }
 
     @Test
@@ -250,8 +242,7 @@ public class SqlshellIT {
                         "SQLSHELLIT          |ST_2                                              |NULL      |                    \n" +
                         "SQLSHELLIT          |SVX1                                              |NULL      |                    \n" +
                         "SQLSHELLIT          |SV_1                                              |NULL      |                    \n" +
-                        "\n" +
-                        "4 rows selected\n");
+                        rowsSelected(4));
     }
 
     @Test // DB-10049
@@ -263,8 +254,7 @@ public class SqlshellIT {
                     "1          \n" +
                     "-----------\n" +
                     "1          \n" +
-                    "\n" +
-                    "1 row selected\n");
+                    rowsSelected(1));
         }
         finally {
             // reset option for other tests
@@ -277,8 +267,7 @@ public class SqlshellIT {
         try {
             execute("WITH HEADER;\n", "");
             String v =  "1          \n" +
-                        "\n" +
-                        "1 row selected\n";
+                       rowsSelected(1);
             execute("values 1;\n",
                     "1          \n" +
                     "-----------\n" + v);
@@ -302,8 +291,7 @@ public class SqlshellIT {
                     "1          \n" +
                     "-----------\n" +
                     "23         \n" +
-                    "\n" +
-                    "1 row selected\n" +
+                    rowsSelected(1) +
                     "splice> null;\n";
             Assert.assertEquals(expected, execute("values 23;\n"));
             String fileContent = new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8);
@@ -332,15 +320,13 @@ public class SqlshellIT {
                         "1          \n" +
                         "-----------\n" +
                         "3          \n" +
-                        "\n" +
-                        "1 row selected\n" +
+                        rowsSelected(1) +
                         "splice> -- another comment!\n" +
                         "values 5;\n" +
                         "1          \n" +
                         "-----------\n" +
                         "5          \n" +
-                        "\n" +
-                        "1 row selected\n");
+                        rowsSelected(1));
     }
 
     @Test // DB-10373
@@ -356,8 +342,7 @@ public class SqlshellIT {
                     "SQLSHELLIT          |TABLE_WITH_A_VERY_VERY_RIDICULOUS_SUPER_MUCH_TOO_&|§|                    \n" +
                     "SQLSHELLIT          |TX2                                               |§|                    \n" +
                     "SQLSHELLIT          |T_2                                               |§|                    \n" +
-                    "\n" +
-                    "4 rows selected\n") );
+                    rowsSelected(4)) );
 
             execute("maximumdisplaywidth 0;\n", "");
             executeR( "show tables in SQLSHELLIT;\n", SpliceUnitTest.escapeRegexp(
@@ -367,8 +352,7 @@ public class SqlshellIT {
                     "SQLSHELLIT|TABLE_WITH_A_VERY_VERY_RIDICULOUS_SUPER_MUCH_TOO_LONG_NAME|§|\n" +
                     "SQLSHELLIT|TX2|§|\n" +
                     "SQLSHELLIT|T_2|§|\n" +
-                    "\n" +
-                    "4 rows selected\n") );
+                    rowsSelected(4)) );
 
             execute("maximumdisplaywidth 8;\n", "");
             executeR( "show tables in SQLSHELLIT;\n", SpliceUnitTest.escapeRegexp(
@@ -378,8 +362,7 @@ public class SqlshellIT {
                     "SQLSHEL&|TABLE_W&|§|        \n" +
                     "SQLSHEL&|TX2     |§|        \n" +
                     "SQLSHEL&|T_2     |§|        \n" +
-                    "\n" +
-                    "4 rows selected\n") );
+                    rowsSelected(4)) );
         }
         finally {
             execute("maximumdisplaywidth 256;\n", "");
@@ -404,8 +387,7 @@ public class SqlshellIT {
                     SpliceUnitTest.escapeRegexp(   "TABLE_NAME|INDEX_NAME|COLUMN_NA&|ORDINAL_P&|NON_UNIQUE|TYPE      |ASC_OR_DE&|CONGLOM_NO\n" +
                                     "---------------------------------------------------------------------------------------\n" +
                                     "T_2       |ID_1      |COL_1     |1         |true      |BTREE     |A         |§\n" +
-                                    "\n" +
-                                    "1 row selected\n") );
+                                    rowsSelected(1)) );
 
             execute("maximumdisplaywidth 0;\n", "");
             executeR("show indexes in SQLSHELLIT;\n", SpliceUnitTest.escapeRegexp(
@@ -413,8 +395,7 @@ public class SqlshellIT {
                     "-----------------------------------------------------------------------------------------\n" +
                     "TX2|IDX1|ABC|1|true|BTREE|A|§\n" +
                     "T_2|ID_1|COL_1|1|true|BTREE|A|§\n" +
-                    "\n" +
-                    "2 rows selected\n" ) );
+                     rowsSelected(2) ) );
         }
         finally {
             execute("maximumdisplaywidth 256;\n", "");
@@ -507,6 +488,7 @@ public class SqlshellIT {
                 "5:\tL_QUANTITY DECIMAL(15,2),\n" +
                 ".\n");
     }
+
     private final static String uuidReg = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[ ]*";
 
     private final static String header =
@@ -534,6 +516,85 @@ public class SqlshellIT {
 
         for (int i = idxMin; i <= idxMax; i++) {
             execute("DROP TRIGGER TR" + i + ";\n");
+
+    @Test
+    public void testPromptClockElapsedTime()
+    {
+        try {
+            execute("without header");
+            execute("prompt clock on");
+            execute("elapsedtime on");
+
+            String command = "values 1;\n";
+            // e.g. 2021-07-06 12:43:06+0200
+            String timestamp = "\\d\\d\\d\\d-\\d\\d-\\d\\d \\d\\d:\\d\\d:.*";
+            SpliceUnitTest.matchMultipleLines(execute(command),
+                    "splice " + timestamp + "\\> " + command +
+                    "1          \n" +
+                    rowsSelected(1) +
+                    "ELAPSED TIME = \\d* milliseconds\n" +
+                    "splice " + timestamp + "\\> \n");
+        } finally {
+            execute("with header");
+            execute("prompt clock off");
+            execute("elapsedtime off");
+        }
+    }
+
+    @Test
+    public void testCustomFormatsOption() {
+        try {
+            execute("without header");
+
+            // eg. 15:36:51
+            String timeFormat = "\\d\\d:\\d\\d:\\d\\d";
+            executeR("values current_time;\n",
+                    timeFormat + "\n" +
+                     rowsSelected(1));
+
+            // e.g. 2021-07-06
+            String dateFormat = "\\d\\d\\d\\d-\\d\\d-\\d\\d";
+            executeR("values current_date;\n",
+                    dateFormat + "\n" +
+                            rowsSelected(1));
+
+            // e.g. 2021-07-09 15:34:36.474536
+            String timestampFormat = dateFormat + " " + timeFormat + ".\\d\\d\\d\\d\\d\\d";
+            executeR("values current_timestamp;\n",
+                     timestampFormat + "[ ]*\n" +
+                     rowsSelected(1));
+
+            // custom
+
+            // eg. 15.36.39
+            execute("set timeformat 'HH.mm.ss'");
+            executeR("values current_time;\n",
+                    "\\d\\d.\\d\\d.\\d\\d" + "\n" +
+                    rowsSelected(1));
+
+            execute("set dateformat 'dd.MM.YYYY'");
+            executeR("values current_date;\n",
+                    "\\d\\d.\\d\\d.\\d\\d\\d\\d\n" + // e.g. 06.07.2021
+                            rowsSelected(1));
+
+            execute("set timestampformat 'HH.mm.ss'");
+            executeR("values current_timestamp;\n",
+                    "\\d\\d.\\d\\d.\\d\\d[ ]*" + "\n" +
+                            rowsSelected(1));
+
+            execute("CREATE TABLE T_NULL_DATE_CUSTOM (I INTEGER, D DATE);\n", zeroRowsUpdated);
+            execute("INSERT INTO T_NULL_DATE_CUSTOM (I) VALUES 1;\n");
+            execute("SELECT * FROM T_NULL_DATE_CUSTOM;\n",
+                        "1          |NULL      \n" +
+                       rowsSelected(1));
+
+        }
+        finally {
+            execute("set dateformat 'YYYY-MM-dd'");
+            execute("set timeformat 'HH:mm:ss'");
+            execute("set timestampformat 'yyyy-MM-dd T HH:mm:ss.SSS';");
+            execute("with header");
+            execute("DROP TABLE T_NULL_DATE_CUSTOM IF EXISTS");
         }
     }
 }
