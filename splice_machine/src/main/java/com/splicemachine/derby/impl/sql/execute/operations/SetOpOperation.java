@@ -167,9 +167,8 @@ public class SetOpOperation extends SpliceBaseOperation {
             resultDS = leftDS.map(new CloneFunction<SetOpOperation>(operationContext)).subtract(
                     rightDS.map(new CloneFunction<SetOpOperation>(operationContext)),
                     OperationContext.Scope.SUBTRACT.displayName(),
-                    operationContext,
-                    true,
-                    OperationContext.Scope.SUBTRACT.displayName());
+                    operationContext, true,
+                    true, OperationContext.Scope.SUBTRACT.displayName());
         } else {
             throw new RuntimeException("Operation Type not Supported "+opType);
         }
