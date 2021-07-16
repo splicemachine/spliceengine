@@ -55,7 +55,7 @@ public class DisplayTriggerInfoIT {
     static String execute(String in) {
         baos.reset();
         LocalizedInput input = langUtil.getNewInput(IOUtils.toInputStream(in));
-        me.goGuts(input);
+        me.goGuts(input, false);
         try {
             return baos.toString(StandardCharsets.UTF_8.name());
         } catch (UnsupportedEncodingException e) {
@@ -180,9 +180,9 @@ public class DisplayTriggerInfoIT {
     @Test
     public void testCallGetTriggerExecAll() {
         int idxMin = 11;
-        int idxMax = 99;
+        int idxMax = 69;
         int numTriggers = idxMax - idxMin + 1;
-        String row = "TR(([1-9][1-9])|([2-9]0)) [ ]*" + variableColumns + "0 [ ]*\n";
+        String row = "TR(([1-6][1-9])|([2-6]0)) [ ]*" + variableColumns + "0 [ ]*\n";
 
         execute("CREATE TABLE TABLEA (COL1 INT);\n");
         for (int i = idxMin; i <= idxMax; i++) {
