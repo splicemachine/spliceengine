@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.db;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.AuthenticationConfiguration;
 import com.splicemachine.db.catalog.UUID;

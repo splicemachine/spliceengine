@@ -517,6 +517,9 @@ public class SqlshellIT {
         for (int i = idxMin; i <= idxMax; i++) {
             execute("DROP TRIGGER TR" + i + ";\n");
 
+        }
+    }
+
     @Test
     public void testPromptClockElapsedTime()
     {
