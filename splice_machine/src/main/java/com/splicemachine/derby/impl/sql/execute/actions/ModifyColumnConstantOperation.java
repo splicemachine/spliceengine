@@ -48,6 +48,7 @@ import com.splicemachine.pipeline.ErrorState;
 import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -1451,6 +1452,30 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                 views.add((ViewDescriptor) d);
             }
         }
+
+        // assuming no circle dependencies
+        views.sort((v1, v2) -> {
+            try {
+                List<Dependency> v2deps = dm.getDependents(v2);
+                for (Dependency v2dep : v2deps) {
+                    Dependent d = v2dep.getDependent();
+                    if (d == v1) {
+                        return 1;
+                    }
+                }
+            } catch (StandardException ignored) {}
+            try {
+                List<Dependency> v1deps = dm.getDependents(v1);
+                for (Dependency v1dep : v1deps) {
+                    Dependent d = v1dep.getDependent();
+                    if (d == v2) {
+                        return -1;
+                    }
+                }
+            } catch (StandardException ignored) {}
+
+            return 0;
+        });
 
         for (ViewDescriptor vd : views) {
             TableDescriptor viewTd = dd.getTableDescriptor(vd.getUUID(), activation.getTransactionController());
