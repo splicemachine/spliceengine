@@ -72,6 +72,7 @@ import com.splicemachine.utils.Pair;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * LanguageConnectionFactory generates all of the items
@@ -166,9 +167,9 @@ public class GenericLanguageConnectionFactory
             long driverTxnId,
             Properties sessionProperties,
             ArrayList<DisplayedTriggerInfo> triggerInfos,
-            HashMap<com.splicemachine.db.catalog.UUID, String> triggerIdToNameMap,
-            HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap,
-            HashMap<java.util.UUID, Long> queryTxnIdSet) throws StandardException {
+            ConcurrentMap<com.splicemachine.db.catalog.UUID, String> triggerIdToNameMap,
+            ConcurrentMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap,
+            ConcurrentMap<java.util.UUID, Long> queryTxnIdSet) throws StandardException {
         return new GenericLanguageConnectionContext(
                 cm,
                 tc,

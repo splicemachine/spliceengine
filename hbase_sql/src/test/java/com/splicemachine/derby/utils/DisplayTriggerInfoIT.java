@@ -22,7 +22,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 
-public class DisplayTriggerInfoIT implements SerialTest {
+public class DisplayTriggerInfoIT {
     static final LocalizedResource langUtil = LocalizedResource.getInstance();
     static final String zeroRowsUpdated = "0 rows inserted/updated/deleted\n";
     static Main me;
@@ -180,9 +180,9 @@ public class DisplayTriggerInfoIT implements SerialTest {
     @Test
     public void testCallGetTriggerExecAll() {
         int idxMin = 11;
-        int idxMax = 79;
+        int idxMax = 99;
         int numTriggers = idxMax - idxMin + 1;
-        String row = "TR(([1-7][1-9])|([2-7]0)) [ ]*" + variableColumns + "0 [ ]*\n";
+        String row = "TR(([1-9][1-9])|([2-9]0)) [ ]*" + variableColumns + "0 [ ]*\n";
 
         execute("CREATE TABLE TABLEA (COL1 INT);\n");
         for (int i = idxMin; i <= idxMax; i++) {

@@ -183,7 +183,9 @@ public abstract class GenericTriggerExecutor {
                 // timeout to its parent statement's timeout settings.
                 ((GenericPreparedStatement)ps).setNeedsSavepoint(false);
                 ResultSet rs = ps.executeSubStatement(activation, spsActivation, false, 0L);
-                lcc.recordTriggerInfoWhileFiring(triggerd.getUUID(), activation.getResultSet().getUuid(), activation.getResultSet().getUuid());
+                lcc.recordTriggerInfoWhileFiring(
+                        triggerd.getUUID(),
+                        activation != null && activation.getResultSet() != null ? activation.getResultSet().getUuid() : null);
 
                 if (isWhen)
                 {

@@ -69,6 +69,7 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SpliceDatabase extends BasicDatabase{
@@ -198,9 +199,9 @@ public class SpliceDatabase extends BasicDatabase{
                                                                        long driverTxnId,
                                                                        TransactionController reuseTC,
                                                                        ArrayList<DisplayedTriggerInfo> triggerInfos,
-                                                                       HashMap<com.splicemachine.db.catalog.UUID, String> triggerIdToNameMap,
-                                                                       HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap,
-                                                                       HashMap<java.util.UUID, Long> queryTxnIdSet) throws StandardException{
+                                                                       ConcurrentMap<UUID, String> triggerIdToNameMap,
+                                                                       ConcurrentMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap,
+                                                                       ConcurrentMap<java.util.UUID, Long> queryTxnIdSet) throws StandardException{
         TransactionController tc = reuseTC == null ? ((SpliceAccessManager)af).marshallTransaction(cm,txn) : reuseTC;
         cm.setLocaleFinder(this);
         pushDbContext(cm);

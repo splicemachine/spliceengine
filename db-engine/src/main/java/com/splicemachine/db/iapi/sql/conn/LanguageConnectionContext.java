@@ -60,10 +60,10 @@ import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
-import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SparkSQLUtils;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * LanguageConnectionContext keeps the result sets,
@@ -120,10 +120,10 @@ public interface LanguageConnectionContext extends Context {
     void addThreadLocalUUID(java.util.UUID threadLocalUUID);
     ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo();
     void recordAdditionalDisplayedTriggerInfo(long elapsedTime, long modifiedRows, java.util.UUID queryId);
-    void recordTriggerInfoWhileFiring(UUID triggerId, java.util.UUID queryId, java.util.UUID parentQueryId);
-    HashMap<com.splicemachine.db.catalog.UUID, String> gettriggerIdToNameMap();
-    HashMap<java.util.UUID, DisplayedTriggerInfo> getQueryIdToTriggerInfoMap();
-    HashMap<java.util.UUID, Long> getQueryTxnIdSet();
+    void recordTriggerInfoWhileFiring(UUID triggerId, java.util.UUID parentQueryId);
+    ConcurrentMap<UUID, String> gettriggerIdToNameMap();
+    ConcurrentMap<java.util.UUID, DisplayedTriggerInfo> getQueryIdToTriggerInfoMap();
+    ConcurrentMap<java.util.UUID, Long> getQueryIdTxnIdMap();
     /**
      * Initialize. For use after pushing the contexts that initialization needs.
      *

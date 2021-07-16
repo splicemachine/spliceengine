@@ -59,6 +59,7 @@ import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.utils.Pair;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentMap;
 
 
 /**
@@ -134,9 +135,9 @@ public interface LanguageConnectionFactory {
 								 long driverTxnId,
 								 Properties sessionProperties,
 								 ArrayList<DisplayedTriggerInfo> triggerInfos,
-								 HashMap<com.splicemachine.db.catalog.UUID, String> triggerIdToNameMap,
-								 HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap,
-								 HashMap<java.util.UUID, Long> queryTxnIdSet)
+								 ConcurrentMap<com.splicemachine.db.catalog.UUID, String> triggerIdToNameMap,
+								 ConcurrentMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap,
+								 ConcurrentMap<java.util.UUID, Long> queryTxnIdSet)
 
 		throws StandardException;
 

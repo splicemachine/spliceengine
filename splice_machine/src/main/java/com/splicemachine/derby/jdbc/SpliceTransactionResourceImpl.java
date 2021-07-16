@@ -41,6 +41,7 @@ import splice.com.google.common.base.Optional;
 
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Used to create a marshall transaction given a connection string and a transaction view.
@@ -111,9 +112,9 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
                                     TransactionController reuseTC,
                                     String localUserName, Integer sessionNumber,
                                     ArrayList<DisplayedTriggerInfo> triggerInfos,
-                                    HashMap<com.splicemachine.db.catalog.UUID, String> triggerIdToNameMap,
-                                    HashMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap,
-                                    HashMap<java.util.UUID, Long> queryTxnIdSet ) throws StandardException, SQLException{
+                                    ConcurrentMap<UUID, String> triggerIdToNameMap,
+                                    ConcurrentMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap,
+                                    ConcurrentMap<java.util.UUID, Long> queryTxnIdSet ) throws StandardException, SQLException{
         if (prepared) {
             throw new IllegalStateException("Cannot create a new marshall Transaction as the last one wasn't closed");
         }
