@@ -4,11 +4,8 @@ import com.splicemachine.db.iapi.tools.i18n.LocalizedInput;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedOutput;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 import com.splicemachine.db.impl.tools.ij.Main;
-import com.splicemachine.db.impl.tools.ij.ijCommands;
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.test.SerialTest;
 import org.apache.commons.io.IOUtils;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -17,9 +14,6 @@ import org.junit.Test;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Collections;
 
 public class DisplayTriggerInfoIT {
