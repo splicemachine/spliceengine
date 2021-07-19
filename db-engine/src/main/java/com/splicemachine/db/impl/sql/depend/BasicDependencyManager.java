@@ -125,7 +125,7 @@ public class BasicDependencyManager implements DependencyManager {
         @exception StandardException thrown if something goes wrong
      */
     public void addDependency(Dependent d, Provider p, ContextManager cm) throws StandardException {
-        if (dd.canUseDependencyManager()) {
+        if (dd.canUseDependencyManager(d, p)) {
             addDependency(d, p, cm, null);
         }
     }
@@ -147,11 +147,23 @@ public class BasicDependencyManager implements DependencyManager {
      */
     private void addDependency(Dependent d, Provider p, ContextManager cm, TransactionController tc) throws StandardException {
         // Dependencies are either in-memory or stored, but not both.
-        if (! d.isPersistent() || ! p.isPersistent()) {
+        if (!isPersistentDependency(d, p)) {
             addInMemoryDependency(d, p, cm);
         } else {
             addStoredDependency(d, p, cm, tc);
         }
+    }
+
+    /**
+     * Tests whether a dependency is stored in the data dictionary
+     * or in the in-memory dependency map.
+     *
+     * @param d the dependent
+     * @param p the provider
+     * @return true if the dependent d, is stored in the data dictionary.
+     */
+    public static boolean isPersistentDependency(Dependent d, Provider p) {
+        return d.isPersistent() && p.isPersistent();
     }
 
     /**

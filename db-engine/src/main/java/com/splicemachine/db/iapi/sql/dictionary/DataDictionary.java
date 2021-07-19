@@ -39,6 +39,8 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.depend.Dependent;
+import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -2261,7 +2263,7 @@ public interface DataDictionary{
 
     void deleteSnapshot(String snapshotName, long conglomeratenumber, TransactionController tc) throws StandardException;
 
-    boolean canUseDependencyManager();
+    boolean canUseDependencyManager(Dependent d, Provider p);
 
     /**
      * Get default roles granted to a user
