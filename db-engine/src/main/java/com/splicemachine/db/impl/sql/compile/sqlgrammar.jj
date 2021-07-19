@@ -13721,9 +13721,7 @@ checkConstraintDefinition(TableName constraintName, String columnName)
 
         value.setBeginOffset( beginToken.beginOffset );
         value.setEndOffset( endToken.endOffset );
-        return (ConstraintDefinitionNode) nodeFactory.getNode(
-                    C_NodeTypes.CONSTRAINT_DEFINITION_NODE,
-                    constraintName,
+        return new ConstraintDefinitionNode(constraintName,
                     ReuseFactory.getInteger(DataDictionary.CHECK_CONSTRAINT),
                     rclList,
                     null,
@@ -14675,9 +14673,7 @@ uniqueConstraintDefinition(TableName constraintName) throws StandardException :
                 }
             }
         }
-        return (ConstraintDefinitionNode) nodeFactory.getNode(
-                        C_NodeTypes.CONSTRAINT_DEFINITION_NODE,
-                        constraintName,
+        return new ConstraintDefinitionNode(constraintName,
                         ReuseFactory.getInteger(constraintType),
                         uniqueColumnList,
                         null,
@@ -14743,14 +14739,8 @@ referentialConstraintDefinition(TableName constraintName) throws StandardExcepti
     <FOREIGN> <KEY> <LEFT_PAREN> columnNameList(fkRcl) <RIGHT_PAREN>
         referencedTable = referencesSpecification(refRcl, refActions)
     {
-        return (ConstraintDefinitionNode) nodeFactory.getNode(
-                        C_NodeTypes.FK_CONSTRAINT_DEFINITION_NODE,
-                        constraintName,
-                        referencedTable,
-                        fkRcl,
-                        refRcl,
-                        refActions,
-                        getContextManager());
+        return new FKConstraintDefinitionNode(constraintName, referencedTable, fkRcl,
+                        refRcl, refActions, getContextManager());
     }
 }
 
@@ -14910,9 +14900,7 @@ columnConstraint(TableName constraintName,
         ResultColumnList uniqueColumnList = new ResultColumnList(getContextManager());
         uniqueColumnList.addElement(new ResultColumn(columnName, null, getContextManager()));
 
-        return (ConstraintDefinitionNode) nodeFactory.getNode(
-                        C_NodeTypes.CONSTRAINT_DEFINITION_NODE,
-                        constraintName,
+        return new ConstraintDefinitionNode(constraintName,
                         ReuseFactory.getInteger(constraintType),
                         uniqueColumnList,
                         properties,
@@ -14927,14 +14915,8 @@ columnConstraint(TableName constraintName,
     {
         ResultColumnList fkRcl = new ResultColumnList(getContextManager());
         fkRcl.addElement(new ResultColumn(columnName, null, getContextManager()));
-        tcdn = (ConstraintDefinitionNode) nodeFactory.getNode(
-                        C_NodeTypes.FK_CONSTRAINT_DEFINITION_NODE,
-                        constraintName,
-                        referencedTable,
-                        fkRcl,
-                        refRcl,
-                        refActions,
-                        getContextManager());
+        tcdn = new FKConstraintDefinitionNode(constraintName, referencedTable,
+                        fkRcl, refRcl, refActions, getContextManager());
         if (properties != null)
         {
             tcdn.setProperties(properties);
@@ -15490,9 +15472,7 @@ dropTableConstraintDefinition() throws StandardException :
     /* changed constraintName() to qualifiedName() for compaction */
     <CONSTRAINT> constraintName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
     {
-        return (TableElementNode) nodeFactory.getNode(
-                        C_NodeTypes.CONSTRAINT_DEFINITION_NODE,
-                        constraintName,
+        return new ConstraintDefinitionNode(constraintName,
                         ReuseFactory.getInteger(DataDictionary.DROP_CONSTRAINT),
                         null,
                         null,
@@ -15506,9 +15486,7 @@ dropTableConstraintDefinition() throws StandardException :
     LOOKAHEAD( {getToken(1).kind == PRIMARY} )
     <PRIMARY> <KEY>
     {
-        return (TableElementNode) nodeFactory.getNode(
-                        C_NodeTypes.CONSTRAINT_DEFINITION_NODE,
-                        null,
+        return new ConstraintDefinitionNode(null,
                         ReuseFactory.getInteger(DataDictionary.DROP_CONSTRAINT),
                         null,
                         null,
@@ -15522,9 +15500,7 @@ dropTableConstraintDefinition() throws StandardException :
     LOOKAHEAD( {getToken(1).kind == FOREIGN} )
         <FOREIGN> <KEY> constraintName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
     {
-        return (TableElementNode) nodeFactory.getNode(
-                        C_NodeTypes.CONSTRAINT_DEFINITION_NODE,
-                        constraintName,
+        return new ConstraintDefinitionNode(constraintName,
                         ReuseFactory.getInteger(DataDictionary.DROP_CONSTRAINT),
                         null,
                         null,
@@ -15539,9 +15515,7 @@ dropTableConstraintDefinition() throws StandardException :
     LOOKAHEAD( {getToken(1).kind == UNIQUE} )
         <UNIQUE> constraintName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
     {
-        return (TableElementNode) nodeFactory.getNode(
-                        C_NodeTypes.CONSTRAINT_DEFINITION_NODE,
-                        constraintName,
+        return new ConstraintDefinitionNode(constraintName,
                         ReuseFactory.getInteger(DataDictionary.DROP_CONSTRAINT),
                         null,
                         null,
@@ -15555,9 +15529,7 @@ dropTableConstraintDefinition() throws StandardException :
 |
         <CHECK> constraintName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
     {
-        return (TableElementNode) nodeFactory.getNode(
-                        C_NodeTypes.CONSTRAINT_DEFINITION_NODE,
-                        constraintName,
+        return new ConstraintDefinitionNode(constraintName,
                         ReuseFactory.getInteger(DataDictionary.DROP_CONSTRAINT),
                         null,
                         null,

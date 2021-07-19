@@ -31,8 +31,10 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.StatementType;
 
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -75,15 +77,18 @@ public class ConstraintDefinitionNode extends TableElementNode
     private int verifyType = DataDictionary.DROP_CONSTRAINT; // By default do not check the constraint type
     private boolean canBeIgnored;
 
-    public void init(
+    public ConstraintDefinitionNode(
                     Object constraintName,
                     Object constraintType,
                     Object rcl,
                     Object properties,
                     Object checkCondition,
                     Object constraintText,
-                    Object behavior)
+                    Object behavior,
+                    ContextManager contextManager)
     {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.CONSTRAINT_DEFINITION_NODE);
         this.constraintName = (TableName) constraintName;
 
         /* We need to pass null as name to TableElementNode's constructor
@@ -103,26 +108,27 @@ public class ConstraintDefinitionNode extends TableElementNode
         this.setCanBeIgnored(false);
     }
 
-    public void init(
+    public ConstraintDefinitionNode(
                     Object constraintName,
                     Object constraintType,
                     Object rcl,
                     Object properties,
                     Object checkCondition,
-                    Object constraintText)
+                    Object constraintText,
+                    ContextManager contextManager)
     {
-        init(
-                    constraintName,
+        this(constraintName,
                     constraintType,
                     rcl,
                     properties,
                     checkCondition,
                     constraintText,
-                    ReuseFactory.getInteger(StatementType.DROP_DEFAULT)
+                    ReuseFactory.getInteger(StatementType.DROP_DEFAULT),
+                    contextManager
                     );
     }
 
-    public void init(
+    public ConstraintDefinitionNode(
                     Object constraintName,
                     Object constraintType,
                     Object rcl,
@@ -130,9 +136,10 @@ public class ConstraintDefinitionNode extends TableElementNode
                     Object checkCondition,
                     Object constraintText,
                     Object behavior,
-                    Object verifyType)
+                    Object verifyType,
+                    ContextManager contextManager)
     {
-        init( constraintName, constraintType, rcl, properties, checkCondition, constraintText, behavior);
+        this( constraintName, constraintType, rcl, properties, checkCondition, constraintText, behavior, contextManager);
         this.verifyType = (Integer) verifyType;
     }
     

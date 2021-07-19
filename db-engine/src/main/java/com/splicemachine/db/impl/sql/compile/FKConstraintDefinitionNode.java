@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
@@ -57,20 +59,13 @@ public final class FKConstraintDefinitionNode extends ConstraintDefinitionNode
     SchemaDescriptor    refTableSd;
     int                 refActionDeleteRule;  // referential action on  delete
     int                 refActionUpdateRule;  // referential action on update
-    public void init(
-                        Object             constraintName,
-                        Object             refTableName,
-                        Object            fkRcl,
-                        Object            refRcl,
-                        Object          refActions)
+
+    public FKConstraintDefinitionNode(Object constraintName, Object refTableName, Object fkRcl, Object refRcl,
+                                      Object refActions, ContextManager contextManager)
     {
-        super.init(
-                constraintName,
-                ReuseFactory.getInteger(DataDictionary.FOREIGNKEY_CONSTRAINT),
-                fkRcl,
-                null,
-                null,
-                null);
+        super(constraintName, ReuseFactory.getInteger(DataDictionary.FOREIGNKEY_CONSTRAINT),
+                fkRcl, null, null, null, contextManager);
+        setNodeType(C_NodeTypes.FK_CONSTRAINT_DEFINITION_NODE);
         this.refRcl = (ResultColumnList) refRcl;
         this.refTableName = (TableName) refTableName;
 
