@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.types.DateTimeDataValue;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -76,8 +78,10 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
      * @param field        The field to extract
      * @param operand    The operand
      */
-    public void init(Object field, Object operand) {
-        extractField = (Integer) field;
+    public ExtractOperatorNode(Integer field, ValueNode operand, ContextManager cm) {
+        setNodeType(C_NodeTypes.EXTRACT_OPERATOR_NODE);
+        setContextManager(cm);
+        extractField = field;
         super.init( operand,
                     "EXTRACT "+fieldName[extractField],
                     fieldMethod[extractField] );

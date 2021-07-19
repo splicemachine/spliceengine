@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -86,11 +88,12 @@ public class RevokeNode extends DDLStatementNode
      * @param privileges PrivilegesNode
      * @param grantees List
      */
-    public void init( Object privileges,
-                      Object grantees)
+    public RevokeNode( PrivilegeNode privileges, List grantees, ContextManager cm)
     {
-        this.privileges = (PrivilegeNode) privileges;
-        this.grantees = (List) grantees;
+        setContextManager(cm);
+        setNodeType(C_NodeTypes.REVOKE_NODE);
+        this.privileges = privileges;
+        this.grantees = grantees;
     }
 
     /**

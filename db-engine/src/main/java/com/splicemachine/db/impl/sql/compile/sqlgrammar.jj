@@ -8147,47 +8147,27 @@ dateTimeScalarFunction() throws StandardException :
 |
         <EXTRACT> <LEFT_PAREN> field = datetimeField() <FROM> value = additiveExpression(null,0) <RIGHT_PAREN>
     {
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.EXTRACT_OPERATOR_NODE,
-                                ReuseFactory.getInteger(field),
-                                value,
-                                getContextManager());
+        return new ExtractOperatorNode(ReuseFactory.getInteger(field), value, getContextManager());
     }
 |
         <QUARTER> <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
     {
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.EXTRACT_OPERATOR_NODE,
-                                ReuseFactory.getInteger(DateTimeDataValue.QUARTER_FIELD),
-                                value,
-                                getContextManager());
+        return new ExtractOperatorNode(ReuseFactory.getInteger(DateTimeDataValue.QUARTER_FIELD), value, getContextManager());
     }
 |
         <MONTHNAME> <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
     {
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.EXTRACT_OPERATOR_NODE,
-                                ReuseFactory.getInteger(DateTimeDataValue.MONTHNAME_FIELD),
-                                value,
-                                getContextManager());
+        return new ExtractOperatorNode(ReuseFactory.getInteger(DateTimeDataValue.MONTHNAME_FIELD), value, getContextManager());
     }
 |
         <WEEK> <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
     {
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.EXTRACT_OPERATOR_NODE,
-                                ReuseFactory.getInteger(DateTimeDataValue.WEEK_FIELD),
-                                value,
-                                getContextManager());
+        return new ExtractOperatorNode(ReuseFactory.getInteger(DateTimeDataValue.WEEK_FIELD), value, getContextManager());
     }
 |
         field = nonSecondDatetimeField() <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
     {
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.EXTRACT_OPERATOR_NODE,
-                                ReuseFactory.getInteger(field),
-                                value,
-                                getContextManager());
+        return new ExtractOperatorNode(ReuseFactory.getInteger(field), value, getContextManager());
     }
 |
     <SECOND> value = secondFunctionNode()
@@ -16226,9 +16206,7 @@ tableRevokeStatement() throws StandardException :
        privileges = privileges()
        <FROM> grantees = granteeList()
     {
-        return (StatementNode) nodeFactory.getNode( C_NodeTypes.REVOKE_NODE,
-                                    privileges, grantees,
-                                    getContextManager());
+        return new RevokeNode(privileges, grantees, getContextManager());
     }
 }// end of tableRevokeStatement
 
@@ -16250,9 +16228,7 @@ routineRevokeStatement() throws StandardException :
                                ReuseFactory.getInteger( PrivilegeNode.ROUTINE_PRIVILEGES),
                                routine, null,
                                getContextManager());
-        return (StatementNode) nodeFactory.getNode( C_NodeTypes.REVOKE_NODE,
-                                    routinePrivilege, grantees,
-                                    getContextManager());
+        return new RevokeNode(routinePrivilege, grantees, getContextManager());
     }
 }// end of routineRevokeStatement
 
@@ -16282,13 +16258,7 @@ usageRevokeStatement() throws StandardException :
                 Boolean.TRUE,
                 getContextManager()
             );
-        return (StatementNode) nodeFactory.getNode
-            (
-                C_NodeTypes.REVOKE_NODE,
-                privilegeNode,
-                grantees,
-                getContextManager()
-            );
+        return new RevokeNode(privilegeNode, grantees, getContextManager());
     }
 }// end of usageRevokeStatement
 
