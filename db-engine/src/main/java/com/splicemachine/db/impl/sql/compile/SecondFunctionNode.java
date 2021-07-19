@@ -39,6 +39,7 @@ import java.util.List;
  */
 public class SecondFunctionNode extends OperatorNode {
     private String compatibility;
+    private final String functionName = "SECOND";
 
     public SecondFunctionNode(ValueNode op1, ValueNode op2, ContextManager cm) {
         setContextManager(cm);
@@ -68,7 +69,7 @@ public class SecondFunctionNode extends OperatorNode {
         int operandType = operands.get(0).getTypeId().getJDBCTypeId();
         if (operandType != Types.TIME && operandType != Types.TIMESTAMP) {
             throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
-                    "SECONDS", operands.get(0).getTypeId().getSQLTypeName());
+                    functionName, operands.get(0).getTypeId().getSQLTypeName());
         }
 
         compatibility = getCompilerContext().getSecondFunctionCompatibilityMode().toLowerCase();
@@ -84,7 +85,7 @@ public class SecondFunctionNode extends OperatorNode {
     private ValueNode bindSplice() throws StandardException {
         if (operands.size() != 1) {
             throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
-                    "SECOND() expects 1 operand in SPLICE compatibility mode");
+                    functionName + "() expects 1 operand in SPLICE compatibility mode");
         }
         switch(operands.get(0).getTypeId().getJDBCTypeId()) {
             case Types.TIME:
@@ -117,14 +118,12 @@ public class SecondFunctionNode extends OperatorNode {
                     !operands.get(1).getTypeId().isIntegerNumericTypeId()) {
                     throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARG_TYPE,
                             operands.get(1).requiresTypeFromContext() ? "?" : operands.get(1).getTypeId().getSQLTypeName(),
-                            2,
-                            "SECOND");
+                            2, functionName);
                 }
                 int scale = (Integer)operands.get(1).getConstantValueAsObject();
                 if (scale < 1 || scale > 12) {
                     throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARGUMENT,
-                            scale,
-                            "SECOND");
+                            scale, functionName);
                 }
                 int precision = scale + 2;
                 setType(new DataTypeDescriptor(
@@ -133,7 +132,7 @@ public class SecondFunctionNode extends OperatorNode {
                 break;
             default:
                 throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
-                        "SECOND() expects 1 or 2 operands in DB2 compatibility mode");
+                        functionName + "() expects 1 or 2 operands in DB2 compatibility mode");
 
         }
         return this;
