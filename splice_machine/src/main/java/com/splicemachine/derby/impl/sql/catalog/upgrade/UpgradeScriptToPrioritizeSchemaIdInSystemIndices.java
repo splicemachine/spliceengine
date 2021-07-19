@@ -18,13 +18,20 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
-import com.splicemachine.utils.SpliceLogUtils;
 
 import java.util.Properties;
 
+import static com.splicemachine.db.impl.sql.catalog.BaseDataDictionary.CFG_SYSTABLES_INDEX1_ID;
+
 public class UpgradeScriptToPrioritizeSchemaIdInSystemIndices extends UpgradeScriptBase {
-    public UpgradeScriptToPrioritizeSchemaIdInSystemIndices(SpliceDataDictionary sdd, TransactionController tc) {
+
+    private Properties startParams;
+
+    public UpgradeScriptToPrioritizeSchemaIdInSystemIndices(SpliceDataDictionary sdd,
+                                                            TransactionController tc,
+                                                            Properties startParams) {
         super(sdd, tc);
+        this.startParams = startParams;
     }
 
     @Override
@@ -34,6 +41,9 @@ public class UpgradeScriptToPrioritizeSchemaIdInSystemIndices extends UpgradeScr
                 DataDictionary.SYSTABLES_CATALOG_NUM,
                 new int[]{SYSTABLESRowFactory.SYSTABLES_INDEX1_ID}
         );
+
+        sdd.updateBootstrapProperty(startParams, BaseDataDictionary.SYSTABLES_CORE_NUM,
+                CFG_SYSTABLES_INDEX1_ID, SYSTABLESRowFactory.SYSTABLES_INDEX1_ID);
 
         sdd.upgradeRecreateIndexesOfSystemTable(
                 tc,

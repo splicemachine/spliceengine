@@ -745,7 +745,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         super.loadDictionaryTables(tc,startParams);
 
         // Check splice data dictionary version to decide if upgrade is necessary
-        upgradeIfNecessary(tc);
+        upgradeIfNecessary(tc, startParams);
 
         //upgrade may change SPLICE_DATA_DICTIONARY_VERSION
         catalogVersion=(Splice_DD_Version)tc.getProperty(SPLICE_DATA_DICTIONARY_VERSION);
@@ -929,7 +929,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return pkTable;
     }
 
-    private void upgradeIfNecessary(TransactionController tc) throws StandardException{
+    private void upgradeIfNecessary(TransactionController tc, Properties startParam) throws StandardException{
 
         boolean toUpgrade = Boolean.TRUE.equals(EngineLifecycleService.toUpgrade.get());
         // Only master can upgrade
@@ -940,7 +940,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         Splice_DD_Version catalogVersion=(Splice_DD_Version)tc.getProperty(SPLICE_DATA_DICTIONARY_VERSION);
         if(needToUpgrade(catalogVersion)){
             tc.elevate("dictionary");
-            SpliceCatalogUpgradeScripts scripts=new SpliceCatalogUpgradeScripts(this, tc);
+            SpliceCatalogUpgradeScripts scripts=new SpliceCatalogUpgradeScripts(this, tc, startParam);
             scripts.runUpgrades(catalogVersion);
             tc.setProperty(SPLICE_DATA_DICTIONARY_VERSION, spliceSoftwareVersion,true);
             tc.commit();
@@ -2368,5 +2368,13 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             throw StandardException.newException(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT,
                     cd.getDescriptorName(), tabInfo.getTableName());
         }
+    }
+
+    public void updateBootstrapProperty(Properties startParams, int catalogNum, String indexName, int indexId) {
+        if (catalogNum > NUM_CORE)
+            return;
+
+        startParams.put(indexName,Long.toString(
+                coreInfo[catalogNum].getIndexConglomerate(indexId)));
     }
 }
