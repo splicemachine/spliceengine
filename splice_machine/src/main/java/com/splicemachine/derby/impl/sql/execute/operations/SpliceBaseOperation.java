@@ -487,6 +487,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             if (!(this instanceof ExplainOperation || activation.isMaterialized()))
                 activation.materialize();
             long txnId=getCurrentTransaction().getTxnId();
+            getCurrentTransaction().setCurrentQueryId(uuid);
 
             // initialize displayed trigger info
             activation.getLanguageConnectionContext().initTriggerInfo(
@@ -607,11 +608,19 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
                 stmtForLogging = ps.getSourceTxt();
         }
 
+        String parentIdString = "";
+        try {
+            UUID parentId = getCurrentTransaction().getParentQueryIdForTrigger(uuid);
+            parentIdString = parentId.toString();
+        } catch (SQLWarning w) {
+            addWarning(w);
+        } catch (StandardException ignored) {}
+
         activation.getLanguageConnectionContext().logStartExecuting(
                 uuid.toString(), dsp.getType().toString(), stmtForLogging,
                 ps,
-                activation.getParameterValueSet()
-        );
+                activation.getParameterValueSet(),
+                parentIdString);
     }
 
     private void logExecutionEnd() {

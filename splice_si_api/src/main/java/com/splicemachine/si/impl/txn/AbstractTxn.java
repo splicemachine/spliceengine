@@ -15,6 +15,8 @@
 package com.splicemachine.si.impl.txn;
 
 import com.carrotsearch.hppc.LongHashSet;
+import com.splicemachine.db.iapi.error.SQLWarningFactory;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
@@ -23,7 +25,9 @@ import com.splicemachine.si.constants.SIConstants;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.sql.SQLWarning;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -38,6 +42,16 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
     protected Set<Txn> children = ConcurrentHashMap.newKeySet();
     protected Txn parentReference;
     private boolean subtransactionsAllowed = true;
+
+    public UUID getCurrentQueryId() {
+        return currentQueryId;
+    }
+
+    public void setCurrentQueryId(UUID currentQueryId) {
+        this.currentQueryId = currentQueryId;
+    }
+
+    private UUID currentQueryId = null;
 
     protected AbstractTxn(){
     }
@@ -55,6 +69,19 @@ public abstract class AbstractTxn extends AbstractTxnView implements Txn {
         if (getSubId() == 0) {
             counter = new AtomicLong(0);
         }
+    }
+
+    public UUID getParentQueryIdForTrigger(UUID currentId) throws SQLWarning {
+        AbstractTxn parent;
+        if (parentReference == null || parentReference.getCurrentQueryId() == null) {
+            try {
+                parent = (AbstractTxn) getParentTxnView();
+                return parent.getCurrentQueryId();
+            } catch (Exception ignore) {
+                throw SQLWarningFactory.newSQLWarning( SQLState.TRIGGER_CALLER_NOT_LOGGED, currentId );
+            }
+        }
+        return parentReference.getCurrentQueryId();
     }
 
     @Override
