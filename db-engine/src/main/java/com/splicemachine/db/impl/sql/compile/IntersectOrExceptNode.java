@@ -55,6 +55,7 @@ import com.splicemachine.db.iapi.util.ReuseFactory;
 
 import java.io.IOException;
 import java.util.BitSet;
+import java.util.Properties;
 
 /**
  * A IntersectOrExceptNode represents an INTERSECT or EXCEPT DML statement.
@@ -103,15 +104,15 @@ public class IntersectOrExceptNode extends SetOperatorNode
      * @exception StandardException        Thrown on error
      */
 
-    public void init( Object opType,
-                      Object leftResult,
-                      Object rightResult,
-                      Object all,
-                      Object tableProperties)
+    public IntersectOrExceptNode( Integer opType, ResultSetNode leftResult,
+                                  ResultSetNode rightResult, Boolean all,
+                                  Properties tableProperties, ContextManager contextManager)
         throws StandardException
     {
+        setContextManager(contextManager);
+        setNodeType(C_NodeTypes.INTERSECT_OR_EXCEPT_NODE);
         super.init( leftResult, rightResult, all, tableProperties);
-        this.opType = (Integer) opType;
+        this.opType = opType;
     }
 
     private int getOpType()
