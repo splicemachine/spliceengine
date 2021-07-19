@@ -70,16 +70,17 @@ public class SpliceCatalogUpgradeScripts{
 
     static final public Splice_DD_Version baseVersion1 = new Splice_DD_Version(null, 2, 8, 0);
     static final public Splice_DD_Version baseVersion2 = new Splice_DD_Version(null, 3, 1, 0);
+    static final public Splice_DD_Version baseVersion5 = new Splice_DD_Version(null, 3, 1, 1);
     static final public Splice_DD_Version baseVersion3 = baseVersion2;
     static final public Splice_DD_Version baseVersion4 = baseVersion2;
 
-    public SpliceCatalogUpgradeScripts(SpliceDataDictionary sdd, TransactionController tc){
+    public SpliceCatalogUpgradeScripts(SpliceDataDictionary sdd, TransactionController tc, Properties startParams){
         this.sdd=sdd;
         this.tc=tc;
 
         scripts = new ArrayList<>();
-        addUpgradeScript(baseVersion4, 2020, new UpgradeAddConglomerateNumberIndex(sdd, tc));
-        addUpgradeScript(baseVersion4, 2024, new UpgradeScriptToPrioritizeSchemaIdInSystemIndices(sdd, tc));
+        addUpgradeScript(baseVersion5, 2020, new UpgradeAddConglomerateNumberIndex(sdd, tc));
+        addUpgradeScript(baseVersion5, 2024, new UpgradeScriptToPrioritizeSchemaIdInSystemIndices(sdd, tc, startParams));
         // DB-11296: UpgradeConglomerateTable has to be executed first, because it adds a system table
         // CONGLOMERATE_SI_TABLE_NAME that is from then on needed to create tables, e.g.
         // in UpgradeScriptToAddSysNaturalNumbersTable. If UpgradeConglomerateTable is at the end,
