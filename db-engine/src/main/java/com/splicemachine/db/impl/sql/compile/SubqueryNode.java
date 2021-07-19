@@ -2411,11 +2411,7 @@ public class SubqueryNode extends ValueNode{
             case LT_ANY_SUBQUERY:
             case GE_ANY_SUBQUERY:
             case GT_ANY_SUBQUERY:
-                ucoNode=(UnaryComparisonOperatorNode)
-                        getNodeFactory().getNode(
-                                C_NodeTypes.IS_NOT_NULL_NODE,
-                                this,
-                                getContextManager());
+                ucoNode = new IsNullNode(C_NodeTypes.IS_NOT_NULL_NODE, this, getContextManager());
                 break;
 
             case NOT_IN_SUBQUERY:
@@ -2425,11 +2421,7 @@ public class SubqueryNode extends ValueNode{
             case LT_ALL_SUBQUERY:
             case GE_ALL_SUBQUERY:
             case GT_ALL_SUBQUERY:
-                ucoNode=(UnaryComparisonOperatorNode)
-                        getNodeFactory().getNode(
-                                C_NodeTypes.IS_NULL_NODE,
-                                this,
-                                getContextManager());
+                ucoNode = new IsNullNode(C_NodeTypes.IS_NULL_NODE, this, getContextManager());
                 break;
             default:
                 assert false;
@@ -2453,22 +2445,16 @@ public class SubqueryNode extends ValueNode{
             newTop = newOr;
 
             if (leftNullable) {
-                UnaryComparisonOperatorNode leftIsNull = (UnaryComparisonOperatorNode)
-                        getNodeFactory().getNode(
-                                C_NodeTypes.IS_NULL_NODE,
-                                leftItem,
-                                getContextManager());
+                UnaryComparisonOperatorNode leftIsNull = new IsNullNode(C_NodeTypes.IS_NULL_NODE,
+                                                                        leftItem, getContextManager());
                 leftIsNull.bindComparisonOperator();
                 newOr = new OrNode(leftIsNull, newTop, getContextManager());
                 newOr.postBindFixup();
                 newTop = newOr;
             }
             if (rightNullable) {
-                UnaryComparisonOperatorNode rightIsNull = (UnaryComparisonOperatorNode)
-                        getNodeFactory().getNode(
-                                C_NodeTypes.IS_NULL_NODE,
-                                rightItem,
-                                getContextManager());
+                UnaryComparisonOperatorNode rightIsNull = new IsNullNode(C_NodeTypes.IS_NULL_NODE,
+                                                                        rightItem, getContextManager());
                 rightIsNull.bindComparisonOperator();
                 newOr = new OrNode(rightIsNull, newTop, getContextManager());
                 newOr.postBindFixup();

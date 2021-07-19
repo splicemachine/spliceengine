@@ -578,17 +578,8 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     public ValueNode genIsNullTree()
             throws StandardException
     {
-        IsNullNode isNullNode;
-
-        isNullNode = (IsNullNode)
-                            getNodeFactory().getNode(
-                                                    C_NodeTypes.IS_NULL_NODE,
-                                                    this,
-                                                    getContextManager());
-        isNullNode.setType(new DataTypeDescriptor(
-                                    TypeId.BOOLEAN_ID,
-                                    false)
-                          );
+        IsNullNode isNullNode = new IsNullNode(C_NodeTypes.IS_NULL_NODE, this, getContextManager());
+        isNullNode.setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, false));
         return isNullNode;
     }
 

@@ -5434,10 +5434,7 @@ isSearchCondition() throws StandardException :
     {
         if ( isToken != null )
         {
-                result = (ValueNode) nodeFactory.getNode(
-                                            C_NodeTypes.IS_NULL_NODE,
-                                            booleanPrimary,
-                                            getContextManager());
+                result = new IsNullNode(C_NodeTypes.IS_NULL_NODE, booleanPrimary, getContextManager());
 
                 /* Put the NOT on top of the tree */
                 if (notToken != null)

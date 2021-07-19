@@ -35,6 +35,7 @@ import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
@@ -58,6 +59,15 @@ import java.util.Set;
 public final class IsNullNode extends UnaryComparisonOperatorNode  {
 
     private DataValueDescriptor nullValue;
+
+    public IsNullNode() {}
+    public IsNullNode(int nodeType, Object operand, ContextManager cm) {
+        assert(nodeType == C_NodeTypes.IS_NOT_NULL_NODE || nodeType == C_NodeTypes.IS_NULL_NODE);
+        setNodeType(nodeType);
+        setContextManager(cm);
+        init(operand);
+    }
+
 
     @Override
     public void setNodeType(int nodeType) {

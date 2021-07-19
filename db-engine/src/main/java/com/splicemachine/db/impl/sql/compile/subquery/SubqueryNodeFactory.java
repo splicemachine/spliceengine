@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.compile.*;
+import org.apache.spark.sql.sources.IsNull;
 
 /**
  * Higher level NodeFactory API for use in subquery flattening code.
@@ -65,7 +66,7 @@ public class SubqueryNodeFactory {
      * IsNullNode
      */
     public IsNullNode buildIsNullNode(ColumnReference columnReference) throws StandardException {
-        IsNullNode node = (IsNullNode) nodeFactory.getNode(C_NodeTypes.IS_NULL_NODE, columnReference, contextManager);
+        IsNullNode node = new IsNullNode(C_NodeTypes.IS_NULL_NODE, columnReference, contextManager);
         node.bindComparisonOperator();
         return node;
     }
