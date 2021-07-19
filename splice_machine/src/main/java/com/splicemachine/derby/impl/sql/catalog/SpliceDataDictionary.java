@@ -1873,4 +1873,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                     cd.getDescriptorName(), tabInfo.getTableName());
         }
     }
+
+    public void updateBootstrapProperty(Properties startParams, int catalogNum, String indexName, int indexId) {
+        if (catalogNum > NUM_CORE)
+            return;
+
+        startParams.put(indexName,Long.toString(
+                coreInfo[catalogNum].getIndexConglomerate(indexId)));
+    }
 }

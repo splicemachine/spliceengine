@@ -43,7 +43,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value="MS_PKGPROTECT")
 public abstract class BaseDataDictionary implements DataDictionary, ModuleControl, ModuleSupportable,java.security.PrivilegedAction {
     protected static final String       CFG_SYSTABLES_ID = "SystablesIdentifier";
-    protected static final String       CFG_SYSTABLES_INDEX1_ID = "SystablesIndex1Identifier";
+    public    static final String       CFG_SYSTABLES_INDEX1_ID = "SystablesIndex1Identifier";
     protected static final String       CFG_SYSTABLES_INDEX2_ID = "SystablesIndex2Identifier";
     protected static final String       CFG_SYSCOLUMNS_ID = "SyscolumnsIdentifier";
     protected static final String       CFG_SYSCOLUMNS_INDEX1_ID = "SyscolumnsIndex1Identifier";
@@ -61,7 +61,7 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
     protected static final String        CFG_SYSDATABASES_INDEX2_ID = "SysdatabasesIndex2Identifier";
     public static final String           CFG_ALLOW_MULTIDATABASE = "AllowMultidatabase";
     protected static final int          SYSCONGLOMERATES_CORE_NUM = 0;
-    protected static final int          SYSTABLES_CORE_NUM = 1;
+    public    static final int          SYSTABLES_CORE_NUM = 1;
     protected static final int          SYSCOLUMNS_CORE_NUM = 2;
     protected static final int          SYSSCHEMAS_CORE_NUM = 3;
     protected static final int           SYSDATABASES_CORE_NUM = 4;
