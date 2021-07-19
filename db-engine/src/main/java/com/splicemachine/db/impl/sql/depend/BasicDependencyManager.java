@@ -110,25 +110,25 @@ public class BasicDependencyManager implements DependencyManager {
 	// DependencyManager interface
 	//
 
-	/**
-		adds a dependency from the dependent on the provider.
-		This will be considered to be the default type of
-		dependency, when dependency types show up.
-		<p>
-		Implementations of addDependency should be fast --
-		performing alot of extra actions to add a dependency would
-		be a detriment.
+    /**
+        adds a dependency from the dependent on the provider.
+        This will be considered to be the default type of
+        dependency, when dependency types show up.
+        <p>
+        Implementations of checkAndAddDependency should be fast --
+        performing alot of extra actions to add a dependency would
+        be a detriment.
 
-		@param d the dependent
-		@param p the provider
+        @param d the dependent
+        @param p the provider
 
-		@exception StandardException thrown if something goes wrong
-	 */
-	public void addDependency(Dependent d, Provider p, ContextManager cm) throws StandardException {
-        if (dd.canUseDependencyManager()) {
-			addDependency(d, p, cm, null);
-		}
-	}
+        @exception StandardException thrown if something goes wrong
+     */
+    public void addDependency(Dependent d, Provider p, ContextManager cm) throws StandardException {
+        if (dd.canUseDependencyManager(d, p)) {
+            addDependency(d, p, cm, null);
+        }
+    }
 
     /**
      * Adds the dependency to the data dictionary or the in-memory dependency
@@ -147,11 +147,23 @@ public class BasicDependencyManager implements DependencyManager {
      */
     private void addDependency(Dependent d, Provider p, ContextManager cm, TransactionController tc) throws StandardException {
         // Dependencies are either in-memory or stored, but not both.
-        if (! d.isPersistent() || ! p.isPersistent()) {
+        if (!isPersistentDependency(d, p)) {
             addInMemoryDependency(d, p, cm);
         } else {
             addStoredDependency(d, p, cm, tc);
         }
+    }
+
+    /**
+     * Tests whether a dependency is stored in the data dictionary
+     * or in the in-memory dependency map.
+     *
+     * @param d the dependent
+     * @param p the provider
+     * @return true if the dependent d, is stored in the data dictionary.
+     */
+    public static boolean isPersistentDependency(Dependent d, Provider p) {
+        return d.isPersistent() && p.isPersistent();
     }
 
     /**

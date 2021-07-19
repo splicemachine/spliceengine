@@ -70,8 +70,12 @@ class TriggerIT extends FunSuite with TestContext with Matchers {
   test("Test Insert with Trigger") {  // Added for DB-10707
     truncateTables
     createInsertTrigger
+    createUpdateStatementTrigger
+    splicemachineContext.insert( df, t1 )
+    truncateTables
     splicemachineContext.insert( df, t1 )
     dropInsertTrigger
+    dropUpdateStatementTrigger
     org.junit.Assert.assertEquals( contentOf(t1), contentOf(t2) )
   }
 
