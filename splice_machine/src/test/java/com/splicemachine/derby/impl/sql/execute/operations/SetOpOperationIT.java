@@ -53,7 +53,7 @@ public class SetOpOperationIT extends SpliceUnitTest {
         private static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
         private Boolean useSpark;
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name = "useSpark={0}")
     public static Collection<Object[]> data() {
         Collection<Object[]> params = Lists.newArrayListWithCapacity(4);
         params.add(new Object[]{true});
@@ -64,7 +64,6 @@ public class SetOpOperationIT extends SpliceUnitTest {
     public SetOpOperationIT(Boolean useSpark) {
         this.useSpark = useSpark;
     }
-
 
 
     @ClassRule
@@ -96,6 +95,13 @@ public class SetOpOperationIT extends SpliceUnitTest {
                     .withInsert("insert into FOO4 values(?,?)")
                     .withIndex("create index foo4_ix on FOO4(col1, col2)")
                     .withRows(rows(row(2, 1), row(3, 2), row(1, 5))).create();
+            new TableCreator(connection)
+                    .withCreate("create table L (col1 int, col2 int)")
+                    .create();
+            new TableCreator(connection)
+                    .withCreate("create table R (col1 int, col2 int)")
+                    .create();
+
         }
 
     @Test
@@ -284,5 +290,22 @@ public class SetOpOperationIT extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
+    }
+
+    @Test
+    public void exceptInSparkShouldUseDistinct() throws Exception {
+        Assume.assumeTrue(useSpark); // skips control.
+        Assume.assumeTrue(!isMemPlatform(methodWatcher)); // only in HBase
+
+        try(ResultSet rs = methodWatcher.executeQuery("sparkexplain select * from L --splice-properties useSpark=true\n" +
+                                                          "except select * from R")) {
+            int hashAggCount = 0;
+            while (rs.next()) {
+                if (rs.getString(1).contains("HashAggregate")) {
+                    hashAggCount++;
+                }
+            }
+            Assert.assertEquals(6, hashAggCount);
+        }
     }
 }
