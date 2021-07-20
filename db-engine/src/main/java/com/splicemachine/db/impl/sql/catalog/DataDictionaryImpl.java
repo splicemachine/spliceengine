@@ -4889,6 +4889,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                             }
                     }
 
+                    if (subCD == null ) {
+                        LanguageConnectionContext lcc = getLCC();
+                        if (lcc.isCloningData()) {
+                            // During data cloning, many DDLs are executed in parallel under one transaction. Some DDLs,
+                            // foreign key creation, may see inconsistent state between sys.sysconstraints and
+                            // sys.sysforeignkeys. Ignore them as if DDLs are executed in separate transactions.
+                            continue;
+                        }
+                    }
                     assert subCD != null : "subCD is expected to be non-null";
 
                     /* Cache the TD in the SCD so that
