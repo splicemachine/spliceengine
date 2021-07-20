@@ -386,4 +386,30 @@ public class DropColumnIT extends SpliceUnitTest {
             assertEquals(0, count);
         }
     }
+
+    @Test
+    public void testCascadeDropConstraint() throws Exception {
+        methodWatcher.execute("create table t6(c1 int)");
+        methodWatcher.execute("alter table t6 add c2 float");
+        methodWatcher.execute("alter table t6 drop c2");
+        methodWatcher.execute("alter table t6 add c3 float not null default 1 constraint con3 primary key");
+
+        try(Connection conn = methodWatcher.getOrCreateConnection();
+            Statement s = conn.createStatement()) {
+            s.execute("alter table t6 drop c3");
+            SQLWarning warning = s.getWarnings();
+            Assert.assertTrue(warning!=null);
+            Assert.assertEquals("01500", warning.getSQLState());
+        }
+
+        String sql = String.format("select count(*) from sys.sysprimarykeys where conglomerateid=(" +
+                "select conglomerateid from sys.sysconglomerates c, sys.sysschemas s, sys.systables t " +
+                "where s.schemaid=t.schemaid and t.tableid=c.tableid and s.schemaname='%s' and t.tablename='T6')",
+                SCHEMA_NAME);
+        try(ResultSet rs = methodWatcher.executeQuery(sql)) {
+            rs.next();
+            int count = rs.getInt(1);
+            Assert.assertEquals(0, count);
+        }
+    }
 }
