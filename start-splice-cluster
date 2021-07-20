@@ -76,7 +76,11 @@ function _wait_for_port
   echo -n " "
   counter=0
   until is_port_open localhost ${port}; do
-    echo -n "${counter} - "
+    if [ ${JENKINS_MODE} ]; then
+      echo "${msg} ${counter}"
+    else
+      echo -n "${counter} - "
+    fi
     counter=$((counter+1))
 
     if [ ${counter} -ge ${wait_max} ]; then
@@ -213,13 +217,17 @@ function _wait_for_master {
   echo -n " "
   counter=0
   until is_port_open localhost ${port}; do
-    echo -n "${counter} - "
+    if [ ${JENKINS_MODE} ]; then
+      echo "${msg} ${counter}"
+    else
+      echo -n "${counter} - "
+    fi
     counter=$((counter+1))
     if [ ${counter} -ge ${wait_max} ]; then
        echo "Waited too long, aborting."
        exit 2
     fi
-    if cat ${SPLICE_LOG} | grep "[ERROR] Failed to execute goal" ; then
+    if cat ${SPLICE_LOG} | grep "\[ERROR\] Failed to execute goal" ; then
       echo "ERROR: Spliceengine couldn't start."
       exit 2
     fi
@@ -290,6 +298,7 @@ function usage
     echo "  -K like k, but will also reset database to clean. Needs some rebuild afterwards (use -l)."
     echo "  -T <n> use -T <n> with maven (build with n threads)."
     echo "  -h => print this message"
+    echo "  -L use linefeeds when waiting (jenkins mode)"
 }
 
 function verify_profiles
@@ -313,7 +322,7 @@ function verify_profiles
    done
 }
 
-while getopts "chkp:s:bld:fT:Ke" flag ; do
+while getopts "chkp:s:bld:fT:KeL" flag ; do
     case $flag in
         h* | \?)
             usage
@@ -365,6 +374,9 @@ while getopts "chkp:s:bld:fT:Ke" flag ; do
         T)
         # number of threads
            MVN_THREADS="-T ${OPTARG}"
+        ;;
+        L)
+          JENKINS_MODE=1
         ;;
         e)
         # enterprise edition
