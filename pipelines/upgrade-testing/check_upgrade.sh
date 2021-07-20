@@ -1,23 +1,35 @@
 #!/bin/bash
+
 UPGRADE_URL=s3://splice-snapshots/upgrade_tests
 
-if [ $# -lt 2 ]
-then
-	echo "usage: bash create_upgrade_targz.sh {VERSION} {additional start-splice-cluster parameters}"
-	echo "------------------------------------------------------------------------------------------"
-	echo "uses a previously created tar.gz to test upgrade"
-	echo "e.g. bash create_upgrade_targz.sh 3.2.2021 -T 16"
-	echo "make sure you current branch has already been build"
-	echo "don't use -b, since we are deleting some files in platform_it/target"
-    
-    exit 1
-fi
+VERSION=${1} # e.g. 3.1.0.1971
+shift 1
 
-VERSION=${1}
-shift
+PREVIOUS_BRANCH=`git rev-parse --abbrev-ref HEAD`
 
-# stop current cluster
+# creates a file platform_it_${VERSION}.tar.gz
+git checkout tags/${VERSION}
+cd platform_it
+rm -rf target *.log snappy*.jnilib
+cd ..
+
+./start-splice-cluster $*
 ./start-splice-cluster -k
+
+rm -rf upgrade_test_TMP
+mkdir -p upgrade_test_TMP/platform_it/target
+cd upgrade_test_TMP
+cp -r ../platform_it/target/hbase platform_it/target/.
+cp -r ../platform_it/target/zookeeper platform_it/target/.
+tar -czvf ../platform_it_${VERSION}.tar.gz platform_it
+cd ..
+rm -rf upgrade_test_TMP
+
+git checkout ${PREVIOUS_BRANCH}
+
+
+# restart on that version
+./start-splice-cluster $*
 
 # clean up platform_it
 cd platform_it
@@ -25,7 +37,6 @@ git clean -dfx
 cd ..
 
 # download the previous standalone data
-aws s3 cp ${UPGRADE_URL}/platform_it_${VERSION}.tar.gz .
 tar -xzvf platform_it_${VERSION}.tar.gz
 rm platform_it_${VERSION}.tar.gz
 
