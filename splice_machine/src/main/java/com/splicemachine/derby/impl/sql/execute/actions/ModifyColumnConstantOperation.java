@@ -763,7 +763,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         int maxStoragePosition = tableDescriptor.getColumnDescriptorList().maxStoragePosition();
         int size = tableDescriptor.getColumnDescriptorList().size();
         int droppedColumnPosition = columnDescriptor.getPosition();
-
+        int droppedStoragePosition = columnDescriptor.getStoragePosition();
         FormatableBitSet toDrop = new FormatableBitSet(maxStoragePosition + 1);
         toDrop.set(droppedColumnPosition);
         tableDescriptor.setReferencedColumnMap(toDrop);
@@ -781,7 +781,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
         // Now handle constraints
         List<ConstantAction> newCongloms = handleConstraints(activation, tableDescriptor, columnName, lcc, dd, dm, cascade, tc,
-                                                             droppedColumnPosition);
+                                                             droppedStoragePosition);
 
         /* If there are new backing conglomerates which must be
          * created to replace a dropped shared conglomerate
@@ -940,7 +940,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                                                    DependencyManager dm,
                                                    boolean cascade,
                                                    TransactionController tc,
-                                                   int droppedColumnPosition) throws StandardException {
+                                                   int droppedStoragePosition) throws StandardException {
         ConstraintDescriptorList csdl = dd.getConstraintDescriptors(td);
         int csdl_size = csdl.size();
 
@@ -959,16 +959,16 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             int numRefCols = referencedColumns.length, j;
             boolean changed = false;
             for (j = 0; j < numRefCols; j++) {
-                if (referencedColumns[j] > droppedColumnPosition)
+                if (referencedColumns[j] > droppedStoragePosition)
                     changed = true;
-                if (referencedColumns[j] == droppedColumnPosition)
+                if (referencedColumns[j] == droppedStoragePosition)
                     break;
             }
             if (j == numRefCols) {// column not referenced
                 if ((cd instanceof CheckConstraintDescriptor) && changed) {
                     dd.dropConstraintDescriptor(cd, tc);
                     for (j = 0; j < numRefCols; j++) {
-                        if (referencedColumns[j] > droppedColumnPosition)
+                        if (referencedColumns[j] > droppedStoragePosition)
                             referencedColumns[j]--;
                     }
                     ((CheckConstraintDescriptor) cd).setReferencedColumnsDescriptor(new ReferencedColumnsDescriptorImpl(referencedColumns));
