@@ -27,6 +27,7 @@ rm -rf target *.log snappy*.jnilib
 cd ..
 
 ./start-splice-cluster $*
+./start-splice-cluster -k
 
 rm -rf upgrade_test_TMP
 mkdir -p upgrade_test_TMP/platform_it/target
