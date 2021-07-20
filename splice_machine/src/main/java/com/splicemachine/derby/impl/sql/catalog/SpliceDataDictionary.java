@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
+import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
@@ -78,6 +79,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory.SYSTABLES_VIEW_IN_SYSIBM;
+import static com.splicemachine.db.impl.sql.depend.BasicDependencyManager.isPersistentDependency;
 
 /**
  * @author Scott Fines
@@ -1243,8 +1245,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     @Override
-    public boolean canUseDependencyManager() {
-        return !SpliceClient.isClient();
+    public boolean canUseDependencyManager(Dependent d, Provider p) {
+        return !SpliceClient.isClient() || isPersistentDependency(d, p);
     }
 
     @Override
