@@ -64,18 +64,24 @@ function is_port_open
 }
 
 ##################################################################################
-# print message ${1} and wait until port {2} is open
+# print message ${1} and wait until port {2} is open, for max {3}*2 seconds
 ##################################################################################
 function _wait_for_port
 {
   msg=${1}
   port=${2}
+  wait_max=${3}
   echo -n ${msg}
   echo -n " "
   counter=0
   until is_port_open localhost ${port}; do
     echo -n "${counter} - "
     counter=$((counter+1))
+
+    if [ ${counter} -ge ${wait_max} ]; then
+       echo "Waited too long, aborting."
+       exit 2
+    fi    
     sleep 2
   done
   echo "done!"
@@ -175,7 +181,7 @@ function _start_region_servers {
 function _wait_for_region_servers {
   if [[ ${MEMBERS} -gt 0 ]]; then
     for (( MEMBER=1; MEMBER<${MEMBERS}; MEMBER++ )); do
-      _wait_for_port "Waiting for Region Server $(($MEMBER +1)) to be ready ..." $(( 1527 + ${MEMBER} ))
+      _wait_for_port "Waiting for Region Server $(($MEMBER +1)) to be ready ..." $(( 1527 + ${MEMBER} )) 60
     done
   fi
 }
@@ -198,7 +204,27 @@ function _start_master {
 }
 
 function _wait_for_master {
-  _wait_for_port "Waiting for Master to be ready ..." 1527
+
+  msg="Waiting for Master to be ready ..."
+  port=1527
+  wait_max=60
+  echo -n ${msg}
+  echo -n " "
+  counter=0
+  until is_port_open localhost ${port}; do
+    echo -n "${counter} - "
+    counter=$((counter+1))
+    if [ ${counter} -ge ${wait_max} ]; then
+       echo "Waited too long, aborting."
+       exit 2
+    fi
+    if cat ${SPLICE_LOG} | grep "[ERROR] Failed to execute goal" ; then
+      echo "ERROR: Spliceengine couldn't start."
+      exit 2
+    fi
+    sleep 2
+  done
+  echo "done!"
   
 }
 
@@ -234,7 +260,7 @@ function _start_mem
 
 function _wait_for_mem
 {
-  _wait_for_port "Waiting until Mem Platform is ready ..." 1527
+  _wait_for_port "Waiting until Mem Platform is ready ..." 1527 20
 }
 
 export -f _kill_em_all
