@@ -6,6 +6,7 @@ VERSION=${1} # e.g. 3.1.0.1971
 shift 1
 
 PREVIOUS_BRANCH=`git rev-parse --abbrev-ref HEAD`
+git stash
 
 # creates a file platform_it_${VERSION}.tar.gz
 git checkout tags/${VERSION}
@@ -26,7 +27,7 @@ cd ..
 rm -rf upgrade_test_TMP
 
 git checkout ${PREVIOUS_BRANCH}
-
+git stash pop
 
 # restart on that version
 ./start-splice-cluster $*
