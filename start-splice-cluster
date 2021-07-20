@@ -24,7 +24,8 @@ CHAOS="false"
 MEMBERS=2
 DEBUG_PATH=""
 
-
+MAX_WAIT_REGION_SERVERS=100 # *2 seconds
+MAX_WAIT_MASTER=200 # *2 seconds
 
 ##################################################################################
 # Function to kill all splice test processes - zoo, SpliceTestPlatform, YARN, and
@@ -181,7 +182,7 @@ function _start_region_servers {
 function _wait_for_region_servers {
   if [[ ${MEMBERS} -gt 0 ]]; then
     for (( MEMBER=1; MEMBER<${MEMBERS}; MEMBER++ )); do
-      _wait_for_port "Waiting for Region Server $(($MEMBER +1)) to be ready ..." $(( 1527 + ${MEMBER} )) 60
+      _wait_for_port "Waiting for Region Server $(($MEMBER +1)) to be ready ..." $(( 1527 + ${MEMBER} )) ${MAX_WAIT_REGION_SERVERS}
     done
   fi
 }
@@ -207,7 +208,7 @@ function _wait_for_master {
 
   msg="Waiting for Master to be ready ..."
   port=1527
-  wait_max=60
+  wait_max=${MAX_WAIT_MASTER}
   echo -n ${msg}
   echo -n " "
   counter=0

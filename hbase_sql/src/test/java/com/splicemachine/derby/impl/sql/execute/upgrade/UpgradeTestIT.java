@@ -12,7 +12,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.derby.impl.sql.execute.upgrade;
 
 import com.splicemachine.access.hbase.HBasePartitionAdmin;
 import com.splicemachine.db.impl.sql.catalog.SYSNATURALNUMBERSRowFactory;
@@ -27,6 +27,20 @@ import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+/**
+ * Note: These tests need to be excluded in platform_it/pom.xml,
+ * as they are only mean to be run with the check_upgrade.sh script.
+ *
+ * e.g.
+ * bash pipelines/upgrade-testing/check_upgrade.sh 3.1.0.2000 -T 4
+ * this downloads a tar.gz (here https://splice-snapshots.s3.amazonaws.com/upgrade_tests/platform_it_3.1.0.2000.tar.gz)
+ * extracts that, then starts the cluster with that data (without clean), and then executes the UpgradeTestIT
+ *
+ * see also
+ * pipelines/upgrade-testing/check_upgrade.sh
+ * pipelines/upgrade-testing/create_upgrade_targz.sh
+ * https://s3.console.aws.amazon.com/s3/buckets/splice-snapshots?region=us-east-1&prefix=upgrade_tests/&showversions=false
+ */
 public class UpgradeTestIT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = UpgradeTestIT.class.getSimpleName().toUpperCase();
