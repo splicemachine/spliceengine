@@ -216,35 +216,27 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
         operationContext = dsp.createOperationContext(this);
 
         if (keys == null) {
-            DataSet<ExecRow> ds = getDriverDataSet(createTableScannerBuilder());
-            TableScannerIterator tableScannerIterator = (TableScannerIterator) ds.toLocalIterator();
-            registerCloseable(tableScannerIterator);
             // Most of the probing logic is in IndexPrefixIteratorFunction, as created below.
-            if (isMemPlatform)
+            if (isMemPlatform) {
+                DataSet<ExecRow> ds = getDriverDataSet(createTableScannerBuilder());
+                TableScannerIterator tableScannerIterator = (TableScannerIterator) ds.toLocalIterator();
+                registerCloseable(tableScannerIterator);
                 ds = ds.mapPartitions(new IndexPrefixIteratorFunction(operationContext, firstIndexColumnNumber), true);
+                keys = ds.collect();
+                closeFirstTableScanner(tableScannerIterator);
+            }
 
-            // Only grab the first row for non-mem platforms.
+            // Only use a null DVD from the template row for non-mem platforms.
             // Use the new custom HBase filter in this case, which needs
             // the DataValueDescriptor of the first index column to
             // be passed to the constructor.
-            if (!isMemPlatform) {
-                ExecRow firstRow = null;
-                if (tableScannerIterator.hasNext())
-                    firstRow = tableScannerIterator.next();
-                closeFirstTableScanner(tableScannerIterator);
-                if (firstRow == null)
-                    return dsp.getEmpty();
-
+            else {
                 int firstMappedIndexColumnNumber = baseColumnMap[firstIndexColumnNumber-1]+1;
                 ExecRow keyRow = new ValueRow(1);
-                keyRow.setColumn(1, firstRow.getColumn(firstMappedIndexColumnNumber));
+                keyRow.setColumn(1, currentTemplate.getColumn(firstMappedIndexColumnNumber));
                 keys = new ArrayList<>();
                 keys.add(keyRow);
             }
-            else
-                keys = ds.collect();
-
-            closeFirstTableScanner(tableScannerIterator);
 
             // IndexPrefixIteratorFunction has set scanKeyPrefix.
             // Future operations won't want this set, so reset it back to null.
@@ -326,7 +318,6 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
                                                     localProcessor(getOperation().getActivation(), this);
         scanInformation.skipQualifiers(true);
         DataScan dataScan = getNonSIScan();
-        scanInformation.skipQualifiers(false);
 
         // No need for a large cache since we're
         // going after a single row on each read.
@@ -371,6 +362,7 @@ public class IndexPrefixIteratorOperation extends TableScanOperation{
                                              throws StandardException {
 
         DataSet<ExecRow> dataSet = scanSetBuilder.buildDataSet(this);
+        scanInformation.skipQualifiers(false);
         return dataSet;
     }
 
