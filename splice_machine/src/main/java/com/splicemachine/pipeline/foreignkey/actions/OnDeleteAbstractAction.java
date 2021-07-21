@@ -17,6 +17,7 @@ package com.splicemachine.pipeline.foreignkey.actions;
 import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
@@ -66,9 +67,11 @@ public abstract class OnDeleteAbstractAction extends Action {
                                   String parentTableName ) throws Exception {
         super(constraintInfo.getChildTable().getConglomerate(), backingIndexConglomId);
         this.txnOperationFactory = txnOperationFactory;
-        assert childBaseTableConglomId != null;
-        assert backingIndexConglomId != null;
-        assert violationProcessor != null;
+        if(SanityManager.DEBUG) {
+            SanityManager.ASSERT(childBaseTableConglomId != null);
+            SanityManager.ASSERT(backingIndexConglomId != null);
+            SanityManager.ASSERT(violationProcessor != null);
+        }
         this.constraintInfo = constraintInfo;
         this.mutationBuffer = new ObjectObjectHashMap<>();
         this.pipelineBuffer = writeContext.getSharedWriteBuffer(
@@ -107,7 +110,7 @@ public abstract class OnDeleteAbstractAction extends Action {
         return scan.startKey(startKey).stopKey(stopKey);
     }
 
-    private static Pair<SimpleTxnFilter, SimpleTxnFilter> prepareScanFilters(TxnView txnView, long indexConglomerateId) throws IOException {
+    private static Pair<SimpleTxnFilter, SimpleTxnFilter> prepareScanFilters(TxnView txnView) throws IOException {
         SimpleTxnFilter readUncommittedFilter, readCommittedFilter;
         if (txnView instanceof ActiveWriteTxn) {
             readCommittedFilter = new SimpleTxnFilter(((ActiveWriteTxn) txnView).getReadCommittedActiveTxn(), NoOpReadResolver.INSTANCE, SIDriver.driver().getTxnStore());
@@ -189,12 +192,15 @@ public abstract class OnDeleteAbstractAction extends Action {
 
     @Override
     public void next(KVPair mutation, WriteContext ctx) {
-        assert !failed;
+        if(SanityManager.DEBUG) {
+            SanityManager.ASSERT(!failed);
+            SanityManager.ASSERT(ctx != null);
+        }
         DataScan scan = prepareScan(txnOperationFactory, mutation);
         Pair<SimpleTxnFilter, SimpleTxnFilter> filters;
         Partition indexTable;
         try {
-            filters = prepareScanFilters(ctx.getTxn(), backingIndexConglomId);
+            filters = prepareScanFilters(ctx.getTxn());
             indexTable = getTable();
         } catch (IOException e) {
             failed = true;
