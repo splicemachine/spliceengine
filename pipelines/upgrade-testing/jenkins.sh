@@ -1,3 +1,5 @@
+# JENKINS FILE USED FOR UPGRADE-TESTING
+
 #!/bin/bash
 
 export platform=${ghprbCommentBody##*@}
