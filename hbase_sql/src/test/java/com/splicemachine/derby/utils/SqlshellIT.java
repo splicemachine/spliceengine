@@ -530,7 +530,8 @@ public class SqlshellIT {
                             rowsSelected(1));
 
             // e.g. 2021-07-09 15:34:36.474536
-            String timestampFormat = dateFormat + " " + timeFormat + ".\\d\\d\\d\\d\\d\\d";
+            // note: trailing zeros are cut, so you might get for 15:34:36.474000 -> 15:34:36.474
+            String timestampFormat = dateFormat + " " + timeFormat + ".[\\d]*";
             executeR("values current_timestamp;\n",
                      timestampFormat + "[ ]*\n" +
                      rowsSelected(1));
