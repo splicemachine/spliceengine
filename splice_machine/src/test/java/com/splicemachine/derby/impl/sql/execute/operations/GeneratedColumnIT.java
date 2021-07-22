@@ -41,10 +41,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 /**
  * Test to validate that GENERATED columns work correctly.
@@ -446,7 +443,16 @@ public class GeneratedColumnIT {
             for(int i=0;i<13;i++){
                 rowCount+=s.executeUpdate(String.format("insert into %s(c2) values (1),(2),(3),(4),(5),(6),(7),(8),(9),(10)"
                 ,tableRef));
-                rowCount+=s.executeUpdate(String.format("insert into %s(c2) select c1 from %s",tableRef,tableRef));
+                // DB-8936
+                // Hint the insert statement to run on OLTP always to avoid a gap in sequence. This is fine
+                // at the moment because the IT seems to run on a single region server with only one thread
+                // generating values for column c1.
+                // In future, if this is not true anymore, i.e., multiple region servers can insert values
+                // for the same insert statement, the gap is bound to happen based on current implementation.
+                // To make the test green again, change the assertion 'lastValue + 1 == next' to
+                // 'lastValue < next'.
+                // Check comment in OperationConfiguration.java for how sequence is implemented currently.
+                rowCount+=s.executeUpdate(String.format("insert into %s(c2) select c1 from %s --splice-properties useSpark=false",tableRef,tableRef));
             }
 
 
@@ -457,10 +463,11 @@ public class GeneratedColumnIT {
                     count++;
                     int next=rs.getInt(1);
                     Assert.assertFalse("Returned null!",rs.wasNull()); //ensure sequence is never null
-                    assertTrue("Returned data out of order!",next==lastValue+1); //ensure sequence is sorted (ORDER BY clause)
+                    // ensure sequence is sorted (ORDER BY clause) and has no gap (next == lastValue + 1)
+                    assertEquals("Bad sequence returned", lastValue + 1, next);
                     lastValue=next;
                 }
-                assertEquals("Incorrect returned row count!",rowCount,count);
+                assertEquals("Incorrect returned row count",rowCount,count);
             }
             try(ResultSet rs=s.executeQuery(String.format("SELECT max(c1) FROM %s",tableRef))){
                 assertTrue("No rows returned!",rs.next());
@@ -488,7 +495,7 @@ public class GeneratedColumnIT {
                     count++;
                     int next=rs.getInt(1);
                     Assert.assertFalse("Returned null!",rs.wasNull()); //ensure sequence is never null
-                    assertTrue("Returned data out of order!",next==lastValue+3000); //ensure sequence is sorted (ORDER BY clause)
+                    assertEquals("Bad sequence returned", lastValue + 3000, next); //ensure sequence is sorted (ORDER BY clause)
                     lastValue=next;
                 }
                 assertEquals("Incorrect returned row count!",rowCount,count);
@@ -516,7 +523,7 @@ public class GeneratedColumnIT {
                     count++;
                     int next=rs.getInt(1);
                     Assert.assertFalse("Returned null!",rs.wasNull()); //ensure sequence is never null
-                    assertTrue("Returned data out of order!",next==lastValue-9999); //ensure sequence is sorted (ORDER BY clause)
+                    assertEquals("Bad sequence returned", lastValue - 9999, next); //ensure sequence is sorted (ORDER BY clause)
                     lastValue=next;
                 }
                 assertEquals("Incorrect returned row count!",rowCount,count);
@@ -543,7 +550,7 @@ public class GeneratedColumnIT {
                     count++;
                     int next=rs.getInt(1);
                     Assert.assertFalse("Returned null!",rs.wasNull()); //ensure sequence is never null
-                    assertTrue("Returned data out of order!",next==lastValue-10000); //ensure sequence is sorted (ORDER BY clause)
+                    assertEquals("Bad sequence returned", lastValue - 10000, next); //ensure sequence is sorted (ORDER BY clause)
                     lastValue=next;
                 }
                 assertEquals("Incorrect returned row count!",rowCount,count);
@@ -570,7 +577,7 @@ public class GeneratedColumnIT {
                     count++;
                     int next=rs.getInt(1);
                     Assert.assertFalse("Returned null!",rs.wasNull()); //ensure sequence is never null
-                    assertTrue("Returned data out of order!",next==lastValue-23000); //ensure sequence is sorted (ORDER BY clause)
+                    assertEquals("Bad sequence returned", lastValue - 23000, next); //ensure sequence is sorted (ORDER BY clause)
                     lastValue=next;
                 }
                 assertEquals("Incorrect returned row count!",rowCount,count);
