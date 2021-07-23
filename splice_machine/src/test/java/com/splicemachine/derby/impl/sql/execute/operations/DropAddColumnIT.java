@@ -394,6 +394,69 @@ public class DropAddColumnIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testAutomaticViewRefreshingOn_SelectStarViewWithRenamedColumns() throws Exception {
+        // Turn on alter table auto view refreshing.
+        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.execution.alterTable.autoViewRefreshing', true)");
+
+        Harness harness = new Harness(connection);
+
+        Harness.Table table = harness.createTable("t33", "val1", "val2")
+                .begin()
+                .addRow(10, 10)
+                .addRow(20, 20);
+
+        methodWatcher.execute("create view v33 (v1, v2) as select * from t33");  // rename columns to v1, v2
+        String viewQuery = "select * from v33";
+
+        try (ResultSet rs = methodWatcher.executeQuery(viewQuery)) {
+            String expected = "V1 |V2 |\n" +
+                    "--------\n" +
+                    "10 |10 |\n" +
+                    "20 |20 |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        try {
+            table = table.addColumn("val3", INT);
+            Assert.fail("expect failure because it's unknown how to rename columns");
+        } catch (SQLException sqle) {
+            Assert.assertEquals("42X56", sqle.getSQLState());
+            Assert.assertEquals("The number of columns in the view column list does not match the number of columns in the underlying query expression in the view definition for 'V33'.",
+                                sqle.getMessage());
+        }
+
+        try {
+            table = table.dropColumn("val2");
+            Assert.fail("expect failure because it's unknown how to rename columns");
+        } catch (SQLException sqle) {
+            Assert.assertEquals("42X56", sqle.getSQLState());
+            Assert.assertEquals("The number of columns in the view column list does not match the number of columns in the underlying query expression in the view definition for 'V33'.",
+                                sqle.getMessage());
+        }
+
+        // select v33 should not change
+        try (ResultSet rs = methodWatcher.executeQuery(viewQuery)) {
+            String expected = "V1 |V2 |\n" +
+                    "--------\n" +
+                    "10 |10 |\n" +
+                    "20 |20 |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // select t33 should not change, new column is not added
+        try (ResultSet rs = methodWatcher.executeQuery("select * from t33")) {
+            String expected = "VAL1 |VAL2 |\n" +
+                    "------------\n" +
+                    " 10  | 10  |\n" +
+                    " 20  | 20  |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // Turn off alter table auto view refreshing.
+        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.execution.alterTable.autoViewRefreshing', null)");
+    }
+
+    @Test
     public void testAutomaticViewRefreshingOn_SecondLevelSelectStarView() throws Exception {
         // Turn on alter table auto view refreshing.
         methodWatcher.execute("call syscs_util.syscs_set_global_database_property('splice.execution.alterTable.autoViewRefreshing', true)");
@@ -529,12 +592,21 @@ public class DropAddColumnIT extends SpliceUnitTest {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
 
+        // DB-12365
+        // Unfortunately, we cannot check for the following case because of the possibility to rename
+        // view columns. In select statement, there is no way to tell if the column names are different
+        // due to alter table operations or just renaming in view definition. Checking column positions
+        // are also not possible because view columns are always 1, 2, 3, .... It has to be this way
+        // because underlying select could have generated columns that do no exists in any base tables
+        // at all. As a result, the following case returns a result with wrong column names if views
+        // are not automatically refreshed.
         table = table.dropColumn("val1");
         try (ResultSet rs = methodWatcher.executeQuery(viewQuery)) {
-            Assert.fail("expect to fail because view definition is on column val1 and val2, but val1 is dropped");
-        } catch (SQLException sqle) {
-            Assert.assertEquals("42X21", sqle.getSQLState());
-            Assert.assertTrue(sqle.getMessage().contains("'VAL1' is a special derived column which may not be defined in DDL statements."));
+            String tmpExpected = "VAL1 |VAL2 |\n" +
+                    "------------\n" +
+                    " 10  |NULL |\n" +
+                    " 20  |NULL |";
+            Assert.assertEquals(tmpExpected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
 
         table = table.dropColumn("val3");

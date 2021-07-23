@@ -323,15 +323,6 @@ public class FromSubquery extends FromTable
             } else if (resultColumns.size() > subqueryRCL.size()) {
                 // columns dropped from underlying table
                 throw StandardException.newException(SQLState.LANG_DERIVED_COLUMN_LIST_MISMATCH, correlationName);
-            } else {
-                // number of columns is OK, check column names
-                for (int i = 0; i < resultColumns.size(); ++i) {
-                    ResultColumn thisRC = resultColumns.elementAt(i);
-                    ResultColumn subqRC = subqueryRCL.elementAt(i);
-                    if (thisRC.getName() != null && !thisRC.getName().equals(subqRC.getName())) {
-                        throw StandardException.newException(SQLState.LANG_DERIVED_COLUMN_NAME_USE, thisRC.getName());
-                    }
-                }
             }
         }
 
