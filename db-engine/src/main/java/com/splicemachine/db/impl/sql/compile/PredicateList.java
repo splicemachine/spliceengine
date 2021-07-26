@@ -1374,13 +1374,13 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     // Pack the remaining useful preds in usefulPredicates so
                     // there are no gaps.
                     int j = firstPred + 1;
-                    for (int i = firstPred + 1; i < usefulCount; i++) {
+                    for (int i = firstPred + 1; i < usefulCount && j < usefulCount; i++) {
                         while(i < usefulCount && foundPred[i])
                             i++;
                         if (i != j && i < usefulCount) {
                             usefulPredicates[j] = usefulPredicates[i];
-                            j++;
                         }
+                        j++;
                     }
                     usefulCount -= (predsForNewInList.size() - 1);
                 }
