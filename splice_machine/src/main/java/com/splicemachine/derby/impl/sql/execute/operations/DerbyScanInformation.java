@@ -462,8 +462,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         Qualifier[][] scanQualifiers = null;
         if (scanQualifiersFieldName != null && !skipScanQualifiers) {
             try {
-                if (qualifiersField == null)
-                    qualifiersField = activation.getClass().getField(scanQualifiersFieldName);
+                qualifiersField = activation.getClass().getField(scanQualifiersFieldName);
                 scanQualifiers = (Qualifier[][]) qualifiersField.get(activation);
             } catch (Exception e) {
                 throw StandardException.unexpectedUserException(e);
