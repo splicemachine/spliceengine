@@ -250,6 +250,7 @@ public interface DataDictionary{
     int SYSREPLICATION_CATALOG_NUM=33;
     int INVALID_CATALOG_NUM=34; // was previously owned by MON_GET_CONNECTION which is now a table-valued function.
     int SYSNATURALNUMBERS_CATALOG_NUM=35;
+    int SYSSNAPSHOT_ITEMS_NUM=36;
 
     /**
      * Catalog numbers for transient views, e.g. monitoring views.
@@ -300,11 +301,12 @@ public interface DataDictionary{
             "2", // SYSDUMMY1
             "2", // SYSSCHEMAPERMS
             "2", // SYSSOURCECODE
-            "2", // SYSSNAPSHOT
+            "3", // SYSSNAPSHOT
             "2", // SYSTOKENS
             "2", // SYSREPLICATION
             "2", // INVALID
-            "2"  // SYSNATURALNUMBERS
+            "2", // SYSNATURALNUMBERS
+            "2" // SYSSNAPSHOTITEMS
     ));
 
     /**
@@ -2257,9 +2259,17 @@ public interface DataDictionary{
 
     void saveSourceCode(SourceCodeDescriptor descriptor, TransactionController tc) throws StandardException;
 
+    SnapshotDescriptor getSnapshotDescriptor(long snapshotId) throws StandardException;
+
     void addSnapshot(TupleDescriptor descriptor, TransactionController tc) throws StandardException;
 
-    void deleteSnapshot(String snapshotName, long conglomeratenumber, TransactionController tc) throws StandardException;
+    void deleteSnapshot(long snapshotId, TransactionController tc) throws StandardException;
+
+    void addSnapshotItems(TupleDescriptor[] descriptor, TransactionController tc) throws StandardException;
+
+    void deleteAllSnapshotItems(long snapshotId, TransactionController tc) throws StandardException;
+
+    List<SnapshotItemDescriptor> getSnapshotItemDescriptorList(long snapshotId) throws StandardException;
 
     boolean canUseDependencyManager();
 

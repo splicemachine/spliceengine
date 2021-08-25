@@ -24,9 +24,11 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.ColPermsDescriptor;
 import com.splicemachine.db.impl.jdbc.authentication.AuthenticationServiceBase;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
+import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.encryption.EncryptionManager;
 import com.splicemachine.management.Manager;
 import com.splicemachine.replication.ReplicationManager;
+import com.splicemachine.snapshot.SnapshotManager;
 
 /**
  * Fake manager impl for mem db
@@ -96,6 +98,12 @@ public class NoOpManager implements Manager {
     public ReplicationManager getReplicationManager() throws StandardException {
         return NoOpReplicationManager.getInstance();
     }
+
+    @Override
+    public SnapshotManager getSnapshotManager() throws StandardException{
+        return null;
+    }
+
     @Override
     public boolean isEnabled() {
         return enterpriseEnabled;
