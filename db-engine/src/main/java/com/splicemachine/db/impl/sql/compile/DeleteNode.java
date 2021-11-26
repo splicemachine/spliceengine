@@ -104,9 +104,19 @@ public class DeleteNode extends DMLModStatementNode
 
     public DeleteNode() {}
 
+    /**
+     * Constructor for a DeleteNode.
+     *
+     * @param targetTableName   The name of the table to delete from
+     * @param queryExpression   The query expression that will generate
+     *                          the rows to delete from the given table
+     * @param cursorDelete      todo
+     * @param matchingClause    Non-null if this DML is part of a MATCHED clause of a MERGE statement.
+     * @param cm                The context manager
+     */
     public DeleteNode(TableName targetTableName,
                SelectNode queryExpression, Boolean cursorDelete,
-               Properties targetProperties, ContextManager cm)
+               Properties targetProperties, MatchingClauseNode matchingClause, ContextManager cm)
     {
         super.init(queryExpression);
         setContextManager(cm);
@@ -114,6 +124,7 @@ public class DeleteNode extends DMLModStatementNode
         this.targetTableName = targetTableName;
         this.targetProperties = targetProperties;
         this.cursorDelete = cursorDelete;
+        this.matchingClause = matchingClause;
     }
 
     public DeleteNode(TableName tableName, SelectNode queryExpression, ContextManager cm) {
@@ -200,7 +211,8 @@ public class DeleteNode extends DMLModStatementNode
             CurrentOfNode               currentOfNode = null;
 
             DataDictionary dataDictionary = getDataDictionary();
-            super.bindTables(dataDictionary);
+            // for DELETE clause of a MERGE statement, the tables have already been bound
+            if ( !inMatchingClause() ) { super.bindTables(dataDictionary); }
 
             // wait to bind named target table until the underlying
             // cursor is bound, so that we can get it from the
@@ -218,7 +230,9 @@ public class DeleteNode extends DMLModStatementNode
             {
                 currentOfNode = (CurrentOfNode) targetTable;
 
-                cursorTargetTableName = currentOfNode.getBaseCursorTargetTableName();
+                cursorTargetTableName = inMatchingClause() ?
+                        targetTableName : currentOfNode.getBaseCursorTargetTableName();
+
                 // instead of an assert, we might say the cursor is not updatable.
                 if (SanityManager.DEBUG)
                     SanityManager.ASSERT(cursorTargetTableName != null);
@@ -265,9 +279,10 @@ public class DeleteNode extends DMLModStatementNode
 
             /* Generate a select list for the ResultSetNode - CurrentRowLocation(). */
             if (SanityManager.DEBUG)
+            {
                 SanityManager.ASSERT((resultSet.getResultColumns() == null),
                               "resultColumns is expected to be null until bind time");
-
+            }
 
             if (targetTable instanceof FromVTI)
             {
@@ -277,8 +292,6 @@ public class DeleteNode extends DMLModStatementNode
 
                 /* Set the new result column list in the result set */
                 resultSet.setResultColumns(resultColumnList);
-                /* Bind the expressions before the ResultColumns are bound */
-                super.bindExpressions();
             }
             else
             {
@@ -314,10 +327,6 @@ public class DeleteNode extends DMLModStatementNode
                     readColsBitSet = null;
                 }
 
-                /* Set the new result column list in the result set */
-                resultSet.setResultColumns(resultColumnList);
-                /* Bind the expressions before the ResultColumns are bound */
-                super.bindExpressions();
                 /*
                 ** Construct an empty heap row for use in our constant action.
                 */
@@ -349,17 +358,28 @@ public class DeleteNode extends DMLModStatementNode
                 } else {
                     rowLocationColumn = new ResultColumn(COLUMNNAME, rowIdColumn, getContextManager());
                 }
+                rowLocationColumn.markGenerated();
 
-                rowLocationColumn.bindResultColumnToExpression();
+                // rowLocationColumn.bindResultColumnToExpression(); // have we removed this?
 
                 /* Append to the ResultColumnList */
                 resultColumnList.addResultColumn(rowLocationColumn);
 
                 /* Force the added columns to take on the table's correlation name, if any */
                 correlateAddedColumns( resultColumnList, targetTable );
+
+                /* Add the new result columns to the driving result set */
+                ResultColumnList    originalRCL = resultSet.resultColumns;
+                if ( originalRCL == null )
+                    originalRCL = new ResultColumnList(getContextManager());
+
+                originalRCL.appendResultColumns( resultColumnList, false );
+                resultColumnList = originalRCL;
+                resultSet.setResultColumns(resultColumnList);
             }
 
-
+            /* Bind the expressions before the ResultColumns are bound */
+            super.bindExpressions();
 
             /* Bind untyped nulls directly under the result columns */
             resultSet.getResultColumns().
@@ -573,7 +593,8 @@ public class DeleteNode extends DMLModStatementNode
                       readColsBitSet.getNumBitsSet(),
                   (UUID) null,
                   resultSet.isOneRowResultSet(),
-                  null);
+                  null,
+                  inMatchingClause());
         }
         else
         {
@@ -622,7 +643,16 @@ public class DeleteNode extends DMLModStatementNode
 
         acb.pushGetResultSetFactoryExpression(mb);
         acb.newRowLocationScanResultSetName();
-        resultSet.generate(acb, mb); // arg 1
+
+        // arg 1
+        if ( inMatchingClause() )
+        {
+            matchingClause.generateResultSetField( acb, mb );
+        }
+        else
+        {
+            resultSet.generate( acb, mb );
+        }
 
         String resultSetGetter;
         int argCount;
@@ -893,14 +923,10 @@ public class DeleteNode extends DMLModStatementNode
         ((FromBaseTable) fromTable).setTableProperties(targetProperties);
 
         fromList.addFromTable(fromTable);
-        SelectNode resultSet = new SelectNode( null,
-                                                     null,   /* AGGREGATE list */
-                                                     fromList, /* FROM list */
-                                                     whereClause, /* WHERE clause */
-                                                     null, /* GROUP BY list */
-                                                     null, /* having clause */
-                                                     null, /* windows */
-                                                     getContextManager());
+        SelectNode resultSet = new SelectNode( null, /* selectList */
+                                               fromList, /* FROM list */
+                                               whereClause, /* WHERE clause */
+                                               getContextManager());
 
         return new DeleteNode(tableName, resultSet, getContextManager());
 
@@ -933,15 +959,11 @@ public class DeleteNode extends DMLModStatementNode
         fromList.addFromTable(fromTable);
 
         SelectNode resultSet = new SelectNode(getSetClause(tableName, cdl),
-                                                     null,   /* AGGREGATE list */
                                                      fromList, /* FROM list */
                                                      whereClause, /* WHERE clause */
-                                                     null, /* GROUP BY list */
-                                                     null, /* having clause */
-                                                     null, /* windows */
                                                      getContextManager());
 
-        return new UpdateNode( tableName, resultSet, cursorDelete, getContextManager());
+        return new UpdateNode( tableName, resultSet, cursorDelete, null, getContextManager());
     }
 
 
@@ -980,7 +1002,18 @@ public class DeleteNode extends DMLModStatementNode
         }
 
         getCompilerContext().setDataSetProcessorType(dataSetProcessorType);
-        super.optimizeStatement();
+        //
+        // If this is the INSERT/UPDATE/DELETE action of a MERGE statement,
+        // then we don't need to optimize the dummy driving result set, which
+        // is never actually run.
+        //
+        // don't need to optimize the dummy SELECT, which is never actually run
+        if ( !inMatchingClause() )
+        {
+            /* First optimize the query */
+            super.optimizeStatement();
+        }
+
     }
 
     /**

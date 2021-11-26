@@ -1400,12 +1400,16 @@ public abstract class MethodCallNode extends JavaValueNode
     @Override
     public int hashCode() {
         int result = getBaseHashCode();
-        result = 31 * result + javaClassName.hashCode();
-        result = 31 * result + methodName.hashCode();
+        if(javaClassName != null)
+            result = 31 * result + javaClassName.hashCode();
         for (JavaValueNode methodParm : methodParms) {
             result = 31 * result + methodParm.hashCode();
         }
-        return Objects.hash(result, deterministicBuiltInFunctions.contains(methodName.toLowerCase()));
+        if(methodName != null) {
+            result = 31 * result + methodName.hashCode();
+            result = Objects.hash(result, deterministicBuiltInFunctions.contains(methodName.toLowerCase()));
+        }
+        return result;
     }
 
     public boolean isDeterministic() {

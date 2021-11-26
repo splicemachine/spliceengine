@@ -499,13 +499,9 @@ public class SubqueryNode extends ValueNode{
         }
 
         ResultSetNode selectNode = new SelectNode(
-                            selectList,  //ResultColumnList
-                            null,     /* AGGREGATE list */
+                            selectList,  // ResultColumnList
                             newFromList, // FromList of FromSubquery
-                            null,     // whereClause
-                            null,     // groupByList
-                            null,     // havingClause
-                            null,     // windows
+                            null,        // whereClause
                             getContextManager());
         ResultSetNode savedResultSet = resultSet;
         try {

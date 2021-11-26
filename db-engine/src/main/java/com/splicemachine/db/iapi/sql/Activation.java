@@ -96,6 +96,8 @@ public interface Activation extends Dependent, AutoCloseable
      */
     void    reset() throws StandardException;
 
+    void setResultDescription(ResultDescription resultDescription);
+
     /**
      * JDBC requires that all select statements be converted into cursors,
      * and that the cursor name be settable for each execution of a select
@@ -558,6 +560,18 @@ public interface Activation extends Dependent, AutoCloseable
      * of an update/delete to a VTI.
      */
     java.sql.ResultSet getTargetVTI();
+
+    /**
+     * Push a ConstantAction to be returned by getConstantAction().
+     * Returns the newConstantAction.
+     */
+    ConstantAction    pushConstantAction( ConstantAction newConstantAction );
+
+    /**
+     * Pop the ConstantAction stack, returning the element which was just popped
+     * off the stack.
+     */
+    ConstantAction    popConstantAction();
 
     ConstantAction    getConstantAction();
 

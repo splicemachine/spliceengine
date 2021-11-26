@@ -88,6 +88,7 @@ public class UpdateConstantOperation extends WriteCursorConstantOperation {
 	 *  @param numColumns	Number of columns being read.
 	 *  @param positionedUpdate	is this a positioned update
 	 *  @param singleRowSource		Whether or not source is a single row source
+	 *  @param underMerge   True if this is an action of a MERGE statement.
 	 */
 	@SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
 	public	UpdateConstantOperation(long conglomId,
@@ -110,10 +111,11 @@ public class UpdateConstantOperation extends WriteCursorConstantOperation {
 									  int	numColumns,
 									  boolean positionedUpdate,
 									  boolean singleRowSource,
-									  int[] storagePositionArray) {
+									  int[] storagePositionArray,
+									  boolean underMerge) {
 		super(conglomId, heapSCOCI, pkColumns, irgs, indexCIDS, indexSCOCIs, indexNames,
 				deferred,null, targetUUID, lockMode, fkInfo, triggerInfo, emptyHeapRow,
-				baseRowReadList, baseRowReadMap, streamStorableHeapColIds, singleRowSource);
+				baseRowReadList, baseRowReadMap, streamStorableHeapColIds, singleRowSource, underMerge);
 		this.changedColumnIds = changedColumnIds;
 		this.storagePositionIds = storagePositionArray;
 		this.positionedUpdate = positionedUpdate;

@@ -101,7 +101,10 @@ abstract class DMLModStatementNode extends DMLStatementNode
     protected TableName synonymTableName;
     /* Primary Key Column numbers */
     protected int[] pkColumns;
+    protected MatchingClauseNode  matchingClause;
 
+    /** Returns true if this DMLModStatement a [ NOT ] MATCHED action of a MERGE statement */
+    public  boolean inMatchingClause() { return matchingClause != null; }
 
     /**
      * Initializer for a DMLModStatementNode -- delegate to DMLStatementNode
@@ -1376,6 +1379,20 @@ abstract class DMLModStatementNode extends DMLStatementNode
             userExprFun.dup();       // instance (current row)
             userExprFun.push(i + 1); // arg1
 
+            // poke our result set number into all column references in this generation expression
+            // if we're an action of a MERGE statement. that is because the dummy SELECT was not
+            // actually optimized so column references still need result set numbers
+            if ( inMatchingClause() )
+            {
+                CollectNodesVisitor getCRs = new CollectNodesVisitor( ColumnReference.class );
+                rc.accept( getCRs );
+
+                for ( Object cr : getCRs.getList() )
+                {
+                    ((ColumnReference)cr).getSource().setResultSetNumber( rsNumber );
+                }
+            }
+
             rc.generateExpression(ecb, userExprFun);
             userExprFun.cast(ClassName.DataValueDescriptor);
                 
@@ -1410,8 +1427,31 @@ abstract class DMLModStatementNode extends DMLStatementNode
    */
     public void optimizeStatement() throws StandardException
     {
-        /* First optimize the query */
-        super.optimizeStatement();
+        //
+        // If this is the INSERT/UPDATE/DELETE action of a MERGE statement,
+        // then we don't need to optimize the dummy driving result set, which
+        // is never actually run.
+        //
+        // don't need to fully optimize the dummy SELECT, which is never actually run
+        if ( !inMatchingClause() )
+        {
+            /* First optimize the query */
+            super.optimizeStatement();
+        }
+        else if ( this instanceof UpdateNode )
+        {
+            //
+            // However, for UPDATE actions of MERGE statements, we do preprocess the driving SELECT.
+            // This is where the virtual column ids in CHECK constraints are re-mapped to
+            // refer to column positions in the SELECT list rather than in the base table.
+            //
+            resultSet = resultSet.preprocess
+                    (
+                            getCompilerContext().getNumTables(),
+                            null,
+                            (FromList) null
+                    );
+        }
 
         /* In language we always set it to row lock, it's up to store to
          * upgrade it to table lock.  This makes sense for the default read
