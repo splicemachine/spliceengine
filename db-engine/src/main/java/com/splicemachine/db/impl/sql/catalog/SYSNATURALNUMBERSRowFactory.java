@@ -54,7 +54,7 @@ public class SYSNATURALNUMBERSRowFactory extends CatalogRowFactory
     private static final int SYSNATURALNUMBERS_COLUMN_COUNT = 1;
     private static final int SYSNATURALNUMBERS_N = 1;
 
-    private static final int MAX_NUMBER = 2048;
+    public static final int MAX_NUMBER = 2048;
 
     private static final String[] uuids =
     {
