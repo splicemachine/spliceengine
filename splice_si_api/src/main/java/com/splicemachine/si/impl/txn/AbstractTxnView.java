@@ -24,8 +24,7 @@ import com.splicemachine.utils.ByteSlice;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Collections;
-import java.util.Iterator;
+import java.util.*;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;

@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collections;
 
 public class SqlshellIT {
     static final LocalizedResource langUtil = LocalizedResource.getInstance();
@@ -304,14 +305,14 @@ public class SqlshellIT {
     @Test
     public void testRunScript() throws IOException {
         String path = tempDir + "/script.sql";
-        FileWriter f = new FileWriter(path);
-        f.write("-- this is a comment\n" +
-                "values 3;\n" +
-                "-- another comment!\n" +
-                "values 5;\n"
-        );
-        f.flush();
-        f.close();
+        try(OutputStreamWriter f = new OutputStreamWriter(new FileOutputStream(path, true), StandardCharsets.UTF_8)) {
+            f.write("-- this is a comment\n" +
+                    "values 3;\n" +
+                    "-- another comment!\n" +
+                    "values 5;\n"
+            );
+            f.flush();
+        }
 
         execute("run '" + path + "';\n",
                 "splice> -- this is a comment\n" +
@@ -486,6 +487,37 @@ public class SqlshellIT {
                 "4:\tL_LINENUMBER INTEGER NOT NULL,\n" +
                 "5:\tL_QUANTITY DECIMAL(15,2),\n" +
                 ".\n");
+    }
+
+    private final static String uuidReg = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}[ ]*";
+
+    private final static String header =
+            "triggerName [ ]*\\|triggerId [ ]*\\|txnId [ ]*\\|queryId [ ]*\\|parentQueryId  [ ]*\\|timeSpent [ ]*\\|numRowsModified [ ]*\n" +
+                    "--------------------------------------------------------------------------------------------------[-]*\n";
+    // variable columns:              triggerId   |   txnId  |   queryId       |  parentQueryId  | timeSpent
+    private final static String variableColumns = "\\|" + uuidReg + "\\|\\d+\\s*\\|" + uuidReg + "\\|" + uuidReg + "\\|\\d+\\s*\\|";
+    @Test
+    public void testCallGetTriggerExecAll() {
+        int idxMin = 11;
+        int idxMax = 39;
+        int numTriggers = idxMax - idxMin + 1;
+        String row = "TR(([1-3][1-9])|([2-3]0)) [ ]*" + variableColumns + "0 [ ]*\n";
+
+        for (int i = idxMin; i <= idxMax; i++) {
+            execute("CREATE TRIGGER TR" + i + " BEFORE INSERT ON ABC REFERENCING NEW AS NEW FOR EACH ROW values " + i + ";\n");
+        }
+        execute("INSERT INTO ABC VALUES(3);\n");
+
+        String rows = String.join("", Collections.nCopies(numTriggers, row));
+        executeR("CALL SYSCS_UTIL.SYSCS_GET_TRIGGER_EXEC();\n",
+                header + rows +
+                        "\n" +
+                        numTriggers + " rows selected\n");
+
+        for (int i = idxMin; i <= idxMax; i++) {
+            execute("DROP TRIGGER TR" + i + ";\n");
+
+        }
     }
 
     @Test

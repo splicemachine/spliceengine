@@ -119,7 +119,7 @@ public class LazyTxnView implements TxnView {
     @Override
     public Txn.IsolationLevel getIsolationLevel() {
         if(isolationLevel!=null) return isolationLevel;
-        lookup(false); //isolation levl never changes
+        lookup(false); //isolation level never changes
         return delegate.getIsolationLevel();
     }
 
@@ -218,7 +218,7 @@ public class LazyTxnView implements TxnView {
     @Override
     public boolean equivalent(TxnView o) {
         if (this == o) return true;
-        if (!(o instanceof TxnView)) return false;
+        if (o == null) return false;
         if (o instanceof PastTxn) return false;
         return (txnId & SIConstants.TRANSANCTION_ID_MASK) == (o.getTxnId() & SIConstants.TRANSANCTION_ID_MASK);
     }

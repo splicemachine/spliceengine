@@ -85,6 +85,7 @@ import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.concurrent.ConcurrentMap;
 
 import static com.splicemachine.db.iapi.reference.Property.MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED;
 
@@ -405,7 +406,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         List<String> defaultRoles,
         SchemaDescriptor initialDefaultSchemaDescriptor,
         long driverTxnId,
-        Properties connectionProperties
+        Properties connectionProperties,
+        ArrayList<DisplayedTriggerInfo> triggerInfos,
+        ConcurrentMap<com.splicemachine.db.catalog.UUID, String> triggerIdToNameMap,
+        ConcurrentMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap,
+        ConcurrentMap<java.util.UUID, Long> queryIdTxnIdMap
     ) throws StandardException {
         super(cm, ContextId.LANG_CONNECTION);
         acts = new ArrayList<>();
@@ -434,6 +439,13 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         this.activeStateTxId = driverTxnId;
         this.defaultRoles = defaultRoles;
         this.cachedInitialDefaultSchemaDescr = initialDefaultSchemaDescriptor;
+        this.triggerInfos = triggerInfos == null ? new ArrayList<>() : triggerInfos;
+        this.triggerIdToNameMap = triggerIdToNameMap == null ? new ManagedCache<UUID, String>(CacheBuilder.newBuilder().recordStats()
+                .maximumSize(128).build(), 128).asMap() : triggerIdToNameMap;
+        this.queryIdToTriggerInfoMap = queryIdToTriggerInfoMap == null ? new ManagedCache<java.util.UUID, DisplayedTriggerInfo>(CacheBuilder.newBuilder().recordStats()
+                .maximumSize(128).build(), 128).asMap() : queryIdToTriggerInfoMap;
+        this.queryIdTxnIdMap = queryIdTxnIdMap == null ? new ManagedCache<java.util.UUID, Long>(CacheBuilder.newBuilder().recordStats()
+                .maximumSize(128).build(), 128).asMap() : queryIdTxnIdMap;
         if (initialDefaultSchemaDescriptor != null)
             initialDefaultSchemaDescriptor.setDataDictionary(getDataDictionary());
 
@@ -552,7 +564,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
         String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(this, MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
         ignoreCommentOptEnabled = Boolean.valueOf(ignoreCommentOptEnabledStr);
-
     }
 
     private void setSessionFromConnectionProperty(Properties connectionProperties, String connectionPropName, SessionProperties.PROPERTYNAME sessionPropName) {
@@ -568,7 +579,91 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * session.
      */
     private String sessionUser = null;
+    private ArrayList<DisplayedTriggerInfo> triggerInfos = new ArrayList<>();
+    private ConcurrentMap<UUID, String> triggerIdToNameMap = new ManagedCache<UUID, String>(CacheBuilder.newBuilder().recordStats()
+            .maximumSize(128).build(), 128).asMap();
+    private ConcurrentMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap = new ManagedCache<java.util.UUID, DisplayedTriggerInfo>(CacheBuilder.newBuilder().recordStats()
+            .maximumSize(128).build(), 128).asMap();
+    private ConcurrentMap<java.util.UUID, Long> queryIdTxnIdMap = new ManagedCache<java.util.UUID, Long>(CacheBuilder.newBuilder().recordStats()
+                .maximumSize(128).build(), 128).asMap();
+    private ThreadLocal<Stack<java.util.UUID>> threadLocalUUIDStack = new ThreadLocal<>();
 
+    @Override
+    public ConcurrentMap<com.splicemachine.db.catalog.UUID, String> gettriggerIdToNameMap() {
+        return triggerIdToNameMap;
+    }
+
+    @Override
+    public ConcurrentMap<java.util.UUID, DisplayedTriggerInfo> getQueryIdToTriggerInfoMap() {
+        return queryIdToTriggerInfoMap;
+    }
+
+    @Override
+    public ConcurrentMap<java.util.UUID, Long> getQueryIdTxnIdMap() {
+        return queryIdTxnIdMap;
+    }
+
+    @Override
+    public void initTriggerInfo(TriggerDescriptor[] tds, java.util.UUID currentQueryId, long txnId) {
+        if (queryIdTxnIdMap.isEmpty()) {
+            triggerIdToNameMap = new ManagedCache<UUID, String>(CacheBuilder.newBuilder().recordStats()
+                    .maximumSize(128).build(), 128).asMap();
+            queryIdToTriggerInfoMap = new ManagedCache<java.util.UUID, DisplayedTriggerInfo>(CacheBuilder.newBuilder().recordStats()
+                    .maximumSize(128).build(), 128).asMap();
+        }
+
+        if (currentQueryId != null)
+            queryIdTxnIdMap.put(currentQueryId, txnId);
+
+        if (tds != null) {
+            for (TriggerDescriptor td : tds) {
+                triggerIdToNameMap.put(td.getUUID(), td.getName());
+            }
+        }
+    }
+
+
+    public java.util.UUID getThreadLocalUUID() {
+        java.util.UUID currentId = threadLocalUUIDStack.get().peek();
+        threadLocalUUIDStack.get().pop();
+        return currentId;
+    }
+
+    @Override
+    public void addThreadLocalUUID(java.util.UUID threadLocalUUID) {
+        if (this.threadLocalUUIDStack.get() == null) {
+            this.threadLocalUUIDStack.set(new Stack<>());
+        }
+        this.threadLocalUUIDStack.get().push(threadLocalUUID);
+    }
+
+    @Override
+    public ArrayList<DisplayedTriggerInfo> getDisplayedTriggerInfo() {
+        return triggerInfos;
+    }
+
+    @Override
+    public void recordTriggerInfoWhileFiring(UUID triggerId, java.util.UUID parentQueryId) {
+        java.util.UUID currentQueryId = getThreadLocalUUID();
+        Long txnId = queryIdTxnIdMap.get(currentQueryId);
+        String name = triggerIdToNameMap.get(triggerId);
+        queryIdToTriggerInfoMap.put(currentQueryId, new DisplayedTriggerInfo(triggerId, name, txnId, currentQueryId, parentQueryId));
+    }
+
+    @Override
+    public void recordAdditionalDisplayedTriggerInfo(long elapsedTime, long modifiedRows, java.util.UUID queryId) {
+        if (queryIdTxnIdMap == null || queryIdTxnIdMap.isEmpty() || queryId == null || !queryIdTxnIdMap.containsKey(queryId))
+            return;
+        queryIdTxnIdMap.remove(queryId);
+        if (queryIdToTriggerInfoMap.containsKey(queryId)) {
+            queryIdToTriggerInfoMap.get(queryId).setElapsedTime(elapsedTime);
+            queryIdToTriggerInfoMap.get(queryId).setModifiedRowCount(modifiedRows);
+        }
+
+        if (queryIdTxnIdMap.isEmpty()) {
+            triggerInfos = new ArrayList<>(queryIdToTriggerInfoMap.values());
+        }
+    }
     @Override
     public void initialize() throws StandardException{
         interruptedException = null;

@@ -57,6 +57,7 @@ import com.splicemachine.db.iapi.sql.Statement;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionFactory;
+import com.splicemachine.db.iapi.sql.dictionary.DisplayedTriggerInfo;
 import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
@@ -67,11 +68,11 @@ import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
+import com.splicemachine.utils.Pair;
 
 import java.io.Serializable;
-import java.util.Dictionary;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * LanguageConnectionFactory generates all of the items
@@ -164,7 +165,11 @@ public class GenericLanguageConnectionFactory
             List<String> defaultRoles,
             SchemaDescriptor initialDefaultSchemaDescriptor,
             long driverTxnId,
-            Properties sessionProperties) throws StandardException {
+            Properties sessionProperties,
+            ArrayList<DisplayedTriggerInfo> triggerInfos,
+            ConcurrentMap<com.splicemachine.db.catalog.UUID, String> triggerIdToNameMap,
+            ConcurrentMap<java.util.UUID, DisplayedTriggerInfo> queryIdToTriggerInfoMap,
+            ConcurrentMap<java.util.UUID, Long> queryTxnIdSet) throws StandardException {
         return new GenericLanguageConnectionContext(
                 cm,
                 tc,
@@ -188,7 +193,11 @@ public class GenericLanguageConnectionFactory
                 defaultRoles,
                 initialDefaultSchemaDescriptor,
                 driverTxnId,
-                sessionProperties);
+                sessionProperties,
+                triggerInfos,
+                triggerIdToNameMap,
+                queryIdToTriggerInfoMap,
+                queryTxnIdSet);
     }
 
     public Cacheable newCacheable(CacheManager cm) {
