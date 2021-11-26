@@ -24,7 +24,8 @@ CHAOS="false"
 MEMBERS=2
 DEBUG_PATH=""
 
-
+MAX_WAIT_REGION_SERVERS=100 # *2 seconds
+MAX_WAIT_MASTER=200 # *2 seconds
 
 ##################################################################################
 # Function to kill all splice test processes - zoo, SpliceTestPlatform, YARN, and
@@ -64,18 +65,28 @@ function is_port_open
 }
 
 ##################################################################################
-# print message ${1} and wait until port {2} is open
+# print message ${1} and wait until port {2} is open, for max {3}*2 seconds
 ##################################################################################
 function _wait_for_port
 {
   msg=${1}
   port=${2}
+  wait_max=${3}
   echo -n ${msg}
   echo -n " "
   counter=0
   until is_port_open localhost ${port}; do
-    echo -n "${counter} - "
+    if [ ${JENKINS_MODE} ]; then
+      echo "${msg} ${counter}"
+    else
+      echo -n "${counter} - "
+    fi
     counter=$((counter+1))
+
+    if [ ${counter} -ge ${wait_max} ]; then
+       echo "Waited too long, aborting."
+       exit 2
+    fi    
     sleep 2
   done
   echo "done!"
@@ -175,7 +186,7 @@ function _start_region_servers {
 function _wait_for_region_servers {
   if [[ ${MEMBERS} -gt 0 ]]; then
     for (( MEMBER=1; MEMBER<${MEMBERS}; MEMBER++ )); do
-      _wait_for_port "Waiting for Region Server $(($MEMBER +1)) to be ready ..." $(( 1527 + ${MEMBER} ))
+      _wait_for_port "Waiting for Region Server $(($MEMBER +1)) to be ready ..." $(( 1527 + ${MEMBER} )) ${MAX_WAIT_REGION_SERVERS}
     done
   fi
 }
@@ -198,7 +209,31 @@ function _start_master {
 }
 
 function _wait_for_master {
-  _wait_for_port "Waiting for Master to be ready ..." 1527
+
+  msg="Waiting for Master to be ready ..."
+  port=1527
+  wait_max=${MAX_WAIT_MASTER}
+  echo -n ${msg}
+  echo -n " "
+  counter=0
+  until is_port_open localhost ${port}; do
+    if [ ${JENKINS_MODE} ]; then
+      echo "${msg} ${counter}"
+    else
+      echo -n "${counter} - "
+    fi
+    counter=$((counter+1))
+    if [ ${counter} -ge ${wait_max} ]; then
+       echo "Waited too long, aborting."
+       exit 2
+    fi
+    if cat ${SPLICE_LOG} | grep "\[ERROR\] Failed to execute goal" ; then
+      echo "ERROR: Spliceengine couldn't start."
+      exit 2
+    fi
+    sleep 2
+  done
+  echo "done!"
   
 }
 
@@ -234,7 +269,7 @@ function _start_mem
 
 function _wait_for_mem
 {
-  _wait_for_port "Waiting until Mem Platform is ready ..." 1527
+  _wait_for_port "Waiting until Mem Platform is ready ..." 1527 20
 }
 
 export -f _kill_em_all
@@ -263,6 +298,7 @@ function usage
     echo "  -K like k, but will also reset database to clean. Needs some rebuild afterwards (use -l)."
     echo "  -T <n> use -T <n> with maven (build with n threads)."
     echo "  -h => print this message"
+    echo "  -L use linefeeds when waiting (jenkins mode)"
 }
 
 function verify_profiles
@@ -286,7 +322,7 @@ function verify_profiles
    done
 }
 
-while getopts "chkp:s:bld:fT:Ke" flag ; do
+while getopts "chkp:s:bld:fT:KeL" flag ; do
     case $flag in
         h* | \?)
             usage
@@ -338,6 +374,9 @@ while getopts "chkp:s:bld:fT:Ke" flag ; do
         T)
         # number of threads
            MVN_THREADS="-T ${OPTARG}"
+        ;;
+        L)
+          JENKINS_MODE=1
         ;;
         e)
         # enterprise edition

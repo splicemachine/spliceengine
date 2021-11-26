@@ -472,4 +472,13 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
         Assert.assertEquals( "failed asserting the results of sql\n" + query,
                 res, executeToString(query, sort));
     }
+
+    public int executeGetInt(String sql, int index) throws SQLException {
+        try( Statement s = getOrCreateConnection().createStatement();
+             ResultSet rs = s.executeQuery(sql))
+        {
+            Assert.assertTrue(rs.next());
+            return rs.getInt(index);
+        }
+    }
 }
