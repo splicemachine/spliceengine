@@ -732,8 +732,8 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
             String sqlText = "values chr('A')";
             methodWatcher.executeQuery(sqlText);
             Assert.fail("Query is expected to fail with syntax error!");
-        } catch (SQLDataException e) {
-            Assert.assertEquals("22018", e.getSQLState());
+        } catch (SQLException e) {
+            Assert.assertEquals("42Y03", e.getSQLState());
         }
     }
 
@@ -955,7 +955,7 @@ public class SpliceStringFunctionsIT extends SpliceUnitTest {
             methodWatcher.executeQuery(sqlText);
             Assert.fail("Exception not thrown: Cannot convert types 'DECIMAL' to 'VARCHAR'");
         } catch (SQLSyntaxErrorException e) {
-            Assert.assertEquals("42846", e.getSQLState());
+            Assert.assertEquals("42Y03", e.getSQLState());
         }
     }
 

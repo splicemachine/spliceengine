@@ -960,34 +960,35 @@ public interface SQLState {
     String LANG_DB_CLASS_PATH_HAS_MISSING_JAR                          = "42X96";
     String LANG_NO_PARAMS_IN_VIEWS                                     = "42X98";
     String LANG_NO_PARAMS_IN_TABLES                                    = "42X99";
-    String LANG_UNASSIGNABLE_GENERATION_CLAUSE                  = "42XA0";
-    String LANG_AGGREGATE_IN_GENERATION_CLAUSE                  = "42XA1";
-    String LANG_NON_DETERMINISTIC_GENERATION_CLAUSE                  = "42XA2";
-    String LANG_CANT_OVERRIDE_GENERATION_CLAUSE                  = "42XA3";
-    String LANG_CANT_REFERENCE_GENERATED_COLUMN                  = "42XA4";
-    String LANG_ROUTINE_CANT_PERMIT_SQL                                   = "42XA5";
-    String LANG_BAD_FK_ON_GENERATED_COLUMN                           = "42XA6";
-    String LANG_GEN_COL_DEFAULT                                                 = "42XA7";
-    String LANG_GEN_COL_BAD_RENAME                                           = "42XA8";
-    String LANG_NEEDS_DATATYPE                                                      = "42XA9";
-    String LANG_GEN_COL_BEFORE_TRIG                                             = "42XAA";
-    String LANG_NOT_NULL_NEEDS_DATATYPE                                    = "42XAB";
+    String LANG_UNASSIGNABLE_GENERATION_CLAUSE                         = "42XA0";
+    String LANG_AGGREGATE_IN_GENERATION_CLAUSE                         = "42XA1";
+    String LANG_NON_DETERMINISTIC_GENERATION_CLAUSE                    = "42XA2";
+    String LANG_CANT_OVERRIDE_GENERATION_CLAUSE                        = "42XA3";
+    String LANG_CANT_REFERENCE_GENERATED_COLUMN                        = "42XA4";
+    String LANG_ROUTINE_CANT_PERMIT_SQL                                = "42XA5";
+    String LANG_BAD_FK_ON_GENERATED_COLUMN                             = "42XA6";
+    String LANG_GEN_COL_DEFAULT                                        = "42XA7";
+    String LANG_GEN_COL_BAD_RENAME                                     = "42XA8";
+    String LANG_NEEDS_DATATYPE                                         = "42XA9";
+    String LANG_GEN_COL_BEFORE_TRIG                                    = "42XAA";
+    String LANG_NOT_NULL_NEEDS_DATATYPE                                = "42XAB";
     String LANG_SEQ_INCREMENT_ZERO                                     = "42XAC";
     String LANG_SEQ_ARG_OUT_OF_DATATYPE_RANGE                          = "42XAE";
     String LANG_SEQ_MIN_EXCEEDS_MAX                                    = "42XAF";
     String LANG_SEQ_INVALID_START                                      = "42XAG";
-    String LANG_NEXT_VALUE_FOR_ILLEGAL                                      = "42XAH";
-    String LANG_SEQUENCE_REFERENCED_TWICE                                      = "42XAI";
-    String LANG_DUPLICATE_CS_CLAUSE                                      = "42XAJ";
+    String LANG_NEXT_VALUE_FOR_ILLEGAL                                 = "42XAH";
+    String LANG_SEQUENCE_REFERENCED_TWICE                              = "42XAI";
+    String LANG_DUPLICATE_CS_CLAUSE                                    = "42XAJ";
     String LANG_INVALID_USER_AGGREGATE_DEFINITION2                     = "42Y00";
     String LANG_INVALID_CHECK_CONSTRAINT                               = "42Y01";
-    // String LANG_NO_ALTER_TABLE_COMPRESS_ON_TARGET_TABLE                = "42Y02";
+    // String LANG_NO_ALTER_TABLE_COMPRESS_ON_TARGET_TABLE             = "42Y02";
     String LANG_NO_SUCH_METHOD_ALIAS                                   = "42Y03.S.0";
     String LANG_NO_SUCH_PROCEDURE                                      = "42Y03.S.1";
     String LANG_NO_SUCH_FUNCTION                                       = "42Y03.S.2";
+    String LANG_NO_SUCH_PROCEDURE2                                     = "42Y03.S.3";
     String LANG_INVALID_FULL_STATIC_METHOD_NAME                        = "42Y04";
     String LANG_NO_SUCH_FOREIGN_KEY                                    = "42Y05";
-    String LANG_CURRENT_FUNCTION_PATH_SCHEMA_DOES_NOT_EXIST                = "42Y06";
+    String LANG_CURRENT_FUNCTION_PATH_SCHEMA_DOES_NOT_EXIST            = "42Y06";
     String LANG_SCHEMA_DOES_NOT_EXIST                                  = "42Y07";
     String LANG_NO_FK_ON_SYSTEM_SCHEMA                                 = "42Y08";
     String LANG_VOID_METHOD_CALL                                       = "42Y09";
@@ -1003,6 +1004,7 @@ public interface SQLState {
     String LANG_INVALID_CAST                                           = "42846";
     String LANG_INVALID_CAST_TO_CHAR_WITH_LENGTH_NOT_FROM_CHAR             = "42846.A";
     String LANG_INVALID_CAST_TO_CHAR_WITH_FORMAT_NOT_FROM_DATE             = "42846.B";
+    String LANG_INVALID_CAST_EX                                        = "42846.EX";
     //    String LANG_AMBIGUOUS_GROUPING_COLUMN                              = "42Y19"; -- unused post 883.
     //    String LANG_UNMATCHED_GROUPING_COLUMN                            = "42Y20"; -- not used
     String LANG_USER_AGGREGATE_BAD_TYPE                                = "42Y22";
@@ -2109,6 +2111,8 @@ public interface SQLState {
 
     String HBASE_OPERATION_ERROR                                    = "HO001";
 
+    String ERROR_CALL_PARAMETER_COUNT_WRONG = "44004";
+    String ERROR_CALL_PARAMETER_CAST_ERROR = "44005";
 
 }
 

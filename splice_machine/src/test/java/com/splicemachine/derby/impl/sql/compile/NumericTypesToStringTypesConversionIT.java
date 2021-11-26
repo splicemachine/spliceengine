@@ -227,7 +227,7 @@ public class NumericTypesToStringTypesConversionIT extends SpliceUnitTest {
         try {
             methodWatcher.executeQuery("select hex(dc) from test");
         } catch (SQLException e) {
-            assertEquals("42846", e.getSQLState());  // unsupported cast
+            assertEquals("42Y03", e.getSQLState());  // unsupported cast
         }
 
         String expected = "1      |\n" +

@@ -1589,6 +1589,13 @@ Guide.
             </msg>
 
             <msg>
+                <name>42846.EX</name>
+                <text>Could not resolve function or procedure call '{0}':{1}</text>
+                <arg>type</arg>
+                <arg>type</arg>
+            </msg>
+
+            <msg>
                 <name>42846.A</name>
                 <text>Cannot set a length for a cast from '{0}' to '{1}'.</text>
                 <arg>type</arg>
@@ -2463,6 +2470,13 @@ Guide.
             <msg>
                 <name>42Y03.S.2</name>
                 <text>'{0}' is not recognized as a function.</text>
+                <arg>statement</arg>
+            </msg>
+
+            <msg>
+                <name>42Y03.S.3</name>
+                <text>Could not resolve function or procedure call '{0}':{1}</text>
+                <arg>procedureName</arg>
                 <arg>statement</arg>
             </msg>
 
@@ -3480,6 +3494,27 @@ Guide.
                 <text>Timestamp '{0}' is out of range (~ from 21 Sep 1677 00:12:44 GMT to 11 Apr 2262 23:47:16 GMT).</text>
                 <arg>dateOrTimestamp</arg>
             </msg>
+
+            <msg>
+                <name>44004</name>
+                <text>- Parameter count is wrong (provided {0}, but needs {1})
+  for {2}
+</text>
+                <arg>providedParameterCount</arg>
+                <arg>needsParameterCount</arg>
+                <arg>routineInfo</arg>
+            </msg>
+
+            <msg>
+                <name>44005</name>
+                <text>- ERROR for parameter {0}: {1}:
+  for {2}
+</text>
+                <arg>parameterNumber</arg>
+                <arg>errorMsg</arg>
+                <arg>routineInfo</arg>
+            </msg>
+
         </family>
 
 
